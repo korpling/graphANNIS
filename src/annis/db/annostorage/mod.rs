@@ -9,6 +9,9 @@ pub trait AnnotationStorage<T>: Send + Sync
 where
     T: Send + Sync,
 {
+    /// Insert an annotation `anno` (with annotation key and value) for an item `item`.
+    fn insert(&mut self, item: T, anno: Annotation);
+
     /// Get all annotations for an `item` (node or edge).
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
 
@@ -97,5 +100,4 @@ where
     /// Get all the annotation keys which are part of this annotation storage
     fn annotation_keys(&self) -> Vec<AnnoKey>;
 }
-
 pub use inmemory::AnnoStorageImpl as AnnoStorage;

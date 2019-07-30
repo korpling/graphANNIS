@@ -211,6 +211,10 @@ where
 }
 
 impl AnnotationStorage<NodeID> for Graph {
+    fn insert(&mut self, item: NodeID, anno: Annotation) {
+        Arc::make_mut(&mut self.node_annos).insert(item, anno);
+    }
+
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
         self.node_annos.get_annotations_for_item(item)
     }

@@ -100,71 +100,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
         }
     }
 
-    pub fn insert(&mut self, item: T, anno: Annotation) {
-        let orig_anno_key = anno.key.clone();
-        let anno = self.create_sparse_anno(anno);
-
-        let existing_anno = {
-            let existing_item_entry = self
-                .by_container
-                .entry(item.clone())
-                .or_insert_with(Vec::new);
-
-            // check if there is already an item with the same annotation key
-            let existing_entry_idx = existing_item_entry.binary_search_by_key(&anno.key, |a| a.key);
-
-            if let Ok(existing_entry_idx) = existing_entry_idx {
-                let orig_anno = existing_item_entry[existing_entry_idx].clone();
-                // abort if the same annotation key with the same value already exist
-                if orig_anno.val == anno.val {
-                    return;
-                }
-                // insert annotation for item at existing position
-                existing_item_entry[existing_entry_idx] = anno.clone();
-                Some(orig_anno)
-            } else if let Err(insertion_idx) = existing_entry_idx {
-                // insert at sorted position -> the result will still be a sorted vector
-                existing_item_entry.insert(insertion_idx, anno.clone());
-                None
-            } else {
-                None
-            }
-        };
-
-        if let Some(ref existing_anno) = existing_anno {
-            // remove the relation from the original annotation to this item
-            self.remove_element_from_by_anno(existing_anno, &item);
-        }
-
-        // inserts a new relation between the annotation and the item
-        // if set is not existing yet it is created
-        self.by_anno
-            .entry(anno.key)
-            .or_insert_with(FxHashMap::default)
-            .entry(anno.val)
-            .or_insert_with(Vec::default)
-            .push(item.clone());
-
-        if existing_anno.is_none() {
-            // a new annotation entry was inserted and did not replace an existing one
-            self.total_number_of_annos += 1;
-
-            if let Some(largest_item) = self.largest_item.clone() {
-                if largest_item < item {
-                    self.largest_item = Some(item);
-                }
-            } else {
-                self.largest_item = Some(item);
-            }
-
-            let anno_key_entry = self
-                .anno_key_sizes
-                .entry(orig_anno_key.clone())
-                .or_insert(0);
-            *anno_key_entry += 1;
-        }
-    }
-
     fn check_and_remove_value_symbol(&mut self, value_id: usize) {
         let mut still_used = false;
         for values in self.by_anno.values() {
@@ -459,6 +394,71 @@ where
         + Sync,
     (T, AnnoKeyID): Into<Match>,
 {
+    fn insert(&mut self, item: T, anno: Annotation) {
+        let orig_anno_key = anno.key.clone();
+        let anno = self.create_sparse_anno(anno);
+
+        let existing_anno = {
+            let existing_item_entry = self
+                .by_container
+                .entry(item.clone())
+                .or_insert_with(Vec::new);
+
+            // check if there is already an item with the same annotation key
+            let existing_entry_idx = existing_item_entry.binary_search_by_key(&anno.key, |a| a.key);
+
+            if let Ok(existing_entry_idx) = existing_entry_idx {
+                let orig_anno = existing_item_entry[existing_entry_idx].clone();
+                // abort if the same annotation key with the same value already exist
+                if orig_anno.val == anno.val {
+                    return;
+                }
+                // insert annotation for item at existing position
+                existing_item_entry[existing_entry_idx] = anno.clone();
+                Some(orig_anno)
+            } else if let Err(insertion_idx) = existing_entry_idx {
+                // insert at sorted position -> the result will still be a sorted vector
+                existing_item_entry.insert(insertion_idx, anno.clone());
+                None
+            } else {
+                None
+            }
+        };
+
+        if let Some(ref existing_anno) = existing_anno {
+            // remove the relation from the original annotation to this item
+            self.remove_element_from_by_anno(existing_anno, &item);
+        }
+
+        // inserts a new relation between the annotation and the item
+        // if set is not existing yet it is created
+        self.by_anno
+            .entry(anno.key)
+            .or_insert_with(FxHashMap::default)
+            .entry(anno.val)
+            .or_insert_with(Vec::default)
+            .push(item.clone());
+
+        if existing_anno.is_none() {
+            // a new annotation entry was inserted and did not replace an existing one
+            self.total_number_of_annos += 1;
+
+            if let Some(largest_item) = self.largest_item.clone() {
+                if largest_item < item {
+                    self.largest_item = Some(item);
+                }
+            } else {
+                self.largest_item = Some(item);
+            }
+
+            let anno_key_entry = self
+                .anno_key_sizes
+                .entry(orig_anno_key.clone())
+                .or_insert(0);
+            *anno_key_entry += 1;
+        }
+    }
+
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
         if let Some(all_annos) = self.by_container.get(item) {
             let mut result: Vec<Annotation> = Vec::with_capacity(all_annos.len());
