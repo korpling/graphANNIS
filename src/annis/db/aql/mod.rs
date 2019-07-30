@@ -28,90 +28,10 @@ fn map_conjunction<'a>(
 ) -> Result<Conjunction<'a>> {
     let mut q = Conjunction::with_offset(var_idx_offset);
     // collect and sort all node searches according to their start position in the text
-    let mut pos_to_node: BTreeMap<usize, (NodeSearchSpec, Option<String>)> = BTreeMap::default();
-
-    let mut pos_to_endpos: BTreeMap<usize, usize> = BTreeMap::default();
-
-    for literal in &c {
-        match literal {
-            ast::Literal::NodeSearch {
-                spec,
-                pos,
-                variable,
-            } => {
-                if let Some(pos) = pos {
-                    pos_to_node.insert(pos.start, (spec.clone(), variable.clone()));
-                    pos_to_endpos.insert(pos.start, pos.end);
-                }
-            }
-            ast::Literal::BinaryOp { lhs, rhs, .. } => {
-                if let ast::Operand::Literal {
-                    spec,
-                    pos,
-                    variable,
-                } = lhs
-                {
-                    pos_to_node
-                        .entry(pos.start)
-                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
-                    pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
-                }
-                if let ast::Operand::Literal {
-                    spec,
-                    pos,
-                    variable,
-                } = rhs
-                {
-                    pos_to_node
-                        .entry(pos.start)
-                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
-                    pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
-                }
-            }
-            ast::Literal::UnaryOp { .. } => {
-                // can only have node reference, not a literal
-            }
-            ast::Literal::LegacyMetaSearch { pos, .. } => {
-                if !quirks_mode {
-                    let start = get_line_and_column_for_pos(pos.start, &offsets);
-                    let end = Some(get_line_and_column_for_pos(
-                        pos.start + "meta::".len() - 1,
-                        &offsets,
-                    ));
-                    return Err(Error::AQLSyntaxError {
-                        desc: "Legacy metadata search is no longer allowed. Use the @* operator and normal attribute search instead.".into(),
-                        location: Some(LineColumnRange {start, end}),
-                    });
-                }
-            }
-        };
-    }
+    let (pos_to_node, pos_to_endpos) = calculate_node_positions(&c, offsets, quirks_mode)?;
 
     // add all nodes specs in order of their start position
-    let mut first_node_pos: Option<String> = None;
-
-    let mut pos_to_node_id: BTreeMap<usize, String> = BTreeMap::default();
-    for (start_pos, (node_spec, variable)) in pos_to_node {
-        let variable = variable.as_ref().map(|s| &**s);
-
-        let start = get_line_and_column_for_pos(start_pos, &offsets);
-        let end = if let Some(end_pos) = pos_to_endpos.get(&start_pos) {
-            Some(get_line_and_column_for_pos(*end_pos, &offsets))
-        } else {
-            None
-        };
-
-        let idx = q.add_node_from_query(
-            node_spec,
-            variable,
-            Some(LineColumnRange { start, end }),
-            true,
-        );
-        pos_to_node_id.insert(start_pos, idx.clone());
-        if first_node_pos.is_none() {
-            first_node_pos = Some(idx);
-        }
-    }
+    let mut pos_to_node_id = add_node_specs_by_start(&mut q, pos_to_node, pos_to_endpos, offsets)?;
 
     // add all unary operators as filter(s) to the referenced nodes
     for literal in c.iter() {
@@ -227,6 +147,105 @@ fn map_conjunction<'a>(
     }
 
     Ok(q)
+}
+
+fn calculate_node_positions(
+    c: &[ast::Literal],
+    offsets: &BTreeMap<usize, usize>,
+    quirks_mode: bool,
+) -> Result<(
+    BTreeMap<usize, (NodeSearchSpec, Option<String>)>,
+    BTreeMap<usize, usize>,
+)> {
+    let mut pos_to_node: BTreeMap<usize, (NodeSearchSpec, Option<String>)> = BTreeMap::default();
+    let mut pos_to_endpos: BTreeMap<usize, usize> = BTreeMap::default();
+
+    for literal in c {
+        match literal {
+            ast::Literal::NodeSearch {
+                spec,
+                pos,
+                variable,
+            } => {
+                if let Some(pos) = pos {
+                    pos_to_node.insert(pos.start, (spec.clone(), variable.clone()));
+                    pos_to_endpos.insert(pos.start, pos.end);
+                }
+            }
+            ast::Literal::BinaryOp { lhs, rhs, .. } => {
+                if let ast::Operand::Literal {
+                    spec,
+                    pos,
+                    variable,
+                } = lhs
+                {
+                    pos_to_node
+                        .entry(pos.start)
+                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
+                    pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
+                }
+                if let ast::Operand::Literal {
+                    spec,
+                    pos,
+                    variable,
+                } = rhs
+                {
+                    pos_to_node
+                        .entry(pos.start)
+                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
+                    pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
+                }
+            }
+            ast::Literal::UnaryOp { .. } => {
+                // can only have node reference, not a literal
+            }
+            ast::Literal::LegacyMetaSearch { pos, .. } => {
+                if !quirks_mode {
+                    let start = get_line_and_column_for_pos(pos.start, &offsets);
+                    let end = Some(get_line_and_column_for_pos(
+                        pos.start + "meta::".len() - 1,
+                        &offsets,
+                    ));
+                    return Err(Error::AQLSyntaxError {
+                        desc: "Legacy metadata search is no longer allowed. Use the @* operator and normal attribute search instead.".into(),
+                        location: Some(LineColumnRange {start, end}),
+                    });
+                }
+            }
+        };
+    }
+
+    Ok((pos_to_node, pos_to_endpos))
+}
+
+fn add_node_specs_by_start<'a>(
+    q: &mut Conjunction<'a>,
+    pos_to_node: BTreeMap<usize, (NodeSearchSpec, Option<String>)>,
+    pos_to_endpos: BTreeMap<usize, usize>,
+    offsets: &BTreeMap<usize, usize>,
+) -> Result<BTreeMap<usize, String>> {
+    
+    let mut pos_to_node_id: BTreeMap<usize, String> = BTreeMap::default();
+    for (start_pos, (node_spec, variable)) in pos_to_node {
+        let variable = variable.as_ref().map(|s| &**s);
+
+        let start = get_line_and_column_for_pos(start_pos, &offsets);
+        let end = if let Some(end_pos) = pos_to_endpos.get(&start_pos) {
+            Some(get_line_and_column_for_pos(*end_pos, &offsets))
+        } else {
+            None
+        };
+
+        let idx = q.add_node_from_query(
+            node_spec,
+            variable,
+            Some(LineColumnRange { start, end }),
+            true,
+        );
+        pos_to_node_id.insert(start_pos, idx.clone());
+    }
+
+    Ok(pos_to_node_id)
 }
 
 fn add_legacy_metadata_constraints(
@@ -397,10 +416,7 @@ pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a
                     desc.push_str(&expected.join(","));
                 }
             }
-            Err(Error::AQLSyntaxError {
-                desc,
-                location,
-            })
+            Err(Error::AQLSyntaxError { desc, location })
         }
     }
 }
