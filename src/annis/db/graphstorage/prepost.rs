@@ -193,7 +193,7 @@ where
             };
 
             let it = start_orders
-                .into_iter()
+                .iter()
                 .flat_map(move |root_order: &PrePost<OrderT, LevelT>| {
                     let start = root_order.pre.to_usize().unwrap_or(0);
                     let end = root_order
@@ -252,7 +252,7 @@ where
             };
 
             let it = start_orders
-                .into_iter()
+                .iter()
                 .flat_map(move |root_order: &PrePost<OrderT, LevelT>| {
                     let root_pre = root_order.pre.clone().to_usize().unwrap_or(0);
                     let root_post = root_order
