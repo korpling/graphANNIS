@@ -652,14 +652,12 @@ where
                 })
                 .map(move |item| item.into());
             return Box::new(it);
+        } else if negated {
+             // return all values
+            return self.exact_anno_search(namespace, name, None.into());
         } else {
-            if negated {
-                // return all values
-                return self.exact_anno_search(namespace, name, None.into());
-            } else {
-                // if regular expression pattern is invalid return empty iterator
-                return Box::new(std::iter::empty());
-            }
+            // if regular expression pattern is invalid return empty iterator
+            return Box::new(std::iter::empty());
         }
     }
 
