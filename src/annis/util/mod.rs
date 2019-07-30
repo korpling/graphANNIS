@@ -57,7 +57,7 @@ impl From<SearchDefRaw> for SearchDef {
             aql: orig.aql,
             count: orig.count,
             name: orig.name,
-            corpus: orig.corpus.split(",").map(|s| s.to_string()).collect(),
+            corpus: orig.corpus.split(',').map(|s| s.to_string()).collect(),
         }
     }
 }
