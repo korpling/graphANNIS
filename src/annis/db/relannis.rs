@@ -143,7 +143,8 @@ where
 
         let mut db = Graph::with_default_graphstorages()?;
         let mut updater = ChunkUpdater::new(&mut db, 1_000_000);
-        let load_node_and_corpus_result = load_node_and_corpus_tables(&path, &mut updater, is_annis_33, &progress_callback)?;
+        let load_node_and_corpus_result =
+            load_node_and_corpus_tables(&path, &mut updater, is_annis_33, &progress_callback)?;
         {
             let text_coverage_edges = load_edge_tables(
                 &path,
@@ -444,7 +445,7 @@ fn add_automatic_cov_edge_for_node<F>(
     n: NodeID,
     left_pos: TextProperty,
     right_pos: TextProperty,
-    load_node_and_corpus_result : &LoadNodeAndCorpusResult,
+    load_node_and_corpus_result: &LoadNodeAndCorpusResult,
     text_coverage_edges: &BTreeSet<Edge>,
     progress_callback: &F,
 ) -> Result<()>
@@ -452,11 +453,13 @@ where
     F: Fn(&str) -> (),
 {
     // find left/right aligned basic token
-    let left_aligned_tok = load_node_and_corpus_result.textpos_table
+    let left_aligned_tok = load_node_and_corpus_result
+        .textpos_table
         .token_by_left_textpos
         .get(&left_pos)
         .ok_or_else(|| format!("Can't get left-aligned token for node {}", n,));
-    let right_aligned_tok = load_node_and_corpus_result.textpos_table
+    let right_aligned_tok = load_node_and_corpus_result
+        .textpos_table
         .token_by_right_textpos
         .get(&right_pos)
         .ok_or_else(|| format!("Can't get right-aligned token for node {}", n,));
@@ -474,7 +477,8 @@ where
         left_aligned_tok
     };
 
-    let left_tok_pos = load_node_and_corpus_result.textpos_table
+    let left_tok_pos = load_node_and_corpus_result
+        .textpos_table
         .token_to_index
         .get(&left_aligned_tok)
         .ok_or_else(|| {
@@ -483,7 +487,8 @@ where
                 left_aligned_tok
             )
         })?;
-    let right_tok_pos = load_node_and_corpus_result.textpos_table
+    let right_tok_pos = load_node_and_corpus_result
+        .textpos_table
         .token_to_index
         .get(&right_aligned_tok)
         .ok_or_else(|| {
@@ -500,7 +505,8 @@ where
             text_id: left_tok_pos.text_id,
             val: i,
         };
-        let tok_id = load_node_and_corpus_result.textpos_table
+        let tok_id = load_node_and_corpus_result
+            .textpos_table
             .token_by_index
             .get(&tok_idx)
             .ok_or_else(|| format!("Can't get token ID for position {:?}", tok_idx))?;
@@ -536,8 +542,13 @@ where
 
                 updater.add_event(
                     UpdateEvent::AddEdge {
-                        source_node: load_node_and_corpus_result.id_to_node_name.get(&n).ok_or("Missing node name")?.clone(),
-                        target_node: load_node_and_corpus_result.id_to_node_name
+                        source_node: load_node_and_corpus_result
+                            .id_to_node_name
+                            .get(&n)
+                            .ok_or("Missing node name")?
+                            .clone(),
+                        target_node: load_node_and_corpus_result
+                            .id_to_node_name
                             .get(tok_id)
                             .ok_or("Missing node name")?
                             .clone(),
@@ -557,7 +568,7 @@ where
 
 fn calculate_automatic_coverage_edges<F>(
     updater: &mut ChunkUpdater,
-    load_node_and_corpus_result : &LoadNodeAndCorpusResult,
+    load_node_and_corpus_result: &LoadNodeAndCorpusResult,
     text_coverage_edges: &BTreeSet<Edge>,
     progress_callback: &F,
 ) -> Result<()>
@@ -567,15 +578,25 @@ where
     // add explicit coverage edges for each node in the special annis namespace coverage component
     progress_callback("calculating the automatically generated Coverage edges");
 
-    for (n, textprop) in load_node_and_corpus_result.textpos_table.node_to_left.iter() {
-        if textprop.segmentation == "" && !load_node_and_corpus_result.textpos_table.token_to_index.contains_key(&n) {
+    for (n, textprop) in load_node_and_corpus_result
+        .textpos_table
+        .node_to_left
+        .iter()
+    {
+        if textprop.segmentation == ""
+            && !load_node_and_corpus_result
+                .textpos_table
+                .token_to_index
+                .contains_key(&n)
+        {
             let left_pos = TextProperty {
                 segmentation: String::from(""),
                 corpus_id: textprop.corpus_id,
                 text_id: textprop.text_id,
                 val: textprop.val,
             };
-            let right_pos = load_node_and_corpus_result.textpos_table
+            let right_pos = load_node_and_corpus_result
+                .textpos_table
                 .node_to_right
                 .get(&n)
                 .ok_or_else(|| format!("Can't get right position of node {}", n))?;
@@ -1266,7 +1287,7 @@ fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
 fn add_subcorpora<F>(
     updater: &mut ChunkUpdater,
     corpus_table: &ParsedCorpusTable,
-    node_node_result : &LoadNodeResult,
+    node_node_result: &LoadNodeResult,
     texts: &HashMap<TextKey, Text>,
     corpus_id_to_annos: &MultiMap<u32, Annotation>,
     is_annis_33: bool,
@@ -1430,7 +1451,11 @@ where
                 for n in n_vec {
                     updater.add_event(
                         UpdateEvent::AddEdge {
-                            source_node: node_node_result.id_to_node_name.get(n).ok_or("Missing node name")?.clone(),
+                            source_node: node_node_result
+                                .id_to_node_name
+                                .get(n)
+                                .ok_or("Missing node name")?
+                                .clone(),
                             target_node: text_full_name.clone(),
                             layer: ANNIS_NS.to_owned(),
                             component_type: ComponentType::PartOf.to_string(),

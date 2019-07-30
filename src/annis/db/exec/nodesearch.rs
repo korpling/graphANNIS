@@ -492,7 +492,7 @@ impl<'a> NodeSearch<'a> {
         pattern: &str,
         negated: bool,
         is_meta: bool,
-        node_desc_arg : super::NodeDescArg,
+        node_desc_arg: super::NodeDescArg,
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         // match_regex works only with values
@@ -587,10 +587,7 @@ impl<'a> NodeSearch<'a> {
 
         Ok(NodeSearch {
             it: Box::new(it),
-            desc: Some(Desc::empty_with_fragment(
-                node_desc_arg,
-                Some(est_output),
-            )),
+            desc: Some(Desc::empty_with_fragment(node_desc_arg, Some(est_output))),
             node_search_desc: Arc::new(NodeSearchDesc {
                 qname: (qname.0, Some(qname.1)),
                 cond: filters,

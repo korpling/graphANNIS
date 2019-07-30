@@ -156,10 +156,7 @@ fn calculate_node_positions(
     c: &[ast::Literal],
     offsets: &BTreeMap<usize, usize>,
     quirks_mode: bool,
-) -> Result<(
-    PosToNodeMap,
-    PosToEndPosMap,
-)> {
+) -> Result<(PosToNodeMap, PosToEndPosMap)> {
     let mut pos_to_node = BTreeMap::default();
     let mut pos_to_endpos = BTreeMap::default();
 
@@ -227,7 +224,6 @@ fn add_node_specs_by_start<'a>(
     pos_to_endpos: BTreeMap<usize, usize>,
     offsets: &BTreeMap<usize, usize>,
 ) -> Result<BTreeMap<usize, String>> {
-    
     let mut pos_to_node_id: BTreeMap<usize, String> = BTreeMap::default();
     for (start_pos, (node_spec, variable)) in pos_to_node {
         let variable = variable.as_ref().map(|s| &**s);
