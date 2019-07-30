@@ -1,4 +1,4 @@
 mod inmemory;
 mod symboltable;
 
-pub use inmemory::AnnoStorage;
+pub use inmemory::AnnoStorageImpl as AnnoStorage;

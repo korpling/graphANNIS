@@ -28,7 +28,7 @@ struct SparseAnnotation {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, MallocSizeOf)]
-pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
+pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
     by_container: FxHashMap<T, Vec<SparseAnnotation>>,
     /// A map from an annotation key symbol to a map of all its values to the items having this value for the annotation key
     by_anno: FxHashMap<usize, FxHashMap<usize, Vec<T>>>,
@@ -45,9 +45,9 @@ pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
     total_number_of_annos: usize,
 }
 
-impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStorage<T> {
-    pub fn new() -> AnnoStorage<T> {
-        AnnoStorage {
+impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStorageImpl<T> {
+    pub fn new() -> AnnoStorageImpl<T> {
+        AnnoStorageImpl {
             by_container: FxHashMap::default(),
             by_anno: FxHashMap::default(),
             anno_keys: SymbolTable::new(),
@@ -446,7 +446,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
     }
 }
 
-impl<'de, T> AnnotationStorage<T> for AnnoStorage<T>
+impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
 where
     T: Ord
         + Hash
@@ -775,7 +775,7 @@ where
     }
 }
 
-impl AnnoStorage<Edge> {
+impl AnnoStorageImpl<Edge> {
     pub fn after_deserialization(&mut self) {
         self.anno_keys.after_deserialization();
         self.anno_values.after_deserialization();
@@ -797,7 +797,7 @@ mod tests {
             },
             val: "test".to_owned(),
         };
-        let mut a: AnnoStorage<NodeID> = AnnoStorage::new();
+        let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
         a.insert(1, test_anno.clone());
         a.insert(1, test_anno.clone());
         a.insert(2, test_anno.clone());
@@ -845,7 +845,7 @@ mod tests {
             val: "test".to_owned(),
         };
 
-        let mut a: AnnoStorage<NodeID> = AnnoStorage::new();
+        let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
         a.insert(1, test_anno1.clone());
         a.insert(1, test_anno2.clone());
         a.insert(1, test_anno3.clone());
@@ -869,7 +869,7 @@ mod tests {
             },
             val: "test".to_owned(),
         };
-        let mut a: AnnoStorage<NodeID> = AnnoStorage::new();
+        let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
         a.insert(1, test_anno.clone());
 
         assert_eq!(1, a.number_of_annotations());
