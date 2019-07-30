@@ -173,13 +173,13 @@ impl BinaryOperator for Near {
         };
 
         self.gs_order.is_connected(
-            &start_end_forward.0,
-            &start_end_forward.1,
+            start_end_forward.0,
+            start_end_forward.1,
             self.spec.dist.min_dist(),
             self.spec.dist.max_dist(),
         ) || self.gs_order.is_connected(
-            &start_end_backward.1,
-            &start_end_backward.0,
+            start_end_backward.1,
+            start_end_backward.0,
             self.spec.dist.min_dist(),
             self.spec.dist.max_dist(),
         )
