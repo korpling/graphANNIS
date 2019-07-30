@@ -302,8 +302,8 @@ impl<'a> Conjunction<'a> {
 
         self.binary_operators.push(BinaryOperatorSpecEntry {
             op,
-            idx_left: idx_left,
-            idx_right: idx_right,
+            idx_left,
+            idx_right,
             global_reflexivity,
         });
         return Ok(());
