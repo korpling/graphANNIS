@@ -104,7 +104,7 @@ fn compare_string(s1: &str, s2: &str, collation: CollationType) -> std::cmp::Ord
             } else if s1 > s2 {
                 return std::cmp::Ordering::Greater;
             }
-            return std::cmp::Ordering::Equal;
+            std::cmp::Ordering::Equal
         }
         CollationType::Locale => {
             let cmp = unsafe {
@@ -113,11 +113,11 @@ fn compare_string(s1: &str, s2: &str, collation: CollationType) -> std::cmp::Ord
                 libc::strcoll(c_s1.as_ptr(), c_s2.as_ptr())
             };
             if cmp < 0 {
-                return std::cmp::Ordering::Less;
+                std::cmp::Ordering::Less
             } else if cmp > 0 {
-                return std::cmp::Ordering::Greater;
+                std::cmp::Ordering::Greater
             } else {
-                return std::cmp::Ordering::Equal;
+                std::cmp::Ordering::Equal
             }
         }
     }
