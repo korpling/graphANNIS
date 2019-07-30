@@ -45,16 +45,12 @@ fn calculate_outputsize(
 }
 
 pub struct NodeDescArg {
-    query_fragment : String,
-    node_nr : usize,
-
+    query_fragment: String,
+    node_nr: usize,
 }
 
 impl Desc {
-    pub fn empty_with_fragment(
-        node_desc_arg : NodeDescArg,
-        est_size: Option<usize>,
-    ) -> Desc {
+    pub fn empty_with_fragment(node_desc_arg: NodeDescArg, est_size: Option<usize>) -> Desc {
         let mut node_pos = BTreeMap::new();
         node_pos.insert(node_desc_arg.node_nr, 0);
 
