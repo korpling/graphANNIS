@@ -124,7 +124,8 @@ impl<T> From<Option<T>> for ValueSearch<T> {
 }
 
 /// Access annotations for nodes or edges.
-pub trait AnnotationStorage<T> {
+pub trait AnnotationStorage<T> : Send + Sync
+    where T : Send + Sync {
     /// Get all annotations for an `item` (node or edge).
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
 

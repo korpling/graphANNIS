@@ -1,4 +1,3 @@
-use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
 use crate::annis::db::AnnotationStorage;
@@ -26,7 +25,7 @@ struct BaseEdgeOpSpec {
 struct BaseEdgeOp {
     gs: Vec<Arc<GraphStorage>>,
     spec: BaseEdgeOpSpec,
-    node_annos: Arc<AnnoStorage<NodeID>>,
+    node_annos: Arc<AnnotationStorage<NodeID>>,
     node_type_key: AnnoKey,
     inverse: bool,
 }

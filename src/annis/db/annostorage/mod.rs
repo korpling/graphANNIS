@@ -544,7 +544,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
 
 impl<'de, T> AnnotationStorage<T> for AnnoStorage<T>
 where
-    T: Ord + Hash + MallocSizeOf + Default + Clone + serde::Serialize + serde::Deserialize<'de>,
+    T: Ord + Hash + MallocSizeOf + Default + Clone + serde::Serialize + serde::Deserialize<'de> + Send + Sync,
     (T, AnnoKeyID): Into<Match>,
 {
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
