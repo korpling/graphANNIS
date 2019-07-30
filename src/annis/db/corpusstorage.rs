@@ -1110,9 +1110,7 @@ impl CorpusStorage {
         };
         results.extend(base_it.skip(offset).take(limit).map(|m: Vec<Match>| {
             let mut match_desc: Vec<String> = Vec::new();
-            for i in 0..m.len() {
-                let singlematch: &Match = &m[i];
-
+            for (i, singlematch) in m.iter().enumerate() {
                 // check if query node actually should be included in quirks mode
                 let include_in_output = if quirks_mode {
                     if let Some(var) = prep.query.get_variable_by_pos(i) {
