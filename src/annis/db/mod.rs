@@ -1186,7 +1186,7 @@ impl Graph {
             // copy to writable implementation if needed
             let is_writable = {
                 Arc::get_mut(&mut loaded_comp)
-                    .ok_or(format!(
+                    .ok_or_else(|| format!(
                         "Could not get mutable reference for component {}",
                         c
                     ))?
@@ -1247,16 +1247,16 @@ impl Graph {
         let entry: &mut Arc<GraphStorage> = self
             .components
             .get_mut(c)
-            .ok_or(format!(
+            .ok_or_else(|| format!(
                 "Could not get mutable reference for component {}",
                 c
             ))?
             .as_mut()
-            .ok_or(format!(
+            .ok_or_else(|| format!(
                 "Could not get mutable reference to optional value for component {}",
                 c
             ))?;
-        let gs_mut_ref: &mut GraphStorage = Arc::get_mut(entry).ok_or(format!(
+        let gs_mut_ref: &mut GraphStorage = Arc::get_mut(entry).ok_or_else(|| format!(
             "Could not get mutable reference for component {}",
             c
         ))?;
