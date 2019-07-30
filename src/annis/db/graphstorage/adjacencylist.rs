@@ -1,5 +1,5 @@
 use super::*;
-use crate::annis::db::annostorage::AnnoStorage;
+use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::types::Edge;
@@ -14,7 +14,7 @@ use bincode;
 pub struct AdjacencyListStorage {
     edges: FxHashMap<NodeID, Vec<NodeID>>,
     inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,
-    annos: AnnoStorage<Edge>,
+    annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
 }
 
@@ -42,7 +42,7 @@ impl AdjacencyListStorage {
         AdjacencyListStorage {
             edges: FxHashMap::default(),
             inverse_edges: FxHashMap::default(),
-            annos: AnnoStorage::new(),
+            annos: AnnoStorageImpl::new(),
             stats: None,
         }
     }

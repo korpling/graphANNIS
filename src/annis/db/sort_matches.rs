@@ -1,4 +1,3 @@
-use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::AnnotationStorage;
@@ -19,7 +18,7 @@ pub enum CollationType {
 pub fn compare_matchgroup_by_text_pos(
     m1: &[Match],
     m2: &[Match],
-    node_annos: &AnnoStorage<NodeID>,
+    node_annos: &AnnotationStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&GraphStorage>,
     collation: CollationType,
@@ -134,7 +133,7 @@ lazy_static! {
 pub fn compare_match_by_text_pos(
     m1: &Match,
     m2: &Match,
-    node_annos: &AnnoStorage<NodeID>,
+    node_annos: &AnnotationStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&GraphStorage>,
     collation: CollationType,

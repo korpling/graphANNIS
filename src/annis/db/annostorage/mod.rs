@@ -1,4 +1,4 @@
-mod inmemory;
+pub mod inmemory;
 mod symboltable;
 
 use crate::annis::db::{Match, ValueSearch};
@@ -120,4 +120,3 @@ where
 
     fn calculate_statistics(&mut self);
 }
-pub use inmemory::AnnoStorageImpl as AnnoStorage;

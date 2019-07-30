@@ -89,7 +89,7 @@ impl<'a> AnyTokenSearch<'a> {
                 sort_matches::compare_match_by_text_pos(
                     b,
                     a,
-                    &self.db.node_annos,
+                    self.db.node_annos.as_ref(),
                     self.token_helper.as_ref(),
                     self.order_gs,
                     CollationType::Default,

@@ -7,7 +7,7 @@ use std::clone::Clone;
 use std::ops::Bound::*;
 
 use super::{GraphStatistic, GraphStorage};
-use crate::annis::db::annostorage::AnnoStorage;
+use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
 use crate::annis::db::Match;
@@ -41,7 +41,7 @@ enum OrderVecEntry<OrderT, LevelT> {
 pub struct PrePostOrderStorage<OrderT: NumValue, LevelT: NumValue> {
     node_to_order: FxHashMap<NodeID, Vec<PrePost<OrderT, LevelT>>>,
     order_to_node: Vec<OrderVecEntry<OrderT, LevelT>>,
-    annos: AnnoStorage<Edge>,
+    annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
 }
 
@@ -69,7 +69,7 @@ where
         PrePostOrderStorage {
             node_to_order: FxHashMap::default(),
             order_to_node: Vec::new(),
-            annos: AnnoStorage::new(),
+            annos: AnnoStorageImpl::new(),
             stats: None,
         }
     }

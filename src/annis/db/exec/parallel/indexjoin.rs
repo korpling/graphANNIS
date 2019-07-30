@@ -1,5 +1,4 @@
 use super::super::{Desc, ExecutionNode, NodeSearchDesc};
-use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
@@ -21,7 +20,7 @@ pub struct IndexJoin<'a> {
     op: Arc<BinaryOperator>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
-    node_annos: Arc<AnnoStorage<NodeID>>,
+    node_annos: Arc<AnnotationStorage<NodeID>>,
     desc: Desc,
     global_reflexivity: bool,
 }
@@ -40,7 +39,7 @@ impl<'a> IndexJoin<'a> {
         lhs_idx: usize,
         op_entry: BinaryOperatorEntry,
         node_search_desc: Arc<NodeSearchDesc>,
-        node_annos: Arc<AnnoStorage<NodeID>>,
+        node_annos: Arc<AnnotationStorage<NodeID>>,
         rhs_desc: Option<&Desc>,
     ) -> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
@@ -184,7 +183,7 @@ fn next_candidates(
     m_lhs: &[Match],
     op: &BinaryOperator,
     lhs_idx: usize,
-    node_annos: &Arc<AnnoStorage<NodeID>>,
+    node_annos: &Arc<AnnotationStorage<NodeID>>,
     node_search_desc: &Arc<NodeSearchDesc>,
 ) -> Option<Vec<Match>> {
     let it_nodes = op.retrieve_matches(&m_lhs[lhs_idx]).fuse();

@@ -1,4 +1,3 @@
-use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
@@ -9,7 +8,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct TokenHelper {
-    node_annos: Arc<AnnoStorage<NodeID>>,
+    node_annos: Arc<AnnotationStorage<NodeID>>,
     left_edges: Arc<GraphStorage>,
     right_edges: Arc<GraphStorage>,
     cov_edges: Vec<Arc<GraphStorage>>,

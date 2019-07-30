@@ -1,5 +1,4 @@
 use crate::annis::db;
-use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::aql;
 use crate::annis::db::aql::operators;
 use crate::annis::db::aql::operators::RangeSpec;
@@ -1064,7 +1063,7 @@ impl CorpusStorage {
                         db::sort_matches::compare_matchgroup_by_text_pos(
                             m1,
                             m2,
-                            &db.node_annos,
+                            db.node_annos.as_ref(),
                             token_helper.as_ref(),
                             gs_order,
                             collation,
@@ -1075,7 +1074,7 @@ impl CorpusStorage {
                         db::sort_matches::compare_matchgroup_by_text_pos(
                             m1,
                             m2,
-                            &db.node_annos,
+                            db.node_annos.as_ref(),
                             token_helper.as_ref(),
                             gs_order,
                             collation,
@@ -1548,7 +1547,7 @@ impl CorpusStorage {
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
-                let node_annos: &AnnoStorage<NodeID> = &db.node_annos;
+                let node_annos: &AnnotationStorage<NodeID> = db.node_annos.as_ref();
                 for key in node_annos.annotation_keys() {
                     if list_values {
                         if only_most_frequent_values {

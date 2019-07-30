@@ -1,4 +1,4 @@
-use crate::annis::db::annostorage::AnnoStorage;
+use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::graphstorage::adjacencylist::AdjacencyListStorage;
 use crate::annis::db::graphstorage::registry;
 use crate::annis::db::graphstorage::union::UnionEdgeContainer;
@@ -134,7 +134,7 @@ pub use annostorage::AnnotationStorage;
 /// In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
 ///
 pub struct Graph {
-    node_annos: Arc<AnnoStorage<NodeID>>,
+    node_annos: Arc<AnnoStorageImpl<NodeID>>,
 
     location: Option<PathBuf>,
 
@@ -328,7 +328,7 @@ impl Graph {
     /// Create a new and empty instance without any location on the disk.
     fn new() -> Graph {
         Graph {
-            node_annos: Arc::new(AnnoStorage::<NodeID>::new()),
+            node_annos: Arc::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new()),
             components: BTreeMap::new(),
 
             location: None,
@@ -382,7 +382,7 @@ impl Graph {
     /// This removes all node annotations, edges and knowledge about components.
     fn clear(&mut self) {
         self.reset_cached_size();
-        self.node_annos = Arc::new(AnnoStorage::new());
+        self.node_annos = Arc::new(annostorage::inmemory::AnnoStorageImpl::new());
         self.components.clear();
     }
 
@@ -408,7 +408,8 @@ impl Graph {
             location.join("current")
         };
 
-        let mut node_annos_tmp: AnnoStorage<NodeID> = AnnoStorage::new();
+        let mut node_annos_tmp: annostorage::inmemory::AnnoStorageImpl<NodeID> =
+            annostorage::inmemory::AnnoStorageImpl::new();
         node_annos_tmp.load_from_file(&dir2load.join("nodes_v1.bin").to_string_lossy())?;
         self.node_annos = Arc::from(node_annos_tmp);
 

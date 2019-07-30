@@ -1,5 +1,5 @@
 use super::{GraphStatistic, GraphStorage};
-use crate::annis::db::annostorage::AnnoStorage;
+use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::graphstorage::EdgeContainer;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
@@ -24,7 +24,7 @@ struct RelativePosition<PosT> {
 pub struct LinearGraphStorage<PosT: NumValue> {
     node_to_pos: FxHashMap<NodeID, RelativePosition<PosT>>,
     node_chains: FxHashMap<NodeID, Vec<NodeID>>,
-    annos: AnnoStorage<Edge>,
+    annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
 }
 
@@ -36,7 +36,7 @@ where
         LinearGraphStorage {
             node_to_pos: FxHashMap::default(),
             node_chains: FxHashMap::default(),
-            annos: AnnoStorage::new(),
+            annos: AnnoStorageImpl::new(),
             stats: None,
         }
     }

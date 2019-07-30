@@ -1,5 +1,6 @@
+use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::graphstorage::{EdgeContainer, GraphStatistic, GraphStorage};
-use crate::annis::db::{AnnoStorage, AnnotationStorage, Graph};
+use crate::annis::db::{AnnotationStorage, Graph};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
 use crate::annis::types::{Edge, NodeID};
@@ -12,7 +13,7 @@ use std::ops::Bound;
 pub struct DenseAdjacencyListStorage {
     edges: Vec<Option<NodeID>>,
     inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,
-    annos: AnnoStorage<Edge>,
+    annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
 }
 
@@ -27,7 +28,7 @@ impl DenseAdjacencyListStorage {
         DenseAdjacencyListStorage {
             edges: Vec::default(),
             inverse_edges: FxHashMap::default(),
-            annos: AnnoStorage::new(),
+            annos: AnnoStorageImpl::new(),
             stats: None,
         }
     }
