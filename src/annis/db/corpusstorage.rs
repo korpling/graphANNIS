@@ -1128,7 +1128,7 @@ impl CorpusStorage {
                     let mut node_desc = String::new();
 
                     if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
-                        if &anno_key.ns != ANNIS_NS || &anno_key.name != NODE_TYPE {
+                        if anno_key.ns != ANNIS_NS || anno_key.name != NODE_TYPE {
                             if !anno_key.ns.is_empty() {
                                 let encoded_anno_ns: Cow<str> =
                                     utf8_percent_encode(&anno_key.ns, SALT_URI_ENCODE_SET).into();
