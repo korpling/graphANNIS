@@ -272,7 +272,7 @@ impl<'a> Conjunction<'a> {
             return Ok(());
         } else {
             return Err(Error::AQLSemanticError {
-                desc: format!("Operand '#{}' not found", var).into(),
+                desc: format!("Operand '#{}' not found", var),
                 location,
             });
         }
@@ -322,7 +322,7 @@ impl<'a> Conjunction<'a> {
             return Ok(pos.clone());
         }
         Err(Error::AQLSemanticError {
-            desc: format!("Operand '#{}' not found", variable).into(),
+            desc: format!("Operand '#{}' not found", variable),
             location,
         })
     }

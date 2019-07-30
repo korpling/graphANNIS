@@ -182,7 +182,7 @@ impl<'a> Iterator for IndexJoin<'a> {
         // lazily initialize the RHS candidates for the first LHS
         if self.rhs_candidate.is_none() {
             self.rhs_candidate = if let Some(rhs) = self.next_candidates() {
-                Some(rhs.into_iter().peekable())
+                Some(rhs.peekable())
             } else {
                 return None;
             };
@@ -243,7 +243,7 @@ impl<'a> Iterator for IndexJoin<'a> {
 
             // inner was completed once, get new candidates
             self.rhs_candidate = if let Some(rhs) = self.next_candidates() {
-                Some(rhs.into_iter().peekable())
+                Some(rhs.peekable())
             } else {
                 None
             };

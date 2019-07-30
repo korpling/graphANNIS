@@ -1794,8 +1794,7 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Gr
     } else {
         return Err(Error::LoadingGraphFailed {
             name: "".to_string(),
-        }
-        .into());
+        });
     }
 }
 

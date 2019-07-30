@@ -747,7 +747,7 @@ where
                             Some((items.len(), val))
                         })
                         .sorted();
-                    return result.into_iter().rev().map(|(_, val)| &val[..]).collect();
+                    return result.rev().map(|(_, val)| &val[..]).collect();
                 } else {
                     return values_for_key
                         .iter()
