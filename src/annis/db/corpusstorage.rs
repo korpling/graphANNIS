@@ -282,7 +282,7 @@ impl CorpusStorage {
 
         let query_config = query::Config { use_parallel_joins };
 
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+        #[cfg_attr(feature = "cargo-clippy", allow(clippy::all))]
         let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
@@ -311,7 +311,7 @@ impl CorpusStorage {
         // get the amount of available memory, use a quarter of it per default
         let cache_strategy: CacheStrategy = CacheStrategy::PercentOfFreeMemory(25.0);
 
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+        #[cfg_attr(feature = "cargo-clippy", allow(clippy::all))]
         let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
 
         let cs = CorpusStorage {
