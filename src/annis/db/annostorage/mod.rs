@@ -115,5 +115,9 @@ where
 
     /// Get all the annotation keys which are part of this annotation storage
     fn annotation_keys(&self) -> Vec<AnnoKey>;
+
+    fn get_largest_item(&self) -> Option<T>;
+
+    fn calculate_statistics(&mut self);
 }
 pub use inmemory::AnnoStorageImpl as AnnoStorage;

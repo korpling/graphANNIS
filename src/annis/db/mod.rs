@@ -314,6 +314,14 @@ impl AnnotationStorage<NodeID> for Graph {
     fn get_value_for_item_by_id(&self, item: &NodeID, key_id: AnnoKeyID) -> Option<&str> {
         self.node_annos.get_value_for_item_by_id(item, key_id)
     }
+
+    fn get_largest_item(&self) -> Option<NodeID> {
+        self.node_annos.get_largest_item()
+    }
+
+    fn calculate_statistics(&mut self) {
+        Arc::make_mut(&mut self.node_annos).calculate_statistics()
+    }
 }
 
 impl Graph {

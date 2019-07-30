@@ -59,7 +59,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
         }
     }
 
-
     fn clear_internal(&mut self) {
         self.by_container.clear();
         self.by_anno.clear();
@@ -146,84 +145,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
         }
         if !still_used {
             self.anno_values.remove(value_id);
-        }
-    }
-
-    pub fn get_largest_item(&self) -> Option<T> {
-        self.largest_item.clone()
-    }
-
-    pub fn calculate_statistics(&mut self) {
-        let max_histogram_buckets = 250;
-        let max_sampled_annotations = 2500;
-
-        self.histogram_bounds.clear();
-
-        // collect statistics for each annotation key separately
-        for anno_key in self.anno_key_sizes.keys() {
-            if let Some(anno_key) = self.anno_keys.get_symbol(anno_key) {
-                // sample a maximal number of annotation values
-                let mut rng = rand::thread_rng();
-                if let Some(values_for_key) = self.by_anno.get(&anno_key) {
-                    let sampled_anno_values: Vec<usize> = values_for_key
-                        .iter()
-                        .flat_map(|(val, items)| {
-                            // repeat value corresponding to the number of nodes with this annotation
-                            let v = vec![*val; items.len()];
-                            v.into_iter()
-                        })
-                        .collect();
-                    let sampled_anno_indexes: FxHashSet<usize> = rand::seq::index::sample(
-                        &mut rng,
-                        sampled_anno_values.len(),
-                        std::cmp::min(sampled_anno_values.len(), max_sampled_annotations),
-                    )
-                    .into_iter()
-                    .collect();
-
-                    let mut sampled_anno_values: Vec<String> = sampled_anno_values
-                        .into_iter()
-                        .enumerate()
-                        .filter(|x| sampled_anno_indexes.contains(&x.0))
-                        .filter_map(|x| self.anno_values.get_value(x.1).cloned())
-                        .collect();
-                    // create uniformly distributed histogram bounds
-                    sampled_anno_values.sort();
-
-                    let num_hist_bounds = if sampled_anno_values.len() < (max_histogram_buckets + 1)
-                    {
-                        sampled_anno_values.len()
-                    } else {
-                        max_histogram_buckets + 1
-                    };
-
-                    let hist = self
-                        .histogram_bounds
-                        .entry(anno_key)
-                        .or_insert_with(std::vec::Vec::new);
-
-                    if num_hist_bounds >= 2 {
-                        hist.resize(num_hist_bounds, String::from(""));
-
-                        let delta: usize = (sampled_anno_values.len() - 1) / (num_hist_bounds - 1);
-                        let delta_fraction: usize =
-                            (sampled_anno_values.len() - 1) % (num_hist_bounds - 1);
-
-                        let mut pos = 0;
-                        let mut pos_fraction = 0;
-                        for hist_item in hist.iter_mut() {
-                            *hist_item = sampled_anno_values[pos].clone();
-                            pos += delta;
-                            pos_fraction += delta_fraction;
-
-                            if pos_fraction >= (num_hist_bounds - 1) {
-                                pos += 1;
-                                pos_fraction -= num_hist_bounds - 1;
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -787,6 +708,84 @@ where
 
     fn annotation_keys(&self) -> Vec<AnnoKey> {
         self.anno_key_sizes.keys().cloned().collect()
+    }
+
+    fn get_largest_item(&self) -> Option<T> {
+        self.largest_item.clone()
+    }
+
+    fn calculate_statistics(&mut self) {
+        let max_histogram_buckets = 250;
+        let max_sampled_annotations = 2500;
+
+        self.histogram_bounds.clear();
+
+        // collect statistics for each annotation key separately
+        for anno_key in self.anno_key_sizes.keys() {
+            if let Some(anno_key) = self.anno_keys.get_symbol(anno_key) {
+                // sample a maximal number of annotation values
+                let mut rng = rand::thread_rng();
+                if let Some(values_for_key) = self.by_anno.get(&anno_key) {
+                    let sampled_anno_values: Vec<usize> = values_for_key
+                        .iter()
+                        .flat_map(|(val, items)| {
+                            // repeat value corresponding to the number of nodes with this annotation
+                            let v = vec![*val; items.len()];
+                            v.into_iter()
+                        })
+                        .collect();
+                    let sampled_anno_indexes: FxHashSet<usize> = rand::seq::index::sample(
+                        &mut rng,
+                        sampled_anno_values.len(),
+                        std::cmp::min(sampled_anno_values.len(), max_sampled_annotations),
+                    )
+                    .into_iter()
+                    .collect();
+
+                    let mut sampled_anno_values: Vec<String> = sampled_anno_values
+                        .into_iter()
+                        .enumerate()
+                        .filter(|x| sampled_anno_indexes.contains(&x.0))
+                        .filter_map(|x| self.anno_values.get_value(x.1).cloned())
+                        .collect();
+                    // create uniformly distributed histogram bounds
+                    sampled_anno_values.sort();
+
+                    let num_hist_bounds = if sampled_anno_values.len() < (max_histogram_buckets + 1)
+                    {
+                        sampled_anno_values.len()
+                    } else {
+                        max_histogram_buckets + 1
+                    };
+
+                    let hist = self
+                        .histogram_bounds
+                        .entry(anno_key)
+                        .or_insert_with(std::vec::Vec::new);
+
+                    if num_hist_bounds >= 2 {
+                        hist.resize(num_hist_bounds, String::from(""));
+
+                        let delta: usize = (sampled_anno_values.len() - 1) / (num_hist_bounds - 1);
+                        let delta_fraction: usize =
+                            (sampled_anno_values.len() - 1) % (num_hist_bounds - 1);
+
+                        let mut pos = 0;
+                        let mut pos_fraction = 0;
+                        for hist_item in hist.iter_mut() {
+                            *hist_item = sampled_anno_values[pos].clone();
+                            pos += delta;
+                            pos_fraction += delta_fraction;
+
+                            if pos_fraction >= (num_hist_bounds - 1) {
+                                pos += 1;
+                                pos_fraction -= num_hist_bounds - 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
