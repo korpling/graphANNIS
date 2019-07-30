@@ -178,7 +178,7 @@ impl<'a> NestedLoop<'a> {
         }
     }
 
-    fn next_match_receiver<'b>(&'b mut self) -> Option<Receiver<Vec<Match>>> {
+    fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
         let (tx, rx) = channel();
 
         self.next_match_buffer(&tx);
