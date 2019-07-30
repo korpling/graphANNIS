@@ -1933,9 +1933,9 @@ fn create_subgraph_edge(
     // find outgoing edges
     for c in components {
         // don't include index components
-        if !(c.ctype == ComponentType::Coverage && c.layer == "annis" && c.name != "")
-            && !(c.ctype == ComponentType::LeftToken)
-            && !(c.ctype == ComponentType::RightToken)
+        if !((c.ctype == ComponentType::Coverage && c.layer == "annis" && c.name != "")
+            || c.ctype == ComponentType::RightToken
+            || c.ctype == ComponentType::LeftToken)
         {
             if let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {
