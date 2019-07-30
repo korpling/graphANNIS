@@ -200,24 +200,24 @@ where
     let texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
     let corpus_id_to_annos = load_corpus_annotation(&path, is_annis_33, &progress_callback)?;
 
-    let (nodes_by_text, id_to_node_name, textpos_table) =
+    let load_nodes_result =
         load_nodes(path, updater, &corpus_table, is_annis_33, progress_callback)?;
 
     add_subcorpora(
         updater,
         &corpus_table,
-        &nodes_by_text,
+        &load_nodes_result.nodes_by_text,
         &texts,
         &corpus_id_to_annos,
-        &id_to_node_name,
+        &load_nodes_result.id_to_node_name,
         is_annis_33,
         progress_callback,
     )?;
 
     Ok((
         corpus_table.toplevel_corpus_name,
-        id_to_node_name,
-        textpos_table,
+        load_nodes_result.id_to_node_name,
+        load_nodes_result.textpos_table,
     ))
 }
 
@@ -231,32 +231,30 @@ fn load_edge_tables<F>(
 where
     F: Fn(&str) -> (),
 {
-    let (pre_to_component, pre_to_edge, text_coverage_edges) = {
+    let load_rank_result = {
         let component_by_id = load_component_tab(path, is_annis_33, progress_callback)?;
 
-        let (pre_to_component, pre_to_edge, text_coverage_edges) = load_rank_tab(
+        load_rank_tab(
             path,
             updater,
             &component_by_id,
             id_to_node_name,
             is_annis_33,
             progress_callback,
-        )?;
-
-        (pre_to_component, pre_to_edge, text_coverage_edges)
+        )?
     };
 
     load_edge_annotation(
         path,
         updater,
-        &pre_to_component,
-        &pre_to_edge,
+        &load_rank_result.pre_to_component,
+        &load_rank_result.pre_to_edge,
         id_to_node_name,
         is_annis_33,
         progress_callback,
     )?;
 
-    Ok(text_coverage_edges)
+    Ok(load_rank_result.text_coverage_edges)
 }
 
 fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File>, csv::Error> {
@@ -607,8 +605,7 @@ where
                     e
                 )
             }
-        
-        }  // end if not a token
+        } // end if not a token
     }
 
     updater.commit(
@@ -619,18 +616,20 @@ where
     Ok(())
 }
 
+struct NodeTabParseResult {
+    nodes_by_text: MultiMap<TextKey, NodeID>,
+    missing_seg_span: BTreeMap<NodeID, String>,
+    id_to_node_name: FxHashMap<NodeID, String>,
+    textpos_table: TextPosTable,
+}
+
 fn load_node_tab<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
     corpus_table: &ParsedCorpusTable,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(
-    MultiMap<TextKey, NodeID>,
-    BTreeMap<NodeID, String>,
-    FxHashMap<NodeID, String>,
-    TextPosTable,
-)>
+) -> Result<NodeTabParseResult>
 where
     F: Fn(&str) -> (),
 {
@@ -832,12 +831,12 @@ where
         )?;
     } // end if token_by_index not empty
 
-    Ok((
+    Ok(NodeTabParseResult {
         nodes_by_text,
         missing_seg_span,
         id_to_node_name,
         textpos_table,
-    ))
+    })
 }
 
 fn load_node_anno_tab<F>(
@@ -970,21 +969,23 @@ where
     Ok(component_by_id)
 }
 
+struct LoadNodeResult {
+    nodes_by_text: MultiMap<TextKey, NodeID>,
+    id_to_node_name: FxHashMap<NodeID, String>,
+    textpos_table: TextPosTable,
+}
+
 fn load_nodes<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
     corpus_table: &ParsedCorpusTable,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(
-    MultiMap<TextKey, NodeID>,
-    FxHashMap<NodeID, String>,
-    TextPosTable,
-)>
+) -> Result<LoadNodeResult>
 where
     F: Fn(&str) -> (),
 {
-    let (nodes_by_text, missing_seg_span, id_to_node_name, textpos_table) =
+    let node_tab_parse_result =
         load_node_tab(path, updater, corpus_table, is_annis_33, progress_callback)?;
 
     for order_component in updater
@@ -998,13 +999,23 @@ where
     load_node_anno_tab(
         path,
         updater,
-        &missing_seg_span,
-        &id_to_node_name,
+        &node_tab_parse_result.missing_seg_span,
+        &node_tab_parse_result.id_to_node_name,
         is_annis_33,
         progress_callback,
     )?;
 
-    Ok((nodes_by_text, id_to_node_name, textpos_table))
+    Ok(LoadNodeResult {
+        nodes_by_text: node_tab_parse_result.nodes_by_text,
+        id_to_node_name: node_tab_parse_result.id_to_node_name,
+        textpos_table: node_tab_parse_result.textpos_table,
+    })
+}
+
+struct LoadRankResult {
+    pre_to_component: BTreeMap<u32, Component>,
+    pre_to_edge: BTreeMap<u32, Edge>,
+    text_coverage_edges: BTreeSet<Edge>,
 }
 
 fn load_rank_tab<F>(
@@ -1014,11 +1025,7 @@ fn load_rank_tab<F>(
     id_to_node_name: &FxHashMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(
-    BTreeMap<u32, Component>,
-    BTreeMap<u32, Edge>,
-    BTreeSet<Edge>,
-)>
+) -> Result<LoadRankResult>
 where
     F: Fn(&str) -> (),
 {
@@ -1111,7 +1118,11 @@ where
 
     updater.commit(Some(msg), progress_callback)?;
 
-    Ok((pre_to_component, pre_to_edge, text_coverage_edges))
+    Ok(LoadRankResult {
+        pre_to_component,
+        pre_to_edge,
+        text_coverage_edges,
+    })
 }
 
 fn load_edge_annotation<F>(
