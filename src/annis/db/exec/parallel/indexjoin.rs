@@ -155,7 +155,7 @@ impl<'a> IndexJoin<'a> {
                             if node_search_desc.const_output.is_some() {
                                 // only return the one unique constAnno for this node and no duplicates
                                 // skip all RHS candidates that have the same node ID
-                                #[cfg_attr(feature = "cargo-clippy", allow(clippy::all))]
+                                #[allow(clippy::while_let_loop)]
                                 loop {
                                     if let Some(next_match) = rhs_candidate.peek() {
                                         if next_match.node != matched_node {
