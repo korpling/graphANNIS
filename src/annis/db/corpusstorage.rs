@@ -1500,14 +1500,11 @@ impl CorpusStorage {
             QueryLanguage::AQLQuirksV3 => aql::parse(query, true)?,
         };
 
-        let mut component_nr = 0;
-        for alt in q.alternatives {
-            let alt: Conjunction = alt;
+        for (component_nr, alt) in q.alternatives.iter().enumerate() {
             for mut n in alt.get_node_descriptions() {
                 n.alternative = component_nr;
                 result.push(n);
             }
-            component_nr += 1;
         }
 
         Ok(result)
