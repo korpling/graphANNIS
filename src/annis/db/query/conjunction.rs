@@ -319,7 +319,7 @@ impl<'a> Conjunction<'a> {
         location: Option<LineColumnRange>,
     ) -> Result<usize> {
         if let Some(pos) = self.variables.get(variable) {
-            return Ok(pos.clone());
+            return Ok(*pos);
         }
         Err(Error::AQLSemanticError {
             desc: format!("Operand '#{}' not found", variable),
