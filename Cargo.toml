@@ -43,6 +43,7 @@ fs2 = "0.4"
 lalrpop-util = "0.17"
 boolean_expression = "0.3"
 percent-encoding = "1.0"
+sanakirja = "0.11"
 
 graphannis-malloc_size_of = "1.0"
 graphannis-malloc_size_of_derive = "2.0"
