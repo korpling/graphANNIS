@@ -39,7 +39,7 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         let mut txn = env.mut_txn_begin()?;
         let by_container: ByContainerDb<T> = txn.create_db()?;
         // A map from an annotation key to a map of all its values to the items having this value for the annotation key
-        let by_anno: ByAnnoDb<T>  = txn.create_db()?; 
+        let by_anno: ByAnnoDb<T> = txn.create_db()?;
         txn.set_root(BY_CONTAINER_ID, by_container);
         txn.set_root(BY_ANNO_ID, by_anno);
 
@@ -55,33 +55,42 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         let mut rng = SmallRng::from_rng(rand::thread_rng())?;
         let mut txn = self.env.mut_txn_begin()?;
 
-        let by_container : Option<ByContainerDb<T>> =  txn.root(BY_CONTAINER_ID);
+        let by_container: Option<ByContainerDb<T>> = txn.root(BY_CONTAINER_ID);
+        let by_anno: Option<ByAnnoDb<T>> = txn.root(BY_ANNO_ID);
 
-        if let Some(mut by_container) = by_container {
-            // try to get an existing kv for all annotations of this item or create a new one
-            let existing = txn.get(&by_container, item, None);
-            let mut annotations : AnnotationsDb = if let Some(existing) = existing {
-                existing
-            } else {
-                let created_annotations_db = txn.create_db()?;
-                txn.put(&mut rng, &mut by_container, item, created_annotations_db)?;
-                created_annotations_db
-            };
-            // add the annotation value to the corresponding name/namespace pair
+        if let (Some(mut by_container), Some(mut by_anno)) = (by_container, by_anno) {
             let name = UnsafeValue::from_slice(anno.key.name.as_bytes());
             let namespace = UnsafeValue::from_slice(anno.key.ns.as_bytes());
-            let value = UnsafeValue::from_slice(anno.val.as_bytes());
-            txn.put(&mut rng, &mut annotations, (name, namespace), value)?;
+            let val = UnsafeValue::from_slice(anno.val.as_bytes());
+
+            // try to get an existing kv for all annotations of this item or create a new one
+            let mut annotations: AnnotationsDb =
+                if let Some(existing) = txn.get(&by_container, item, None) {
+                    existing
+                } else {
+                    let created_annotations_db = txn.create_db()?;
+                    txn.put(&mut rng, &mut by_container, item, created_annotations_db)?;
+                    created_annotations_db
+                };
+            // add the annotation value to the corresponding name/namespace pair
+            txn.put(&mut rng, &mut annotations, (name, namespace), val)?;
+
+            // add item to the by_anno map and also create the values kv if not yet existing
+            let mut values_for_anno: ValuesDb<T> =
+                if let Some(existing) = txn.get(&by_anno, (name, namespace), None) {
+                    existing
+                } else {
+                    let created_values_db = txn.create_db()?;
+                    txn.put(&mut rng, &mut by_anno, (name, namespace), created_values_db)?;
+                    created_values_db
+                };
+            txn.put(&mut rng, &mut values_for_anno, val, item)?;
         }
 
-
-
         txn.commit()?;
-        Ok(()) 
-    
+        Ok(())
     }
 }
-
 
 impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
 where
@@ -89,7 +98,6 @@ where
     (T, AnnoKeyID): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) {
-        
         if let Err(e) = self.insert_internal(item, anno) {
             error!("Could not insert value into node annotation storage: {}", e);
         }
