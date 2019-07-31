@@ -281,7 +281,7 @@ impl CorpusStorage {
 
         let query_config = query::Config { use_parallel_joins };
 
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+        #[allow(clippy::mutex_atomic)]
         let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
@@ -310,7 +310,7 @@ impl CorpusStorage {
         // get the amount of available memory, use a quarter of it per default
         let cache_strategy: CacheStrategy = CacheStrategy::PercentOfFreeMemory(25.0);
 
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+        #[allow(clippy::mutex_atomic)]
         let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
 
         let cs = CorpusStorage {
@@ -1109,9 +1109,7 @@ impl CorpusStorage {
         };
         results.extend(base_it.skip(offset).take(limit).map(|m: Vec<Match>| {
             let mut match_desc: Vec<String> = Vec::new();
-            for i in 0..m.len() {
-                let singlematch: &Match = &m[i];
-
+            for (i, singlematch) in m.iter().enumerate() {
                 // check if query node actually should be included in quirks mode
                 let include_in_output = if quirks_mode {
                     if let Some(var) = prep.query.get_variable_by_pos(i) {
@@ -1127,7 +1125,7 @@ impl CorpusStorage {
                     let mut node_desc = String::new();
 
                     if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
-                        if &anno_key.ns != ANNIS_NS || &anno_key.name != NODE_TYPE {
+                        if anno_key.ns != ANNIS_NS || anno_key.name != NODE_TYPE {
                             if !anno_key.ns.is_empty() {
                                 let encoded_anno_ns: Cow<str> =
                                     utf8_percent_encode(&anno_key.ns, SALT_URI_ENCODE_SET).into();
@@ -1501,14 +1499,11 @@ impl CorpusStorage {
             QueryLanguage::AQLQuirksV3 => aql::parse(query, true)?,
         };
 
-        let mut component_nr = 0;
-        for alt in q.alternatives {
-            let alt: Conjunction = alt;
+        for (component_nr, alt) in q.alternatives.iter().enumerate() {
             for mut n in alt.get_node_descriptions() {
                 n.alternative = component_nr;
                 result.push(n);
             }
-            component_nr += 1;
         }
 
         Ok(result)
@@ -1793,8 +1788,7 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Gr
     } else {
         return Err(Error::LoadingGraphFailed {
             name: "".to_string(),
-        }
-        .into());
+        });
     }
 }
 
@@ -1938,9 +1932,9 @@ fn create_subgraph_edge(
     // find outgoing edges
     for c in components {
         // don't include index components
-        if !(c.ctype == ComponentType::Coverage && c.layer == "annis" && c.name != "")
-            && !(c.ctype == ComponentType::LeftToken)
-            && !(c.ctype == ComponentType::RightToken)
+        if !((c.ctype == ComponentType::Coverage && c.layer == "annis" && c.name != "")
+            || c.ctype == ComponentType::RightToken
+            || c.ctype == ComponentType::LeftToken)
         {
             if let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {

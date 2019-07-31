@@ -85,7 +85,7 @@ impl NodeSearchSpec {
     }
 
     pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
-        if let &NodeSearchSpec::AnyToken = &self {
+        if let NodeSearchSpec::AnyToken = self {
             return tokensearch::AnyTokenSearch::necessary_components(db);
         }
         HashSet::default()
@@ -232,8 +232,10 @@ impl<'a> NodeSearch<'a> {
                         &val,
                         false,
                         is_meta,
-                        &query_fragment,
-                        node_nr,
+                        super::NodeDescArg {
+                            query_fragment: query_fragment.to_owned(),
+                            node_nr,
+                        },
                         location_in_query,
                     )
                 } else {
@@ -262,8 +264,10 @@ impl<'a> NodeSearch<'a> {
                         &val,
                         true,
                         is_meta,
-                        &query_fragment,
-                        node_nr,
+                        super::NodeDescArg {
+                            query_fragment: query_fragment.to_owned(),
+                            node_nr,
+                        },
                         location_in_query,
                     )
                 } else {
@@ -352,8 +356,10 @@ impl<'a> NodeSearch<'a> {
                 Ok(NodeSearch {
                     it: Box::new(it),
                     desc: Some(Desc::empty_with_fragment(
-                        &query_fragment,
-                        node_nr,
+                        super::NodeDescArg {
+                            query_fragment,
+                            node_nr,
+                        },
                         Some(est_output),
                     )),
                     node_search_desc: Arc::new(NodeSearchDesc {
@@ -465,8 +471,10 @@ impl<'a> NodeSearch<'a> {
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(Desc::empty_with_fragment(
-                &query_fragment,
-                node_nr,
+                super::NodeDescArg {
+                    query_fragment: query_fragment.to_owned(),
+                    node_nr,
+                },
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
@@ -484,8 +492,7 @@ impl<'a> NodeSearch<'a> {
         pattern: &str,
         negated: bool,
         is_meta: bool,
-        query_fragment: &str,
-        node_nr: usize,
+        node_desc_arg: super::NodeDescArg,
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         // match_regex works only with values
@@ -580,11 +587,7 @@ impl<'a> NodeSearch<'a> {
 
         Ok(NodeSearch {
             it: Box::new(it),
-            desc: Some(Desc::empty_with_fragment(
-                &query_fragment,
-                node_nr,
-                Some(est_output),
-            )),
+            desc: Some(Desc::empty_with_fragment(node_desc_arg, Some(est_output))),
             node_search_desc: Arc::new(NodeSearchDesc {
                 qname: (qname.0, Some(qname.1)),
                 cond: filters,
@@ -843,8 +846,10 @@ impl<'a> NodeSearch<'a> {
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(Desc::empty_with_fragment(
-                &query_fragment,
-                node_nr,
+                super::NodeDescArg {
+                    query_fragment: query_fragment.to_owned(),
+                    node_nr,
+                },
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
@@ -904,8 +909,10 @@ impl<'a> NodeSearch<'a> {
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(Desc::empty_with_fragment(
-                &query_fragment,
-                node_nr,
+                super::NodeDescArg {
+                    query_fragment: query_fragment.to_owned(),
+                    node_nr,
+                },
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {

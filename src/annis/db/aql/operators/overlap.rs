@@ -112,9 +112,9 @@ impl BinaryOperator for Overlap {
         ) {
             // TODO: why not isConnected()? (instead of distance)
             // path between LHS left-most token and RHS right-most token exists in ORDERING component
-            if self.gs_order.distance(&start_lhs, &end_rhs).is_some()
+            if self.gs_order.distance(start_lhs, end_rhs).is_some()
                 // path between LHS left-most token and RHS right-most token exists in ORDERING component
-                && self.gs_order.distance(&start_rhs, &end_lhs).is_some()
+                && self.gs_order.distance(start_rhs, end_lhs).is_some()
             {
                 return true;
             }

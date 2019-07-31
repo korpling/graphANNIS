@@ -272,7 +272,7 @@ impl<'a> Conjunction<'a> {
             return Ok(());
         } else {
             return Err(Error::AQLSemanticError {
-                desc: format!("Operand '#{}' not found", var).into(),
+                desc: format!("Operand '#{}' not found", var),
                 location,
             });
         }
@@ -302,11 +302,11 @@ impl<'a> Conjunction<'a> {
 
         self.binary_operators.push(BinaryOperatorSpecEntry {
             op,
-            idx_left: idx_left,
-            idx_right: idx_right,
+            idx_left,
+            idx_right,
             global_reflexivity,
         });
-        return Ok(());
+        Ok(())
     }
 
     pub fn num_of_nodes(&self) -> usize {
@@ -319,10 +319,10 @@ impl<'a> Conjunction<'a> {
         location: Option<LineColumnRange>,
     ) -> Result<usize> {
         if let Some(pos) = self.variables.get(variable) {
-            return Ok(pos.clone());
+            return Ok(*pos);
         }
         Err(Error::AQLSemanticError {
-            desc: format!("Operand '#{}' not found", variable).into(),
+            desc: format!("Operand '#{}' not found", variable),
             location,
         })
     }
@@ -350,10 +350,10 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        return Err(Error::AQLSemanticError {
+        Err(Error::AQLSemanticError {
             desc: format!("Operand '#{}' not found", variable),
             location,
-        });
+        })
     }
 
     pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {

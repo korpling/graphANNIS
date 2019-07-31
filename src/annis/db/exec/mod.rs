@@ -44,14 +44,15 @@ fn calculate_outputsize(
     std::cmp::max(output, 1)
 }
 
+pub struct NodeDescArg {
+    query_fragment: String,
+    node_nr: usize,
+}
+
 impl Desc {
-    pub fn empty_with_fragment(
-        query_fragment: &str,
-        node_nr: usize,
-        est_size: Option<usize>,
-    ) -> Desc {
+    pub fn empty_with_fragment(node_desc_arg: NodeDescArg, est_size: Option<usize>) -> Desc {
         let mut node_pos = BTreeMap::new();
-        node_pos.insert(node_nr, 0);
+        node_pos.insert(node_desc_arg.node_nr, 0);
 
         let cost = if let Some(output) = est_size {
             Some(CostEstimate {
@@ -69,7 +70,7 @@ impl Desc {
             rhs: None,
             node_pos,
             impl_description: String::from(""),
-            query_fragment: String::from(query_fragment),
+            query_fragment: node_desc_arg.query_fragment,
             cost,
         }
     }

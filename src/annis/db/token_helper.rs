@@ -92,9 +92,9 @@ impl TokenHelper {
                     return false;
                 }
             }
-            return true;
+            true
         } else {
-            return false;
+            false
         }
     }
 

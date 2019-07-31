@@ -21,7 +21,7 @@ pub struct AdjacencyListStorage {
 fn get_fan_outs(edges: &FxHashMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
     let mut fan_outs: Vec<usize> = Vec::new();
     if !edges.is_empty() {
-        for (_, outgoing) in edges {
+        for outgoing in edges.values() {
             fan_outs.push(outgoing.len());
         }
     }
@@ -151,17 +151,17 @@ impl GraphStorage for AdjacencyListStorage {
         Box::new(it)
     }
 
-    fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
-        let mut it = CycleSafeDFS::new(self, *source, usize::min_value(), usize::max_value())
-            .filter(|x| *target == x.node)
+    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
+        let mut it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value())
+            .filter(|x| target == x.node)
             .map(|x| x.distance);
 
         it.next()
     }
     fn is_connected(
         &self,
-        source: &NodeID,
-        target: &NodeID,
+        source: NodeID,
+        target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
     ) -> bool {
@@ -170,8 +170,8 @@ impl GraphStorage for AdjacencyListStorage {
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
-        let mut it = CycleSafeDFS::new(self, *source, min_distance, max_distance)
-            .filter(|x| *target == x.node);
+        let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance)
+            .filter(|x| target == x.node);
 
         it.next().is_some()
     }
@@ -255,23 +255,23 @@ impl WriteableGraphStorage for AdjacencyListStorage {
     fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey) {
         self.annos.remove_annotation_for_item(edge, anno_key);
     }
-    fn delete_node(&mut self, node: &NodeID) {
+    fn delete_node(&mut self, node: NodeID) {
         // find all both ingoing and outgoing edges
         let mut to_delete = std::collections::LinkedList::<Edge>::new();
 
-        if let Some(outgoing) = self.edges.get(node) {
+        if let Some(outgoing) = self.edges.get(&node) {
             for target in outgoing.iter() {
                 to_delete.push_back(Edge {
-                    source: *node,
+                    source: node,
                     target: *target,
                 })
             }
         }
-        if let Some(ingoing) = self.inverse_edges.get(node) {
+        if let Some(ingoing) = self.inverse_edges.get(&node) {
             for source in ingoing.iter() {
                 to_delete.push_back(Edge {
                     source: *source,
-                    target: *node,
+                    target: node,
                 })
             }
         }
@@ -321,7 +321,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         }
 
         if !self.edges.is_empty() {
-            for (_, outgoing) in &self.edges {
+            for outgoing in self.edges.values() {
                 for target in outgoing {
                     roots.remove(&target);
                 }

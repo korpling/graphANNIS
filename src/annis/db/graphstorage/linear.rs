@@ -188,10 +188,8 @@ where
 
                     if let Some(min_distance) = offset.checked_sub(min_distance) {
                         if min_distance < chain.len() && max_distance <= min_distance {
-                            // return all entries in the chain between min_distance..max_distance
-                            return Box::new(
-                                chain[max_distance..(min_distance + 1)].iter().cloned(),
-                            );
+                            // return all entries in the chain between min_distance..max_distance (inclusive)
+                            return Box::new(chain[max_distance..=min_distance].iter().cloned());
                         } else if max_distance < chain.len() {
                             // return all entries in the chain between min_distance..max_distance
                             return Box::new(chain[max_distance..chain.len()].iter().cloned());
@@ -203,13 +201,13 @@ where
         Box::new(std::iter::empty())
     }
 
-    fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
+    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
         if source == target {
             return Some(0);
         }
 
         if let (Some(source_pos), Some(target_pos)) =
-            (self.node_to_pos.get(source), self.node_to_pos.get(target))
+            (self.node_to_pos.get(&source), self.node_to_pos.get(&target))
         {
             if source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
                 let diff = target_pos.pos.clone() - source_pos.pos.clone();
@@ -223,13 +221,13 @@ where
 
     fn is_connected(
         &self,
-        source: &NodeID,
-        target: &NodeID,
+        source: NodeID,
+        target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
     ) -> bool {
         if let (Some(source_pos), Some(target_pos)) =
-            (self.node_to_pos.get(source), self.node_to_pos.get(target))
+            (self.node_to_pos.get(&source), self.node_to_pos.get(&target))
         {
             if source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
                 let diff = target_pos.pos.clone() - source_pos.pos.clone();

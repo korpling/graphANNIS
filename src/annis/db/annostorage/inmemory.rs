@@ -526,14 +526,12 @@ where
                 })
                 .map(move |item| item.into());
             return Box::new(it);
+        } else if negated {
+            // return all values
+            return self.exact_anno_search(namespace, name, None.into());
         } else {
-            if negated {
-                // return all values
-                return self.exact_anno_search(namespace, name, None.into());
-            } else {
-                // if regular expression pattern is invalid return empty iterator
-                return Box::new(std::iter::empty());
-            }
+            // if regular expression pattern is invalid return empty iterator
+            return Box::new(std::iter::empty());
         }
     }
 
@@ -667,7 +665,7 @@ where
             }
         }
         // find the value which is most frequent
-        if sampled_values.len() > 0 {
+        if !sampled_values.is_empty() {
             let mut max_count = 0;
             let mut max_value = "".to_owned();
             for (v, count) in sampled_values.into_iter() {
@@ -693,7 +691,7 @@ where
                             Some((items.len(), val))
                         })
                         .sorted();
-                    return result.into_iter().rev().map(|(_, val)| &val[..]).collect();
+                    return result.rev().map(|(_, val)| &val[..]).collect();
                 } else {
                     return values_for_key
                         .iter()

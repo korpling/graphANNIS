@@ -303,8 +303,8 @@ impl BinaryOperator for BaseEdgeOp {
         for e in &self.gs {
             if self.inverse {
                 if e.is_connected(
-                    &rhs.node,
-                    &lhs.node,
+                    rhs.node,
+                    lhs.node,
                     self.spec.dist.min_dist(),
                     self.spec.dist.max_dist(),
                 ) && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
@@ -312,8 +312,8 @@ impl BinaryOperator for BaseEdgeOp {
                     return true;
                 }
             } else if e.is_connected(
-                &lhs.node,
-                &rhs.node,
+                lhs.node,
+                rhs.node,
                 self.spec.dist.min_dist(),
                 self.spec.dist.max_dist(),
             ) && check_edge_annotation(

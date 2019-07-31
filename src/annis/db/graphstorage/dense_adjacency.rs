@@ -112,17 +112,17 @@ impl GraphStorage for DenseAdjacencyListStorage {
         Box::new(it)
     }
 
-    fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
-        let mut it = CycleSafeDFS::new(self, *source, usize::min_value(), usize::max_value())
-            .filter(|x| *target == x.node)
+    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
+        let mut it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value())
+            .filter(|x| target == x.node)
             .map(|x| x.distance);
 
         it.next()
     }
     fn is_connected(
         &self,
-        source: &NodeID,
-        target: &NodeID,
+        source: NodeID,
+        target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
     ) -> bool {
@@ -131,8 +131,8 @@ impl GraphStorage for DenseAdjacencyListStorage {
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
-        let mut it = CycleSafeDFS::new(self, *source, min_distance, max_distance)
-            .filter(|x| *target == x.node);
+        let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance)
+            .filter(|x| target == x.node);
 
         it.next().is_some()
     }

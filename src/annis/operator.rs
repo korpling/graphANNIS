@@ -113,7 +113,7 @@ impl EdgeAnnoSearchSpec {
             } => {
                 let val = val.clone();
                 let total = anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
-                return total - anno_storage.guess_max_count(ns.clone(), name.clone(), &val, &val);
+                total - anno_storage.guess_max_count(ns.clone(), name.clone(), &val, &val)
             }
             EdgeAnnoSearchSpec::RegexValue {
                 ref ns,
@@ -121,7 +121,7 @@ impl EdgeAnnoSearchSpec {
                 ref val,
             } => {
                 let val = val.clone();
-                return anno_storage.guess_max_count_regex(ns.clone(), name.clone(), &val);
+                anno_storage.guess_max_count_regex(ns.clone(), name.clone(), &val)
             }
             EdgeAnnoSearchSpec::NotRegexValue {
                 ref ns,
@@ -129,7 +129,7 @@ impl EdgeAnnoSearchSpec {
                 ref val,
             } => {
                 let total = anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
-                return total - anno_storage.guess_max_count_regex(ns.clone(), name.clone(), &val);
+                total - anno_storage.guess_max_count_regex(ns.clone(), name.clone(), &val)
             }
         }
     }

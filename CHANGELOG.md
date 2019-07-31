@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Changed
+
+- For performance and stylistic reasons, the GraphStorage API has been changed to accept integer node IDs instead of references to integers.
+
 ## [0.22.0] - 2019-07-22
 
 ### Fixed

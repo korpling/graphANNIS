@@ -193,7 +193,7 @@ where
             };
 
             let it = start_orders
-                .into_iter()
+                .iter()
                 .flat_map(move |root_order: &PrePost<OrderT, LevelT>| {
                     let start = root_order.pre.to_usize().unwrap_or(0);
                     let end = root_order
@@ -252,7 +252,7 @@ where
             };
 
             let it = start_orders
-                .into_iter()
+                .iter()
                 .flat_map(move |root_order: &PrePost<OrderT, LevelT>| {
                     let root_pre = root_order.pre.clone().to_usize().unwrap_or(0);
                     let root_post = root_order
@@ -335,7 +335,7 @@ where
         }
     }
 
-    fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
+    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
         if source == target {
             return Some(0);
         }
@@ -344,8 +344,8 @@ where
         let mut was_found = false;
 
         if let (Some(order_source), Some(order_target)) = (
-            self.node_to_order.get(source),
-            self.node_to_order.get(target),
+            self.node_to_order.get(&source),
+            self.node_to_order.get(&target),
         ) {
             for order_source in order_source.iter() {
                 for order_target in order_target.iter() {
@@ -374,14 +374,14 @@ where
     }
     fn is_connected(
         &self,
-        source: &NodeID,
-        target: &NodeID,
+        source: NodeID,
+        target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
     ) -> bool {
         if let (Some(order_source), Some(order_target)) = (
-            self.node_to_order.get(source),
-            self.node_to_order.get(target),
+            self.node_to_order.get(&source),
+            self.node_to_order.get(&target),
         ) {
             let max_distance = match max_distance {
                 Unbounded => usize::max_value(),
