@@ -1,3 +1,4 @@
+use super::SparseAnnotation;
 use crate::annis::db::annostorage::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
@@ -6,13 +7,13 @@ use crate::annis::types::AnnoKey;
 use crate::annis::types::AnnoKeyID;
 use crate::annis::types::Annotation;
 use crate::malloc_size_of::MallocSizeOf;
-use sanakirja::{Env, Representable, Transaction, Db};
 use sanakirja::value::UnsafeValue;
+use sanakirja::{Db, Env, Representable, Transaction, Commit};
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::path::Path;
-use super::SparseAnnotation;
 
+const BY_CONTAINER_ID : usize = 0;
 
 #[derive(MallocSizeOf)]
 pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default + Representable> {
@@ -20,8 +21,6 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default + Representabl
 
     //#[ignore_malloc_size_of = "state of environment is neglectable compared to the actual maps (which are non disk)"]
     //env: Env,
-    
-    //by_container: Db<T, UnsafeValue>,
 }
 
 impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> {
@@ -30,10 +29,13 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         // Use 100 MB (SI standard) as default size
         let env = Env::new(path, 100_000_000)?;
         let mut txn = env.mut_txn_begin()?;
-        let by_container : Db<T, UnsafeValue> = txn.create_db()?;
+        let by_container: Db<T, UnsafeValue> = txn.create_db()?;
+        txn.set_root(BY_CONTAINER_ID, by_container);
+
+        txn.commit()?;
+
         Ok(AnnoStorageImpl {
-           // env,
-           //by_container: env
+            // env,
             phantom: PhantomData::default(),
         })
     }
@@ -46,7 +48,6 @@ where
 {
     fn insert(&mut self, item: T, anno: Annotation) {
         // if let Ok(txn) = self.env.mut_txn_begin() {
-        
         // }
         unimplemented!()
     }
