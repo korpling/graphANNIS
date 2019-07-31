@@ -12,6 +12,9 @@ use sanakirja::{Db, Env, Representable, Transaction, Commit};
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::path::Path;
+use rand::rngs::SmallRng;
+use rand::SeedableRng;
+
 
 const BY_CONTAINER_ID : usize = 0;
 
@@ -19,8 +22,8 @@ const BY_CONTAINER_ID : usize = 0;
 pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default + Representable> {
     phantom: PhantomData<T>,
 
-    //#[ignore_malloc_size_of = "state of environment is neglectable compared to the actual maps (which are non disk)"]
-    //env: Env,
+    #[ignore_malloc_size_of = "state of environment is neglectable compared to the actual maps (which are non disk)"]
+    env: Env,
 }
 
 impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> {
@@ -35,7 +38,7 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         txn.commit()?;
 
         Ok(AnnoStorageImpl {
-            // env,
+            env,
             phantom: PhantomData::default(),
         })
     }
@@ -47,8 +50,14 @@ where
     (T, AnnoKeyID): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) {
-        // if let Ok(txn) = self.env.mut_txn_begin() {
-        // }
+        if let Ok(mut rng) = SmallRng::from_rng(rand::thread_rng()) {
+            if let Ok(mut txn) = self.env.mut_txn_begin() {
+                if let Some(mut db) = txn.root(BY_CONTAINER_ID) {
+                    txn.put(&mut rng, &mut db, 0, 0);
+                }
+            }
+        }
+
         unimplemented!()
     }
 
