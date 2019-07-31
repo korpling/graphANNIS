@@ -1,4 +1,5 @@
 use super::symboltable::SymbolTable;
+use super::SparseAnnotation;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
@@ -20,7 +21,6 @@ use std::collections::Bound::*;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 use std::path::PathBuf;
-use super::SparseAnnotation;
 
 #[derive(Serialize, Deserialize, Clone, Default, MallocSizeOf)]
 pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {

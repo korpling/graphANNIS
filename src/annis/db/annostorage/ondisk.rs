@@ -9,7 +9,7 @@ use crate::malloc_size_of::MallocSizeOf;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use sanakirja::value::UnsafeValue;
-use sanakirja::{Commit, Db, Env, Representable, Transaction};
+use sanakirja::{Commit, Db, Env, MutTxn, Representable, Transaction};
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::path::Path;
@@ -37,14 +37,8 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         // Use 100 MB (SI standard) as default size
         let env = Env::new(path, 100_000_000)?;
         let mut txn = env.mut_txn_begin()?;
-        // Map from the item to all its annotations (as a map with the name/namespace as key)
-        let by_container: ByContainerDb<T> = txn.create_db()?;
-        // A map from an annotation key to a map of all its values to the items having this value for the annotation key
-        let by_anno: ByAnnoDb<T> = txn.create_db()?;
 
-        // set the created maps as root, so they can be accessed by their numeric ID
-        txn.set_root(BY_CONTAINER_ID, by_container);
-        txn.set_root(BY_ANNO_ID, by_anno);
+        Self::create_non_existing_roots(&mut txn)?;
 
         txn.commit()?;
 
@@ -52,6 +46,24 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
             env,
             phantom: PhantomData::default(),
         })
+    }
+
+    fn create_non_existing_roots<A>(txn: &mut MutTxn<A>) -> Result<()> {
+        // Map from the item to all its annotations (as a map with the name/namespace as key)
+        let by_container: Option<ByContainerDb<T>> = txn.root(BY_CONTAINER_ID);
+        if by_container.is_none() {
+            let root: ByContainerDb<T> = txn.create_db()?;
+            txn.set_root(BY_CONTAINER_ID, root);
+        }
+
+        // A map from an annotation key to a map of all its values to the items having this value for the annotation key
+        let by_anno: Option<ByAnnoDb<T>> = txn.root(BY_ANNO_ID);
+        if by_anno.is_none() {
+            let root: ByAnnoDb<T> = txn.create_db()?;
+            txn.set_root(BY_ANNO_ID, root);
+        }
+
+        Ok(())
     }
 
     fn insert_internal(&mut self, item: T, anno: Annotation) -> Result<()> {
@@ -110,11 +122,7 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         }
 
         // re-create the dropped DBs
-        let by_container: ByContainerDb<T> = txn.create_db()?;
-        let by_anno: ByAnnoDb<T> = txn.create_db()?;
-
-        txn.set_root(BY_CONTAINER_ID, by_container);
-        txn.set_root(BY_ANNO_ID, by_anno);
+        Self::create_non_existing_roots(&mut txn)?;
 
         txn.commit()?;
         Ok(())
