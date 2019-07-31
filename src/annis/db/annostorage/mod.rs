@@ -1,4 +1,5 @@
 pub mod inmemory;
+pub mod ondisk;
 mod symboltable;
 
 use crate::annis::db::{Match, ValueSearch};
