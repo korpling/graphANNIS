@@ -12,7 +12,7 @@ use sanakirja::value::UnsafeValue;
 use sanakirja::{Commit, Db, Env, MutTxn, Representable, Transaction};
 use std::hash::Hash;
 use std::marker::PhantomData;
-use std::path::Path;
+use std::path::{Path};
 
 const BY_CONTAINER_ID: usize = 0;
 const BY_ANNO_ID: usize = 0;
@@ -29,6 +29,8 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default + Representabl
 
     #[ignore_malloc_size_of = "state of environment is negligible compared to the actual maps (which are non disk)"]
     env: Env,
+
+    path: String,
 }
 
 impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> {
@@ -44,6 +46,7 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
 
         Ok(AnnoStorageImpl {
             env,
+            path: path.to_string_lossy().to_string(),
             phantom: PhantomData::default(),
         })
     }
@@ -64,6 +67,24 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         }
 
         Ok(())
+    }
+
+    fn put_and_extend<R, K, V>(&mut self, txn: &mut MutTxn<()>, rng :&mut R, db : &mut Db<K,V>, key : K, value : V) -> Result<bool> 
+    where K: Representable, V: Representable, R: rand::Rng {
+
+        let result = txn.put(rng, db, key, value);
+        while let Err(sanakirja::Error::NotEnoughSpace) = result {
+            // TODO: close environment and re-open with double the spaces
+            let old_size = self.env.size();
+            let path = Path::new(&self.path);
+            
+            unimplemented!()
+        }
+
+        match result {
+            Ok(r) => Ok(r),
+            Err(e) => Err(e.into()),
+        }
     }
 
     fn insert_internal(&mut self, item: T, anno: Annotation) -> Result<()> {
