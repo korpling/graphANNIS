@@ -1,4 +1,3 @@
-use super::SparseAnnotation;
 use crate::annis::db::annostorage::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
@@ -7,16 +6,15 @@ use crate::annis::types::AnnoKey;
 use crate::annis::types::AnnoKeyID;
 use crate::annis::types::Annotation;
 use crate::malloc_size_of::MallocSizeOf;
+use rand::rngs::SmallRng;
+use rand::SeedableRng;
 use sanakirja::value::UnsafeValue;
-use sanakirja::{Db, Env, Representable, Transaction, Commit};
+use sanakirja::{Commit, Db, Env, Representable, Transaction};
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::path::Path;
-use rand::rngs::SmallRng;
-use rand::SeedableRng;
 
-
-const BY_CONTAINER_ID : usize = 0;
+const BY_CONTAINER_ID: usize = 0;
 
 #[derive(MallocSizeOf)]
 pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default + Representable> {
@@ -42,7 +40,38 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
             phantom: PhantomData::default(),
         })
     }
+
+    fn insert_internal(&mut self, item: T, anno: Annotation) -> Result<()> {
+        let mut rng = SmallRng::from_rng(rand::thread_rng())?;
+        let mut txn = self.env.mut_txn_begin()?;
+
+        let mut by_container : Option<Db<T, ByContainerDb>> =  txn.root(BY_CONTAINER_ID);
+        if let Some(mut by_container) = by_container {
+            // try to get an existing kv for all annotations of this item or create a new one
+            let existing = txn.get(&by_container, item, None);
+            let mut annotations : ByContainerDb = if let Some(existing) = existing {
+                existing
+            } else {
+                let created_annotations_db = txn.create_db()?;
+                txn.put(&mut rng, &mut by_container, item, created_annotations_db)?;
+                created_annotations_db
+            };
+            // add the annotation value to the corresponding name/namespace pair
+            let name = UnsafeValue::from_slice(anno.key.name.as_bytes());
+            let namespace = UnsafeValue::from_slice(anno.key.ns.as_bytes());
+            let value = UnsafeValue::from_slice(anno.val.as_bytes());
+
+            txn.put(&mut rng, &mut annotations, (name, namespace), value)?;
+        }
+
+
+        txn.commit()?;
+        Ok(()) 
+    
+    }
 }
+
+type ByContainerDb = Db<(UnsafeValue, UnsafeValue), UnsafeValue>;
 
 impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
 where
@@ -50,15 +79,10 @@ where
     (T, AnnoKeyID): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) {
-        if let Ok(mut rng) = SmallRng::from_rng(rand::thread_rng()) {
-            if let Ok(mut txn) = self.env.mut_txn_begin() {
-                if let Some(mut db) = txn.root(BY_CONTAINER_ID) {
-                    txn.put(&mut rng, &mut db, 0, 0);
-                }
-            }
+        
+        if let Err(e) = self.insert_internal(item, anno) {
+            error!("Could not insert value into node annotation storage: {}", e);
         }
-
-        unimplemented!()
     }
 
     fn get_all_keys_for_item(&self, _item: &T) -> Vec<AnnoKey> {
