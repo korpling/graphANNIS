@@ -6,28 +6,34 @@ use crate::annis::types::AnnoKey;
 use crate::annis::types::AnnoKeyID;
 use crate::annis::types::Annotation;
 use crate::malloc_size_of::MallocSizeOf;
-use sanakirja::{Env, Representable};
+use sanakirja::{Env, Representable, Transaction, Db};
+use sanakirja::value::UnsafeValue;
 use std::hash::Hash;
-use std::path::Path;
 use std::marker::PhantomData;
+use std::path::Path;
+use super::SparseAnnotation;
+
 
 #[derive(MallocSizeOf)]
-pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
+pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default + Representable> {
     phantom: PhantomData<T>,
 
-    #[ignore_malloc_size_of = "state of environment is neglectable compared to the actual maps (which are non disk)"]
-    env : Env,
-
+    //#[ignore_malloc_size_of = "state of environment is neglectable compared to the actual maps (which are non disk)"]
+    //env: Env,
+    
+    //by_container: Db<T, UnsafeValue>,
 }
 
-impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
+impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> {
     pub fn load_from_file(path: &str) -> Result<AnnoStorageImpl<T>> {
         let path = Path::new(path);
-        // Use 1 GB (SI standard) as default size
-        let env = Env::new(path, 1_000_000_000)?;
-        
+        // Use 100 MB (SI standard) as default size
+        let env = Env::new(path, 100_000_000)?;
+        let mut txn = env.mut_txn_begin()?;
+        let by_container : Db<T, UnsafeValue> = txn.create_db()?;
         Ok(AnnoStorageImpl {
-            env,
+           // env,
+           //by_container: env
             phantom: PhantomData::default(),
         })
     }
@@ -39,14 +45,17 @@ where
     (T, AnnoKeyID): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) {
+        // if let Ok(txn) = self.env.mut_txn_begin() {
+        
+        // }
         unimplemented!()
     }
 
-    fn get_all_keys_for_item(&self, item: &T) -> Vec<AnnoKey> {
+    fn get_all_keys_for_item(&self, _item: &T) -> Vec<AnnoKey> {
         unimplemented!()
     }
 
-    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<String> {
+    fn remove_annotation_for_item(&mut self, _item: &T, _key: &AnnoKey) -> Option<String> {
         unimplemented!()
     }
 
@@ -54,19 +63,19 @@ where
         unimplemented!()
     }
 
-    fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
+    fn get_qnames(&self, _name: &str) -> Vec<AnnoKey> {
         unimplemented!()
     }
 
-    fn get_key_id(&self, key: &AnnoKey) -> Option<AnnoKeyID> {
+    fn get_key_id(&self, _key: &AnnoKey) -> Option<AnnoKeyID> {
         unimplemented!()
     }
 
-    fn get_key_value(&self, key_id: AnnoKeyID) -> Option<AnnoKey> {
+    fn get_key_value(&self, _key_id: AnnoKeyID) -> Option<AnnoKey> {
         unimplemented!()
     }
 
-    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
+    fn get_annotations_for_item(&self, _item: &T) -> Vec<Annotation> {
         unimplemented!()
     }
 
@@ -74,65 +83,65 @@ where
         unimplemented!()
     }
 
-    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<&str> {
+    fn get_value_for_item(&self, _item: &T, _key: &AnnoKey) -> Option<&str> {
         unimplemented!()
     }
 
-    fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<&str> {
+    fn get_value_for_item_by_id(&self, _item: &T, _key_id: AnnoKeyID) -> Option<&str> {
         unimplemented!()
     }
 
-    fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize {
+    fn number_of_annotations_by_name(&self, _ns: Option<String>, _name: String) -> usize {
         unimplemented!()
     }
 
     fn exact_anno_search<'a>(
         &'a self,
-        namespace: Option<String>,
-        name: String,
-        value: ValueSearch<String>,
+        _namespace: Option<String>,
+        _name: String,
+        _value: ValueSearch<String>,
     ) -> Box<Iterator<Item = Match> + 'a> {
         unimplemented!()
     }
 
     fn regex_anno_search<'a>(
         &'a self,
-        namespace: Option<String>,
-        name: String,
-        pattern: &str,
-        negated: bool,
+        _namespace: Option<String>,
+        _name: String,
+        _pattern: &str,
+        _negated: bool,
     ) -> Box<Iterator<Item = Match> + 'a> {
         unimplemented!()
     }
 
     fn find_annotations_for_item(
         &self,
-        item: &T,
-        ns: Option<String>,
-        name: Option<String>,
+        _item: &T,
+        _ns: Option<String>,
+        _name: Option<String>,
     ) -> Vec<AnnoKeyID> {
         unimplemented!()
     }
 
     fn guess_max_count(
         &self,
-        ns: Option<String>,
-        name: String,
-        lower_val: &str,
-        upper_val: &str,
+        _ns: Option<String>,
+        _name: String,
+        _lower_val: &str,
+        _upper_val: &str,
     ) -> usize {
         unimplemented!()
     }
 
-    fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize {
+    fn guess_max_count_regex(&self, _ns: Option<String>, _name: String, _pattern: &str) -> usize {
         unimplemented!()
     }
 
-    fn guess_most_frequent_value(&self, ns: Option<String>, name: String) -> Option<String> {
+    fn guess_most_frequent_value(&self, _ns: Option<String>, _name: String) -> Option<String> {
         unimplemented!()
     }
 
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
+    fn get_all_values(&self, _key: &AnnoKey, _most_frequent_first: bool) -> Vec<&str> {
         unimplemented!()
     }
 

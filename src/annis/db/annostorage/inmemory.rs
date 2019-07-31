@@ -20,12 +20,7 @@ use std::collections::Bound::*;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 use std::path::PathBuf;
-
-#[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf)]
-struct SparseAnnotation {
-    key: usize,
-    val: usize,
-}
+use super::SparseAnnotation;
 
 #[derive(Serialize, Deserialize, Clone, Default, MallocSizeOf)]
 pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {

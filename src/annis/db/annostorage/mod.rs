@@ -5,6 +5,12 @@ mod symboltable;
 use crate::annis::db::{Match, ValueSearch};
 use crate::annis::types::{AnnoKey, AnnoKeyID, Annotation};
 
+#[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf, Copy)]
+struct SparseAnnotation {
+    key: usize,
+    val: usize,
+}
+
 /// Access annotations for nodes or edges.
 pub trait AnnotationStorage<T>: Send + Sync
 where
