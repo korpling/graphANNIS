@@ -15,6 +15,7 @@ use std::marker::PhantomData;
 use std::path::Path;
 
 const BY_CONTAINER_ID: usize = 0;
+const BY_ANNO_ID: usize = 0;
 
 #[derive(MallocSizeOf)]
 pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default + Representable> {
@@ -31,7 +32,10 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         let env = Env::new(path, 100_000_000)?;
         let mut txn = env.mut_txn_begin()?;
         let by_container: Db<T, UnsafeValue> = txn.create_db()?;
+        // A map from an annotation key to a map of all its values to the items having this value for the annotation key
+        let by_anno: Db<(UnsafeValue, UnsafeValue), Db<UnsafeValue, T>> = txn.create_db()?; 
         txn.set_root(BY_CONTAINER_ID, by_container);
+        txn.set_root(BY_ANNO_ID, by_anno);
 
         txn.commit()?;
 
