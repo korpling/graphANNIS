@@ -72,13 +72,18 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
     fn put_and_extend<R, K, V>(&mut self, txn: &mut MutTxn<()>, rng :&mut R, db : &mut Db<K,V>, key : K, value : V) -> Result<bool> 
     where K: Representable, V: Representable, R: rand::Rng {
 
-        let result = txn.put(rng, db, key, value);
+        let mut result = txn.put(rng, db, key, value);
         while let Err(sanakirja::Error::NotEnoughSpace) = result {
             // TODO: close environment and re-open with double the spaces
             let old_size = self.env.size();
             let path = Path::new(&self.path);
+
+            self.env = Env::new(path, old_size*2)?;
             
-            unimplemented!()
+            // TODO: isn't the transaction invalid at this time???
+
+            result = txn.put(rng, db, key, value);
+            
         }
 
         match result {
