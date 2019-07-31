@@ -1,27 +1,41 @@
-use crate::annis::types::Annotation;
-use crate::annis::db::Match;
 use crate::annis::db::annostorage::AnnotationStorage;
-use crate::annis::types::AnnoKeyID;
-use crate::annis::types::AnnoKey;
-use crate::malloc_size_of::MallocSizeOf;
+use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
+use crate::annis::errors::Result;
+use crate::annis::types::AnnoKey;
+use crate::annis::types::AnnoKeyID;
+use crate::annis::types::Annotation;
+use crate::malloc_size_of::MallocSizeOf;
+use sanakirja::{Env, Representable};
 use std::hash::Hash;
+use std::path::Path;
+use std::marker::PhantomData;
 
+#[derive(MallocSizeOf)]
 pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
-    phantom: std::marker::PhantomData<T>,
+    phantom: PhantomData<T>,
+
+    #[ignore_malloc_size_of = "state of environment is neglectable compared to the actual maps (which are non disk)"]
+    env : Env,
+
+}
+
+impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
+    pub fn load_from_file(path: &str) -> Result<AnnoStorageImpl<T>> {
+        let path = Path::new(path);
+        // Use 1 GB (SI standard) as default size
+        let env = Env::new(path, 1_000_000_000)?;
+        
+        Ok(AnnoStorageImpl {
+            env,
+            phantom: PhantomData::default(),
+        })
+    }
 }
 
 impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
 where
-    T: Ord
-        + Hash
-        + MallocSizeOf
-        + Default
-        + Clone
-        + serde::Serialize
-        + serde::Deserialize<'de>
-        + Send
-        + Sync,
+    T: Ord + Hash + MallocSizeOf + Default + Clone + Representable + Send + Sync,
     (T, AnnoKeyID): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) {
@@ -33,15 +47,15 @@ where
     }
 
     fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<String> {
-       unimplemented!()
+        unimplemented!()
     }
 
     fn clear(&mut self) {
-       unimplemented!()
+        unimplemented!()
     }
 
     fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
-       unimplemented!()
+        unimplemented!()
     }
 
     fn get_key_id(&self, key: &AnnoKey) -> Option<AnnoKeyID> {
@@ -53,7 +67,7 @@ where
     }
 
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
-       unimplemented!()
+        unimplemented!()
     }
 
     fn number_of_annotations(&self) -> usize {
