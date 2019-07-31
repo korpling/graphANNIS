@@ -17,6 +17,12 @@ use std::path::Path;
 const BY_CONTAINER_ID: usize = 0;
 const BY_ANNO_ID: usize = 0;
 
+type AnnotationsDb = Db<(UnsafeValue, UnsafeValue), UnsafeValue>;
+type ByContainerDb<T> = Db<T, AnnotationsDb>;
+
+type ValuesDb<T> = Db<UnsafeValue, T>;
+type ByAnnoDb<T> = Db<(UnsafeValue, UnsafeValue), ValuesDb<T>>;
+
 #[derive(MallocSizeOf)]
 pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default + Representable> {
     phantom: PhantomData<T>,
@@ -31,9 +37,9 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         // Use 100 MB (SI standard) as default size
         let env = Env::new(path, 100_000_000)?;
         let mut txn = env.mut_txn_begin()?;
-        let by_container: Db<T, UnsafeValue> = txn.create_db()?;
+        let by_container: ByContainerDb<T> = txn.create_db()?;
         // A map from an annotation key to a map of all its values to the items having this value for the annotation key
-        let by_anno: Db<(UnsafeValue, UnsafeValue), Db<UnsafeValue, T>> = txn.create_db()?; 
+        let by_anno: ByAnnoDb<T>  = txn.create_db()?; 
         txn.set_root(BY_CONTAINER_ID, by_container);
         txn.set_root(BY_ANNO_ID, by_anno);
 
@@ -49,11 +55,12 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         let mut rng = SmallRng::from_rng(rand::thread_rng())?;
         let mut txn = self.env.mut_txn_begin()?;
 
-        let mut by_container : Option<Db<T, ByContainerDb>> =  txn.root(BY_CONTAINER_ID);
+        let by_container : Option<ByContainerDb<T>> =  txn.root(BY_CONTAINER_ID);
+
         if let Some(mut by_container) = by_container {
             // try to get an existing kv for all annotations of this item or create a new one
             let existing = txn.get(&by_container, item, None);
-            let mut annotations : ByContainerDb = if let Some(existing) = existing {
+            let mut annotations : AnnotationsDb = if let Some(existing) = existing {
                 existing
             } else {
                 let created_annotations_db = txn.create_db()?;
@@ -64,9 +71,9 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
             let name = UnsafeValue::from_slice(anno.key.name.as_bytes());
             let namespace = UnsafeValue::from_slice(anno.key.ns.as_bytes());
             let value = UnsafeValue::from_slice(anno.val.as_bytes());
-
             txn.put(&mut rng, &mut annotations, (name, namespace), value)?;
         }
+
 
 
         txn.commit()?;
@@ -75,7 +82,6 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
     }
 }
 
-type ByContainerDb = Db<(UnsafeValue, UnsafeValue), UnsafeValue>;
 
 impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
 where
