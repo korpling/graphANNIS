@@ -27,7 +27,7 @@ type ByAnnoDb<T> = Db<(UnsafeValue, UnsafeValue), ValuesDb<T>>;
 pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default + Representable> {
     phantom: PhantomData<T>,
 
-    #[ignore_malloc_size_of = "state of environment is neglectable compared to the actual maps (which are non disk)"]
+    #[ignore_malloc_size_of = "state of environment is negligible compared to the actual maps (which are non disk)"]
     env: Env,
 }
 
@@ -37,9 +37,12 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         // Use 100 MB (SI standard) as default size
         let env = Env::new(path, 100_000_000)?;
         let mut txn = env.mut_txn_begin()?;
+        // Map from the item to all its annotations (as a map with the name/namespace as key)
         let by_container: ByContainerDb<T> = txn.create_db()?;
         // A map from an annotation key to a map of all its values to the items having this value for the annotation key
         let by_anno: ByAnnoDb<T> = txn.create_db()?;
+
+        // set the created maps as root, so they can be accessed by their numeric ID
         txn.set_root(BY_CONTAINER_ID, by_container);
         txn.set_root(BY_ANNO_ID, by_anno);
 
@@ -90,6 +93,32 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         txn.commit()?;
         Ok(())
     }
+
+    fn clear_internal(&mut self) -> Result<()> {
+        let mut rng = SmallRng::from_rng(rand::thread_rng())?;
+        let mut txn = self.env.mut_txn_begin()?;
+
+        // drop the existing DBs
+        let by_container: Option<ByContainerDb<T>> = txn.root(BY_CONTAINER_ID);
+        if let Some(by_container) = by_container {
+            txn.drop(&mut rng, &by_container)?;
+        }
+
+        let by_anno: Option<ByAnnoDb<T>> = txn.root(BY_ANNO_ID);
+        if let Some(by_anno) = by_anno {
+            txn.drop(&mut rng, &by_anno)?;
+        }
+
+        // re-create the dropped DBs
+        let by_container: ByContainerDb<T> = txn.create_db()?;
+        let by_anno: ByAnnoDb<T> = txn.create_db()?;
+
+        txn.set_root(BY_CONTAINER_ID, by_container);
+        txn.set_root(BY_ANNO_ID, by_anno);
+
+        txn.commit()?;
+        Ok(())
+    }
 }
 
 impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
@@ -112,7 +141,9 @@ where
     }
 
     fn clear(&mut self) {
-        unimplemented!()
+        if let Err(e) = self.clear_internal() {
+            error!("Could not clear node annotation storage: {}", e);
+        }
     }
 
     fn get_qnames(&self, _name: &str) -> Vec<AnnoKey> {
