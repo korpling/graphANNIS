@@ -19,6 +19,9 @@ lalrpop = "0.17"
 csv = "1"
 regex = "1"
 
+[dev-dependencies]
+env_logger = "0.6"
+
 [dependencies]
 regex = "1"
 regex-syntax = "0.6"

@@ -23,7 +23,7 @@ type ByContainerDb<T> = Db<T, AnnotationsDb>;
 type ValuesDb<T> = Db<UnsafeValue, T>;
 type ByAnnoDb<T> = Db<(UnsafeValue, UnsafeValue), ValuesDb<T>>;
 
-/// An on-disk implementation of an annotation storage
+/// An on-disk implementation of an annotation storage.
 /// 
 /// # Error handling
 /// In contrast to the main-memory implementation, accessing the disk can fail.
@@ -31,7 +31,7 @@ type ByAnnoDb<T> = Db<(UnsafeValue, UnsafeValue), ValuesDb<T>>;
 /// Panics are used because these errors are unrecoverable 
 /// (e.g. if the file is suddenly missing this is like if someone removed the main memory)
 /// and there is no way of delivering a correct answer. 
-/// Retrying the same query again will also not succeed (we would handle temporary errors internally).
+/// Retrying the same query again will also not succeed since temporary errors are already handled internally.
 #[derive(MallocSizeOf)]
 pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default + Representable> {
     phantom: PhantomData<T>,
@@ -82,6 +82,10 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         Ok(())
     }
 
+    fn string_to_unsafe(mut txn : &mut MutTxn<()>, val :  &str) -> std::result::Result<UnsafeValue, sanakirja::Error> {
+        UnsafeValue::alloc_if_needed(&mut txn, val.as_bytes())
+    }
+
     fn unsafe_value_to_string(txn : &Txn, unsafe_value : UnsafeValue) -> String {
         let value = unsafe {sanakirja::value::Value::from_unsafe(&unsafe_value, txn)};
         let value_bytes = value.into_cow();
@@ -98,9 +102,9 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         let by_anno: Option<ByAnnoDb<T>> = txn.root(BY_ANNO_ID);
 
         if let (Some(mut by_container), Some(mut by_anno)) = (by_container, by_anno) {
-            let name = UnsafeValue::alloc_if_needed(&mut txn, anno.key.name.as_bytes())?;
-            let namespace = UnsafeValue::alloc_if_needed(&mut txn, anno.key.ns.as_bytes())?;
-            let val = UnsafeValue::alloc_if_needed(&mut txn, anno.val.as_bytes())?;
+            let name = Self::string_to_unsafe(&mut txn, &anno.key.name)?;
+            let namespace = Self::string_to_unsafe(&mut txn, &anno.key.ns)?;
+            let val = Self::string_to_unsafe(&mut txn, &anno.val)?;
 
             // try to get an existing kv for all annotations of this item or create a new one
             let mut annotations: AnnotationsDb =
@@ -215,6 +219,24 @@ where
     }
 
     fn remove_annotation_for_item(&mut self, _item: &T, _key: &AnnoKey) -> Option<String> {
+        // let mut txn = self.env.mut_txn_begin().expect("Could not create transaction to remove annotation for item from on-disk storage");
+
+        // let by_container: Option<ByContainerDb<T>> = txn.root(BY_CONTAINER_ID);
+        // let by_anno: Option<ByAnnoDb<T>> = txn.root(BY_ANNO_ID);
+
+        // if let (Some(mut by_container), Some(mut by_anno)) = (by_container, by_anno) {
+        //     // get the specific annotation value for the key, so it can be removed from the inverse by_anno map
+        //     let annotations : Option<AnnotationsDb> = txn.get(&by_container, item.clone(), None);
+        //     if let Some(annotations) = annotations {
+        //         let ns = Self::string_to_unsafe(&mut txn, &key.ns).expect("Could not create string");
+        //         let anno_key_raw = (Selff)
+        //         txn.get(&annotations, )
+        //         let mut values = Vec::default();
+        //         for (_, val) in txn.iter(&annotations, None) {
+        //             values.push(Self::unsafe_value_to_string(&txn, val))
+        //         }
+        //     }
+        // }
         unimplemented!()
     }
 
@@ -310,5 +332,49 @@ where
 
     fn calculate_statistics(&mut self) {
         unimplemented!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::annis::types::NodeID;
+
+    #[test]
+    fn insert_same_anno() {
+        env_logger::init();
+
+        let test_anno = Annotation {
+            key: AnnoKey {
+                name: "anno1".to_owned(),
+                ns: "annis".to_owned(),
+            },
+            val: "test".to_owned(),
+        };
+
+        let tmp = tempfile::tempdir().unwrap();
+
+        debug!("Using {} as temporary annotation store", &tmp.path().to_string_lossy());
+
+        let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::load_from_file(&tmp.path().to_string_lossy()).unwrap();
+        a.insert(1, test_anno.clone());
+        a.insert(1, test_anno.clone());
+        a.insert(2, test_anno.clone());
+        a.insert(3, test_anno);
+
+        assert_eq!(3, a.number_of_annotations());
+
+        assert_eq!(
+            "test",
+            a.get_value_for_item(
+                &3,
+                &AnnoKey {
+                    name: "anno1".to_owned(),
+                    ns: "annis".to_owned()
+                }
+            )
+            .unwrap()
+        );
     }
 }
