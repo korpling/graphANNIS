@@ -23,6 +23,15 @@ type ByContainerDb<T> = Db<T, AnnotationsDb>;
 type ValuesDb<T> = Db<UnsafeValue, T>;
 type ByAnnoDb<T> = Db<(UnsafeValue, UnsafeValue), ValuesDb<T>>;
 
+/// An on-disk implementation of an annotation storage
+/// 
+/// # Error handling
+/// In contrast to the main-memory implementation, accessing the disk can fail.
+/// This is handled as a fatal error with panic except for specific scenarios where we know how to recover from this error.
+/// Panics are used because these errors are unrecoverable 
+/// (e.g. if the file is suddenly missing this is like if someone removed the main memory)
+/// and there is no way of delivering a correct answer. 
+/// Retrying the same query again will also not succeed (we would handle temporary errors internally).
 #[derive(MallocSizeOf)]
 pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default + Representable> {
     phantom: PhantomData<T>,
@@ -172,9 +181,7 @@ where
     (T, AnnoKeyID): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) {
-        if let Err(e) = self.insert_and_extend(item, anno) {
-            error!("Could not insert value into node annotation storage: {}", e);
-        }
+        self.insert_and_extend(item, anno).expect("Could not insert value into node annotation storage");
     }
 
     fn get_all_keys_for_item(&self, _item: &T) -> Vec<AnnoKey> {
