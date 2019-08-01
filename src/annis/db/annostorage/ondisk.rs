@@ -50,12 +50,12 @@ impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
     }
 }
 
-struct ByContainerEntry<T> {
+struct ByContainerKey<T> {
     item: T,
     anno_key: AnnoKey,
 }
 
-impl<T> Into<Vec<u8>> for ByContainerEntry<T> {
+impl<T> Into<Vec<u8>> for ByContainerKey<T> {
     fn into(self) -> Vec<u8> {
         unimplemented!()
     }
@@ -67,7 +67,7 @@ where
     (T, AnnoKeyID): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) {
-        let key: Vec<u8> = ByContainerEntry {
+        let key: Vec<u8> = ByContainerKey {
             item,
             anno_key: anno.key,
         }
