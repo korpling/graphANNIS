@@ -1,3 +1,4 @@
+use crate::annis::types::NodeID;
 use crate::annis::db::annostorage::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
@@ -50,37 +51,41 @@ impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
     }
 }
 
-struct ByContainerKey<T> {
-    item: T,
-    anno_key: AnnoKey,
+struct ByContainerValue {
+    annotations: Vec<Annotation>,
 }
 
-impl<T> Into<Vec<u8>> for ByContainerKey<T> {
+impl Into<Vec<u8>> for ByContainerValue {
     fn into(self) -> Vec<u8> {
         unimplemented!()
     }
 }
 
-impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
-where
-    T: Ord + Hash + MallocSizeOf + Default + Clone + Send + Sync,
-    (T, AnnoKeyID): Into<Match>,
+impl From<&[u8]> for ByContainerValue {
+    fn from(val :  &[u8]) -> ByContainerValue {
+        unimplemented!()
+    }
+}
+
+impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID>
 {
-    fn insert(&mut self, item: T, anno: Annotation) {
-        let key: Vec<u8> = ByContainerKey {
-            item,
-            anno_key: anno.key,
-        }
-        .into();
-        self.by_container.set(&key, anno.val.as_bytes());
+    fn insert(&mut self, item: NodeID, anno: Annotation) {
+        let mut by_container_value : ByContainerValue = if let Some(existing) = self.by_container.get(item.to_le_bytes()).expect("Database should work") {
+            ByContainerValue::from(existing.as_ref())
+        } else {
+            ByContainerValue {
+                annotations: vec![],
+            }
+        };
+
         unimplemented!()
     }
 
-    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
+    fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
         unimplemented!()
     }
 
-    fn remove_annotation_for_item(&mut self, _item: &T, _key: &AnnoKey) -> Option<String> {
+    fn remove_annotation_for_item(&mut self, _item: &NodeID, _key: &AnnoKey) -> Option<String> {
         unimplemented!()
     }
 
@@ -104,11 +109,11 @@ where
         unimplemented!()
     }
 
-    fn get_value_for_item(&self, _item: &T, _key: &AnnoKey) -> Option<&str> {
+    fn get_value_for_item(&self, _item: &NodeID, _key: &AnnoKey) -> Option<&str> {
         unimplemented!()
     }
 
-    fn get_value_for_item_by_id(&self, _item: &T, _key_id: AnnoKeyID) -> Option<&str> {
+    fn get_value_for_item_by_id(&self, _item: &NodeID, _key_id: AnnoKeyID) -> Option<&str> {
         unimplemented!()
     }
 
@@ -137,7 +142,7 @@ where
 
     fn find_annotations_for_item(
         &self,
-        _item: &T,
+        _item: &NodeID,
         _ns: Option<String>,
         _name: Option<String>,
     ) -> Vec<AnnoKeyID> {
@@ -170,7 +175,7 @@ where
         unimplemented!()
     }
 
-    fn get_largest_item(&self) -> Option<T> {
+    fn get_largest_item(&self) -> Option<NodeID> {
         unimplemented!()
     }
 
