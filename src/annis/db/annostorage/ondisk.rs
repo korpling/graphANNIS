@@ -219,9 +219,7 @@ where
     }
 
     fn clear(&mut self) {
-        if let Err(e) = self.clear_internal() {
-            error!("Could not clear node annotation storage: {}", e);
-        }
+        self.clear_internal().expect("Could not clear node annotation storage");
     }
 
     fn get_qnames(&self, _name: &str) -> Vec<AnnoKey> {
