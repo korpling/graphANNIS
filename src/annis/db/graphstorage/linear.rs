@@ -250,7 +250,7 @@ where
         false
     }
 
-    fn copy(&mut self, db: &Graph, orig: &GraphStorage) {
+    fn copy(&mut self, db: &Graph, orig: &GraphStorage) -> Result<()> {
         self.clear();
 
         // find all roots of the component
@@ -291,7 +291,7 @@ where
                 let e = Edge { source, target };
                 let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e);
                 for a in edge_annos {
-                    self.annos.insert(e.clone(), a);
+                    self.annos.insert(e.clone(), a)?;
                 }
             }
         }
@@ -327,6 +327,8 @@ where
 
         self.stats = orig.get_statistics().cloned();
         self.annos.calculate_statistics();
+
+        Ok(())
     }
 
     fn inverse_has_same_cost(&self) -> bool {

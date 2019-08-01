@@ -141,7 +141,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
         &self.annos
     }
 
-    fn copy(&mut self, db: &Graph, orig: &GraphStorage) {
+    fn copy(&mut self, db: &Graph, orig: &GraphStorage) -> Result<()> {
         self.annos.clear();
         self.edges.clear();
         self.inverse_edges.clear();
@@ -172,7 +172,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
                         }
                         // insert annotation
                         for a in orig.get_anno_storage().get_annotations_for_item(&e) {
-                            self.annos.insert(e.clone(), a);
+                            self.annos.insert(e.clone(), a)?;
                         }
                     }
                 }
@@ -180,6 +180,8 @@ impl GraphStorage for DenseAdjacencyListStorage {
             self.stats = orig.get_statistics().cloned();
             self.annos.calculate_statistics();
         }
+
+        Ok(())
     }
 
     fn as_edgecontainer(&self) -> &EdgeContainer {

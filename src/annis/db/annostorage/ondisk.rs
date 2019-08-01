@@ -73,27 +73,6 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         Ok(())
     }
 
-
-    fn insert_and_extend(&mut self, item: T, anno: Annotation) -> Result<()> {
-        loop {
-                            
-            match self.insert_transcational(item, anno.clone()) {
-                Ok(r) => {
-                    return Ok(r);
-                }
-                Err(sanakirja::Error::NotEnoughSpace) => {
-                    // do nothing, reach end of loop to execute extension code
-                }
-                Err(e) => return Err(e.into()),
-            }
-            
-            // load a resized memory mapped file
-            let old_size = self.env.size();
-            let path = Path::new(&self.path);
-            self.env = Env::new(path, old_size * 2)?;
-        }
-    }
-
     fn insert_transcational(&mut self, item: T, anno: Annotation) -> std::result::Result<(), sanakirja::Error> {
         let mut txn = self.env.mut_txn_begin()?;
 
@@ -171,10 +150,32 @@ where
     T: Ord + Hash + MallocSizeOf + Default + Clone + Representable + Send + Sync,
     (T, AnnoKeyID): Into<Match>,
 {
-    fn insert(&mut self, item: T, anno: Annotation) {
-        if let Err(e) = self.insert_and_extend(item, anno) {
-            error!("Could not insert value into node annotation storage: {}", e);
+    fn insert(&mut self, item: T, anno: Annotation) -> Result<()> {
+        loop {
+                            
+            match self.insert_transcational(item, anno.clone()) {
+                Ok(_) => {
+                    return Ok(());
+                }
+                Err(sanakirja::Error::NotEnoughSpace) => {
+                    // do nothing, reach end of loop to execute extension code
+                }
+                Err(e) => return Err(e.into()),
+            }
+            
+            // load a resized memory mapped file
+            let old_size = self.env.size();
+            let path = Path::new(&self.path);
+            self.env = Env::new(path, old_size * 2)?;
         }
+    }
+
+    fn get_annotations_for_item(&self, _item: &T) -> Vec<Annotation> {
+        let _txn = self.env.txn_begin();
+        
+//        let by_container: Option<ByContainerDb<T>> = txn.root(BY_CONTAINER_ID).un;
+
+        unimplemented!()
     }
 
     fn get_all_keys_for_item(&self, _item: &T) -> Vec<AnnoKey> {
@@ -200,10 +201,6 @@ where
     }
 
     fn get_key_value(&self, _key_id: AnnoKeyID) -> Option<AnnoKey> {
-        unimplemented!()
-    }
-
-    fn get_annotations_for_item(&self, _item: &T) -> Vec<Annotation> {
         unimplemented!()
     }
 

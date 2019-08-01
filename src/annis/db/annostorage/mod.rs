@@ -2,6 +2,7 @@ pub mod inmemory;
 pub mod ondisk;
 mod symboltable;
 
+use crate::annis::errors::Result;
 use crate::annis::db::{Match, ValueSearch};
 use crate::annis::types::{AnnoKey, AnnoKeyID, Annotation};
 
@@ -17,7 +18,7 @@ where
     T: Send + Sync,
 {
     /// Insert an annotation `anno` (with annotation key and value) for an item `item`.
-    fn insert(&mut self, item: T, anno: Annotation);
+    fn insert(&mut self, item: T, anno: Annotation) -> Result<()>;
 
     /// Get all the annotation keys of a node
     fn get_all_keys_for_item(&self, item: &T) -> Vec<AnnoKey>;

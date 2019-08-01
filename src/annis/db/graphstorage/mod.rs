@@ -104,7 +104,7 @@ pub trait GraphStorage: EdgeContainer {
 
     /// Copy the content of another component.
     /// This removes the existing content of this graph storage.
-    fn copy(&mut self, db: &Graph, orig: &GraphStorage);
+    fn copy(&mut self, db: &Graph, orig: &GraphStorage) -> Result<()>;
 
     /// Upcast this graph storage to the [EdgeContainer](trait.EdgeContainer.html) trait.
     fn as_edgecontainer(&self) -> &EdgeContainer;
@@ -139,7 +139,7 @@ pub trait WriteableGraphStorage: GraphStorage {
 
     /// Add an annotation to an edge in this graph storage.
     /// The edge has to exist.
-    fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation);
+    fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) -> Result<()>;
 
     /// Delete an existing edge.
     fn delete_edge(&mut self, edge: &Edge);
