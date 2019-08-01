@@ -295,20 +295,6 @@ where
         }
     }
 
-    fn get_all_keys_for_item(&self, item: &T) -> Vec<AnnoKey> {
-        if let Some(all_annos) = self.by_container.get(item) {
-            let mut result: Vec<AnnoKey> = Vec::with_capacity(all_annos.len());
-            for a in all_annos.iter() {
-                if let Some(key) = self.anno_keys.get_value(a.key) {
-                    result.push(key.clone());
-                }
-            }
-            return result;
-        }
-        // return empty result if not found
-        Vec::new()
-    }
-
     fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<String> {
         let mut result = None;
 

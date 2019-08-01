@@ -239,9 +239,9 @@ fn next_candidates(
         // return all annotations for each node
         let mut matches: Vec<Match> = Vec::new();
         for match_node in it_nodes {
-            let all_keys = node_annos.get_all_keys_for_item(&match_node.node);
-            for anno_key in all_keys {
-                if let Some(key_id) = node_annos.get_key_id(&anno_key) {
+            let all_annotations = node_annos.get_annotations_for_item(&match_node.node);
+            for anno in all_annotations {
+                if let Some(key_id) = node_annos.get_key_id(&anno.key) {
                     matches.push(Match {
                         node: match_node.node,
                         anno_key: key_id,

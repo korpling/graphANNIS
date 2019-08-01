@@ -145,11 +145,11 @@ impl<'a> IndexJoin<'a> {
             } else {
                 // return all annotations for each node
                 return Some(Box::new(it_nodes.flat_map(move |match_node| {
-                    let anno_keys = node_annos.get_all_keys_for_item(&match_node.node);
+                    let annotations = node_annos.get_annotations_for_item(&match_node.node);
                     let mut matches: Vec<Match> = Vec::new();
-                    matches.reserve(anno_keys.len());
-                    for anno_key in anno_keys {
-                        if let Some(key_id) = node_annos.get_key_id(&anno_key) {
+                    matches.reserve(annotations.len());
+                    for anno in annotations {
+                        if let Some(key_id) = node_annos.get_key_id(&anno.key) {
                             matches.push(Match {
                                 node: match_node.node,
                                 anno_key: key_id,

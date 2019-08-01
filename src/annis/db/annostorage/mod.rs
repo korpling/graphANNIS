@@ -19,9 +19,6 @@ where
     /// Insert an annotation `anno` (with annotation key and value) for an item `item`.
     fn insert(&mut self, item: T, anno: Annotation);
 
-    /// Get all the annotation keys of a node
-    fn get_all_keys_for_item(&self, item: &T) -> Vec<AnnoKey>;
-
     fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<String>;
 
     fn clear(&mut self);

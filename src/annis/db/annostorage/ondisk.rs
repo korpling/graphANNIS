@@ -214,10 +214,6 @@ where
         return vec![];
     }
 
-    fn get_all_keys_for_item(&self, _item: &T) -> Vec<AnnoKey> {
-        unimplemented!()
-    }
-
     fn remove_annotation_for_item(&mut self, _item: &T, _key: &AnnoKey) -> Option<String> {
         unimplemented!()
     }
