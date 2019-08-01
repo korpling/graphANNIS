@@ -169,7 +169,7 @@ where
         for c in db.get_all_components(None, None) {
             progress_callback(&format!("calculating statistics for component {}", c));
             db.calculate_component_statistics(&c)?;
-            db.optimize_impl(&c)?;
+            db.optimize_impl(&c);
         }
 
         progress_callback(&format!(
@@ -1011,7 +1011,7 @@ where
         .get_all_components(Some(ComponentType::Ordering), None)
     {
         updater.g.calculate_component_statistics(&order_component)?;
-        updater.g.optimize_impl(&order_component)?;
+        updater.g.optimize_impl(&order_component);
     }
 
     load_node_anno_tab(
