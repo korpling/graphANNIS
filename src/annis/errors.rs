@@ -75,24 +75,6 @@ impl std::convert::From<regex::Error> for Error {
     }
 }
 
-impl std::convert::From<::sanakirja::Error> for Error {
-    fn from(e: ::sanakirja::Error) -> Error {
-        match e {
-            // map the original IO error into own our IO error variant
-            ::sanakirja::Error::IO(io_err) => Error::IO(io_err),
-            // The following errors should typically not be propagated, in case they are, map them in a generic way
-            ::sanakirja::Error::NotEnoughSpace => Error::Generic {
-                msg: "Not enough space in key value store".to_owned(),
-                cause: Some(Box::new(e)),
-            },
-            ::sanakirja::Error::Poison => Error::Generic {
-                msg: "Lock Poison in key value Store".to_owned(),
-                cause: Some(Box::new(e)),
-            },
-        }
-    }
-}
-
 impl std::convert::From<::rand::Error> for Error {
     fn from(e: ::rand::Error) -> Error {
         Error::RandomGenerator(e)

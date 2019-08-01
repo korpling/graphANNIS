@@ -6,242 +6,86 @@ use crate::annis::types::AnnoKey;
 use crate::annis::types::AnnoKeyID;
 use crate::annis::types::Annotation;
 use crate::malloc_size_of::MallocSizeOf;
-use rand::rngs::SmallRng;
-use rand::SeedableRng;
-use sanakirja::value::UnsafeValue;
-use sanakirja::{Commit, Db, Env, Txn, MutTxn, Representable, Transaction};
+use std::sync::Arc;
+
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::path::Path;
 
-const BY_CONTAINER_ID: usize = 0;
-const BY_ANNO_ID: usize = 0;
-
-type AnnotationsDb = Db<(UnsafeValue, UnsafeValue), UnsafeValue>;
-type ByContainerDb<T> = Db<T, AnnotationsDb>;
-
-type ValuesDb<T> = Db<UnsafeValue, T>;
-type ByAnnoDb<T> = Db<(UnsafeValue, UnsafeValue), ValuesDb<T>>;
-
 /// An on-disk implementation of an annotation storage.
-/// 
+///
 /// # Error handling
 /// In contrast to the main-memory implementation, accessing the disk can fail.
 /// This is handled as a fatal error with panic except for specific scenarios where we know how to recover from this error.
-/// Panics are used because these errors are unrecoverable 
+/// Panics are used because these errors are unrecoverable
 /// (e.g. if the file is suddenly missing this is like if someone removed the main memory)
-/// and there is no way of delivering a correct answer. 
+/// and there is no way of delivering a correct answer.
 /// Retrying the same query again will also not succeed since temporary errors are already handled internally.
 #[derive(MallocSizeOf)]
-pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default + Representable> {
+pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
     phantom: PhantomData<T>,
 
-    #[ignore_malloc_size_of = "state of environment is negligible compared to the actual maps (which are non disk)"]
-    env: Env,
-
-    path: String,
-
-    #[ignore_malloc_size_of = "state of RNG is negligible compared to the actual maps (which are non disk)"]
-    rng: SmallRng,
+    #[ignore_malloc_size_of = "is stored on disk"]
+    by_container: Arc<sled::Tree>,
+    #[ignore_malloc_size_of = "is stored on disk"]
+    by_anno: Arc<sled::Tree>,
 }
 
-impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> {
-    pub fn load_from_file(path: &str) -> Result<AnnoStorageImpl<T>> {
-        let path = Path::new(path);
-        // Use 100 MB (SI standard) as default size
-        let env = Env::new(path, 100_000_000)?;
-        let mut txn = env.mut_txn_begin()?;
+impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
+    pub fn new(path: &Path) -> AnnoStorageImpl<T> {
+        let db = sled::Db::start_default(path).expect("Can't create annotation storage");
 
-        Self::create_non_existing_roots(&mut txn)?;
+        let by_container = db
+            .open_tree("by_container")
+            .expect("Can't create annotation storage");
+        let by_anno = db
+            .open_tree("by_anno")
+            .expect("Can't create annotation storage");
 
-        txn.commit()?;
-
-        Ok(AnnoStorageImpl {
-            env,
-            path: path.to_string_lossy().to_string(),
-            rng: SmallRng::from_rng(rand::thread_rng())?,
+        AnnoStorageImpl {
             phantom: PhantomData::default(),
-        })
-    }
-
-    fn create_non_existing_roots<A>(txn: &mut MutTxn<A>) -> Result<()> {
-        // Map from the item to all its annotations (as a map with the name/namespace as key)
-        let by_container: Option<ByContainerDb<T>> = txn.root(BY_CONTAINER_ID);
-        if by_container.is_none() {
-            let root: ByContainerDb<T> = txn.create_db()?;
-            txn.set_root(BY_CONTAINER_ID, root);
+            by_container,
+            by_anno,
         }
-
-        // A map from an annotation key to a map of all its values to the items having this value for the annotation key
-        let by_anno: Option<ByAnnoDb<T>> = txn.root(BY_ANNO_ID);
-        if by_anno.is_none() {
-            let root: ByAnnoDb<T> = txn.create_db()?;
-            txn.set_root(BY_ANNO_ID, root);
-        }
-
-        Ok(())
     }
+}
 
-    fn string_to_unsafe(mut txn : &mut MutTxn<()>, val :  &str) -> std::result::Result<UnsafeValue, sanakirja::Error> {
-        UnsafeValue::alloc_if_needed(&mut txn, val.as_bytes())
+struct ByContainerEntry<T> {
+    item: T,
+    anno_key: AnnoKey,
+}
+
+impl<T> Into<Vec<u8>> for ByContainerEntry<T> {
+    fn into(self) -> Vec<u8> {
+        unimplemented!()
     }
-
-    fn unsafe_value_to_string(txn : &Txn, unsafe_value : UnsafeValue) -> String {
-        let value = unsafe {sanakirja::value::Value::from_unsafe(&unsafe_value, txn)};
-        let value_bytes = value.into_cow();
-
-        std::string::String::from_utf8_lossy(&value_bytes).to_string()
-
-    }
-
-
-    fn insert_transcational(&mut self, item: T, anno: Annotation) -> std::result::Result<(), sanakirja::Error> {
-        let mut txn = self.env.mut_txn_begin()?;
-
-        let by_container: Option<ByContainerDb<T>> = txn.root(BY_CONTAINER_ID);
-        let by_anno: Option<ByAnnoDb<T>> = txn.root(BY_ANNO_ID);
-
-        if let (Some(mut by_container), Some(mut by_anno)) = (by_container, by_anno) {
-            let name = Self::string_to_unsafe(&mut txn, &anno.key.name)?;
-            let namespace = Self::string_to_unsafe(&mut txn, &anno.key.ns)?;
-            let val = Self::string_to_unsafe(&mut txn, &anno.val)?;
-
-            // try to get an existing kv for all annotations of this item or create a new one
-            let mut annotations: AnnotationsDb =
-                if let Some(existing) = txn.get(&by_container, item, None) {
-                    existing
-                } else {
-                    let created_annotations_db = txn.create_db()?;
-                    txn.put(
-                        &mut self.rng,
-                        &mut by_container,
-                        item,
-                        created_annotations_db,
-                    )?;
-                    created_annotations_db
-                };
-            // add the annotation value to the corresponding name/namespace pair
-            txn.put(&mut self.rng, &mut annotations, (name, namespace), val)?;
-
-            // add item to the by_anno map and also create the values kv if not yet existing
-            let mut values_for_anno: ValuesDb<T> =
-                if let Some(existing) = txn.get(&by_anno, (name, namespace), None) {
-                    existing
-                } else {
-                    let created_values_db = txn.create_db()?;
-                    txn.put(
-                        &mut self.rng,
-                        &mut by_anno,
-                        (name, namespace),
-                        created_values_db,
-                    )?;
-                    created_values_db
-                };
-            txn.put(&mut self.rng, &mut values_for_anno, val, item)?;
-        }
-
-        txn.commit()?;
-        Ok(())
-    }
-
-    fn clear_internal(&mut self) -> Result<()> {
-        let mut rng = SmallRng::from_rng(rand::thread_rng())?;
-        let mut txn = self.env.mut_txn_begin()?;
-
-        // drop the existing DBs
-        let by_container: Option<ByContainerDb<T>> = txn.root(BY_CONTAINER_ID);
-        if let Some(by_container) = by_container {
-            txn.drop(&mut rng, &by_container)?;
-        }
-
-        let by_anno: Option<ByAnnoDb<T>> = txn.root(BY_ANNO_ID);
-        if let Some(by_anno) = by_anno {
-            txn.drop(&mut rng, &by_anno)?;
-        }
-
-        // re-create the dropped DBs
-        Self::create_non_existing_roots(&mut txn)?;
-
-        txn.commit()?;
-        Ok(())
-    }
-
 }
 
 impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
 where
-    T: Ord + Hash + MallocSizeOf + Default + Clone + Representable + Send + Sync,
+    T: Ord + Hash + MallocSizeOf + Default + Clone + Send + Sync,
     (T, AnnoKeyID): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) {
-        loop {
-                            
-            match self.insert_transcational(item, anno.clone()) {
-                Ok(_) => {
-                    return;
-                }
-                Err(sanakirja::Error::NotEnoughSpace) => {
-                    // do nothing, reach end of loop to execute extension code
-                }
-                Err(e) => panic!("Could not insert item to annotation storage: {:?}", e),
-            }
-            
-            // load a resized memory mapped file
-            let old_size = self.env.size();
-            let path = Path::new(&self.path);
-            self.env = Env::new(path, old_size * 2).expect("Could enlarge file for annotation storage");
+        let key: Vec<u8> = ByContainerEntry {
+            item,
+            anno_key: anno.key,
         }
+        .into();
+        self.by_container.set(&key, anno.val.as_bytes());
+        unimplemented!()
     }
 
-
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
-        let txn = self.env.txn_begin().expect("Could not create transaction");
-        let by_container: Option<ByContainerDb<T>> = txn.root(BY_CONTAINER_ID);
-        
-        if let Some(by_container) = by_container {
-            let annotations : Option<AnnotationsDb> = txn.get(&by_container, item.clone(), None);
-            if let Some(annotations) = annotations {
-                let mut result = Vec::default();
-                for ((name, ns), val) in txn.iter(&annotations, None) {
-                    result.push(Annotation {
-                        key: AnnoKey {
-                            name: Self::unsafe_value_to_string(&txn, name),
-                            ns: Self::unsafe_value_to_string(&txn, ns),
-                        },
-                        val: Self::unsafe_value_to_string(&txn, val),
-                    })
-                }
-                return result;
-            }
-        }
-
-        return vec![];
+        unimplemented!()
     }
 
     fn remove_annotation_for_item(&mut self, _item: &T, _key: &AnnoKey) -> Option<String> {
-        // let mut txn = self.env.mut_txn_begin().expect("Could not create transaction to remove annotation for item from on-disk storage");
-
-        // let by_container: Option<ByContainerDb<T>> = txn.root(BY_CONTAINER_ID);
-        // let by_anno: Option<ByAnnoDb<T>> = txn.root(BY_ANNO_ID);
-
-        // if let (Some(mut by_container), Some(mut by_anno)) = (by_container, by_anno) {
-        //     // get the specific annotation value for the key, so it can be removed from the inverse by_anno map
-        //     let annotations : Option<AnnotationsDb> = txn.get(&by_container, item.clone(), None);
-        //     if let Some(annotations) = annotations {
-        //         let ns = Self::string_to_unsafe(&mut txn, &key.ns).expect("Could not create string");
-        //         let anno_key_raw = (Selff)
-        //         txn.get(&annotations, )
-        //         let mut values = Vec::default();
-        //         for (_, val) in txn.iter(&annotations, None) {
-        //             values.push(Self::unsafe_value_to_string(&txn, val))
-        //         }
-        //     }
-        // }
         unimplemented!()
     }
 
     fn clear(&mut self) {
-        self.clear_internal().expect("Could not clear node annotation storage");
+        unimplemented!()
     }
 
     fn get_qnames(&self, _name: &str) -> Vec<AnnoKey> {
@@ -353,14 +197,16 @@ mod tests {
             val: "test".to_owned(),
         };
 
-        let tmp = tempfile::tempdir().unwrap();
+        let path = tempfile::TempDir::new().unwrap();
+        let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new(path.path());
 
-        debug!("Using {} as temporary annotation store", &tmp.path().to_string_lossy());
-
-        let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::load_from_file(&tmp.path().to_string_lossy()).unwrap();
+        debug!("Inserting annotation for node 1");
         a.insert(1, test_anno.clone());
+        debug!("Inserting annotation for node 1 (again)");
         a.insert(1, test_anno.clone());
+        debug!("Inserting annotation for node 2");
         a.insert(2, test_anno.clone());
+        debug!("Inserting annotation for node 3");
         a.insert(3, test_anno);
 
         assert_eq!(3, a.number_of_annotations());
