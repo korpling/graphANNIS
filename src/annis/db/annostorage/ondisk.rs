@@ -9,7 +9,7 @@ use crate::malloc_size_of::MallocSizeOf;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use sanakirja::value::UnsafeValue;
-use sanakirja::{Commit, Db, Env, MutTxn, Representable, Transaction};
+use sanakirja::{Commit, Db, Env, Txn, MutTxn, Representable, Transaction};
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::path::Path;
@@ -82,26 +82,14 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         Ok(())
     }
 
+    fn unsafe_value_to_string(txn : &Txn, unsafe_value : UnsafeValue) -> String {
+        let value = unsafe {sanakirja::value::Value::from_unsafe(&unsafe_value, txn)};
+        let value_bytes = value.into_cow();
 
-    fn insert_and_extend(&mut self, item: T, anno: Annotation) -> Result<()> {
-        loop {
-                            
-            match self.insert_transcational(item, anno.clone()) {
-                Ok(r) => {
-                    return Ok(r);
-                }
-                Err(sanakirja::Error::NotEnoughSpace) => {
-                    // do nothing, reach end of loop to execute extension code
-                }
-                Err(e) => return Err(e.into()),
-            }
-            
-            // load a resized memory mapped file
-            let old_size = self.env.size();
-            let path = Path::new(&self.path);
-            self.env = Env::new(path, old_size * 2)?;
-        }
+        std::string::String::from_utf8_lossy(&value_bytes).to_string()
+
     }
+
 
     fn insert_transcational(&mut self, item: T, anno: Annotation) -> std::result::Result<(), sanakirja::Error> {
         let mut txn = self.env.mut_txn_begin()?;
@@ -110,9 +98,9 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         let by_anno: Option<ByAnnoDb<T>> = txn.root(BY_ANNO_ID);
 
         if let (Some(mut by_container), Some(mut by_anno)) = (by_container, by_anno) {
-            let name = UnsafeValue::from_slice(anno.key.name.as_bytes());
-            let namespace = UnsafeValue::from_slice(anno.key.ns.as_bytes());
-            let val = UnsafeValue::from_slice(anno.val.as_bytes());
+            let name = UnsafeValue::alloc_if_needed(&mut txn, anno.key.name.as_bytes())?;
+            let namespace = UnsafeValue::alloc_if_needed(&mut txn, anno.key.ns.as_bytes())?;
+            let val = UnsafeValue::alloc_if_needed(&mut txn, anno.val.as_bytes())?;
 
             // try to get an existing kv for all annotations of this item or create a new one
             let mut annotations: AnnotationsDb =
@@ -173,6 +161,7 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         txn.commit()?;
         Ok(())
     }
+
 }
 
 impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
@@ -181,7 +170,48 @@ where
     (T, AnnoKeyID): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) {
-        self.insert_and_extend(item, anno).expect("Could not insert value into node annotation storage");
+        loop {
+                            
+            match self.insert_transcational(item, anno.clone()) {
+                Ok(_) => {
+                    return;
+                }
+                Err(sanakirja::Error::NotEnoughSpace) => {
+                    // do nothing, reach end of loop to execute extension code
+                }
+                Err(e) => panic!("Could not insert item to annotation storage: {:?}", e),
+            }
+            
+            // load a resized memory mapped file
+            let old_size = self.env.size();
+            let path = Path::new(&self.path);
+            self.env = Env::new(path, old_size * 2).expect("Could enlarge file for annotation storage");
+        }
+    }
+
+
+    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
+        let txn = self.env.txn_begin().expect("Could not create transaction");
+        let by_container: Option<ByContainerDb<T>> = txn.root(BY_CONTAINER_ID);
+        
+        if let Some(by_container) = by_container {
+            let annotations : Option<AnnotationsDb> = txn.get(&by_container, item.clone(), None);
+            if let Some(annotations) = annotations {
+                let mut result = Vec::default();
+                for ((name, ns), val) in txn.iter(&annotations, None) {
+                    result.push(Annotation {
+                        key: AnnoKey {
+                            name: Self::unsafe_value_to_string(&txn, name),
+                            ns: Self::unsafe_value_to_string(&txn, ns),
+                        },
+                        val: Self::unsafe_value_to_string(&txn, val),
+                    })
+                }
+                return result;
+            }
+        }
+
+        return vec![];
     }
 
     fn get_all_keys_for_item(&self, _item: &T) -> Vec<AnnoKey> {
@@ -207,10 +237,6 @@ where
     }
 
     fn get_key_value(&self, _key_id: AnnoKeyID) -> Option<AnnoKey> {
-        unimplemented!()
-    }
-
-    fn get_annotations_for_item(&self, _item: &T) -> Vec<Annotation> {
         unimplemented!()
     }
 
