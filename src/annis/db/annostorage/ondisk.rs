@@ -12,7 +12,7 @@ use sanakirja::value::UnsafeValue;
 use sanakirja::{Commit, Db, Env, MutTxn, Representable, Transaction};
 use std::hash::Hash;
 use std::marker::PhantomData;
-use std::path::{Path};
+use std::path::Path;
 
 const BY_CONTAINER_ID: usize = 0;
 const BY_ANNO_ID: usize = 0;
@@ -31,6 +31,9 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default + Representabl
     env: Env,
 
     path: String,
+
+    #[ignore_malloc_size_of = "state of RNG is negligible compared to the actual maps (which are non disk)"]
+    rng: SmallRng,
 }
 
 impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> {
@@ -47,6 +50,7 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         Ok(AnnoStorageImpl {
             env,
             path: path.to_string_lossy().to_string(),
+            rng: SmallRng::from_rng(rand::thread_rng())?,
             phantom: PhantomData::default(),
         })
     }
@@ -69,31 +73,28 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
         Ok(())
     }
 
-    fn put_and_extend<R, K, V>(&mut self, txn: &mut MutTxn<()>, rng :&mut R, db : &mut Db<K,V>, key : K, value : V) -> Result<bool> 
-    where K: Representable, V: Representable, R: rand::Rng {
 
-        let mut result = txn.put(rng, db, key, value);
-        while let Err(sanakirja::Error::NotEnoughSpace) = result {
-            // TODO: close environment and re-open with double the spaces
+    fn insert_and_extend(&mut self, item: T, anno: Annotation) -> Result<()> {
+        loop {
+                            
+            match self.insert_transcational(item, anno.clone()) {
+                Ok(r) => {
+                    return Ok(r);
+                }
+                Err(sanakirja::Error::NotEnoughSpace) => {
+                    // do nothing, reach end of loop to execute extension code
+                }
+                Err(e) => return Err(e.into()),
+            }
+            
+            // load a resized memory mapped file
             let old_size = self.env.size();
             let path = Path::new(&self.path);
-
-            self.env = Env::new(path, old_size*2)?;
-            
-            // TODO: isn't the transaction invalid at this time???
-
-            result = txn.put(rng, db, key, value);
-            
-        }
-
-        match result {
-            Ok(r) => Ok(r),
-            Err(e) => Err(e.into()),
+            self.env = Env::new(path, old_size * 2)?;
         }
     }
 
-    fn insert_internal(&mut self, item: T, anno: Annotation) -> Result<()> {
-        let mut rng = SmallRng::from_rng(rand::thread_rng())?;
+    fn insert_transcational(&mut self, item: T, anno: Annotation) -> std::result::Result<(), sanakirja::Error> {
         let mut txn = self.env.mut_txn_begin()?;
 
         let by_container: Option<ByContainerDb<T>> = txn.root(BY_CONTAINER_ID);
@@ -110,11 +111,16 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
                     existing
                 } else {
                     let created_annotations_db = txn.create_db()?;
-                    txn.put(&mut rng, &mut by_container, item, created_annotations_db)?;
+                    txn.put(
+                        &mut self.rng,
+                        &mut by_container,
+                        item,
+                        created_annotations_db,
+                    )?;
                     created_annotations_db
                 };
             // add the annotation value to the corresponding name/namespace pair
-            txn.put(&mut rng, &mut annotations, (name, namespace), val)?;
+            txn.put(&mut self.rng, &mut annotations, (name, namespace), val)?;
 
             // add item to the by_anno map and also create the values kv if not yet existing
             let mut values_for_anno: ValuesDb<T> =
@@ -122,10 +128,15 @@ impl<T: Ord + Hash + MallocSizeOf + Default + Representable> AnnoStorageImpl<T> 
                     existing
                 } else {
                     let created_values_db = txn.create_db()?;
-                    txn.put(&mut rng, &mut by_anno, (name, namespace), created_values_db)?;
+                    txn.put(
+                        &mut self.rng,
+                        &mut by_anno,
+                        (name, namespace),
+                        created_values_db,
+                    )?;
                     created_values_db
                 };
-            txn.put(&mut rng, &mut values_for_anno, val, item)?;
+            txn.put(&mut self.rng, &mut values_for_anno, val, item)?;
         }
 
         txn.commit()?;
@@ -161,7 +172,7 @@ where
     (T, AnnoKeyID): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) {
-        if let Err(e) = self.insert_internal(item, anno) {
+        if let Err(e) = self.insert_and_extend(item, anno) {
             error!("Could not insert value into node annotation storage: {}", e);
         }
     }
