@@ -17,7 +17,9 @@ This means that if a language bindings adds a feature, that has been released in
    - `cargo release major` for major updates (e.g. 1.1.0 to 2.0.0)
 4. **Merge** the release branch both into the master and develop branch then delete the release branch.
 5.  Create the **release on GitHub**, copy the changelog entry as release notes. Save the release as draft
-6.  Wait for Continuous Integration to finish building the release artifacts for all systems and then **publish the drafted release**
+6.  Wait for Continuous Integration (CI) to finish building the release artifacts for all systems and then **publish the drafted release**
+
+In addition for the binaries, CI will also build and publish the documentation using the gh-pages branch and a sub-folder `docs\<short-version>`, e.g. https://korpling.github.io/graphANNIS/docs/v0.22/.
 
 ## Python wrapper release
 
@@ -32,7 +34,7 @@ This means that if a language bindings adds a feature, that has been released in
     - `./doctest_runner.py`
 5. **Tag and push** the latest commit with the prefix `v`, e.g. `v1.4.0`, **merge** the release branch both into the `master` and `develop` branch then delete the release branch.
 
-Continuous Integration will automatically deploy all released versions on the `master` branch.
+CI will automatically deploy all released versions on the `master` branch.
 
 ## Java wrapper release
 
@@ -41,3 +43,5 @@ Continuous Integration will automatically deploy all released versions on the `m
 3. **Test** with `mvn test`
 4. **Finish** the release process with `mvn gitflow:release-finish` or `mvn gitflow:hotfix-finish`
 5. **Release** the closed staging repository to Maven Central with the Nexus interface: [https://oss.sonatype.org/](https://oss.sonatype.org/)
+
+CI will automatically create a P2 repository in the gh-pages branch in under the sub-folder `p2/<short-version>`, e.g. https://korpling.github.io/graphannis-java/p2/v0.22/. 
