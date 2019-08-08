@@ -25,6 +25,7 @@ branches:
     - develop
     # used when testing the release process
     - /^test-release-process.*$/
+    - feature/travis-windows
 
 before_script:
   - rustup component add rustfmt
