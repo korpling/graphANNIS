@@ -2,12 +2,20 @@
 
 MDBOOK_VERSION=${1:-0.3.1}
 
+install_mdbook=false
 
 if [[ -x $HOME/.cargo/bin/mdbook ]]; then
     echo "Checking for mdBook version ${MDBOOK_VERSION}"
     EXISTING_MDBOOK_VERSION=`$HOME/.cargo/bin/mdbook --version`
     echo "Exiting: ${EXISTING_MDBOOK_VERSION}"
     if [ "mdbook v${MDBOOK_VERSION}" != "${EXISTING_MDBOOK_VERSION}" ]; then
+        install_mdbook=true
+    fi
+else
+     install_mdbook=true
+fi
+
+if [ "$install_mdbook" = true ] ; then
         echo "Installing mdBook version ${MDBOOK_VERSION}"
 
         if [[ "$TRAVIS_OS_NAME" == "linux" ]];
@@ -26,6 +34,5 @@ if [[ -x $HOME/.cargo/bin/mdbook ]]; then
             >&2 echo "Unknown value \"${TRAVIS_OS_NAME}\" for environment variable TRAVIS_OS_NAME"
         	exit 1
         fi
-    fi
 fi
 
