@@ -10,9 +10,14 @@ sudo: required
 
 cache:
   directories:
-    - $HOME/.cargo
-    - $TRAVIS_BUILD_DIR/target
-    - $TRAVIS_BUILD_DIR/data
+    - $TRAVIS_HOME/.cache/sccache
+    - $TRAVIS_HOME/.cargo/
+    - $TRAVIS_HOME/.rustup/
+    - target
+    - data
+
+before_cache:
+  - rm -rf "$TRAVIS_HOME/.cargo/registry/src"
 
 env:
   secure: "0OIkzQeI7toU8qOms0mqm0bjrzB2CUOll4w4cPD5zzxq+v91BGYeRve1NcPWlxUv3WbBFOQoS6x2vJ3W92FMKmoJ+pE2ZdVKGzTkrAhBnffZiFYnuK8b3GJ6jOS4zbiNS38fTfDiHU6NtUb1eKYJl7aEH68q3tstXLJY2fJ36/NP4OKe8WlDKcOxsyV/Kn3HLIm9D4dK11jHmNvLISr4+ls5tVgpbDuU06Qz+4PvpkdH3Rb1vX7wMbsR1mhsJGE4tozYb7AupPGT47nFrUnkI9IW3EbIsDJZVhlIwKZf9HCXLIXMuVITdlN2OUKEVBapaQuLBKDmxdsyW+bBFccjjKb9kIhLI+EqQQhQGEeAzozmpWd3krnOGQTDNHddcjBD1sZ+QyG3/nk+y2nvdqd+NUP1DdrwsdSQoL8iksvQ2DTH9XiZxvGh0zCOv/DE8b4l8xZSLugYEHQTWUgReC+5qgLrkzrfMn3oKWUf10izvsMMJ57kftWFfzdgegLaMqe15A+KpU/g9M8aw/12t6MfaCqj/+EBbxYUB1K+vYYtnrdrxYs1xPDWWMa5VDhIsvu+Gn22vuUZOM2K99PHmf3TCxeckpVDRkjqgb6Nvmo6wZy1D8Xaiv7wGXpVACljoQriAOumSB8HvjYr2LDzeXf2QRlD+bK+RtTNZmEDq7JoCl4="
