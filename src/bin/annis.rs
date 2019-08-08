@@ -220,10 +220,14 @@ impl AnnisRunner {
             .storage
             .as_ref()
             .ok_or("No corpus storage location set")?
-            .import_from_fs(&PathBuf::from(path), ImportFormat::RelANNIS, overwritten_corpus_name)?;
+            .import_from_fs(
+                &PathBuf::from(path),
+                ImportFormat::RelANNIS,
+                overwritten_corpus_name,
+            )?;
         let load_time = t_before.elapsed();
         if let Ok(t) = load_time {
-            info!{"Imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+            info! {"Imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
         }
 
         Ok(())
@@ -311,7 +315,7 @@ impl AnnisRunner {
                 .preload(corpus)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
-                info!{"Preloaded corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                info! {"Preloaded corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
@@ -328,7 +332,7 @@ impl AnnisRunner {
                 .update_statistics(corpus)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
-                info!{"Updated statistics for corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                info! {"Updated statistics for corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
@@ -347,7 +351,7 @@ impl AnnisRunner {
                 .plan(corpus, args, self.query_language)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
-                info!{"Planned query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                info! {"Planned query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
             println!("{}", plan);
@@ -367,7 +371,7 @@ impl AnnisRunner {
                 .count(corpus, args, self.query_language)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
-                info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                info! {"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
             println!("result: {} matches", c);
@@ -394,7 +398,7 @@ impl AnnisRunner {
                 )?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
-                info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                info! {"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
             for m in matches {
@@ -435,7 +439,7 @@ impl AnnisRunner {
                 .frequency(corpus, splitted_arg[1], self.query_language, table_def)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
-                info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                info! {"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
             // map the resulting frequency table to an output
@@ -498,7 +502,7 @@ impl AnnisRunner {
         self.query_language = if use_quirks {
             QueryLanguage::AQLQuirksV3
         } else {
-            QueryLanguage::AQLQuirksV3
+            QueryLanguage::AQL
         };
 
         match self.query_language {
@@ -525,18 +529,21 @@ fn main() {
                 .long("debug")
                 .help("Enables debug output")
                 .takes_value(false),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("cmd")
                 .short("c")
                 .long("cmd")
                 .help("Executes command")
                 .takes_value(true),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("DATA_DIR")
                 .help("directory containing the data")
                 .required(true)
                 .index(1),
-        ).get_matches();
+        )
+        .get_matches();
 
     let log_filter = if matches.is_present("debug") {
         LevelFilter::Debug
@@ -544,7 +551,11 @@ fn main() {
         LevelFilter::Info
     };
 
-    if let Err(e) = TermLogger::init(log_filter, simplelog::Config::default()) {
+    if let Err(e) = TermLogger::init(
+        log_filter,
+        simplelog::Config::default(),
+        simplelog::TerminalMode::Mixed,
+    ) {
         println!("Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger", e);
         if let Err(e_simple) = SimpleLogger::init(log_filter, simplelog::Config::default()) {
             println!("Simple logging failed too: {}", e_simple);
@@ -559,12 +570,14 @@ fn main() {
 
     let runner_result = AnnisRunner::new(&dir);
     match runner_result {
-        Ok(mut runner) => if let Some(cmd) = matches.value_of("cmd") {
-            // execute command directly
-            runner.exec(cmd);
-        } else {
-            runner.start_loop();
-        },
+        Ok(mut runner) => {
+            if let Some(cmd) = matches.value_of("cmd") {
+                // execute command directly
+                runner.exec(cmd);
+            } else {
+                runner.start_loop();
+            }
+        }
         Err(e) => println!("Can't start console because of loading error: {:?}", e),
     };
 

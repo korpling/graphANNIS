@@ -13,13 +13,12 @@ extern crate graphannis_malloc_size_of_derive as malloc_size_of_derive;
 extern crate log;
 
 #[macro_use]
-extern crate error_chain;
+extern crate percent_encoding;
 
 extern crate boolean_expression;
 extern crate linked_hash_map;
 extern crate multimap;
 extern crate rand;
-extern crate rand_xorshift;
 extern crate regex;
 extern crate regex_syntax;
 extern crate rustc_hash;
@@ -48,7 +47,6 @@ extern crate num;
 extern crate rayon;
 extern crate sys_info;
 
-#[cfg(feature = "c-api")]
 extern crate libc;
 #[cfg(feature = "c-api")]
 extern crate simplelog;
@@ -95,5 +93,6 @@ pub mod errors {
 /// Utility functions.
 pub mod util {
     pub use crate::annis::util::get_queries_from_csv;
+    pub use crate::annis::util::node_names_from_match;
     pub use crate::annis::util::SearchDef;
 }

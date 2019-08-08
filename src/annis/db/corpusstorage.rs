@@ -10,9 +10,10 @@ use crate::annis::db::query;
 use crate::annis::db::query::conjunction::Conjunction;
 use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::relannis;
+use crate::annis::db::sort_matches::CollationType;
+use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
-use crate::annis::errors::ErrorKind;
+use crate::annis::db::{AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, NODE_TYPE};
 use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::{
@@ -26,7 +27,9 @@ use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::update::GraphUpdate;
 use fs2::FileExt;
 use linked_hash_map::LinkedHashMap;
+use percent_encoding::{utf8_percent_encode, PATH_SEGMENT_ENCODE_SET, SIMPLE_ENCODE_SET};
 use std;
+use std::borrow::Cow;
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
 use std::fs::File;
@@ -41,6 +44,7 @@ use rustc_hash::FxHashMap;
 
 use rand;
 use rand::seq::SliceRandom;
+use std::ffi::CString;
 use sys_info;
 
 enum CacheEntry {
@@ -186,9 +190,11 @@ impl FromStr for FrequencyDefEntry {
     fn from_str(s: &str) -> std::result::Result<FrequencyDefEntry, Self::Err> {
         let splitted: Vec<&str> = s.splitn(2, ':').collect();
         if splitted.len() != 2 {
-            return Err("Frequency definition must consists of two parts: \
-                        the referenced node and the annotation name or \"tok\" separated by \":\""
-                .into());
+            return Err(
+                "Frequency definition must consists of two parts: \
+                 the referenced node and the annotation name or \"tok\" separated by \":\""
+                    .into(),
+            );
         }
         let node_ref = splitted[0];
         let anno_key = util::split_qname(splitted[1]);
@@ -234,6 +240,11 @@ pub enum CacheStrategy {
     PercentOfFreeMemory(f64),
 }
 
+define_encode_set! {
+     /// This encode set is used encoding the Salt identifiers in the output of the `find(...)` function.
+     pub SALT_URI_ENCODE_SET = [SIMPLE_ENCODE_SET] | {' ', ':', '%'}
+}
+
 /// A thread-safe API for managing corpora stored in a common location on the file system.
 ///
 /// Multiple corpora can be part of a corpus storage and they are identified by their unique name.
@@ -248,6 +259,14 @@ pub struct CorpusStorage {
     active_background_workers: Arc<(Mutex<usize>, Condvar)>,
 }
 
+fn init_locale() {
+    // use collation as defined by the environment variables (LANGUAGE, LC_*, etc.)
+    unsafe {
+        let locale = CString::new("").unwrap_or_default();
+        libc::setlocale(libc::LC_COLLATE, locale.as_ptr());
+    }
+}
+
 impl CorpusStorage {
     /// Create a new instance with a maximum size for the internal corpus cache.
     ///
@@ -259,9 +278,11 @@ impl CorpusStorage {
         cache_strategy: CacheStrategy,
         use_parallel_joins: bool,
     ) -> Result<CorpusStorage> {
+        init_locale();
+
         let query_config = query::Config { use_parallel_joins };
 
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+        #[allow(clippy::mutex_atomic)]
         let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
@@ -283,12 +304,14 @@ impl CorpusStorage {
     /// - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
     /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
     pub fn with_auto_cache_size(db_dir: &Path, use_parallel_joins: bool) -> Result<CorpusStorage> {
+        init_locale();
+
         let query_config = query::Config { use_parallel_joins };
 
         // get the amount of available memory, use a quarter of it per default
         let cache_strategy: CacheStrategy = CacheStrategy::PercentOfFreeMemory(25.0);
 
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+        #[allow(clippy::mutex_atomic)]
         let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
 
         let cs = CorpusStorage {
@@ -322,23 +345,33 @@ impl CorpusStorage {
 
     fn list_from_disk(&self) -> Result<Vec<String>> {
         let mut corpora: Vec<String> = Vec::new();
-        for c_dir in self.db_dir.read_dir().chain_err(|| {
-            format!(
-                "Listing directories from {} failed",
-                self.db_dir.to_string_lossy()
-            )
-        })? {
-            let c_dir = c_dir.chain_err(|| {
-                format!(
-                    "Could not get directory entry of folder {}",
+        let directories = self.db_dir.read_dir().or_else(|e| {
+            Err(Error::Generic {
+                msg: format!(
+                    "Listing directories from {} failed",
                     self.db_dir.to_string_lossy()
-                )
+                ),
+                cause: Some(Box::new(e)),
+            })
+        })?;
+        for c_dir in directories {
+            let c_dir = c_dir.or_else(|e| {
+                Err(Error::Generic {
+                    msg: format!(
+                        "Could not get directory entry of folder {}",
+                        self.db_dir.to_string_lossy()
+                    ),
+                    cause: Some(Box::new(e)),
+                })
             })?;
-            let ftype = c_dir.file_type().chain_err(|| {
-                format!(
-                    "Could not determine file type for {}",
-                    c_dir.path().to_string_lossy()
-                )
+            let ftype = c_dir.file_type().or_else(|e| {
+                Err(Error::Generic {
+                    msg: format!(
+                        "Could not determine file type for {}",
+                        c_dir.path().to_string_lossy()
+                    ),
+                    cause: Some(Box::new(e)),
+                })
             })?;
             if ftype.is_dir() {
                 let corpus_name = c_dir.file_name().to_string_lossy().to_string();
@@ -437,7 +470,9 @@ impl CorpusStorage {
         let cache = &mut *cache_lock;
 
         // if not loaded yet, get write-lock and load entry
-        let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &corpus_name]
+        let escaped_corpus_name: Cow<str> =
+            utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
+        let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &escaped_corpus_name]
             .iter()
             .collect();
 
@@ -446,7 +481,7 @@ impl CorpusStorage {
         } else if create_if_missing {
             true
         } else {
-            return Err(ErrorKind::NoSuchCorpus(corpus_name.to_string()).into());
+            return Err(Error::NoSuchCorpus(corpus_name.to_string()));
         };
 
         // make sure the cache is not too large before adding the new corpus
@@ -457,8 +492,12 @@ impl CorpusStorage {
             let mut db = Graph::with_default_graphstorages()?;
 
             // save corpus to the path where it should be stored
-            db.persist_to(&db_path)
-                .chain_err(|| format!("Could not create corpus with name {}", corpus_name))?;
+            db.persist_to(&db_path).or_else(|e| {
+                Err(Error::Generic {
+                    msg: format!("Could not create corpus with name {}", corpus_name),
+                    cause: Some(Box::new(e)),
+                })
+            })?;
             db
         } else {
             let mut db = Graph::new();
@@ -584,9 +623,11 @@ impl CorpusStorage {
         }
 
         let corpus_name = corpus_name.unwrap_or(orig_name);
+        let escaped_corpus_name: Cow<str> =
+            utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
 
         let mut db_path = PathBuf::from(&self.db_dir);
-        db_path.push(corpus_name.clone());
+        db_path.push(escaped_corpus_name.to_string());
 
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
@@ -647,8 +688,12 @@ impl CorpusStorage {
             let mut _lock = db_entry.write().unwrap();
 
             if db_path.is_dir() && db_path.exists() {
-                std::fs::remove_dir_all(db_path.clone())
-                    .chain_err(|| "Error when removing existing files")?
+                std::fs::remove_dir_all(db_path.clone()).or_else(|e| {
+                    Err(Error::Generic {
+                        msg: "Error when removing existing files".to_string(),
+                        cause: Some(Box::new(e)),
+                    })
+                })?
             }
 
             return Ok(true);
@@ -661,9 +706,12 @@ impl CorpusStorage {
     ///
     /// It is ensured that the update process is atomic and that the changes are persisted to disk if the result is `Ok`.
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<()> {
-        let db_entry = self
-            .get_loaded_entry(corpus_name, true)
-            .chain_err(|| format!("Could not get loaded entry for corpus {}", corpus_name))?;
+        let db_entry = self.get_loaded_entry(corpus_name, true).or_else(|e| {
+            Err(Error::Generic {
+                msg: format!("Could not get loaded entry for corpus {}", corpus_name),
+                cause: Some(Box::new(e)),
+            })
+        })?;
         {
             let mut lock = db_entry.write().unwrap();
             let db: &mut Graph = get_write_or_error(&mut lock)?;
@@ -698,13 +746,16 @@ impl CorpusStorage {
         Ok(())
     }
 
-    fn prepare_query<'a>(
+    fn prepare_query<'a, F>(
         &self,
         corpus_name: &str,
         query: &'a str,
         query_language: QueryLanguage,
-        additional_components: Vec<Component>,
-    ) -> Result<PreparationResult<'a>> {
+        additional_components_callback: F,
+    ) -> Result<PreparationResult<'a>>
+    where
+        F: FnOnce(&Graph) -> Vec<Component>,
+    {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
 
         // make sure the database is loaded with all necessary components
@@ -721,6 +772,8 @@ impl CorpusStorage {
 
             let mut missing: HashSet<Component> =
                 HashSet::from_iter(necessary_components.iter().cloned());
+
+            let additional_components = additional_components_callback(db);
 
             // make sure the additional components are loaded
             missing.extend(additional_components.into_iter());
@@ -799,7 +852,7 @@ impl CorpusStorage {
         query_language: QueryLanguage,
     ) -> Result<bool> {
         let prep: PreparationResult =
-            self.prepare_query(corpus_name, query, query_language, vec![])?;
+            self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
         // also get the semantic errors by creating an execution plan on the actual Graph
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
@@ -818,7 +871,7 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<String> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         // acquire read-only lock and plan
         let lock = prep.db_entry.read().unwrap();
@@ -840,7 +893,7 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<u64> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -861,7 +914,7 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<CountExtra> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -920,12 +973,19 @@ impl CorpusStorage {
         limit: usize,
         order: ResultOrder,
     ) -> Result<Vec<String>> {
-        let order_component = Component {
-            ctype: ComponentType::Ordering,
-            layer: String::from("annis"),
-            name: String::from(""),
-        };
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![order_component])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |db| {
+            let mut additional_components = vec![Component {
+                ctype: ComponentType::Ordering,
+                layer: String::from("annis"),
+                name: String::from(""),
+            }];
+            if order == ResultOrder::Normal || order == ResultOrder::Inverted {
+                for c in token_helper::necessary_components(db) {
+                    additional_components.push(c);
+                }
+            }
+            additional_components
+        })?;
 
         // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -933,7 +993,7 @@ impl CorpusStorage {
 
         let mut query_config = self.query_config.clone();
         if order == ResultOrder::NotSorted {
-            // Do not use parallization of the order should not be sorted to have a more stable result ordering.
+            // Do execute query in parallel if the order should not be sorted to have a more stable result ordering.
             // Even if we do not promise to have a stable ordering, it should be the same
             // for the same session on the same corpus.
             query_config.use_parallel_joins = false;
@@ -941,11 +1001,35 @@ impl CorpusStorage {
 
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &query_config)?;
 
+        let quirks_mode = match query_language {
+            QueryLanguage::AQL => false,
+            QueryLanguage::AQLQuirksV3 => true,
+        };
+
+        // Try to find the relANNIS version by getting the attribute value which should be attached to the
+        // toplevel corpus node.
+        let mut relannis_version_33 = false;
+        if quirks_mode {
+            let mut relannis_version_it = db.exact_anno_search(
+                Some(ANNIS_NS.to_owned()),
+                "relannis-version".to_owned(),
+                ValueSearch::Any,
+            );
+            if let Some(m) = relannis_version_it.next() {
+                if let Some(v) = db.node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
+                    if v == "3.3" {
+                        relannis_version_33 = true;
+                    }
+                }
+            }
+        }
         let mut expected_size: Option<usize> = None;
         let base_it: Box<Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
-            || (order == ResultOrder::Normal && plan.is_sorted_by_text())
+            || (order == ResultOrder::Normal && plan.is_sorted_by_text() && !quirks_mode)
         {
-            // if the output is already sorted correctly, directly return the iterator
+            // If the output is already sorted correctly, directly return the iterator.
+            // Quirks mode may change the order of the results, thus don't use the shortcut
+            // if quirks mode is active.
             Box::from(plan)
         } else {
             let estimated_result_size = plan.estimated_output_size();
@@ -968,6 +1052,12 @@ impl CorpusStorage {
                     name: String::from(""),
                 };
 
+                let collation = if quirks_mode && !relannis_version_33 {
+                    CollationType::Locale
+                } else {
+                    CollationType::Default
+                };
+
                 let gs_order = db.get_graphstorage_as_ref(&component_order);
                 let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
                     if order == ResultOrder::Inverted {
@@ -977,6 +1067,8 @@ impl CorpusStorage {
                             &db.node_annos,
                             token_helper.as_ref(),
                             gs_order,
+                            collation,
+                            quirks_mode,
                         )
                         .reverse()
                     } else {
@@ -986,6 +1078,8 @@ impl CorpusStorage {
                             &db.node_annos,
                             token_helper.as_ref(),
                             gs_order,
+                            collation,
+                            quirks_mode,
                         )
                     }
                 };
@@ -1016,29 +1110,46 @@ impl CorpusStorage {
         };
         results.extend(base_it.skip(offset).take(limit).map(|m: Vec<Match>| {
             let mut match_desc: Vec<String> = Vec::new();
-            for singlematch in &m {
-                let mut node_desc = String::new();
+            for (i, singlematch) in m.iter().enumerate() {
+                // check if query node actually should be included in quirks mode
+                let include_in_output = if quirks_mode {
+                    if let Some(var) = prep.query.get_variable_by_pos(i) {
+                        prep.query.is_included_in_output(&var)
+                    } else {
+                        true
+                    }
+                } else {
+                    true
+                };
 
-                if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
-                    if &anno_key.ns != "annis" {
-                        if !anno_key.ns.is_empty() {
-                            node_desc.push_str(&anno_key.ns);
+                if include_in_output {
+                    let mut node_desc = String::new();
+
+                    if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
+                        if anno_key.ns != ANNIS_NS || anno_key.name != NODE_TYPE {
+                            if !anno_key.ns.is_empty() {
+                                let encoded_anno_ns: Cow<str> =
+                                    utf8_percent_encode(&anno_key.ns, SALT_URI_ENCODE_SET).into();
+                                node_desc.push_str(&encoded_anno_ns);
+                                node_desc.push_str("::");
+                            }
+                            let encoded_anno_name: Cow<str> =
+                                utf8_percent_encode(&anno_key.name, SALT_URI_ENCODE_SET).into();
+                            node_desc.push_str(&encoded_anno_name);
                             node_desc.push_str("::");
                         }
-                        node_desc.push_str(&anno_key.name);
-                        node_desc.push_str("::");
                     }
-                }
 
-                if let Some(name) = db
-                    .node_annos
-                    .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
-                {
-                    node_desc.push_str("salt:/");
-                    node_desc.push_str(name);
-                }
+                    if let Some(name) = db
+                        .node_annos
+                        .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
+                    {
+                        node_desc.push_str("salt:/");
+                        node_desc.push_str(name);
+                    }
 
-                match_desc.push(node_desc);
+                    match_desc.push(node_desc);
+                }
             }
             let mut result = String::new();
             result.push_str(&match_desc.join(" "));
@@ -1077,31 +1188,28 @@ impl CorpusStorage {
                 &source_node_id
             };
 
-            // left context (non-token)
+            let m = NodeSearchSpec::ExactValue {
+                ns: Some(db::ANNIS_NS.to_string()),
+                name: db::NODE_NAME.to_string(),
+                val: Some(source_node_id.to_string()),
+                is_meta: false,
+            };
+
+            // nodes overlapping the match: m _o_ node
             {
-                let mut q_left: Conjunction = Conjunction::new();
+                let mut q = Conjunction::new();
+                let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+                let m_idx = q.add_node(m.clone(), None);
+                q.add_operator(Box::new(operators::OverlapSpec {}), &m_idx, &node_idx, true)?;
+                query.alternatives.push(q);
+            }
+            // tokens left of match: tok .0,ctx_left m
+            {
+                let mut q = Conjunction::new();
+                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
+                let m_idx = q.add_node(m.clone(), None);
 
-                let any_node_idx = q_left.add_node(NodeSearchSpec::AnyNode, None);
-
-                let n_idx = q_left.add_node(
-                    NodeSearchSpec::ExactValue {
-                        ns: Some(db::ANNIS_NS.to_string()),
-                        name: db::NODE_NAME.to_string(),
-                        val: Some(source_node_id.to_string()),
-                        is_meta: false,
-                    },
-                    None,
-                );
-                let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
-                let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
-
-                q_left.add_operator(
-                    Box::new(operators::OverlapSpec {}),
-                    &n_idx,
-                    &tok_covered_idx,
-                    true,
-                )?;
-                q_left.add_operator(
+                q.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         dist: RangeSpec::Bound {
@@ -1109,44 +1217,27 @@ impl CorpusStorage {
                             max_dist: ctx_left,
                         },
                     }),
-                    &tok_precedence_idx,
-                    &tok_covered_idx,
+                    &tok_idx,
+                    &m_idx,
                     true,
                 )?;
-                q_left.add_operator(
-                    Box::new(operators::OverlapSpec {}),
-                    &any_node_idx,
-                    &tok_precedence_idx,
-                    true,
-                )?;
-
-                query.alternatives.push(q_left);
+                query.alternatives.push(q);
             }
 
-            // left context (token onlys)
+            // nodes overlapping tokens left of match: node _o_ tok .0,ctx_left m
             {
-                let mut q_left: Conjunction = Conjunction::new();
+                let mut q = Conjunction::new();
 
-                let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
-
-                let n_idx = q_left.add_node(
-                    NodeSearchSpec::ExactValue {
-                        ns: Some(db::ANNIS_NS.to_string()),
-                        name: db::NODE_NAME.to_string(),
-                        val: Some(source_node_id.to_string()),
-                        is_meta: false,
-                    },
-                    None,
-                );
-                let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
-
-                q_left.add_operator(
+                let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
+                let m_idx = q.add_node(m.clone(), None);
+                q.add_operator(
                     Box::new(operators::OverlapSpec {}),
-                    &n_idx,
-                    &tok_covered_idx,
+                    &node_idx,
+                    &tok_idx,
                     true,
                 )?;
-                q_left.add_operator(
+                q.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         dist: RangeSpec::Bound {
@@ -1154,39 +1245,20 @@ impl CorpusStorage {
                             max_dist: ctx_left,
                         },
                     }),
-                    &tok_precedence_idx,
-                    &tok_covered_idx,
+                    &tok_idx,
+                    &m_idx,
                     true,
                 )?;
-
-                query.alternatives.push(q_left);
+                query.alternatives.push(q);
             }
-
-            // right context (non-token)
+            // tokens right of match: m .0,ctx_right tok
             {
-                let mut q_right: Conjunction = Conjunction::new();
+                let mut q = Conjunction::new();
 
-                let any_node_idx = q_right.add_node(NodeSearchSpec::AnyNode, None);
+                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
+                let m_idx = q.add_node(m.clone(), None);
 
-                let n_idx = q_right.add_node(
-                    NodeSearchSpec::ExactValue {
-                        ns: Some(db::ANNIS_NS.to_string()),
-                        name: db::NODE_NAME.to_string(),
-                        val: Some(source_node_id.to_string()),
-                        is_meta: false,
-                    },
-                    None,
-                );
-                let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
-                let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
-
-                q_right.add_operator(
-                    Box::new(operators::OverlapSpec {}),
-                    &n_idx,
-                    &tok_covered_idx,
-                    true,
-                )?;
-                q_right.add_operator(
+                q.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         dist: RangeSpec::Bound {
@@ -1194,44 +1266,22 @@ impl CorpusStorage {
                             max_dist: ctx_right,
                         },
                     }),
-                    &tok_covered_idx,
-                    &tok_precedence_idx,
+                    &m_idx,
+                    &tok_idx,
                     true,
                 )?;
-                q_right.add_operator(
-                    Box::new(operators::OverlapSpec {}),
-                    &any_node_idx,
-                    &tok_precedence_idx,
-                    true,
-                )?;
-
-                query.alternatives.push(q_right);
+                query.alternatives.push(q);
             }
 
-            // right context (token only)
+            // nodes overlapping tokens right of match: m .0,ctx_right node _o_ tok
             {
-                let mut q_right: Conjunction = Conjunction::new();
+                let mut q = Conjunction::new();
 
-                let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
+                let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+                let m_idx = q.add_node(m.clone(), None);
+                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
 
-                let n_idx = q_right.add_node(
-                    NodeSearchSpec::ExactValue {
-                        ns: Some(db::ANNIS_NS.to_string()),
-                        name: db::NODE_NAME.to_string(),
-                        val: Some(source_node_id.to_string()),
-                        is_meta: false,
-                    },
-                    None,
-                );
-                let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
-
-                q_right.add_operator(
-                    Box::new(operators::OverlapSpec {}),
-                    &n_idx,
-                    &tok_covered_idx,
-                    true,
-                )?;
-                q_right.add_operator(
+                q.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         dist: RangeSpec::Bound {
@@ -1239,12 +1289,17 @@ impl CorpusStorage {
                             max_dist: ctx_right,
                         },
                     }),
-                    &tok_covered_idx,
-                    &tok_precedence_idx,
+                    &m_idx,
+                    &tok_idx,
                     true,
                 )?;
-
-                query.alternatives.push(q_right);
+                q.add_operator(
+                    Box::new(operators::OverlapSpec {}),
+                    &tok_idx,
+                    &node_idx,
+                    true,
+                )?;
+                query.alternatives.push(q);
             }
         }
         extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config, None)
@@ -1263,7 +1318,7 @@ impl CorpusStorage {
         query_language: QueryLanguage,
         component_type_filter: Option<ComponentType>,
     ) -> Result<Graph> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         let mut max_alt_size = 0;
         for alt in &prep.query.alternatives {
@@ -1332,7 +1387,7 @@ impl CorpusStorage {
             // make sure all subcorpus partitions are loaded
             let lock = db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            db.get_all_components(Some(ComponentType::PartOfSubcorpus), None)
+            db.get_all_components(Some(ComponentType::PartOf), None)
         };
         let db_entry = self.get_loaded_entry_with_components(corpus_name, subcorpus_components)?;
 
@@ -1348,7 +1403,7 @@ impl CorpusStorage {
             &query.into_disjunction(),
             &[0],
             &self.query_config,
-            Some(ComponentType::PartOfSubcorpus),
+            Some(ComponentType::PartOf),
         )
     }
 
@@ -1367,7 +1422,7 @@ impl CorpusStorage {
         query_language: QueryLanguage,
         definition: Vec<FrequencyDefEntry>,
     ) -> Result<FrequencyTable<String>> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -1445,14 +1500,11 @@ impl CorpusStorage {
             QueryLanguage::AQLQuirksV3 => aql::parse(query, true)?,
         };
 
-        let mut component_nr = 0;
-        for alt in q.alternatives {
-            let alt: Conjunction = alt;
+        for (component_nr, alt) in q.alternatives.iter().enumerate() {
             for mut n in alt.get_node_descriptions() {
                 n.alternative = component_nr;
                 result.push(n);
             }
-            component_nr += 1;
         }
 
         Ok(result)
@@ -1612,7 +1664,6 @@ impl Drop for CorpusStorage {
 #[cfg(test)]
 mod tests {
     extern crate log;
-    extern crate simplelog;
     extern crate tempfile;
 
     use crate::corpusstorage::QueryLanguage;
@@ -1736,7 +1787,9 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Gr
     if let CacheEntry::Loaded(ref db) = &**lock {
         return Ok(db);
     } else {
-        return Err(ErrorKind::LoadingDBFailed("".to_string()).into());
+        return Err(Error::LoadingGraphFailed {
+            name: "".to_string(),
+        });
     }
 }
 
@@ -1825,7 +1878,12 @@ fn extract_subgraph_by_query(
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
 
-    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config).chain_err(|| "")?;
+    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config).or_else(|e| {
+        Err(Error::Generic {
+            msg: "".to_string(),
+            cause: Some(Box::new(e)),
+        })
+    })?;
 
     debug!("executing subgraph query\n{}", plan);
 
@@ -1875,9 +1933,10 @@ fn create_subgraph_edge(
     // find outgoing edges
     for c in components {
         // don't include index components
-        if !(c.ctype == ComponentType::Coverage && c.layer == "annis" && c.name != "")
-        && !(c.ctype == ComponentType::LeftToken)
-        && !(c.ctype == ComponentType::RightToken) {
+        if !((c.ctype == ComponentType::Coverage && c.layer == "annis" && c.name != "")
+            || c.ctype == ComponentType::RightToken
+            || c.ctype == ComponentType::LeftToken)
+        {
             if let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {
                     if !db.node_annos.get_all_keys_for_item(&target).is_empty() {
@@ -1905,8 +1964,12 @@ fn create_subgraph_edge(
 }
 
 fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
-    std::fs::create_dir_all(&db_dir)
-        .chain_err(|| format!("Could not create directory {}", db_dir.to_string_lossy()))?;
+    std::fs::create_dir_all(&db_dir).or_else(|e| {
+        Err(Error::Generic {
+            msg: format!("Could not create directory {}", db_dir.to_string_lossy()),
+            cause: Some(Box::new(e)),
+        })
+    })?;
     let lock_file_path = db_dir.join("db.lock");
     // check if we can get the file lock
     let lock_file = OpenOptions::new()
@@ -1914,17 +1977,23 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
         .write(true)
         .create(true)
         .open(lock_file_path.as_path())
-        .chain_err(|| {
-            format!(
-                "Could not open or create lockfile {}",
-                lock_file_path.to_string_lossy()
-            )
+        .or_else(|e| {
+            Err(Error::Generic {
+                msg: format!(
+                    "Could not open or create lockfile {}",
+                    lock_file_path.to_string_lossy()
+                ),
+                cause: Some(Box::new(e)),
+            })
         })?;
-    lock_file.try_lock_exclusive().chain_err(|| {
-        format!(
-            "Could not acquire lock for directory {}",
-            db_dir.to_string_lossy()
-        )
+    lock_file.try_lock_exclusive().or_else(|e| {
+        Err(Error::Generic {
+            msg: format!(
+                "Could not acquire lock for directory {}",
+                db_dir.to_string_lossy()
+            ),
+            cause: Some(Box::new(e)),
+        })
     })?;
 
     Ok(lock_file)

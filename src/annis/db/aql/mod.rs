@@ -28,77 +28,10 @@ fn map_conjunction<'a>(
 ) -> Result<Conjunction<'a>> {
     let mut q = Conjunction::with_offset(var_idx_offset);
     // collect and sort all node searches according to their start position in the text
-    let mut pos_to_node: BTreeMap<usize, (NodeSearchSpec, Option<String>)> = BTreeMap::default();
-
-    let mut pos_to_endpos: BTreeMap<usize, usize> = BTreeMap::default();
-
-    let mut legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)> = Vec::new();
-
-    for literal in &c {
-        match literal {
-            ast::Literal::NodeSearch {
-                spec,
-                pos,
-                variable,
-            } => {
-                if let Some(pos) = pos {
-                    pos_to_node.insert(pos.start, (spec.clone(), variable.clone()));
-                    pos_to_endpos.insert(pos.start, pos.end);
-                }
-            }
-            ast::Literal::BinaryOp { lhs, rhs, .. } => {
-                if let ast::Operand::Literal {
-                    spec,
-                    pos,
-                    variable,
-                } = lhs
-                {
-                    pos_to_node
-                        .entry(pos.start)
-                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
-                    pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
-                }
-                if let ast::Operand::Literal {
-                    spec,
-                    pos,
-                    variable,
-                } = rhs
-                {
-                    pos_to_node
-                        .entry(pos.start)
-                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
-                    pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
-                }
-            }
-            ast::Literal::UnaryOp { .. } => {
-                // can only have node reference, not a literal
-            }
-            ast::Literal::LegacyMetaSearch { spec, pos } => {
-                legacy_meta_search.push((spec.clone(), pos.clone()));
-            }
-        };
-    }
+    let (pos_to_node, pos_to_endpos) = calculate_node_positions(&c, offsets, quirks_mode)?;
 
     // add all nodes specs in order of their start position
-    let mut first_node_pos: Option<String> = None;
-
-    let mut pos_to_node_id: HashMap<usize, String> = HashMap::default();
-    for (start_pos, (node_spec, variable)) in pos_to_node {
-        let variable = variable.as_ref().map(|s| &**s);
-
-        let start = get_line_and_column_for_pos(start_pos, &offsets);
-        let end = if let Some(end_pos) = pos_to_endpos.get(&start_pos) {
-            Some(get_line_and_column_for_pos(*end_pos, &offsets))
-        } else {
-            None
-        };
-
-        let idx = q.add_node_from_query(node_spec, variable, Some(LineColumnRange { start, end }));
-        pos_to_node_id.insert(start_pos, idx.clone());
-        if first_node_pos.is_none() {
-            first_node_pos = Some(idx);
-        }
-    }
+    let mut pos_to_node_id = add_node_specs_by_start(&mut q, pos_to_node, pos_to_endpos, offsets)?;
 
     // add all unary operators as filter(s) to the referenced nodes
     for literal in c.iter() {
@@ -121,14 +54,9 @@ fn map_conjunction<'a>(
         }
     }
 
-    // in quirks mode, all legacy metadata constraints are applied to all conjunctions
-    if !quirks_mode {
-        // add all legacy meta searches
-        add_legacy_metadata_constraints(&mut q, legacy_meta_search, first_node_pos)?;
-    }
+    let mut num_pointing_or_dominance_joins: HashMap<String, usize> = HashMap::default();
 
     // finally add all binary operators
-
     for literal in c {
         if let ast::Literal::BinaryOp {
             lhs,
@@ -172,16 +100,29 @@ fn map_conjunction<'a>(
             let spec_right = q.resolve_variable(&var_right, op_pos.clone())?;
 
             if quirks_mode {
-                if let ast::BinaryOpSpec::Precedence(ref mut spec) = op {
-                    // limit unspecified .* precedence to 50
-                    spec.dist = if let RangeSpec::Unbound = spec.dist {
-                        RangeSpec::Bound {
-                            min_dist: 1,
-                            max_dist: 50,
-                        }
-                    } else {
-                        spec.dist.clone()
-                    };
+                match op {
+                    ast::BinaryOpSpec::Dominance(_) | ast::BinaryOpSpec::Pointing(_) => {
+                        let entry_lhs = num_pointing_or_dominance_joins
+                            .entry(var_left.clone())
+                            .or_insert(0);
+                        *entry_lhs += 1;
+                        let entry_rhs = num_pointing_or_dominance_joins
+                            .entry(var_right.clone())
+                            .or_insert(0);
+                        *entry_rhs += 1;
+                    }
+                    ast::BinaryOpSpec::Precedence(ref mut spec) => {
+                        // limit unspecified .* precedence to 50
+                        spec.dist = if let RangeSpec::Unbound = spec.dist {
+                            RangeSpec::Bound {
+                                min_dist: 1,
+                                max_dist: 50,
+                            }
+                        } else {
+                            spec.dist.clone()
+                        };
+                    }
+                    _ => {}
                 }
             }
             let op_spec = make_binary_operator_spec(op, spec_left, spec_right)?;
@@ -189,7 +130,121 @@ fn map_conjunction<'a>(
         }
     }
 
+    if quirks_mode {
+        // Add additional nodes to the query to emulate the old behavior of distributing
+        // joins for pointing and dominance operators on different query nodes.
+        // Iterate over the query nodes in their order as given by the query.
+        for (_, orig_var) in pos_to_node_id.iter() {
+            let num_joins = num_pointing_or_dominance_joins.get(orig_var).unwrap_or(&0);
+            // add an additional node for each extra join and join this artificial node with identity relation
+            for _ in 1..*num_joins {
+                if let Ok(node_spec) = q.resolve_variable(&orig_var, None) {
+                    let new_var = q.add_node(node_spec, None);
+                    q.add_operator(Box::new(IdenticalNodeSpec {}), &orig_var, &new_var, false)?;
+                }
+            }
+        }
+    }
+
     Ok(q)
+}
+
+type PosToNodeMap = BTreeMap<usize, (NodeSearchSpec, Option<String>)>;
+type PosToEndPosMap = BTreeMap<usize, usize>;
+
+fn calculate_node_positions(
+    c: &[ast::Literal],
+    offsets: &BTreeMap<usize, usize>,
+    quirks_mode: bool,
+) -> Result<(PosToNodeMap, PosToEndPosMap)> {
+    let mut pos_to_node = BTreeMap::default();
+    let mut pos_to_endpos = BTreeMap::default();
+
+    for literal in c {
+        match literal {
+            ast::Literal::NodeSearch {
+                spec,
+                pos,
+                variable,
+            } => {
+                if let Some(pos) = pos {
+                    pos_to_node.insert(pos.start, (spec.clone(), variable.clone()));
+                    pos_to_endpos.insert(pos.start, pos.end);
+                }
+            }
+            ast::Literal::BinaryOp { lhs, rhs, .. } => {
+                if let ast::Operand::Literal {
+                    spec,
+                    pos,
+                    variable,
+                } = lhs
+                {
+                    pos_to_node
+                        .entry(pos.start)
+                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
+                    pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
+                }
+                if let ast::Operand::Literal {
+                    spec,
+                    pos,
+                    variable,
+                } = rhs
+                {
+                    pos_to_node
+                        .entry(pos.start)
+                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
+                    pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
+                }
+            }
+            ast::Literal::UnaryOp { .. } => {
+                // can only have node reference, not a literal
+            }
+            ast::Literal::LegacyMetaSearch { pos, .. } => {
+                if !quirks_mode {
+                    let start = get_line_and_column_for_pos(pos.start, &offsets);
+                    let end = Some(get_line_and_column_for_pos(
+                        pos.start + "meta::".len() - 1,
+                        &offsets,
+                    ));
+                    return Err(Error::AQLSyntaxError {
+                        desc: "Legacy metadata search is no longer allowed. Use the @* operator and normal attribute search instead.".into(),
+                        location: Some(LineColumnRange {start, end}),
+                    });
+                }
+            }
+        };
+    }
+
+    Ok((pos_to_node, pos_to_endpos))
+}
+
+fn add_node_specs_by_start<'a>(
+    q: &mut Conjunction<'a>,
+    pos_to_node: BTreeMap<usize, (NodeSearchSpec, Option<String>)>,
+    pos_to_endpos: BTreeMap<usize, usize>,
+    offsets: &BTreeMap<usize, usize>,
+) -> Result<BTreeMap<usize, String>> {
+    let mut pos_to_node_id: BTreeMap<usize, String> = BTreeMap::default();
+    for (start_pos, (node_spec, variable)) in pos_to_node {
+        let variable = variable.as_ref().map(|s| &**s);
+
+        let start = get_line_and_column_for_pos(start_pos, &offsets);
+        let end = if let Some(end_pos) = pos_to_endpos.get(&start_pos) {
+            Some(get_line_and_column_for_pos(*end_pos, &offsets))
+        } else {
+            None
+        };
+
+        let idx = q.add_node_from_query(
+            node_spec,
+            variable,
+            Some(LineColumnRange { start, end }),
+            true,
+        );
+        pos_to_node_id.insert(start_pos, idx.clone());
+    }
+
+    Ok(pos_to_node_id)
 }
 
 fn add_legacy_metadata_constraints(
@@ -202,7 +257,7 @@ fn add_legacy_metadata_constraints(
         // TODO: add warning to the user not to use this construct anymore
         for (spec, _pos) in legacy_meta_search {
             // add an artificial node that describes the document/corpus node
-            let meta_node_idx = q.add_node(spec, None);
+            let meta_node_idx = q.add_node_from_query(spec, None, None, false);
             if let Some(first_meta_idx) = first_meta_idx.clone() {
                 // avoid nested loops by joining additional meta nodes with a "identical node"
                 q.add_operator(
@@ -224,7 +279,7 @@ fn add_legacy_metadata_constraints(
                 )?;
                 // Also make sure the matched node is actually a document
                 // (the @* could match anything in the hierarchy, including the toplevel corpus)
-                let doc_anno_idx = q.add_node(
+                let doc_anno_idx = q.add_node_from_query(
                     NodeSearchSpec::ExactValue {
                         ns: Some("annis".to_string()),
                         name: "doc".to_string(),
@@ -232,6 +287,8 @@ fn add_legacy_metadata_constraints(
                         is_meta: true,
                     },
                     None,
+                    None,
+                    false,
                 );
                 q.add_operator(
                     Box::new(IdenticalNodeSpec {}),
@@ -346,6 +403,7 @@ pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a
                 ParseError::InvalidToken { .. } => "Invalid token detected.",
                 ParseError::ExtraToken { .. } => "Extra token at end of query.",
                 ParseError::UnrecognizedToken { .. } => "Unexpected token in query.",
+                ParseError::UnrecognizedEOF { .. } => "Unexpected end of query.",
                 ParseError::User { error } => error,
             }
             .to_string();
@@ -353,11 +411,11 @@ pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a
             if let ParseError::UnrecognizedToken { expected, .. } = e {
                 if !expected.is_empty() {
                     //TODO: map token regular expressions and IDs (like IDENT_NODE) to human readable descriptions
-                    desc.push_str("Expected one of: ");
+                    desc.push_str(" Expected one of: ");
                     desc.push_str(&expected.join(","));
                 }
             }
-            Err(ErrorKind::AQLSyntaxError(desc, location).into())
+            Err(Error::AQLSyntaxError { desc, location })
         }
     }
 }
@@ -420,7 +478,7 @@ pub fn get_line_and_column_for_pos(
 ) -> LineColumn {
     // get the offset for the position by searching for all offsets smaller than the position and taking the last one
     offset_to_line
-        .range(..pos + 1)
+        .range(..=pos)
         .rev()
         .map(|(offset, line)| {
             // column starts with 1 at line offset
@@ -454,18 +512,17 @@ fn extract_location<'a>(
             })
         }
         ParseError::UnrecognizedToken { token, .. } => {
-            if let Some(token) = token {
-                let start = get_line_and_column_for_pos(token.0, &offsets);
-                let end = get_line_and_column_for_pos(token.2 - 1, &offsets);
-                Some(LineColumnRange {
-                    start,
-                    end: Some(end),
-                })
-            } else {
-                // set to end of query
-                let start = get_line_and_column_for_pos(input.len() - 1, &offsets);
-                Some(LineColumnRange { start, end: None })
-            }
+            let start = get_line_and_column_for_pos(token.0, &offsets);
+            let end = get_line_and_column_for_pos(token.2 - 1, &offsets);
+            Some(LineColumnRange {
+                start,
+                end: Some(end),
+            })
+        }
+        ParseError::UnrecognizedEOF { .. } => {
+            // set to end of query
+            let start = get_line_and_column_for_pos(input.len() - 1, &offsets);
+            Some(LineColumnRange { start, end: None })
         }
         ParseError::User { .. } => None,
     };

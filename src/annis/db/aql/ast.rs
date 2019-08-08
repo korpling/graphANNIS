@@ -3,9 +3,9 @@ use std;
 use std::rc::Rc;
 
 use crate::annis::db::aql::operators::{
-    AritySpec, DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec,
-    InclusionSpec, LeftAlignmentSpec, NearSpec, OverlapSpec, PartOfSubCorpusSpec, PointingSpec,
-    PrecedenceSpec, RightAlignmentSpec,
+    AritySpec, DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec,
+    LeftAlignmentSpec, NearSpec, OverlapSpec, PartOfSubCorpusSpec, PointingSpec, PrecedenceSpec,
+    RightAlignmentSpec,
 };
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 
@@ -104,7 +104,6 @@ pub enum BinaryOpSpec {
     RightAlignment(RightAlignmentSpec),
     IdenticalNode(IdenticalNodeSpec),
     ValueComparison(ComparisonOperator),
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]

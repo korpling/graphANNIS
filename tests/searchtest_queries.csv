@@ -1,5 +1,5 @@
 name,aql,corpus,count
-noun_with_metadata,"pos=""NN"" & meta::type=""interview"" & meta::doc=/.*_ants/",GUM,126
+noun_with_metadata,"pos=""NN"" @* type=""interview"" _ident_ doc=/.*_ants/",GUM,126
 city,"lemma=""city"" _o_ entity ->coref[type=""coref""] entity",GUM,64
 coffee,"infstat=""giv"" & entity=""object"" & ""Coffee"" & #1 _o_#3 & #2 _o_ #3",GUM,1
 kind_dom_kind,"kind >[relname=""evidence""] kind",GUM,56
@@ -14,10 +14,10 @@ VV_dep,"pos=/VV.*/ ->dep[func=""nsubj""] tok & tok & #1 ->dep[func=""dobj""] #3"
 tok_dep_tok,"tok ->dep[func=""dep""] tok",GUM,246
 nonexisting_dep,"tok=""'s"" ->dep[func=""nsubjpass""]tok",GUM,0
 dep_xcomp,"""easy"" & ""measure"" & #1 ->dep[func=""xcomp""] #2",GUM,1
-meta_interview,"pos=""RB"" & meta::type=""interview""",GUM,522
+meta_interview,"pos=""RB"" @* type=""interview""",GUM,522
 Profile,"node ->dep[func=""nsubj""] node",GUM,3070
 DirectPointingWithAnno,"pos=""JJ"" ->dep[func=""cop""] ""is""",GUM,112
-NotDocument,"tok & meta::doc!=""maz-11299""",pcc2.1,34709
+NotDocument,"tok @* doc!=""maz-11299""",pcc2.1,34709
 StructureInclusionSeed,"cat=""S"" _i_ cat=""AP""",pcc2.1,726
 IsConnectedRange,"""Jugendlichen"" .3,10 ""Musikcafé""",pcc2.1,1
 Regex,cat=/.P/ >* /A.*/,pcc2.1,1130

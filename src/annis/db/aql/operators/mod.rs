@@ -40,24 +40,24 @@ impl fmt::Display for RangeSpec {
 
 mod arity;
 mod edge_op;
+mod equal_value;
 mod identical_cov;
 mod identical_node;
 mod inclusion;
+mod leftalignment;
+mod near;
 mod overlap;
 mod precedence;
-mod near;
-mod leftalignment;
 mod rightalignment;
-mod equal_value;
 
+pub use self::arity::AritySpec;
 pub use self::edge_op::{DominanceSpec, PartOfSubCorpusSpec, PointingSpec};
+pub use self::equal_value::EqualValueSpec;
 pub use self::identical_cov::IdenticalCoverageSpec;
 pub use self::identical_node::IdenticalNodeSpec;
 pub use self::inclusion::InclusionSpec;
-pub use self::overlap::OverlapSpec;
 pub use self::leftalignment::LeftAlignmentSpec;
-pub use self::rightalignment::RightAlignmentSpec;
-pub use self::precedence::PrecedenceSpec;
 pub use self::near::NearSpec;
-pub use self::arity::AritySpec;
-pub use self::equal_value::EqualValueSpec;
+pub use self::overlap::OverlapSpec;
+pub use self::precedence::PrecedenceSpec;
+pub use self::rightalignment::RightAlignmentSpec;

@@ -2,7 +2,7 @@ use super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::Match;
-use crate::annis::operator::{EstimationType, BinaryOperator};
+use crate::annis::operator::{BinaryOperator, EstimationType};
 use crate::annis::types::{AnnoKey, NodeID};
 use std;
 use std::iter::Peekable;
@@ -182,7 +182,7 @@ impl<'a> Iterator for IndexJoin<'a> {
         // lazily initialize the RHS candidates for the first LHS
         if self.rhs_candidate.is_none() {
             self.rhs_candidate = if let Some(rhs) = self.next_candidates() {
-                Some(rhs.into_iter().peekable())
+                Some(rhs.peekable())
             } else {
                 return None;
             };
@@ -210,7 +210,8 @@ impl<'a> Iterator for IndexJoin<'a> {
                         // check if lhs and rhs are equal and if this is allowed in this query
                         if self.op.is_reflexive()
                             || (self.global_reflexivity && m_rhs.different_to_all(&m_lhs)
-                            || (!self.global_reflexivity && m_rhs.different_to(&m_lhs[self.lhs_idx])))
+                                || (!self.global_reflexivity
+                                    && m_rhs.different_to(&m_lhs[self.lhs_idx])))
                         {
                             // filters have been checked, return the result
                             let mut result = m_lhs.clone();
@@ -219,7 +220,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                             if self.node_search_desc.const_output.is_some() {
                                 // only return the one unique constAnno for this node and no duplicates
                                 // skip all RHS candidates that have the same node ID
-                                #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+                                #[allow(clippy::while_let_loop)]
                                 loop {
                                     if let Some(next_match) = rhs_candidate.peek() {
                                         if next_match.node != matched_node {
@@ -242,7 +243,7 @@ impl<'a> Iterator for IndexJoin<'a> {
 
             // inner was completed once, get new candidates
             self.rhs_candidate = if let Some(rhs) = self.next_candidates() {
-                Some(rhs.into_iter().peekable())
+                Some(rhs.peekable())
             } else {
                 None
             };

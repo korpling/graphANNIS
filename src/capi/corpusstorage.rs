@@ -6,18 +6,19 @@ use crate::corpusstorage::{
     QueryAttributeDescription, QueryLanguage, ResultOrder,
 };
 use crate::graph::{AnnotationStorage, Component, ComponentType};
+use crate::update::GraphUpdate;
+use crate::{CorpusStorage, Graph};
 use libc;
 use std;
 use std::ffi::CString;
 use std::path::PathBuf;
-use crate::update::GraphUpdate;
-use crate::{CorpusStorage, Graph};
 
 /// Create a new corpus storage with an automatically determined maximum cache size.
 #[no_mangle]
 pub extern "C" fn annis_cs_with_auto_cache_size(
     db_dir: *const libc::c_char,
     use_parallel: bool,
+    err: *mut *mut ErrorList,
 ) -> *mut CorpusStorage {
     let db_dir = cstr!(db_dir);
 
@@ -29,9 +30,15 @@ pub extern "C" fn annis_cs_with_auto_cache_size(
         Ok(result) => {
             return Box::into_raw(Box::new(result));
         }
-        Err(err) => error!("Could create corpus storage, error message was:\n{:?}", err),
-    };
-    return std::ptr::null_mut();
+        Err(e) => {
+            if !err.is_null() {
+                unsafe {
+                    *err = cerror::new(e.into());
+                }
+            }
+            return std::ptr::null_mut();
+        }
+    }
 }
 
 /// Create a new corpus storage with an manually defined maximum cache size.
@@ -40,6 +47,7 @@ pub extern "C" fn annis_cs_with_max_cache_size(
     db_dir: *const libc::c_char,
     max_cache_size: usize,
     use_parallel: bool,
+    err: *mut *mut ErrorList,
 ) -> *mut CorpusStorage {
     let db_dir = cstr!(db_dir);
 
@@ -55,9 +63,15 @@ pub extern "C" fn annis_cs_with_max_cache_size(
         Ok(result) => {
             return Box::into_raw(Box::new(result));
         }
-        Err(err) => error!("Could create corpus storage, error message was:\n{:?}", err),
-    };
-    return std::ptr::null_mut();
+        Err(e) => {
+            if !err.is_null() {
+                unsafe {
+                    *err = cerror::new(e.into());
+                }
+            }
+            return std::ptr::null_mut();
+        }
+    }
 }
 
 #[no_mangle]
@@ -76,7 +90,7 @@ pub extern "C" fn annis_cs_count(
     query: *const libc::c_char,
     query_language: QueryLanguage,
     err: *mut *mut ErrorList,
-) -> libc::uint64_t {
+) -> u64 {
     let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query);
@@ -454,6 +468,19 @@ pub extern "C" fn annis_cs_delete(
     let corpus = cstr!(corpus);
 
     try_cerr!(cs.delete(&corpus), err, false)
+}
+
+/// Unloads a corpus from the cache.
+#[no_mangle]
+pub extern "C" fn annis_cs_unload(
+    ptr: *mut CorpusStorage,
+    corpus: *const libc::c_char,
+    _err: *mut *mut ErrorList,
+) {
+    let cs: &mut CorpusStorage = cast_mut!(ptr);
+    let corpus = cstr!(corpus);
+
+    cs.unload(&corpus);
 }
 
 #[no_mangle]

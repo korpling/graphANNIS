@@ -143,7 +143,8 @@ impl BinaryOperator for Precedence {
             .map(|n| Match {
                 node: n,
                 anno_key: AnnoKeyID::default(),
-            }).collect();
+            })
+            .collect();
 
         Box::new(result.into_iter())
     }
@@ -161,8 +162,8 @@ impl BinaryOperator for Precedence {
         };
 
         self.gs_order.is_connected(
-            &start_end.0,
-            &start_end.1,
+            start_end.0,
+            start_end.1,
             self.spec.dist.min_dist(),
             self.spec.dist.max_dist(),
         )
@@ -247,7 +248,8 @@ impl BinaryOperator for InversePrecedence {
             .map(|n| Match {
                 node: n,
                 anno_key: AnnoKeyID::default(),
-            }).collect();
+            })
+            .collect();
 
         Box::new(result.into_iter())
     }
@@ -265,8 +267,8 @@ impl BinaryOperator for InversePrecedence {
         };
 
         self.gs_order.is_connected(
-            &start_end.1,
-            &start_end.0,
+            start_end.1,
+            start_end.0,
             self.spec.dist.min_dist(),
             self.spec.dist.max_dist(),
         )

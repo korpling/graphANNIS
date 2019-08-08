@@ -304,8 +304,8 @@ impl BinaryOperator for BaseEdgeOp {
         for e in &self.gs {
             if self.inverse {
                 if e.is_connected(
-                    &rhs.node,
-                    &lhs.node,
+                    rhs.node,
+                    lhs.node,
                     self.spec.dist.min_dist(),
                     self.spec.dist.max_dist(),
                 ) && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
@@ -313,8 +313,8 @@ impl BinaryOperator for BaseEdgeOp {
                     return true;
                 }
             } else if e.is_connected(
-                &lhs.node,
-                &rhs.node,
+                lhs.node,
+                rhs.node,
                 self.spec.dist.min_dist(),
                 self.spec.dist.max_dist(),
             ) && check_edge_annotation(
@@ -536,7 +536,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
     fn necessary_components(&self, _db: &Graph) -> HashSet<Component> {
         let mut components = HashSet::default();
         components.insert(Component {
-            ctype: ComponentType::PartOfSubcorpus,
+            ctype: ComponentType::PartOf,
             layer: String::from(ANNIS_NS),
             name: String::from(""),
         });
@@ -545,7 +545,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
 
     fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
         let components = vec![Component {
-            ctype: ComponentType::PartOfSubcorpus,
+            ctype: ComponentType::PartOf,
             layer: String::from(ANNIS_NS),
             name: String::from(""),
         }];

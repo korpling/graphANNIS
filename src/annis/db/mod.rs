@@ -72,7 +72,7 @@ impl Match {
     /// Returns true if this match is different to all the other matches given as argument.
     ///
     /// A single match is different if the node ID or the annotation key are different.
-    pub fn different_to_all(&self, other: &Vec<Match>) -> bool {
+    pub fn different_to_all(&self, other: &[Match]) -> bool {
         for o in other.iter() {
             if self.node == o.node && self.anno_key == o.anno_key {
                 return false;
@@ -360,7 +360,7 @@ impl Graph {
     }
 
     /// Create a new instance without any location on the disk but with the default graph storage components
-    /// (Coverage, Order, LeftToken, RightToken, PartOfSubcorpus).
+    /// (Coverage, Order, LeftToken, RightToken, PartOf).
     fn with_default_graphstorages() -> Result<Graph> {
         let mut db = Graph::new();
         db.get_or_create_writable(&Component {
@@ -384,7 +384,7 @@ impl Graph {
             name: "".to_owned(),
         })?;
         db.get_or_create_writable(&Component {
-            ctype: ComponentType::PartOfSubcorpus,
+            ctype: ComponentType::PartOf,
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
         })?;
@@ -563,6 +563,7 @@ impl Graph {
         self.internal_save(&location.join("current"))
     }
 
+    #[allow(clippy::cognitive_complexity)]
     fn apply_update_in_memory(&mut self, u: &mut GraphUpdate) -> Result<()> {
         self.reset_cached_size();
 
@@ -628,7 +629,7 @@ impl Graph {
                         // delete all edges pointing to this node either as source or target
                         for c in all_components.iter() {
                             if let Ok(gs) = self.get_or_create_writable(c) {
-                                gs.delete_node(&existing_node_id);
+                                gs.delete_node(existing_node_id);
                             }
                         }
                     }
@@ -782,7 +783,7 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
-                            if gs.is_connected(&source, &target, 1, Included(1)) {
+                            if gs.is_connected(source, target, 1, Included(1)) {
                                 let anno = Annotation {
                                     key: AnnoKey {
                                         ns: anno_ns,
@@ -817,7 +818,7 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
-                            if gs.is_connected(&source, &target, 1, Included(1)) {
+                            if gs.is_connected(source, target, 1, Included(1)) {
                                 let key = AnnoKey {
                                     ns: anno_ns,
                                     name: anno_name,
@@ -877,7 +878,7 @@ impl Graph {
             })?;
 
             for n in invalid_nodes.iter() {
-                gs_left.delete_node(n);
+                gs_left.delete_node(*n);
             }
 
             let gs_right = self.get_or_create_writable(&Component {
@@ -887,7 +888,7 @@ impl Graph {
             })?;
 
             for n in invalid_nodes.iter() {
-                gs_right.delete_node(n);
+                gs_right.delete_node(*n);
             }
 
             let gs_cov = self.get_or_create_writable(&Component {
@@ -896,7 +897,7 @@ impl Graph {
                 layer: ANNIS_NS.to_owned(),
             })?;
             for n in invalid_nodes.iter() {
-                gs_cov.delete_node(n);
+                gs_cov.delete_node(*n);
             }
         }
 
@@ -942,8 +943,8 @@ impl Graph {
     fn calculate_inherited_coverage_edges(
         &mut self,
         n: NodeID,
-        all_cov_components: &Vec<Component>,
-        all_dom_gs: &Vec<Arc<GraphStorage>>,
+        all_cov_components: &[Component],
+        all_dom_gs: &[Arc<GraphStorage>],
     ) -> FxHashSet<NodeID> {
         let mut covered_token = FxHashSet::default();
         for c in all_cov_components.iter() {
@@ -994,8 +995,8 @@ impl Graph {
         n: NodeID,
         ctype: ComponentType,
         gs_order: &GraphStorage,
-        all_cov_gs: &Vec<Arc<GraphStorage>>,
-        all_dom_gs: &Vec<Arc<GraphStorage>>,
+        all_cov_gs: &[Arc<GraphStorage>],
+        all_dom_gs: &[Arc<GraphStorage>],
     ) -> Option<NodeID> {
         let alignment_component = Component {
             ctype: ctype.clone(),
@@ -1053,12 +1054,12 @@ impl Graph {
             if a == b {
                 return std::cmp::Ordering::Equal;
             }
-            if gs_order.is_connected(&a, &b, 1, std::ops::Bound::Unbounded) {
+            if gs_order.is_connected(*a, *b, 1, std::ops::Bound::Unbounded) {
                 return std::cmp::Ordering::Less;
-            } else if gs_order.is_connected(&b, &a, 1, std::ops::Bound::Unbounded) {
+            } else if gs_order.is_connected(*b, *a, 1, std::ops::Bound::Unbounded) {
                 return std::cmp::Ordering::Greater;
             }
-            return std::cmp::Ordering::Equal;
+            std::cmp::Ordering::Equal
         });
 
         // add edge to left/right most candidate token
@@ -1186,10 +1187,7 @@ impl Graph {
             // copy to writable implementation if needed
             let is_writable = {
                 Arc::get_mut(&mut loaded_comp)
-                    .ok_or(format!(
-                        "Could not get mutable reference for component {}",
-                        c
-                    ))?
+                    .ok_or_else(|| format!("Could not get mutable reference for component {}", c))?
                     .as_writeable()
                     .is_some()
             };
@@ -1247,19 +1245,16 @@ impl Graph {
         let entry: &mut Arc<GraphStorage> = self
             .components
             .get_mut(c)
-            .ok_or(format!(
-                "Could not get mutable reference for component {}",
-                c
-            ))?
+            .ok_or_else(|| format!("Could not get mutable reference for component {}", c))?
             .as_mut()
-            .ok_or(format!(
-                "Could not get mutable reference to optional value for component {}",
-                c
-            ))?;
-        let gs_mut_ref: &mut GraphStorage = Arc::get_mut(entry).ok_or(format!(
-            "Could not get mutable reference for component {}",
-            c
-        ))?;
+            .ok_or_else(|| {
+                format!(
+                    "Could not get mutable reference to optional value for component {}",
+                    c
+                )
+            })?;
+        let gs_mut_ref: &mut GraphStorage = Arc::get_mut(entry)
+            .ok_or_else(|| format!("Could not get mutable reference for component {}", c))?;
         Ok(gs_mut_ref.as_writeable().ok_or("Invalid type")?)
     }
 

@@ -2,7 +2,7 @@ use super::super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::Match;
-use crate::annis::operator::{EstimationType, BinaryOperator};
+use crate::annis::operator::{BinaryOperator, EstimationType};
 use crate::annis::types::{AnnoKey, NodeID};
 use rayon::prelude::*;
 use std::iter::Peekable;
@@ -146,7 +146,7 @@ impl<'a> IndexJoin<'a> {
                         // check if lhs and rhs are equal and if this is allowed in this query
                         if op.is_reflexive()
                             || (global_reflexivity && m_rhs.different_to_all(&m_lhs)
-                            || (!global_reflexivity && m_rhs.different_to(&m_lhs[lhs_idx])))
+                                || (!global_reflexivity && m_rhs.different_to(&m_lhs[lhs_idx])))
                         {
                             // filters have been checked, return the result
                             let mut result = m_lhs.clone();
@@ -155,7 +155,7 @@ impl<'a> IndexJoin<'a> {
                             if node_search_desc.const_output.is_some() {
                                 // only return the one unique constAnno for this node and no duplicates
                                 // skip all RHS candidates that have the same node ID
-                                #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+                                #[allow(clippy::while_let_loop)]
                                 loop {
                                     if let Some(next_match) = rhs_candidate.peek() {
                                         if next_match.node != matched_node {

@@ -17,9 +17,9 @@ use crate::annis::operator::{
 use crate::annis::types::{Component, Edge, LineColumnRange, QueryAttributeDescription};
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
+use rand::rngs::SmallRng;
 use rand::SeedableRng;
-use rand_xorshift::XorShiftRng;
-use std::collections::{HashMap, HashSet, BTreeMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::iter::FromIterator;
 use std::sync::Arc;
 
@@ -56,6 +56,7 @@ pub struct Conjunction<'a> {
     unary_operators: Vec<UnaryOperatorSpecEntry<'a>>,
     variables: HashMap<String, usize>,
     location_in_query: HashMap<String, LineColumnRange>,
+    include_in_output: HashSet<String>,
     var_idx_offset: usize,
 }
 
@@ -191,6 +192,7 @@ impl<'a> Conjunction<'a> {
             unary_operators: vec![],
             variables: HashMap::default(),
             location_in_query: HashMap::default(),
+            include_in_output: HashSet::default(),
             var_idx_offset: 0,
         }
     }
@@ -202,6 +204,7 @@ impl<'a> Conjunction<'a> {
             unary_operators: vec![],
             variables: HashMap::default(),
             location_in_query: HashMap::default(),
+            include_in_output: HashSet::default(),
             var_idx_offset,
         }
     }
@@ -230,7 +233,7 @@ impl<'a> Conjunction<'a> {
     }
 
     pub fn add_node(&mut self, node: NodeSearchSpec, variable: Option<&str>) -> String {
-        self.add_node_from_query(node, variable, None)
+        self.add_node_from_query(node, variable, None, true)
     }
 
     pub fn add_node_from_query(
@@ -238,6 +241,7 @@ impl<'a> Conjunction<'a> {
         node: NodeSearchSpec,
         variable: Option<&str>,
         location: Option<LineColumnRange>,
+        included_in_output: bool,
     ) -> String {
         let idx = self.var_idx_offset + self.nodes.len();
         let variable = if let Some(variable) = variable {
@@ -247,6 +251,9 @@ impl<'a> Conjunction<'a> {
         };
         self.nodes.push((variable.clone(), node));
         self.variables.insert(variable.clone(), idx);
+        if included_in_output {
+            self.include_in_output.insert(variable.clone());
+        }
         if let Some(location) = location {
             self.location_in_query.insert(variable.clone(), location);
         }
@@ -264,11 +271,10 @@ impl<'a> Conjunction<'a> {
                 .push(UnaryOperatorSpecEntry { op, idx: *idx });
             return Ok(());
         } else {
-            return Err(ErrorKind::AQLSemanticError(
-                format!("Operand '#{}' not found", var).into(),
+            return Err(Error::AQLSemanticError {
+                desc: format!("Operand '#{}' not found", var),
                 location,
-            )
-            .into());
+            });
         }
     }
 
@@ -296,29 +302,33 @@ impl<'a> Conjunction<'a> {
 
         self.binary_operators.push(BinaryOperatorSpecEntry {
             op,
-            idx_left: idx_left,
-            idx_right: idx_right,
+            idx_left,
+            idx_right,
             global_reflexivity,
         });
-        return Ok(());
-    
-    
+        Ok(())
     }
 
     pub fn num_of_nodes(&self) -> usize {
         self.nodes.len()
     }
 
-    pub fn resolve_variable_pos(&self, variable: &str, location: Option<LineColumnRange>) -> Result<usize> {
-        
+    pub fn resolve_variable_pos(
+        &self,
+        variable: &str,
+        location: Option<LineColumnRange>,
+    ) -> Result<usize> {
         if let Some(pos) = self.variables.get(variable) {
-            return Ok(pos.clone());
+            return Ok(*pos);
         }
-        Err(ErrorKind::AQLSemanticError(
-            format!("Operand '#{}' not found", variable).into(),
+        Err(Error::AQLSemanticError {
+            desc: format!("Operand '#{}' not found", variable),
             location,
-        )
-        .into())
+        })
+    }
+
+    pub fn is_included_in_output(&self, variable: &str) -> bool {
+        self.include_in_output.contains(variable)
     }
 
     pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
@@ -339,12 +349,11 @@ impl<'a> Conjunction<'a> {
                 return Ok(self.nodes[pos].1.clone());
             }
         }
-    
-        return Err(ErrorKind::AQLSemanticError(
-            format!("Operand '#{}' not found", variable).into(),
+
+        Err(Error::AQLSemanticError {
+            desc: format!("Operand '#{}' not found", variable),
             location,
-        )
-        .into());
+        })
     }
 
     pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
@@ -375,7 +384,7 @@ impl<'a> Conjunction<'a> {
         }
 
         // use a constant seed to make the result deterministic
-        let mut rng = XorShiftRng::from_seed(*b"Graphs are great");
+        let mut rng = SmallRng::from_seed(*b"Graphs are great");
         let dist = Uniform::from(0..self.binary_operators.len());
 
         let mut best_operator_order = Vec::from_iter(0..self.binary_operators.len());
@@ -602,10 +611,7 @@ impl<'a> Conjunction<'a> {
                 .ok_or_else(|| format!("no execution node for component {}", op_spec_entry.idx))?;
 
             let op: Box<UnaryOperator> = op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                ErrorKind::ImpossibleSearch(format!(
-                    "could not create operator {:?}",
-                    op_spec_entry
-                ))
+                Error::ImpossibleSearch(format!("could not create operator {:?}", op_spec_entry))
             })?;
             let op_entry = UnaryOperatorEntry {
                 op,
@@ -622,7 +628,7 @@ impl<'a> Conjunction<'a> {
 
             let mut op: Box<BinaryOperator> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                    ErrorKind::ImpossibleSearch(format!(
+                    Error::ImpossibleSearch(format!(
                         "could not create operator {:?}",
                         op_spec_entry
                     ))
@@ -720,10 +726,9 @@ impl<'a> Conjunction<'a> {
             .map(|(_cid, exec)| exec)
             .next()
             .ok_or_else(|| {
-                ErrorKind::ImpossibleSearch(String::from(
+                Error::ImpossibleSearch(String::from(
                     "could not find execution node for query component",
                 ))
-                .into()
             })
     }
 
@@ -767,14 +772,13 @@ impl<'a> Conjunction<'a> {
                     let n_var = &self.nodes[*node_nr].0;
                     let location = self.location_in_query.get(n_var);
 
-                    return Err(ErrorKind::AQLSemanticError(
-                        format!(
+                    return Err(Error::AQLSemanticError {
+                        desc: format!(
                             "Variable \"{}\" not bound (use linguistic operators)",
                             n_var
                         ),
-                        location.cloned(),
-                    )
-                    .into());
+                        location: location.cloned(),
+                    });
                 }
             }
         }

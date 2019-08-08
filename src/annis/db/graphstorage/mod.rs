@@ -37,8 +37,12 @@ pub struct GraphStatistic {
 
 impl std::fmt::Display for GraphStatistic {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "nodes={}, avg_fan_out={:.2}, max_fan_out={}, max_depth={}", self.nodes, self.avg_fan_out, self.max_fan_out, self.max_depth)?;
-        if self.cyclic {        
+        write!(
+            f,
+            "nodes={}, avg_fan_out={:.2}, max_fan_out={}, max_depth={}",
+            self.nodes, self.avg_fan_out, self.max_fan_out, self.max_depth
+        )?;
+        if self.cyclic {
             write!(f, ", cyclic")?;
         }
         if self.rooted_tree {
@@ -84,17 +88,16 @@ pub trait GraphStorage: EdgeContainer {
     ) -> Box<Iterator<Item = NodeID> + 'a>;
 
     /// Compute the distance (shortest path length) of two nodes inside this component.
-    fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize>;
+    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize>;
 
     /// Check if two nodes are connected with any path in this component given a minimum (`min_distance`) and maximum (`max_distance`) path length.
     fn is_connected(
         &self,
-        source: &NodeID,
-        target: &NodeID,
+        source: NodeID,
+        target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
     ) -> bool;
-
 
     /// Get the annotation storage for the edges of this graph storage.
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge>;
@@ -146,7 +149,7 @@ pub trait WriteableGraphStorage: GraphStorage {
 
     /// Delete a node from this graph storage.
     /// This deletes both edges edges where the node is the source or the target node.
-    fn delete_node(&mut self, node: &NodeID);
+    fn delete_node(&mut self, node: NodeID);
 
     /// Re-calculate the [statistics](struct.GraphStatistic.html) of this graph storage.
     fn calculate_statistics(&mut self);

@@ -3,8 +3,8 @@ use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::Graph;
 use crate::annis::types::{Component, ComponentType, NodeID};
 
-use std::sync::Arc;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct TokenHelper {
@@ -59,7 +59,7 @@ impl TokenHelper {
                 }
             })
             .collect();
-            
+
         Some(TokenHelper {
             node_annos: db.node_annos.clone(),
             left_edges: db.get_graphstorage(&COMPONENT_LEFT)?,
@@ -92,9 +92,9 @@ impl TokenHelper {
                     return false;
                 }
             }
-            return true;
+            true
         } else {
-            return false;
+            false
         }
     }
 

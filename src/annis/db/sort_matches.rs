@@ -5,7 +5,15 @@ use crate::annis::db::Match;
 use crate::annis::db::{ANNIS_NS, NODE_NAME};
 use crate::annis::types::{AnnoKey, NodeID};
 use std;
+use std::borrow::Cow;
 use std::cmp::Ordering;
+use std::ffi::CString;
+
+#[derive(Clone, Copy)]
+pub enum CollationType {
+    Default,
+    Locale,
+}
 
 pub fn compare_matchgroup_by_text_pos(
     m1: &[Match],
@@ -13,16 +21,28 @@ pub fn compare_matchgroup_by_text_pos(
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&GraphStorage>,
+    collation: CollationType,
+    reverse_path: bool,
 ) -> Ordering {
     for i in 0..std::cmp::min(m1.len(), m2.len()) {
-        let element_cmp =
-            compare_match_by_text_pos(&m1[i], &m2[i], node_annos, token_helper, gs_order);
+        let element_cmp = compare_match_by_text_pos(
+            &m1[i],
+            &m2[i],
+            node_annos,
+            token_helper,
+            gs_order,
+            collation,
+            reverse_path,
+        );
         if element_cmp != Ordering::Equal {
             return element_cmp;
         }
     }
-    // sort shorter vectors before larger ones
-    m1.len().cmp(&m2.len())
+    // Sort longer vectors ("more specific") before shorter ones
+    // This originates from the old SQL based system, where an "unfilled" match position had the NULL value.
+    // NULL values where sorted *after* the ones with actual values. In practice, this means the more specific
+    // matches come first.
+    m2.len().cmp(&m1.len())
 }
 
 fn split_path_and_nodename(full_node_name: &str) -> (&str, &str) {
@@ -36,15 +56,35 @@ fn split_path_and_nodename(full_node_name: &str) -> (&str, &str) {
     }
 }
 
-fn compare_document_path(p1: &str, p2: &str) -> std::cmp::Ordering {
+fn compare_document_path(
+    p1: &str,
+    p2: &str,
+    collation: CollationType,
+    quirks_mode: bool,
+) -> std::cmp::Ordering {
     let it1 = p1.split('/').filter(|s| !s.is_empty());
     let it2 = p2.split('/').filter(|s| !s.is_empty());
 
-    for (part1, part2) in it1.zip(it2) {
-        if part1 < part2 {
-            return std::cmp::Ordering::Less;
-        } else if part1 > part2 {
-            return std::cmp::Ordering::Greater;
+    if quirks_mode {
+        // only use the document name in quirks mode and make sure it is decoded from a possible percentage encoding
+        let path1: Vec<&str> = it1.collect();
+        let path2: Vec<&str> = it2.collect();
+        if let (Some(doc1), Some(doc2)) = (path1.last(), path2.last()) {
+            let doc1: Cow<str> =
+                percent_encoding::percent_decode(doc1.as_bytes()).decode_utf8_lossy();
+            let doc2: Cow<str> =
+                percent_encoding::percent_decode(doc2.as_bytes()).decode_utf8_lossy();
+            let string_cmp = compare_string(&doc1, &doc2, collation);
+            if string_cmp != std::cmp::Ordering::Equal {
+                return string_cmp;
+            }
+        }
+    } else {
+        for (part1, part2) in it1.zip(it2) {
+            let string_cmp = compare_string(part1, part2, collation);
+            if string_cmp != std::cmp::Ordering::Equal {
+                return string_cmp;
+            }
         }
     }
 
@@ -56,8 +96,35 @@ fn compare_document_path(p1: &str, p2: &str) -> std::cmp::Ordering {
     length1.cmp(&length2)
 }
 
+fn compare_string(s1: &str, s2: &str, collation: CollationType) -> std::cmp::Ordering {
+    match collation {
+        CollationType::Default => {
+            if s1 < s2 {
+                return std::cmp::Ordering::Less;
+            } else if s1 > s2 {
+                return std::cmp::Ordering::Greater;
+            }
+            std::cmp::Ordering::Equal
+        }
+        CollationType::Locale => {
+            let cmp = unsafe {
+                let c_s1 = CString::new(s1).unwrap_or_default();
+                let c_s2 = CString::new(s2).unwrap_or_default();
+                libc::strcoll(c_s1.as_ptr(), c_s2.as_ptr())
+            };
+            if cmp < 0 {
+                std::cmp::Ordering::Less
+            } else if cmp > 0 {
+                std::cmp::Ordering::Greater
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        }
+    }
+}
+
 lazy_static! {
-    static ref node_name_key: AnnoKey = AnnoKey {
+    static ref NODE_NAME_KEY: AnnoKey = AnnoKey {
         ns: ANNIS_NS.to_string(),
         name: NODE_NAME.to_string(),
     };
@@ -69,21 +136,23 @@ pub fn compare_match_by_text_pos(
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&GraphStorage>,
+    collation: CollationType,
+    quirks_mode: bool,
 ) -> Ordering {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare
         m1.anno_key.cmp(&m2.anno_key)
     } else {
         // get the node paths and names
-        let m1_anno_val = node_annos.get_value_for_item(&m1.node, &node_name_key);
-        let m2_anno_val = node_annos.get_value_for_item(&m2.node, &node_name_key);
+        let m1_anno_val = node_annos.get_value_for_item(&m1.node, &NODE_NAME_KEY);
+        let m2_anno_val = node_annos.get_value_for_item(&m2.node, &NODE_NAME_KEY);
 
         if let (Some(m1_anno_val), Some(m2_anno_val)) = (m1_anno_val, m2_anno_val) {
             let (m1_path, m1_name) = split_path_and_nodename(m1_anno_val);
             let (m2_path, m2_name) = split_path_and_nodename(m2_anno_val);
 
             // 1. compare the path
-            let path_cmp = compare_document_path(m1_path, m2_path);
+            let path_cmp = compare_document_path(m1_path, m2_path, collation, quirks_mode);
             if path_cmp != Ordering::Equal {
                 return path_cmp;
             }
@@ -94,16 +163,12 @@ pub fn compare_match_by_text_pos(
                     token_helper.left_token_for(m1.node),
                     token_helper.left_token_for(m2.node),
                 ) {
-                    if gs_order.is_connected(
-                        &m1_lefttok,
-                        &m2_lefttok,
-                        1,
-                        std::ops::Bound::Unbounded,
-                    ) {
+                    if gs_order.is_connected(m1_lefttok, m2_lefttok, 1, std::ops::Bound::Unbounded)
+                    {
                         return Ordering::Less;
                     } else if gs_order.is_connected(
-                        &m2_lefttok,
-                        &m1_lefttok,
+                        m2_lefttok,
+                        m1_lefttok,
                         1,
                         std::ops::Bound::Unbounded,
                     ) {
@@ -113,7 +178,7 @@ pub fn compare_match_by_text_pos(
             }
 
             // 3. compare the name
-            let name_cmp = m1_name.cmp(&m2_name);
+            let name_cmp = compare_string(&m1_name, &m2_name, collation);
             if name_cmp != Ordering::Equal {
                 return name_cmp;
             }
@@ -121,5 +186,38 @@ pub fn compare_match_by_text_pos(
 
         // compare node IDs directly as last resort
         m1.node.cmp(&m2.node)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn tiger_doc_name_sort() {
+        let p1 = "tiger2/tiger2/tiger_release_dec05_110";
+        let p2 = "tiger2/tiger2/tiger_release_dec05_1_1";
+        assert_eq!(
+            std::cmp::Ordering::Less,
+            compare_document_path(p1, p2, CollationType::Default, false)
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn tiger_doc_name_sort_strcoll() {
+        unsafe {
+            let locale = CString::new("de_DE.UTF-8").unwrap_or_default();
+            libc::setlocale(libc::LC_COLLATE, locale.as_ptr());
+        }
+
+        let p1 = "tiger2/tiger2/tiger_release_dec05_110";
+        let p2 = "tiger2/tiger2/tiger_release_dec05_1_1";
+
+        assert_eq!(
+            std::cmp::Ordering::Greater,
+            compare_document_path(p1, p2, CollationType::Locale, true)
+        );
     }
 }
