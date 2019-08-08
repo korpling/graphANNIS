@@ -33,7 +33,7 @@ before_script:
 
 
 script:
-  - cargo fmt --  --check
+  - cargo fmt -- --check
   - cargo build --release --features "c-api cli"
   - (test -d data/GUM/ -a -d data/pcc2.1/ || "./misc/download-test-corpora.sh")
   - (test -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
@@ -46,6 +46,9 @@ script:
   - mdbook build --dest-dir book/${SHORT_VERSION} docs/
 
 before_deploy:
+  # recreate the DLL on Windows after testing, otherwise it seems to be empty
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then cargo build --release --features "c-api" ; fi
+  # determine which binary to deploy
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dylib ; fi
   - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then export RELEASE_PKG_FILE=target/release/graphannis.dll ; fi
