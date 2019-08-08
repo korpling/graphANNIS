@@ -59,7 +59,7 @@ deploy:
     file: "${RELEASE_PKG_FILE}"
     on:
       repo: korpling/graphANNIS
-      branch: master
+      #branch: master
       tags: true
     skip_cleanup: true
     tag_name: $TRAVIS_TAG
