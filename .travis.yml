@@ -24,7 +24,7 @@ branches:
     # Develop branch
     - develop
     # used when testing the release process
-    - /^test-release-process.*$/
+    # - /^test-release-process.*$/
 
 before_script:
   - rustup component add rustfmt
@@ -62,7 +62,7 @@ deploy:
     file: "${RELEASE_PKG_FILE}"
     on:
       repo: korpling/graphANNIS
-      branch: feature/travis-windows
+      branch: master
       tags: true
     skip_cleanup: true
     tag_name: $TRAVIS_TAG
