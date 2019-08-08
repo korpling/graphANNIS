@@ -1,9 +1,9 @@
 use csv;
+use file_diff::diff;
 use lalrpop;
 use regex::Regex;
 use std::ops::Deref;
 use std::path::PathBuf;
-use file_diff::{diff};
 
 /// Take the CSV file with the queries and add a test case for each query whose
 /// corpora exist
@@ -73,7 +73,10 @@ fn search_{corpus_escaped}_{name_escaped}() {{
     }
 
     // if the new temporary file is different to the existing one, replace them
-    if !diff(&destination.to_string_lossy(), &destintation_tmp.to_string_lossy()){
+    if !diff(
+        &destination.to_string_lossy(),
+        &destintation_tmp.to_string_lossy(),
+    ) {
         std::fs::copy(destintation_tmp, destination).unwrap();
     }
 
