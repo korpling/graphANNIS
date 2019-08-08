@@ -7,9 +7,12 @@ install_mdbook=false
 if [[ -x $HOME/.cargo/bin/mdbook ]]; then
     echo "Checking for mdBook version ${MDBOOK_VERSION}"
     EXISTING_MDBOOK_VERSION=`$HOME/.cargo/bin/mdbook --version`
-    echo "Exiting: ${EXISTING_MDBOOK_VERSION}"
+    echo "Existing: ${EXISTING_MDBOOK_VERSION}"
     if [ "mdbook v${MDBOOK_VERSION}" != "${EXISTING_MDBOOK_VERSION}" ]; then
         install_mdbook=true
+    else
+        echo "Using cached ${EXISTING_MDBOOK_VERSION}"
+        install_mdbook=false
     fi
 else
      install_mdbook=true
