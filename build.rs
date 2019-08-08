@@ -3,6 +3,7 @@ use lalrpop;
 use regex::Regex;
 use std::ops::Deref;
 use std::path::PathBuf;
+use file_diff::{diff};
 
 /// Take the CSV file with the queries and add a test case for each query whose
 /// corpora exist
@@ -12,7 +13,8 @@ fn create_search_tests() -> Option<()> {
 
     let out_dir = std::env::var("OUT_DIR").unwrap();
     let destination = std::path::Path::new(&out_dir).join("searchtest.rs");
-    let mut f = std::fs::File::create(&destination).unwrap();
+    let destintation_tmp = std::path::Path::new(&out_dir).join("searchtest.rs.tmp");
+    let mut f = std::fs::File::create(&destintation_tmp).unwrap();
 
     let query_file = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_QUERIES") {
         path
@@ -68,6 +70,11 @@ fn search_{corpus_escaped}_{name_escaped}() {{
                 name=name, name_escaped=name_escaped, corpus=corpus, corpus_escaped=corpus_escaped, aql=aql, count=count).ok()?;
             }
         }
+    }
+
+    // if the new temporary file is different to the existing one, replace them
+    if !diff(&destination.to_string_lossy(), &destintation_tmp.to_string_lossy()){
+        std::fs::copy(destintation_tmp, destination).unwrap();
     }
 
     Some(())

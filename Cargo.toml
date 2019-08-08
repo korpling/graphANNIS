@@ -18,6 +18,7 @@ crate-type = ["lib", "staticlib","cdylib"]
 lalrpop = "0.17"
 csv = "1"
 regex = "1"
+file_diff = "1"
 
 [dependencies]
 regex = "1"
