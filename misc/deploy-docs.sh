@@ -16,4 +16,7 @@ if [ -n "$GITHUB_API_KEY" ]; then
     echo "pushing to gh-pages"
     git push -q https://$GITHUB_API_KEY@github.com/korpling/graphANNIS gh-pages &>/dev/null
     cd "$TRAVIS_BUILD_DIR"
+else
+	>&2 echo "Cannot deploy documentation because GITHUB_API_KEY environment variable is not set"
+	exit 1
 fi
