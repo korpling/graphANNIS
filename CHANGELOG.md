@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - For performance and stylistic reasons, the GraphStorage API has been changed to accept integer node IDs instead of references to integers.
+- Windows DLL in releases is now created by Travis CI instead of Appveyor
 
 ## [0.22.0] - 2019-07-22
 

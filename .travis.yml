@@ -4,9 +4,7 @@ rust:
 os:
   - linux
   - osx
-
-dist: trusty
-sudo: required
+  - windows
 
 cache:
   directories:
@@ -26,19 +24,16 @@ branches:
     # Develop branch
     - develop
     # used when testing the release process
-    #- feature/doc-deploy-subfolder
+    # - /^test-release-process.*$/
 
 before_script:
   - rustup component add rustfmt
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update) ; fi
-  - (test -x $HOME/.cargo/bin/cargo-install-update || (curl -L -o cargo-install-update.tbz2 https://github.com/nabijaczleweli/cargo-update/releases/download/v1.7.0/cargo-install-update-v1.7.0.tbz2 && tar -C $HOME/.cargo/bin/ -jxf cargo-install-update.tbz2))
-  - (test -x $HOME/.cargo/bin/mdbook || cargo install --vers "^0.3" mdbook)
-  - cargo install-update -a
   - export SHORT_VERSION=`echo ${TRAVIS_TAG:-develop} | sed -E 's/(\.[0-9]+)$//'`
-  
+  - misc/download-mdbook.sh 0.3.1
+
 
 script:
-  - cargo fmt --  --check
+  - cargo fmt -- --check
   - cargo build --release --features "c-api cli"
   - (test -d data/GUM/ -a -d data/pcc2.1/ || "./misc/download-test-corpora.sh")
   - (test -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
@@ -51,8 +46,12 @@ script:
   - mdbook build --dest-dir book/${SHORT_VERSION} docs/
 
 before_deploy:
+  # recreate the DLL on Windows after testing, otherwise it seems to be empty
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then cargo build --release --features "c-api" ; fi
+  # determine which binary to deploy
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dylib ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then export RELEASE_PKG_FILE=target/release/graphannis.dll ; fi
 
 
 deploy:
