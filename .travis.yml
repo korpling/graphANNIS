@@ -24,15 +24,15 @@ branches:
     # Develop branch
     - develop
     # used when testing the release process
-    #- feature/doc-deploy-subfolder
+    - feature/doc-deploy-subfolder
 
 before_script:
   - rustup component add rustfmt
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update) ; fi
-  - (test -x $HOME/.cargo/bin/cargo-install-update || (curl -L -o cargo-install-update.tbz2 https://github.com/nabijaczleweli/cargo-update/releases/download/v1.7.0/cargo-install-update-v1.7.0.tbz2 && tar -C $HOME/.cargo/bin/ -jxf cargo-install-update.tbz2))
-  - (test -x $HOME/.cargo/bin/mdbook || cargo install --vers "^0.3" mdbook)
-  - cargo install-update -a
   - export SHORT_VERSION=`echo ${TRAVIS_TAG:-develop} | sed -E 's/(\.[0-9]+)$//'`
+  # download mdbook 0.3.1
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then (test -x $HOME/.cargo/bin/mdbook || (curl -L -o mdbook.tar.gz https://github.com/rust-lang-nursery/mdBook/releases/download/v0.3.1/mdbook-v0.3.1-x86_64-unknown-linux-gnu.tar.gz && tar -C $HOME/.cargo/bin/ -jxf mdbook.tar.gz)) ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then (test -x $HOME/.cargo/bin/mdbook || (curl -L -o mdbook.tar.gz https://github.com/rust-lang-nursery/mdBook/releases/download/v0.3.1/mdbook-v0.3.1-x86_64-apple-darwin.tar.gz && tar -C $HOME/.cargo/bin/ -jxf mdbook.tar.gz)) ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then (test -x $HOME/.cargo/bin/mdbook || (curl -L -o mdbook.zip https://github.com/rust-lang-nursery/mdBook/releases/download/v0.3.1/mdBook-v0.3.1-x86_64-pc-windows-msvc.zip && unzip -d $HOME/.cargo/bin/ mdbook.zip) ; fi
   
 
 script:
