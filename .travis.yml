@@ -24,7 +24,7 @@ branches:
     # Develop branch
     - develop
     # used when testing the release process
-    - feature/doc-deploy-subfolder
+    - feature/travis-windows
 
 before_script:
   - rustup component add rustfmt
