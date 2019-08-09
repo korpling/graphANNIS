@@ -12,7 +12,7 @@ cache:
     - $TRAVIS_HOME/.cargo/
     - $TRAVIS_HOME/.rustup/
     - target
-    - data
+    - relannis
 
 # Create two environments: one for the default tests not requiring any test data and one for the 
 # search tests.
