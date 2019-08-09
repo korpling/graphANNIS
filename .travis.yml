@@ -38,8 +38,8 @@ script:
   - (test -d data/GUM/ -a -d data/pcc2.1/ || "./misc/download-test-corpora.sh")
   - (test -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
   - (test -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
-  - cargo test --release -- --test-threads=1
-  - cargo test --release  -- --ignored --test-threads=1
+  - cargo test --release -- --test-threads=2
+  - cargo test --release  -- --ignored --test-threads=2
   # also test that the documentation is generated without error
   - mdbook test docs/
   # generate the documentation for possible deploy
