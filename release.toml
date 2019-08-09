@@ -1,6 +1,6 @@
 upload-doc = false
 sign-commit = true
-no-dev-version = true
+dev-version-ext = "-SNAPSHOT"
 pre-release-hook = ["cargo", "test"]
 pre-release-replacements = [ 
     {file="CHANGELOG.md", search="Unreleased", replace="{{version}}"},
