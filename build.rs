@@ -77,7 +77,7 @@ fn search_{corpus_escaped}_{name_escaped}() {{
         &destination.to_string_lossy(),
         &destintation_tmp.to_string_lossy(),
     ) {
-        std::fs::copy(destintation_tmp, destination).unwrap();
+        std::fs::copy(destintation_tmp, destination).ok()?;
     }
 
     Some(())
