@@ -17,8 +17,8 @@ cache:
 # Create two environments: one for the default tests not requiring any test data and one for the 
 # search tests.
 #env:
-#  - TEST_SUITE=
-#  - TEST_SUITE=--ignored
+  - TEST_SUITE=
+  - TEST_SUITE=--ignored
 
 before_cache:
   - rm -rf "$TRAVIS_HOME/.cargo/registry/src"
@@ -42,11 +42,10 @@ script:
   - cargo fmt -- --check
   # Build the library, all tests and the annis CLI binary
   - cargo build --release --tests --lib --bin annis --features="cli c-api"
-  - (test -d relannis/GUM/ -a -d relannis/pcc2.1/ || "./misc/download-test-corpora.sh")
-  - (test -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
-  - (test -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
-  - cargo test --release -- --test-threads=2
-  - cargo test --release  -- --ignored --test-threads=2
+  - (test ! -z "$TEST_SUITE" -a -d relannis/GUM/ -a -d relannis/pcc2.1/ || "./misc/download-test-corpora.sh")
+  - (test ! -z "$TEST_SUITE -a -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
+  - (test ! -z "$TEST_SUITE -a -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
+  - cargo test --release -- --test-threads=2 $TEST_SUITE
   # also test that the documentation is generated without error
   - mdbook test docs/
   # generate the documentation for possible deploy
@@ -76,10 +75,11 @@ deploy:
     draft: true
   - provider: script
     script: bash $TRAVIS_BUILD_DIR/misc/deploy-docs.sh
+    condition: env(TEST_SUITE) =~ //
     on:
       repo: korpling/graphANNIS
       branch: master
       tags: true
-      condition: $TRAVIS_OS_NAME = linux
+      condition: env(TRAVIS_OS_NAME) = linux AND env(TEST_SUITE) =~ //
     skip-cleanup: true
       
