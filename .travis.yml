@@ -34,7 +34,8 @@ before_script:
 
 script:
   - cargo fmt -- --check
-  - cargo build --release --features "c-api cli"
+  # Build the library, all tests and the annis CLI binary
+  - cargo build --release --tests --lib --bin annis --features="cli c-api"
   - (test -d data/GUM/ -a -d data/pcc2.1/ || "./misc/download-test-corpora.sh")
   - (test -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
   - (test -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
@@ -47,7 +48,7 @@ script:
 
 before_deploy:
   # recreate the DLL on Windows after testing, otherwise it seems to be empty
-  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then cargo build --release --features "c-api" ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then cargo build --release --features "c-api" --lib ; fi
   # determine which binary to deploy
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dylib ; fi
