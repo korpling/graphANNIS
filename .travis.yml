@@ -11,7 +11,6 @@ cache:
     - $TRAVIS_HOME/.cache/sccache
     - $TRAVIS_HOME/.cargo/
     - $TRAVIS_HOME/.rustup/
-    - target
     - relannis
     - data
 
@@ -45,24 +44,27 @@ before_script:
   - rustup component add rustfmt
   - export SHORT_VERSION=`echo ${TRAVIS_TAG:-develop} | sed -E 's/(\.[0-9]+)$//'`
   - misc/download-mdbook.sh 0.3.1
+  # Build in release mode if search tests are executed
+  - (test -z "$TEST_SUITE" || export BUILD_FLAGS="--release")
+  - echo "Building with flags \"$BUILD_FLAGS\""
 
 
 script:
   - cargo fmt -- --check
   # Build the library, all tests and the annis CLI binary
-  - cargo build --release --tests --lib --bin annis --features="cli c-api"
+  - cargo build $BUILD_FLAGS --tests --lib --bin annis --features="cli c-api"
+  # Download and import test corpora if necessary
   - (test -z "$TEST_SUITE" -o \( -d relannis/GUM/ -a -d relannis/pcc2.1/ \) || "./misc/download-test-corpora.sh")
   - (test -z "$TEST_SUITE" -o -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
   - (test -z "$TEST_SUITE" -o -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
-  - cargo test --release -- --test-threads=2 $TEST_SUITE
-  # also test that the documentation is generated without error
-  - mdbook test docs/
-  # generate the documentation for possible deploy
+  - cargo test $BUILD_FLAGS -- --test-threads=2 $TEST_SUITE
+  # generate the documentation (for testing if it works and later deploy)
   - mdbook build --dest-dir book/${SHORT_VERSION} docs/
+  
 
 before_deploy:
-  # recreate the DLL on Windows after testing, otherwise it seems to be empty
-  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then cargo build --release --features "c-api" --lib ; fi
+  # recreate release binary after testing
+  - cargo build --release --features "c-api" --lib
   # determine which binary to deploy
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dylib ; fi
