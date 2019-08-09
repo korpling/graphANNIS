@@ -51,8 +51,8 @@ script:
   # Build the library, all tests and the annis CLI binary
   - cargo build --release --tests --lib --bin annis --features="cli c-api"
   - (test ! -z "$TEST_SUITE" -a -d relannis/GUM/ -a -d relannis/pcc2.1/ || "./misc/download-test-corpora.sh")
-  - (test ! -z "$TEST_SUITE -a -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
-  - (test ! -z "$TEST_SUITE -a -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
+  - (test ! -z "$TEST_SUITE" -a -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
+  - (test ! -z "$TEST_SUITE" -a -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
   - cargo test --release -- --test-threads=2 $TEST_SUITE
   # also test that the documentation is generated without error
   - mdbook test docs/
