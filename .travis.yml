@@ -16,7 +16,7 @@ cache:
 
 # Create two environments: one for the default tests not requiring any test data and one for the 
 # search tests.
-#env:
+env:
   - TEST_SUITE=
   - TEST_SUITE=--ignored
 
