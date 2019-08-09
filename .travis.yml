@@ -11,7 +11,7 @@ cache:
     - $TRAVIS_HOME/.cache/sccache
     - $TRAVIS_HOME/.cargo/
     - $TRAVIS_HOME/.rustup/
-#    - target
+    - target
     - relannis
     - data
 
