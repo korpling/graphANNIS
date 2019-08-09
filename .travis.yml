@@ -14,6 +14,12 @@ cache:
     - target
     - data
 
+# Create two environments: one for the default tests not requiring any test data and one for the 
+# search tests.
+#env:
+#  - TEST_SUITE=
+#  - TEST_SUITE=--ignored
+
 before_cache:
   - rm -rf "$TRAVIS_HOME/.cargo/registry/src"
 
@@ -36,7 +42,7 @@ script:
   - cargo fmt -- --check
   # Build the library, all tests and the annis CLI binary
   - cargo build --release --tests --lib --bin annis --features="cli c-api"
-  - (test -d data/GUM/ -a -d data/pcc2.1/ || "./misc/download-test-corpora.sh")
+  - (test -d relannis/GUM/ -a -d relannis/pcc2.1/ || "./misc/download-test-corpora.sh")
   - (test -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
   - (test -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
   - cargo test --release -- --test-threads=2
