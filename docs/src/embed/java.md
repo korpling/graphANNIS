@@ -8,15 +8,17 @@ If you are using Apache Maven as your build system, you can add a dependency to 
 ```xml
 <dependency>
   <groupId>org.corpus-tools</groupId>
-  <artifactId>graphannis-api</artifactId>
-  <version>0.22.0</version>
+  <artifactId>graphannis</artifactId>
+  <version>__version__</version>
 </dependency>
 ```
+Replace `__version__` with the latest released version of the Java language bindings, e.g. 
+by searching for it on [Maven Central](https://search.maven.org/search?q=g:org.corpus-tools%20AND%20a:graphannis).
 
 ## API documentation
 
 The API documentation is available at 
-[http://www.javadoc.io/doc/org.corpus-tools/graphannis-api/](http://www.javadoc.io/doc/org.corpus-tools/graphannis-api/).
+[http://www.javadoc.io/doc/org.corpus-tools/graphannis/](http://www.javadoc.io/doc/org.corpus-tools/graphannis/).
 
 ## Corpus data directory
 
