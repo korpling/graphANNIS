@@ -18,4 +18,4 @@ Language bindings can have their own version number, but should state which core
     -  [Python](https://github.com/korpling/graphANNIS-python#release-process)
     -  [Java](https://github.com/korpling/graphANNIS-java#release-process)
 
-In addition for the binaries, CI will also build and publish the documentation using the gh-pages branch and a sub-folder `docs\<short-version>`, e.g. https://korpling.github.io/graphANNIS/docs/v0.22/.
+In addition for the binaries, CI will also build and publish the documentation using the gh-pages branch and a sub-folder `docs/<short-version>`, e.g. https://korpling.github.io/graphANNIS/docs/v0.22/.
