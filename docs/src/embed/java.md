@@ -125,7 +125,7 @@ There are two functions to query a corpus with AQL:
 - `count(...)` returns the number of matches, and
 - `find(...)` returns a paginated list of matched node IDs.
 
-You have to give the list of corpora and the query as arguments to both functions.
+You have to give name of the corpus and the query as arguments to both functions.
 The following example searches for all tokens that contain a `s` character.[^aql]
 ```java
 package org.corpus_tools;
@@ -138,9 +138,9 @@ import org.corpus_tools.graphannis.errors.GraphANNISException;
 public class Query {
     public static void main(String[] args) throws GraphANNISException {
         CorpusStorageManager cs = new CorpusStorageManager("data");
-        long number_of_matches = cs.count(Arrays.asList("tutorial"), "tok=/.*s.*/");
+        long number_of_matches = cs.count("tutorial", "tok=/.*s.*/");
         System.out.println("Number of matches: " + number_of_matches);
-        String[] matches = cs.find(Arrays.asList("tutorial"), "tok=/.*s.*/", 0, 100);
+        String[] matches = cs.find("tutorial", "tok=/.*s.*/", 0, 100);
         for (int i = 0; i < matches.length; i++) {
             System.out.println("Match " + i + ": " + matches[i]);
         }
@@ -175,7 +175,7 @@ import org.corpus_tools.graphannis.model.Node;
 public class FindSubgraph {
     public static void main(String[] args) throws GraphANNISException {
         CorpusStorageManager cs = new CorpusStorageManager("data");
-        String[] matches = cs.find(Arrays.asList("tutorial"), "tok . tok", 0, 100);
+        String[] matches = cs.find("tutorial", "tok . tok", 0, 100);
         for (String m : matches) {
             System.out.println(m);
             // convert the match string to a list of node IDs
