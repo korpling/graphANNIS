@@ -210,7 +210,7 @@ impl FromStr for FrequencyDefEntry {
 /// An enum over all supported query languages of graphANNIS.
 ///
 /// Currently, only the ANNIS Query Language (AQL) and its variants are supported, but this enum allows us to add a support for older query language versions
-/// or completly new query languages.
+/// or completely new query languages.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub enum QueryLanguage {
@@ -223,7 +223,7 @@ pub enum QueryLanguage {
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub enum ImportFormat {
-    /// Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/doc/dev-annisimportformat.html)
+    /// Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/4.0/developer-guide/annisimportformat.html)
     RelANNIS,
 }
 
@@ -672,7 +672,7 @@ impl CorpusStorage {
     }
 
     /// Delete a corpus from this corpus storage.
-    /// Returns `true` if the corpus was sucessfully deleted and `false` if no such corpus existed.
+    /// Returns `true` if the corpus was successfully deleted and `false` if no such corpus existed.
     pub fn delete(&self, corpus_name: &str) -> Result<bool> {
         let mut db_path = PathBuf::from(&self.db_dir);
         db_path.push(corpus_name);
