@@ -1024,7 +1024,7 @@ impl CorpusStorage {
             }
         }
         let mut expected_size: Option<usize> = None;
-        let base_it: Box<Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
+        let base_it: Box<dyn Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
             || (order == ResultOrder::Normal && plan.is_sorted_by_text() && !quirks_mode)
         {
             // If the output is already sorted correctly, directly return the iterator.
@@ -1596,7 +1596,7 @@ impl CorpusStorage {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
                 if let Some(gs) = db.get_graphstorage(&component) {
-                    let edge_annos: &AnnotationStorage<Edge> = gs.get_anno_storage();
+                    let edge_annos = gs.get_anno_storage();
                     for key in edge_annos.annotation_keys() {
                         if list_values {
                             if only_most_frequent_values {

@@ -14,7 +14,7 @@ pub struct Error {
 pub type ErrorList = Vec<Error>;
 
 struct CauseIterator<'a> {
-    current: Option<&'a StdError>,
+    current: Option<&'a dyn StdError>,
 }
 
 impl<'a> std::iter::Iterator for CauseIterator<'a> {

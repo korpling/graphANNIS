@@ -18,9 +18,9 @@ pub struct PrecedenceSpec {
 }
 
 pub struct Precedence {
-    gs_order: Arc<GraphStorage>,
-    gs_left: Arc<GraphStorage>,
-    gs_right: Arc<GraphStorage>,
+    gs_order: Arc<dyn GraphStorage>,
+    gs_left: Arc<dyn GraphStorage>,
+    gs_right: Arc<dyn GraphStorage>,
     tok_helper: TokenHelper,
     spec: PrecedenceSpec,
 }
@@ -61,7 +61,7 @@ impl BinaryOperatorSpec for PrecedenceSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
         let optional_op = Precedence::new(db, self.clone());
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -115,7 +115,7 @@ impl std::fmt::Display for Precedence {
 }
 
 impl BinaryOperator for Precedence {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
@@ -187,7 +187,7 @@ impl BinaryOperator for Precedence {
         EstimationType::SELECTIVITY(0.1)
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
+    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
         // Check if order graph storages has the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         if !self.gs_order.inverse_has_same_cost() {
@@ -206,9 +206,9 @@ impl BinaryOperator for Precedence {
 }
 
 pub struct InversePrecedence {
-    gs_order: Arc<GraphStorage>,
-    gs_left: Arc<GraphStorage>,
-    gs_right: Arc<GraphStorage>,
+    gs_order: Arc<dyn GraphStorage>,
+    gs_left: Arc<dyn GraphStorage>,
+    gs_right: Arc<dyn GraphStorage>,
     tok_helper: TokenHelper,
     spec: PrecedenceSpec,
 }
@@ -220,7 +220,7 @@ impl std::fmt::Display for InversePrecedence {
 }
 
 impl BinaryOperator for InversePrecedence {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
@@ -274,7 +274,7 @@ impl BinaryOperator for InversePrecedence {
         )
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
+    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
         let prec = Precedence {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),

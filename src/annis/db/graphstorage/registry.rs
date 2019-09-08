@@ -12,8 +12,8 @@ use std::sync::Arc;
 
 pub struct GSInfo {
     pub id: String,
-    constructor: fn() -> Arc<GraphStorage>,
-    deserialize_func: fn(&mut std::io::Read) -> Result<Arc<GraphStorage>>,
+    constructor: fn() -> Arc<dyn GraphStorage>,
+    deserialize_func: fn(&mut dyn std::io::Read) -> Result<Arc<dyn GraphStorage>>,
 }
 
 lazy_static! {
@@ -138,11 +138,14 @@ where
     }
 }
 
-pub fn create_from_info(info: &GSInfo) -> Arc<GraphStorage> {
+pub fn create_from_info(info: &GSInfo) -> Arc<dyn GraphStorage> {
     (info.constructor)()
 }
 
-pub fn deserialize(impl_name: &str, input: &mut std::io::Read) -> Result<Arc<GraphStorage>> {
+pub fn deserialize(
+    impl_name: &str,
+    input: &mut dyn std::io::Read,
+) -> Result<Arc<dyn GraphStorage>> {
     let info = REGISTRY.get(impl_name).ok_or_else(|| {
         format!(
             "Could not find implementation for graph storage with name '{}'",
@@ -152,7 +155,7 @@ pub fn deserialize(impl_name: &str, input: &mut std::io::Read) -> Result<Arc<Gra
     (info.deserialize_func)(input)
 }
 
-pub fn serialize(data: &Arc<GraphStorage>, writer: &mut std::io::Write) -> Result<String> {
+pub fn serialize(data: &Arc<dyn GraphStorage>, writer: &mut dyn std::io::Write) -> Result<String> {
     data.serialize_gs(writer)?;
     Ok(data.serialization_id())
 }

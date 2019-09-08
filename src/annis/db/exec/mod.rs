@@ -25,7 +25,7 @@ pub struct Desc {
 }
 
 fn calculate_outputsize(
-    op: &BinaryOperator,
+    op: &dyn BinaryOperator,
     cost_lhs: &CostEstimate,
     cost_rhs: &CostEstimate,
 ) -> usize {
@@ -76,12 +76,12 @@ impl Desc {
     }
 
     pub fn join(
-        op: &BinaryOperator,
+        op: &dyn BinaryOperator,
         lhs: Option<&Desc>,
         rhs: Option<&Desc>,
         impl_description: &str,
         query_fragment: &str,
-        processed_func: &Fn(EstimationType, usize, usize) -> usize,
+        processed_func: &dyn Fn(EstimationType, usize, usize) -> usize,
     ) -> Desc {
         let component_nr = if let Some(d) = lhs {
             d.component_nr
@@ -182,12 +182,12 @@ impl Desc {
 
 pub struct NodeSearchDesc {
     pub qname: (Option<String>, Option<String>),
-    pub cond: Vec<Box<Fn(&Match) -> bool + Sync + Send>>,
+    pub cond: Vec<Box<dyn Fn(&Match) -> bool + Sync + Send>>,
     pub const_output: Option<AnnoKeyID>,
 }
 
 pub trait ExecutionNode: Iterator {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>>;
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>>;
     fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {
         None
     }
@@ -212,7 +212,7 @@ impl Iterator for EmptyResultSet {
 }
 
 impl ExecutionNode for EmptyResultSet {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
         self
     }
     fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {

@@ -20,7 +20,7 @@ pub fn compare_matchgroup_by_text_pos(
     m2: &[Match],
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
-    gs_order: Option<&GraphStorage>,
+    gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
     reverse_path: bool,
 ) -> Ordering {
@@ -135,7 +135,7 @@ pub fn compare_match_by_text_pos(
     m2: &Match,
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
-    gs_order: Option<&GraphStorage>,
+    gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
     quirks_mode: bool,
 ) -> Ordering {
