@@ -16,7 +16,7 @@ pub struct OverlapSpec;
 
 #[derive(Clone)]
 pub struct Overlap {
-    gs_order: Arc<GraphStorage>,
+    gs_order: Arc<dyn GraphStorage>,
     tok_helper: TokenHelper,
 }
 
@@ -38,7 +38,7 @@ impl BinaryOperatorSpec for OverlapSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
         let optional_op = Overlap::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -67,14 +67,14 @@ impl std::fmt::Display for Overlap {
 }
 
 impl BinaryOperator for Overlap {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         // use set to filter out duplicates
         let mut result = FxHashSet::default();
 
         let lhs_is_token = self.tok_helper.is_token(lhs.node);
 
         for gs_cov in self.tok_helper.get_gs_coverage().iter() {
-            let covered: Box<Iterator<Item = NodeID>> = if lhs_is_token {
+            let covered: Box<dyn Iterator<Item = NodeID>> = if lhs_is_token {
                 Box::new(std::iter::once(lhs.node))
             } else {
                 // all covered token
@@ -126,7 +126,7 @@ impl BinaryOperator for Overlap {
         false
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
+    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
         Some(Box::new(self.clone()))
     }
 

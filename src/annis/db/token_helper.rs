@@ -9,9 +9,9 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct TokenHelper {
     node_annos: Arc<AnnoStorage<NodeID>>,
-    left_edges: Arc<GraphStorage>,
-    right_edges: Arc<GraphStorage>,
-    cov_edges: Vec<Arc<GraphStorage>>,
+    left_edges: Arc<dyn GraphStorage>,
+    right_edges: Arc<dyn GraphStorage>,
+    cov_edges: Vec<Arc<dyn GraphStorage>>,
     tok_key: usize,
 }
 
@@ -47,7 +47,7 @@ pub fn necessary_components(db: &Graph) -> HashSet<Component> {
 
 impl TokenHelper {
     pub fn new(db: &Graph) -> Option<TokenHelper> {
-        let cov_edges: Vec<Arc<GraphStorage>> = db
+        let cov_edges: Vec<Arc<dyn GraphStorage>> = db
             .get_all_components(Some(ComponentType::Coverage), None)
             .into_iter()
             .filter_map(|c| db.get_graphstorage(&c))
@@ -68,15 +68,15 @@ impl TokenHelper {
             tok_key: db.node_annos.get_key_id(&db.get_token_key())?,
         })
     }
-    pub fn get_gs_coverage(&self) -> &Vec<Arc<GraphStorage>> {
+    pub fn get_gs_coverage(&self) -> &Vec<Arc<dyn GraphStorage>> {
         &self.cov_edges
     }
 
-    pub fn get_gs_left_token(&self) -> &GraphStorage {
+    pub fn get_gs_left_token(&self) -> &dyn GraphStorage {
         self.left_edges.as_ref()
     }
 
-    pub fn get_gs_right_token_(&self) -> &GraphStorage {
+    pub fn get_gs_right_token_(&self) -> &dyn GraphStorage {
         self.right_edges.as_ref()
     }
 

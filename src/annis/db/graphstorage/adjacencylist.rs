@@ -56,7 +56,7 @@ impl AdjacencyListStorage {
 }
 
 impl EdgeContainer for AdjacencyListStorage {
-    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         if let Some(outgoing) = self.edges.get(&node) {
             return match outgoing.len() {
                 0 => Box::new(std::iter::empty()),
@@ -67,7 +67,7 @@ impl EdgeContainer for AdjacencyListStorage {
         Box::new(std::iter::empty())
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         if let Some(ingoing) = self.inverse_edges.get(&node) {
             return match ingoing.len() {
                 0 => Box::new(std::iter::empty()),
@@ -77,7 +77,7 @@ impl EdgeContainer for AdjacencyListStorage {
         }
         Box::new(std::iter::empty())
     }
-    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         let it = self
             .edges
             .iter()
@@ -92,7 +92,7 @@ impl EdgeContainer for AdjacencyListStorage {
 }
 
 impl GraphStorage for AdjacencyListStorage {
-    fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
+    fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge> {
         &self.annos
     }
 
@@ -100,12 +100,12 @@ impl GraphStorage for AdjacencyListStorage {
         "AdjacencyListV1".to_owned()
     }
 
-    fn serialize_gs(&self, writer: &mut std::io::Write) -> Result<()> {
+    fn serialize_gs(&self, writer: &mut dyn std::io::Write) -> Result<()> {
         bincode::serialize_into(writer, self)?;
         Ok(())
     }
 
-    fn deserialize_gs(input: &mut std::io::Read) -> Result<Self>
+    fn deserialize_gs(input: &mut dyn std::io::Read) -> Result<Self>
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
@@ -119,7 +119,7 @@ impl GraphStorage for AdjacencyListStorage {
         node: NodeID,
         min_distance: usize,
         max_distance: Bound<usize>,
-    ) -> Box<Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
             Bound::Unbounded => usize::max_value(),
@@ -137,7 +137,7 @@ impl GraphStorage for AdjacencyListStorage {
         node: NodeID,
         min_distance: usize,
         max_distance: Bound<usize>,
-    ) -> Box<Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
             Bound::Unbounded => usize::max_value(),
@@ -176,7 +176,7 @@ impl GraphStorage for AdjacencyListStorage {
         it.next().is_some()
     }
 
-    fn copy(&mut self, _db: &Graph, orig: &GraphStorage) {
+    fn copy(&mut self, _db: &Graph, orig: &dyn GraphStorage) {
         self.clear();
 
         for source in orig.source_nodes() {
@@ -193,10 +193,10 @@ impl GraphStorage for AdjacencyListStorage {
         self.annos.calculate_statistics();
     }
 
-    fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {
+    fn as_writeable(&mut self) -> Option<&mut dyn WriteableGraphStorage> {
         Some(self)
     }
-    fn as_edgecontainer(&self) -> &EdgeContainer {
+    fn as_edgecontainer(&self) -> &dyn EdgeContainer {
         self
     }
 

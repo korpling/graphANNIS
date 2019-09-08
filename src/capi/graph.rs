@@ -85,7 +85,7 @@ pub extern "C" fn annis_graph_outgoing_edges(
     let mut result: Vec<Edge> = Vec::new();
 
     if let Some(gs) = db.get_graphstorage(component) {
-        let gs: Arc<GraphStorage> = gs;
+        let gs: Arc<dyn GraphStorage> = gs;
         result.extend(gs.get_outgoing_edges(source).map(|target| Edge {
             source: source.clone(),
             target,

@@ -129,7 +129,7 @@ impl Display for Error {
 }
 
 impl StdError for Error {
-    fn source(&self) -> Option<&(StdError + 'static)> {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
             Error::AQLSyntaxError { .. }
             | Error::AQLSemanticError { .. }

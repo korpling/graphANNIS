@@ -23,7 +23,7 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
         let optional_op = RightAlignment::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -48,7 +48,7 @@ impl std::fmt::Display for RightAlignment {
 }
 
 impl BinaryOperator for RightAlignment {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let mut aligned = Vec::default();
 
         if let Some(lhs_token) = self.tok_helper.right_token_for(lhs.node) {
@@ -85,7 +85,7 @@ impl BinaryOperator for RightAlignment {
         false
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
+    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
         Some(Box::new(self.clone()))
     }
 

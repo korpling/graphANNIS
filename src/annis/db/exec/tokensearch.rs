@@ -21,8 +21,8 @@ pub struct AnyTokenSearch<'a> {
     node_type_key: AnnoKeyID,
     db: &'a Graph,
     token_helper: Option<TokenHelper>,
-    order_gs: Option<&'a GraphStorage>,
-    root_iterators: Option<Vec<Box<Iterator<Item = NodeID> + 'a>>>,
+    order_gs: Option<&'a dyn GraphStorage>,
+    root_iterators: Option<Vec<Box<dyn Iterator<Item = NodeID> + 'a>>>,
 }
 
 lazy_static! {
@@ -59,7 +59,7 @@ impl<'a> AnyTokenSearch<'a> {
         components
     }
 
-    fn get_root_iterators(&mut self) -> &mut Vec<Box<Iterator<Item = NodeID> + 'a>> {
+    fn get_root_iterators(&mut self) -> &mut Vec<Box<dyn Iterator<Item = NodeID> + 'a>> {
         if let Some(ref mut root_iterators) = self.root_iterators {
             return root_iterators;
         } else {
@@ -121,7 +121,7 @@ impl<'a> fmt::Display for AnyTokenSearch<'a> {
 }
 
 impl<'a> ExecutionNode for AnyTokenSearch<'a> {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
         self
     }
 

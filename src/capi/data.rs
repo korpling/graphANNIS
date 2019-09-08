@@ -25,10 +25,10 @@ pub extern "C" fn annis_str_free(s: *mut c_char) {
     };
 }
 
-pub type IterPtr<T> = Box<Iterator<Item = T>>;
+pub type IterPtr<T> = Box<dyn Iterator<Item = T>>;
 
-pub fn iter_next<T>(ptr: *mut Box<Iterator<Item = T>>) -> *mut T {
-    let it: &mut Box<Iterator<Item = T>> = cast_mut!(ptr);
+pub fn iter_next<T>(ptr: *mut Box<dyn Iterator<Item = T>>) -> *mut T {
+    let it: &mut Box<dyn Iterator<Item = T>> = cast_mut!(ptr);
     if let Some(v) = it.next() {
         return Box::into_raw(Box::new(v));
     }
