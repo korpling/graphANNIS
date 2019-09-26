@@ -1,13 +1,11 @@
-use crate::annis::types::NodeID;
 use crate::annis::db::annostorage::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
-use crate::annis::errors::Result;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::AnnoKeyID;
 use crate::annis::types::Annotation;
+use crate::annis::types::NodeID;
 use crate::malloc_size_of::MallocSizeOf;
-use std::sync::Arc;
 
 use std::hash::Hash;
 use std::marker::PhantomData;
@@ -16,7 +14,7 @@ use std::path::Path;
 /// An on-disk implementation of an annotation storage.
 ///
 /// # Error handling
-/// 
+///
 /// In contrast to the main-memory implementation, accessing the disk can fail.
 /// This is handled as a fatal error with panic except for specific scenarios where we know how to recover from this error.
 /// Panics are used because these errors are unrecoverable
@@ -30,48 +28,116 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
     #[ignore_malloc_size_of = "is stored on disk"]
     by_container: sled::Tree,
     #[ignore_malloc_size_of = "is stored on disk"]
-    by_anno: sled::Tree,
+    by_anno_name: sled::Tree,
+    #[ignore_malloc_size_of = "is stored on disk"]
+    by_anno_ns: sled::Tree,
+}
+
+fn str_vec_key(val : &[&str]) -> Vec<u8> {
+    let mut result : Vec<u8> = Vec::default();
+    for v in val {
+        // append null-terminated string to result
+        for b in v.as_bytes() {
+            result.push(*b)
+        }
+        result.push(0);
+    }
+    result
 }
 
 impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
     pub fn new(path: &Path) -> AnnoStorageImpl<T> {
-        let db = sled::Db::start_default(path).expect("Can't create annotation storage");
+        let db = sled::Db::open(path).expect("Can't create annotation storage");
 
         let by_container = db
             .open_tree("by_container")
             .expect("Can't create annotation storage");
-        let by_anno = db
-            .open_tree("by_anno")
+        let by_anno_name = db
+            .open_tree("by_anno_name")
+            .expect("Can't create annotation storage");
+
+        let by_anno_ns = db
+            .open_tree("by_anno_ns")
             .expect("Can't create annotation storage");
 
         AnnoStorageImpl {
             phantom: PhantomData::default(),
             by_container,
-            by_anno,
+            by_anno_name,
+            by_anno_ns,
         }
+    }
+
+    fn remove_element_from_by_anno(&mut self, anno: &Annotation, item: NodeID) {
+        
+        let key_ns : Vec<u8> = str_vec_key(&[&anno.key.name, &anno.key.ns, &anno.val]);
+        if let Some(items_for_anno) = self.by_anno_ns.get(&key_ns).expect("Database should work") {
+            let mut value = ByAnnoValue::from(items_for_anno.as_ref());
+            if let Ok(item_idx) = value.items.binary_search(&item) {
+                value.items.remove(item_idx);
+                // store back item vector
+                let value : Vec<u8> = value.into();
+                self.by_anno_ns.insert(&key_ns, value).expect("Database should work");
+            }
+        }
+
+        let key_name : Vec<u8> = str_vec_key(&[&anno.key.name, &anno.val]);
+        if let Some(items_for_anno) = self.by_anno_ns.get(&key_name).expect("Database should work") {
+            let mut value = ByAnnoValue::from(items_for_anno.as_ref());
+            if let Ok(item_idx) = value.items.binary_search(&item) {
+                value.items.remove(item_idx);
+                // store back item vector
+                let value : Vec<u8> = value.into();
+                self.by_anno_ns.insert(&key_name, value).expect("Database should work");
+            }
+        }
+        
+
     }
 }
 
+#[derive(Serialize, Deserialize)]
 struct ByContainerValue {
     annotations: Vec<Annotation>,
 }
 
 impl Into<Vec<u8>> for ByContainerValue {
     fn into(self) -> Vec<u8> {
-        unimplemented!()
+        bincode::serialize(&self).unwrap()
     }
 }
 
 impl From<&[u8]> for ByContainerValue {
-    fn from(val :  &[u8]) -> ByContainerValue {
-        unimplemented!()
+    fn from(val: &[u8]) -> ByContainerValue {
+        bincode::deserialize(val).unwrap()
     }
 }
 
-impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID>
-{
+#[derive(Serialize, Deserialize)]
+struct ByAnnoValue {
+    items: Vec<NodeID>,
+}
+
+impl Into<Vec<u8>> for ByAnnoValue {
+    fn into(self) -> Vec<u8> {
+        bincode::serialize(&self).unwrap()
+    }
+}
+
+impl From<&[u8]> for ByAnnoValue {
+    fn from(val: &[u8]) -> ByAnnoValue {
+        bincode::deserialize(val).unwrap()
+    }
+}
+
+
+impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
     fn insert(&mut self, item: NodeID, anno: Annotation) {
-        let mut by_container_value : ByContainerValue = if let Some(existing) = self.by_container.get(item.to_le_bytes()).expect("Database should work") {
+        let mut by_container_value: ByContainerValue = if let Some(existing) = self
+            .by_container
+            .get(item.to_le_bytes())
+            .expect("Database should work")
+        {
             ByContainerValue::from(existing.as_ref())
         } else {
             ByContainerValue {
@@ -79,8 +145,49 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID>
             }
         };
 
+        // check if there is already an item with the same annotation key
+        let existing_entry_idx = by_container_value
+            .annotations
+            .binary_search_by_key(&anno.key, |a| a.key.clone());
+
+        let existing_anno = {
+            if let Ok(existing_entry_idx) = existing_entry_idx {
+                let orig_anno = by_container_value.annotations[existing_entry_idx].clone();
+                // abort if the same annotation key with the same value already exist
+                if orig_anno.val == anno.val {
+                    return;
+                }
+                // insert annotation for item at existing position
+                by_container_value.annotations[existing_entry_idx] = anno.clone();
+                Some(orig_anno)
+            } else if let Err(insertion_idx) = existing_entry_idx {
+                // insert at sorted position -> the result will still be a sorted vector
+                by_container_value
+                    .annotations
+                    .insert(insertion_idx, anno.clone());
+                None
+            } else {
+                None
+            }
+        };
+
+        // write back possibly updated by_container value
+        let by_container_value: Vec<u8> = by_container_value.into();
+        self.by_container
+            .insert(item.to_le_bytes(), by_container_value)
+            .expect("Database should work");
+
+        if let Some(ref existing_anno) = existing_anno {
+            self.remove_element_from_by_anno(existing_anno, item);
+        }
+
+        if existing_anno.is_none() {
+        }
+
         unimplemented!()
     }
+
+    
 
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
         unimplemented!()
