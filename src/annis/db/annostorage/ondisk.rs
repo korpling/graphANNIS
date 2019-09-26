@@ -16,6 +16,7 @@ use std::path::Path;
 /// An on-disk implementation of an annotation storage.
 ///
 /// # Error handling
+/// 
 /// In contrast to the main-memory implementation, accessing the disk can fail.
 /// This is handled as a fatal error with panic except for specific scenarios where we know how to recover from this error.
 /// Panics are used because these errors are unrecoverable
@@ -27,9 +28,9 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
     phantom: PhantomData<T>,
 
     #[ignore_malloc_size_of = "is stored on disk"]
-    by_container: Arc<sled::Tree>,
+    by_container: sled::Tree,
     #[ignore_malloc_size_of = "is stored on disk"]
-    by_anno: Arc<sled::Tree>,
+    by_anno: sled::Tree,
 }
 
 impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
