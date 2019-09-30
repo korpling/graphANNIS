@@ -120,7 +120,9 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
     }
 
     fn clear(&mut self) {
-        unimplemented!()
+        self.by_anno_name.clear().expect(DEFAULT_MSG);
+        self.by_anno_qname.clear().expect(DEFAULT_MSG);
+        self.by_container.clear().expect(DEFAULT_MSG);
     }
 
     fn get_qnames(&self, _name: &str) -> Vec<AnnoKey> {
