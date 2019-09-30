@@ -32,11 +32,11 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
     #[ignore_malloc_size_of = "is stored on disk"]
     by_anno_name: sled::Tree,
     #[ignore_malloc_size_of = "is stored on disk"]
-    by_anno_ns: sled::Tree,
+    by_anno_qname: sled::Tree,
 }
 
-fn str_vec_key(val : &[&str]) -> Vec<u8> {
-    let mut result : Vec<u8> = Vec::default();
+fn str_vec_key(val: &[&str]) -> Vec<u8> {
+    let mut result: Vec<u8> = Vec::default();
     for v in val {
         // append null-terminated string to result
         for b in v.as_bytes() {
@@ -46,7 +46,6 @@ fn str_vec_key(val : &[&str]) -> Vec<u8> {
     }
     result
 }
-
 
 impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
     pub fn new(path: &Path) -> AnnoStorageImpl<T> {
@@ -59,19 +58,18 @@ impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
             .open_tree("by_anno_name")
             .expect("Can't create annotation storage");
 
-        let by_anno_ns = db
-            .open_tree("by_anno_ns")
+        let by_anno_qname = db
+            .open_tree("by_anno_qname")
             .expect("Can't create annotation storage");
 
         AnnoStorageImpl {
             phantom: PhantomData::default(),
             by_container,
             by_anno_name,
-            by_anno_ns,
+            by_anno_qname,
         }
     }
 }
-
 
 #[derive(Serialize, Deserialize)]
 struct ByAnnoValue {
@@ -90,24 +88,28 @@ impl From<&[u8]> for ByAnnoValue {
     }
 }
 
-
 impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
     fn insert(&mut self, item: NodeID, anno: Annotation) {
         // create a key from the node ID and the annotation key
-        let mut key : Vec<u8> = item.to_le_bytes().iter().cloned().collect();
-        key.extend(str_vec_key(&[&anno.key.ns, &anno.key.name]));
+        let mut by_container_key: Vec<u8> = item.to_le_bytes().iter().cloned().collect();
+        by_container_key.extend(str_vec_key(&[&anno.key.ns, &anno.key.name]));
 
         // insert the value into main tree
-        let mut existing = self
-            .by_container
-            .insert(key, anno.val.as_bytes())
-            .expect(DEFAULT_MSG); 
+        self.by_container
+            .insert(by_container_key, anno.val.as_bytes())
+            .expect(DEFAULT_MSG);
 
-        unimplemented!()
+        // Use the (qualified) annotation name, the value and the node ID as key for the indexes.
+        // Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
+        // arrays as values, the node ID is part of the key and makes it unique.
+        let mut by_anno_name_key : Vec<u8> = str_vec_key(&[&anno.key.name, &anno.val, &anno.key.ns]);
+        by_anno_name_key.extend(&item.to_le_bytes());
+        self.by_anno_name.insert(by_anno_name_key, &[1]).expect(DEFAULT_MSG);
 
+        let mut by_anno_qname_key : Vec<u8> = str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
+        by_anno_qname_key.extend(&item.to_le_bytes());
+        self.by_anno_qname.insert(by_anno_qname_key, &[1]).expect(DEFAULT_MSG);
     }
-
-    
 
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
         unimplemented!()
