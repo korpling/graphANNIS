@@ -11,6 +11,8 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 use std::path::Path;
 
+const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
+
 /// An on-disk implementation of an annotation storage.
 ///
 /// # Error handling
@@ -45,6 +47,19 @@ fn str_vec_key(val : &[&str]) -> Vec<u8> {
     result
 }
 
+// fn remove_element_from_sorted_vector(tree : &tree, key : &[u8], val : &[u8]) {
+//     if let Some(elements) = tree.get(key).expect("Database should work") {
+//         let mut elements = ByAnnoValue::from(items_for_anno.as_ref());
+//         if let Ok(item_idx) = value.items.binary_search(&item) {
+//             value.items.remove(item_idx);
+//             // store back item vector
+//             let value : Vec<u8> = value.into();
+//             self.by_anno_ns.insert(&key_ns, value).expect("Database should work");
+//         }
+//     }
+// }
+
+
 impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
     pub fn new(path: &Path) -> AnnoStorageImpl<T> {
         let db = sled::Db::open(path).expect("Can't create annotation storage");
@@ -68,27 +83,29 @@ impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
         }
     }
 
+
+
     fn remove_element_from_by_anno(&mut self, anno: &Annotation, item: NodeID) {
         
         let key_ns : Vec<u8> = str_vec_key(&[&anno.key.name, &anno.key.ns, &anno.val]);
-        if let Some(items_for_anno) = self.by_anno_ns.get(&key_ns).expect("Database should work") {
+        if let Some(items_for_anno) = self.by_anno_ns.get(&key_ns).expect(DEFAULT_MSG) {
             let mut value = ByAnnoValue::from(items_for_anno.as_ref());
             if let Ok(item_idx) = value.items.binary_search(&item) {
                 value.items.remove(item_idx);
                 // store back item vector
                 let value : Vec<u8> = value.into();
-                self.by_anno_ns.insert(&key_ns, value).expect("Database should work");
+                self.by_anno_ns.insert(&key_ns, value).expect(DEFAULT_MSG);
             }
         }
 
         let key_name : Vec<u8> = str_vec_key(&[&anno.key.name, &anno.val]);
-        if let Some(items_for_anno) = self.by_anno_ns.get(&key_name).expect("Database should work") {
+        if let Some(items_for_anno) = self.by_anno_ns.get(&key_name).expect(DEFAULT_MSG) {
             let mut value = ByAnnoValue::from(items_for_anno.as_ref());
             if let Ok(item_idx) = value.items.binary_search(&item) {
                 value.items.remove(item_idx);
                 // store back item vector
                 let value : Vec<u8> = value.into();
-                self.by_anno_ns.insert(&key_name, value).expect("Database should work");
+                self.by_anno_ns.insert(&key_name, value).expect(DEFAULT_MSG);
             }
         }
         
@@ -136,7 +153,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
         let mut by_container_value: ByContainerValue = if let Some(existing) = self
             .by_container
             .get(item.to_le_bytes())
-            .expect("Database should work")
+            .expect(DEFAULT_MSG)
         {
             ByContainerValue::from(existing.as_ref())
         } else {
@@ -175,16 +192,17 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
         let by_container_value: Vec<u8> = by_container_value.into();
         self.by_container
             .insert(item.to_le_bytes(), by_container_value)
-            .expect("Database should work");
+            .expect(DEFAULT_MSG);
 
         if let Some(ref existing_anno) = existing_anno {
             self.remove_element_from_by_anno(existing_anno, item);
         }
 
-        if existing_anno.is_none() {
-        }
+        // inserts a new relation between the annotation and the item
+        // if set is not existing yet it is created
+        let by_anno_name_key = str_vec_key(&[&anno.key.name, &anno.val]);
+//        self.by_anno_name.insert(by_anno_name_key, value: V)
 
-        unimplemented!()
     }
 
     
