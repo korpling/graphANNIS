@@ -47,18 +47,6 @@ fn str_vec_key(val : &[&str]) -> Vec<u8> {
     result
 }
 
-// fn remove_element_from_sorted_vector(tree : &tree, key : &[u8], val : &[u8]) {
-//     if let Some(elements) = tree.get(key).expect("Database should work") {
-//         let mut elements = ByAnnoValue::from(items_for_anno.as_ref());
-//         if let Ok(item_idx) = value.items.binary_search(&item) {
-//             value.items.remove(item_idx);
-//             // store back item vector
-//             let value : Vec<u8> = value.into();
-//             self.by_anno_ns.insert(&key_ns, value).expect("Database should work");
-//         }
-//     }
-// }
-
 
 impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
     pub fn new(path: &Path) -> AnnoStorageImpl<T> {
@@ -82,53 +70,8 @@ impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
             by_anno_ns,
         }
     }
-
-
-
-    fn remove_element_from_by_anno(&mut self, anno: &Annotation, item: NodeID) {
-        
-        let key_ns : Vec<u8> = str_vec_key(&[&anno.key.name, &anno.key.ns, &anno.val]);
-        if let Some(items_for_anno) = self.by_anno_ns.get(&key_ns).expect(DEFAULT_MSG) {
-            let mut value = ByAnnoValue::from(items_for_anno.as_ref());
-            if let Ok(item_idx) = value.items.binary_search(&item) {
-                value.items.remove(item_idx);
-                // store back item vector
-                let value : Vec<u8> = value.into();
-                self.by_anno_ns.insert(&key_ns, value).expect(DEFAULT_MSG);
-            }
-        }
-
-        let key_name : Vec<u8> = str_vec_key(&[&anno.key.name, &anno.val]);
-        if let Some(items_for_anno) = self.by_anno_ns.get(&key_name).expect(DEFAULT_MSG) {
-            let mut value = ByAnnoValue::from(items_for_anno.as_ref());
-            if let Ok(item_idx) = value.items.binary_search(&item) {
-                value.items.remove(item_idx);
-                // store back item vector
-                let value : Vec<u8> = value.into();
-                self.by_anno_ns.insert(&key_name, value).expect(DEFAULT_MSG);
-            }
-        }
-        
-
-    }
 }
 
-#[derive(Serialize, Deserialize)]
-struct ByContainerValue {
-    annotations: Vec<Annotation>,
-}
-
-impl Into<Vec<u8>> for ByContainerValue {
-    fn into(self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
-    }
-}
-
-impl From<&[u8]> for ByContainerValue {
-    fn from(val: &[u8]) -> ByContainerValue {
-        bincode::deserialize(val).unwrap()
-    }
-}
 
 #[derive(Serialize, Deserialize)]
 struct ByAnnoValue {
@@ -150,58 +93,17 @@ impl From<&[u8]> for ByAnnoValue {
 
 impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
     fn insert(&mut self, item: NodeID, anno: Annotation) {
-        let mut by_container_value: ByContainerValue = if let Some(existing) = self
+        // create a key from the node ID and the annotation key
+        let mut key : Vec<u8> = item.to_le_bytes().iter().cloned().collect();
+        key.extend(str_vec_key(&[&anno.key.ns, &anno.key.name]));
+
+        // insert the value into main tree
+        let mut existing = self
             .by_container
-            .get(item.to_le_bytes())
-            .expect(DEFAULT_MSG)
-        {
-            ByContainerValue::from(existing.as_ref())
-        } else {
-            ByContainerValue {
-                annotations: vec![],
-            }
-        };
+            .insert(key, anno.val.as_bytes())
+            .expect(DEFAULT_MSG); 
 
-        // check if there is already an item with the same annotation key
-        let existing_entry_idx = by_container_value
-            .annotations
-            .binary_search_by_key(&anno.key, |a| a.key.clone());
-
-        let existing_anno = {
-            if let Ok(existing_entry_idx) = existing_entry_idx {
-                let orig_anno = by_container_value.annotations[existing_entry_idx].clone();
-                // abort if the same annotation key with the same value already exist
-                if orig_anno.val == anno.val {
-                    return;
-                }
-                // insert annotation for item at existing position
-                by_container_value.annotations[existing_entry_idx] = anno.clone();
-                Some(orig_anno)
-            } else if let Err(insertion_idx) = existing_entry_idx {
-                // insert at sorted position -> the result will still be a sorted vector
-                by_container_value
-                    .annotations
-                    .insert(insertion_idx, anno.clone());
-                None
-            } else {
-                None
-            }
-        };
-
-        // write back possibly updated by_container value
-        let by_container_value: Vec<u8> = by_container_value.into();
-        self.by_container
-            .insert(item.to_le_bytes(), by_container_value)
-            .expect(DEFAULT_MSG);
-
-        if let Some(ref existing_anno) = existing_anno {
-            self.remove_element_from_by_anno(existing_anno, item);
-        }
-
-        // inserts a new relation between the annotation and the item
-        // if set is not existing yet it is created
-        let by_anno_name_key = str_vec_key(&[&anno.key.name, &anno.val]);
-//        self.by_anno_name.insert(by_anno_name_key, value: V)
+        unimplemented!()
 
     }
 
