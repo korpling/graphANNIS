@@ -13,7 +13,7 @@ pub struct ExecutionPlan<'a> {
     plans: Vec<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
     current_plan: usize,
     descriptions: Vec<Option<Desc>>,
-    inverse_node_pos: Vec<Option<HashMap<usize,usize>>>,
+    inverse_node_pos: Vec<Option<Vec<usize>>>,
     proxy_mode: bool,
     unique_result_set: HashSet<Vec<(NodeID, AnnoKey)>>,
 }
@@ -33,8 +33,20 @@ impl<'a> ExecutionPlan<'a> {
                 descriptions.push(p.get_desc().cloned());
 
                 if let Some(ref desc) = p.get_desc() {
-                    // invert the node position mapping
-                    inverse_node_pos.push(Some(desc.node_pos.iter().map(|(target_pos, stream_pos)| (*stream_pos, *target_pos)).collect()));
+                    // check if node position mapping is actually needed
+                    let node_pos_needed = desc.node_pos.iter().any(|(target_pos, stream_pos)| target_pos != stream_pos);
+                    if node_pos_needed {
+                        // invert the node position mapping
+                        let new_mapping_map : HashMap<usize, usize> = desc.node_pos.iter().map(|(target_pos, stream_pos)| (*stream_pos, *target_pos)).collect();
+                        let mut new_mapping : Vec<usize> = Vec::with_capacity(new_mapping_map.len());
+                        for i in 0..new_mapping_map.len() {
+                            let mapping_value = new_mapping_map.get(&i).unwrap_or(&i);
+                            new_mapping.push(*mapping_value);
+                        }
+                        inverse_node_pos.push(Some(new_mapping));
+                    } else {
+                        inverse_node_pos.push(None);
+                    }
                 } else {
                     inverse_node_pos.push(None);
                 }
@@ -73,11 +85,8 @@ impl<'a> ExecutionPlan<'a> {
             let mut result: Vec<Match> = Vec::with_capacity(tmp.len());
             result.resize_with(tmp.len(), Default::default);
             for (stream_pos, m) in tmp.into_iter().enumerate() {
-                if let Some(target_pos) = inverse_node_pos.get(&stream_pos) {
-                    result[*target_pos] = m;
-                } else {
-                    result[stream_pos] = m;
-                }
+                let target_pos = inverse_node_pos[stream_pos];
+                result[target_pos] = m;
             }
             result
         } else {
