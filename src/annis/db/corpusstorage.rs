@@ -934,7 +934,7 @@ impl CorpusStorage {
                     .node_annos
                     .get_value_for_item_by_id(&m.node, node_name_key_id)
                 {
-                    let node_name: &str = node_name;
+                    let node_name: &str = &node_name;
                     // extract the document path from the node name
                     let doc_path =
                         &node_name[0..node_name.rfind('#').unwrap_or_else(|| node_name.len())];
@@ -1144,7 +1144,7 @@ impl CorpusStorage {
                         .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
                     {
                         node_desc.push_str("salt:/");
-                        node_desc.push_str(name);
+                        node_desc.push_str(&name);
                     }
 
                     match_desc.push(node_desc);
@@ -1460,7 +1460,7 @@ impl CorpusStorage {
                     let m: &Match = &mgroup[*node_ref];
                     for k in anno_keys.iter() {
                         if let Some(val) = db.node_annos.get_value_for_item(&m.node, k) {
-                            tuple_val = val.to_owned();
+                            tuple_val = val.to_string();
                         }
                     }
                 }
@@ -1552,7 +1552,7 @@ impl CorpusStorage {
                             {
                                 result.push(Annotation {
                                     key: key.clone(),
-                                    val: val.to_owned(),
+                                    val: val.to_string(),
                                 });
                             }
                         } else {
@@ -1560,7 +1560,7 @@ impl CorpusStorage {
                             for val in node_annos.get_all_values(&key, false) {
                                 result.push(Annotation {
                                     key: key.clone(),
-                                    val: val.to_owned(),
+                                    val: val.to_string(),
                                 });
                             }
                         }
@@ -1605,7 +1605,7 @@ impl CorpusStorage {
                                 {
                                     result.push(Annotation {
                                         key: key.clone(),
-                                        val: val.to_owned(),
+                                        val: val.to_string(),
                                     });
                                 }
                             } else {
@@ -1613,7 +1613,7 @@ impl CorpusStorage {
                                 for val in edge_annos.get_all_values(&key, false) {
                                     result.push(Annotation {
                                         key: key.clone(),
-                                        val: val.to_owned(),
+                                        val: val.to_string(),
                                     });
                                 }
                             }

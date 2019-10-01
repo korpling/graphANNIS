@@ -11,6 +11,7 @@ use std::convert::TryInto;
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::path::Path;
+use std::borrow::Cow;
 
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
 
@@ -199,11 +200,11 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
         unimplemented!()
     }
 
-    fn get_value_for_item(&self, _item: &NodeID, _key: &AnnoKey) -> Option<&str> {
+    fn get_value_for_item(&self, _item: &NodeID, _key: &AnnoKey) -> Option<Cow<str>> {
         unimplemented!()
     }
 
-    fn get_value_for_item_by_id(&self, _item: &NodeID, _key_id: AnnoKeyID) -> Option<&str> {
+    fn get_value_for_item_by_id(&self, _item: &NodeID, _key_id: AnnoKeyID) -> Option<Cow<str>> {
         unimplemented!()
     }
 
@@ -257,7 +258,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
         unimplemented!()
     }
 
-    fn get_all_values(&self, _key: &AnnoKey, _most_frequent_first: bool) -> Vec<&str> {
+    fn get_all_values(&self, _key: &AnnoKey, _most_frequent_first: bool) -> Vec<Cow<str>> {
         unimplemented!()
     }
 
