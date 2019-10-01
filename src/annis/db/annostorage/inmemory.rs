@@ -21,6 +21,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 use std::path::PathBuf;
 use std::borrow::Cow;
+use std::cell::RefCell;
 
 type AnnoKeyID = usize;
 
@@ -416,10 +417,42 @@ where
     }
 
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
-        let key = self.anno_keys.get_symbol(key)?;
+
+        thread_local! {
+            static LAST_ACCESSED_KEY_CACHE : RefCell<Option<(AnnoKey, usize)>> = RefCell::new(None);
+        }
+
+        // Check cache and if not available query the new symbol
+        let key_symbol = LAST_ACCESSED_KEY_CACHE.with(|c| {
+            let c : &mut Option<(AnnoKey, usize)> = &mut c.borrow_mut();
+            let cached_symbol =  if let Some(c) = c {
+                if &c.0 == key {
+                    Some(c.1)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            if cached_symbol.is_some() {
+                cached_symbol
+            } else {
+                let symbol = self.anno_keys.get_symbol(key);
+                if let Some(symbol) = symbol {
+                    *c = Some((key.clone(), symbol));
+                }
+
+                symbol
+            }
+            
+        });
+
+        // return if symbol was not found
+        let key_symbol = key_symbol?;
 
         if let Some(all_annos) = self.by_container.get(item) {
-            let idx = all_annos.binary_search_by_key(&key, |a| a.key);
+            let idx = all_annos.binary_search_by_key(&key_symbol, |a| a.key);
             if let Ok(idx) = idx {
                 if let Some(val) = self.anno_values.get_value(all_annos[idx].val) {
                     return Some(Cow::Borrowed(val));
