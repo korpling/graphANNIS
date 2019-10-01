@@ -94,48 +94,41 @@ impl<'a> IndexJoin<'a> {
             if let Some(name) = self.node_search_desc.qname.1.clone() {
                 if let Some(ns) = self.node_search_desc.qname.0.clone() {
                     // return the only possible annotation for each node
-                    let key = Arc::from(AnnoKey {
+                    let key = AnnoKey {
                         ns: ns.clone(),
                         name: name.clone(),
-                    });
-                    let key_id = self.node_annos.get_key_id(key.as_ref());
+                    };
                     return Some(Box::new(it_nodes.filter_map(move |match_node| {
-                        if let Some(key_id) = key_id {
-                            if node_annos
-                                .get_value_for_item_by_id(&match_node.node, key_id)
-                                .is_some()
-                            {
-                                Some(Match {
-                                    node: match_node.node,
-                                    anno_key: key_id,
-                                })
-                            } else {
-                                // this annotation was not found for this node, remove it from iterator
-                                None
-                            }
+                        if node_annos
+                            .get_value_for_item(&match_node.node, &key)
+                            .is_some()
+                        {
+                            Some(Match {
+                                node: match_node.node,
+                                anno_key: key.clone(),
+                            })
                         } else {
+                            // this annotation was not found for this node, remove it from iterator
                             None
                         }
+                
                     })));
                 } else {
-                    let keys: Vec<usize> = self
+                    let keys: Vec<AnnoKey> = self
                         .node_annos
-                        .get_qnames(&name)
-                        .into_iter()
-                        .filter_map(|k| self.node_annos.get_key_id(&k))
-                        .collect();
+                        .get_qnames(&name);
                     // return all annotations with the correct name for each node
                     return Some(Box::new(it_nodes.flat_map(move |match_node| {
                         let mut matches: Vec<Match> = Vec::new();
                         matches.reserve(keys.len());
-                        for key_id in keys.clone() {
+                        for k in keys.iter() {
                             if node_annos
-                                .get_value_for_item_by_id(&match_node.node, key_id)
+                                .get_value_for_item(&match_node.node, k)
                                 .is_some()
                             {
                                 matches.push(Match {
                                     node: match_node.node,
-                                    anno_key: key_id,
+                                    anno_key: k.clone(),
                                 })
                             }
                         }
@@ -149,12 +142,11 @@ impl<'a> IndexJoin<'a> {
                     let mut matches: Vec<Match> = Vec::new();
                     matches.reserve(anno_keys.len());
                     for anno_key in anno_keys {
-                        if let Some(key_id) = node_annos.get_key_id(&anno_key) {
-                            matches.push(Match {
-                                node: match_node.node,
-                                anno_key: key_id,
-                            });
-                        }
+                        matches.push(Match {
+                            node: match_node.node,
+                            anno_key,
+                        });
+                    
                     }
                     matches.into_iter()
                 })));
@@ -204,7 +196,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                     if filter_result {
                         // replace the annotation with a constant value if needed
                         if let Some(ref const_anno) = self.node_search_desc.const_output {
-                            m_rhs.anno_key = *const_anno;
+                            m_rhs.anno_key = const_anno.clone();
                         }
 
                         // check if lhs and rhs are equal and if this is allowed in this query

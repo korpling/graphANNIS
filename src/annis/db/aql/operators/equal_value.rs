@@ -61,7 +61,7 @@ impl EqualValue {
             | NodeSearchSpec::RegexValue { .. }
             | NodeSearchSpec::NotRegexValue { .. } => self
                 .node_annos
-                .get_value_for_item_by_id(&m.node, m.anno_key),
+                .get_value_for_item(&m.node, &m.anno_key),
             NodeSearchSpec::AnyToken
             | NodeSearchSpec::ExactTokenValue { .. }
             | NodeSearchSpec::NotExactTokenValue { .. }

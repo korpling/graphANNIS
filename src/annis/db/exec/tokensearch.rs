@@ -9,8 +9,7 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
 use crate::annis::db::Match;
 use crate::annis::errors::*;
-use crate::annis::types::AnnoKeyID;
-use crate::annis::types::{Component, ComponentType, NodeID};
+use crate::annis::types::{Component, ComponentType, NodeID, AnnoKey};
 
 use std::collections::HashSet;
 use std::fmt;
@@ -18,7 +17,7 @@ use std::fmt;
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps the search for *all* token in a corpus.
 pub struct AnyTokenSearch<'a> {
     desc: Option<Desc>,
-    node_type_key: AnnoKeyID,
+    node_type_key: AnnoKey,
     db: &'a Graph,
     token_helper: Option<TokenHelper>,
     order_gs: Option<&'a GraphStorage>,
@@ -45,10 +44,7 @@ impl<'a> AnyTokenSearch<'a> {
             token_helper,
             db,
             desc: None,
-            node_type_key: db
-                .node_annos
-                .get_key_id(&db.get_node_type_key())
-                .unwrap_or_default(),
+            node_type_key: db.get_node_type_key(),
             root_iterators: None,
         })
     }
@@ -81,7 +77,7 @@ impl<'a> AnyTokenSearch<'a> {
                 if is_root_tok {
                     root_nodes.push(Match {
                         node: n,
-                        anno_key: self.node_type_key,
+                        anno_key: self.node_type_key.clone(),
                     });
                 }
             }
@@ -134,7 +130,6 @@ impl<'a> Iterator for AnyTokenSearch<'a> {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {
-        let node_type_key: AnnoKeyID = self.node_type_key;
         // lazily initialize the sorted vector of iterators
         let root_iterators = self.get_root_iterators();
         // use the last iterator in the list to get the next match
@@ -145,7 +140,7 @@ impl<'a> Iterator for AnyTokenSearch<'a> {
                 if let Some(n) = it.next() {
                     return Some(vec![Match {
                         node: n,
-                        anno_key: node_type_key,
+                        anno_key: self.node_type_key.clone(),
                     }]);
                 }
             }

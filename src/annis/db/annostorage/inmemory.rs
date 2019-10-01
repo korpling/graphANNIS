@@ -161,25 +161,25 @@ where
         + serde::Deserialize<'de_impl>
         + Send
         + Sync,
-    (T, AnnoKeyID): Into<Match>,
+    (T, AnnoKey): Into<Match>,
 {
     fn matching_items<'a>(
         &'a self,
         namespace: Option<String>,
         name: String,
         value: Option<String>,
-    ) -> Box<Iterator<Item = (T, AnnoKeyID)> + 'a> {
+    ) -> Box<Iterator<Item = (T, AnnoKey)> + 'a> {
         let key_ranges: Vec<AnnoKey> = if let Some(ns) = namespace {
             vec![AnnoKey { ns, name }]
         } else {
             self.get_qnames(&name)
         };
-        let values: Vec<(AnnoKeyID, &FxHashMap<usize, Vec<T>>)> = key_ranges
+        let values: Vec<(AnnoKey, &FxHashMap<usize, Vec<T>>)> = key_ranges
             .into_iter()
             .filter_map(|key| {
                 let key_id = self.anno_keys.get_symbol(&key)?;
                 if let Some(values_for_key) = self.by_anno.get(&key_id) {
-                    Some((key_id, values_for_key))
+                    Some((key, values_for_key))
                 } else {
                     None
                 }
@@ -234,7 +234,7 @@ where
         + serde::Deserialize<'de>
         + Send
         + Sync,
-    (T, AnnoKeyID): Into<Match>,
+    (T, AnnoKey): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) {
         let orig_anno_key = anno.key.clone();
@@ -488,8 +488,8 @@ where
             ValueSearch::NotSome(value) => {
                 let it = self
                     .matching_items(namespace, name, None)
-                    .filter(move |(node, anno_key_id)| {
-                        if let Some(item_value) = self.get_value_for_item_by_id(node, *anno_key_id)
+                    .filter(move |(node, anno_key)| {
+                        if let Some(item_value) = self.get_value_for_item(node, anno_key)
                         {
                             item_value != value
                         } else {
@@ -514,8 +514,8 @@ where
         if let Ok(re) = compiled_result {
             let it = self
                 .matching_items(namespace, name, None)
-                .filter(move |(node, anno_key_id)| {
-                    if let Some(val) = self.get_value_for_item_by_id(node, *anno_key_id) {
+                .filter(move |(node, anno_key)| {
+                    if let Some(val) = self.get_value_for_item(node, anno_key) {
                         if negated {
                             !re.is_match(&val)
                         } else {
@@ -541,30 +541,28 @@ where
         item: &T,
         ns: Option<String>,
         name: Option<String>,
-    ) -> Vec<AnnoKeyID> {
+    ) -> Vec<AnnoKey> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // fully qualified search
                 let key = AnnoKey { ns, name };
-                if let Some(key_id) = self.get_key_id(&key) {
-                    if self.get_value_for_item_by_id(item, key_id).is_some() {
-                        return vec![key_id];
-                    }
+                if self.get_value_for_item(item, &key).is_some() {
+                    return vec![key];
                 }
+                
                 return vec![];
             } else {
                 // get all qualified names for the given annotation name
-                let res: Vec<AnnoKeyID> = self
+                let res: Vec<AnnoKey> = self
                     .get_qnames(&name)
                     .into_iter()
-                    .filter_map(|key| self.get_key_id(&key))
-                    .filter(|key_id| self.get_value_for_item_by_id(item, *key_id).is_some())
+                    .filter(|key| self.get_value_for_item(item, key).is_some())
                     .collect();
                 return res;
             }
         } else if let Some(annos) = self.by_container.get(item) {
             // no annotation name given, return all
-            return annos.iter().map(|sparse_anno| sparse_anno.key).collect();
+            return annos.iter().filter_map(|sparse_anno| self.get_key_value(sparse_anno.key)).collect();
         } else {
             return vec![];
         }

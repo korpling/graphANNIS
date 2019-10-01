@@ -1015,7 +1015,7 @@ impl CorpusStorage {
                 ValueSearch::Any,
             );
             if let Some(m) = relannis_version_it.next() {
-                if let Some(v) = db.node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
+                if let Some(v) = db.node_annos.get_value_for_item(&m.node, &m.anno_key) {
                     if v == "3.3" {
                         relannis_version_33 = true;
                     }
@@ -1124,20 +1124,20 @@ impl CorpusStorage {
                 if include_in_output {
                     let mut node_desc = String::new();
 
-                    if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
-                        if anno_key.ns != ANNIS_NS || anno_key.name != NODE_TYPE {
-                            if !anno_key.ns.is_empty() {
-                                let encoded_anno_ns: Cow<str> =
-                                    utf8_percent_encode(&anno_key.ns, SALT_URI_ENCODE_SET).into();
-                                node_desc.push_str(&encoded_anno_ns);
-                                node_desc.push_str("::");
-                            }
-                            let encoded_anno_name: Cow<str> =
-                                utf8_percent_encode(&anno_key.name, SALT_URI_ENCODE_SET).into();
-                            node_desc.push_str(&encoded_anno_name);
+
+                    if singlematch.anno_key.ns != ANNIS_NS || singlematch.anno_key.name != NODE_TYPE {
+                        if !singlematch.anno_key.ns.is_empty() {
+                            let encoded_anno_ns: Cow<str> =
+                                utf8_percent_encode(&singlematch.anno_key.ns, SALT_URI_ENCODE_SET).into();
+                            node_desc.push_str(&encoded_anno_ns);
                             node_desc.push_str("::");
                         }
+                        let encoded_anno_name: Cow<str> =
+                            utf8_percent_encode(&singlematch.anno_key.name, SALT_URI_ENCODE_SET).into();
+                        node_desc.push_str(&encoded_anno_name);
+                        node_desc.push_str("::");
                     }
+                
 
                     if let Some(name) = db
                         .node_annos

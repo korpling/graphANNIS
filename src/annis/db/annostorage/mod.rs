@@ -84,7 +84,7 @@ where
         item: &T,
         ns: Option<String>,
         name: Option<String>,
-    ) -> Vec<AnnoKeyID>;
+    ) -> Vec<AnnoKey>;
 
     /// Estimate the number of results for an [annotation exact search](#tymethod.exact_anno_search) for a given an inclusive value range.
     ///

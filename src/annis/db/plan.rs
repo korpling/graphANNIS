@@ -3,7 +3,7 @@ use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::query::Config;
 use crate::annis::db::{Graph, Match};
 use crate::annis::errors::*;
-use crate::annis::types::{AnnoKeyID, NodeID};
+use crate::annis::types::{AnnoKey, NodeID};
 use std;
 use std::collections::HashSet;
 use std::fmt::Formatter;
@@ -13,7 +13,7 @@ pub struct ExecutionPlan<'a> {
     current_plan: usize,
     descriptions: Vec<Option<Desc>>,
     proxy_mode: bool,
-    unique_result_set: HashSet<Vec<(NodeID, AnnoKeyID)>>,
+    unique_result_set: HashSet<Vec<(NodeID, AnnoKey)>>,
 }
 
 impl<'a> ExecutionPlan<'a> {
@@ -129,8 +129,8 @@ impl<'a> Iterator for ExecutionPlan<'a> {
                     let n = self.reorder_match(n);
 
                     // check if we already outputted this result
-                    let key: Vec<(NodeID, AnnoKeyID)> =
-                        n.iter().map(|m: &Match| (m.node, m.anno_key)).collect();
+                    let key: Vec<(NodeID, AnnoKey)> =
+                        n.iter().map(|m: &Match| (m.node, m.anno_key.clone())).collect();
                     if self.unique_result_set.insert(key) {
                         // new result found, break out of while-loop and return the result
                         return Some(n);

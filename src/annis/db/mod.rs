@@ -49,8 +49,8 @@ pub const NODE_TYPE: &str = "node_type";
 #[repr(C)]
 pub struct Match {
     node: NodeID,
-    /// A unique internal identifier for the qualified annotation name.
-    anno_key: AnnoKeyID,
+    /// The qualified annotation name.
+    anno_key: AnnoKey,
 }
 
 impl Match {
@@ -64,10 +64,9 @@ impl Match {
     pub fn extract_annotation(&self, graph: &Graph) -> Option<Annotation> {
         let val = graph
             .node_annos
-            .get_value_for_item_by_id(&self.node, self.anno_key)?
+            .get_value_for_item(&self.node, &self.anno_key)?
             .to_owned();
-        let key = graph.node_annos.get_key_value(self.anno_key)?;
-        Some(Annotation { key, val: val.to_string() })
+        Some(Annotation { key: self.anno_key.clone(), val: val.to_string() })
     }
 
     /// Returns true if this match is different to all the other matches given as argument.
@@ -90,7 +89,7 @@ impl Match {
     }
 }
 
-impl Into<Match> for (Edge, AnnoKeyID) {
+impl Into<Match> for (Edge, AnnoKey) {
     fn into(self) -> Match {
         Match {
             node: self.0.source,
@@ -99,7 +98,7 @@ impl Into<Match> for (Edge, AnnoKeyID) {
     }
 }
 
-impl Into<Match> for (NodeID, AnnoKeyID) {
+impl Into<Match> for (NodeID, AnnoKey) {
     fn into(self) -> Match {
         Match {
             node: self.0,
@@ -277,7 +276,7 @@ impl AnnotationStorage<NodeID> for Graph {
         item: &NodeID,
         ns: Option<String>,
         name: Option<String>,
-    ) -> Vec<AnnoKeyID> {
+    ) -> Vec<AnnoKey> {
         self.node_annos.find_annotations_for_item(item, ns, name)
     }
 

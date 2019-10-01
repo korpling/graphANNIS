@@ -140,7 +140,7 @@ impl<'a> IndexJoin<'a> {
                     if filter_result {
                         // replace the annotation with a constant value if needed
                         if let Some(ref const_anno) = node_search_desc.const_output {
-                            m_rhs.anno_key = *const_anno;
+                            m_rhs.anno_key = const_anno.clone();
                         }
 
                         // check if lhs and rhs are equal and if this is allowed in this query
@@ -192,43 +192,37 @@ fn next_candidates(
         if let Some(ref ns) = node_search_desc.qname.0 {
             // return the only possible annotation for each node
             let mut matches: Vec<Match> = Vec::new();
-            let key = Arc::from(AnnoKey {
+            let key = AnnoKey {
                 ns: ns.clone(),
                 name: name.clone(),
-            });
-            let key_id = node_annos.get_key_id(&key);
+            };
 
             for match_node in it_nodes {
-                if let Some(key_id) = key_id {
-                    if node_annos
-                        .get_value_for_item_by_id(&match_node.node, key_id)
-                        .is_some()
-                    {
-                        matches.push(Match {
-                            node: match_node.node,
-                            anno_key: key_id,
-                        });
-                    }
+                if node_annos
+                    .get_value_for_item(&match_node.node, &key)
+                    .is_some()
+                {
+                    matches.push(Match {
+                        node: match_node.node,
+                        anno_key: key.clone(),
+                    });
                 }
+            
             }
             return Some(matches);
         } else {
-            let keys: Vec<usize> = node_annos
-                .get_qnames(&name)
-                .into_iter()
-                .filter_map(|k| node_annos.get_key_id(&k))
-                .collect();
+            let keys: Vec<AnnoKey> = node_annos.get_qnames(&name);
             // return all annotations with the correct name for each node
             let mut matches: Vec<Match> = Vec::new();
             for match_node in it_nodes {
-                for key_id in keys.clone() {
+                for k in keys.iter() {
                     if node_annos
-                        .get_value_for_item_by_id(&match_node.node, key_id)
+                        .get_value_for_item(&match_node.node, k)
                         .is_some()
                     {
                         matches.push(Match {
                             node: match_node.node,
-                            anno_key: key_id,
+                            anno_key: k.clone(),
                         })
                     }
                 }
@@ -241,12 +235,11 @@ fn next_candidates(
         for match_node in it_nodes {
             let all_keys = node_annos.get_all_keys_for_item(&match_node.node);
             for anno_key in all_keys {
-                if let Some(key_id) = node_annos.get_key_id(&anno_key) {
-                    matches.push(Match {
-                        node: match_node.node,
-                        anno_key: key_id,
-                    });
-                }
+                matches.push(Match {
+                    node: match_node.node,
+                    anno_key,
+                });
+            
             }
         }
         return Some(matches);

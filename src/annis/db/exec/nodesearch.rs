@@ -334,7 +334,7 @@ impl<'a> NodeSearch<'a> {
 
                 let node_annos = db.node_annos.clone();
                 let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
-                    if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
+                    if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                         return val == "node";
                     } else {
                         return false;
@@ -351,7 +351,7 @@ impl<'a> NodeSearch<'a> {
                 );
                 let est_output = std::cmp::max(1, est_output);
 
-                let const_output = db.node_annos.get_key_id(&db.get_node_type_key());
+                let const_output = db.get_node_type_key();
 
                 Ok(NodeSearch {
                     it: Box::new(it),
@@ -365,7 +365,7 @@ impl<'a> NodeSearch<'a> {
                     node_search_desc: Arc::new(NodeSearchDesc {
                         qname: (Some(type_key.ns), Some(type_key.name)),
                         cond: vec![filter_func],
-                        const_output,
+                        const_output: Some(const_output),
                     }),
                     is_sorted: false,
                 })
@@ -387,29 +387,27 @@ impl<'a> NodeSearch<'a> {
 
         let const_output = if is_meta {
             Some(
-                db.node_annos
-                    .get_key_id(&db.get_node_type_key())
-                    .ok_or("Node type annotation does not exist in database")?,
+                db.get_node_type_key()
             )
         } else {
             None
         };
 
-        let base_it: Box<Iterator<Item = Match>> = if let Some(const_output) = const_output {
+        let base_it: Box<Iterator<Item = Match>> = if let Some(const_output) = const_output.clone() {
             let is_unique = db.node_annos.get_qnames(&qname.1).len() <= 1;
             // Replace the result annotation with a constant value.
             // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
             if is_unique {
                 Box::new(base_it.map(move |m| Match {
                     node: m.node,
-                    anno_key: const_output,
+                    anno_key: const_output.clone(),
                 }))
             } else {
                 Box::new(
                     base_it
                         .map(move |m| Match {
                             node: m.node,
-                            anno_key: const_output,
+                            anno_key: const_output.clone(),
                         })
                         .unique(),
                 )
@@ -448,7 +446,7 @@ impl<'a> NodeSearch<'a> {
             ValueSearch::Some(val) => {
                 let node_annos = db.node_annos.clone();
                 filters.push(Box::new(move |m| {
-                    if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
                     {
                         return anno_val == val.as_str();
                     } else {
@@ -459,7 +457,7 @@ impl<'a> NodeSearch<'a> {
             ValueSearch::NotSome(val) => {
                 let node_annos = db.node_annos.clone();
                 filters.push(Box::new(move |m| {
-                    if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
                     {
                         return anno_val != val.as_str();
                     } else {
@@ -480,7 +478,7 @@ impl<'a> NodeSearch<'a> {
             node_search_desc: Arc::new(NodeSearchDesc {
                 qname: (qname.0, Some(qname.1)),
                 cond: filters,
-                const_output,
+                const_output: const_output.clone(),
             }),
             is_sorted: false,
         })
@@ -502,29 +500,27 @@ impl<'a> NodeSearch<'a> {
 
         let const_output = if is_meta {
             Some(
-                db.node_annos
-                    .get_key_id(&db.get_node_type_key())
-                    .ok_or("Node type annotation does not exist in database")?,
+                db.get_node_type_key()
             )
         } else {
             None
         };
 
-        let base_it: Box<Iterator<Item = Match>> = if let Some(const_output) = const_output {
+        let base_it: Box<Iterator<Item = Match>> = if let Some(const_output) = const_output.clone() {
             let is_unique = db.node_annos.get_qnames(&qname.1).len() <= 1;
             // Replace the result annotation with a constant value.
             // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
             if is_unique {
                 Box::new(base_it.map(move |m| Match {
                     node: m.node,
-                    anno_key: const_output,
+                    anno_key: const_output.clone(),
                 }))
             } else {
                 Box::new(
                     base_it
                         .map(move |m| Match {
                             node: m.node,
-                            anno_key: const_output,
+                            anno_key: const_output.clone(),
                         })
                         .unique(),
                 )
@@ -559,7 +555,7 @@ impl<'a> NodeSearch<'a> {
                 let node_annos = db.node_annos.clone();
                 if negated {
                     filters.push(Box::new(move |m| {
-                        if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
                         {
                             return !re.is_match(&val);
                         } else {
@@ -568,7 +564,7 @@ impl<'a> NodeSearch<'a> {
                     }));
                 } else {
                     filters.push(Box::new(move |m| {
-                        if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
                         {
                             return re.is_match(&val);
                         } else {
@@ -607,10 +603,7 @@ impl<'a> NodeSearch<'a> {
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         let tok_key = db.get_token_key();
-        let any_anno_key = db
-            .node_annos
-            .get_key_id(&db.get_node_type_key())
-            .ok_or("Node type annotation does not exist in database")?;
+        let any_anno_key = db.get_node_type_key();
         let it_base: Box<Iterator<Item = Match>> = match val {
             ValueSearch::Any => {
                 let it = db.node_annos.exact_anno_search(
@@ -686,7 +679,7 @@ impl<'a> NodeSearch<'a> {
         let it = it_base.map(move |n| {
             vec![Match {
                 node: n.node,
-                anno_key: any_anno_key,
+                anno_key: any_anno_key.clone(),
             }]
         });
         // create filter functions
@@ -701,7 +694,7 @@ impl<'a> NodeSearch<'a> {
                     match re {
                         Ok(re) => filters.push(Box::new(move |m| {
                             if let Some(val) =
-                                node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                                node_annos.get_value_for_item(&m.node, &m.anno_key)
                             {
                                 return re.is_match(&val);
                             } else {
@@ -720,7 +713,7 @@ impl<'a> NodeSearch<'a> {
                     let val = val.clone();
                     filters.push(Box::new(move |m| {
                         if let Some(anno_val) =
-                            node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                            node_annos.get_value_for_item(&m.node, &m.anno_key)
                         {
                             return anno_val == val.as_str();
                         } else {
@@ -737,7 +730,7 @@ impl<'a> NodeSearch<'a> {
                     match re {
                         Ok(re) => filters.push(Box::new(move |m| {
                             if let Some(val) =
-                                node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                                node_annos.get_value_for_item(&m.node, &m.anno_key)
                             {
                                 return !re.is_match(&val);
                             } else {
@@ -756,7 +749,7 @@ impl<'a> NodeSearch<'a> {
                     let val = val.clone();
                     filters.push(Box::new(move |m| {
                         if let Some(anno_val) =
-                            node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                            node_annos.get_value_for_item(&m.node, &m.anno_key)
                         {
                             return anno_val != val.as_str();
                         } else {
@@ -838,10 +831,7 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
-        let const_output = db
-            .node_annos
-            .get_key_id(&db.get_node_type_key())
-            .ok_or("Node type annotation does not exist in database")?;
+        let const_output = db.get_node_type_key();
 
         Ok(NodeSearch {
             it: Box::new(it),
@@ -901,10 +891,7 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
-        let const_output = db
-            .node_annos
-            .get_key_id(&db.get_node_type_key())
-            .ok_or("Node type annotation does not exist in database")?;
+        let const_output = db.get_node_type_key();
 
         Ok(NodeSearch {
             it: Box::new(it),

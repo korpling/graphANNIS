@@ -5,7 +5,7 @@ use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{Graph, Match};
 use crate::annis::operator::EstimationType;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
-use crate::annis::types::{AnnoKeyID, Component, ComponentType};
+use crate::annis::types::{AnnoKey, Component, ComponentType};
 
 use rustc_hash::FxHashSet;
 use std;
@@ -143,7 +143,7 @@ impl BinaryOperator for Near {
             // map the result as match
             .map(|n| Match {
                 node: n,
-                anno_key: AnnoKeyID::default(),
+                anno_key: AnnoKey::default(),
             })
             .collect();
 
