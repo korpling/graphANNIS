@@ -7,11 +7,13 @@ use crate::annis::types::{AnnoKey, NodeID};
 use std;
 use std::collections::HashSet;
 use std::fmt::Formatter;
+use std::collections::HashMap;
 
 pub struct ExecutionPlan<'a> {
     plans: Vec<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
     current_plan: usize,
     descriptions: Vec<Option<Desc>>,
+    inverse_node_pos: Vec<Option<HashMap<usize,usize>>>,
     proxy_mode: bool,
     unique_result_set: HashSet<Vec<(NodeID, AnnoKey)>>,
 }
@@ -23,11 +25,20 @@ impl<'a> ExecutionPlan<'a> {
         config: &Config,
     ) -> Result<ExecutionPlan<'a>> {
         let mut plans: Vec<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();
-        let mut descriptions: Vec<Option<Desc>> = Vec::new();
+        let mut descriptions = Vec::new();
+        let mut inverse_node_pos = Vec::new();
         for alt in &query.alternatives {
             let p = alt.make_exec_node(db, &config);
             if let Ok(p) = p {
                 descriptions.push(p.get_desc().cloned());
+
+                if let Some(ref desc) = p.get_desc() {
+                    // invert the node position mapping
+                    inverse_node_pos.push(Some(desc.node_pos.iter().map(|(target_pos, stream_pos)| (*stream_pos, *target_pos)).collect()));
+                } else {
+                    inverse_node_pos.push(None);
+                }
+
                 plans.push(p);
             } else if let Err(e) = p {
                 if let Error::AQLSemanticError { .. } = e {
@@ -45,6 +56,7 @@ impl<'a> ExecutionPlan<'a> {
         Ok(ExecutionPlan {
             current_plan: 0,
             descriptions,
+            inverse_node_pos,
             proxy_mode: plans.len() == 1,
             plans,
             unique_result_set: HashSet::new(),
@@ -56,15 +68,15 @@ impl<'a> ExecutionPlan<'a> {
             // nothing to reorder
             return tmp;
         }
-        if let Some(ref desc) = self.descriptions[self.current_plan] {
-            let desc: &Desc = desc;
+        if let Some(ref inverse_node_pos) = self.inverse_node_pos[self.current_plan] {
             // re-order the matched nodes by the original node position of the query
             let mut result: Vec<Match> = Vec::with_capacity(tmp.len());
-            for i in 0..tmp.len() {
-                if let Some(mapped_pos) = desc.node_pos.get(&i) {
-                    result.push(tmp[*mapped_pos].clone());
+            result.resize_with(tmp.len(), Default::default);
+            for (stream_pos, m) in tmp.into_iter().enumerate() {
+                if let Some(target_pos) = inverse_node_pos.get(&stream_pos) {
+                    result[*target_pos] = m;
                 } else {
-                    result.push(tmp[i].clone());
+                    result[stream_pos] = m;
                 }
             }
             result

@@ -18,6 +18,7 @@ pub struct Desc {
     pub component_nr: usize,
     pub lhs: Option<Box<Desc>>,
     pub rhs: Option<Box<Desc>>,
+    /// Maps the index of the node in the actual result to the index in the internal execution plan intermediate result.
     pub node_pos: BTreeMap<usize, usize>,
     pub impl_description: String,
     pub query_fragment: String,
