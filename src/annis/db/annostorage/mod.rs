@@ -3,6 +3,7 @@ mod symboltable;
 
 use crate::annis::db::{Match, ValueSearch};
 use crate::annis::types::{AnnoKey, AnnoKeyID, Annotation};
+use std::borrow::Cow;
 
 /// Access annotations for nodes or edges.
 pub trait AnnotationStorage<T>: Send + Sync
@@ -31,9 +32,9 @@ where
     /// Get all annotations for an `item` (node or edge).
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
 
-    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<&str>;
+    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
 
-    fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<&str>;
+    fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<Cow<str>>;
 
     /// Return the total number of annotations contained in this `AnnotationStorage`.
     fn number_of_annotations(&self) -> usize;
@@ -111,7 +112,7 @@ where
 
     /// Return a list of all existing values for a given annotation `key`.
     /// If the `most_frequent_first`parameter is true, the results are sorted by their frequency.
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str>;
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Cow<str>>;
 
     /// Get all the annotation keys which are part of this annotation storage
     fn annotation_keys(&self) -> Vec<AnnoKey>;

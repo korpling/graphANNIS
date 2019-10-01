@@ -23,6 +23,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::string::ToString;
 use std::sync::{Arc, Mutex};
+use std::borrow::Cow;
 use strum::IntoEnumIterator;
 use tempfile;
 
@@ -66,7 +67,7 @@ impl Match {
             .get_value_for_item_by_id(&self.node, self.anno_key)?
             .to_owned();
         let key = graph.node_annos.get_key_value(self.anno_key)?;
-        Some(Annotation { key, val })
+        Some(Annotation { key, val: val.to_string() })
     }
 
     /// Returns true if this match is different to all the other matches given as argument.
@@ -299,7 +300,7 @@ impl AnnotationStorage<NodeID> for Graph {
         self.node_annos.guess_most_frequent_value(ns, name)
     }
 
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Cow<str>> {
         self.node_annos.get_all_values(key, most_frequent_first)
     }
 
@@ -307,11 +308,11 @@ impl AnnotationStorage<NodeID> for Graph {
         self.node_annos.annotation_keys()
     }
 
-    fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<&str> {
+    fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
         self.node_annos.get_value_for_item(item, key)
     }
 
-    fn get_value_for_item_by_id(&self, item: &NodeID, key_id: AnnoKeyID) -> Option<&str> {
+    fn get_value_for_item_by_id(&self, item: &NodeID, key_id: AnnoKeyID) -> Option<Cow<str>> {
         self.node_annos.get_value_for_item_by_id(item, key_id)
     }
 

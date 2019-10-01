@@ -5,6 +5,7 @@ use crate::annis::types::{AnnoKey, Component, NodeID};
 use std;
 use std::collections::HashSet;
 use std::sync::Arc;
+use std::borrow::Cow;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct EqualValueSpec {
@@ -53,7 +54,7 @@ impl std::fmt::Display for EqualValue {
 }
 
 impl EqualValue {
-    fn value_for_match(&self, m: &Match, spec: &NodeSearchSpec) -> Option<&str> {
+    fn value_for_match(&self, m: &Match, spec: &NodeSearchSpec) -> Option<Cow<str>> {
         match spec {
             NodeSearchSpec::ExactValue { .. }
             | NodeSearchSpec::NotExactValue { .. }
@@ -96,7 +97,7 @@ impl BinaryOperator for EqualValue {
     fn retrieve_matches<'a>(&'a self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         let lhs = lhs.clone();
         if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
-            let lhs_val = lhs_val.to_owned();
+            let lhs_val = lhs_val.to_string();
             let val_search = if self.negated {
                 ValueSearch::NotSome(lhs_val)
             } else {

@@ -20,6 +20,7 @@ use std::collections::Bound::*;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 use std::path::PathBuf;
+use std::borrow::Cow;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf)]
 struct SparseAnnotation {
@@ -413,26 +414,26 @@ where
         self.total_number_of_annos
     }
 
-    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<&str> {
+    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
         let key = self.anno_keys.get_symbol(key)?;
 
         if let Some(all_annos) = self.by_container.get(item) {
             let idx = all_annos.binary_search_by_key(&key, |a| a.key);
             if let Ok(idx) = idx {
                 if let Some(val) = self.anno_values.get_value(all_annos[idx].val) {
-                    return Some(&val[..]);
+                    return Some(Cow::Borrowed(&val[..]));
                 }
             }
         }
         None
     }
 
-    fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<&str> {
+    fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<Cow<str>> {
         if let Some(all_annos) = self.by_container.get(item) {
             let idx = all_annos.binary_search_by_key(&key_id, |a| a.key);
             if let Ok(idx) = idx {
                 if let Some(val) = self.anno_values.get_value(all_annos[idx].val) {
-                    return Some(&val[..]);
+                    return Some(Cow::Borrowed(&val[..]));
                 }
             }
         }
@@ -516,9 +517,9 @@ where
                 .filter(move |(node, anno_key_id)| {
                     if let Some(val) = self.get_value_for_item_by_id(node, *anno_key_id) {
                         if negated {
-                            !re.is_match(val)
+                            !re.is_match(&val)
                         } else {
-                            re.is_match(val)
+                            re.is_match(&val)
                         }
                     } else {
                         false
@@ -680,7 +681,7 @@ where
         }
     }
 
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Cow<str>> {
         if let Some(key) = self.anno_keys.get_symbol(key) {
             if let Some(values_for_key) = self.by_anno.get(&key) {
                 if most_frequent_first {
@@ -691,12 +692,12 @@ where
                             Some((items.len(), val))
                         })
                         .sorted();
-                    return result.rev().map(|(_, val)| &val[..]).collect();
+                    return result.rev().map(|(_, val)| Cow::Borrowed(&val[..])).collect();
                 } else {
                     return values_for_key
                         .iter()
                         .filter_map(|(val, _items)| self.anno_values.get_value(*val))
-                        .map(|val| &val[..])
+                        .map(|val| Cow::Borrowed(&val[..]))
                         .collect();
                 }
             }
