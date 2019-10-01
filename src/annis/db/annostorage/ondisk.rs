@@ -14,6 +14,7 @@ use std::path::Path;
 use std::borrow::Cow;
 
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
+const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
 
 /// An on-disk implementation of an annotation storage.
 ///
@@ -50,7 +51,7 @@ fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
 }
 
 fn parse_str_vec_key(data: &[u8]) -> Vec<&str> {
-    data.split(|b| *b == 0).map(|part| std::str::from_utf8(part).expect("String must be valid UTF-8")).collect()
+    data.split(|b| *b == 0).map(|part| std::str::from_utf8(part).expect(UTF_8_MSG)).collect()
 }
 
 /// Creates a key for the `by_container` tree.
@@ -200,8 +201,14 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
         unimplemented!()
     }
 
-    fn get_value_for_item(&self, _item: &NodeID, _key: &AnnoKey) -> Option<Cow<str>> {
-        unimplemented!()
+    fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
+        let raw = self.by_container.get(create_by_container_key(*item, key)).expect(DEFAULT_MSG);
+        if let Some(raw) = raw {
+            let val : String = String::from_utf8_lossy(&raw).to_string();
+            Some(Cow::Owned(val))
+        } else {
+            None
+        }
     }
 
     fn get_value_for_item_by_id(&self, _item: &NodeID, _key_id: AnnoKeyID) -> Option<Cow<str>> {
