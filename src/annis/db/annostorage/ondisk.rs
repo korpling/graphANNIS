@@ -7,6 +7,7 @@ use crate::annis::types::Annotation;
 use crate::annis::types::NodeID;
 use crate::malloc_size_of::MallocSizeOf;
 
+use std::convert::TryInto;
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::path::Path;
@@ -35,7 +36,7 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
     by_anno_qname: sled::Tree,
 }
 
-fn str_vec_key(val: &[&str]) -> Vec<u8> {
+fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
     let mut result: Vec<u8> = Vec::default();
     for v in val {
         // append null-terminated string to result
@@ -47,16 +48,31 @@ fn str_vec_key(val: &[&str]) -> Vec<u8> {
     result
 }
 
+fn parse_str_vec_key(data: &[u8]) -> Vec<&str> {
+    data.split(|b| *b == 0).map(|part| std::str::from_utf8(part).expect("String must be valid UTF-8")).collect()
+}
+
 /// Creates a key for the `by_container` tree.
 ///
 /// Structure:
 /// ```text
-/// [8 Bits Node ID][Namespace]\0[Name]\0
+/// [64 Bits Node ID][Namespace]\0[Name]\0
 /// ```
 fn create_by_container_key(node : NodeID, anno_key : &AnnoKey) -> Vec<u8> {
     let mut result: Vec<u8> = node.to_le_bytes().iter().cloned().collect();
-    result.extend(str_vec_key(&[&anno_key.ns, &anno_key.name]));
+    result.extend(create_str_vec_key(&[&anno_key.ns, &anno_key.name]));
     result
+}
+
+fn parse_by_container_key(data : &[u8]) -> (NodeID, AnnoKey) {
+    let item = NodeID::from_le_bytes(data[0..8].try_into().expect("Key data must at least have length 8"));
+    let str_vec = parse_str_vec_key(&data[8..]);
+
+    let anno_key = AnnoKey {
+        ns: str_vec[0].to_string(),
+        name: str_vec[1].to_string(),
+    };
+    (item, anno_key)
 }
 
 /// Creates a key for the `by_anno_name` tree.
@@ -72,7 +88,7 @@ fn create_by_anno_name_key(node : NodeID, anno : &Annotation) -> Vec<u8> {
     // Use the annotation name, the value and the node ID as key for the indexes.
     // Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
     // arrays as values, the node ID is part of the key and makes it unique.
-    let mut result : Vec<u8> = str_vec_key(&[&anno.key.name, &anno.val, &anno.key.ns]);
+    let mut result : Vec<u8> = create_str_vec_key(&[&anno.key.name, &anno.val, &anno.key.ns]);
     result.extend(&node.to_le_bytes());
     result
 }
@@ -91,7 +107,7 @@ fn create_by_anno_name_key(node : NodeID, anno : &Annotation) -> Vec<u8> {
 fn create_by_anno_qname_key(node : NodeID, anno : &Annotation) -> Vec<u8> {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
 
-    let mut result : Vec<u8> = str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
+    let mut result : Vec<u8> = create_str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
     result.extend(&node.to_le_bytes());
     result
 }
@@ -144,18 +160,16 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
         let mut result = Vec::default();
         for it_val in self.by_container.range(start_key..=end_key) {
             if let Ok((key, val)) = it_val {
+                let parsed_key = parse_by_container_key(&key);
                 let anno = Annotation {
-                    key: AnnoKey {
-                        ns: "TODO".to_owned(),
-                        name: "TODO".to_owned()
-                    },
+                    key: parsed_key.1,
                     val: String::from_utf8_lossy(&val).to_string(),
                 };
                 result.push(anno);
             }
         }
 
-        unimplemented!()
+        result
 
     }
 
