@@ -1,16 +1,17 @@
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std;
 
-pub fn shallow_size_of_btreemap<K, V>(
-    val: &std::collections::BTreeMap<K, V>,
-    _ops: &mut MallocSizeOfOps,
+pub fn shallow_size_of_hashmap<K, V>(
+    val: &std::collections::HashMap<K, V>,
+    ops: &mut MallocSizeOfOps,
 ) -> usize {
-    // FIXME: Overhead for the BTreeMap nodes is not accounted for.
-    let mut size = 0;
-    for (_, _) in val.iter() {
-        size += std::mem::size_of::<(K, V)>();
+    if ops.has_malloc_enclosing_size_of() {
+        val.values()
+            .next()
+            .map_or(0, |v| unsafe { ops.malloc_enclosing_size_of(v) })
+    } else {
+        val.capacity() * (std::mem::size_of::<V>() + std::mem::size_of::<K>() + std::mem::size_of::<usize>())
     }
-    size
 }
 
 pub fn size_of_btreemap<K, V>(
