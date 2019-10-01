@@ -4,7 +4,7 @@ use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
 use crate::annis::errors::*;
 use crate::annis::types::Edge;
-use crate::annis::types::{AnnoKey, AnnoKeyID, Annotation};
+use crate::annis::types::{AnnoKey, Annotation};
 use crate::annis::util;
 use crate::annis::util::memory_estimation;
 use crate::malloc_size_of::MallocSizeOf;
@@ -21,6 +21,9 @@ use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 use std::path::PathBuf;
 use std::borrow::Cow;
+
+type AnnoKeyID = usize;
+
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf)]
 struct SparseAnnotation {
@@ -147,6 +150,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
         if !still_used {
             self.anno_values.remove(value_id);
         }
+    }
+
+
+    /// Returns the annotation key from the internal identifier.
+    fn get_key_value(&self, key_id: AnnoKeyID) -> Option<AnnoKey> {
+        self.anno_keys.get_value(key_id).cloned()
     }
 }
 
@@ -388,14 +397,6 @@ where
         result
     }
 
-    fn get_key_id(&self, key: &AnnoKey) -> Option<AnnoKeyID> {
-        self.anno_keys.get_symbol(key)
-    }
-
-    fn get_key_value(&self, key_id: AnnoKeyID) -> Option<AnnoKey> {
-        self.anno_keys.get_value(key_id).cloned()
-    }
-
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
         if let Some(all_annos) = self.by_container.get(item) {
             let mut result: Vec<Annotation> = Vec::with_capacity(all_annos.len());
@@ -419,18 +420,6 @@ where
 
         if let Some(all_annos) = self.by_container.get(item) {
             let idx = all_annos.binary_search_by_key(&key, |a| a.key);
-            if let Ok(idx) = idx {
-                if let Some(val) = self.anno_values.get_value(all_annos[idx].val) {
-                    return Some(Cow::Borrowed(&val[..]));
-                }
-            }
-        }
-        None
-    }
-
-    fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<Cow<str>> {
-        if let Some(all_annos) = self.by_container.get(item) {
-            let idx = all_annos.binary_search_by_key(&key_id, |a| a.key);
             if let Ok(idx) = idx {
                 if let Some(val) = self.anno_values.get_value(all_annos[idx].val) {
                     return Some(Cow::Borrowed(&val[..]));

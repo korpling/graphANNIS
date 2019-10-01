@@ -922,17 +922,14 @@ impl CorpusStorage {
 
         let mut known_documents = HashSet::new();
 
-        let node_name_key_id = db
-            .node_annos
-            .get_key_id(&db.get_node_name_key())
-            .ok_or("No internal ID for node names found")?;
+        let node_name_key = db.get_node_name_key();
 
         let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
             if !m.is_empty() {
                 let m: &Match = &m[0];
                 if let Some(node_name) = db
                     .node_annos
-                    .get_value_for_item_by_id(&m.node, node_name_key_id)
+                    .get_value_for_item(&m.node, &node_name_key)
                 {
                     let node_name: &str = &node_name;
                     // extract the document path from the node name
@@ -1097,10 +1094,7 @@ impl CorpusStorage {
             Box::from(tmp_results.into_iter())
         };
 
-        let node_name_key_id = db
-            .node_annos
-            .get_key_id(&db.get_node_name_key())
-            .ok_or("No internal ID for node names found")?;
+        let node_name_key = db.get_node_name_key();
 
         let mut results: Vec<String> = if let Some(expected_size) = expected_size {
             Vec::with_capacity(std::cmp::min(expected_size, limit))
@@ -1141,7 +1135,7 @@ impl CorpusStorage {
 
                     if let Some(name) = db
                         .node_annos
-                        .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
+                        .get_value_for_item(&singlematch.node, &node_name_key)
                     {
                         node_desc.push_str("salt:/");
                         node_desc.push_str(&name);

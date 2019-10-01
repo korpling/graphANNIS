@@ -7,8 +7,7 @@ use crate::annis::db::graphstorage::{GraphStorage, WriteableGraphStorage};
 use crate::annis::db::update::{GraphUpdate, UpdateEvent};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
-use crate::annis::types::AnnoKey;
-use crate::annis::types::{AnnoKeyID, Annotation, Component, ComponentType, Edge, NodeID};
+use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use bincode;
 use rayon::prelude::*;
@@ -231,14 +230,6 @@ impl AnnotationStorage<NodeID> for Graph {
         self.node_annos.get_qnames(name)
     }
 
-    fn get_key_id(&self, key: &AnnoKey) -> Option<AnnoKeyID> {
-        self.node_annos.get_key_id(key)
-    }
-
-    fn get_key_value(&self, key_id: AnnoKeyID) -> Option<AnnoKey> {
-        self.node_annos.get_key_value(key_id)
-    }
-
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
         self.node_annos.get_annotations_for_item(item)
     }
@@ -310,11 +301,6 @@ impl AnnotationStorage<NodeID> for Graph {
     fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
         self.node_annos.get_value_for_item(item, key)
     }
-
-    fn get_value_for_item_by_id(&self, item: &NodeID, key_id: AnnoKeyID) -> Option<Cow<str>> {
-        self.node_annos.get_value_for_item_by_id(item, key_id)
-    }
-
     fn get_largest_item(&self) -> Option<NodeID> {
         self.node_annos.get_largest_item()
     }

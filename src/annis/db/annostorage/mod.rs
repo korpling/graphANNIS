@@ -2,7 +2,7 @@ pub mod inmemory;
 mod symboltable;
 
 use crate::annis::db::{Match, ValueSearch};
-use crate::annis::types::{AnnoKey, AnnoKeyID, Annotation};
+use crate::annis::types::{AnnoKey, Annotation};
 use std::borrow::Cow;
 
 /// Access annotations for nodes or edges.
@@ -23,18 +23,11 @@ where
     /// Get all qualified annotation names (including namespace) for a given annotation name
     fn get_qnames(&self, name: &str) -> Vec<AnnoKey>;
 
-    /// Returns an internal identifier for the annotation key that can be used for faster lookup of values.
-    fn get_key_id(&self, key: &AnnoKey) -> Option<AnnoKeyID>;
-
-    /// Returns the annotation key from the internal identifier.
-    fn get_key_value(&self, key_id: AnnoKeyID) -> Option<AnnoKey>;
 
     /// Get all annotations for an `item` (node or edge).
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
 
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
-
-    fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<Cow<str>>;
 
     /// Return the total number of annotations contained in this `AnnotationStorage`.
     fn number_of_annotations(&self) -> usize;
