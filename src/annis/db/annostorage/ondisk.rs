@@ -47,6 +47,56 @@ fn str_vec_key(val: &[&str]) -> Vec<u8> {
     result
 }
 
+/// Creates a key for the `by_container` tree.
+///
+/// Structure:
+/// ```text
+/// [8 Bits Node ID][Namespace]\0[Name]\0
+/// ```
+fn create_by_container_key(node : NodeID, anno_key : &AnnoKey) -> Vec<u8> {
+    let mut result: Vec<u8> = node.to_le_bytes().iter().cloned().collect();
+    result.extend(str_vec_key(&[&anno_key.ns, &anno_key.name]));
+    result
+}
+
+/// Creates a key for the `by_anno_name` tree.
+/// 
+/// Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
+/// arrays as values, the node ID is part of the key and makes it unique.
+/// 
+/// Structure:
+/// ```text
+/// [Name]\0[Value]\0[Namespace]\0[8 Bits Node ID]
+/// ```
+fn create_by_anno_name_key(node : NodeID, anno : &Annotation) -> Vec<u8> {
+    // Use the annotation name, the value and the node ID as key for the indexes.
+    // Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
+    // arrays as values, the node ID is part of the key and makes it unique.
+    let mut result : Vec<u8> = str_vec_key(&[&anno.key.name, &anno.val, &anno.key.ns]);
+    result.extend(&node.to_le_bytes());
+    result
+}
+
+
+
+/// Creates a key for the `by_anno_qname` tree.
+///
+/// Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
+/// arrays as values, the node ID is part of the key and makes it unique.
+/// 
+/// Structure:
+/// ```text
+/// [Namespace]\0[Name]\0[Value]\0[8 Bits Node ID]
+/// ```
+fn create_by_anno_qname_key(node : NodeID, anno : &Annotation) -> Vec<u8> {
+    // Use the qualified annotation name, the value and the node ID as key for the indexes.
+
+    let mut result : Vec<u8> = str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
+    result.extend(&node.to_le_bytes());
+    result
+}
+
+
 impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
     pub fn new(path: &Path) -> AnnoStorageImpl<T> {
         let db = sled::Db::open(path).expect("Can't create annotation storage");
@@ -71,48 +121,42 @@ impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
     }
 }
 
-#[derive(Serialize, Deserialize)]
-struct ByAnnoValue {
-    items: Vec<NodeID>,
-}
-
-impl Into<Vec<u8>> for ByAnnoValue {
-    fn into(self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
-    }
-}
-
-impl From<&[u8]> for ByAnnoValue {
-    fn from(val: &[u8]) -> ByAnnoValue {
-        bincode::deserialize(val).unwrap()
-    }
-}
-
 impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
     fn insert(&mut self, item: NodeID, anno: Annotation) {
-        // create a key from the node ID and the annotation key
-        let mut by_container_key: Vec<u8> = item.to_le_bytes().iter().cloned().collect();
-        by_container_key.extend(str_vec_key(&[&anno.key.ns, &anno.key.name]));
-
         // insert the value into main tree
         self.by_container
-            .insert(by_container_key, anno.val.as_bytes())
+            .insert(create_by_container_key(item, &anno.key), anno.val.as_bytes())
             .expect(DEFAULT_MSG);
 
-        // Use the (qualified) annotation name, the value and the node ID as key for the indexes.
-        // Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
-        // arrays as values, the node ID is part of the key and makes it unique.
-        let mut by_anno_name_key : Vec<u8> = str_vec_key(&[&anno.key.name, &anno.val, &anno.key.ns]);
-        by_anno_name_key.extend(&item.to_le_bytes());
-        self.by_anno_name.insert(by_anno_name_key, &[1]).expect(DEFAULT_MSG);
-
-        let mut by_anno_qname_key : Vec<u8> = str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
-        by_anno_qname_key.extend(&item.to_le_bytes());
-        self.by_anno_qname.insert(by_anno_qname_key, &[1]).expect(DEFAULT_MSG);
+        
+        // To save some space, only a marker value ([1]) of one byte is actually inserted.
+        self.by_anno_name.insert(create_by_anno_name_key(item, &anno), &[1]).expect(DEFAULT_MSG);
+        self.by_anno_qname.insert(create_by_anno_qname_key(item, &anno), &[1]).expect(DEFAULT_MSG);
     }
 
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
+        let mut start_key: Vec<u8> = item.to_le_bytes().iter().cloned().collect();
+        start_key.extend(&NodeID::min_value().to_le_bytes());
+
+        let mut end_key: Vec<u8> = item.to_le_bytes().iter().cloned().collect();
+        end_key.extend(&NodeID::max_value().to_le_bytes());
+
+        let mut result = Vec::default();
+        for it_val in self.by_container.range(start_key..=end_key) {
+            if let Ok((key, val)) = it_val {
+                let anno = Annotation {
+                    key: AnnoKey {
+                        ns: "TODO".to_owned(),
+                        name: "TODO".to_owned()
+                    },
+                    val: String::from_utf8_lossy(&val).to_string(),
+                };
+                result.push(anno);
+            }
+        }
+
         unimplemented!()
+
     }
 
     fn remove_annotation_for_item(&mut self, _item: &NodeID, _key: &AnnoKey) -> Option<String> {
