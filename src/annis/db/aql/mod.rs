@@ -423,8 +423,8 @@ fn make_binary_operator_spec(
     op: ast::BinaryOpSpec,
     spec_left: NodeSearchSpec,
     spec_right: NodeSearchSpec,
-) -> Result<Box<BinaryOperatorSpec>> {
-    let op_spec: Box<BinaryOperatorSpec> = match op {
+) -> Result<Box<dyn BinaryOperatorSpec>> {
+    let op_spec: Box<dyn BinaryOperatorSpec> = match op {
         ast::BinaryOpSpec::Dominance(spec) => Box::new(spec),
         ast::BinaryOpSpec::Pointing(spec) => Box::new(spec),
         ast::BinaryOpSpec::Precedence(spec) => Box::new(spec),
@@ -452,7 +452,7 @@ fn make_binary_operator_spec(
     Ok(op_spec)
 }
 
-fn make_unary_operator_spec(op: ast::UnaryOpSpec) -> Box<UnaryOperatorSpec> {
+fn make_unary_operator_spec(op: ast::UnaryOpSpec) -> Box<dyn UnaryOperatorSpec> {
     match op {
         ast::UnaryOpSpec::Arity(spec) => Box::new(spec),
     }

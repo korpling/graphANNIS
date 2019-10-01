@@ -6,7 +6,7 @@ pub struct CycleSafeDFS<'a> {
     min_distance: usize,
     max_distance: usize,
     inverse: bool,
-    container: &'a EdgeContainer,
+    container: &'a dyn EdgeContainer,
 
     stack: Vec<(NodeID, usize)>,
     path: Vec<NodeID>,
@@ -22,7 +22,7 @@ pub struct DFSStep {
 
 impl<'a> CycleSafeDFS<'a> {
     pub fn new(
-        container: &'a EdgeContainer,
+        container: &'a dyn EdgeContainer,
         node: NodeID,
         min_distance: usize,
         max_distance: usize,
@@ -41,7 +41,7 @@ impl<'a> CycleSafeDFS<'a> {
     }
 
     pub fn new_inverse(
-        container: &'a EdgeContainer,
+        container: &'a dyn EdgeContainer,
         node: NodeID,
         min_distance: usize,
         max_distance: usize,

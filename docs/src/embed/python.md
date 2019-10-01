@@ -100,13 +100,13 @@ There are two functions to query a corpus with AQL:
 - `count(...)` returns the number of matches, and
 - `find(...)` returns a paginated list of matched node IDs.
 
-You have to give the list of corpora and the query as arguments to both functions.
+You have to give the corpus name and the query as arguments to both functions.
 The following example searches for all tokens that contain a `s` character.[^aql]
 ```python
 with CorpusStorageManager() as cs: 
-    number_of_matches = cs.count(["tutorial"], 'tok=/.*s.*/')
+    number_of_matches = cs.count("tutorial", 'tok=/.*s.*/')
     print(number_of_matches)
-    matches = cs.find(["tutorial"], 'tok=/.*s.*/', offset=0, limit=100)
+    matches = cs.find("tutorial", 'tok=/.*s.*/', offset=0, limit=100)
     print(matches)
 ```
 Output:
@@ -123,7 +123,7 @@ It will contain all covered nodes of the matches and additionally a given contex
 ```python
 from graphannis.util import node_name_from_match
 with CorpusStorageManager() as cs: 
-    matches = cs.find(["tutorial"], 'tok . tok', offset=0, limit=100)
+    matches = cs.find("tutorial", 'tok . tok', offset=0, limit=100)
     for m in matches:
         print(m)
         G = cs.subgraph("tutorial", node_name_from_match(m), ctx_left=2, ctx_right=2)

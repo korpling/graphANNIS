@@ -92,7 +92,7 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
 }
 
 impl EdgeAnnoSearchSpec {
-    pub fn guess_max_count(&self, anno_storage: &AnnotationStorage<Edge>) -> usize {
+    pub fn guess_max_count(&self, anno_storage: &dyn AnnotationStorage<Edge>) -> usize {
         match self {
             EdgeAnnoSearchSpec::ExactValue {
                 ref ns,
@@ -141,7 +141,7 @@ pub enum EstimationType {
 }
 
 pub trait BinaryOperator: std::fmt::Display + Send + Sync {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>>;
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>>;
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool;
 
@@ -149,7 +149,7 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
         true
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
+    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
         None
     }
 
@@ -165,7 +165,7 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
 pub trait BinaryOperatorSpec: std::fmt::Debug {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component>;
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>>;
+    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>>;
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         None
@@ -179,7 +179,7 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
 pub trait UnaryOperatorSpec: std::fmt::Debug {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component>;
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<UnaryOperator>>;
+    fn create_operator(&self, db: &Graph) -> Option<Box<dyn UnaryOperator>>;
 }
 
 pub trait UnaryOperator: std::fmt::Display + Send + Sync {

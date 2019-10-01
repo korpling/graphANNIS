@@ -209,7 +209,7 @@ impl FromStr for FrequencyDefEntry {
 /// An enum over all supported query languages of graphANNIS.
 ///
 /// Currently, only the ANNIS Query Language (AQL) and its variants are supported, but this enum allows us to add a support for older query language versions
-/// or completly new query languages.
+/// or completely new query languages.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub enum QueryLanguage {
@@ -222,7 +222,7 @@ pub enum QueryLanguage {
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub enum ImportFormat {
-    /// Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/doc/dev-annisimportformat.html)
+    /// Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/4.0/developer-guide/annisimportformat.html)
     RelANNIS,
 }
 
@@ -671,7 +671,7 @@ impl CorpusStorage {
     }
 
     /// Delete a corpus from this corpus storage.
-    /// Returns `true` if the corpus was sucessfully deleted and `false` if no such corpus existed.
+    /// Returns `true` if the corpus was successfully deleted and `false` if no such corpus existed.
     pub fn delete(&self, corpus_name: &str) -> Result<bool> {
         let mut db_path = PathBuf::from(&self.db_dir);
         db_path.push(corpus_name);
@@ -1020,7 +1020,7 @@ impl CorpusStorage {
             }
         }
         let mut expected_size: Option<usize> = None;
-        let base_it: Box<Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
+        let base_it: Box<dyn Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
             || (order == ResultOrder::Normal && plan.is_sorted_by_text() && !quirks_mode)
         {
             // If the output is already sorted correctly, directly return the iterator.
@@ -1589,7 +1589,7 @@ impl CorpusStorage {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
                 if let Some(gs) = db.get_graphstorage(&component) {
-                    let edge_annos: &AnnotationStorage<Edge> = gs.get_anno_storage();
+                    let edge_annos = gs.get_anno_storage();
                     for key in edge_annos.annotation_keys() {
                         if list_values {
                             if only_most_frequent_values {

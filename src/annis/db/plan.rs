@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use std::fmt::Formatter;
 
 pub struct ExecutionPlan<'a> {
-    plans: Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
+    plans: Vec<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
     current_plan: usize,
     descriptions: Vec<Option<Desc>>,
     proxy_mode: bool,
@@ -22,7 +22,7 @@ impl<'a> ExecutionPlan<'a> {
         db: &'a Graph,
         config: &Config,
     ) -> Result<ExecutionPlan<'a>> {
-        let mut plans: Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();
+        let mut plans: Vec<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();
         let mut descriptions: Vec<Option<Desc>> = Vec::new();
         for alt in &query.alternatives {
             let p = alt.make_exec_node(db, &config);

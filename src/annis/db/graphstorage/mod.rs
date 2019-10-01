@@ -55,17 +55,17 @@ impl std::fmt::Display for GraphStatistic {
 /// Basic trait for accessing edges of a graph for a specific component.
 pub trait EdgeContainer: Sync + Send + MallocSizeOf {
     /// Get all outgoing edges for a given `node`.
-    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
+    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a>;
 
     /// Get all incoming edges for a given `node`.
-    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
+    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a>;
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {
         None
     }
 
     /// Provides an iterator over all nodes of this edge container that are the source an edge
-    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a>;
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a>;
 }
 
 /// A graph storage is the representation of an edge component of a graph with specific structures.
@@ -77,7 +77,7 @@ pub trait GraphStorage: EdgeContainer {
         node: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<Iterator<Item = NodeID> + 'a>;
+    ) -> Box<dyn Iterator<Item = NodeID> + 'a>;
 
     /// Find all nodes reachable from a given start node inside the component, when the directed edges are inversed.
     fn find_connected_inverse<'a>(
@@ -85,7 +85,7 @@ pub trait GraphStorage: EdgeContainer {
         node: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<Iterator<Item = NodeID> + 'a>;
+    ) -> Box<dyn Iterator<Item = NodeID> + 'a>;
 
     /// Compute the distance (shortest path length) of two nodes inside this component.
     fn distance(&self, source: NodeID, target: NodeID) -> Option<usize>;
@@ -100,18 +100,18 @@ pub trait GraphStorage: EdgeContainer {
     ) -> bool;
 
     /// Get the annotation storage for the edges of this graph storage.
-    fn get_anno_storage(&self) -> &AnnotationStorage<Edge>;
+    fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge>;
 
     /// Copy the content of another component.
     /// This removes the existing content of this graph storage.
-    fn copy(&mut self, db: &Graph, orig: &GraphStorage);
+    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage);
 
     /// Upcast this graph storage to the [EdgeContainer](trait.EdgeContainer.html) trait.
-    fn as_edgecontainer(&self) -> &EdgeContainer;
+    fn as_edgecontainer(&self) -> &dyn EdgeContainer;
 
     /// Try to downcast this graph storage to a [WriteableGraphStorage](trait.WriteableGraphStorage.html) trait.
     /// Returns `None` if this graph storage is not writable.
-    fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {
+    fn as_writeable(&mut self) -> Option<&mut dyn WriteableGraphStorage> {
         None
     }
 
@@ -124,10 +124,10 @@ pub trait GraphStorage: EdgeContainer {
     fn serialization_id(&self) -> String;
 
     /// Serialize this graph storage.
-    fn serialize_gs(&self, writer: &mut std::io::Write) -> Result<()>;
+    fn serialize_gs(&self, writer: &mut dyn std::io::Write) -> Result<()>;
 
     /// De-serialize this graph storage.
-    fn deserialize_gs(input: &mut std::io::Read) -> Result<Self>
+    fn deserialize_gs(input: &mut dyn std::io::Read) -> Result<Self>
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>;
 }

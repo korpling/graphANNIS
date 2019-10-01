@@ -19,7 +19,7 @@ use std::sync::Arc;
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps base node (annotation) searches.
 pub struct NodeSearch<'a> {
     /// The actual search implementation
-    it: Box<Iterator<Item = Vec<Match>> + 'a>,
+    it: Box<dyn Iterator<Item = Vec<Match>> + 'a>,
 
     desc: Option<Desc>,
     node_search_desc: Arc<NodeSearchDesc>,
@@ -333,7 +333,7 @@ impl<'a> NodeSearch<'a> {
                     .map(move |n| vec![n]);
 
                 let node_annos = db.node_annos.clone();
-                let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
+                let filter_func: Box<dyn Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
                     if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                         return val == "node";
                     } else {
@@ -393,7 +393,7 @@ impl<'a> NodeSearch<'a> {
             None
         };
 
-        let base_it: Box<Iterator<Item = Match>> = if let Some(const_output) = const_output.clone() {
+        let base_it: Box<dyn Iterator<Item = Match>> = if let Some(const_output) = const_output.clone() {
             let is_unique = db.node_annos.get_qnames(&qname.1).len() <= 1;
             // Replace the result annotation with a constant value.
             // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
@@ -439,7 +439,7 @@ impl<'a> NodeSearch<'a> {
 
         let it = base_it.map(|n| vec![n]);
 
-        let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<Box<dyn Fn(&Match) -> bool + Send + Sync>> = Vec::new();
 
         match val {
             ValueSearch::Any => {}
@@ -506,7 +506,7 @@ impl<'a> NodeSearch<'a> {
             None
         };
 
-        let base_it: Box<Iterator<Item = Match>> = if let Some(const_output) = const_output.clone() {
+        let base_it: Box<dyn Iterator<Item = Match>> = if let Some(const_output) = const_output.clone() {
             let is_unique = db.node_annos.get_qnames(&qname.1).len() <= 1;
             // Replace the result annotation with a constant value.
             // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
@@ -546,7 +546,7 @@ impl<'a> NodeSearch<'a> {
 
         let it = base_it.map(|n| vec![n]);
 
-        let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<Box<dyn Fn(&Match) -> bool + Send + Sync>> = Vec::new();
 
         let full_match_pattern = util::regex_full_match(&pattern);
         let re = regex::Regex::new(&full_match_pattern);
@@ -604,7 +604,7 @@ impl<'a> NodeSearch<'a> {
     ) -> Result<NodeSearch<'a>> {
         let tok_key = db.get_token_key();
         let any_anno_key = db.get_node_type_key();
-        let it_base: Box<Iterator<Item = Match>> = match val {
+        let it_base: Box<dyn Iterator<Item = Match>> = match val {
             ValueSearch::Any => {
                 let it = db.node_annos.exact_anno_search(
                     Some(tok_key.ns.clone()),
@@ -650,7 +650,7 @@ impl<'a> NodeSearch<'a> {
         };
 
         let it_base = if leafs_only {
-            let cov_gs: Vec<Arc<GraphStorage>> = db
+            let cov_gs: Vec<Arc<dyn GraphStorage>> = db
                 .get_all_components(Some(ComponentType::Coverage), None)
                 .into_iter()
                 .filter_map(|c| db.get_graphstorage(&c))
@@ -683,7 +683,7 @@ impl<'a> NodeSearch<'a> {
             }]
         });
         // create filter functions
-        let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<Box<dyn Fn(&Match) -> bool + Send + Sync>> = Vec::new();
 
         match val {
             ValueSearch::Some(ref val) => {
@@ -762,7 +762,7 @@ impl<'a> NodeSearch<'a> {
         };
 
         if leafs_only {
-            let cov_gs: Vec<Arc<GraphStorage>> = db
+            let cov_gs: Vec<Arc<dyn GraphStorage>> = db
                 .get_all_components(Some(ComponentType::Coverage), None)
                 .into_iter()
                 .filter_map(|c| db.get_graphstorage(&c))
@@ -775,7 +775,7 @@ impl<'a> NodeSearch<'a> {
                 })
                 .collect();
 
-            let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
+            let filter_func: Box<dyn Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
                 for cov in cov_gs.iter() {
                     if cov.get_outgoing_edges(m.node).next().is_some() {
                         return false;
@@ -858,11 +858,11 @@ impl<'a> NodeSearch<'a> {
     ) -> Result<NodeSearch<'a>> {
         let tok_key = db.get_token_key();
 
-        let it: Box<Iterator<Item = Vec<Match>>> = Box::from(AnyTokenSearch::new(db)?);
+        let it: Box<dyn Iterator<Item = Vec<Match>>> = Box::from(AnyTokenSearch::new(db)?);
         // create filter functions
-        let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<Box<dyn Fn(&Match) -> bool + Send + Sync>> = Vec::new();
 
-        let cov_gs: Vec<Arc<GraphStorage>> = db
+        let cov_gs: Vec<Arc<dyn GraphStorage>> = db
             .get_all_components(Some(ComponentType::Coverage), None)
             .into_iter()
             .filter_map(|c| db.get_graphstorage(&c))
@@ -875,7 +875,7 @@ impl<'a> NodeSearch<'a> {
             })
             .collect();
 
-        let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
+        let filter_func: Box<dyn Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
             for cov in cov_gs.iter() {
                 if cov.get_outgoing_edges(m.node).next().is_some() {
                     return false;
@@ -923,7 +923,7 @@ impl<'a> NodeSearch<'a> {
 
         let it = components
             .into_iter()
-            .flat_map(move |c: Component| -> Box<Iterator<Item = NodeID>> {
+            .flat_map(move |c: Component| -> Box<dyn Iterator<Item = NodeID>> {
                 if let Some(gs) = db.get_graphstorage_as_ref(&c) {
                     if let Some(EdgeAnnoSearchSpec::ExactValue {
                         ref ns,
@@ -932,7 +932,7 @@ impl<'a> NodeSearch<'a> {
                     }) = edge_anno_spec
                     {
                         // for each component get the source nodes with this edge annotation
-                        let anno_storage: &AnnotationStorage<Edge> = gs.get_anno_storage();
+                        let anno_storage: &dyn AnnotationStorage<Edge> = gs.get_anno_storage();
 
                         let it = anno_storage
                             .exact_anno_search(ns.clone(), name.clone(), val.clone().into())
@@ -989,7 +989,7 @@ impl<'a> NodeSearch<'a> {
 }
 
 impl<'a> ExecutionNode for NodeSearch<'a> {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
         self
     }
 
