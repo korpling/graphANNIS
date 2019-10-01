@@ -198,7 +198,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
     }
 
     fn number_of_annotations(&self) -> usize {
-        unimplemented!()
+        self.by_container.len()
     }
 
     fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
