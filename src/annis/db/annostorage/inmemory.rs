@@ -422,7 +422,7 @@ where
             let idx = all_annos.binary_search_by_key(&key, |a| a.key);
             if let Ok(idx) = idx {
                 if let Some(val) = self.anno_values.get_value(all_annos[idx].val) {
-                    return Some(Cow::Borrowed(&val[..]));
+                    return Some(Cow::Borrowed(val));
                 }
             }
         }
