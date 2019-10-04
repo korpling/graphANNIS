@@ -305,13 +305,13 @@ impl AnnotationStorage<NodeID> for Graph {
         self.node_annos.get_value_for_item(item, key)
     }
 
-    fn get_annotations_for_iterator<'a>(
+    fn get_keys_for_iterator<'a>(
         &'a self,
         ns: Option<String>,
         name: Option<String>,
         it: Box<dyn Iterator<Item = NodeID>>,
     ) -> Vec<Match> {
-        self.node_annos.get_annotations_for_iterator(ns, name, it)
+        self.node_annos.get_keys_for_iterator(ns, name, it)
     }
 
     fn get_largest_item(&self) -> Option<NodeID> {

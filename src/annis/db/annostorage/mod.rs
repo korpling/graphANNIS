@@ -28,7 +28,10 @@ where
 
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
 
-    fn get_annotations_for_iterator(
+    /// Get the annotation keys for each item in the iterator.
+    /// 
+    /// This function allows to filter the received annotation keys by the specifying the namespace and name.
+    fn get_keys_for_iterator(
         &self,
         ns: Option<String>,
         name: Option<String>,

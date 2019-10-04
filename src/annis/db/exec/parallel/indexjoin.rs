@@ -187,7 +187,7 @@ fn next_candidates(
 ) -> Vec<Match> {
     let it_nodes = Box::from(op.retrieve_matches(&m_lhs[lhs_idx]).map(|m| m.node).fuse());
 
-    node_annos.get_annotations_for_iterator(
+    node_annos.get_keys_for_iterator(
         node_search_desc.qname.0.clone(),
         node_search_desc.qname.1.clone(),
         it_nodes,

@@ -95,7 +95,7 @@ impl<'a> IndexJoin<'a> {
                     .fuse(),
             );
 
-            return Some(self.node_annos.get_annotations_for_iterator(
+            return Some(self.node_annos.get_keys_for_iterator(
                 self.node_search_desc.qname.0.clone(),
                 self.node_search_desc.qname.1.clone(),
                 it_nodes,

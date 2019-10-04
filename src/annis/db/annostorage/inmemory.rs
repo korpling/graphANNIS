@@ -427,7 +427,7 @@ where
         None
     }
 
-    fn get_annotations_for_iterator(
+    fn get_keys_for_iterator(
         &self,
         ns: Option<String>,
         name: Option<String>,
