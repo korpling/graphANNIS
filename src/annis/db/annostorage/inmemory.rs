@@ -459,6 +459,75 @@ where
         None
     }
 
+    fn get_annotations_for_iterator(
+        &self,
+        ns: Option<String>,
+        name: Option<String>,
+        it: Box<dyn Iterator<Item = T>>,
+    ) -> Vec<Match> {
+        if let Some(ref name) = name {
+            if let Some(ref ns) = ns {
+                // return the only possible annotation for each node
+                let mut matches: Vec<Match> = Vec::new();
+                let key = AnnoKey {
+                    ns: ns.clone(),
+                    name: name.clone(),
+                };
+
+                if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
+                    for item in it {
+                        if let Some(all_annos) = self.by_container.get(&item) {
+                            if all_annos
+                                .binary_search_by_key(&key_symbol, |a| a.key)
+                                .is_ok()
+                            {
+                                matches.push((item, key.clone()).into());
+                            }
+                        }
+                    }
+                }
+                return matches;
+            } else {
+                let matching_key_symbols: Vec<(usize, AnnoKey)> = self
+                    .get_qnames(&name)
+                    .into_iter()
+                    .filter_map(|key| {
+                        if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
+                            Some((key_symbol, key))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                // return all annotations with the correct name for each node
+                let mut matches: Vec<Match> = Vec::new();
+                for item in it {
+                    for (key_symbol, key) in matching_key_symbols.iter() {
+                        if let Some(all_annos) = self.by_container.get(&item) {
+                            if all_annos
+                                .binary_search_by_key(&key_symbol, |a| &a.key)
+                                .is_ok()
+                            {
+                                matches.push((item.clone(), key.clone()).into());
+                            }
+                        }
+                    }
+                }
+                return matches;
+            }
+        } else {
+            // return all annotations for each node
+            let mut matches: Vec<Match> = Vec::new();
+            for item in it {
+                let all_keys = self.get_all_keys_for_item(&item);
+                for anno_key in all_keys {
+                    matches.push((item.clone(), anno_key).into());
+                }
+            }
+            return matches;
+        }
+    }
+
     fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize {
         let qualified_keys = match ns {
             Some(ns) => self.anno_key_sizes.range((

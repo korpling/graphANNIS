@@ -28,6 +28,13 @@ where
 
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
 
+    fn get_annotations_for_iterator(
+        &self,
+        ns: Option<String>,
+        name: Option<String>,
+        it: Box<dyn Iterator<Item = T>>,
+    ) -> Vec<Match>;
+
     /// Return the total number of annotations contained in this `AnnotationStorage`.
     fn number_of_annotations(&self) -> usize;
 
