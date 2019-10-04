@@ -9,7 +9,7 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
 use crate::annis::db::Match;
 use crate::annis::errors::*;
-use crate::annis::types::{Component, ComponentType, NodeID, AnnoKey};
+use crate::annis::types::{AnnoKey, Component, ComponentType, NodeID};
 
 use std::collections::HashSet;
 use std::fmt;

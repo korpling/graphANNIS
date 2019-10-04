@@ -927,10 +927,7 @@ impl CorpusStorage {
         let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
             if !m.is_empty() {
                 let m: &Match = &m[0];
-                if let Some(node_name) = db
-                    .node_annos
-                    .get_value_for_item(&m.node, &node_name_key)
-                {
+                if let Some(node_name) = db.node_annos.get_value_for_item(&m.node, &node_name_key) {
                     let node_name: &str = &node_name;
                     // extract the document path from the node name
                     let doc_path =
@@ -1118,20 +1115,21 @@ impl CorpusStorage {
                 if include_in_output {
                     let mut node_desc = String::new();
 
-
-                    if singlematch.anno_key.ns != ANNIS_NS || singlematch.anno_key.name != NODE_TYPE {
+                    if singlematch.anno_key.ns != ANNIS_NS || singlematch.anno_key.name != NODE_TYPE
+                    {
                         if !singlematch.anno_key.ns.is_empty() {
                             let encoded_anno_ns: Cow<str> =
-                                utf8_percent_encode(&singlematch.anno_key.ns, SALT_URI_ENCODE_SET).into();
+                                utf8_percent_encode(&singlematch.anno_key.ns, SALT_URI_ENCODE_SET)
+                                    .into();
                             node_desc.push_str(&encoded_anno_ns);
                             node_desc.push_str("::");
                         }
                         let encoded_anno_name: Cow<str> =
-                            utf8_percent_encode(&singlematch.anno_key.name, SALT_URI_ENCODE_SET).into();
+                            utf8_percent_encode(&singlematch.anno_key.name, SALT_URI_ENCODE_SET)
+                                .into();
                         node_desc.push_str(&encoded_anno_name);
                         node_desc.push_str("::");
                     }
-                
 
                     if let Some(name) = db
                         .node_annos
@@ -1773,7 +1771,6 @@ mod tests {
             assert_eq!(0, edge_count);
         }
     }
-
 }
 
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Graph> {

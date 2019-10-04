@@ -23,7 +23,6 @@ where
     /// Get all qualified annotation names (including namespace) for a given annotation name
     fn get_qnames(&self, name: &str) -> Vec<AnnoKey>;
 
-
     /// Get all annotations for an `item` (node or edge).
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
 

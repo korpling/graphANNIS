@@ -5,9 +5,9 @@ use crate::annis::db::{Graph, Match};
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, NodeID};
 use std;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Formatter;
-use std::collections::HashMap;
 
 pub struct ExecutionPlan<'a> {
     plans: Vec<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
@@ -34,11 +34,18 @@ impl<'a> ExecutionPlan<'a> {
 
                 if let Some(ref desc) = p.get_desc() {
                     // check if node position mapping is actually needed
-                    let node_pos_needed = desc.node_pos.iter().any(|(target_pos, stream_pos)| target_pos != stream_pos);
+                    let node_pos_needed = desc
+                        .node_pos
+                        .iter()
+                        .any(|(target_pos, stream_pos)| target_pos != stream_pos);
                     if node_pos_needed {
                         // invert the node position mapping
-                        let new_mapping_map : HashMap<usize, usize> = desc.node_pos.iter().map(|(target_pos, stream_pos)| (*stream_pos, *target_pos)).collect();
-                        let mut new_mapping : Vec<usize> = Vec::with_capacity(new_mapping_map.len());
+                        let new_mapping_map: HashMap<usize, usize> = desc
+                            .node_pos
+                            .iter()
+                            .map(|(target_pos, stream_pos)| (*stream_pos, *target_pos))
+                            .collect();
+                        let mut new_mapping: Vec<usize> = Vec::with_capacity(new_mapping_map.len());
                         for i in 0..new_mapping_map.len() {
                             let mapping_value = new_mapping_map.get(&i).unwrap_or(&i);
                             new_mapping.push(*mapping_value);
@@ -150,8 +157,10 @@ impl<'a> Iterator for ExecutionPlan<'a> {
                     let n = self.reorder_match(n);
 
                     // check if we already outputted this result
-                    let key: Vec<(NodeID, AnnoKey)> =
-                        n.iter().map(|m: &Match| (m.node, m.anno_key.clone())).collect();
+                    let key: Vec<(NodeID, AnnoKey)> = n
+                        .iter()
+                        .map(|m: &Match| (m.node, m.anno_key.clone()))
+                        .collect();
                     if self.unique_result_set.insert(key) {
                         // new result found, break out of while-loop and return the result
                         return Some(n);

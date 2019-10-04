@@ -111,21 +111,15 @@ impl<'a> IndexJoin<'a> {
                             // this annotation was not found for this node, remove it from iterator
                             None
                         }
-                
                     })));
                 } else {
-                    let keys: Vec<AnnoKey> = self
-                        .node_annos
-                        .get_qnames(&name);
+                    let keys: Vec<AnnoKey> = self.node_annos.get_qnames(&name);
                     // return all annotations with the correct name for each node
                     return Some(Box::new(it_nodes.flat_map(move |match_node| {
                         let mut matches: Vec<Match> = Vec::new();
                         matches.reserve(keys.len());
                         for k in keys.iter() {
-                            if node_annos
-                                .get_value_for_item(&match_node.node, k)
-                                .is_some()
-                            {
+                            if node_annos.get_value_for_item(&match_node.node, k).is_some() {
                                 matches.push(Match {
                                     node: match_node.node,
                                     anno_key: k.clone(),
@@ -146,7 +140,6 @@ impl<'a> IndexJoin<'a> {
                             node: match_node.node,
                             anno_key,
                         });
-                    
                     }
                     matches.into_iter()
                 })));

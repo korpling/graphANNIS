@@ -16,15 +16,14 @@ use regex_syntax;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde;
 use std;
+use std::borrow::Cow;
+use std::cell::RefCell;
 use std::collections::Bound::*;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 use std::path::PathBuf;
-use std::borrow::Cow;
-use std::cell::RefCell;
 
 type AnnoKeyID = usize;
-
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf)]
 struct SparseAnnotation {
@@ -153,7 +152,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
         }
     }
 
-
     /// Returns the annotation key from the internal identifier.
     fn get_key_value(&self, key_id: AnnoKeyID) -> Option<AnnoKey> {
         self.anno_keys.get_value(key_id).cloned()
@@ -239,8 +237,8 @@ where
 
         // Check cache and if not available query the new symbol
         LAST_ACCESSED_KEY_CACHE.with(|c| {
-            let c : &mut Option<(AnnoKey, usize)> = &mut c.borrow_mut();
-            let cached_symbol =  if let Some(c) = c {
+            let c: &mut Option<(AnnoKey, usize)> = &mut c.borrow_mut();
+            let cached_symbol = if let Some(c) = c {
                 if &c.0 == key {
                     Some(c.1)
                 } else {
@@ -260,7 +258,6 @@ where
 
                 symbol
             }
-            
         })
     }
 }
@@ -449,7 +446,6 @@ where
     }
 
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
-
         let key_symbol = self.get_cached_symbol(key)?;
 
         if let Some(all_annos) = self.by_container.get(item) {
@@ -512,8 +508,7 @@ where
                 let it = self
                     .matching_items(namespace, name, None)
                     .filter(move |(node, anno_key)| {
-                        if let Some(item_value) = self.get_value_for_item(node, anno_key)
-                        {
+                        if let Some(item_value) = self.get_value_for_item(node, anno_key) {
                             item_value != value
                         } else {
                             false
@@ -572,7 +567,7 @@ where
                 if self.get_value_for_item(item, &key).is_some() {
                     return vec![key];
                 }
-                
+
                 return vec![];
             } else {
                 // get all qualified names for the given annotation name
@@ -585,7 +580,10 @@ where
             }
         } else if let Some(annos) = self.by_container.get(item) {
             // no annotation name given, return all
-            return annos.iter().filter_map(|sparse_anno| self.get_key_value(sparse_anno.key)).collect();
+            return annos
+                .iter()
+                .filter_map(|sparse_anno| self.get_key_value(sparse_anno.key))
+                .collect();
         } else {
             return vec![];
         }
@@ -713,7 +711,10 @@ where
                             Some((items.len(), val))
                         })
                         .sorted();
-                    return result.rev().map(|(_, val)| Cow::Borrowed(&val[..])).collect();
+                    return result
+                        .rev()
+                        .map(|(_, val)| Cow::Borrowed(&val[..]))
+                        .collect();
                 } else {
                     return values_for_key
                         .iter()

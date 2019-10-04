@@ -207,7 +207,6 @@ fn next_candidates(
                         anno_key: key.clone(),
                     });
                 }
-            
             }
             return Some(matches);
         } else {
@@ -216,10 +215,7 @@ fn next_candidates(
             let mut matches: Vec<Match> = Vec::new();
             for match_node in it_nodes {
                 for k in keys.iter() {
-                    if node_annos
-                        .get_value_for_item(&match_node.node, k)
-                        .is_some()
-                    {
+                    if node_annos.get_value_for_item(&match_node.node, k).is_some() {
                         matches.push(Match {
                             node: match_node.node,
                             anno_key: k.clone(),
@@ -239,7 +235,6 @@ fn next_candidates(
                     node: match_node.node,
                     anno_key,
                 });
-            
             }
         }
         return Some(matches);

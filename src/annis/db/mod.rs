@@ -14,6 +14,7 @@ use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 use serde;
 use std;
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::iter::FromIterator;
@@ -22,7 +23,6 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::string::ToString;
 use std::sync::{Arc, Mutex};
-use std::borrow::Cow;
 use strum::IntoEnumIterator;
 use tempfile;
 
@@ -65,7 +65,10 @@ impl Match {
             .node_annos
             .get_value_for_item(&self.node, &self.anno_key)?
             .to_owned();
-        Some(Annotation { key: self.anno_key.clone(), val: val.to_string() })
+        Some(Annotation {
+            key: self.anno_key.clone(),
+            val: val.to_string(),
+        })
     }
 
     /// Returns true if this match is different to all the other matches given as argument.

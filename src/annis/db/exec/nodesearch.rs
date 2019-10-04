@@ -386,35 +386,34 @@ impl<'a> NodeSearch<'a> {
                 .exact_anno_search(qname.0.clone(), qname.1.clone(), val.clone());
 
         let const_output = if is_meta {
-            Some(
-                db.get_node_type_key()
-            )
+            Some(db.get_node_type_key())
         } else {
             None
         };
 
-        let base_it: Box<dyn Iterator<Item = Match>> = if let Some(const_output) = const_output.clone() {
-            let is_unique = db.node_annos.get_qnames(&qname.1).len() <= 1;
-            // Replace the result annotation with a constant value.
-            // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
-            if is_unique {
-                Box::new(base_it.map(move |m| Match {
-                    node: m.node,
-                    anno_key: const_output.clone(),
-                }))
+        let base_it: Box<dyn Iterator<Item = Match>> =
+            if let Some(const_output) = const_output.clone() {
+                let is_unique = db.node_annos.get_qnames(&qname.1).len() <= 1;
+                // Replace the result annotation with a constant value.
+                // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
+                if is_unique {
+                    Box::new(base_it.map(move |m| Match {
+                        node: m.node,
+                        anno_key: const_output.clone(),
+                    }))
+                } else {
+                    Box::new(
+                        base_it
+                            .map(move |m| Match {
+                                node: m.node,
+                                anno_key: const_output.clone(),
+                            })
+                            .unique(),
+                    )
+                }
             } else {
-                Box::new(
-                    base_it
-                        .map(move |m| Match {
-                            node: m.node,
-                            anno_key: const_output.clone(),
-                        })
-                        .unique(),
-                )
-            }
-        } else {
-            base_it
-        };
+                base_it
+            };
 
         let est_output = match val {
             ValueSearch::Some(ref val) => {
@@ -446,8 +445,7 @@ impl<'a> NodeSearch<'a> {
             ValueSearch::Some(val) => {
                 let node_annos = db.node_annos.clone();
                 filters.push(Box::new(move |m| {
-                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
-                    {
+                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                         return anno_val == val.as_str();
                     } else {
                         return false;
@@ -457,8 +455,7 @@ impl<'a> NodeSearch<'a> {
             ValueSearch::NotSome(val) => {
                 let node_annos = db.node_annos.clone();
                 filters.push(Box::new(move |m| {
-                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
-                    {
+                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                         return anno_val != val.as_str();
                     } else {
                         return false;
@@ -499,35 +496,34 @@ impl<'a> NodeSearch<'a> {
                 .regex_anno_search(qname.0.clone(), qname.1.clone(), pattern, negated);
 
         let const_output = if is_meta {
-            Some(
-                db.get_node_type_key()
-            )
+            Some(db.get_node_type_key())
         } else {
             None
         };
 
-        let base_it: Box<dyn Iterator<Item = Match>> = if let Some(const_output) = const_output.clone() {
-            let is_unique = db.node_annos.get_qnames(&qname.1).len() <= 1;
-            // Replace the result annotation with a constant value.
-            // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
-            if is_unique {
-                Box::new(base_it.map(move |m| Match {
-                    node: m.node,
-                    anno_key: const_output.clone(),
-                }))
+        let base_it: Box<dyn Iterator<Item = Match>> =
+            if let Some(const_output) = const_output.clone() {
+                let is_unique = db.node_annos.get_qnames(&qname.1).len() <= 1;
+                // Replace the result annotation with a constant value.
+                // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
+                if is_unique {
+                    Box::new(base_it.map(move |m| Match {
+                        node: m.node,
+                        anno_key: const_output.clone(),
+                    }))
+                } else {
+                    Box::new(
+                        base_it
+                            .map(move |m| Match {
+                                node: m.node,
+                                anno_key: const_output.clone(),
+                            })
+                            .unique(),
+                    )
+                }
             } else {
-                Box::new(
-                    base_it
-                        .map(move |m| Match {
-                            node: m.node,
-                            anno_key: const_output.clone(),
-                        })
-                        .unique(),
-                )
-            }
-        } else {
-            base_it
-        };
+                base_it
+            };
 
         let est_output = if negated {
             let total = db
@@ -555,8 +551,7 @@ impl<'a> NodeSearch<'a> {
                 let node_annos = db.node_annos.clone();
                 if negated {
                     filters.push(Box::new(move |m| {
-                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
-                        {
+                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                             return !re.is_match(&val);
                         } else {
                             return false;
@@ -564,8 +559,7 @@ impl<'a> NodeSearch<'a> {
                     }));
                 } else {
                     filters.push(Box::new(move |m| {
-                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
-                        {
+                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                             return re.is_match(&val);
                         } else {
                             return false;
@@ -693,9 +687,7 @@ impl<'a> NodeSearch<'a> {
                     let node_annos = db.node_annos.clone();
                     match re {
                         Ok(re) => filters.push(Box::new(move |m| {
-                            if let Some(val) =
-                                node_annos.get_value_for_item(&m.node, &m.anno_key)
-                            {
+                            if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                                 return re.is_match(&val);
                             } else {
                                 return false;
@@ -712,8 +704,7 @@ impl<'a> NodeSearch<'a> {
                     let node_annos = db.node_annos.clone();
                     let val = val.clone();
                     filters.push(Box::new(move |m| {
-                        if let Some(anno_val) =
-                            node_annos.get_value_for_item(&m.node, &m.anno_key)
+                        if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
                         {
                             return anno_val == val.as_str();
                         } else {
@@ -729,9 +720,7 @@ impl<'a> NodeSearch<'a> {
                     let node_annos = db.node_annos.clone();
                     match re {
                         Ok(re) => filters.push(Box::new(move |m| {
-                            if let Some(val) =
-                                node_annos.get_value_for_item(&m.node, &m.anno_key)
-                            {
+                            if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                                 return !re.is_match(&val);
                             } else {
                                 return false;
@@ -748,8 +737,7 @@ impl<'a> NodeSearch<'a> {
                     let node_annos = db.node_annos.clone();
                     let val = val.clone();
                     filters.push(Box::new(move |m| {
-                        if let Some(anno_val) =
-                            node_annos.get_value_for_item(&m.node, &m.anno_key)
+                        if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
                         {
                             return anno_val != val.as_str();
                         } else {

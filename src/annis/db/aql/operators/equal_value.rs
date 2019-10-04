@@ -3,9 +3,9 @@ use crate::annis::db::{AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, T
 use crate::annis::operator::*;
 use crate::annis::types::{AnnoKey, Component, NodeID};
 use std;
+use std::borrow::Cow;
 use std::collections::HashSet;
 use std::sync::Arc;
-use std::borrow::Cow;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct EqualValueSpec {
@@ -59,9 +59,9 @@ impl EqualValue {
             NodeSearchSpec::ExactValue { .. }
             | NodeSearchSpec::NotExactValue { .. }
             | NodeSearchSpec::RegexValue { .. }
-            | NodeSearchSpec::NotRegexValue { .. } => self
-                .node_annos
-                .get_value_for_item(&m.node, &m.anno_key),
+            | NodeSearchSpec::NotRegexValue { .. } => {
+                self.node_annos.get_value_for_item(&m.node, &m.anno_key)
+            }
             NodeSearchSpec::AnyToken
             | NodeSearchSpec::ExactTokenValue { .. }
             | NodeSearchSpec::NotExactTokenValue { .. }

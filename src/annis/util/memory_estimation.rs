@@ -10,7 +10,8 @@ pub fn shallow_size_of_hashmap<K, V>(
             .next()
             .map_or(0, |v| unsafe { ops.malloc_enclosing_size_of(v) })
     } else {
-        val.capacity() * (std::mem::size_of::<V>() + std::mem::size_of::<K>() + std::mem::size_of::<usize>())
+        val.capacity()
+            * (std::mem::size_of::<V>() + std::mem::size_of::<K>() + std::mem::size_of::<usize>())
     }
 }
 
