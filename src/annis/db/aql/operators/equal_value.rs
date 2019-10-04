@@ -36,7 +36,7 @@ impl BinaryOperatorSpec for EqualValueSpec {
 
 #[derive(Clone)]
 pub struct EqualValue {
-    node_annos: Arc<AnnotationStorage<NodeID>>,
+    node_annos: Arc<dyn AnnotationStorage<NodeID>>,
     tok_key: AnnoKey,
     spec_left: NodeSearchSpec,
     spec_right: NodeSearchSpec,

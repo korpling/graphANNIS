@@ -50,7 +50,7 @@ where
         namespace: Option<String>,
         name: String,
         value: ValueSearch<String>,
-    ) -> Box<Iterator<Item = Match> + 'a>;
+    ) -> Box<dyn Iterator<Item = Match> + 'a>;
 
     /// Returns an iterator for all items where the value matches the regular expression.
     /// The annotation `name` and the `pattern` for the value must be given as argument, the  
@@ -70,7 +70,7 @@ where
         name: String,
         pattern: &str,
         negated: bool,
-    ) -> Box<Iterator<Item = Match> + 'a>;
+    ) -> Box<dyn Iterator<Item = Match> + 'a>;
 
     fn find_annotations_for_item(
         &self,

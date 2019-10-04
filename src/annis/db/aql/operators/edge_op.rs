@@ -25,7 +25,7 @@ struct BaseEdgeOpSpec {
 struct BaseEdgeOp {
     gs: Vec<Arc<dyn GraphStorage>>,
     spec: BaseEdgeOpSpec,
-    node_annos: Arc<AnnotationStorage<NodeID>>,
+    node_annos: Arc<dyn AnnotationStorage<NodeID>>,
     node_type_key: AnnoKey,
     inverse: bool,
 }

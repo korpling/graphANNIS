@@ -178,7 +178,7 @@ where
         namespace: Option<String>,
         name: String,
         value: Option<String>,
-    ) -> Box<Iterator<Item = (T, AnnoKey)> + 'a> {
+    ) -> Box<dyn Iterator<Item = (T, AnnoKey)> + 'a> {
         let key_ranges: Vec<AnnoKey> = if let Some(ns) = namespace {
             vec![AnnoKey { ns, name }]
         } else {
@@ -494,7 +494,7 @@ where
         namespace: Option<String>,
         name: String,
         value: ValueSearch<String>,
-    ) -> Box<Iterator<Item = Match> + 'a> {
+    ) -> Box<dyn Iterator<Item = Match> + 'a> {
         match value {
             ValueSearch::Any => {
                 let it = self
@@ -531,7 +531,7 @@ where
         name: String,
         pattern: &str,
         negated: bool,
-    ) -> Box<Iterator<Item = Match> + 'a> {
+    ) -> Box<dyn Iterator<Item = Match> + 'a> {
         let full_match_pattern = util::regex_full_match(pattern);
         let compiled_result = regex::Regex::new(&full_match_pattern);
         if let Ok(re) = compiled_result {
