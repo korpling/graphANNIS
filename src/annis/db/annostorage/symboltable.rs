@@ -1,8 +1,8 @@
-use crate::annis::util::memory_estimation::shallow_size_of_hashmap;
+use crate::annis::util::memory_estimation::shallow_size_of_fxhashmap;
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use std;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -13,7 +13,7 @@ where
 {
     by_id: Vec<Option<Arc<T>>>,
     #[serde(skip)]
-    by_value: HashMap<Arc<T>, usize>,
+    by_value: FxHashMap<Arc<T>, usize>,
     empty_slots: Vec<usize>,
 }
 
@@ -30,7 +30,7 @@ where
 
         // add the size of the vector pointer, the hash map and the strings
         size + (self.by_id.len() * std::mem::size_of::<usize>())
-            + shallow_size_of_hashmap(&self.by_value, ops)
+            + shallow_size_of_fxhashmap(&self.by_value, ops)
     }
 }
 
@@ -42,7 +42,7 @@ where
         let by_id = Vec::default();
         SymbolTable {
             by_id,
-            by_value: HashMap::default(),
+            by_value: FxHashMap::default(),
             empty_slots: Vec::default(),
         }
     }

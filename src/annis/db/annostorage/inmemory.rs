@@ -17,7 +17,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde;
 use std;
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::collections::Bound::*;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
@@ -185,7 +184,7 @@ where
         let values: Vec<(AnnoKey, &FxHashMap<usize, Vec<T>>)> = key_ranges
             .into_iter()
             .filter_map(|key| {
-                let key_id = self.get_cached_symbol(&key)?;
+                let key_id = self.anno_keys.get_symbol(&key)?;
                 if let Some(values_for_key) = self.by_anno.get(&key_id) {
                     Some((key, values_for_key))
                 } else {
@@ -228,37 +227,6 @@ where
                 });
             return Box::new(it);
         }
-    }
-
-    fn get_cached_symbol(&self, key: &AnnoKey) -> Option<usize> {
-        thread_local! {
-            static LAST_ACCESSED_KEY_CACHE : RefCell<Option<(AnnoKey, usize)>> = RefCell::new(None);
-        }
-
-        // Check cache and if not available query the new symbol
-        LAST_ACCESSED_KEY_CACHE.with(|c| {
-            let c: &mut Option<(AnnoKey, usize)> = &mut c.borrow_mut();
-            let cached_symbol = if let Some(c) = c {
-                if &c.0 == key {
-                    Some(c.1)
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
-
-            if cached_symbol.is_some() {
-                cached_symbol
-            } else {
-                let symbol = self.anno_keys.get_symbol(key);
-                if let Some(symbol) = symbol {
-                    *c = Some((key.clone(), symbol));
-                }
-
-                symbol
-            }
-        })
     }
 }
 
@@ -358,7 +326,7 @@ where
         let mut result = None;
 
         let orig_key = key;
-        let key = self.get_cached_symbol(key)?;
+        let key = self.anno_keys.get_symbol(key)?;
 
         if let Some(mut all_annos) = self.by_container.remove(item) {
             // find the specific annotation key from the sorted vector of all annotations of this item
@@ -446,7 +414,7 @@ where
     }
 
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
-        let key_symbol = self.get_cached_symbol(key)?;
+        let key_symbol = self.anno_keys.get_symbol(key)?;
 
         if let Some(all_annos) = self.by_container.get(item) {
             let idx = all_annos.binary_search_by_key(&key_symbol, |a| a.key);
@@ -680,7 +648,7 @@ where
             if let Some(anno_size) = self.anno_key_sizes.get(&anno_key) {
                 universe_size += *anno_size;
 
-                if let Some(anno_key) = self.get_cached_symbol(&anno_key) {
+                if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
                     if let Some(histo) = self.histogram_bounds.get(&anno_key) {
                         // find the range in which the value is contained
 
@@ -744,7 +712,7 @@ where
 
         // guess for each fully qualified annotation key
         for anno_key in qualified_keys {
-            if let Some(anno_key) = self.get_cached_symbol(&anno_key) {
+            if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
                 if let Some(histo) = self.histogram_bounds.get(&anno_key) {
                     for v in histo.iter() {
                         let count: &mut usize = sampled_values.entry(v.to_owned()).or_insert(0);
@@ -770,7 +738,7 @@ where
     }
 
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Cow<str>> {
-        if let Some(key) = self.get_cached_symbol(key) {
+        if let Some(key) = self.anno_keys.get_symbol(key) {
             if let Some(values_for_key) = self.by_anno.get(&key) {
                 if most_frequent_first {
                     let result = values_for_key
@@ -812,7 +780,7 @@ where
 
         // collect statistics for each annotation key separately
         for anno_key in self.anno_key_sizes.keys() {
-            if let Some(anno_key) = self.get_cached_symbol(anno_key) {
+            if let Some(anno_key) = self.anno_keys.get_symbol(anno_key) {
                 // sample a maximal number of annotation values
                 let mut rng = rand::thread_rng();
                 if let Some(values_for_key) = self.by_anno.get(&anno_key) {

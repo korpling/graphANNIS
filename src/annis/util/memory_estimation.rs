@@ -1,8 +1,10 @@
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std;
+use rustc_hash;
 
-pub fn shallow_size_of_hashmap<K, V>(
-    val: &std::collections::HashMap<K, V>,
+
+pub fn shallow_size_of_fxhashmap<K, V>(
+    val: &rustc_hash::FxHashMap<K, V>,
     ops: &mut MallocSizeOfOps,
 ) -> usize {
     if ops.has_malloc_enclosing_size_of() {
