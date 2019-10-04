@@ -465,13 +465,13 @@ where
         name: Option<String>,
         it: Box<dyn Iterator<Item = T>>,
     ) -> Vec<Match> {
-        if let Some(ref name) = name {
-            if let Some(ref ns) = ns {
+        if let Some(name) = name {
+            if let Some(ns) = ns {
                 // return the only possible annotation for each node
                 let mut matches: Vec<Match> = Vec::new();
                 let key = AnnoKey {
-                    ns: ns.clone(),
-                    name: name.clone(),
+                    ns: ns,
+                    name: name,
                 };
 
                 if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
