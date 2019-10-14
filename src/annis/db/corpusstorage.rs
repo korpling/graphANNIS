@@ -267,6 +267,63 @@ fn init_locale() {
     }
 }
 
+fn add_subgraph_precedence(
+    query: &mut Disjunction,
+    ctx: usize,
+    m: &NodeSearchSpec,
+    left: bool,
+) -> Result<()> {
+    // tokens left/right of match: tok .0,ctx m
+    {
+        let mut q = Conjunction::new();
+        let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
+        let m_idx = q.add_node(m.clone(), None);
+
+        q.add_operator(
+            Box::new(operators::PrecedenceSpec {
+                segmentation: None,
+                dist: RangeSpec::Bound {
+                    min_dist: 0,
+                    max_dist: ctx,
+                },
+            }),
+            if left { &tok_idx } else { &m_idx },
+            if left { &m_idx } else { &tok_idx },
+            true,
+        )?;
+        query.alternatives.push(q);
+    }
+
+    // nodes overlapping tokens left/right of match: node _o_ tok .0,ctx m
+    {
+        let mut q = Conjunction::new();
+
+        let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+        let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
+        let m_idx = q.add_node(m.clone(), None);
+        q.add_operator(
+            Box::new(operators::OverlapSpec {}),
+            &node_idx,
+            &tok_idx,
+            true,
+        )?;
+        q.add_operator(
+            Box::new(operators::PrecedenceSpec {
+                segmentation: None,
+                dist: RangeSpec::Bound {
+                    min_dist: 0,
+                    max_dist: ctx,
+                },
+            }),
+            if left { &tok_idx } else { &m_idx },
+            if left { &m_idx } else { &tok_idx },
+            true,
+        )?;
+        query.alternatives.push(q);
+    }
+
+    Ok(())
+}
 impl CorpusStorage {
     /// Create a new instance with a maximum size for the internal corpus cache.
     ///
@@ -1166,12 +1223,14 @@ impl CorpusStorage {
     /// - `corpus_name` - The name of the corpus for which the subgraph should be generated from.
     /// - `node_ids` - A set of node annotation identifiers describing the subgraph.
     /// - `ctx_left` and `ctx_right` - Left and right context in token distance to be included in the subgraph.
+    /// - `segmentation` - The name of the segmentation which should be used to as base for the context. Use `None` to define the context in the default token layer.
     pub fn subgraph(
         &self,
         corpus_name: &str,
         node_ids: Vec<String>,
         ctx_left: usize,
         ctx_right: usize,
+        segmentation: Option<String>,
     ) -> Result<Graph> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
 
@@ -1203,104 +1262,8 @@ impl CorpusStorage {
                 q.add_operator(Box::new(operators::OverlapSpec {}), &m_idx, &node_idx, true)?;
                 query.alternatives.push(q);
             }
-            // tokens left of match: tok .0,ctx_left m
-            {
-                let mut q = Conjunction::new();
-                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
-                let m_idx = q.add_node(m.clone(), None);
-
-                q.add_operator(
-                    Box::new(operators::PrecedenceSpec {
-                        segmentation: None,
-                        dist: RangeSpec::Bound {
-                            min_dist: 0,
-                            max_dist: ctx_left,
-                        },
-                    }),
-                    &tok_idx,
-                    &m_idx,
-                    true,
-                )?;
-                query.alternatives.push(q);
-            }
-
-            // nodes overlapping tokens left of match: node _o_ tok .0,ctx_left m
-            {
-                let mut q = Conjunction::new();
-
-                let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
-                let m_idx = q.add_node(m.clone(), None);
-                q.add_operator(
-                    Box::new(operators::OverlapSpec {}),
-                    &node_idx,
-                    &tok_idx,
-                    true,
-                )?;
-                q.add_operator(
-                    Box::new(operators::PrecedenceSpec {
-                        segmentation: None,
-                        dist: RangeSpec::Bound {
-                            min_dist: 0,
-                            max_dist: ctx_left,
-                        },
-                    }),
-                    &tok_idx,
-                    &m_idx,
-                    true,
-                )?;
-                query.alternatives.push(q);
-            }
-            // tokens right of match: m .0,ctx_right tok
-            {
-                let mut q = Conjunction::new();
-
-                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
-                let m_idx = q.add_node(m.clone(), None);
-
-                q.add_operator(
-                    Box::new(operators::PrecedenceSpec {
-                        segmentation: None,
-                        dist: RangeSpec::Bound {
-                            min_dist: 0,
-                            max_dist: ctx_right,
-                        },
-                    }),
-                    &m_idx,
-                    &tok_idx,
-                    true,
-                )?;
-                query.alternatives.push(q);
-            }
-
-            // nodes overlapping tokens right of match: m .0,ctx_right node _o_ tok
-            {
-                let mut q = Conjunction::new();
-
-                let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-                let m_idx = q.add_node(m.clone(), None);
-                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
-
-                q.add_operator(
-                    Box::new(operators::PrecedenceSpec {
-                        segmentation: None,
-                        dist: RangeSpec::Bound {
-                            min_dist: 0,
-                            max_dist: ctx_right,
-                        },
-                    }),
-                    &m_idx,
-                    &tok_idx,
-                    true,
-                )?;
-                q.add_operator(
-                    Box::new(operators::OverlapSpec {}),
-                    &tok_idx,
-                    &node_idx,
-                    true,
-                )?;
-                query.alternatives.push(q);
-            }
+            add_subgraph_precedence(&mut query, ctx_left, &m, true)?;
+            add_subgraph_precedence(&mut query, ctx_right, &m, false)?;
         }
         extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config, None)
     }
@@ -1780,7 +1743,6 @@ mod tests {
             assert_eq!(0, edge_count);
         }
     }
-
 }
 
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Graph> {
