@@ -273,7 +273,9 @@ fn add_subgraph_precedence(
     m: &NodeSearchSpec,
     left: bool,
 ) -> Result<()> {
-    // tokens left/right of match: tok .0,ctx m
+    // tokens left/right of match: 
+    // tok .0,ctx m
+    // m .0.ctx tok
     {
         let mut q = Conjunction::new();
         let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
@@ -294,7 +296,9 @@ fn add_subgraph_precedence(
         query.alternatives.push(q);
     }
 
-    // nodes overlapping tokens left/right of match: node _o_ tok .0,ctx m
+    // nodes overlapping tokens left/right of match: 
+    // node _o_ tok .0,ctx m
+    // m .0,ctx tok _o_ node 
     {
         let mut q = Conjunction::new();
 
@@ -324,6 +328,87 @@ fn add_subgraph_precedence(
 
     Ok(())
 }
+
+fn add_subgraph_precedence_with_segmentation(
+    query: &mut Disjunction,
+    ctx: usize,
+    segmentation: &str,
+    m: &NodeSearchSpec,
+    left: bool,
+) -> Result<()> {
+    // nodes directly left/right of match: 
+    // target .seg,0,ctx m_node _o_ m
+    // m _o_ m_node .0.ctx target
+    {
+        let mut q = Conjunction::new();
+        let m_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+        let target_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+        let m_idx = q.add_node(m.clone(), None);
+
+        q.add_operator(
+            Box::new(operators::OverlapSpec {}),
+            &m_node_idx,
+            &m_idx,
+            true,
+        )?;
+
+        q.add_operator(
+            Box::new(operators::PrecedenceSpec {
+                segmentation: Some(segmentation.to_string()),
+                dist: RangeSpec::Bound {
+                    min_dist: 0,
+                    max_dist: ctx,
+                },
+            }),
+            if left {&target_idx} else {&m_node_idx},
+            if left {&m_node_idx} else {&target_idx},
+            true,
+        )?;
+        query.alternatives.push(q);
+    }
+
+    // nodes overlapping the ones directly left/right of match: 
+    // target _o_ node .seg,0,ctx m_node _o_ m
+    // m _o_ m_node .0.ctx node _o_ target
+    {
+        let mut q = Conjunction::new();
+        let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+        let m_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+        let target_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+        let m_idx = q.add_node(m.clone(), None);
+
+        q.add_operator(
+            Box::new(operators::OverlapSpec {}),
+            &m_node_idx,
+            &m_idx,
+            true,
+        )?;
+
+        q.add_operator(
+            Box::new(operators::OverlapSpec {}),
+            &target_idx,
+            &m_node_idx,
+            true,
+        )?;
+
+        q.add_operator(
+            Box::new(operators::PrecedenceSpec {
+                segmentation: Some(segmentation.to_string()),
+                dist: RangeSpec::Bound {
+                    min_dist: 0,
+                    max_dist: ctx,
+                },
+            }),
+            if left {&node_idx} else {&m_node_idx},
+            if left {&m_node_idx} else {&node_idx},
+            true,
+        )?;
+        query.alternatives.push(q);
+    }
+
+    Ok(())
+}
+
 impl CorpusStorage {
     /// Create a new instance with a maximum size for the internal corpus cache.
     ///
@@ -1262,8 +1347,14 @@ impl CorpusStorage {
                 q.add_operator(Box::new(operators::OverlapSpec {}), &m_idx, &node_idx, true)?;
                 query.alternatives.push(q);
             }
-            add_subgraph_precedence(&mut query, ctx_left, &m, true)?;
-            add_subgraph_precedence(&mut query, ctx_right, &m, false)?;
+
+            if let Some(ref segmentation) = segmentation {
+                add_subgraph_precedence_with_segmentation(&mut query, ctx_left, segmentation, &m, true)?;
+                add_subgraph_precedence_with_segmentation(&mut query, ctx_right, segmentation, &m, false)?;
+            } else {
+                add_subgraph_precedence(&mut query, ctx_left, &m, true)?;
+                add_subgraph_precedence(&mut query, ctx_right, &m, false)?;
+            }
         }
         extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config, None)
     }
