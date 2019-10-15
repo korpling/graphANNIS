@@ -420,7 +420,7 @@ BinaryOpSpec : ast::BinaryOpSpec = {
         }
     },
     // Overlap
-    OVERLAP => ast::BinaryOpSpec::Overlap(OverlapSpec {}),
+    OVERLAP => ast::BinaryOpSpec::Overlap(OverlapSpec {reflexive: false}),
     // Identical coverage
     IDENT_COV => ast::BinaryOpSpec::IdenticalCoverage(IdenticalCoverageSpec {}),
     // Inclusion

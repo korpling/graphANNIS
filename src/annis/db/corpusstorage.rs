@@ -306,7 +306,7 @@ fn add_subgraph_precedence(
         let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
         let m_idx = q.add_node(m.clone(), None);
         q.add_operator(
-            Box::new(operators::OverlapSpec {}),
+            Box::new(operators::OverlapSpec {reflexive: false}),
             &node_idx,
             &tok_idx,
             true,
@@ -346,7 +346,7 @@ fn add_subgraph_precedence_with_segmentation(
         let m_idx = q.add_node(m.clone(), None);
 
         q.add_operator(
-            Box::new(operators::OverlapSpec {}),
+            Box::new(operators::OverlapSpec {reflexive: false}),
             &m_node_idx,
             &m_idx,
             true,
@@ -378,14 +378,14 @@ fn add_subgraph_precedence_with_segmentation(
         let m_idx = q.add_node(m.clone(), None);
 
         q.add_operator(
-            Box::new(operators::OverlapSpec {}),
+            Box::new(operators::OverlapSpec {reflexive: false}),
             &m_node_idx,
             &m_idx,
             true,
         )?;
 
         q.add_operator(
-            Box::new(operators::OverlapSpec {}),
+            Box::new(operators::OverlapSpec {reflexive: false}),
             &target_idx,
             &m_node_idx,
             true,
@@ -1344,7 +1344,7 @@ impl CorpusStorage {
                 let mut q = Conjunction::new();
                 let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
                 let m_idx = q.add_node(m.clone(), None);
-                q.add_operator(Box::new(operators::OverlapSpec {}), &m_idx, &node_idx, true)?;
+                q.add_operator(Box::new(operators::OverlapSpec {reflexive: false}), &m_idx, &node_idx, true)?;
                 query.alternatives.push(q);
             }
 
