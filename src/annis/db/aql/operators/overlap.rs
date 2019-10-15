@@ -67,7 +67,11 @@ impl Overlap {
 
 impl std::fmt::Display for Overlap {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "_o_")
+        if self.reflexive {
+            write!(f, "_o_reflexive_")
+        } else {
+            write!(f, "_o_")
+        }
     }
 }
 

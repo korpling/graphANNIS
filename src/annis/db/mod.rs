@@ -1380,7 +1380,7 @@ impl Graph {
     }
 
     /// Returns all components of the graph given an optional type (`ctype`) and `name`.
-    /// This allows to filter which components to recieve.
+    /// This allows to filter which components to receive.
     /// If you want to retrieve all components, use `None` as value for both arguments.
     pub fn get_all_components(
         &self,

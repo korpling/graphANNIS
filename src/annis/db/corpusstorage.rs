@@ -273,32 +273,9 @@ fn add_subgraph_precedence(
     m: &NodeSearchSpec,
     left: bool,
 ) -> Result<()> {
-    // tokens left/right of match: 
-    // tok .0,ctx m
-    // m .0.ctx tok
-    {
-        let mut q = Conjunction::new();
-        let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
-        let m_idx = q.add_node(m.clone(), None);
-
-        q.add_operator(
-            Box::new(operators::PrecedenceSpec {
-                segmentation: None,
-                dist: RangeSpec::Bound {
-                    min_dist: 0,
-                    max_dist: ctx,
-                },
-            }),
-            if left { &tok_idx } else { &m_idx },
-            if left { &m_idx } else { &tok_idx },
-            true,
-        )?;
-        query.alternatives.push(q);
-    }
-
-    // nodes overlapping tokens left/right of match: 
+    // nodes overlapping tokens left/right of match (using reflexive overlap to include the token itself):
     // node _o_ tok .0,ctx m
-    // m .0,ctx tok _o_ node 
+    // m .0,ctx tok _o_ node
     {
         let mut q = Conjunction::new();
 
@@ -306,7 +283,7 @@ fn add_subgraph_precedence(
         let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
         let m_idx = q.add_node(m.clone(), None);
         q.add_operator(
-            Box::new(operators::OverlapSpec {reflexive: false}),
+            Box::new(operators::OverlapSpec { reflexive: true }),
             &node_idx,
             &tok_idx,
             true,
@@ -336,40 +313,9 @@ fn add_subgraph_precedence_with_segmentation(
     m: &NodeSearchSpec,
     left: bool,
 ) -> Result<()> {
-    // nodes directly left/right of match: 
-    // target .seg,0,ctx m_node _o_ m
-    // m _o_ m_node .0.ctx target
-    {
-        let mut q = Conjunction::new();
-        let m_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-        let target_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-        let m_idx = q.add_node(m.clone(), None);
-
-        q.add_operator(
-            Box::new(operators::OverlapSpec {reflexive: false}),
-            &m_node_idx,
-            &m_idx,
-            true,
-        )?;
-
-        q.add_operator(
-            Box::new(operators::PrecedenceSpec {
-                segmentation: Some(segmentation.to_string()),
-                dist: RangeSpec::Bound {
-                    min_dist: 0,
-                    max_dist: ctx,
-                },
-            }),
-            if left {&target_idx} else {&m_node_idx},
-            if left {&m_node_idx} else {&target_idx},
-            true,
-        )?;
-        query.alternatives.push(q);
-    }
-
-    // nodes overlapping the ones directly left/right of match: 
+    // nodes overlapping the ones directly left/right of match (using reflexive overlap):
     // target _o_ node .seg,0,ctx m_node _o_ m
-    // m _o_ m_node .0.ctx node _o_ target
+    // m _o_ m_node .0.ctx node  _o_ target
     {
         let mut q = Conjunction::new();
         let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
@@ -378,17 +324,17 @@ fn add_subgraph_precedence_with_segmentation(
         let m_idx = q.add_node(m.clone(), None);
 
         q.add_operator(
-            Box::new(operators::OverlapSpec {reflexive: false}),
+            Box::new(operators::OverlapSpec { reflexive: true }),
             &m_node_idx,
             &m_idx,
-            true,
+            false,
         )?;
 
         q.add_operator(
-            Box::new(operators::OverlapSpec {reflexive: false}),
+            Box::new(operators::OverlapSpec { reflexive: true }),
             &target_idx,
-            &m_node_idx,
-            true,
+            &node_idx,
+            false,
         )?;
 
         q.add_operator(
@@ -399,9 +345,9 @@ fn add_subgraph_precedence_with_segmentation(
                     max_dist: ctx,
                 },
             }),
-            if left {&node_idx} else {&m_node_idx},
-            if left {&m_node_idx} else {&node_idx},
-            true,
+            if left { &node_idx } else { &m_node_idx },
+            if left { &m_node_idx } else { &node_idx },
+            false,
         )?;
         query.alternatives.push(q);
     }
@@ -1344,13 +1290,30 @@ impl CorpusStorage {
                 let mut q = Conjunction::new();
                 let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
                 let m_idx = q.add_node(m.clone(), None);
-                q.add_operator(Box::new(operators::OverlapSpec {reflexive: false}), &m_idx, &node_idx, true)?;
+                q.add_operator(
+                    Box::new(operators::OverlapSpec { reflexive: false }),
+                    &m_idx,
+                    &node_idx,
+                    true,
+                )?;
                 query.alternatives.push(q);
             }
 
             if let Some(ref segmentation) = segmentation {
-                add_subgraph_precedence_with_segmentation(&mut query, ctx_left, segmentation, &m, true)?;
-                add_subgraph_precedence_with_segmentation(&mut query, ctx_right, segmentation, &m, false)?;
+                add_subgraph_precedence_with_segmentation(
+                    &mut query,
+                    ctx_left,
+                    segmentation,
+                    &m,
+                    true,
+                )?;
+                add_subgraph_precedence_with_segmentation(
+                    &mut query,
+                    ctx_right,
+                    segmentation,
+                    &m,
+                    false,
+                )?;
             } else {
                 add_subgraph_precedence(&mut query, ctx_left, &m, true)?;
                 add_subgraph_precedence(&mut query, ctx_right, &m, false)?;
@@ -1723,6 +1686,7 @@ mod tests {
     use crate::corpusstorage::QueryLanguage;
     use crate::update::{GraphUpdate, UpdateEvent};
     use crate::CorpusStorage;
+    use crate::annis::types::{ComponentType, NodeID};
 
     #[test]
     fn delete() {
@@ -1832,6 +1796,159 @@ mod tests {
                 .count("root", "node ->dep node", QueryLanguage::AQL)
                 .unwrap();
             assert_eq!(0, edge_count);
+        }
+    }
+
+    #[test]
+    fn subgraph_with_segmentation() {
+        if let Ok(tmp) = tempfile::tempdir() {
+            let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+            let mut g = GraphUpdate::new();
+            // Add corpus structure
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root".to_string(),
+                node_type: "corpus".to_string(),
+            });
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root/doc1".to_string(),
+                node_type: "corpus".to_string(),
+            });
+
+            // Add three token: A, B, C
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root/doc1#tok1".to_string(),
+                node_type: "node".to_string(),
+            });
+            g.add_event(UpdateEvent::AddNodeLabel {
+                node_name: "root/doc1#tok1".to_string(),
+                anno_ns: "annis".to_string(),
+                anno_name: "tok".to_string(),
+                anno_value: "A".to_string(),
+            });
+
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root/doc1#tok2".to_string(),
+                node_type: "node".to_string(),
+            });
+            g.add_event(UpdateEvent::AddNodeLabel {
+                node_name: "root/doc1#tok2".to_string(),
+                anno_ns: "annis".to_string(),
+                anno_name: "tok".to_string(),
+                anno_value: "B".to_string(),
+            });
+
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root/doc1#tok3".to_string(),
+                node_type: "node".to_string(),
+            });
+            g.add_event(UpdateEvent::AddNodeLabel {
+                node_name: "root/doc1#tok3".to_string(),
+                anno_ns: "annis".to_string(),
+                anno_name: "tok".to_string(),
+                anno_value: "C".to_string(),
+            });
+
+            // Ordering edges between the tokens
+
+            g.add_event(UpdateEvent::AddEdge {
+                source_node: "root/doc1#tok1".to_owned(),
+                target_node: "root/doc1#tok2".to_owned(),
+                layer: "".to_owned(),
+                component_type: "Ordering".to_owned(),
+                component_name: "".to_owned(),
+            });
+            g.add_event(UpdateEvent::AddEdge {
+                source_node: "root/doc1#tok2".to_owned(),
+                target_node: "root/doc1#tok3".to_owned(),
+                layer: "".to_owned(),
+                component_type: "Ordering".to_owned(),
+                component_name: "".to_owned(),
+            });
+
+            // Two segmentation nodes "dipl"
+
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root/doc1#dipl1".to_string(),
+                node_type: "node".to_string(),
+            });
+            g.add_event(UpdateEvent::AddNodeLabel {
+                node_name: "root/doc1#dipl1".to_string(),
+                anno_ns: "default_ns".to_string(),
+                anno_name: "dipl".to_string(),
+                anno_value: "AB".to_string(),
+            });
+
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root/doc1#dipl2".to_string(),
+                node_type: "node".to_string(),
+            });
+            g.add_event(UpdateEvent::AddNodeLabel {
+                node_name: "root/doc1#dipl2".to_string(),
+                anno_ns: "default_ns".to_string(),
+                anno_name: "dipl".to_string(),
+                anno_value: "C".to_string(),
+            });
+
+            // add ordering edge for dipl
+            g.add_event(UpdateEvent::AddEdge {
+                source_node: "root/doc1#dipl1".to_owned(),
+                target_node: "root/doc1#dipl2".to_owned(),
+                layer: "".to_owned(),
+                component_type: "Ordering".to_owned(),
+                component_name: "dipl".to_owned(),
+            });
+
+            // connect covering edges for segmentation nodes
+            g.add_event(UpdateEvent::AddEdge {
+                source_node: "root/doc1#dipl1".to_owned(),
+                target_node: "root/doc1#tok1".to_owned(),
+                layer: "".to_owned(),
+                component_type: "Coverage".to_owned(),
+                component_name: "".to_owned(),
+            });
+
+            g.add_event(UpdateEvent::AddEdge {
+                source_node: "root/doc1#dipl1".to_owned(),
+                target_node: "root/doc1#tok2".to_owned(),
+                layer: "".to_owned(),
+                component_type: "Coverage".to_owned(),
+                component_name: "".to_owned(),
+            });
+
+            g.add_event(UpdateEvent::AddEdge {
+                source_node: "root/doc1#dipl2".to_owned(),
+                target_node: "root/doc1#tok3".to_owned(),
+                layer: "".to_owned(),
+                component_type: "Coverage".to_owned(),
+                component_name: "".to_owned(),
+            });
+
+            cs.apply_update("segmentationtest", &mut g).unwrap();
+
+            // get the subgraph with context 1 on dipl
+            let graph = cs
+                .subgraph(
+                    "segmentationtest",
+                    vec!["root/doc1#dipl2".to_string()],
+                    1,
+                    1,
+                    Some("dipl".to_owned()),
+                )
+                .unwrap();
+
+            let cov_components = graph.get_all_components(Some(ComponentType::Coverage), None);
+            assert_eq!(1, cov_components.len());
+
+            let gs_cov = graph.get_graphstorage(&cov_components[0]).unwrap();
+
+            let dipl1_id = graph.get_node_id_from_name("root/doc1#dipl1").unwrap();
+            let dipl1_out : Vec<NodeID> = gs_cov.get_outgoing_edges(dipl1_id).collect();
+            assert_eq!(2, dipl1_out.len());
+
+            let dipl2_id = graph.get_node_id_from_name("root/doc1#dipl2").unwrap();
+            let dipl2_out : Vec<NodeID> = gs_cov.get_outgoing_edges(dipl2_id).collect();
+            assert_eq!(1, dipl2_out.len());
         }
     }
 }
