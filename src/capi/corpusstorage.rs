@@ -166,7 +166,11 @@ pub extern "C" fn annis_cs_subgraph(
         .collect();
     let corpus = cstr!(corpus_name);
 
-    let segmentation = if segmentation.is_null() { None} else {Some(cstr!(segmentation).to_string())}; 
+    let segmentation = if segmentation.is_null() {
+        None
+    } else {
+        Some(cstr!(segmentation).to_string())
+    };
 
     let result = try_cerr!(
         cs.subgraph(&corpus, node_ids, ctx_left, ctx_right, segmentation),

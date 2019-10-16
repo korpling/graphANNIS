@@ -354,7 +354,6 @@ fn add_subgraph_precedence_with_segmentation(
             false,
         )?;
         query.alternatives.push(q);
-
     }
 
     Ok(())
@@ -1682,7 +1681,6 @@ impl Drop for CorpusStorage {
         }
     }
 }
-
 
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Graph> {
     if let CacheEntry::Loaded(ref db) = &**lock {

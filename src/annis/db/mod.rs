@@ -29,6 +29,8 @@ use tempfile;
 pub mod annostorage;
 pub mod aql;
 pub mod corpusstorage;
+#[cfg(test)]
+pub mod example_generator;
 pub mod exec;
 pub mod graphstorage;
 mod plan;
@@ -37,8 +39,6 @@ pub mod relannis;
 pub mod sort_matches;
 pub mod token_helper;
 pub mod update;
-#[cfg(test)]
-pub mod example_generator;
 
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
