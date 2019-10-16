@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Subgraph queries can now define the context using  ordering relation names (segmentation) 
+instead of the default context in tokens. **This changes the function signature of the `subgraph(...)` function.**
+
 ### Changed
 
 - For performance and stylistic reasons, the GraphStorage API has been changed to accept integer node IDs instead of references to integers.
