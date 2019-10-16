@@ -1683,10 +1683,11 @@ mod tests {
     extern crate log;
     extern crate tempfile;
 
+    use crate::annis::db::example_generator;
+    use crate::annis::types::{ComponentType, NodeID};
     use crate::corpusstorage::QueryLanguage;
     use crate::update::{GraphUpdate, UpdateEvent};
     use crate::CorpusStorage;
-    use crate::annis::types::{ComponentType, NodeID};
 
     #[test]
     fn delete() {
@@ -1738,45 +1739,22 @@ mod tests {
             let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
             let mut g = GraphUpdate::new();
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root".to_string(),
-                node_type: "corpus".to_string(),
-            });
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1".to_string(),
-                node_type: "corpus".to_string(),
-            });
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1#MyToken1".to_string(),
-                node_type: "node".to_string(),
-            });
-
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1#MyToken2".to_string(),
-                node_type: "node".to_string(),
-            });
+            example_generator::create_corpus_structure(&mut g);
+            example_generator::create_tokens(&mut g, Some("root/subCorpus1/doc1"));
+            example_generator::create_tokens(&mut g, Some("root/subCorpus1/doc2"));
 
             g.add_event(UpdateEvent::AddEdge {
-                source_node: "root/doc1#MyToken1".to_owned(),
-                target_node: "root/doc1#MyToken2".to_owned(),
+                source_node: "root/subCorpus1/doc1#tok1".to_owned(),
+                target_node: "root/subCorpus1/doc1#tok2".to_owned(),
                 layer: "dep".to_owned(),
                 component_type: "Pointing".to_owned(),
                 component_name: "dep".to_owned(),
             });
 
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc2".to_string(),
-                node_type: "corpus".to_string(),
-            });
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc2#MyToken".to_string(),
-                node_type: "node".to_string(),
-            });
-
             cs.apply_update("root", &mut g).unwrap();
 
             let node_count = cs.count("root", "node", QueryLanguage::AQL).unwrap();
-            assert_eq!(3, node_count);
+            assert_eq!(22, node_count);
 
             let edge_count = cs
                 .count("root", "node ->dep node", QueryLanguage::AQL)
@@ -1786,12 +1764,12 @@ mod tests {
             // delete one of the tokens
             let mut g = GraphUpdate::new();
             g.add_event(UpdateEvent::DeleteNode {
-                node_name: "root/doc1#MyToken2".to_string(),
+                node_name: "root/subCorpus1/doc1#tok2".to_string(),
             });
             cs.apply_update("root", &mut g).unwrap();
 
             let node_count = cs.count("root", "node", QueryLanguage::AQL).unwrap();
-            assert_eq!(2, node_count);
+            assert_eq!(21, node_count);
             let edge_count = cs
                 .count("root", "node ->dep node", QueryLanguage::AQL)
                 .unwrap();
@@ -1806,134 +1784,75 @@ mod tests {
 
             let mut g = GraphUpdate::new();
             // Add corpus structure
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root".to_string(),
-                node_type: "corpus".to_string(),
-            });
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1".to_string(),
-                node_type: "corpus".to_string(),
-            });
+            example_generator::create_corpus_structure_simple(&mut g);
+            // Use the default tokenization as minimal tokens
+            example_generator::create_tokens(&mut g, Some("root/doc1"));
 
-            // Add three token: A, B, C
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1#tok1".to_string(),
-                node_type: "node".to_string(),
-            });
-            g.add_event(UpdateEvent::AddNodeLabel {
-                node_name: "root/doc1#tok1".to_string(),
-                anno_ns: "annis".to_string(),
-                anno_name: "tok".to_string(),
-                anno_value: "A".to_string(),
-            });
+            // Add first segmentation
+            let seg_tokens = vec![
+                "Is this example",
+                "more complicated",
+                "than it appears to be",
+                "?",
+            ];
+            for (i, t) in seg_tokens.iter().enumerate() {
+                let node_name = format!("root/doc1#seg{}", i);
+                example_generator::create_token_node(&mut g, &node_name, t, Some("root/doc1"));
+                g.add_event(UpdateEvent::AddNodeLabel {
+                    node_name: node_name,
+                    anno_ns: "default_ns".to_string(),
+                    anno_name: "seg".to_string(),
+                    anno_value: t.to_string(),
+                });
+            }
+            for i in 0..seg_tokens.len() {
+                g.add_event(UpdateEvent::AddEdge {
+                    source_node: format!("root/doc1#seg{}", i),
+                    target_node: format!("root/doc1#seg{}", i + 1),
+                    layer: "".to_string(),
+                    component_type: "Ordering".to_string(),
+                    component_name: "seg".to_string(),
+                });
+            }
+            // add coverage for seg
+            example_generator::make_span(
+                &mut g,
+                "root/doc1#seg0",
+                &["root/doc1#tok0", "root/doc1#tok1", "root/doc1#tok2"],
+            );
+            example_generator::make_span(
+                &mut g,
+                "root/doc1#seg1",
+                &["root/doc1#tok3", "root/doc1#tok4"],
+            );
+            example_generator::make_span(
+                &mut g,
+                "root/doc1#seg2",
+                &[
+                    "root/doc1#tok5",
+                    "root/doc1#tok6",
+                    "root/doc1#tok7",
+                    "root/doc1#tok8",
+                    "root/doc1#tok9",
+                ],
+            );
+            example_generator::make_span(
+                &mut g,
+                "root/doc1#seg3",
+                &["root/doc1#tok10"],
+            );
+            
 
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1#tok2".to_string(),
-                node_type: "node".to_string(),
-            });
-            g.add_event(UpdateEvent::AddNodeLabel {
-                node_name: "root/doc1#tok2".to_string(),
-                anno_ns: "annis".to_string(),
-                anno_name: "tok".to_string(),
-                anno_value: "B".to_string(),
-            });
-
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1#tok3".to_string(),
-                node_type: "node".to_string(),
-            });
-            g.add_event(UpdateEvent::AddNodeLabel {
-                node_name: "root/doc1#tok3".to_string(),
-                anno_ns: "annis".to_string(),
-                anno_name: "tok".to_string(),
-                anno_value: "C".to_string(),
-            });
-
-            // Ordering edges between the tokens
-
-            g.add_event(UpdateEvent::AddEdge {
-                source_node: "root/doc1#tok1".to_owned(),
-                target_node: "root/doc1#tok2".to_owned(),
-                layer: "".to_owned(),
-                component_type: "Ordering".to_owned(),
-                component_name: "".to_owned(),
-            });
-            g.add_event(UpdateEvent::AddEdge {
-                source_node: "root/doc1#tok2".to_owned(),
-                target_node: "root/doc1#tok3".to_owned(),
-                layer: "".to_owned(),
-                component_type: "Ordering".to_owned(),
-                component_name: "".to_owned(),
-            });
-
-            // Two segmentation nodes "dipl"
-
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1#dipl1".to_string(),
-                node_type: "node".to_string(),
-            });
-            g.add_event(UpdateEvent::AddNodeLabel {
-                node_name: "root/doc1#dipl1".to_string(),
-                anno_ns: "default_ns".to_string(),
-                anno_name: "dipl".to_string(),
-                anno_value: "AB".to_string(),
-            });
-
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1#dipl2".to_string(),
-                node_type: "node".to_string(),
-            });
-            g.add_event(UpdateEvent::AddNodeLabel {
-                node_name: "root/doc1#dipl2".to_string(),
-                anno_ns: "default_ns".to_string(),
-                anno_name: "dipl".to_string(),
-                anno_value: "C".to_string(),
-            });
-
-            // add ordering edge for dipl
-            g.add_event(UpdateEvent::AddEdge {
-                source_node: "root/doc1#dipl1".to_owned(),
-                target_node: "root/doc1#dipl2".to_owned(),
-                layer: "".to_owned(),
-                component_type: "Ordering".to_owned(),
-                component_name: "dipl".to_owned(),
-            });
-
-            // connect covering edges for segmentation nodes
-            g.add_event(UpdateEvent::AddEdge {
-                source_node: "root/doc1#dipl1".to_owned(),
-                target_node: "root/doc1#tok1".to_owned(),
-                layer: "".to_owned(),
-                component_type: "Coverage".to_owned(),
-                component_name: "".to_owned(),
-            });
-
-            g.add_event(UpdateEvent::AddEdge {
-                source_node: "root/doc1#dipl1".to_owned(),
-                target_node: "root/doc1#tok2".to_owned(),
-                layer: "".to_owned(),
-                component_type: "Coverage".to_owned(),
-                component_name: "".to_owned(),
-            });
-
-            g.add_event(UpdateEvent::AddEdge {
-                source_node: "root/doc1#dipl2".to_owned(),
-                target_node: "root/doc1#tok3".to_owned(),
-                layer: "".to_owned(),
-                component_type: "Coverage".to_owned(),
-                component_name: "".to_owned(),
-            });
-
-            cs.apply_update("segmentationtest", &mut g).unwrap();
+            cs.apply_update("root", &mut g).unwrap();
 
             // get the subgraph with context 1 on dipl
             let graph = cs
                 .subgraph(
-                    "segmentationtest",
-                    vec!["root/doc1#dipl2".to_string()],
+                    "root",
+                    vec!["root/doc1#seg1".to_string()],
                     1,
                     1,
-                    Some("dipl".to_owned()),
+                    Some("seg1".to_owned()),
                 )
                 .unwrap();
 
@@ -1942,13 +1861,20 @@ mod tests {
 
             let gs_cov = graph.get_graphstorage(&cov_components[0]).unwrap();
 
-            let dipl1_id = graph.get_node_id_from_name("root/doc1#dipl1").unwrap();
-            let dipl1_out : Vec<NodeID> = gs_cov.get_outgoing_edges(dipl1_id).collect();
-            assert_eq!(2, dipl1_out.len());
+            let segl0_id = graph.get_node_id_from_name("root/doc1#seg0").unwrap();
+            let seg0_out: Vec<NodeID> = gs_cov.get_outgoing_edges(segl0_id).collect();
+            assert_eq!(3, seg0_out.len());
 
-            let dipl2_id = graph.get_node_id_from_name("root/doc1#dipl2").unwrap();
-            let dipl2_out : Vec<NodeID> = gs_cov.get_outgoing_edges(dipl2_id).collect();
-            assert_eq!(1, dipl2_out.len());
+            let seg1_id = graph.get_node_id_from_name("root/doc1#seg1").unwrap();
+            let seg1_out: Vec<NodeID> = gs_cov.get_outgoing_edges(seg1_id).collect();
+            assert_eq!(2, seg1_out.len());
+
+            let seg2_id = graph.get_node_id_from_name("root/doc1#seg2").unwrap();
+            let seg2_out: Vec<NodeID> = gs_cov.get_outgoing_edges(seg2_id).collect();
+            assert_eq!(4, seg2_out.len());
+
+            assert_eq!(None, graph.get_node_id_from_name("root/doc1#seg3"));
+
         }
     }
 }
