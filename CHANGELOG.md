@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.23.1] - 2019-10-16
 
+### Fixed
+
+- Deploying release artifacts by CI was broken due to invalid condition
+
+
 ## [0.23.0] - 2019-10-16
 
 ### Added
