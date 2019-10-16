@@ -91,6 +91,6 @@ deploy:
       repo: korpling/graphANNIS
       branch: master
       tags: true
-      condition: $TRAVIS_OS_NAME == "linux" -a "$TEST_SUITE" == ""
+      condition: $TRAVIS_OS_NAME == "linux" && "$TEST_SUITE" == ""
     skip-cleanup: true
       
