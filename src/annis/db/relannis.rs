@@ -143,25 +143,20 @@ where
 
         let mut db = Graph::with_default_graphstorages()?;
         let mut updater = ChunkUpdater::new(&mut db, 1_000_000);
-        let (toplevel_corpus_name, id_to_node_name, textpos_table) = {
-            let (toplevel_corpus_name, id_to_node_name, textpos_table) =
-                load_node_and_corpus_tables(&path, &mut updater, is_annis_33, &progress_callback)?;
-
-            (toplevel_corpus_name, id_to_node_name, textpos_table)
-        };
+        let load_node_and_corpus_result =
+            load_node_and_corpus_tables(&path, &mut updater, is_annis_33, &progress_callback)?;
         {
             let text_coverage_edges = load_edge_tables(
                 &path,
                 &mut updater,
                 is_annis_33,
-                &id_to_node_name,
+                &load_node_and_corpus_result.id_to_node_name,
                 &progress_callback,
             )?;
 
             calculate_automatic_coverage_edges(
                 &mut updater,
-                &textpos_table,
-                &id_to_node_name,
+                &load_node_and_corpus_result,
                 &text_coverage_edges,
                 &progress_callback,
             )?;
@@ -181,10 +176,16 @@ where
             path.to_string_lossy()
         ));
 
-        return Ok((toplevel_corpus_name, db));
+        return Ok((load_node_and_corpus_result.toplevel_corpus_name, db));
     }
 
     Err(format!("Directory {} not found", path.to_string_lossy()).into())
+}
+
+struct LoadNodeAndCorpusResult {
+    toplevel_corpus_name: String,
+    id_to_node_name: FxHashMap<NodeID, String>,
+    textpos_table: TextPosTable,
 }
 
 fn load_node_and_corpus_tables<F>(
@@ -192,7 +193,7 @@ fn load_node_and_corpus_tables<F>(
     updater: &mut ChunkUpdater,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(String, FxHashMap<NodeID, String>, TextPosTable)>
+) -> Result<LoadNodeAndCorpusResult>
 where
     F: Fn(&str) -> (),
 {
@@ -200,25 +201,24 @@ where
     let texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
     let corpus_id_to_annos = load_corpus_annotation(&path, is_annis_33, &progress_callback)?;
 
-    let (nodes_by_text, id_to_node_name, textpos_table) =
+    let load_nodes_result =
         load_nodes(path, updater, &corpus_table, is_annis_33, progress_callback)?;
 
     add_subcorpora(
         updater,
         &corpus_table,
-        &nodes_by_text,
+        &load_nodes_result,
         &texts,
         &corpus_id_to_annos,
-        &id_to_node_name,
         is_annis_33,
         progress_callback,
     )?;
 
-    Ok((
-        corpus_table.toplevel_corpus_name,
-        id_to_node_name,
-        textpos_table,
-    ))
+    Ok(LoadNodeAndCorpusResult {
+        toplevel_corpus_name: corpus_table.toplevel_corpus_name,
+        id_to_node_name: load_nodes_result.id_to_node_name,
+        textpos_table: load_nodes_result.textpos_table,
+    })
 }
 
 fn load_edge_tables<F>(
@@ -231,32 +231,30 @@ fn load_edge_tables<F>(
 where
     F: Fn(&str) -> (),
 {
-    let (pre_to_component, pre_to_edge, text_coverage_edges) = {
+    let load_rank_result = {
         let component_by_id = load_component_tab(path, is_annis_33, progress_callback)?;
 
-        let (pre_to_component, pre_to_edge, text_coverage_edges) = load_rank_tab(
+        load_rank_tab(
             path,
             updater,
             &component_by_id,
             id_to_node_name,
             is_annis_33,
             progress_callback,
-        )?;
-
-        (pre_to_component, pre_to_edge, text_coverage_edges)
+        )?
     };
 
     load_edge_annotation(
         path,
         updater,
-        &pre_to_component,
-        &pre_to_edge,
+        &load_rank_result.pre_to_component,
+        &load_rank_result.pre_to_edge,
         id_to_node_name,
         is_annis_33,
         progress_callback,
     )?;
 
-    Ok(text_coverage_edges)
+    Ok(load_rank_result.text_coverage_edges)
 }
 
 fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File>, csv::Error> {
@@ -447,8 +445,7 @@ fn add_automatic_cov_edge_for_node<F>(
     n: NodeID,
     left_pos: TextProperty,
     right_pos: TextProperty,
-    textpos_table: &TextPosTable,
-    id_to_node_name: &FxHashMap<NodeID, String>,
+    load_node_and_corpus_result: &LoadNodeAndCorpusResult,
     text_coverage_edges: &BTreeSet<Edge>,
     progress_callback: &F,
 ) -> Result<()>
@@ -456,11 +453,13 @@ where
     F: Fn(&str) -> (),
 {
     // find left/right aligned basic token
-    let left_aligned_tok = textpos_table
+    let left_aligned_tok = load_node_and_corpus_result
+        .textpos_table
         .token_by_left_textpos
         .get(&left_pos)
         .ok_or_else(|| format!("Can't get left-aligned token for node {}", n,));
-    let right_aligned_tok = textpos_table
+    let right_aligned_tok = load_node_and_corpus_result
+        .textpos_table
         .token_by_right_textpos
         .get(&right_pos)
         .ok_or_else(|| format!("Can't get right-aligned token for node {}", n,));
@@ -478,7 +477,8 @@ where
         left_aligned_tok
     };
 
-    let left_tok_pos = textpos_table
+    let left_tok_pos = load_node_and_corpus_result
+        .textpos_table
         .token_to_index
         .get(&left_aligned_tok)
         .ok_or_else(|| {
@@ -487,7 +487,8 @@ where
                 left_aligned_tok
             )
         })?;
-    let right_tok_pos = textpos_table
+    let right_tok_pos = load_node_and_corpus_result
+        .textpos_table
         .token_to_index
         .get(&right_aligned_tok)
         .ok_or_else(|| {
@@ -497,14 +498,15 @@ where
             )
         })?;
 
-    for i in left_tok_pos.val..(right_tok_pos.val + 1) {
+    for i in left_tok_pos.val..=right_tok_pos.val {
         let tok_idx = TextProperty {
             segmentation: String::default(),
             corpus_id: left_tok_pos.corpus_id,
             text_id: left_tok_pos.text_id,
             val: i,
         };
-        let tok_id = textpos_table
+        let tok_id = load_node_and_corpus_result
+            .textpos_table
             .token_by_index
             .get(&tok_idx)
             .ok_or_else(|| format!("Can't get token ID for position {:?}", tok_idx))?;
@@ -540,8 +542,13 @@ where
 
                 updater.add_event(
                     UpdateEvent::AddEdge {
-                        source_node: id_to_node_name.get(&n).ok_or("Missing node name")?.clone(),
-                        target_node: id_to_node_name
+                        source_node: load_node_and_corpus_result
+                            .id_to_node_name
+                            .get(&n)
+                            .ok_or("Missing node name")?
+                            .clone(),
+                        target_node: load_node_and_corpus_result
+                            .id_to_node_name
                             .get(tok_id)
                             .ok_or("Missing node name")?
                             .clone(),
@@ -561,8 +568,7 @@ where
 
 fn calculate_automatic_coverage_edges<F>(
     updater: &mut ChunkUpdater,
-    textpos_table: &TextPosTable,
-    id_to_node_name: &FxHashMap<NodeID, String>,
+    load_node_and_corpus_result: &LoadNodeAndCorpusResult,
     text_coverage_edges: &BTreeSet<Edge>,
     progress_callback: &F,
 ) -> Result<()>
@@ -572,44 +578,51 @@ where
     // add explicit coverage edges for each node in the special annis namespace coverage component
     progress_callback("calculating the automatically generated Coverage edges");
 
-    for (n, textprop) in textpos_table.node_to_left.iter() {
-        if textprop.segmentation == "" {
-            if !textpos_table.token_to_index.contains_key(&n) {
-                let left_pos = TextProperty {
-                    segmentation: String::from(""),
-                    corpus_id: textprop.corpus_id,
-                    text_id: textprop.text_id,
-                    val: textprop.val,
-                };
-                let right_pos = textpos_table
-                    .node_to_right
-                    .get(&n)
-                    .ok_or_else(|| format!("Can't get right position of node {}", n))?;
-                let right_pos = TextProperty {
-                    segmentation: String::from(""),
-                    corpus_id: textprop.corpus_id,
-                    text_id: textprop.text_id,
-                    val: right_pos.val,
-                };
+    for (n, textprop) in load_node_and_corpus_result
+        .textpos_table
+        .node_to_left
+        .iter()
+    {
+        if textprop.segmentation == ""
+            && !load_node_and_corpus_result
+                .textpos_table
+                .token_to_index
+                .contains_key(&n)
+        {
+            let left_pos = TextProperty {
+                segmentation: String::from(""),
+                corpus_id: textprop.corpus_id,
+                text_id: textprop.text_id,
+                val: textprop.val,
+            };
+            let right_pos = load_node_and_corpus_result
+                .textpos_table
+                .node_to_right
+                .get(&n)
+                .ok_or_else(|| format!("Can't get right position of node {}", n))?;
+            let right_pos = TextProperty {
+                segmentation: String::from(""),
+                corpus_id: textprop.corpus_id,
+                text_id: textprop.text_id,
+                val: right_pos.val,
+            };
 
-                if let Err(e) = add_automatic_cov_edge_for_node(
-                    updater,
-                    *n,
-                    left_pos,
-                    right_pos,
-                    textpos_table,
-                    id_to_node_name,
-                    text_coverage_edges,
-                    progress_callback,
-                ) {
-                    // output a warning but do not fail
-                    warn!(
-                        "Adding coverage edges (connects spans with tokens) failed: {}",
-                        e
-                    )
-                }
-            } // end if not a token
-        }
+            if let Err(e) = add_automatic_cov_edge_for_node(
+                updater,
+                *n,
+                left_pos,
+                right_pos,
+                &load_node_and_corpus_result,
+                text_coverage_edges,
+                progress_callback,
+            ) {
+                // output a warning but do not fail
+                warn!(
+                    "Adding coverage edges (connects spans with tokens) failed: {}",
+                    e
+                )
+            }
+        } // end if not a token
     }
 
     updater.commit(
@@ -620,18 +633,20 @@ where
     Ok(())
 }
 
+struct NodeTabParseResult {
+    nodes_by_text: MultiMap<TextKey, NodeID>,
+    missing_seg_span: BTreeMap<NodeID, String>,
+    id_to_node_name: FxHashMap<NodeID, String>,
+    textpos_table: TextPosTable,
+}
+
 fn load_node_tab<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
     corpus_table: &ParsedCorpusTable,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(
-    MultiMap<TextKey, NodeID>,
-    BTreeMap<NodeID, String>,
-    FxHashMap<NodeID, String>,
-    TextPosTable,
-)>
+) -> Result<NodeTabParseResult>
 where
     F: Fn(&str) -> (),
 {
@@ -833,12 +848,12 @@ where
         )?;
     } // end if token_by_index not empty
 
-    Ok((
+    Ok(NodeTabParseResult {
         nodes_by_text,
         missing_seg_span,
         id_to_node_name,
         textpos_table,
-    ))
+    })
 }
 
 fn load_node_anno_tab<F>(
@@ -971,21 +986,23 @@ where
     Ok(component_by_id)
 }
 
+struct LoadNodeResult {
+    nodes_by_text: MultiMap<TextKey, NodeID>,
+    id_to_node_name: FxHashMap<NodeID, String>,
+    textpos_table: TextPosTable,
+}
+
 fn load_nodes<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
     corpus_table: &ParsedCorpusTable,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(
-    MultiMap<TextKey, NodeID>,
-    FxHashMap<NodeID, String>,
-    TextPosTable,
-)>
+) -> Result<LoadNodeResult>
 where
     F: Fn(&str) -> (),
 {
-    let (nodes_by_text, missing_seg_span, id_to_node_name, textpos_table) =
+    let node_tab_parse_result =
         load_node_tab(path, updater, corpus_table, is_annis_33, progress_callback)?;
 
     for order_component in updater
@@ -999,13 +1016,23 @@ where
     load_node_anno_tab(
         path,
         updater,
-        &missing_seg_span,
-        &id_to_node_name,
+        &node_tab_parse_result.missing_seg_span,
+        &node_tab_parse_result.id_to_node_name,
         is_annis_33,
         progress_callback,
     )?;
 
-    Ok((nodes_by_text, id_to_node_name, textpos_table))
+    Ok(LoadNodeResult {
+        nodes_by_text: node_tab_parse_result.nodes_by_text,
+        id_to_node_name: node_tab_parse_result.id_to_node_name,
+        textpos_table: node_tab_parse_result.textpos_table,
+    })
+}
+
+struct LoadRankResult {
+    pre_to_component: BTreeMap<u32, Component>,
+    pre_to_edge: BTreeMap<u32, Edge>,
+    text_coverage_edges: BTreeSet<Edge>,
 }
 
 fn load_rank_tab<F>(
@@ -1015,11 +1042,7 @@ fn load_rank_tab<F>(
     id_to_node_name: &FxHashMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(
-    BTreeMap<u32, Component>,
-    BTreeMap<u32, Edge>,
-    BTreeSet<Edge>,
-)>
+) -> Result<LoadRankResult>
 where
     F: Fn(&str) -> (),
 {
@@ -1112,7 +1135,11 @@ where
 
     updater.commit(Some(msg), progress_callback)?;
 
-    Ok((pre_to_component, pre_to_edge, text_coverage_edges))
+    Ok(LoadRankResult {
+        pre_to_component,
+        pre_to_edge,
+        text_coverage_edges,
+    })
 }
 
 fn load_edge_annotation<F>(
@@ -1260,10 +1287,9 @@ fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
 fn add_subcorpora<F>(
     updater: &mut ChunkUpdater,
     corpus_table: &ParsedCorpusTable,
-    nodes_by_text: &MultiMap<TextKey, NodeID>,
+    node_node_result: &LoadNodeResult,
     texts: &HashMap<TextKey, Text>,
     corpus_id_to_annos: &MultiMap<u32, Annotation>,
-    id_to_node_name: &FxHashMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<()>
@@ -1380,7 +1406,7 @@ where
     } // end for each document/sub-corpus
 
     // add a node for each text and the connection between all sub-nodes of the text
-    for text_key in nodes_by_text.keys() {
+    for text_key in node_node_result.nodes_by_text.keys() {
         // add text node (including its name)
         let text_name: Option<String> = if is_annis_33 {
             // corpus_ref is included in the text.annis
@@ -1421,11 +1447,15 @@ where
             )?;
 
             // find all nodes belonging to this text and add a relation
-            if let Some(n_vec) = nodes_by_text.get_vec(text_key) {
+            if let Some(n_vec) = node_node_result.nodes_by_text.get_vec(text_key) {
                 for n in n_vec {
                     updater.add_event(
                         UpdateEvent::AddEdge {
-                            source_node: id_to_node_name.get(n).ok_or("Missing node name")?.clone(),
+                            source_node: node_node_result
+                                .id_to_node_name
+                                .get(n)
+                                .ok_or("Missing node name")?
+                                .clone(),
                             target_node: text_full_name.clone(),
                             layer: ANNIS_NS.to_owned(),
                             component_type: ComponentType::PartOf.to_string(),

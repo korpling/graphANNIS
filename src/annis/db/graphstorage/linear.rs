@@ -62,7 +62,7 @@ impl<PosT: 'static> EdgeContainer for LinearGraphStorage<PosT>
 where
     PosT: NumValue,
 {
-    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         if let Some(pos) = self.node_to_pos.get(&node) {
             // find the next node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root) {
@@ -77,7 +77,7 @@ where
         Box::from(std::iter::empty())
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         if let Some(pos) = self.node_to_pos.get(&node) {
             // find the previous node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root) {
@@ -91,7 +91,7 @@ where
         Box::from(std::iter::empty())
     }
 
-    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         // use the node chains to find source nodes, but always skip the last element
         // because the last element is only a target node, not a source node
         let it = self
@@ -112,7 +112,7 @@ impl<PosT: 'static> GraphStorage for LinearGraphStorage<PosT>
 where
     for<'de> PosT: NumValue + Deserialize<'de> + Serialize,
 {
-    fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
+    fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge> {
         &self.annos
     }
 
@@ -120,12 +120,12 @@ where
         format!("LinearO{}V1", std::mem::size_of::<PosT>() * 8)
     }
 
-    fn serialize_gs(&self, writer: &mut std::io::Write) -> Result<()> {
+    fn serialize_gs(&self, writer: &mut dyn std::io::Write) -> Result<()> {
         bincode::serialize_into(writer, self)?;
         Ok(())
     }
 
-    fn deserialize_gs(input: &mut std::io::Read) -> Result<Self>
+    fn deserialize_gs(input: &mut dyn std::io::Read) -> Result<Self>
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
@@ -139,7 +139,7 @@ where
         source: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         if let Some(start_pos) = self.node_to_pos.get(&source) {
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
                 if let Some(offset) = start_pos.pos.to_usize() {
@@ -172,7 +172,7 @@ where
         source: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         if let Some(start_pos) = self.node_to_pos.get(&source) {
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
                 if let Some(offset) = start_pos.pos.to_usize() {
@@ -188,10 +188,8 @@ where
 
                     if let Some(min_distance) = offset.checked_sub(min_distance) {
                         if min_distance < chain.len() && max_distance <= min_distance {
-                            // return all entries in the chain between min_distance..max_distance
-                            return Box::new(
-                                chain[max_distance..(min_distance + 1)].iter().cloned(),
-                            );
+                            // return all entries in the chain between min_distance..max_distance (inclusive)
+                            return Box::new(chain[max_distance..=min_distance].iter().cloned());
                         } else if max_distance < chain.len() {
                             // return all entries in the chain between min_distance..max_distance
                             return Box::new(chain[max_distance..chain.len()].iter().cloned());
@@ -203,13 +201,13 @@ where
         Box::new(std::iter::empty())
     }
 
-    fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
+    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
         if source == target {
             return Some(0);
         }
 
         if let (Some(source_pos), Some(target_pos)) =
-            (self.node_to_pos.get(source), self.node_to_pos.get(target))
+            (self.node_to_pos.get(&source), self.node_to_pos.get(&target))
         {
             if source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
                 let diff = target_pos.pos.clone() - source_pos.pos.clone();
@@ -223,13 +221,13 @@ where
 
     fn is_connected(
         &self,
-        source: &NodeID,
-        target: &NodeID,
+        source: NodeID,
+        target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
     ) -> bool {
         if let (Some(source_pos), Some(target_pos)) =
-            (self.node_to_pos.get(source), self.node_to_pos.get(target))
+            (self.node_to_pos.get(&source), self.node_to_pos.get(&target))
         {
             if source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
                 let diff = target_pos.pos.clone() - source_pos.pos.clone();
@@ -252,13 +250,13 @@ where
         false
     }
 
-    fn copy(&mut self, db: &Graph, orig: &GraphStorage) {
+    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) {
         self.clear();
 
         // find all roots of the component
         let mut roots: FxHashSet<NodeID> = FxHashSet::default();
         let node_name_key: AnnoKey = db.get_node_name_key();
-        let nodes: Box<Iterator<Item = Match>> = db.node_annos.exact_anno_search(
+        let nodes: Box<dyn Iterator<Item = Match>> = db.node_annos.exact_anno_search(
             Some(node_name_key.ns.clone()),
             node_name_key.name.clone(),
             None.into(),
@@ -274,7 +272,7 @@ where
             }
         }
 
-        let nodes: Box<Iterator<Item = Match>> = db.node_annos.exact_anno_search(
+        let nodes: Box<dyn Iterator<Item = Match>> = db.node_annos.exact_anno_search(
             Some(node_name_key.ns),
             node_name_key.name,
             None.into(),
@@ -335,7 +333,7 @@ where
         true
     }
 
-    fn as_edgecontainer(&self) -> &EdgeContainer {
+    fn as_edgecontainer(&self) -> &dyn EdgeContainer {
         self
     }
 }

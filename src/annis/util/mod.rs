@@ -57,7 +57,7 @@ impl From<SearchDefRaw> for SearchDef {
             aql: orig.aql,
             count: orig.count,
             name: orig.name,
-            corpus: orig.corpus.split(",").map(|s| s.to_string()).collect(),
+            corpus: orig.corpus.split(',').map(|s| s.to_string()).collect(),
         }
     }
 }
@@ -77,7 +77,7 @@ pub fn get_queries_from_csv(file: &Path, panic_on_invalid: bool) -> Vec<SearchDe
         } else {
             let it = reader
                 .deserialize()
-                .filter_map(|row| -> Option<SearchDef> { row.ok().into() });
+                .filter_map(|row| -> Option<SearchDef> { row.ok() });
             it.collect()
         }
     } else {

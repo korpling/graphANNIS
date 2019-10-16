@@ -18,7 +18,7 @@ impl BinaryOperatorSpec for EqualValueSpec {
         HashSet::default()
     }
 
-    fn create_operator<'a>(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
         Some(Box::new(EqualValue {
             node_annos: db.node_annos.clone(),
             spec_left: self.spec_left.clone(),
@@ -93,7 +93,7 @@ impl EqualValue {
 }
 
 impl BinaryOperator for EqualValue {
-    fn retrieve_matches<'a>(&'a self, lhs: &Match) -> Box<Iterator<Item = Match>> {
+    fn retrieve_matches<'a>(&'a self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let lhs = lhs.clone();
         if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
             let lhs_val = lhs_val.to_owned();
@@ -156,7 +156,7 @@ impl BinaryOperator for EqualValue {
         EstimationType::SELECTIVITY(0.5)
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
+    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
         Some(Box::from(self.clone()))
     }
 }

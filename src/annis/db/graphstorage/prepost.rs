@@ -121,15 +121,15 @@ where
     for<'de> OrderT: NumValue + Deserialize<'de> + Serialize,
     for<'de> LevelT: NumValue + Deserialize<'de> + Serialize,
 {
-    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         self.find_connected(node, 1, Included(1))
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         self.find_connected_inverse(node, 1, Included(1))
     }
 
-    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         let it = self.node_to_order.iter().filter_map(move |(n, _order)| {
             // check if this is actual a source node (and not only a target node)
             if self.get_outgoing_edges(*n).next().is_some() {
@@ -151,7 +151,7 @@ where
     for<'de> OrderT: NumValue + Deserialize<'de> + Serialize,
     for<'de> LevelT: NumValue + Deserialize<'de> + Serialize,
 {
-    fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
+    fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge> {
         &self.annos
     }
 
@@ -163,12 +163,12 @@ where
         )
     }
 
-    fn serialize_gs(&self, writer: &mut std::io::Write) -> Result<()> {
+    fn serialize_gs(&self, writer: &mut dyn std::io::Write) -> Result<()> {
         bincode::serialize_into(writer, self)?;
         Ok(())
     }
 
-    fn deserialize_gs(input: &mut std::io::Read) -> Result<Self>
+    fn deserialize_gs(input: &mut dyn std::io::Read) -> Result<Self>
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
@@ -182,7 +182,7 @@ where
         node: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         if let Some(start_orders) = self.node_to_order.get(&node) {
             let mut visited = FxHashSet::<NodeID>::default();
 
@@ -193,7 +193,7 @@ where
             };
 
             let it = start_orders
-                .into_iter()
+                .iter()
                 .flat_map(move |root_order: &PrePost<OrderT, LevelT>| {
                     let start = root_order.pre.to_usize().unwrap_or(0);
                     let end = root_order
@@ -241,7 +241,7 @@ where
         start_node: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         if let Some(start_orders) = self.node_to_order.get(&start_node) {
             let mut visited = FxHashSet::<NodeID>::default();
 
@@ -252,7 +252,7 @@ where
             };
 
             let it = start_orders
-                .into_iter()
+                .iter()
                 .flat_map(move |root_order: &PrePost<OrderT, LevelT>| {
                     let root_pre = root_order.pre.clone().to_usize().unwrap_or(0);
                     let root_post = root_order
@@ -335,7 +335,7 @@ where
         }
     }
 
-    fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
+    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
         if source == target {
             return Some(0);
         }
@@ -344,8 +344,8 @@ where
         let mut was_found = false;
 
         if let (Some(order_source), Some(order_target)) = (
-            self.node_to_order.get(source),
-            self.node_to_order.get(target),
+            self.node_to_order.get(&source),
+            self.node_to_order.get(&target),
         ) {
             for order_source in order_source.iter() {
                 for order_target in order_target.iter() {
@@ -374,14 +374,14 @@ where
     }
     fn is_connected(
         &self,
-        source: &NodeID,
-        target: &NodeID,
+        source: NodeID,
+        target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
     ) -> bool {
         if let (Some(order_source), Some(order_target)) = (
-            self.node_to_order.get(source),
-            self.node_to_order.get(target),
+            self.node_to_order.get(&source),
+            self.node_to_order.get(&target),
         ) {
             let max_distance = match max_distance {
                 Unbounded => usize::max_value(),
@@ -411,13 +411,13 @@ where
         false
     }
 
-    fn copy(&mut self, db: &Graph, orig: &GraphStorage) {
+    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) {
         self.clear();
 
         // find all roots of the component
         let mut roots: FxHashSet<NodeID> = FxHashSet::default();
         let node_name_key: AnnoKey = db.get_node_name_key();
-        let nodes: Box<Iterator<Item = Match>> = db.node_annos.exact_anno_search(
+        let nodes: Box<dyn Iterator<Item = Match>> = db.node_annos.exact_anno_search(
             Some(node_name_key.ns.clone()),
             node_name_key.name.clone(),
             None.into(),
@@ -433,7 +433,7 @@ where
             }
         }
 
-        let nodes: Box<Iterator<Item = Match>> = db.node_annos.exact_anno_search(
+        let nodes: Box<dyn Iterator<Item = Match>> = db.node_annos.exact_anno_search(
             Some(node_name_key.ns),
             node_name_key.name,
             None.into(),
@@ -540,7 +540,7 @@ where
         self.node_to_order.shrink_to_fit();
     }
 
-    fn as_edgecontainer(&self) -> &EdgeContainer {
+    fn as_edgecontainer(&self) -> &dyn EdgeContainer {
         self
     }
 }

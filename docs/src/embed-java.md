@@ -8,15 +8,17 @@ If you are using Apache Maven as your build system, you can add a dependency to 
 ```xml
 <dependency>
   <groupId>org.corpus-tools</groupId>
-  <artifactId>graphannis-api</artifactId>
-  <version>0.22.0</version>
+  <artifactId>graphannis</artifactId>
+  <version>__version__</version>
 </dependency>
 ```
+Replace `__version__` with the latest released version of the Java language bindings, e.g. 
+by searching for it on [Maven Central](https://search.maven.org/search?q=g:org.corpus-tools%20AND%20a:graphannis).
 
 ## API documentation
 
 The API documentation is available at 
-[http://www.javadoc.io/doc/org.corpus-tools/graphannis-api/](http://www.javadoc.io/doc/org.corpus-tools/graphannis-api/).
+[http://www.javadoc.io/doc/org.corpus-tools/graphannis/](http://www.javadoc.io/doc/org.corpus-tools/graphannis/).
 
 ## Corpus data directory
 
@@ -123,7 +125,7 @@ There are two functions to query a corpus with AQL:
 - `count(...)` returns the number of matches, and
 - `find(...)` returns a paginated list of matched node IDs.
 
-You have to give the list of corpora and the query as arguments to both functions.
+You have to give name of the corpus and the query as arguments to both functions.
 The following example searches for all tokens that contain a `s` character.[^aql]
 ```java
 package org.corpus_tools;
@@ -136,9 +138,9 @@ import org.corpus_tools.graphannis.errors.GraphANNISException;
 public class Query {
     public static void main(String[] args) throws GraphANNISException {
         CorpusStorageManager cs = new CorpusStorageManager("data");
-        long number_of_matches = cs.count(Arrays.asList("tutorial"), "tok=/.*s.*/");
+        long number_of_matches = cs.count("tutorial", "tok=/.*s.*/");
         System.out.println("Number of matches: " + number_of_matches);
-        String[] matches = cs.find(Arrays.asList("tutorial"), "tok=/.*s.*/", 0, 100);
+        String[] matches = cs.find("tutorial", "tok=/.*s.*/", 0, 100);
         for (int i = 0; i < matches.length; i++) {
             System.out.println("Match " + i + ": " + matches[i]);
         }
@@ -173,7 +175,7 @@ import org.corpus_tools.graphannis.model.Node;
 public class FindSubgraph {
     public static void main(String[] args) throws GraphANNISException {
         CorpusStorageManager cs = new CorpusStorageManager("data");
-        String[] matches = cs.find(Arrays.asList("tutorial"), "tok . tok", 0, 100);
+        String[] matches = cs.find("tutorial", "tok . tok", 0, 100);
         for (String m : matches) {
             System.out.println(m);
             // convert the match string to a list of node IDs

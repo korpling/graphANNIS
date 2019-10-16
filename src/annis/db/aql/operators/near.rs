@@ -20,7 +20,7 @@ pub struct NearSpec {
 
 #[derive(Clone)]
 struct Near {
-    gs_order: Arc<GraphStorage>,
+    gs_order: Arc<dyn GraphStorage>,
     tok_helper: TokenHelper,
     spec: NearSpec,
 }
@@ -42,7 +42,7 @@ impl BinaryOperatorSpec for NearSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
         let optional_op = Near::new(db, self.clone());
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -92,7 +92,7 @@ impl std::fmt::Display for Near {
 }
 
 impl BinaryOperator for Near {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let start_forward = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
@@ -105,7 +105,7 @@ impl BinaryOperator for Near {
             self.tok_helper.left_token_for(lhs.node)
         };
 
-        let it_forward: Box<Iterator<Item = u64>> = if let Some(start) = start_forward {
+        let it_forward: Box<dyn Iterator<Item = u64>> = if let Some(start) = start_forward {
             let it = self
                 .gs_order
                 // get all token in the range
@@ -121,7 +121,7 @@ impl BinaryOperator for Near {
             Box::new(std::iter::empty::<u64>())
         };
 
-        let it_backward: Box<Iterator<Item = u64>> = if let Some(start) = start_backward {
+        let it_backward: Box<dyn Iterator<Item = u64>> = if let Some(start) = start_backward {
             let it = self
                 .gs_order
                 // get all token in the range
@@ -173,13 +173,13 @@ impl BinaryOperator for Near {
         };
 
         self.gs_order.is_connected(
-            &start_end_forward.0,
-            &start_end_forward.1,
+            start_end_forward.0,
+            start_end_forward.1,
             self.spec.dist.min_dist(),
             self.spec.dist.max_dist(),
         ) || self.gs_order.is_connected(
-            &start_end_backward.1,
-            &start_end_backward.0,
+            start_end_backward.1,
+            start_end_backward.0,
             self.spec.dist.min_dist(),
             self.spec.dist.max_dist(),
         )
@@ -203,7 +203,7 @@ impl BinaryOperator for Near {
         EstimationType::SELECTIVITY(0.1)
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
+    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
         Some(Box::new(self.clone()))
     }
 }

@@ -14,7 +14,7 @@ use std::sync::Arc;
 pub struct InclusionSpec;
 
 pub struct Inclusion {
-    gs_order: Arc<GraphStorage>,
+    gs_order: Arc<dyn GraphStorage>,
     tok_helper: TokenHelper,
 }
 
@@ -36,7 +36,7 @@ impl BinaryOperatorSpec for InclusionSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
         let optional_op = Inclusion::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -66,10 +66,10 @@ impl std::fmt::Display for Inclusion {
 }
 
 impl BinaryOperator for Inclusion {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         if let (Some(start_lhs), Some(end_lhs)) = self.tok_helper.left_right_token_for(lhs.node) {
             // span length of LHS
-            if let Some(l) = self.gs_order.distance(&start_lhs, &end_lhs) {
+            if let Some(l) = self.gs_order.distance(start_lhs, end_lhs) {
                 // find each token which is between the left and right border
                 let result: VecDeque<Match> = self
                     .gs_order
@@ -79,7 +79,6 @@ impl BinaryOperator for Inclusion {
                             .tok_helper
                             .get_gs_left_token()
                             .get_ingoing_edges(t)
-                            .into_iter()
                             .filter(move |n| {
                                 // right-aligned token of candidate
                                 let mut end_n =
@@ -88,8 +87,8 @@ impl BinaryOperator for Inclusion {
                                     // path between right-most tokens exists in ORDERING component
                                     // and has maximum length l
                                     self.gs_order.is_connected(
-                                        &end_n,
-                                        &end_lhs,
+                                        end_n,
+                                        end_lhs,
                                         0,
                                         std::ops::Bound::Included(l),
                                     )
@@ -122,11 +121,11 @@ impl BinaryOperator for Inclusion {
             left_right_rhs.1,
         ) {
             // span length of LHS
-            if let Some(l) = self.gs_order.distance(&start_lhs, &end_lhs) {
+            if let Some(l) = self.gs_order.distance(start_lhs, end_lhs) {
                 // path between left-most tokens exists in ORDERING component and has maximum length l
-                if self.gs_order.is_connected(&start_lhs, &start_rhs, 0, std::ops::Bound::Included(l))
+                if self.gs_order.is_connected(start_lhs, start_rhs, 0, std::ops::Bound::Included(l))
                 // path between right-most tokens exists in ORDERING component and has maximum length l
-                && self.gs_order.is_connected(&end_rhs, &end_lhs, 0, std::ops::Bound::Included(l))
+                && self.gs_order.is_connected(end_rhs, end_lhs, 0, std::ops::Bound::Included(l))
                 {
                     return true;
                 }

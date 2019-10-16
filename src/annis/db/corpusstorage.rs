@@ -47,6 +47,9 @@ use rand::seq::SliceRandom;
 use std::ffi::CString;
 use sys_info;
 
+#[cfg(test)]
+mod tests;
+
 enum CacheEntry {
     Loaded(Graph),
     NotLoaded,
@@ -210,7 +213,7 @@ impl FromStr for FrequencyDefEntry {
 /// An enum over all supported query languages of graphANNIS.
 ///
 /// Currently, only the ANNIS Query Language (AQL) and its variants are supported, but this enum allows us to add a support for older query language versions
-/// or completly new query languages.
+/// or completely new query languages.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub enum QueryLanguage {
@@ -223,7 +226,7 @@ pub enum QueryLanguage {
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub enum ImportFormat {
-    /// Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/doc/dev-annisimportformat.html)
+    /// Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/4.0/developer-guide/annisimportformat.html)
     RelANNIS,
 }
 
@@ -267,6 +270,95 @@ fn init_locale() {
     }
 }
 
+fn add_subgraph_precedence(
+    query: &mut Disjunction,
+    ctx: usize,
+    m: &NodeSearchSpec,
+    left: bool,
+) -> Result<()> {
+    // nodes overlapping tokens left/right of match (using reflexive overlap to include the token itself):
+    // node _o_ tok .0,ctx m
+    // m .0,ctx tok _o_ node
+    {
+        let mut q = Conjunction::new();
+
+        let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+        let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
+        let m_idx = q.add_node(m.clone(), None);
+        q.add_operator(
+            Box::new(operators::OverlapSpec { reflexive: true }),
+            &node_idx,
+            &tok_idx,
+            true,
+        )?;
+        q.add_operator(
+            Box::new(operators::PrecedenceSpec {
+                segmentation: None,
+                dist: RangeSpec::Bound {
+                    min_dist: 0,
+                    max_dist: ctx,
+                },
+            }),
+            if left { &tok_idx } else { &m_idx },
+            if left { &m_idx } else { &tok_idx },
+            true,
+        )?;
+        query.alternatives.push(q);
+    }
+
+    Ok(())
+}
+
+fn add_subgraph_precedence_with_segmentation(
+    query: &mut Disjunction,
+    ctx: usize,
+    segmentation: &str,
+    m: &NodeSearchSpec,
+    left: bool,
+) -> Result<()> {
+    // nodes overlapping the ones directly left/right of match (using reflexive overlap):
+    // target _o_ node .seg,0,ctx m_node _o_ m
+    // m _o_ m_node .0.ctx node  _o_ target
+    {
+        let mut q = Conjunction::new();
+        // Since only the first node is included in the result, make sure the target node is the first node of th query
+        let target_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+        let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+        let m_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+        let m_idx = q.add_node(m.clone(), None);
+
+        q.add_operator(
+            Box::new(operators::OverlapSpec { reflexive: true }),
+            &m_node_idx,
+            &m_idx,
+            false,
+        )?;
+
+        q.add_operator(
+            Box::new(operators::OverlapSpec { reflexive: true }),
+            &target_idx,
+            &node_idx,
+            false,
+        )?;
+
+        q.add_operator(
+            Box::new(operators::PrecedenceSpec {
+                segmentation: Some(segmentation.to_string()),
+                dist: RangeSpec::Bound {
+                    min_dist: 0,
+                    max_dist: ctx,
+                },
+            }),
+            if left { &node_idx } else { &m_node_idx },
+            if left { &m_node_idx } else { &node_idx },
+            false,
+        )?;
+        query.alternatives.push(q);
+    }
+
+    Ok(())
+}
+
 impl CorpusStorage {
     /// Create a new instance with a maximum size for the internal corpus cache.
     ///
@@ -282,7 +374,7 @@ impl CorpusStorage {
 
         let query_config = query::Config { use_parallel_joins };
 
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+        #[allow(clippy::mutex_atomic)]
         let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
@@ -311,7 +403,7 @@ impl CorpusStorage {
         // get the amount of available memory, use a quarter of it per default
         let cache_strategy: CacheStrategy = CacheStrategy::PercentOfFreeMemory(25.0);
 
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+        #[allow(clippy::mutex_atomic)]
         let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
 
         let cs = CorpusStorage {
@@ -672,7 +764,7 @@ impl CorpusStorage {
     }
 
     /// Delete a corpus from this corpus storage.
-    /// Returns `true` if the corpus was sucessfully deleted and `false` if no such corpus existed.
+    /// Returns `true` if the corpus was successfully deleted and `false` if no such corpus existed.
     pub fn delete(&self, corpus_name: &str) -> Result<bool> {
         let mut db_path = PathBuf::from(&self.db_dir);
         db_path.push(corpus_name);
@@ -1024,7 +1116,7 @@ impl CorpusStorage {
             }
         }
         let mut expected_size: Option<usize> = None;
-        let base_it: Box<Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
+        let base_it: Box<dyn Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
             || (order == ResultOrder::Normal && plan.is_sorted_by_text() && !quirks_mode)
         {
             // If the output is already sorted correctly, directly return the iterator.
@@ -1110,9 +1202,7 @@ impl CorpusStorage {
         };
         results.extend(base_it.skip(offset).take(limit).map(|m: Vec<Match>| {
             let mut match_desc: Vec<String> = Vec::new();
-            for i in 0..m.len() {
-                let singlematch: &Match = &m[i];
-
+            for (i, singlematch) in m.iter().enumerate() {
                 // check if query node actually should be included in quirks mode
                 let include_in_output = if quirks_mode {
                     if let Some(var) = prep.query.get_variable_by_pos(i) {
@@ -1128,7 +1218,7 @@ impl CorpusStorage {
                     let mut node_desc = String::new();
 
                     if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
-                        if &anno_key.ns != ANNIS_NS || &anno_key.name != NODE_TYPE {
+                        if anno_key.ns != ANNIS_NS || anno_key.name != NODE_TYPE {
                             if !anno_key.ns.is_empty() {
                                 let encoded_anno_ns: Cow<str> =
                                     utf8_percent_encode(&anno_key.ns, SALT_URI_ENCODE_SET).into();
@@ -1168,12 +1258,14 @@ impl CorpusStorage {
     /// - `corpus_name` - The name of the corpus for which the subgraph should be generated from.
     /// - `node_ids` - A set of node annotation identifiers describing the subgraph.
     /// - `ctx_left` and `ctx_right` - Left and right context in token distance to be included in the subgraph.
+    /// - `segmentation` - The name of the segmentation which should be used to as base for the context. Use `None` to define the context in the default token layer.
     pub fn subgraph(
         &self,
         corpus_name: &str,
         node_ids: Vec<String>,
         ctx_left: usize,
         ctx_right: usize,
+        segmentation: Option<String>,
     ) -> Result<Graph> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
 
@@ -1202,106 +1294,33 @@ impl CorpusStorage {
                 let mut q = Conjunction::new();
                 let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
                 let m_idx = q.add_node(m.clone(), None);
-                q.add_operator(Box::new(operators::OverlapSpec {}), &m_idx, &node_idx, true)?;
-                query.alternatives.push(q);
-            }
-            // tokens left of match: tok .0,ctx_left m
-            {
-                let mut q = Conjunction::new();
-                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
-                let m_idx = q.add_node(m.clone(), None);
-
                 q.add_operator(
-                    Box::new(operators::PrecedenceSpec {
-                        segmentation: None,
-                        dist: RangeSpec::Bound {
-                            min_dist: 0,
-                            max_dist: ctx_left,
-                        },
-                    }),
-                    &tok_idx,
+                    Box::new(operators::OverlapSpec { reflexive: true }),
                     &m_idx,
-                    true,
-                )?;
-                query.alternatives.push(q);
-            }
-
-            // nodes overlapping tokens left of match: node _o_ tok .0,ctx_left m
-            {
-                let mut q = Conjunction::new();
-
-                let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
-                let m_idx = q.add_node(m.clone(), None);
-                q.add_operator(
-                    Box::new(operators::OverlapSpec {}),
                     &node_idx,
-                    &tok_idx,
-                    true,
-                )?;
-                q.add_operator(
-                    Box::new(operators::PrecedenceSpec {
-                        segmentation: None,
-                        dist: RangeSpec::Bound {
-                            min_dist: 0,
-                            max_dist: ctx_left,
-                        },
-                    }),
-                    &tok_idx,
-                    &m_idx,
-                    true,
-                )?;
-                query.alternatives.push(q);
-            }
-            // tokens right of match: m .0,ctx_right tok
-            {
-                let mut q = Conjunction::new();
-
-                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
-                let m_idx = q.add_node(m.clone(), None);
-
-                q.add_operator(
-                    Box::new(operators::PrecedenceSpec {
-                        segmentation: None,
-                        dist: RangeSpec::Bound {
-                            min_dist: 0,
-                            max_dist: ctx_right,
-                        },
-                    }),
-                    &m_idx,
-                    &tok_idx,
-                    true,
+                    false,
                 )?;
                 query.alternatives.push(q);
             }
 
-            // nodes overlapping tokens right of match: m .0,ctx_right node _o_ tok
-            {
-                let mut q = Conjunction::new();
-
-                let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-                let m_idx = q.add_node(m.clone(), None);
-                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
-
-                q.add_operator(
-                    Box::new(operators::PrecedenceSpec {
-                        segmentation: None,
-                        dist: RangeSpec::Bound {
-                            min_dist: 0,
-                            max_dist: ctx_right,
-                        },
-                    }),
-                    &m_idx,
-                    &tok_idx,
+            if let Some(ref segmentation) = segmentation {
+                add_subgraph_precedence_with_segmentation(
+                    &mut query,
+                    ctx_left,
+                    segmentation,
+                    &m,
                     true,
                 )?;
-                q.add_operator(
-                    Box::new(operators::OverlapSpec {}),
-                    &tok_idx,
-                    &node_idx,
-                    true,
+                add_subgraph_precedence_with_segmentation(
+                    &mut query,
+                    ctx_right,
+                    segmentation,
+                    &m,
+                    false,
                 )?;
-                query.alternatives.push(q);
+            } else {
+                add_subgraph_precedence(&mut query, ctx_left, &m, true)?;
+                add_subgraph_precedence(&mut query, ctx_right, &m, false)?;
             }
         }
         extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config, None)
@@ -1502,14 +1521,11 @@ impl CorpusStorage {
             QueryLanguage::AQLQuirksV3 => aql::parse(query, true)?,
         };
 
-        let mut component_nr = 0;
-        for alt in q.alternatives {
-            let alt: Conjunction = alt;
+        for (component_nr, alt) in q.alternatives.iter().enumerate() {
             for mut n in alt.get_node_descriptions() {
                 n.alternative = component_nr;
                 result.push(n);
             }
-            component_nr += 1;
         }
 
         Ok(result)
@@ -1601,7 +1617,7 @@ impl CorpusStorage {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
                 if let Some(gs) = db.get_graphstorage(&component) {
-                    let edge_annos: &AnnotationStorage<Edge> = gs.get_anno_storage();
+                    let edge_annos = gs.get_anno_storage();
                     for key in edge_annos.annotation_keys() {
                         if list_values {
                             if only_most_frequent_values {
@@ -1666,136 +1682,13 @@ impl Drop for CorpusStorage {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    extern crate log;
-    extern crate tempfile;
-
-    use crate::corpusstorage::QueryLanguage;
-    use crate::update::{GraphUpdate, UpdateEvent};
-    use crate::CorpusStorage;
-
-    #[test]
-    fn delete() {
-        if let Ok(tmp) = tempfile::tempdir() {
-            let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
-            // fully load a corpus
-            let mut g = GraphUpdate::new();
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "test".to_string(),
-                node_type: "node".to_string(),
-            });
-
-            cs.apply_update("testcorpus", &mut g).unwrap();
-            cs.preload("testcorpus").unwrap();
-            cs.delete("testcorpus").unwrap();
-        }
-    }
-
-    #[test]
-    fn load_cs_twice() {
-        if let Ok(tmp) = tempfile::tempdir() {
-            {
-                let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
-                let mut g = GraphUpdate::new();
-                g.add_event(UpdateEvent::AddNode {
-                    node_name: "test".to_string(),
-                    node_type: "node".to_string(),
-                });
-
-                cs.apply_update("testcorpus", &mut g).unwrap();
-            }
-
-            {
-                let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
-                let mut g = GraphUpdate::new();
-                g.add_event(UpdateEvent::AddNode {
-                    node_name: "test".to_string(),
-                    node_type: "node".to_string(),
-                });
-
-                cs.apply_update("testcorpus", &mut g).unwrap();
-            }
-        }
-    }
-
-    #[test]
-    fn apply_update_add_and_delete_nodes() {
-        if let Ok(tmp) = tempfile::tempdir() {
-            let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
-
-            let mut g = GraphUpdate::new();
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root".to_string(),
-                node_type: "corpus".to_string(),
-            });
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1".to_string(),
-                node_type: "corpus".to_string(),
-            });
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1#MyToken1".to_string(),
-                node_type: "node".to_string(),
-            });
-
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1#MyToken2".to_string(),
-                node_type: "node".to_string(),
-            });
-
-            g.add_event(UpdateEvent::AddEdge {
-                source_node: "root/doc1#MyToken1".to_owned(),
-                target_node: "root/doc1#MyToken2".to_owned(),
-                layer: "dep".to_owned(),
-                component_type: "Pointing".to_owned(),
-                component_name: "dep".to_owned(),
-            });
-
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc2".to_string(),
-                node_type: "corpus".to_string(),
-            });
-            g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc2#MyToken".to_string(),
-                node_type: "node".to_string(),
-            });
-
-            cs.apply_update("root", &mut g).unwrap();
-
-            let node_count = cs.count("root", "node", QueryLanguage::AQL).unwrap();
-            assert_eq!(3, node_count);
-
-            let edge_count = cs
-                .count("root", "node ->dep node", QueryLanguage::AQL)
-                .unwrap();
-            assert_eq!(1, edge_count);
-
-            // delete one of the tokens
-            let mut g = GraphUpdate::new();
-            g.add_event(UpdateEvent::DeleteNode {
-                node_name: "root/doc1#MyToken2".to_string(),
-            });
-            cs.apply_update("root", &mut g).unwrap();
-
-            let node_count = cs.count("root", "node", QueryLanguage::AQL).unwrap();
-            assert_eq!(2, node_count);
-            let edge_count = cs
-                .count("root", "node ->dep node", QueryLanguage::AQL)
-                .unwrap();
-            assert_eq!(0, edge_count);
-        }
-    }
-
-}
-
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Graph> {
     if let CacheEntry::Loaded(ref db) = &**lock {
         return Ok(db);
     } else {
         return Err(Error::LoadingGraphFailed {
             name: "".to_string(),
-        }
-        .into());
+        });
     }
 }
 
@@ -1939,9 +1832,9 @@ fn create_subgraph_edge(
     // find outgoing edges
     for c in components {
         // don't include index components
-        if !(c.ctype == ComponentType::Coverage && c.layer == "annis" && c.name != "")
-            && !(c.ctype == ComponentType::LeftToken)
-            && !(c.ctype == ComponentType::RightToken)
+        if !((c.ctype == ComponentType::Coverage && c.layer == "annis" && c.name != "")
+            || c.ctype == ComponentType::RightToken
+            || c.ctype == ComponentType::LeftToken)
         {
             if let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {

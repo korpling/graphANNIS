@@ -25,7 +25,7 @@ pub struct Desc {
 }
 
 fn calculate_outputsize(
-    op: &BinaryOperator,
+    op: &dyn BinaryOperator,
     cost_lhs: &CostEstimate,
     cost_rhs: &CostEstimate,
 ) -> usize {
@@ -44,14 +44,15 @@ fn calculate_outputsize(
     std::cmp::max(output, 1)
 }
 
+pub struct NodeDescArg {
+    query_fragment: String,
+    node_nr: usize,
+}
+
 impl Desc {
-    pub fn empty_with_fragment(
-        query_fragment: &str,
-        node_nr: usize,
-        est_size: Option<usize>,
-    ) -> Desc {
+    pub fn empty_with_fragment(node_desc_arg: NodeDescArg, est_size: Option<usize>) -> Desc {
         let mut node_pos = BTreeMap::new();
-        node_pos.insert(node_nr, 0);
+        node_pos.insert(node_desc_arg.node_nr, 0);
 
         let cost = if let Some(output) = est_size {
             Some(CostEstimate {
@@ -69,18 +70,18 @@ impl Desc {
             rhs: None,
             node_pos,
             impl_description: String::from(""),
-            query_fragment: String::from(query_fragment),
+            query_fragment: node_desc_arg.query_fragment,
             cost,
         }
     }
 
     pub fn join(
-        op: &BinaryOperator,
+        op: &dyn BinaryOperator,
         lhs: Option<&Desc>,
         rhs: Option<&Desc>,
         impl_description: &str,
         query_fragment: &str,
-        processed_func: &Fn(EstimationType, usize, usize) -> usize,
+        processed_func: &dyn Fn(EstimationType, usize, usize) -> usize,
     ) -> Desc {
         let component_nr = if let Some(d) = lhs {
             d.component_nr
@@ -181,12 +182,12 @@ impl Desc {
 
 pub struct NodeSearchDesc {
     pub qname: (Option<String>, Option<String>),
-    pub cond: Vec<Box<Fn(&Match) -> bool + Sync + Send>>,
+    pub cond: Vec<Box<dyn Fn(&Match) -> bool + Sync + Send>>,
     pub const_output: Option<AnnoKeyID>,
 }
 
 pub trait ExecutionNode: Iterator {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>>;
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>>;
     fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {
         None
     }
@@ -211,7 +212,7 @@ impl Iterator for EmptyResultSet {
 }
 
 impl ExecutionNode for EmptyResultSet {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
         self
     }
     fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {

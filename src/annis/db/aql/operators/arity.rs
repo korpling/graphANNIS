@@ -22,7 +22,7 @@ impl UnaryOperatorSpec for AritySpec {
         result.extend(db.get_all_components(Some(ComponentType::Pointing), None));
         result
     }
-    fn create_operator(&self, db: &Graph) -> Option<Box<UnaryOperator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<dyn UnaryOperator>> {
         // collect all relevant graph storages
         let mut graphstorages = Vec::default();
 
@@ -45,7 +45,7 @@ impl UnaryOperatorSpec for AritySpec {
 }
 
 struct ArityOperator {
-    graphstorages: Vec<Arc<GraphStorage>>,
+    graphstorages: Vec<Arc<dyn GraphStorage>>,
     allowed_range: RangeSpec,
 }
 

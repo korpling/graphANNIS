@@ -3,6 +3,20 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.23.0] - 2019-10-16
+
+### Added
+
+- Subgraph queries can now define the context using  ordering relation names (segmentation) 
+instead of the default context in tokens. **This changes the function signature of the `subgraph(...)` function.**
+
+### Changed
+
+- For performance and stylistic reasons, the GraphStorage API has been changed to accept integer node IDs instead of references to integers.
+- Windows DLL in releases is now created by Travis CI instead of Appveyor
+
 ## [0.22.0] - 2019-07-22
 
 ### Fixed

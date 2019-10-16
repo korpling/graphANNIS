@@ -15,9 +15,9 @@ const MAX_BUFFER_SIZE: usize = 512;
 /// It then retrieves all matches as defined by the operator for each LHS element and checks
 /// if the annotation condition is true.
 pub struct IndexJoin<'a> {
-    lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
+    lhs: Peekable<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
     match_receiver: Option<Receiver<Vec<Match>>>,
-    op: Arc<BinaryOperator>,
+    op: Arc<dyn BinaryOperator>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<AnnoStorage<NodeID>>,
@@ -35,7 +35,7 @@ impl<'a> IndexJoin<'a> {
     /// * `anno_qname` A pair of the annotation namespace and name (both optional) to define which annotations to fetch
     /// * `anno_cond` - A filter function to determine if a RHS candidate is included
     pub fn new(
-        lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
+        lhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         op_entry: BinaryOperatorEntry,
         node_search_desc: Arc<NodeSearchDesc>,
@@ -114,11 +114,11 @@ impl<'a> IndexJoin<'a> {
         }
 
         let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
-        let op: Arc<BinaryOperator> = self.op.clone();
+        let op: Arc<dyn BinaryOperator> = self.op.clone();
         let lhs_idx = self.lhs_idx;
         let node_annos = self.node_annos.clone();
 
-        let op: &BinaryOperator = op.as_ref();
+        let op: &dyn BinaryOperator = op.as_ref();
         let global_reflexivity = self.global_reflexivity;
 
         // find all RHS in parallel
@@ -155,7 +155,7 @@ impl<'a> IndexJoin<'a> {
                             if node_search_desc.const_output.is_some() {
                                 // only return the one unique constAnno for this node and no duplicates
                                 // skip all RHS candidates that have the same node ID
-                                #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+                                #[allow(clippy::while_let_loop)]
                                 loop {
                                     if let Some(next_match) = rhs_candidate.peek() {
                                         if next_match.node != matched_node {
@@ -181,7 +181,7 @@ impl<'a> IndexJoin<'a> {
 
 fn next_candidates(
     m_lhs: &[Match],
-    op: &BinaryOperator,
+    op: &dyn BinaryOperator,
     lhs_idx: usize,
     node_annos: &Arc<AnnoStorage<NodeID>>,
     node_search_desc: &Arc<NodeSearchDesc>,
@@ -254,7 +254,7 @@ fn next_candidates(
 }
 
 impl<'a> ExecutionNode for IndexJoin<'a> {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
         self
     }
 

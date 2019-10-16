@@ -5,9 +5,9 @@ use crate::annis::operator::BinaryOperator;
 use std::iter::Peekable;
 
 pub struct NestedLoop<'a> {
-    outer: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
-    inner: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
-    op: Box<BinaryOperator>,
+    outer: Peekable<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
+    inner: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
+    op: Box<dyn BinaryOperator>,
     inner_idx: usize,
     outer_idx: usize,
     inner_cache: Vec<Vec<Match>>,
@@ -22,8 +22,8 @@ pub struct NestedLoop<'a> {
 impl<'a> NestedLoop<'a> {
     pub fn new(
         op_entry: BinaryOperatorEntry,
-        lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
-        rhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
+        lhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
+        rhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
     ) -> NestedLoop<'a> {
@@ -99,7 +99,7 @@ impl<'a> NestedLoop<'a> {
 }
 
 impl<'a> ExecutionNode for NestedLoop<'a> {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
         self
     }
 

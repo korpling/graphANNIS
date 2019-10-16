@@ -9,9 +9,9 @@ use std::sync::Arc;
 const MAX_BUFFER_SIZE: usize = 1024;
 
 pub struct NestedLoop<'a> {
-    outer: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
-    inner: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
-    op: Arc<BinaryOperator>,
+    outer: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
+    inner: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
+    op: Arc<dyn BinaryOperator>,
     inner_idx: usize,
     outer_idx: usize,
 
@@ -32,8 +32,8 @@ type MatchCandidate = (Arc<Vec<Match>>, Arc<Vec<Match>>, Sender<Vec<Match>>);
 impl<'a> NestedLoop<'a> {
     pub fn new(
         op_entry: BinaryOperatorEntry,
-        lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
-        rhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
+        lhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
+        rhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
     ) -> NestedLoop<'a> {
@@ -178,7 +178,7 @@ impl<'a> NestedLoop<'a> {
         }
     }
 
-    fn next_match_receiver<'b>(&'b mut self) -> Option<Receiver<Vec<Match>>> {
+    fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
         let (tx, rx) = channel();
 
         self.next_match_buffer(&tx);
@@ -192,7 +192,7 @@ impl<'a> NestedLoop<'a> {
         let inner_idx = self.inner_idx;
         let op = self.op.clone();
 
-        let op: &BinaryOperator = op.as_ref();
+        let op: &dyn BinaryOperator = op.as_ref();
         let global_reflexivity = self.global_reflexivity;
 
         self.match_candidate_buffer
@@ -229,7 +229,7 @@ impl<'a> NestedLoop<'a> {
 }
 
 impl<'a> ExecutionNode for NestedLoop<'a> {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
         self
     }
 

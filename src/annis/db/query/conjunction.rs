@@ -25,7 +25,7 @@ use std::sync::Arc;
 
 #[derive(Debug)]
 struct BinaryOperatorSpecEntry<'a> {
-    op: Box<BinaryOperatorSpec + 'a>,
+    op: Box<dyn BinaryOperatorSpec + 'a>,
     idx_left: usize,
     idx_right: usize,
     global_reflexivity: bool,
@@ -33,19 +33,19 @@ struct BinaryOperatorSpecEntry<'a> {
 
 #[derive(Debug)]
 struct UnaryOperatorSpecEntry<'a> {
-    op: Box<UnaryOperatorSpec + 'a>,
+    op: Box<dyn UnaryOperatorSpec + 'a>,
     idx: usize,
 }
 
 pub struct BinaryOperatorEntry {
-    pub op: Box<BinaryOperator>,
+    pub op: Box<dyn BinaryOperator>,
     pub node_nr_left: usize,
     pub node_nr_right: usize,
     pub global_reflexivity: bool,
 }
 
 pub struct UnaryOperatorEntry {
-    pub op: Box<UnaryOperator>,
+    pub op: Box<dyn UnaryOperator>,
     pub node_nr: usize,
 }
 
@@ -107,11 +107,11 @@ fn create_join<'b>(
     db: &Graph,
     config: &Config,
     op_entry: BinaryOperatorEntry,
-    exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
-    exec_right: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
+    exec_left: Box<dyn ExecutionNode<Item = Vec<Match>> + 'b>,
+    exec_right: Box<dyn ExecutionNode<Item = Vec<Match>> + 'b>,
     idx_left: usize,
     idx_right: usize,
-) -> Box<ExecutionNode<Item = Vec<Match>> + 'b> {
+) -> Box<dyn ExecutionNode<Item = Vec<Match>> + 'b> {
     if exec_right.as_nodesearch().is_some() {
         // use index join
         if config.use_parallel_joins {
@@ -262,7 +262,7 @@ impl<'a> Conjunction<'a> {
 
     pub fn add_unary_operator_from_query(
         &mut self,
-        op: Box<UnaryOperatorSpec>,
+        op: Box<dyn UnaryOperatorSpec>,
         var: &str,
         location: Option<LineColumnRange>,
     ) -> Result<()> {
@@ -272,7 +272,7 @@ impl<'a> Conjunction<'a> {
             return Ok(());
         } else {
             return Err(Error::AQLSemanticError {
-                desc: format!("Operand '#{}' not found", var).into(),
+                desc: format!("Operand '#{}' not found", var),
                 location,
             });
         }
@@ -280,7 +280,7 @@ impl<'a> Conjunction<'a> {
 
     pub fn add_operator(
         &mut self,
-        op: Box<BinaryOperatorSpec>,
+        op: Box<dyn BinaryOperatorSpec>,
         var_left: &str,
         var_right: &str,
         global_reflexivity: bool,
@@ -290,7 +290,7 @@ impl<'a> Conjunction<'a> {
 
     pub fn add_operator_from_query(
         &mut self,
-        op: Box<BinaryOperatorSpec>,
+        op: Box<dyn BinaryOperatorSpec>,
         var_left: &str,
         var_right: &str,
         location: Option<LineColumnRange>,
@@ -302,11 +302,11 @@ impl<'a> Conjunction<'a> {
 
         self.binary_operators.push(BinaryOperatorSpecEntry {
             op,
-            idx_left: idx_left,
-            idx_right: idx_right,
+            idx_left,
+            idx_right,
             global_reflexivity,
         });
-        return Ok(());
+        Ok(())
     }
 
     pub fn num_of_nodes(&self) -> usize {
@@ -319,10 +319,10 @@ impl<'a> Conjunction<'a> {
         location: Option<LineColumnRange>,
     ) -> Result<usize> {
         if let Some(pos) = self.variables.get(variable) {
-            return Ok(pos.clone());
+            return Ok(*pos);
         }
         Err(Error::AQLSemanticError {
-            desc: format!("Operand '#{}' not found", variable).into(),
+            desc: format!("Operand '#{}' not found", variable),
             location,
         })
     }
@@ -350,10 +350,10 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        return Err(Error::AQLSemanticError {
+        Err(Error::AQLSemanticError {
             desc: format!("Operand '#{}' not found", variable),
             location,
-        });
+        })
     }
 
     pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
@@ -470,9 +470,9 @@ impl<'a> Conjunction<'a> {
         &'a self,
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
-        op_spec_entries: Box<Iterator<Item = &'a BinaryOperatorSpecEntry> + 'a>,
+        op_spec_entries: Box<dyn Iterator<Item = &'a BinaryOperatorSpecEntry> + 'a>,
         db: &'a Graph,
-    ) -> Option<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
+    ) -> Option<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> {
         let desc = desc?;
         // check if we can replace this node search with a generic "all nodes from either of these components" search
         let node_search_cost: &CostEstimate = desc.cost.as_ref()?;
@@ -490,7 +490,8 @@ impl<'a> Conjunction<'a> {
                         if let Some(gs) = db.get_graphstorage(c) {
                             // check if we can apply an even more restrictive edge annotation search
                             if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
-                                let anno_storage: &AnnotationStorage<Edge> = gs.get_anno_storage();
+                                let anno_storage: &dyn AnnotationStorage<Edge> =
+                                    gs.get_anno_storage();
                                 let edge_anno_est = edge_anno_spec.guess_max_count(anno_storage);
                                 estimated_component_search += edge_anno_est;
                                 estimation_valid = true;
@@ -529,7 +530,7 @@ impl<'a> Conjunction<'a> {
         db: &'a Graph,
         config: &Config,
         operator_order: Vec<usize>,
-    ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
+    ) -> Result<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> {
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
 
         // Remember node search errors, but do not bail out of this function before the component
@@ -540,7 +541,7 @@ impl<'a> Conjunction<'a> {
 
         // Create a map where the key is the component number
         // and move all nodes with their index as component number.
-        let mut component2exec: BTreeMap<usize, Box<ExecutionNode<Item = Vec<Match>> + 'a>> =
+        let mut component2exec: BTreeMap<usize, Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> =
             BTreeMap::new();
         let mut node2cost: BTreeMap<usize, CostEstimate> = BTreeMap::new();
 
@@ -606,13 +607,17 @@ impl<'a> Conjunction<'a> {
 
         // 2. add unary operators as filter to the existing node search
         for op_spec_entry in self.unary_operators.iter() {
-            let child_exec: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
+            let child_exec: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
                 .remove(&op_spec_entry.idx)
                 .ok_or_else(|| format!("no execution node for component {}", op_spec_entry.idx))?;
 
-            let op: Box<UnaryOperator> = op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                Error::ImpossibleSearch(format!("could not create operator {:?}", op_spec_entry))
-            })?;
+            let op: Box<dyn UnaryOperator> =
+                op_spec_entry.op.create_operator(db).ok_or_else(|| {
+                    Error::ImpossibleSearch(format!(
+                        "could not create operator {:?}",
+                        op_spec_entry
+                    ))
+                })?;
             let op_entry = UnaryOperatorEntry {
                 op,
                 node_nr: op_spec_entry.idx + 1,
@@ -626,7 +631,7 @@ impl<'a> Conjunction<'a> {
         for i in operator_order {
             let op_spec_entry: &BinaryOperatorSpecEntry<'a> = &self.binary_operators[i];
 
-            let mut op: Box<BinaryOperator> =
+            let mut op: Box<dyn BinaryOperator> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
                     Error::ImpossibleSearch(format!(
                         "could not create operator {:?}",
@@ -666,7 +671,7 @@ impl<'a> Conjunction<'a> {
                 .ok_or_else(|| format!("no component for node #{}", spec_idx_right + 1))?);
 
             // get the original execution node
-            let exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
+            let exec_left: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
                 .remove(&component_left)
                 .ok_or_else(|| format!("no execution node for component {}", component_left))?;
 
@@ -677,7 +682,7 @@ impl<'a> Conjunction<'a> {
                 .get(&spec_idx_left)
                 .ok_or("LHS operand not found")?);
 
-            let new_exec: Box<ExecutionNode<Item = Vec<Match>>> =
+            let new_exec: Box<dyn ExecutionNode<Item = Vec<Match>>> =
                 if component_left == component_right {
                     // don't create new tuples, only filter the existing ones
                     // TODO: check if LHS or RHS is better suited as filter input iterator
@@ -790,7 +795,7 @@ impl<'a> Conjunction<'a> {
         &'a self,
         db: &'a Graph,
         config: &Config,
-    ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
+    ) -> Result<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> {
         self.check_components_connected()?;
 
         let operator_order = self.optimize_join_order_heuristics(db, config)?;

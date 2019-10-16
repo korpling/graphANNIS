@@ -5,11 +5,11 @@ use crate::annis::operator::{BinaryOperator, EstimationType, UnaryOperator};
 use std;
 
 pub struct Filter<'a> {
-    it: Box<Iterator<Item = Vec<Match>> + 'a>,
+    it: Box<dyn Iterator<Item = Vec<Match>> + 'a>,
     desc: Option<Desc>,
 }
 
-fn calculate_binary_outputsize(op: &BinaryOperator, num_tuples: usize) -> usize {
+fn calculate_binary_outputsize(op: &dyn BinaryOperator, num_tuples: usize) -> usize {
     let output = match op.estimation_type() {
         EstimationType::SELECTIVITY(selectivity) => {
             let num_tuples = num_tuples as f64;
@@ -25,7 +25,7 @@ fn calculate_binary_outputsize(op: &BinaryOperator, num_tuples: usize) -> usize 
     std::cmp::max(output, 1)
 }
 
-fn calculate_unary_outputsize(op: &UnaryOperator, num_tuples: usize) -> usize {
+fn calculate_unary_outputsize(op: &dyn UnaryOperator, num_tuples: usize) -> usize {
     let output = match op.estimation_type() {
         EstimationType::SELECTIVITY(selectivity) => {
             let num_tuples = num_tuples as f64;
@@ -39,7 +39,7 @@ fn calculate_unary_outputsize(op: &UnaryOperator, num_tuples: usize) -> usize {
 
 impl<'a> Filter<'a> {
     pub fn new_binary(
-        exec: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
+        exec: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
         op_entry: BinaryOperatorEntry,
@@ -79,7 +79,7 @@ impl<'a> Filter<'a> {
     }
 
     pub fn new_unary(
-        exec: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
+        exec: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
         idx: usize,
         op_entry: UnaryOperatorEntry,
     ) -> Filter<'a> {
@@ -115,7 +115,7 @@ impl<'a> Filter<'a> {
 }
 
 impl<'a> ExecutionNode for Filter<'a> {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
         self
     }
 

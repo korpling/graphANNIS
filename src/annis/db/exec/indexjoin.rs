@@ -12,9 +12,9 @@ use std::sync::Arc;
 /// It then retrieves all matches as defined by the operator for each LHS element and checks
 /// if the annotation condition is true.
 pub struct IndexJoin<'a> {
-    lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
-    rhs_candidate: Option<std::iter::Peekable<Box<Iterator<Item = Match>>>>,
-    op: Box<BinaryOperator>,
+    lhs: Peekable<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
+    rhs_candidate: Option<std::iter::Peekable<Box<dyn Iterator<Item = Match>>>>,
+    op: Box<dyn BinaryOperator>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<AnnoStorage<NodeID>>,
@@ -32,7 +32,7 @@ impl<'a> IndexJoin<'a> {
     /// * `anno_qname` A pair of the annotation namespace and name (both optional) to define which annotations to fetch
     /// * `anno_cond` - A filter function to determine if a RHS candidate is included
     pub fn new(
-        lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
+        lhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         op_entry: BinaryOperatorEntry,
         node_search_desc: Arc<NodeSearchDesc>,
@@ -86,7 +86,7 @@ impl<'a> IndexJoin<'a> {
         }
     }
 
-    fn next_candidates(&mut self) -> Option<Box<Iterator<Item = Match>>> {
+    fn next_candidates(&mut self) -> Option<Box<dyn Iterator<Item = Match>>> {
         if let Some(m_lhs) = self.lhs.peek().cloned() {
             let it_nodes = self.op.retrieve_matches(&m_lhs[self.lhs_idx]).fuse();
 
@@ -166,7 +166,7 @@ impl<'a> IndexJoin<'a> {
 }
 
 impl<'a> ExecutionNode for IndexJoin<'a> {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
         self
     }
 
@@ -182,7 +182,7 @@ impl<'a> Iterator for IndexJoin<'a> {
         // lazily initialize the RHS candidates for the first LHS
         if self.rhs_candidate.is_none() {
             self.rhs_candidate = if let Some(rhs) = self.next_candidates() {
-                Some(rhs.into_iter().peekable())
+                Some(rhs.peekable())
             } else {
                 return None;
             };
@@ -220,7 +220,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                             if self.node_search_desc.const_output.is_some() {
                                 // only return the one unique constAnno for this node and no duplicates
                                 // skip all RHS candidates that have the same node ID
-                                #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+                                #[allow(clippy::while_let_loop)]
                                 loop {
                                     if let Some(next_match) = rhs_candidate.peek() {
                                         if next_match.node != matched_node {
@@ -243,7 +243,7 @@ impl<'a> Iterator for IndexJoin<'a> {
 
             // inner was completed once, get new candidates
             self.rhs_candidate = if let Some(rhs) = self.next_candidates() {
-                Some(rhs.into_iter().peekable())
+                Some(rhs.peekable())
             } else {
                 None
             };

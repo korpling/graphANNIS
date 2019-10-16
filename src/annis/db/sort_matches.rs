@@ -20,7 +20,7 @@ pub fn compare_matchgroup_by_text_pos(
     m2: &[Match],
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
-    gs_order: Option<&GraphStorage>,
+    gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
     reverse_path: bool,
 ) -> Ordering {
@@ -102,7 +102,7 @@ fn compare_string(s1: &str, s2: &str, collation: CollationType) -> std::cmp::Ord
             } else if s1 > s2 {
                 return std::cmp::Ordering::Greater;
             }
-            return std::cmp::Ordering::Equal;
+            std::cmp::Ordering::Equal
         }
         CollationType::Locale => {
             let cmp = unsafe {
@@ -111,11 +111,11 @@ fn compare_string(s1: &str, s2: &str, collation: CollationType) -> std::cmp::Ord
                 libc::strcoll(c_s1.as_ptr(), c_s2.as_ptr())
             };
             if cmp < 0 {
-                return std::cmp::Ordering::Less;
+                std::cmp::Ordering::Less
             } else if cmp > 0 {
-                return std::cmp::Ordering::Greater;
+                std::cmp::Ordering::Greater
             } else {
-                return std::cmp::Ordering::Equal;
+                std::cmp::Ordering::Equal
             }
         }
     }
@@ -133,7 +133,7 @@ pub fn compare_match_by_text_pos(
     m2: &Match,
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
-    gs_order: Option<&GraphStorage>,
+    gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
     quirks_mode: bool,
 ) -> Ordering {
@@ -161,16 +161,12 @@ pub fn compare_match_by_text_pos(
                     token_helper.left_token_for(m1.node),
                     token_helper.left_token_for(m2.node),
                 ) {
-                    if gs_order.is_connected(
-                        &m1_lefttok,
-                        &m2_lefttok,
-                        1,
-                        std::ops::Bound::Unbounded,
-                    ) {
+                    if gs_order.is_connected(m1_lefttok, m2_lefttok, 1, std::ops::Bound::Unbounded)
+                    {
                         return Ordering::Less;
                     } else if gs_order.is_connected(
-                        &m2_lefttok,
-                        &m1_lefttok,
+                        m2_lefttok,
+                        m1_lefttok,
                         1,
                         std::ops::Bound::Unbounded,
                     ) {

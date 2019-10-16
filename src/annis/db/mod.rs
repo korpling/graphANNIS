@@ -29,6 +29,8 @@ use tempfile;
 pub mod annostorage;
 pub mod aql;
 pub mod corpusstorage;
+#[cfg(test)]
+pub mod example_generator;
 pub mod exec;
 pub mod graphstorage;
 mod plan;
@@ -72,7 +74,7 @@ impl Match {
     /// Returns true if this match is different to all the other matches given as argument.
     ///
     /// A single match is different if the node ID or the annotation key are different.
-    pub fn different_to_all(&self, other: &Vec<Match>) -> bool {
+    pub fn different_to_all(&self, other: &[Match]) -> bool {
         for o in other.iter() {
             if self.node == o.node && self.anno_key == o.anno_key {
                 return false;
@@ -149,7 +151,7 @@ pub trait AnnotationStorage<T> {
         namespace: Option<String>,
         name: String,
         value: ValueSearch<String>,
-    ) -> Box<Iterator<Item = Match> + 'a>;
+    ) -> Box<dyn Iterator<Item = Match> + 'a>;
 
     /// Returns an iterator for all items where the value matches the regular expression.
     /// The annotation `name` and the `pattern` for the value must be given as argument, the  
@@ -169,7 +171,7 @@ pub trait AnnotationStorage<T> {
         name: String,
         pattern: &str,
         negated: bool,
-    ) -> Box<Iterator<Item = Match> + 'a>;
+    ) -> Box<dyn Iterator<Item = Match> + 'a>;
 
     /// Estimate the number of results for an [annotation exact search](#tymethod.exact_anno_search) for a given an inclusive value range.
     ///
@@ -214,7 +216,7 @@ pub struct Graph {
 
     location: Option<PathBuf>,
 
-    components: BTreeMap<Component, Option<Arc<GraphStorage>>>,
+    components: BTreeMap<Component, Option<Arc<dyn GraphStorage>>>,
     current_change_id: u64,
 
     background_persistance: Arc<Mutex<()>>,
@@ -242,7 +244,7 @@ impl MallocSizeOf for Graph {
     }
 }
 
-fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<GraphStorage>> {
+fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<dyn GraphStorage>> {
     let cpath = r#try!(component_path.ok_or("Can't load component with empty path"));
 
     // load component into memory
@@ -304,7 +306,7 @@ impl AnnotationStorage<NodeID> for Graph {
         namespace: Option<String>,
         name: String,
         value: ValueSearch<String>,
-    ) -> Box<Iterator<Item = Match> + 'a> {
+    ) -> Box<dyn Iterator<Item = Match> + 'a> {
         self.node_annos.exact_anno_search(namespace, name, value)
     }
 
@@ -314,7 +316,7 @@ impl AnnotationStorage<NodeID> for Graph {
         name: String,
         pattern: &str,
         negated: bool,
-    ) -> Box<Iterator<Item = Match> + 'a> {
+    ) -> Box<dyn Iterator<Item = Match> + 'a> {
         self.node_annos
             .regex_anno_search(namespace, name, pattern, negated)
     }
@@ -563,6 +565,7 @@ impl Graph {
         self.internal_save(&location.join("current"))
     }
 
+    #[allow(clippy::cognitive_complexity)]
     fn apply_update_in_memory(&mut self, u: &mut GraphUpdate) -> Result<()> {
         self.reset_cached_size();
 
@@ -628,7 +631,7 @@ impl Graph {
                         // delete all edges pointing to this node either as source or target
                         for c in all_components.iter() {
                             if let Ok(gs) = self.get_or_create_writable(c) {
-                                gs.delete_node(&existing_node_id);
+                                gs.delete_node(existing_node_id);
                             }
                         }
                     }
@@ -782,7 +785,7 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
-                            if gs.is_connected(&source, &target, 1, Included(1)) {
+                            if gs.is_connected(source, target, 1, Included(1)) {
                                 let anno = Annotation {
                                     key: AnnoKey {
                                         ns: anno_ns,
@@ -817,7 +820,7 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
-                            if gs.is_connected(&source, &target, 1, Included(1)) {
+                            if gs.is_connected(source, target, 1, Included(1)) {
                                 let key = AnnoKey {
                                     ns: anno_ns,
                                     name: anno_name,
@@ -849,7 +852,7 @@ impl Graph {
         text_coverage_components: &FxHashSet<Component>,
         invalid_nodes: &mut FxHashSet<NodeID>,
     ) {
-        let containers: Vec<&EdgeContainer> = text_coverage_components
+        let containers: Vec<&dyn EdgeContainer> = text_coverage_components
             .iter()
             .filter_map(|c| self.get_graphstorage_as_ref(c))
             .map(|gs| gs.as_edgecontainer())
@@ -866,7 +869,7 @@ impl Graph {
     fn reindex_inherited_coverage(
         &mut self,
         invalid_nodes: FxHashSet<NodeID>,
-        gs_order: Arc<GraphStorage>,
+        gs_order: Arc<dyn GraphStorage>,
     ) -> Result<()> {
         {
             // remove existing left/right token edges for the invalidated nodes
@@ -877,7 +880,7 @@ impl Graph {
             })?;
 
             for n in invalid_nodes.iter() {
-                gs_left.delete_node(n);
+                gs_left.delete_node(*n);
             }
 
             let gs_right = self.get_or_create_writable(&Component {
@@ -887,7 +890,7 @@ impl Graph {
             })?;
 
             for n in invalid_nodes.iter() {
-                gs_right.delete_node(n);
+                gs_right.delete_node(*n);
             }
 
             let gs_cov = self.get_or_create_writable(&Component {
@@ -896,12 +899,12 @@ impl Graph {
                 layer: ANNIS_NS.to_owned(),
             })?;
             for n in invalid_nodes.iter() {
-                gs_cov.delete_node(n);
+                gs_cov.delete_node(*n);
             }
         }
 
         let all_cov_components = self.get_all_components(Some(ComponentType::Coverage), None);
-        let all_dom_gs: Vec<Arc<GraphStorage>> = self
+        let all_dom_gs: Vec<Arc<dyn GraphStorage>> = self
             .get_all_components(Some(ComponentType::Dominance), Some(""))
             .into_iter()
             .filter_map(|c| self.get_graphstorage(&c))
@@ -909,7 +912,7 @@ impl Graph {
         {
             // go over each node and calculate the left-most and right-most token
 
-            let all_cov_gs: Vec<Arc<GraphStorage>> = all_cov_components
+            let all_cov_gs: Vec<Arc<dyn GraphStorage>> = all_cov_components
                 .iter()
                 .filter_map(|c| self.get_graphstorage(c))
                 .collect();
@@ -942,8 +945,8 @@ impl Graph {
     fn calculate_inherited_coverage_edges(
         &mut self,
         n: NodeID,
-        all_cov_components: &Vec<Component>,
-        all_dom_gs: &Vec<Arc<GraphStorage>>,
+        all_cov_components: &[Component],
+        all_dom_gs: &[Arc<dyn GraphStorage>],
     ) -> FxHashSet<NodeID> {
         let mut covered_token = FxHashSet::default();
         for c in all_cov_components.iter() {
@@ -993,9 +996,9 @@ impl Graph {
         &mut self,
         n: NodeID,
         ctype: ComponentType,
-        gs_order: &GraphStorage,
-        all_cov_gs: &Vec<Arc<GraphStorage>>,
-        all_dom_gs: &Vec<Arc<GraphStorage>>,
+        gs_order: &dyn GraphStorage,
+        all_cov_gs: &[Arc<dyn GraphStorage>],
+        all_dom_gs: &[Arc<dyn GraphStorage>],
     ) -> Option<NodeID> {
         let alignment_component = Component {
             ctype: ctype.clone(),
@@ -1053,12 +1056,12 @@ impl Graph {
             if a == b {
                 return std::cmp::Ordering::Equal;
             }
-            if gs_order.is_connected(&a, &b, 1, std::ops::Bound::Unbounded) {
+            if gs_order.is_connected(*a, *b, 1, std::ops::Bound::Unbounded) {
                 return std::cmp::Ordering::Less;
-            } else if gs_order.is_connected(&b, &a, 1, std::ops::Bound::Unbounded) {
+            } else if gs_order.is_connected(*b, *a, 1, std::ops::Bound::Unbounded) {
                 return std::cmp::Ordering::Greater;
             }
-            return std::cmp::Ordering::Equal;
+            std::cmp::Ordering::Equal
         });
 
         // add edge to left/right most candidate token
@@ -1177,7 +1180,7 @@ impl Graph {
         if entry.is_some() {
             let gs_opt = entry.unwrap();
 
-            let mut loaded_comp: Arc<GraphStorage> = if gs_opt.is_none() {
+            let mut loaded_comp: Arc<dyn GraphStorage> = if gs_opt.is_none() {
                 load_component_from_disk(self.component_path(c))?
             } else {
                 gs_opt.unwrap()
@@ -1186,10 +1189,7 @@ impl Graph {
             // copy to writable implementation if needed
             let is_writable = {
                 Arc::get_mut(&mut loaded_comp)
-                    .ok_or(format!(
-                        "Could not get mutable reference for component {}",
-                        c
-                    ))?
+                    .ok_or_else(|| format!("Could not get mutable reference for component {}", c))?
                     .as_writeable()
                     .is_some()
             };
@@ -1231,7 +1231,7 @@ impl Graph {
         result
     }
 
-    fn get_or_create_writable(&mut self, c: &Component) -> Result<&mut WriteableGraphStorage> {
+    fn get_or_create_writable(&mut self, c: &Component) -> Result<&mut dyn WriteableGraphStorage> {
         self.reset_cached_size();
 
         if self.components.contains_key(c) {
@@ -1244,27 +1244,24 @@ impl Graph {
         }
 
         // get and return the reference to the entry
-        let entry: &mut Arc<GraphStorage> = self
+        let entry: &mut Arc<dyn GraphStorage> = self
             .components
             .get_mut(c)
-            .ok_or(format!(
-                "Could not get mutable reference for component {}",
-                c
-            ))?
+            .ok_or_else(|| format!("Could not get mutable reference for component {}", c))?
             .as_mut()
-            .ok_or(format!(
-                "Could not get mutable reference to optional value for component {}",
-                c
-            ))?;
-        let gs_mut_ref: &mut GraphStorage = Arc::get_mut(entry).ok_or(format!(
-            "Could not get mutable reference for component {}",
-            c
-        ))?;
+            .ok_or_else(|| {
+                format!(
+                    "Could not get mutable reference to optional value for component {}",
+                    c
+                )
+            })?;
+        let gs_mut_ref: &mut dyn GraphStorage = Arc::get_mut(entry)
+            .ok_or_else(|| format!("Could not get mutable reference for component {}", c))?;
         Ok(gs_mut_ref.as_writeable().ok_or("Invalid type")?)
     }
 
     fn is_loaded(&self, c: &Component) -> bool {
-        let entry: Option<&Option<Arc<GraphStorage>>> = self.components.get(c);
+        let entry: Option<&Option<Arc<dyn GraphStorage>>> = self.components.get(c);
         if let Some(gs_opt) = entry {
             if gs_opt.is_some() {
                 return true;
@@ -1286,7 +1283,7 @@ impl Graph {
         self.reset_cached_size();
 
         // load missing components in parallel
-        let loaded_components: Vec<(Component, Result<Arc<GraphStorage>>)> = components_to_load
+        let loaded_components: Vec<(Component, Result<Arc<dyn GraphStorage>>)> = components_to_load
             .into_par_iter()
             .map(|c| {
                 info!("Loading component {} from disk", c);
@@ -1306,9 +1303,9 @@ impl Graph {
 
     fn ensure_loaded(&mut self, c: &Component) -> Result<()> {
         // get and return the reference to the entry if loaded
-        let entry: Option<Option<Arc<GraphStorage>>> = self.components.remove(c);
+        let entry: Option<Option<Arc<dyn GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
-            let loaded: Arc<GraphStorage> = if gs_opt.is_none() {
+            let loaded: Arc<dyn GraphStorage> = if gs_opt.is_none() {
                 self.reset_cached_size();
                 info!("Loading component {} from disk", c);
                 load_component_from_disk(self.component_path(c))?
@@ -1362,9 +1359,9 @@ impl Graph {
     }
 
     /// Get a read-only graph storage reference for the given component `c`.
-    pub fn get_graphstorage(&self, c: &Component) -> Option<Arc<GraphStorage>> {
+    pub fn get_graphstorage(&self, c: &Component) -> Option<Arc<dyn GraphStorage>> {
         // get and return the reference to the entry if loaded
-        let entry: Option<&Option<Arc<GraphStorage>>> = self.components.get(c);
+        let entry: Option<&Option<Arc<dyn GraphStorage>>> = self.components.get(c);
         if let Some(gs_opt) = entry {
             if let Some(ref impl_type) = *gs_opt {
                 return Some(impl_type.clone());
@@ -1373,9 +1370,9 @@ impl Graph {
         None
     }
 
-    fn get_graphstorage_as_ref<'a>(&'a self, c: &Component) -> Option<&'a GraphStorage> {
+    fn get_graphstorage_as_ref<'a>(&'a self, c: &Component) -> Option<&'a dyn GraphStorage> {
         // get and return the reference to the entry if loaded
-        let entry: Option<&Option<Arc<GraphStorage>>> = self.components.get(c);
+        let entry: Option<&Option<Arc<dyn GraphStorage>>> = self.components.get(c);
         if let Some(gs_opt) = entry {
             if let Some(ref impl_type) = *gs_opt {
                 return Some(impl_type.as_ref());
@@ -1385,7 +1382,7 @@ impl Graph {
     }
 
     /// Returns all components of the graph given an optional type (`ctype`) and `name`.
-    /// This allows to filter which components to recieve.
+    /// This allows to filter which components to receive.
     /// If you want to retrieve all components, use `None` as value for both arguments.
     pub fn get_all_components(
         &self,
@@ -1502,7 +1499,7 @@ mod tests {
         };
         let anno_val = "testValue".to_owned();
 
-        let gs: &mut WriteableGraphStorage = db
+        let gs: &mut dyn WriteableGraphStorage = db
             .get_or_create_writable(&Component {
                 ctype: ComponentType::Pointing,
                 layer: String::from("test"),
