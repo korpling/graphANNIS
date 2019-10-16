@@ -167,14 +167,15 @@ impl BinaryOperator for Overlap {
                     sum_included += covered_token_per_node + aligned_non_token;
                 }
             }
-
-            let offset = if self.reflexive {1} else {0} as f64;
+            if self.reflexive {
+                sum_included += 1;
+            }
 
             if sum_cov_nodes == 0 {
                 // only token in this corpus
-                return EstimationType::SELECTIVITY((1.0 / num_of_token) + offset);
+                return EstimationType::SELECTIVITY(1.0 / num_of_token);
             } else {
-                return EstimationType::SELECTIVITY((sum_included as f64 / (sum_cov_nodes as f64)) + offset);
+                return EstimationType::SELECTIVITY(sum_included as f64 / (sum_cov_nodes as f64));
             }
         }
 
