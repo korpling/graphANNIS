@@ -5,9 +5,9 @@ use crate::annis::db::Match;
 use crate::annis::db::{ANNIS_NS, NODE_NAME};
 use crate::annis::types::{AnnoKey, NodeID};
 use std;
-use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::ffi::CString;
+use std::borrow::Cow;
 
 #[derive(Clone, Copy)]
 pub enum CollationType {
@@ -70,10 +70,8 @@ fn compare_document_path(
         let path1: Vec<&str> = it1.collect();
         let path2: Vec<&str> = it2.collect();
         if let (Some(doc1), Some(doc2)) = (path1.last(), path2.last()) {
-            let doc1: Cow<str> =
-                percent_encoding::percent_decode(doc1.as_bytes()).decode_utf8_lossy();
-            let doc2: Cow<str> =
-                percent_encoding::percent_decode(doc2.as_bytes()).decode_utf8_lossy();
+            let doc1 : Cow<str> = percent_encoding::percent_decode(doc1.as_bytes()).decode_utf8_lossy();
+            let doc2 : Cow<str> = percent_encoding::percent_decode(doc2.as_bytes()).decode_utf8_lossy();
             let string_cmp = compare_string(&doc1, &doc2, collation);
             if string_cmp != std::cmp::Ordering::Equal {
                 return string_cmp;
