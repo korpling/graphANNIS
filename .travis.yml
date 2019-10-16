@@ -82,6 +82,7 @@ deploy:
       repo: korpling/graphANNIS
       branch: master
       tags: true
+      condition: "$TEST_SUITE" == ""
     skip_cleanup: true
     tag_name: $TRAVIS_TAG
     draft: true
