@@ -7,7 +7,6 @@ use crate::corpusstorage::QueryLanguage;
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::CorpusStorage;
 
-
 #[test]
 fn delete() {
     let tmp = tempfile::tempdir().unwrap();
@@ -156,7 +155,11 @@ fn subgraph_with_segmentation() {
 
     cs.apply_update("root", &mut g).unwrap();
 
-    assert_eq!(5, cs.count("root", "node .seg,1,2 node", QueryLanguage::AQL).unwrap());
+    assert_eq!(
+        5,
+        cs.count("root", "node .seg,1,2 node", QueryLanguage::AQL)
+            .unwrap()
+    );
 
     // get the subgraph with context 1 on dipl
     let graph = cs
@@ -171,7 +174,7 @@ fn subgraph_with_segmentation() {
 
     let cov_components = graph.get_all_components(Some(ComponentType::Coverage), None);
     assert_eq!(1, cov_components.len());
-  
+
     let gs_cov = graph.get_graphstorage(&cov_components[0]).unwrap();
 
     let segl0_id = graph.get_node_id_from_name("root/doc1#seg0").unwrap();

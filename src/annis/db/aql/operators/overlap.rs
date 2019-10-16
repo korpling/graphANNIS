@@ -118,7 +118,6 @@ impl BinaryOperator for Overlap {
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-
         if self.reflexive && lhs == rhs {
             return true;
         }
