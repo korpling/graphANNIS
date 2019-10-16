@@ -49,7 +49,7 @@ The `CorpusStorageManager` is thread-safe, thus multiple threads of the same pro
 
 ## Adding corpus data
 
-Linguistic annotations as represented in graphANNIS as directed graphs (see the [data model](../data-model/annotation-graph.md) section for more information).
+Linguistic annotations as represented in graphANNIS as directed graphs (see the [data model](annotation-graph.md) section for more information).
 You can add nodes and edges via the `applyUpdate(...)` function.
 It takes the corpus name and a list of graph updates as argument.
 These graph update lists are represented by the class `GraphUpdate`.
