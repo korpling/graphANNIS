@@ -15,7 +15,7 @@ limitations under the License.s
 #ifndef graphannis_capi_h
 #define graphannis_capi_h
 
-/* Generated with cbindgen:0.9.0 */
+/* Generated with cbindgen:0.9.1 */
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -61,7 +61,7 @@ typedef enum {
  */
 typedef enum {
   /**
-   * Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/doc/dev-annisimportformat.html)
+   * Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/4.0/developer-guide/annisimportformat.html)
    */
   RelANNIS,
 } AnnisImportFormat;
@@ -77,8 +77,9 @@ typedef enum {
 
 /**
  * An enum over all supported query languages of graphANNIS.
+ *
  * Currently, only the ANNIS Query Language (AQL) and its variants are supported, but this enum allows us to add a support for older query language versions
- * or completly new query languages.
+ * or completely new query languages.
  */
 typedef enum {
   AQL,
@@ -123,6 +124,7 @@ typedef struct AnnisComponent AnnisComponent;
 
 /**
  * A thread-safe API for managing corpora stored in a common location on the file system.
+ *
  * Multiple corpora can be part of a corpus storage and they are identified by their unique name.
  * Corpora are loaded from disk into main memory on demand:
  * An internal main memory cache is used to avoid re-loading a recently queried corpus from disk again.
@@ -131,6 +133,7 @@ typedef struct AnnisCorpusStorage AnnisCorpusStorage;
 
 /**
  * Definition of the result of a `frequency` query.
+ *
  * This is a vector of rows, and each row is a vector of columns with the different
  * attribute values and a number of matches having this combination of attribute values.
  */
@@ -139,9 +142,12 @@ typedef struct AnnisFrequencyTable_CString AnnisFrequencyTable_CString;
 /**
  * A representation of a graph including node annotations and edges.
  * Edges are partioned into components and each component is implemented by specialized graph storage implementation.
+ *
  * Use the [CorpusStorage](struct.CorpusStorage.html) struct to create and manage instances of a `Graph`.
+ *
  * Graphs can have an optional location on the disk.
  * In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
+ *
  */
 typedef struct AnnisGraph AnnisGraph;
 
@@ -299,6 +305,7 @@ AnnisGraph *annis_cs_subgraph(const AnnisCorpusStorage *ptr,
                               const AnnisVec_CString *node_ids,
                               size_t ctx_left,
                               size_t ctx_right,
+                              const char *segmentation,
                               AnnisErrorList **err);
 
 AnnisGraph *annis_cs_subgraph_for_query(const AnnisCorpusStorage *ptr,
