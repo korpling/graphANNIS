@@ -5,6 +5,7 @@ use crate::annis::types::AnnoKey;
 
 use std;
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct CostEstimate {
@@ -184,7 +185,7 @@ impl Desc {
 pub struct NodeSearchDesc {
     pub qname: (Option<String>, Option<String>),
     pub cond: Vec<Box<dyn Fn(&Match) -> bool + Sync + Send>>,
-    pub const_output: Option<AnnoKey>,
+    pub const_output: Option<Arc<AnnoKey>>,
 }
 
 pub trait ExecutionNode: Iterator {

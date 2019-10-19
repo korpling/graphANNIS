@@ -1,6 +1,6 @@
 use crate::annis::db::{Graph, Match};
 use crate::annis::operator::*;
-use crate::annis::types::{AnnoKey, Component};
+use crate::annis::types::{Component, DEFAULT_ANNO_KEY};
 use std;
 use std::collections::HashSet;
 
@@ -30,7 +30,7 @@ impl BinaryOperator for IdenticalNode {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         Box::new(std::iter::once(Match {
             node: lhs.node,
-            anno_key: AnnoKey::default(),
+            anno_key: DEFAULT_ANNO_KEY.clone(),
         }))
     }
 

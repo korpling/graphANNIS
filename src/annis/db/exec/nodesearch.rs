@@ -351,7 +351,7 @@ impl<'a> NodeSearch<'a> {
                 );
                 let est_output = std::cmp::max(1, est_output);
 
-                let const_output = db.get_node_type_key();
+                let const_output = Arc::from(db.get_node_type_key());
 
                 Ok(NodeSearch {
                     it: Box::new(it),
@@ -386,7 +386,7 @@ impl<'a> NodeSearch<'a> {
                 .exact_anno_search(qname.0.clone(), qname.1.clone(), val.clone());
 
         let const_output = if is_meta {
-            Some(db.get_node_type_key())
+            Some(Arc::from(db.get_node_type_key()))
         } else {
             None
         };
@@ -496,7 +496,7 @@ impl<'a> NodeSearch<'a> {
                 .regex_anno_search(qname.0.clone(), qname.1.clone(), pattern, negated);
 
         let const_output = if is_meta {
-            Some(db.get_node_type_key())
+            Some(Arc::from(db.get_node_type_key()))
         } else {
             None
         };
@@ -597,7 +597,7 @@ impl<'a> NodeSearch<'a> {
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         let tok_key = db.get_token_key();
-        let any_anno_key = db.get_node_type_key();
+        let any_anno_key = Arc::from(db.get_node_type_key());
         let it_base: Box<dyn Iterator<Item = Match>> = match val {
             ValueSearch::Any => {
                 let it = db.node_annos.exact_anno_search(
@@ -819,7 +819,7 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
-        let const_output = db.get_node_type_key();
+        let const_output = Arc::from(db.get_node_type_key());
 
         Ok(NodeSearch {
             it: Box::new(it),
@@ -879,7 +879,7 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
-        let const_output = db.get_node_type_key();
+        let const_output = Arc::from(db.get_node_type_key());
 
         Ok(NodeSearch {
             it: Box::new(it),
@@ -944,7 +944,7 @@ impl<'a> NodeSearch<'a> {
                         node_search_desc.qname.1.clone(),
                     )
                     .into_iter()
-                    .map(move |anno_key| Match { node, anno_key })
+                    .map(move |anno_key| Match { node, anno_key: Arc::from(anno_key) })
             })
             .filter_map(move |m: Match| -> Option<Vec<Match>> {
                 // only include the nodes that fullfill all original node search predicates

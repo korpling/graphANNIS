@@ -5,7 +5,7 @@ use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{Graph, Match};
 use crate::annis::operator::EstimationType;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
-use crate::annis::types::{AnnoKey, Component, ComponentType};
+use crate::annis::types::{Component, ComponentType, DEFAULT_ANNO_KEY};
 
 use std;
 use std::collections::{HashSet, VecDeque};
@@ -142,7 +142,7 @@ impl BinaryOperator for Precedence {
             // map the result as match
             .map(|n| Match {
                 node: n,
-                anno_key: AnnoKey::default(),
+                anno_key: DEFAULT_ANNO_KEY.clone(),
             })
             .collect();
 
@@ -247,7 +247,7 @@ impl BinaryOperator for InversePrecedence {
             // map the result as match
             .map(|n| Match {
                 node: n,
-                anno_key: AnnoKey::default(),
+                anno_key: DEFAULT_ANNO_KEY.clone(),
             })
             .collect();
 

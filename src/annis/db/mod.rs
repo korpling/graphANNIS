@@ -40,6 +40,9 @@ pub mod sort_matches;
 pub mod token_helper;
 pub mod update;
 
+pub use annostorage::AnnotationStorage;
+
+
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
 pub const TOK: &str = "tok";
@@ -51,7 +54,7 @@ pub const NODE_TYPE: &str = "node_type";
 pub struct Match {
     node: NodeID,
     /// The qualified annotation name.
-    anno_key: AnnoKey,
+    anno_key: Arc<AnnoKey>,
 }
 
 impl Match {
@@ -68,7 +71,7 @@ impl Match {
             .get_value_for_item(&self.node, &self.anno_key)?
             .to_owned();
         Some(Annotation {
-            key: self.anno_key.clone(),
+            key: self.anno_key.as_ref().clone(),
             val: val.to_string(),
         })
     }
@@ -93,7 +96,7 @@ impl Match {
     }
 }
 
-impl Into<Match> for (Edge, AnnoKey) {
+impl Into<Match> for (Edge, Arc<AnnoKey>) {
     fn into(self) -> Match {
         Match {
             node: self.0.source,
@@ -102,7 +105,7 @@ impl Into<Match> for (Edge, AnnoKey) {
     }
 }
 
-impl Into<Match> for (NodeID, AnnoKey) {
+impl Into<Match> for (NodeID, Arc<AnnoKey>) {
     fn into(self) -> Match {
         Match {
             node: self.0,
@@ -126,8 +129,6 @@ impl<T> From<Option<T>> for ValueSearch<T> {
         }
     }
 }
-
-pub use annostorage::AnnotationStorage;
 
 /// A representation of a graph including node annotations and edges.
 /// Edges are partioned into components and each component is implemented by specialized graph storage implementation.
@@ -1439,7 +1440,7 @@ impl Graph {
         }
     }
 
-    /// Return the annotation key which is used for the special `annis::node_type` annotation which every node must have to mark its existance.
+    /// Return an annotation key which is used for the special `annis::node_type` annotation which every node must have to mark its existance.
     pub fn get_node_type_key(&self) -> AnnoKey {
         AnnoKey {
             ns: ANNIS_NS.to_owned(),

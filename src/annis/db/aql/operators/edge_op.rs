@@ -5,7 +5,7 @@ use crate::annis::db::{Graph, Match, ANNIS_NS};
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
 };
-use crate::annis::types::{AnnoKey, Component, ComponentType, Edge, NodeID};
+use crate::annis::types::{AnnoKey, Component, ComponentType, DEFAULT_ANNO_KEY, Edge, NodeID};
 use crate::annis::util;
 use regex;
 use std;
@@ -219,7 +219,7 @@ impl BinaryOperator for BaseEdgeOp {
                     })
                     .map(|n| Match {
                         node: n,
-                        anno_key: AnnoKey::default(),
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
                     })
                     .collect()
             } else {
@@ -236,7 +236,7 @@ impl BinaryOperator for BaseEdgeOp {
                     })
                     .map(|n| Match {
                         node: n,
-                        anno_key: AnnoKey::default(),
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
                     })
                     .collect()
             };
@@ -265,7 +265,7 @@ impl BinaryOperator for BaseEdgeOp {
                             })
                             .map(|n| Match {
                                 node: n,
-                                anno_key: AnnoKey::default(),
+                                anno_key: DEFAULT_ANNO_KEY.clone(),
                             })
                     })
                     .collect()
@@ -288,7 +288,7 @@ impl BinaryOperator for BaseEdgeOp {
                             })
                             .map(|n| Match {
                                 node: n,
-                                anno_key: AnnoKey::default(),
+                                anno_key: DEFAULT_ANNO_KEY.clone(),
                             })
                     })
                     .collect()

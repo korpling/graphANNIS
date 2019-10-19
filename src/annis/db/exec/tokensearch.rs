@@ -13,11 +13,12 @@ use crate::annis::types::{AnnoKey, Component, ComponentType, NodeID};
 
 use std::collections::HashSet;
 use std::fmt;
+use std::sync::Arc;
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps the search for *all* token in a corpus.
 pub struct AnyTokenSearch<'a> {
     desc: Option<Desc>,
-    node_type_key: AnnoKey,
+    node_type_key: Arc<AnnoKey>,
     db: &'a Graph,
     token_helper: Option<TokenHelper>,
     order_gs: Option<&'a dyn GraphStorage>,
@@ -44,7 +45,7 @@ impl<'a> AnyTokenSearch<'a> {
             token_helper,
             db,
             desc: None,
-            node_type_key: db.get_node_type_key(),
+            node_type_key: Arc::from(db.get_node_type_key()),
             root_iterators: None,
         })
     }

@@ -21,6 +21,7 @@ use std::collections::Bound::*;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 type AnnoKeyID = usize;
 
@@ -168,22 +169,22 @@ where
         + serde::Deserialize<'de_impl>
         + Send
         + Sync,
-    (T, AnnoKey): Into<Match>,
+    (T, Arc<AnnoKey>): Into<Match>,
 {
     fn matching_items<'a>(
         &'a self,
         namespace: Option<String>,
         name: String,
         value: Option<String>,
-    ) -> Box<dyn Iterator<Item = (T, AnnoKey)> + 'a> {
-        let key_ranges: Vec<AnnoKey> = if let Some(ns) = namespace {
-            vec![AnnoKey { ns, name }]
+    ) -> Box<dyn Iterator<Item = (T, Arc<AnnoKey>)> + 'a> {
+        let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
+            vec![Arc::from(AnnoKey { ns, name })]
         } else {
-            self.get_qnames(&name)
+            self.get_qnames(&name).into_iter().map(|key| Arc::from(key)).collect()
         };
         // Create a vector fore each matching AnnoKey to the value map containing all items and their annotation values
         // for this key.
-        let value_maps: Vec<(AnnoKey, &FxHashMap<usize, Vec<T>>)> = key_ranges
+        let value_maps: Vec<(Arc<AnnoKey>, &FxHashMap<usize, Vec<T>>)> = key_ranges
             .into_iter()
             .filter_map(|key| {
                 let key_id = self.anno_keys.get_symbol(&key)?;
@@ -242,7 +243,7 @@ where
         + serde::Deserialize<'de>
         + Send
         + Sync,
-    (T, AnnoKey): Into<Match>,
+    (T, Arc<AnnoKey>): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) {
         let orig_anno_key = anno.key.clone();
@@ -438,7 +439,7 @@ where
             if let Some(ns) = ns {
                 // return the only possible annotation for each node
                 let mut matches: Vec<Match> = Vec::new();
-                let key = AnnoKey { ns: ns, name: name };
+                let key = Arc::from(AnnoKey { ns: ns, name: name });
 
                 if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
                     for item in it {
@@ -454,12 +455,12 @@ where
                 }
                 return matches;
             } else {
-                let matching_key_symbols: Vec<(usize, AnnoKey)> = self
+                let matching_key_symbols: Vec<(usize, Arc<AnnoKey>)> = self
                     .get_qnames(&name)
                     .into_iter()
                     .filter_map(|key| {
                         if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
-                            Some((key_symbol, key))
+                            Some((key_symbol, Arc::from(key)))
                         } else {
                             None
                         }
@@ -487,7 +488,7 @@ where
             for item in it {
                 let all_keys = self.get_all_keys_for_item(&item);
                 for anno_key in all_keys {
-                    matches.push((item.clone(), anno_key).into());
+                    matches.push((item.clone(), Arc::from(anno_key)).into());
                 }
             }
             return matches;

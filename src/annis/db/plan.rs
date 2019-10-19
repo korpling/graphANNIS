@@ -8,6 +8,7 @@ use std;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Formatter;
+use std::sync::Arc;
 
 pub struct ExecutionPlan<'a> {
     plans: Vec<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
@@ -15,7 +16,7 @@ pub struct ExecutionPlan<'a> {
     descriptions: Vec<Option<Desc>>,
     inverse_node_pos: Vec<Option<Vec<usize>>>,
     proxy_mode: bool,
-    unique_result_set: HashSet<Vec<(NodeID, AnnoKey)>>,
+    unique_result_set: HashSet<Vec<(NodeID, Arc<AnnoKey>)>>,
 }
 
 impl<'a> ExecutionPlan<'a> {
@@ -157,7 +158,7 @@ impl<'a> Iterator for ExecutionPlan<'a> {
                     let n = self.reorder_match(n);
 
                     // check if we already outputted this result
-                    let key: Vec<(NodeID, AnnoKey)> = n
+                    let key: Vec<(NodeID, Arc<AnnoKey>)> = n
                         .iter()
                         .map(|m: &Match| (m.node, m.anno_key.clone()))
                         .collect();
