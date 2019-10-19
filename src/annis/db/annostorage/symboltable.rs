@@ -1,8 +1,8 @@
 use crate::annis::util::memory_estimation::shallow_size_of_fxhashmap;
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std;
-use rustc_hash::FxHashMap;
 use std::hash::Hash;
 use std::sync::Arc;
 

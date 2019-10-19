@@ -181,7 +181,7 @@ where
         } else {
             self.get_qnames(&name)
         };
-        // Create a vector fore each matching AnnoKey to the value map containing all items and their annotation values 
+        // Create a vector fore each matching AnnoKey to the value map containing all items and their annotation values
         // for this key.
         let value_maps: Vec<(AnnoKey, &FxHashMap<usize, Vec<T>>)> = key_ranges
             .into_iter()
@@ -210,9 +210,7 @@ where
                         }
                     })
                     // flatten the hash set of all items, returns all items for the condition
-                    .flat_map(|(items, key)| {
-                        items.iter().cloned().zip(std::iter::repeat(key))
-                    });
+                    .flat_map(|(items, key)| items.iter().cloned().zip(std::iter::repeat(key)));
                 return Box::new(it);
             } else {
                 // value is not known, return empty result
