@@ -106,8 +106,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
     }
 
     fn create_annotation_from_sparse(&self, orig: &SparseAnnotation) -> Option<Annotation> {
-        let key = self.anno_keys.get_value(orig.key)?;
-        let val = self.anno_values.get_value(orig.val)?;
+        let key = self.anno_keys.get_value_ref(orig.key)?;
+        let val = self.anno_values.get_value_ref(orig.val)?;
 
         Some(Annotation {
             key: key.clone(),
@@ -153,8 +153,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
     }
 
     /// Returns the annotation key from the internal identifier.
-    fn get_key_value(&self, key_id: AnnoKeyID) -> Option<AnnoKey> {
-        self.anno_keys.get_value(key_id).cloned()
+    fn get_key_value(&self, key_id: AnnoKeyID) -> Option<Arc<AnnoKey>> {
+        self.anno_keys.get_value(key_id).clone()
     }
 }
 
@@ -314,7 +314,7 @@ where
         if let Some(all_annos) = self.by_container.get(item) {
             let mut result: Vec<AnnoKey> = Vec::with_capacity(all_annos.len());
             for a in all_annos.iter() {
-                if let Some(key) = self.anno_keys.get_value(a.key) {
+                if let Some(key) = self.anno_keys.get_value_ref(a.key) {
                     result.push(key.clone());
                 }
             }
@@ -370,7 +370,7 @@ where
         }
 
         if let Some(result) = result {
-            return self.anno_values.get_value(result).cloned();
+            return self.anno_values.get_value_ref(result).cloned();
         }
         None
     }
@@ -421,7 +421,7 @@ where
         if let Some(all_annos) = self.by_container.get(item) {
             let idx = all_annos.binary_search_by_key(&key_symbol, |a| a.key);
             if let Ok(idx) = idx {
-                if let Some(val) = self.anno_values.get_value(all_annos[idx].val) {
+                if let Some(val) = self.anno_values.get_value_ref(all_annos[idx].val) {
                     return Some(Cow::Borrowed(val));
                 }
             }
@@ -595,11 +595,11 @@ where
         item: &T,
         ns: Option<String>,
         name: Option<String>,
-    ) -> Vec<AnnoKey> {
+    ) -> Vec<Arc<AnnoKey>> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // fully qualified search
-                let key = AnnoKey { ns, name };
+                let key = Arc::from(AnnoKey { ns, name });
                 if self.get_value_for_item(item, &key).is_some() {
                     return vec![key];
                 }
@@ -607,10 +607,11 @@ where
                 return vec![];
             } else {
                 // get all qualified names for the given annotation name
-                let res: Vec<AnnoKey> = self
+                let res: Vec<Arc<AnnoKey>> = self
                     .get_qnames(&name)
                     .into_iter()
                     .filter(|key| self.get_value_for_item(item, key).is_some())
+                    .map(|key| Arc::from(key))
                     .collect();
                 return res;
             }
@@ -743,7 +744,7 @@ where
                     let result = values_for_key
                         .iter()
                         .filter_map(|(val, items)| {
-                            let val = self.anno_values.get_value(*val)?;
+                            let val = self.anno_values.get_value_ref(*val)?;
                             Some((items.len(), val))
                         })
                         .sorted();
@@ -754,7 +755,7 @@ where
                 } else {
                     return values_for_key
                         .iter()
-                        .filter_map(|(val, _items)| self.anno_values.get_value(*val))
+                        .filter_map(|(val, _items)| self.anno_values.get_value_ref(*val))
                         .map(|val| Cow::Borrowed(&val[..]))
                         .collect();
                 }
@@ -803,7 +804,7 @@ where
                         .into_iter()
                         .enumerate()
                         .filter(|x| sampled_anno_indexes.contains(&x.0))
-                        .filter_map(|x| self.anno_values.get_value(x.1).cloned())
+                        .filter_map(|x| self.anno_values.get_value_ref(x.1).cloned())
                         .collect();
                     // create uniformly distributed histogram bounds
                     sampled_anno_values.sort();

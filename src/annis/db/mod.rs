@@ -273,7 +273,7 @@ impl AnnotationStorage<NodeID> for Graph {
         item: &NodeID,
         ns: Option<String>,
         name: Option<String>,
-    ) -> Vec<AnnoKey> {
+    ) -> Vec<Arc<AnnoKey>> {
         self.node_annos.find_annotations_for_item(item, ns, name)
     }
 

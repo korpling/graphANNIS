@@ -944,7 +944,7 @@ impl<'a> NodeSearch<'a> {
                         node_search_desc.qname.1.clone(),
                     )
                     .into_iter()
-                    .map(move |anno_key| Match { node, anno_key: Arc::from(anno_key) })
+                    .map(move |anno_key| Match { node, anno_key: anno_key.clone() })
             })
             .filter_map(move |m: Match| -> Option<Vec<Match>> {
                 // only include the nodes that fullfill all original node search predicates

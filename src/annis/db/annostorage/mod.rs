@@ -4,6 +4,7 @@ mod symboltable;
 use crate::annis::db::{Match, ValueSearch};
 use crate::annis::types::{AnnoKey, Annotation};
 use std::borrow::Cow;
+use std::sync::Arc;
 
 /// Access annotations for nodes or edges.
 pub trait AnnotationStorage<T>: Send + Sync
@@ -86,7 +87,7 @@ where
         item: &T,
         ns: Option<String>,
         name: Option<String>,
-    ) -> Vec<AnnoKey>;
+    ) -> Vec<Arc<AnnoKey>>;
 
     /// Estimate the number of results for an [annotation exact search](#tymethod.exact_anno_search) for a given an inclusive value range.
     ///
