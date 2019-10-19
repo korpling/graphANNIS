@@ -181,7 +181,9 @@ where
         } else {
             self.get_qnames(&name)
         };
-        let values: Vec<(AnnoKey, &FxHashMap<usize, Vec<T>>)> = key_ranges
+        // Create a vector fore each matching AnnoKey to the value map containing all items and their annotation values 
+        // for this key.
+        let value_maps: Vec<(AnnoKey, &FxHashMap<usize, Vec<T>>)> = key_ranges
             .into_iter()
             .filter_map(|key| {
                 let key_id = self.anno_keys.get_symbol(&key)?;
@@ -197,19 +199,19 @@ where
             let target_value_symbol = self.anno_values.get_symbol(&value);
 
             if let Some(target_value_symbol) = target_value_symbol {
-                let it = values
+                let it = value_maps
                     .into_iter()
                     // find the items with the correct value
-                    .filter_map(move |(key_id, values)| {
+                    .filter_map(move |(key, values)| {
                         if let Some(items) = values.get(&target_value_symbol) {
-                            Some((items, key_id))
+                            Some((items, key))
                         } else {
                             None
                         }
                     })
                     // flatten the hash set of all items, returns all items for the condition
-                    .flat_map(|(items, key_id)| {
-                        items.iter().cloned().zip(std::iter::repeat(key_id))
+                    .flat_map(|(items, key)| {
+                        items.iter().cloned().zip(std::iter::repeat(key))
                     });
                 return Box::new(it);
             } else {
@@ -217,13 +219,14 @@ where
                 return Box::new(std::iter::empty());
             }
         } else {
-            let it = values
+            let it = value_maps
                 .into_iter()
-                // flatten the hash set of all items, returns all items for the condition
-                .flat_map(|(key_id, values)| values.iter().zip(std::iter::repeat(key_id)))
-                // create annotations from all flattened values
-                .flat_map(move |((_, items), key_id)| {
-                    items.iter().cloned().zip(std::iter::repeat(key_id))
+                // flatten the hash set of all items of the value map
+                .flat_map(|(key, values)| {
+                    values
+                        .iter()
+                        .flat_map(|(_, items)| items.iter().cloned())
+                        .zip(std::iter::repeat(key))
                 });
             return Box::new(it);
         }
@@ -437,10 +440,7 @@ where
             if let Some(ns) = ns {
                 // return the only possible annotation for each node
                 let mut matches: Vec<Match> = Vec::new();
-                let key = AnnoKey {
-                    ns: ns,
-                    name: name,
-                };
+                let key = AnnoKey { ns: ns, name: name };
 
                 if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
                     for item in it {
