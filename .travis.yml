@@ -82,16 +82,16 @@ deploy:
       repo: korpling/graphANNIS
       branch: master
       tags: true
+      condition: $TEST_SUITE == ""
     skip_cleanup: true
     tag_name: $TRAVIS_TAG
     draft: true
   - provider: script
     script: bash $TRAVIS_BUILD_DIR/misc/deploy-docs.sh
-    condition: env(TEST_SUITE) =~ //
     on:
       repo: korpling/graphANNIS
       branch: master
       tags: true
-      condition: env(TRAVIS_OS_NAME) = linux AND env(TEST_SUITE) =~ //
+      condition: $TRAVIS_OS_NAME == "linux" && $TEST_SUITE == ""
     skip-cleanup: true
       

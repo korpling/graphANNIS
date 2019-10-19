@@ -1,6 +1,6 @@
 [package]
 name = "graphannis"
-version = "0.23.0-SNAPSHOT"
+version = "0.24.0-dev"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
 license = "Apache-2.0"
@@ -10,6 +10,9 @@ readme = "crate-info.md"
 autobins=true
 build = "build.rs"
 edition = "2018"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docs_rs_workaround"]
 
 [lib]
 crate-type = ["lib", "staticlib","cdylib"]
@@ -55,9 +58,6 @@ criterion = {version="0.2", optional=true, default-features=false}
 prettytable-rs = {version="0.8", optional=true, default-features=false}
 
 libc = {version="0.2"}
-
-[package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docs_rs_workaround"]
 
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = { version = "0.2.2" }

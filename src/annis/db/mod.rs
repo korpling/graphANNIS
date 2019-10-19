@@ -29,6 +29,8 @@ use tempfile;
 pub mod annostorage;
 pub mod aql;
 pub mod corpusstorage;
+#[cfg(test)]
+pub mod example_generator;
 pub mod exec;
 pub mod graphstorage;
 mod plan;
@@ -1361,7 +1363,7 @@ impl Graph {
     }
 
     /// Returns all components of the graph given an optional type (`ctype`) and `name`.
-    /// This allows to filter which components to recieve.
+    /// This allows to filter which components to receive.
     /// If you want to retrieve all components, use `None` as value for both arguments.
     pub fn get_all_components(
         &self,

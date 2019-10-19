@@ -90,7 +90,7 @@ pub extern "C" fn annis_cs_count(
     query: *const libc::c_char,
     query_language: QueryLanguage,
     err: *mut *mut ErrorList,
-) -> u64 {
+) -> libc::uint64_t {
     let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query);
@@ -156,6 +156,7 @@ pub extern "C" fn annis_cs_subgraph(
     node_ids: *const Vec<CString>,
     ctx_left: libc::size_t,
     ctx_right: libc::size_t,
+    segmentation: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> *mut Graph {
     let cs: &CorpusStorage = cast_const!(ptr);
@@ -165,8 +166,14 @@ pub extern "C" fn annis_cs_subgraph(
         .collect();
     let corpus = cstr!(corpus_name);
 
+    let segmentation = if segmentation.is_null() {
+        None
+    } else {
+        Some(cstr!(segmentation).to_string())
+    };
+
     let result = try_cerr!(
-        cs.subgraph(&corpus, node_ids, ctx_left, ctx_right),
+        cs.subgraph(&corpus, node_ids, ctx_left, ctx_right, segmentation),
         err,
         std::ptr::null_mut()
     );
