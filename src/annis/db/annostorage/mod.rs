@@ -2,14 +2,18 @@ pub mod inmemory;
 mod symboltable;
 
 use crate::annis::db::{Match, ValueSearch};
+use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Annotation};
 use std::borrow::Cow;
+use std::path::Path;
 use std::sync::Arc;
 
+use crate::malloc_size_of::MallocSizeOf;
+
 /// Access annotations for nodes or edges.
-pub trait AnnotationStorage<T>: Send + Sync
+pub trait AnnotationStorage<T>: Send + Sync + MallocSizeOf
 where
-    T: Send + Sync,
+    T: Send + Sync + MallocSizeOf,
 {
     /// Insert an annotation `anno` (with annotation key and value) for an item `item`.
     fn insert(&mut self, item: T, anno: Annotation);
@@ -135,4 +139,10 @@ where
     /// An annotation storage can not have a valid statistics, in which case the estimitation function will not return
     /// valid results.
     fn calculate_statistics(&mut self);
+
+    /// Load the annotation from an external `location`.
+    fn load_annotations_from(&mut self, location: &Path) -> Result<()>;
+
+    /// Save the current annotation to a `location` on the disk, but do not remember this location.
+    fn save_annotations_to(&self, location: &Path) -> Result<()>;
 }
