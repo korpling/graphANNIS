@@ -364,10 +364,10 @@ where
                     self.anno_keys.remove(key);
                 }
 
+                result = self.anno_values.get_value_ref(old_value).map(|v| Cow::Owned(v.clone()));
+
                 self.check_and_remove_value_symbol(old_value);
                 self.total_number_of_annos -= 1;
-
-                result = Some(old_value);
             }
             // if there are more annotations for this item, re-insert them
             if !all_annos.is_empty() {
@@ -375,10 +375,7 @@ where
             }
         }
 
-        if let Some(result) = result {
-            return self.anno_values.get_value_ref(result).map(|v| Cow::Borrowed(v.as_str()));
-        }
-        None
+        result
     }
 
     fn clear(&mut self) {
