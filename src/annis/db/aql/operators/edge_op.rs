@@ -49,7 +49,7 @@ impl BinaryOperatorSpec for BaseEdgeOpSpec {
         HashSet::from_iter(self.components.clone())
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = BaseEdgeOp::new(db, self.clone());
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -495,7 +495,7 @@ impl BinaryOperatorSpec for DominanceSpec {
         HashSet::from_iter(db.get_all_components(Some(ComponentType::Dominance), Some(&self.name)))
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let components = db.get_all_components(Some(ComponentType::Dominance), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from(">")
@@ -525,7 +525,7 @@ impl BinaryOperatorSpec for PointingSpec {
         HashSet::from_iter(db.get_all_components(Some(ComponentType::Pointing), Some(&self.name)))
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let components = db.get_all_components(Some(ComponentType::Pointing), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from("->")
@@ -560,7 +560,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         components
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let components = vec![Component {
             ctype: ComponentType::PartOf,
             layer: String::from(ANNIS_NS),

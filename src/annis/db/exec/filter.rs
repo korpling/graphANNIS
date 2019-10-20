@@ -42,7 +42,7 @@ impl<'a> Filter<'a> {
         exec: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
-        op_entry: BinaryOperatorEntry,
+        op_entry: BinaryOperatorEntry<'a>,
     ) -> Filter<'a> {
         let desc = if let Some(orig_desc) = exec.get_desc() {
             let cost_est = if let Some(ref orig_cost) = orig_desc.cost {

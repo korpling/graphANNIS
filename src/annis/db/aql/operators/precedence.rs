@@ -61,7 +61,7 @@ impl BinaryOperatorSpec for PrecedenceSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = Precedence::new(db, self.clone());
         if let Some(op) = optional_op {
             return Some(Box::new(op));

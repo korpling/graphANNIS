@@ -17,7 +17,7 @@ const MAX_BUFFER_SIZE: usize = 512;
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
     match_receiver: Option<Receiver<Vec<Match>>>,
-    op: Arc<dyn BinaryOperator>,
+    op: Arc<dyn BinaryOperator + 'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<dyn AnnotationStorage<NodeID>>,
@@ -37,7 +37,7 @@ impl<'a> IndexJoin<'a> {
     pub fn new(
         lhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
-        op_entry: BinaryOperatorEntry,
+        op_entry: BinaryOperatorEntry<'a>,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: Arc<dyn AnnotationStorage<NodeID>>,
         rhs_desc: Option<&Desc>,

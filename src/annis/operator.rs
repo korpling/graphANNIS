@@ -170,7 +170,7 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
 pub trait BinaryOperatorSpec: std::fmt::Debug {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component>;
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>>;
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>>;
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         None
