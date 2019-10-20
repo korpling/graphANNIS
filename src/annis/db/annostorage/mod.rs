@@ -17,7 +17,7 @@ where
     /// Get all the annotation keys of a node
     fn get_all_keys_for_item(&self, item: &T) -> Vec<AnnoKey>;
 
-    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<String>;
+    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
 
     fn clear(&mut self);
 
@@ -34,8 +34,8 @@ where
     /// This function allows to filter the received annotation keys by the specifying the namespace and name.
     fn get_keys_for_iterator(
         &self,
-        ns: Option<String>,
-        name: Option<String>,
+        ns: Option<&str>,
+        name: Option<&str>,
         it: Box<dyn Iterator<Item = T>>,
     ) -> Vec<Match>;
 
@@ -43,7 +43,7 @@ where
     fn number_of_annotations(&self) -> usize;
 
     /// Return the number of annotations contained in this `AnnotationStorage` filtered by `name` and optional namespace (`ns`).
-    fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize;
+    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> usize;
 
     /// Returns an iterator for all items that exactly match the given annotation constraints.
     /// The annotation `name` must be given as argument, the other arguments are optional.
@@ -57,9 +57,9 @@ where
     /// (e.g. there can be multiple annotations with the same name if the namespace is different).
     fn exact_anno_search<'a>(
         &'a self,
-        namespace: Option<String>,
-        name: String,
-        value: ValueSearch<String>,
+        namespace: Option<&str>,
+        name: &str,
+        value: ValueSearch<&str>,
     ) -> Box<dyn Iterator<Item = Match> + 'a>;
 
     /// Returns an iterator for all items where the value matches the regular expression.
@@ -76,8 +76,8 @@ where
     /// (e.g. there can be multiple annotations with the same name if the namespace is different).
     fn regex_anno_search<'a>(
         &'a self,
-        namespace: Option<String>,
-        name: String,
+        namespace: Option<&str>,
+        name: &str,
         pattern: &str,
         negated: bool,
     ) -> Box<dyn Iterator<Item = Match> + 'a>;
@@ -85,8 +85,8 @@ where
     fn find_annotations_for_item(
         &self,
         item: &T,
-        ns: Option<String>,
-        name: Option<String>,
+        ns: Option<&str>,
+        name: Option<&str>,
     ) -> Vec<Arc<AnnoKey>>;
 
     /// Estimate the number of results for an [annotation exact search](#tymethod.exact_anno_search) for a given an inclusive value range.
@@ -97,8 +97,8 @@ where
     /// - `upper_val`- Inclusive upper bound for the annotation value.
     fn guess_max_count(
         &self,
-        ns: Option<String>,
-        name: String,
+        ns: Option<&str>,
+        name: &str,
         lower_val: &str,
         upper_val: &str,
     ) -> usize;
@@ -109,9 +109,9 @@ where
     /// - `ns` - If given, only annotations having this namespace are considered.
     /// - `name`  - Only annotations with this name are considered.
     /// - `pattern`- The regular expression pattern.
-    fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize;
+    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> usize;
 
-    fn guess_most_frequent_value(&self, ns: Option<String>, name: String) -> Option<String>;
+    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Option<Cow<str>>;
 
     /// Return a list of all existing values for a given annotation `key`.
     /// If the `most_frequent_first`parameter is true, the results are sorted by their frequency.

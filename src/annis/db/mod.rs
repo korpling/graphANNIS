@@ -146,6 +146,26 @@ impl<T> From<Option<T>> for ValueSearch<T> {
     }
 }
 
+impl<T> ValueSearch<T> {
+    #[inline]
+    pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> ValueSearch<U> {
+        match self {
+            ValueSearch::Any => ValueSearch::Any,
+            ValueSearch::Some(v) => ValueSearch::Some(f(v)),
+            ValueSearch::NotSome(v) => ValueSearch::NotSome(f(v)),
+        }
+    }
+
+    #[inline]
+    pub fn as_ref(&self) -> ValueSearch<&T> {
+        match *self {
+            ValueSearch::Any => ValueSearch::Any,
+            ValueSearch::Some(ref v) => ValueSearch::Some(v),
+            ValueSearch::NotSome(ref v) => ValueSearch::NotSome(v),
+        }
+    }
+}
+
 /// A representation of a graph including node annotations and edges.
 /// Edges are partioned into components and each component is implemented by specialized graph storage implementation.
 ///
@@ -240,7 +260,7 @@ impl AnnotationStorage<NodeID> for Graph {
         self.node_annos.get_all_keys_for_item(item)
     }
 
-    fn remove_annotation_for_item(&mut self, item: &NodeID, key: &AnnoKey) -> Option<String> {
+    fn remove_annotation_for_item(&mut self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
         Arc::make_mut(&mut self.node_annos).remove_annotation_for_item(item, key)
     }
 
@@ -260,23 +280,23 @@ impl AnnotationStorage<NodeID> for Graph {
         self.node_annos.number_of_annotations()
     }
 
-    fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize {
+    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> usize {
         self.node_annos.number_of_annotations_by_name(ns, name)
     }
 
     fn exact_anno_search<'a>(
         &'a self,
-        namespace: Option<String>,
-        name: String,
-        value: ValueSearch<String>,
+        namespace: Option<&str>,
+        name: &str,
+        value: ValueSearch<&str>,
     ) -> Box<dyn Iterator<Item = Match> + 'a> {
         self.node_annos.exact_anno_search(namespace, name, value)
     }
 
     fn regex_anno_search<'a>(
         &'a self,
-        namespace: Option<String>,
-        name: String,
+        namespace: Option<&str>,
+        name: &str,
         pattern: &str,
         negated: bool,
     ) -> Box<dyn Iterator<Item = Match> + 'a> {
@@ -287,16 +307,16 @@ impl AnnotationStorage<NodeID> for Graph {
     fn find_annotations_for_item(
         &self,
         item: &NodeID,
-        ns: Option<String>,
-        name: Option<String>,
+        ns: Option<&str>,
+        name: Option<&str>,
     ) -> Vec<Arc<AnnoKey>> {
         self.node_annos.find_annotations_for_item(item, ns, name)
     }
 
     fn guess_max_count(
         &self,
-        ns: Option<String>,
-        name: String,
+        ns: Option<&str>,
+        name: &str,
         lower_val: &str,
         upper_val: &str,
     ) -> usize {
@@ -304,11 +324,11 @@ impl AnnotationStorage<NodeID> for Graph {
             .guess_max_count(ns, name, lower_val, upper_val)
     }
 
-    fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize {
+    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> usize {
         self.node_annos.guess_max_count_regex(ns, name, pattern)
     }
 
-    fn guess_most_frequent_value(&self, ns: Option<String>, name: String) -> Option<String> {
+    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Option<Cow<str>> {
         self.node_annos.guess_most_frequent_value(ns, name)
     }
 
@@ -326,8 +346,8 @@ impl AnnotationStorage<NodeID> for Graph {
 
     fn get_keys_for_iterator<'a>(
         &'a self,
-        ns: Option<String>,
-        name: Option<String>,
+        ns: Option<&str>,
+        name: Option<&str>,
         it: Box<dyn Iterator<Item = NodeID>>,
     ) -> Vec<Match> {
         self.node_annos.get_keys_for_iterator(ns, name, it)
@@ -1338,9 +1358,9 @@ impl Graph {
 
     fn get_node_id_from_name(&self, node_name: &str) -> Option<NodeID> {
         let mut all_nodes_with_anno = self.node_annos.exact_anno_search(
-            Some(ANNIS_NS.to_owned()),
-            NODE_NAME.to_owned(),
-            Some(node_name.to_owned()).into(),
+            Some(&ANNIS_NS.to_owned()),
+            &NODE_NAME.to_owned(),
+            Some(node_name).into(),
         );
         if let Some(m) = all_nodes_with_anno.next() {
             return Some(m.node);

@@ -354,8 +354,8 @@ impl BinaryOperator for BaseEdgeOp {
         }
 
         let max_nodes: f64 = self.node_annos.guess_max_count(
-            Some(NODE_TYPE_KEY.ns.clone()),
-            NODE_TYPE_KEY.name.clone(),
+            Some(&NODE_TYPE_KEY.ns),
+            &NODE_TYPE_KEY.name,
             "node",
             "node",
         ) as f64;
@@ -429,24 +429,45 @@ impl BinaryOperator for BaseEdgeOp {
                     let guessed_count = match edge_anno {
                         EdgeAnnoSearchSpec::ExactValue { val, ns, name } => {
                             if let Some(val) = val {
-                                anno_storage.guess_max_count(ns.clone(), name.clone(), val, val)
+                                anno_storage.guess_max_count(
+                                    ns.as_ref().map(String::as_str),
+                                    name,
+                                    val,
+                                    val,
+                                )
                             } else {
-                                anno_storage.number_of_annotations_by_name(ns.clone(), name.clone())
+                                anno_storage.number_of_annotations_by_name(
+                                    ns.as_ref().map(String::as_str),
+                                    &name,
+                                )
                             }
                         }
                         EdgeAnnoSearchSpec::NotExactValue { val, ns, name } => {
-                            let total = anno_storage
-                                .number_of_annotations_by_name(ns.clone(), name.clone());
-                            total - anno_storage.guess_max_count(ns.clone(), name.clone(), val, val)
-                        }
-                        EdgeAnnoSearchSpec::RegexValue { val, ns, name } => {
-                            anno_storage.guess_max_count_regex(ns.clone(), name.clone(), val)
-                        }
-                        EdgeAnnoSearchSpec::NotRegexValue { val, ns, name } => {
-                            let total = anno_storage
-                                .number_of_annotations_by_name(ns.clone(), name.clone());
+                            let total = anno_storage.number_of_annotations_by_name(
+                                ns.as_ref().map(String::as_str),
+                                &name,
+                            );
                             total
-                                - anno_storage.guess_max_count_regex(ns.clone(), name.clone(), val)
+                                - anno_storage.guess_max_count(
+                                    ns.as_ref().map(String::as_str),
+                                    &name,
+                                    val,
+                                    val,
+                                )
+                        }
+                        EdgeAnnoSearchSpec::RegexValue { val, ns, name } => anno_storage
+                            .guess_max_count_regex(ns.as_ref().map(String::as_str), &name, val),
+                        EdgeAnnoSearchSpec::NotRegexValue { val, ns, name } => {
+                            let total = anno_storage.number_of_annotations_by_name(
+                                ns.as_ref().map(String::as_str),
+                                &name,
+                            );
+                            total
+                                - anno_storage.guess_max_count_regex(
+                                    ns.as_ref().map(String::as_str),
+                                    &name,
+                                    val,
+                                )
                         }
                     };
                     let g_sel: f64 = (guessed_count as f64) / (num_of_annos as f64);

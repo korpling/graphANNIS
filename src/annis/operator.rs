@@ -100,10 +100,15 @@ impl EdgeAnnoSearchSpec {
                 ref val,
             } => {
                 if let Some(val) = val {
-                    let val = val.clone();
-                    return anno_storage.guess_max_count(ns.clone(), name.clone(), &val, &val);
+                    return anno_storage.guess_max_count(
+                        ns.as_ref().map(String::as_str),
+                        name,
+                        val,
+                        val,
+                    );
                 } else {
-                    return anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
+                    return anno_storage
+                        .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name);
                 }
             }
             EdgeAnnoSearchSpec::NotExactValue {
@@ -111,25 +116,25 @@ impl EdgeAnnoSearchSpec {
                 ref name,
                 ref val,
             } => {
-                let val = val.clone();
-                let total = anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
-                total - anno_storage.guess_max_count(ns.clone(), name.clone(), &val, &val)
+                let total = anno_storage
+                    .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name);
+                total
+                    - anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val)
             }
             EdgeAnnoSearchSpec::RegexValue {
                 ref ns,
                 ref name,
                 ref val,
-            } => {
-                let val = val.clone();
-                anno_storage.guess_max_count_regex(ns.clone(), name.clone(), &val)
-            }
+            } => anno_storage.guess_max_count_regex(ns.as_ref().map(String::as_str), name, val),
             EdgeAnnoSearchSpec::NotRegexValue {
                 ref ns,
                 ref name,
                 ref val,
             } => {
-                let total = anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
-                total - anno_storage.guess_max_count_regex(ns.clone(), name.clone(), &val)
+                let total = anno_storage
+                    .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name);
+                total
+                    - anno_storage.guess_max_count_regex(ns.as_ref().map(String::as_str), name, val)
             }
         }
     }

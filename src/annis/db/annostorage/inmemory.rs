@@ -173,14 +173,17 @@ where
 {
     fn matching_items<'a>(
         &'a self,
-        namespace: Option<String>,
-        name: String,
-        value: Option<String>,
+        namespace: Option<&str>,
+        name: &str,
+        value: Option<&str>,
     ) -> Box<dyn Iterator<Item = (T, Arc<AnnoKey>)> + 'a> {
         let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
-            vec![Arc::from(AnnoKey { ns, name })]
+            vec![Arc::from(AnnoKey {
+                ns: ns.to_string(),
+                name: name.to_string(),
+            })]
         } else {
-            self.get_qnames(&name)
+            self.get_qnames(name)
                 .into_iter()
                 .map(|key| Arc::from(key))
                 .collect()
@@ -200,7 +203,7 @@ where
             .collect();
 
         if let Some(value) = value {
-            let target_value_symbol = self.anno_values.get_symbol(&value);
+            let target_value_symbol = self.anno_values.get_symbol(&value.to_string());
 
             if let Some(target_value_symbol) = target_value_symbol {
                 let it = value_maps
@@ -327,7 +330,7 @@ where
         Vec::new()
     }
 
-    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<String> {
+    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
         let mut result = None;
 
         let orig_key = key;
@@ -373,7 +376,7 @@ where
         }
 
         if let Some(result) = result {
-            return self.anno_values.get_value_ref(result).cloned();
+            return self.anno_values.get_value_ref(result).map(|v| Cow::Borrowed(v.as_str()));
         }
         None
     }
@@ -434,15 +437,18 @@ where
 
     fn get_keys_for_iterator(
         &self,
-        ns: Option<String>,
-        name: Option<String>,
+        ns: Option<&str>,
+        name: Option<&str>,
         it: Box<dyn Iterator<Item = T>>,
     ) -> Vec<Match> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // return the only possible annotation for each node
                 let mut matches: Vec<Match> = Vec::new();
-                let key = Arc::from(AnnoKey { ns: ns, name: name });
+                let key = Arc::from(AnnoKey {
+                    ns: ns.to_string(),
+                    name: name.to_string(),
+                });
 
                 if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
                     for item in it {
@@ -498,21 +504,24 @@ where
         }
     }
 
-    fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize {
+    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> usize {
         let qualified_keys = match ns {
             Some(ns) => self.anno_key_sizes.range((
                 Included(AnnoKey {
-                    name: name.clone(),
-                    ns: ns.clone(),
+                    name: name.to_string(),
+                    ns: ns.to_string(),
                 }),
-                Included(AnnoKey { name, ns }),
+                Included(AnnoKey {
+                    name: name.to_string(),
+                    ns: ns.to_string(),
+                }),
             )),
             None => self.anno_key_sizes.range(
                 AnnoKey {
-                    name: name.clone(),
+                    name: name.to_string(),
                     ns: String::default(),
                 }..AnnoKey {
-                    name,
+                    name: name.to_string(),
                     ns: std::char::MAX.to_string(),
                 },
             ),
@@ -526,9 +535,9 @@ where
 
     fn exact_anno_search<'a>(
         &'a self,
-        namespace: Option<String>,
-        name: String,
-        value: ValueSearch<String>,
+        namespace: Option<&str>,
+        name: &str,
+        value: ValueSearch<&str>,
     ) -> Box<dyn Iterator<Item = Match> + 'a> {
         match value {
             ValueSearch::Any => {
@@ -544,6 +553,7 @@ where
                 Box::new(it)
             }
             ValueSearch::NotSome(value) => {
+                let value = value.to_string();
                 let it = self
                     .matching_items(namespace, name, None)
                     .filter(move |(node, anno_key)| {
@@ -561,8 +571,8 @@ where
 
     fn regex_anno_search<'a>(
         &'a self,
-        namespace: Option<String>,
-        name: String,
+        namespace: Option<&str>,
+        name: &str,
         pattern: &str,
         negated: bool,
     ) -> Box<dyn Iterator<Item = Match> + 'a> {
@@ -596,15 +606,25 @@ where
     fn find_annotations_for_item(
         &self,
         item: &T,
-        ns: Option<String>,
-        name: Option<String>,
+        ns: Option<&str>,
+        name: Option<&str>,
     ) -> Vec<Arc<AnnoKey>> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // fully qualified search
-                let key = Arc::from(AnnoKey { ns, name });
-                if self.get_value_for_item(item, &key).is_some() {
-                    return vec![key];
+                let key = AnnoKey {
+                    ns: ns.to_string(),
+                    name: name.to_string(),
+                };
+                if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
+                    if let Some(all_annos) = self.by_container.get(item) {
+                        if all_annos
+                            .binary_search_by_key(&key_symbol, |a| a.key)
+                            .is_ok()
+                        {
+                            return vec![Arc::from(key)];
+                        }
+                    }
                 }
 
                 return vec![];
@@ -631,14 +651,17 @@ where
 
     fn guess_max_count(
         &self,
-        ns: Option<String>,
-        name: String,
+        ns: Option<&str>,
+        name: &str,
         lower_val: &str,
         upper_val: &str,
     ) -> usize {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
-            Some(ns) => vec![AnnoKey { name, ns }],
+            Some(ns) => vec![AnnoKey {
+                name: name.to_string(),
+                ns: ns.to_string(),
+            }],
             None => self.get_qnames(&name),
         };
 
@@ -683,7 +706,7 @@ where
         }
     }
 
-    fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize {
+    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> usize {
         let full_match_pattern = util::regex_full_match(pattern);
 
         let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
@@ -704,21 +727,24 @@ where
         0
     }
 
-    fn guess_most_frequent_value(&self, ns: Option<String>, name: String) -> Option<String> {
+    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Option<Cow<str>> {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
-            Some(ns) => vec![AnnoKey { name, ns }],
+            Some(ns) => vec![AnnoKey {
+                name: name.to_string(),
+                ns: ns.to_string(),
+            }],
             None => self.get_qnames(&name),
         };
 
-        let mut sampled_values: HashMap<String, usize> = HashMap::default();
+        let mut sampled_values: HashMap<&str, usize> = HashMap::default();
 
         // guess for each fully qualified annotation key
         for anno_key in qualified_keys {
             if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
                 if let Some(histo) = self.histogram_bounds.get(&anno_key) {
                     for v in histo.iter() {
-                        let count: &mut usize = sampled_values.entry(v.to_owned()).or_insert(0);
+                        let count: &mut usize = sampled_values.entry(v).or_insert(0);
                         *count += 1;
                     }
                 }
@@ -727,10 +753,10 @@ where
         // find the value which is most frequent
         if !sampled_values.is_empty() {
             let mut max_count = 0;
-            let mut max_value = "".to_owned();
+            let mut max_value = Cow::Borrowed("");
             for (v, count) in sampled_values.into_iter() {
                 if count >= max_count {
-                    max_value = v;
+                    max_value = Cow::Borrowed(v);
                     max_count = count;
                 }
             }

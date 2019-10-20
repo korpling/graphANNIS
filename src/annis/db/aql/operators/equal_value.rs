@@ -71,19 +71,21 @@ impl EqualValue {
         }
     }
 
-    fn anno_def_for_spec(spec: &NodeSearchSpec) -> Option<(Option<String>, String)> {
+    fn anno_def_for_spec(spec: &NodeSearchSpec) -> Option<(Option<&str>, &str)> {
         match spec {
             NodeSearchSpec::ExactValue { ns, name, .. }
             | NodeSearchSpec::NotExactValue { ns, name, .. }
             | NodeSearchSpec::RegexValue { ns, name, .. }
-            | NodeSearchSpec::NotRegexValue { ns, name, .. } => Some((ns.clone(), name.clone())),
+            | NodeSearchSpec::NotRegexValue { ns, name, .. } => {
+                Some((ns.as_ref().map(String::as_str), &name))
+            }
             NodeSearchSpec::AnyToken
             | NodeSearchSpec::ExactTokenValue { .. }
             | NodeSearchSpec::NotExactTokenValue { .. }
             | NodeSearchSpec::RegexTokenValue { .. }
             | NodeSearchSpec::NotRegexTokenValue { .. } => {
-                let ns = Some(ANNIS_NS.to_string());
-                let name = TOK.to_string();
+                let ns = Some(ANNIS_NS);
+                let name = TOK;
                 Some((ns, name))
             }
             NodeSearchSpec::AnyNode => None,
@@ -95,11 +97,10 @@ impl BinaryOperator for EqualValue {
     fn retrieve_matches<'a>(&'a self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let lhs = lhs.clone();
         if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
-            let lhs_val = lhs_val.to_string();
-            let val_search = if self.negated {
-                ValueSearch::NotSome(lhs_val)
+            let val_search: ValueSearch<&str> = if self.negated {
+                ValueSearch::NotSome(&lhs_val)
             } else {
-                ValueSearch::Some(lhs_val)
+                ValueSearch::Some(&lhs_val)
             };
 
             if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
@@ -135,8 +136,8 @@ impl BinaryOperator for EqualValue {
             {
                 if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
                     let guessed_count_right = self.node_annos.guess_max_count(
-                        ns.clone(),
-                        name.clone(),
+                        ns,
+                        name,
                         &most_frequent_value_left,
                         &most_frequent_value_left,
                     );

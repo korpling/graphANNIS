@@ -60,11 +60,11 @@ impl<'a> AnyTokenSearch<'a> {
         } else {
             // iterate over all nodes that are token and check if they are root node nodes in the ORDERING component
             let mut root_nodes: Vec<Match> = Vec::new();
-            for tok_candidate in self.db.node_annos.exact_anno_search(
-                Some("annis".to_owned()),
-                "tok".to_owned(),
-                None.into(),
-            ) {
+            for tok_candidate in
+                self.db
+                    .node_annos
+                    .exact_anno_search(Some("annis"), "tok", None.into())
+            {
                 let n = tok_candidate.node;
                 let mut is_root_tok = true;
                 if let Some(order_gs) = self.order_gs {

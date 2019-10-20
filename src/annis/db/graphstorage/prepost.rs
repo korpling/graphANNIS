@@ -415,8 +415,8 @@ where
         // find all roots of the component
         let mut roots: FxHashSet<NodeID> = FxHashSet::default();
         let nodes: Box<dyn Iterator<Item = Match>> = db.node_annos.exact_anno_search(
-            Some(NODE_NAME_KEY.ns.clone()),
-            NODE_NAME_KEY.name.clone(),
+            Some(&NODE_NAME_KEY.ns),
+            &NODE_NAME_KEY.name,
             None.into(),
         );
 
@@ -431,8 +431,8 @@ where
         }
 
         let nodes: Box<dyn Iterator<Item = Match>> = db.node_annos.exact_anno_search(
-            Some(NODE_NAME_KEY.ns.clone()),
-            NODE_NAME_KEY.name.clone(),
+            Some(&NODE_NAME_KEY.ns),
+            &NODE_NAME_KEY.name,
             None.into(),
         );
         for m in nodes {
