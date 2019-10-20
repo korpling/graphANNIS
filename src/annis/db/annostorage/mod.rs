@@ -114,7 +114,7 @@ where
     fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> usize;
 
     /// Estimate the most frequent value for a given annotation `name` with an optional namespace (`ns`).
-    /// 
+    ///
     /// If more than one qualified annotation name matches the defnition, the more frequent value is used.
     fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Option<Cow<str>>;
 
@@ -126,13 +126,13 @@ where
     fn annotation_keys(&self) -> Vec<AnnoKey>;
 
     /// Return the item with the largest item which has an annotation value in this annotation storage.
-    /// 
-    /// This can be used to calculate new IDs for new items. 
+    ///
+    /// This can be used to calculate new IDs for new items.
     fn get_largest_item(&self) -> Option<T>;
 
     /// (Re-) calculate the internal statistics needed for estimitating annotation values.
-    /// 
+    ///
     /// An annotation storage can not have a valid statistics, in which case the estimitation function will not return
-    /// valid results. 
+    /// valid results.
     fn calculate_statistics(&mut self);
 }

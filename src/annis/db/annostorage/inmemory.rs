@@ -23,8 +23,6 @@ use std::hash::Hash;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-type AnnoKeyID = usize;
-
 #[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf)]
 struct SparseAnnotation {
     key: usize,
@@ -150,11 +148,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
         if !still_used {
             self.anno_values.remove(value_id);
         }
-    }
-
-    /// Returns the annotation key from the internal identifier.
-    fn get_key_value(&self, key_id: AnnoKeyID) -> Option<Arc<AnnoKey>> {
-        self.anno_keys.get_value(key_id).clone()
     }
 }
 
@@ -624,13 +617,17 @@ where
                     .collect();
                 return res;
             }
-        } else if let Some(annos) = self.by_container.get(item) {
+        } else if let Some(all_annos) = self.by_container.get(item) {
             // no annotation name given, return all
-            return annos
-                .iter()
-                .filter_map(|sparse_anno| self.get_key_value(sparse_anno.key))
-                .collect();
+            let mut result: Vec<Arc<AnnoKey>> = Vec::with_capacity(all_annos.len());
+            for a in all_annos.iter() {
+                if let Some(key) = self.anno_keys.get_value(a.key) {
+                    result.push(key);
+                }
+            }
+            return result;
         } else {
+            // return empty result if not found
             return vec![];
         }
     }
