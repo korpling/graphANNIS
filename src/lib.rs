@@ -74,7 +74,6 @@ pub mod corpusstorage {
 pub use crate::annis::db::update;
 
 pub use crate::annis::db::Graph;
-pub use crate::annis::db::NODE_TYPE_KEY;
 
 /// Types that are used by the `Graph` API.
 pub mod graph {

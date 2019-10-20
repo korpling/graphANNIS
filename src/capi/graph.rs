@@ -3,7 +3,6 @@ use crate::graph::{
     Annotation, AnnotationStorage, Component, ComponentType, Edge, GraphStorage, Match, NodeID,
 };
 use crate::Graph;
-use crate::NODE_TYPE_KEY;
 use libc;
 use std;
 use std::ffi::CString;
@@ -36,11 +35,10 @@ pub extern "C" fn annis_graph_nodes_by_type(
 ) -> *mut IterPtr<NodeID> {
     let db: &Graph = cast_const!(g);
     let node_type = cstr!(node_type);
-
     let it = db
         .exact_anno_search(
-            Some(&NODE_TYPE_KEY.ns),
-            &NODE_TYPE_KEY.name,
+            Some("annis"),
+            "node_type",
             Some(node_type.as_ref()).into(),
         )
         .map(|m: Match| m.get_node());
