@@ -1,12 +1,11 @@
-use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
 use crate::annis::db::AnnotationStorage;
-use crate::annis::db::{Graph, Match, ANNIS_NS};
+use crate::annis::db::{Graph, Match, ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY};
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
 };
-use crate::annis::types::{AnnoKey, AnnoKeyID, Component, ComponentType, Edge, NodeID};
+use crate::annis::types::{Component, ComponentType, Edge, NodeID};
 use crate::annis::util;
 use regex;
 use std;
@@ -26,8 +25,7 @@ struct BaseEdgeOpSpec {
 struct BaseEdgeOp {
     gs: Vec<Arc<dyn GraphStorage>>,
     spec: BaseEdgeOpSpec,
-    node_annos: Arc<AnnoStorage<NodeID>>,
-    node_type_key: AnnoKey,
+    node_annos: Arc<dyn AnnotationStorage<NodeID>>,
     inverse: bool,
 }
 
@@ -41,7 +39,6 @@ impl BaseEdgeOp {
             gs,
             spec,
             node_annos: db.node_annos.clone(),
-            node_type_key: db.get_node_type_key(),
             inverse: false,
         })
     }
@@ -220,7 +217,7 @@ impl BinaryOperator for BaseEdgeOp {
                     })
                     .map(|n| Match {
                         node: n,
-                        anno_key: AnnoKeyID::default(),
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
                     })
                     .collect()
             } else {
@@ -237,7 +234,7 @@ impl BinaryOperator for BaseEdgeOp {
                     })
                     .map(|n| Match {
                         node: n,
-                        anno_key: AnnoKeyID::default(),
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
                     })
                     .collect()
             };
@@ -266,7 +263,7 @@ impl BinaryOperator for BaseEdgeOp {
                             })
                             .map(|n| Match {
                                 node: n,
-                                anno_key: AnnoKeyID::default(),
+                                anno_key: DEFAULT_ANNO_KEY.clone(),
                             })
                     })
                     .collect()
@@ -289,7 +286,7 @@ impl BinaryOperator for BaseEdgeOp {
                             })
                             .map(|n| Match {
                                 node: n,
-                                anno_key: AnnoKeyID::default(),
+                                anno_key: DEFAULT_ANNO_KEY.clone(),
                             })
                     })
                     .collect()
@@ -345,7 +342,6 @@ impl BinaryOperator for BaseEdgeOp {
             gs: self.gs.clone(),
             spec: self.spec.clone(),
             node_annos: self.node_annos.clone(),
-            node_type_key: self.node_type_key.clone(),
             inverse: !self.inverse,
         };
         Some(Box::new(edge_op))
@@ -358,8 +354,8 @@ impl BinaryOperator for BaseEdgeOp {
         }
 
         let max_nodes: f64 = self.node_annos.guess_max_count(
-            Some(self.node_type_key.ns.clone()),
-            self.node_type_key.name.clone(),
+            Some(&NODE_TYPE_KEY.ns),
+            &NODE_TYPE_KEY.name,
             "node",
             "node",
         ) as f64;
@@ -433,24 +429,45 @@ impl BinaryOperator for BaseEdgeOp {
                     let guessed_count = match edge_anno {
                         EdgeAnnoSearchSpec::ExactValue { val, ns, name } => {
                             if let Some(val) = val {
-                                anno_storage.guess_max_count(ns.clone(), name.clone(), val, val)
+                                anno_storage.guess_max_count(
+                                    ns.as_ref().map(String::as_str),
+                                    name,
+                                    val,
+                                    val,
+                                )
                             } else {
-                                anno_storage.number_of_annotations_by_name(ns.clone(), name.clone())
+                                anno_storage.number_of_annotations_by_name(
+                                    ns.as_ref().map(String::as_str),
+                                    &name,
+                                )
                             }
                         }
                         EdgeAnnoSearchSpec::NotExactValue { val, ns, name } => {
-                            let total = anno_storage
-                                .number_of_annotations_by_name(ns.clone(), name.clone());
-                            total - anno_storage.guess_max_count(ns.clone(), name.clone(), val, val)
-                        }
-                        EdgeAnnoSearchSpec::RegexValue { val, ns, name } => {
-                            anno_storage.guess_max_count_regex(ns.clone(), name.clone(), val)
-                        }
-                        EdgeAnnoSearchSpec::NotRegexValue { val, ns, name } => {
-                            let total = anno_storage
-                                .number_of_annotations_by_name(ns.clone(), name.clone());
+                            let total = anno_storage.number_of_annotations_by_name(
+                                ns.as_ref().map(String::as_str),
+                                &name,
+                            );
                             total
-                                - anno_storage.guess_max_count_regex(ns.clone(), name.clone(), val)
+                                - anno_storage.guess_max_count(
+                                    ns.as_ref().map(String::as_str),
+                                    &name,
+                                    val,
+                                    val,
+                                )
+                        }
+                        EdgeAnnoSearchSpec::RegexValue { val, ns, name } => anno_storage
+                            .guess_max_count_regex(ns.as_ref().map(String::as_str), &name, val),
+                        EdgeAnnoSearchSpec::NotRegexValue { val, ns, name } => {
+                            let total = anno_storage.number_of_annotations_by_name(
+                                ns.as_ref().map(String::as_str),
+                                &name,
+                            );
+                            total
+                                - anno_storage.guess_max_count_regex(
+                                    ns.as_ref().map(String::as_str),
+                                    &name,
+                                    val,
+                                )
                         }
                     };
                     let g_sel: f64 = (guessed_count as f64) / (num_of_annos as f64);

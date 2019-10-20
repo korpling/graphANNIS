@@ -1,11 +1,10 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::Graph;
-use crate::annis::db::Match;
+use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::BinaryOperator;
 use crate::annis::operator::BinaryOperatorSpec;
 use crate::annis::operator::EstimationType;
-use crate::annis::types::{AnnoKeyID, Component};
+use crate::annis::types::Component;
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
@@ -54,7 +53,7 @@ impl BinaryOperator for LeftAlignment {
         if let Some(lhs_token) = self.tok_helper.left_token_for(lhs.node) {
             aligned.push(Match {
                 node: lhs_token,
-                anno_key: AnnoKeyID::default(),
+                anno_key: DEFAULT_ANNO_KEY.clone(),
             });
             aligned.extend(
                 self.tok_helper
@@ -62,7 +61,7 @@ impl BinaryOperator for LeftAlignment {
                     .get_ingoing_edges(lhs_token)
                     .map(|n| Match {
                         node: n,
-                        anno_key: AnnoKeyID::default(),
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
                     }),
             );
         }

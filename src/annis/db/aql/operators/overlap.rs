@@ -1,10 +1,10 @@
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, Match};
+use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::EstimationType;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
-use crate::annis::types::{AnnoKeyID, Component, ComponentType, NodeID};
+use crate::annis::types::{Component, ComponentType, NodeID};
 use rustc_hash::FxHashSet;
 
 use std;
@@ -113,7 +113,7 @@ impl BinaryOperator for Overlap {
 
         Box::new(result.into_iter().map(|n| Match {
             node: n,
-            anno_key: AnnoKeyID::default(),
+            anno_key: DEFAULT_ANNO_KEY.clone(),
         }))
     }
 

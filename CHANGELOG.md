@@ -5,6 +5,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The annotation storage is now a complete interface which provides all functions necessary to write and read annotations.
+  To make this less dependent on the current implementation of the 
+  in-memory annotation storage, the annotation key symbol (an integer) has been removed.
+  This annotation key symbol has been used in the `Match` class as well, which is now using an `Arc<AnnoKey>` instead. The `AnnoKey` contains
+  the fully qualified name as `String`.
+  Several functions of the annotation storage that used to have `String` parameters now take `&str` and resulting string values are now returned as `Cow<str>`. The latter change is also meant to enable more flexible implementations, that can choose to allocate new strings (e.g. from disk) or return references to existing memory locations.
+
 ## [0.23.1] - 2019-10-16
 
 ### Fixed

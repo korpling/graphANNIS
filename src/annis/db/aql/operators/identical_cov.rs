@@ -1,10 +1,10 @@
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, Match};
+use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::EstimationType;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
-use crate::annis::types::{AnnoKeyID, Component, ComponentType};
+use crate::annis::types::{Component, ComponentType};
 
 use std;
 use std::collections::HashSet;
@@ -91,7 +91,7 @@ impl BinaryOperator for IdenticalCoverage {
                 // covered range is exactly one token, add token itself
                 result.push(Match {
                     node: n_left,
-                    anno_key: AnnoKeyID::default(),
+                    anno_key: DEFAULT_ANNO_KEY.clone(),
                 });
             }
 
@@ -103,7 +103,7 @@ impl BinaryOperator for IdenticalCoverage {
                     if n_right == c_right {
                         result.push(Match {
                             node: c,
-                            anno_key: AnnoKeyID::default(),
+                            anno_key: DEFAULT_ANNO_KEY.clone(),
                         });
                     }
                 }
