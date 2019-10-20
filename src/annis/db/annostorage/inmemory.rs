@@ -180,7 +180,10 @@ where
         let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
             vec![Arc::from(AnnoKey { ns, name })]
         } else {
-            self.get_qnames(&name).into_iter().map(|key| Arc::from(key)).collect()
+            self.get_qnames(&name)
+                .into_iter()
+                .map(|key| Arc::from(key))
+                .collect()
         };
         // Create a vector fore each matching AnnoKey to the value map containing all items and their annotation values
         // for this key.

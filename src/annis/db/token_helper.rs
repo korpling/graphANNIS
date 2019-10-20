@@ -1,7 +1,6 @@
 use crate::annis::db::graphstorage::GraphStorage;
-use crate::annis::db::AnnotationStorage;
-use crate::annis::db::Graph;
-use crate::annis::types::{AnnoKey, Component, ComponentType, NodeID};
+use crate::annis::db::{AnnotationStorage, Graph, TOKEN_KEY};
+use crate::annis::types::{Component, ComponentType, NodeID};
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -12,7 +11,6 @@ pub struct TokenHelper {
     left_edges: Arc<dyn GraphStorage>,
     right_edges: Arc<dyn GraphStorage>,
     cov_edges: Vec<Arc<dyn GraphStorage>>,
-    tok_key: AnnoKey,
 }
 
 lazy_static! {
@@ -65,7 +63,6 @@ impl TokenHelper {
             left_edges: db.get_graphstorage(&COMPONENT_LEFT)?,
             right_edges: db.get_graphstorage(&COMPONENT_RIGHT)?,
             cov_edges,
-            tok_key: db.get_token_key(),
         })
     }
     pub fn get_gs_coverage(&self) -> &Vec<Arc<dyn GraphStorage>> {
@@ -83,7 +80,7 @@ impl TokenHelper {
     pub fn is_token(&self, id: NodeID) -> bool {
         if self
             .node_annos
-            .get_value_for_item(&id, &self.tok_key)
+            .get_value_for_item(&id, &TOKEN_KEY)
             .is_some()
         {
             // check if there is no outgoing edge in any of the coverage components

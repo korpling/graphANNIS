@@ -1,6 +1,6 @@
-use crate::annis::db::{Graph, Match};
+use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::*;
-use crate::annis::types::{Component, DEFAULT_ANNO_KEY};
+use crate::annis::types::Component;
 use std;
 use std::collections::HashSet;
 

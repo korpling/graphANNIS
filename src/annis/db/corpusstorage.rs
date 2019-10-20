@@ -12,7 +12,9 @@ use crate::annis::db::relannis;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, NODE_TYPE};
+use crate::annis::db::{
+    AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, NODE_NAME_KEY, NODE_TYPE,
+};
 use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::{
@@ -1014,12 +1016,10 @@ impl CorpusStorage {
 
         let mut known_documents = HashSet::new();
 
-        let node_name_key = db.get_node_name_key();
-
         let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
             if !m.is_empty() {
                 let m: &Match = &m[0];
-                if let Some(node_name) = db.node_annos.get_value_for_item(&m.node, &node_name_key) {
+                if let Some(node_name) = db.node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY) {
                     let node_name: &str = &node_name;
                     // extract the document path from the node name
                     let doc_path =
@@ -1183,8 +1183,6 @@ impl CorpusStorage {
             Box::from(tmp_results.into_iter())
         };
 
-        let node_name_key = db.get_node_name_key();
-
         let mut results: Vec<String> = if let Some(expected_size) = expected_size {
             Vec::with_capacity(std::cmp::min(expected_size, limit))
         } else {
@@ -1225,7 +1223,7 @@ impl CorpusStorage {
 
                     if let Some(name) = db
                         .node_annos
-                        .get_value_for_item(&singlematch.node, &node_name_key)
+                        .get_value_for_item(&singlematch.node, &NODE_NAME_KEY)
                     {
                         node_desc.push_str("salt:/");
                         node_desc.push_str(&name);

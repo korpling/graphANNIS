@@ -1,11 +1,10 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::Graph;
-use crate::annis::db::Match;
+use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::BinaryOperator;
 use crate::annis::operator::BinaryOperatorSpec;
 use crate::annis::operator::EstimationType;
-use crate::annis::types::{Component, DEFAULT_ANNO_KEY};
+use crate::annis::types::Component;
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]

@@ -4,7 +4,7 @@ use crate::annis::db::exec::tokensearch::AnyTokenSearch;
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::ValueSearch;
-use crate::annis::db::{Graph, Match};
+use crate::annis::db::{Graph, Match, NODE_TYPE_KEY, TOKEN_KEY};
 use crate::annis::errors::*;
 use crate::annis::operator::EdgeAnnoSearchSpec;
 use crate::annis::types::{Component, ComponentType, Edge, LineColumnRange, NodeID};
@@ -321,13 +321,11 @@ impl<'a> NodeSearch<'a> {
                 NodeSearch::new_anytoken_search(db, &query_fragment, node_nr)
             }
             NodeSearchSpec::AnyNode => {
-                let type_key = db.get_node_type_key();
-
                 let it = db
                     .node_annos
                     .exact_anno_search(
-                        Some(type_key.ns),
-                        type_key.name,
+                        Some(NODE_TYPE_KEY.ns.clone()),
+                        NODE_TYPE_KEY.name.clone(),
                         Some("node".to_owned()).into(),
                     )
                     .map(move |n| vec![n]);
@@ -341,17 +339,13 @@ impl<'a> NodeSearch<'a> {
                     }
                 });
 
-                let type_key = db.get_node_type_key();
-
                 let est_output = db.node_annos.guess_max_count(
-                    Some(type_key.ns.clone()),
-                    type_key.name.clone(),
+                    Some(NODE_TYPE_KEY.ns.clone()),
+                    NODE_TYPE_KEY.name.clone(),
                     "node",
                     "node",
                 );
                 let est_output = std::cmp::max(1, est_output);
-
-                let const_output = Arc::from(db.get_node_type_key());
 
                 Ok(NodeSearch {
                     it: Box::new(it),
@@ -363,9 +357,12 @@ impl<'a> NodeSearch<'a> {
                         Some(est_output),
                     )),
                     node_search_desc: Arc::new(NodeSearchDesc {
-                        qname: (Some(type_key.ns), Some(type_key.name)),
+                        qname: (
+                            Some(NODE_TYPE_KEY.ns.clone()),
+                            Some(NODE_TYPE_KEY.name.clone()),
+                        ),
                         cond: vec![filter_func],
-                        const_output: Some(const_output),
+                        const_output: Some(NODE_TYPE_KEY.clone()),
                     }),
                     is_sorted: false,
                 })
@@ -386,7 +383,7 @@ impl<'a> NodeSearch<'a> {
                 .exact_anno_search(qname.0.clone(), qname.1.clone(), val.clone());
 
         let const_output = if is_meta {
-            Some(Arc::from(db.get_node_type_key()))
+            Some(NODE_TYPE_KEY.clone())
         } else {
             None
         };
@@ -496,7 +493,7 @@ impl<'a> NodeSearch<'a> {
                 .regex_anno_search(qname.0.clone(), qname.1.clone(), pattern, negated);
 
         let const_output = if is_meta {
-            Some(Arc::from(db.get_node_type_key()))
+            Some(NODE_TYPE_KEY.clone())
         } else {
             None
         };
@@ -596,13 +593,11 @@ impl<'a> NodeSearch<'a> {
         node_nr: usize,
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
-        let tok_key = db.get_token_key();
-        let any_anno_key = Arc::from(db.get_node_type_key());
         let it_base: Box<dyn Iterator<Item = Match>> = match val {
             ValueSearch::Any => {
                 let it = db.node_annos.exact_anno_search(
-                    Some(tok_key.ns.clone()),
-                    tok_key.name.clone(),
+                    Some(TOKEN_KEY.ns.clone()),
+                    TOKEN_KEY.name.clone(),
                     None.into(),
                 );
                 Box::new(it)
@@ -610,15 +605,15 @@ impl<'a> NodeSearch<'a> {
             ValueSearch::Some(ref val) => {
                 let it = if match_regex {
                     db.node_annos.regex_anno_search(
-                        Some(tok_key.ns.clone()),
-                        tok_key.name.clone(),
+                        Some(TOKEN_KEY.ns.clone()),
+                        TOKEN_KEY.name.clone(),
                         val,
                         false,
                     )
                 } else {
                     db.node_annos.exact_anno_search(
-                        Some(tok_key.ns.clone()),
-                        tok_key.name.clone(),
+                        Some(TOKEN_KEY.ns.clone()),
+                        TOKEN_KEY.name.clone(),
                         ValueSearch::Some(val.clone()),
                     )
                 };
@@ -627,15 +622,15 @@ impl<'a> NodeSearch<'a> {
             ValueSearch::NotSome(ref val) => {
                 let it = if match_regex {
                     db.node_annos.regex_anno_search(
-                        Some(tok_key.ns.clone()),
-                        tok_key.name.clone(),
+                        Some(TOKEN_KEY.ns.clone()),
+                        TOKEN_KEY.name.clone(),
                         val,
                         true,
                     )
                 } else {
                     db.node_annos.exact_anno_search(
-                        Some(tok_key.ns.clone()),
-                        tok_key.name.clone(),
+                        Some(TOKEN_KEY.ns.clone()),
+                        TOKEN_KEY.name.clone(),
                         ValueSearch::NotSome(val.clone()),
                     )
                 };
@@ -673,7 +668,7 @@ impl<'a> NodeSearch<'a> {
         let it = it_base.map(move |n| {
             vec![Match {
                 node: n.node,
-                anno_key: any_anno_key.clone(),
+                anno_key: NODE_TYPE_KEY.clone(),
             }]
         });
         // create filter functions
@@ -779,33 +774,34 @@ impl<'a> NodeSearch<'a> {
             ValueSearch::Some(ref val) => {
                 if match_regex {
                     db.node_annos.guess_max_count_regex(
-                        Some(tok_key.ns.clone()),
-                        tok_key.name.clone(),
+                        Some(TOKEN_KEY.ns.clone()),
+                        TOKEN_KEY.name.clone(),
                         val,
                     )
                 } else {
                     db.node_annos.guess_max_count(
-                        Some(tok_key.ns.clone()),
-                        tok_key.name.clone(),
+                        Some(TOKEN_KEY.ns.clone()),
+                        TOKEN_KEY.name.clone(),
                         val,
                         val,
                     )
                 }
             }
             ValueSearch::NotSome(val) => {
-                let total_count = db
-                    .node_annos
-                    .number_of_annotations_by_name(Some(tok_key.ns.clone()), tok_key.name.clone());
+                let total_count = db.node_annos.number_of_annotations_by_name(
+                    Some(TOKEN_KEY.ns.clone()),
+                    TOKEN_KEY.name.clone(),
+                );
                 let positive_count = if match_regex {
                     db.node_annos.guess_max_count_regex(
-                        Some(tok_key.ns.clone()),
-                        tok_key.name.clone(),
+                        Some(TOKEN_KEY.ns.clone()),
+                        TOKEN_KEY.name.clone(),
                         &val,
                     )
                 } else {
                     db.node_annos.guess_max_count(
-                        Some(tok_key.ns.clone()),
-                        tok_key.name.clone(),
+                        Some(TOKEN_KEY.ns.clone()),
+                        TOKEN_KEY.name.clone(),
                         &val,
                         &val,
                     )
@@ -814,12 +810,10 @@ impl<'a> NodeSearch<'a> {
             }
             ValueSearch::Any => db
                 .node_annos
-                .number_of_annotations_by_name(Some(tok_key.ns.clone()), tok_key.name.clone()),
+                .number_of_annotations_by_name(Some(TOKEN_KEY.ns.clone()), TOKEN_KEY.name.clone()),
         };
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
-
-        let const_output = Arc::from(db.get_node_type_key());
 
         Ok(NodeSearch {
             it: Box::new(it),
@@ -831,9 +825,9 @@ impl<'a> NodeSearch<'a> {
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
-                qname: (Some(tok_key.ns), Some(tok_key.name)),
+                qname: (Some(TOKEN_KEY.ns.clone()), Some(TOKEN_KEY.name.clone())),
                 cond: filters,
-                const_output: Some(const_output),
+                const_output: Some(NODE_TYPE_KEY.clone()),
             }),
             is_sorted: false,
         })
@@ -844,8 +838,6 @@ impl<'a> NodeSearch<'a> {
         query_fragment: &str,
         node_nr: usize,
     ) -> Result<NodeSearch<'a>> {
-        let tok_key = db.get_token_key();
-
         let it: Box<dyn Iterator<Item = Vec<Match>>> = Box::from(AnyTokenSearch::new(db)?);
         // create filter functions
         let mut filters: Vec<Box<dyn Fn(&Match) -> bool + Send + Sync>> = Vec::new();
@@ -875,11 +867,9 @@ impl<'a> NodeSearch<'a> {
 
         let est_output = db
             .node_annos
-            .number_of_annotations_by_name(Some(tok_key.ns.clone()), tok_key.name.clone());
+            .number_of_annotations_by_name(Some(TOKEN_KEY.ns.clone()), TOKEN_KEY.name.clone());
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
-
-        let const_output = Arc::from(db.get_node_type_key());
 
         Ok(NodeSearch {
             it: Box::new(it),
@@ -891,9 +881,9 @@ impl<'a> NodeSearch<'a> {
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
-                qname: (Some(tok_key.ns), Some(tok_key.name)),
+                qname: (Some(TOKEN_KEY.ns.clone()), Some(TOKEN_KEY.name.clone())),
                 cond: filters,
-                const_output: Some(const_output),
+                const_output: Some(NODE_TYPE_KEY.clone()),
             }),
             is_sorted: true,
         })
@@ -944,7 +934,10 @@ impl<'a> NodeSearch<'a> {
                         node_search_desc.qname.1.clone(),
                     )
                     .into_iter()
-                    .map(move |anno_key| Match { node, anno_key: anno_key.clone() })
+                    .map(move |anno_key| Match {
+                        node,
+                        anno_key: anno_key.clone(),
+                    })
             })
             .filter_map(move |m: Match| -> Option<Vec<Match>> {
                 // only include the nodes that fullfill all original node search predicates

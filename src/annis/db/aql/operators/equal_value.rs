@@ -1,7 +1,7 @@
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
-use crate::annis::db::{AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, TOK};
+use crate::annis::db::{AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, TOK, TOKEN_KEY};
 use crate::annis::operator::*;
-use crate::annis::types::{AnnoKey, Component, NodeID};
+use crate::annis::types::{Component, NodeID};
 use std;
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -24,7 +24,6 @@ impl BinaryOperatorSpec for EqualValueSpec {
             node_annos: db.node_annos.clone(),
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
-            tok_key: db.get_token_key(),
             negated: self.negated,
         }))
     }
@@ -37,7 +36,6 @@ impl BinaryOperatorSpec for EqualValueSpec {
 #[derive(Clone)]
 pub struct EqualValue {
     node_annos: Arc<dyn AnnotationStorage<NodeID>>,
-    tok_key: AnnoKey,
     spec_left: NodeSearchSpec,
     spec_right: NodeSearchSpec,
     negated: bool,
@@ -67,7 +65,7 @@ impl EqualValue {
             | NodeSearchSpec::NotExactTokenValue { .. }
             | NodeSearchSpec::RegexTokenValue { .. }
             | NodeSearchSpec::NotRegexTokenValue { .. } => {
-                self.node_annos.get_value_for_item(&m.node, &self.tok_key)
+                self.node_annos.get_value_for_item(&m.node, &TOKEN_KEY)
             }
             NodeSearchSpec::AnyNode => None,
         }

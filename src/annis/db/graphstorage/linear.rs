@@ -1,12 +1,10 @@
 use super::{GraphStatistic, GraphStorage};
 use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::graphstorage::EdgeContainer;
-use crate::annis::db::AnnotationStorage;
-use crate::annis::db::Graph;
-use crate::annis::db::Match;
+use crate::annis::db::{AnnotationStorage, Graph, Match, NODE_NAME_KEY};
 use crate::annis::dfs::{CycleSafeDFS, DFSStep};
 use crate::annis::errors::*;
-use crate::annis::types::{AnnoKey, Edge, NodeID, NumValue};
+use crate::annis::types::{Edge, NodeID, NumValue};
 use bincode;
 use rustc_hash::FxHashMap;
 use rustc_hash::FxHashSet;
@@ -255,10 +253,9 @@ where
 
         // find all roots of the component
         let mut roots: FxHashSet<NodeID> = FxHashSet::default();
-        let node_name_key: AnnoKey = db.get_node_name_key();
         let nodes: Box<dyn Iterator<Item = Match>> = db.node_annos.exact_anno_search(
-            Some(node_name_key.ns.clone()),
-            node_name_key.name.clone(),
+            Some(NODE_NAME_KEY.ns.clone()),
+            NODE_NAME_KEY.name.clone(),
             None.into(),
         );
 
@@ -273,8 +270,8 @@ where
         }
 
         let nodes: Box<dyn Iterator<Item = Match>> = db.node_annos.exact_anno_search(
-            Some(node_name_key.ns),
-            node_name_key.name,
+            Some(NODE_NAME_KEY.ns.clone()),
+            NODE_NAME_KEY.name.clone(),
             None.into(),
         );
         for m in nodes {

@@ -5,9 +5,7 @@ use crate::annis::db::sort_matches;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::AnnotationStorage;
-use crate::annis::db::Graph;
-use crate::annis::db::Match;
+use crate::annis::db::{AnnotationStorage, Graph, Match, NODE_TYPE_KEY};
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Component, ComponentType, NodeID};
 
@@ -45,7 +43,7 @@ impl<'a> AnyTokenSearch<'a> {
             token_helper,
             db,
             desc: None,
-            node_type_key: Arc::from(db.get_node_type_key()),
+            node_type_key: NODE_TYPE_KEY.clone(),
             root_iterators: None,
         })
     }

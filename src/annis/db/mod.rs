@@ -42,11 +42,27 @@ pub mod update;
 
 pub use annostorage::AnnotationStorage;
 
-
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
 pub const TOK: &str = "tok";
 pub const NODE_TYPE: &str = "node_type";
+
+lazy_static! {
+    pub static ref DEFAULT_ANNO_KEY: Arc<AnnoKey> = Arc::from(AnnoKey::default());
+    pub static ref NODE_NAME_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
+        ns: ANNIS_NS.to_owned(),
+        name: NODE_NAME.to_owned(),
+    });
+    pub static ref TOKEN_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
+            ns: ANNIS_NS.to_owned(),
+            name: TOK.to_owned(),
+    });
+    /// Return an annotation key which is used for the special `annis::node_type` annotation which every node must have to mark its existance.
+    pub static ref NODE_TYPE_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
+        ns: ANNIS_NS.to_owned(),
+        name: NODE_TYPE.to_owned(),
+    });
+}
 
 /// A match is the result of a query on an annotation storage.
 #[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
@@ -579,11 +595,11 @@ impl Graph {
                             };
 
                         let new_anno_name = Annotation {
-                            key: self.get_node_name_key(),
+                            key: NODE_NAME_KEY.as_ref().clone(),
                             val: node_name,
                         };
                         let new_anno_type = Annotation {
-                            key: self.get_node_type_key(),
+                            key: NODE_TYPE_KEY.as_ref().clone(),
                             val: node_type,
                         };
 
@@ -938,11 +954,7 @@ impl Graph {
         }
 
         if covered_token.is_empty() {
-            if self
-                .node_annos
-                .get_value_for_item(&n, &self.get_token_key())
-                .is_some()
-            {
+            if self.node_annos.get_value_for_item(&n, &TOKEN_KEY).is_some() {
                 covered_token.insert(n);
             } else {
                 // recursivly get the covered token from all children connected by a dominance relation
@@ -989,11 +1001,7 @@ impl Graph {
         };
 
         // if this is a token, return the token itself
-        if self
-            .node_annos
-            .get_value_for_item(&n, &self.get_token_key())
-            .is_some()
-        {
+        if self.node_annos.get_value_for_item(&n, &TOKEN_KEY).is_some() {
             // also check if this is an actually token and not only a segmentation
             let mut is_token = true;
             for gs_coverage in all_cov_gs.iter() {
@@ -1423,28 +1431,6 @@ impl Graph {
                         true
                     });
             return filtered_components.collect();
-        }
-    }
-
-    fn get_token_key(&self) -> AnnoKey {
-        AnnoKey {
-            ns: ANNIS_NS.to_owned(),
-            name: TOK.to_owned(),
-        }
-    }
-
-    fn get_node_name_key(&self) -> AnnoKey {
-        AnnoKey {
-            ns: ANNIS_NS.to_owned(),
-            name: NODE_NAME.to_owned(),
-        }
-    }
-
-    /// Return an annotation key which is used for the special `annis::node_type` annotation which every node must have to mark its existance.
-    pub fn get_node_type_key(&self) -> AnnoKey {
-        AnnoKey {
-            ns: ANNIS_NS.to_owned(),
-            name: NODE_TYPE.to_owned(),
         }
     }
 

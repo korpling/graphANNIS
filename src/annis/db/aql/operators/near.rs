@@ -2,10 +2,10 @@ use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, Match};
+use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::EstimationType;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
-use crate::annis::types::{Component, ComponentType, DEFAULT_ANNO_KEY};
+use crate::annis::types::{Component, ComponentType};
 
 use rustc_hash::FxHashSet;
 use std;

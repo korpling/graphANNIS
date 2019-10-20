@@ -1,11 +1,11 @@
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
 use crate::annis::db::AnnotationStorage;
-use crate::annis::db::{Graph, Match, ANNIS_NS};
+use crate::annis::db::{Graph, Match, ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY};
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
 };
-use crate::annis::types::{AnnoKey, Component, ComponentType, DEFAULT_ANNO_KEY, Edge, NodeID};
+use crate::annis::types::{Component, ComponentType, Edge, NodeID};
 use crate::annis::util;
 use regex;
 use std;
@@ -26,7 +26,6 @@ struct BaseEdgeOp {
     gs: Vec<Arc<dyn GraphStorage>>,
     spec: BaseEdgeOpSpec,
     node_annos: Arc<dyn AnnotationStorage<NodeID>>,
-    node_type_key: AnnoKey,
     inverse: bool,
 }
 
@@ -40,7 +39,6 @@ impl BaseEdgeOp {
             gs,
             spec,
             node_annos: db.node_annos.clone(),
-            node_type_key: db.get_node_type_key(),
             inverse: false,
         })
     }
@@ -344,7 +342,6 @@ impl BinaryOperator for BaseEdgeOp {
             gs: self.gs.clone(),
             spec: self.spec.clone(),
             node_annos: self.node_annos.clone(),
-            node_type_key: self.node_type_key.clone(),
             inverse: !self.inverse,
         };
         Some(Box::new(edge_op))
@@ -357,8 +354,8 @@ impl BinaryOperator for BaseEdgeOp {
         }
 
         let max_nodes: f64 = self.node_annos.guess_max_count(
-            Some(self.node_type_key.ns.clone()),
-            self.node_type_key.name.clone(),
+            Some(NODE_TYPE_KEY.ns.clone()),
+            NODE_TYPE_KEY.name.clone(),
             "node",
             "node",
         ) as f64;

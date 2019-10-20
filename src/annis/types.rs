@@ -3,7 +3,6 @@ use std;
 use std::fmt;
 use std::ops::AddAssign;
 use std::string::String;
-use std::sync::Arc;
 
 use crate::malloc_size_of::MallocSizeOf;
 
@@ -29,11 +28,6 @@ pub struct AnnoKey {
     pub name: String,
     /// Namespace of the annotation.
     pub ns: String,
-}
-
-
-lazy_static! {
-    pub static ref DEFAULT_ANNO_KEY : Arc<AnnoKey> = Arc::from(AnnoKey::default());
 }
 
 /// An annotation with a qualified name and a value.
