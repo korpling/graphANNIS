@@ -12,7 +12,7 @@ impl BinaryOperatorSpec for IdenticalNodeSpec {
         HashSet::default()
     }
 
-    fn create_operator(&self, _db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, _db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         Some(Box::new(IdenticalNode {}))
     }
 }

@@ -14,7 +14,7 @@ use std::sync::Arc;
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
     rhs_candidate: Option<std::iter::Peekable<std::vec::IntoIter<Match>>>,
-    op: Box<dyn BinaryOperator>,
+    op: Box<dyn BinaryOperator + 'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<dyn AnnotationStorage<NodeID>>,
@@ -34,7 +34,7 @@ impl<'a> IndexJoin<'a> {
     pub fn new(
         lhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
-        op_entry: BinaryOperatorEntry,
+        op_entry: BinaryOperatorEntry<'a>,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: Arc<dyn AnnotationStorage<NodeID>>,
         rhs_desc: Option<&Desc>,

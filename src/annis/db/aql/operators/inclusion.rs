@@ -13,9 +13,9 @@ use std::sync::Arc;
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct InclusionSpec;
 
-pub struct Inclusion {
+pub struct Inclusion<'a> {
     gs_order: Arc<dyn GraphStorage>,
-    tok_helper: TokenHelper,
+    tok_helper: &'a TokenHelper,
 }
 
 lazy_static! {
@@ -36,7 +36,7 @@ impl BinaryOperatorSpec for InclusionSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = Inclusion::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -46,11 +46,11 @@ impl BinaryOperatorSpec for InclusionSpec {
     }
 }
 
-impl Inclusion {
-    pub fn new(db: &Graph) -> Option<Inclusion> {
+impl<'a> Inclusion<'a> {
+    pub fn new(db: &'a Graph) -> Option<Inclusion<'a>> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
 
-        let tok_helper = TokenHelper::new(db)?;
+        let tok_helper = db.get_token_helper()?;
 
         Some(Inclusion {
             gs_order,
@@ -59,13 +59,13 @@ impl Inclusion {
     }
 }
 
-impl std::fmt::Display for Inclusion {
+impl<'a> std::fmt::Display for Inclusion<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_i_")
     }
 }
 
-impl BinaryOperator for Inclusion {
+impl<'a> BinaryOperator for Inclusion<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         if let (Some(start_lhs), Some(end_lhs)) = self.tok_helper.left_right_token_for(lhs.node) {
             // span length of LHS

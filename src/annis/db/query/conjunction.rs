@@ -37,8 +37,8 @@ struct UnaryOperatorSpecEntry<'a> {
     idx: usize,
 }
 
-pub struct BinaryOperatorEntry {
-    pub op: Box<dyn BinaryOperator>,
+pub struct BinaryOperatorEntry<'a> {
+    pub op: Box<dyn BinaryOperator + 'a>,
     pub node_nr_left: usize,
     pub node_nr_right: usize,
     pub global_reflexivity: bool,
@@ -106,7 +106,7 @@ fn should_switch_operand_order(
 fn create_join<'b>(
     db: &Graph,
     config: &Config,
-    op_entry: BinaryOperatorEntry,
+    op_entry: BinaryOperatorEntry<'b>,
     exec_left: Box<dyn ExecutionNode<Item = Vec<Match>> + 'b>,
     exec_right: Box<dyn ExecutionNode<Item = Vec<Match>> + 'b>,
     idx_left: usize,
@@ -631,7 +631,7 @@ impl<'a> Conjunction<'a> {
         for i in operator_order {
             let op_spec_entry: &BinaryOperatorSpecEntry<'a> = &self.binary_operators[i];
 
-            let mut op: Box<dyn BinaryOperator> =
+            let mut op: Box<dyn BinaryOperator + 'a> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
                     Error::ImpossibleSearch(format!(
                         "could not create operator {:?}",
