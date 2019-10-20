@@ -20,7 +20,7 @@ use std::borrow::Cow;
 use std::collections::Bound::*;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::Arc;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf)]
@@ -47,7 +47,17 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
     total_number_of_annos: usize,
 }
 
-impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStorageImpl<T> {
+impl<
+        'de_impl,
+        T: Ord
+            + Hash
+            + Clone
+            + serde::Serialize
+            + serde::de::DeserializeOwned
+            + MallocSizeOf
+            + Default,
+    > AnnoStorageImpl<T>
+{
     pub fn new() -> AnnoStorageImpl<T> {
         AnnoStorageImpl {
             by_container: FxHashMap::default(),
@@ -68,32 +78,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
         self.histogram_bounds.clear();
         self.largest_item = None;
         self.anno_values.clear();
-    }
-
-    pub fn load_from_file(&mut self, path: &str) -> Result<()>
-    where
-        for<'de> T: serde::Deserialize<'de>,
-    {
-        // always remove all entries first, so even if there is an error the anno storage is empty
-        self.clear_internal();
-
-        let path = PathBuf::from(path);
-        let f = std::fs::File::open(path.clone()).or_else(|e| {
-            Err(Error::Generic {
-                msg: format!(
-                    "Could not load string storage from file {}",
-                    path.to_string_lossy(),
-                ),
-                cause: Some(Box::new(e)),
-            })
-        })?;
-        let mut reader = std::io::BufReader::new(f);
-        *self = bincode::deserialize_from(&mut reader)?;
-
-        self.anno_keys.after_deserialization();
-        self.anno_values.after_deserialization();
-
-        Ok(())
     }
 
     fn create_sparse_anno(&mut self, orig: Annotation) -> SparseAnnotation {
@@ -159,7 +143,7 @@ where
         + Default
         + Clone
         + serde::Serialize
-        + serde::Deserialize<'de_impl>
+        + serde::de::DeserializeOwned
         + Send
         + Sync,
     (T, Arc<AnnoKey>): Into<Match>,
@@ -231,17 +215,17 @@ where
     }
 }
 
-impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
+impl<T> AnnotationStorage<T> for AnnoStorageImpl<T>
 where
     T: Ord
         + Hash
         + MallocSizeOf
         + Default
         + Clone
-        + serde::Serialize
-        + serde::Deserialize<'de>
         + Send
-        + Sync,
+        + Sync
+        + serde::Serialize
+        + serde::de::DeserializeOwned,
     (T, Arc<AnnoKey>): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) {
@@ -857,6 +841,39 @@ where
             }
         }
     }
+
+    fn load_annotations_from(&mut self, location: &Path) -> Result<()> {
+        // always remove all entries first, so even if there is an error the anno storage is empty
+        self.clear_internal();
+
+        let path = location.join("nodes_v1.bin");
+        let f = std::fs::File::open(path.clone()).or_else(|e| {
+            Err(Error::Generic {
+                msg: format!(
+                    "Could not load string storage from file {}",
+                    path.to_string_lossy(),
+                ),
+                cause: Some(Box::new(e)),
+            })
+        })?;
+        let mut reader = std::io::BufReader::new(f);
+        *self = bincode::deserialize_from(&mut reader)?;
+
+        self.anno_keys.after_deserialization();
+        self.anno_values.after_deserialization();
+
+        Ok(())
+    }
+
+    fn save_annotations_to(&self, location: &Path) -> Result<()> {
+        let f = std::fs::File::create(location.join("nodes_v1.bin"))?;
+        let mut writer = std::io::BufWriter::new(f);
+        bincode::serialize_into(&mut writer, self)?;
+
+        Ok(())
+    }
+
+    //
 }
 
 impl AnnoStorageImpl<Edge> {

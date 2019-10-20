@@ -12,7 +12,6 @@ use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use bincode;
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
-use serde;
 use std;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
@@ -238,19 +237,6 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
     p
 }
 
-fn save_bincode<T>(location: &Path, path: &str, object: &T) -> Result<()>
-where
-    T: serde::Serialize,
-{
-    let mut full_path = PathBuf::from(location);
-    full_path.push(path);
-
-    let f = std::fs::File::create(full_path)?;
-    let mut writer = std::io::BufWriter::new(f);
-    bincode::serialize_into(&mut writer, object)?;
-    Ok(())
-}
-
 impl AnnotationStorage<NodeID> for Graph {
     fn insert(&mut self, item: NodeID, anno: Annotation) {
         Arc::make_mut(&mut self.node_annos).insert(item, anno);
@@ -356,6 +342,13 @@ impl AnnotationStorage<NodeID> for Graph {
     fn calculate_statistics(&mut self) {
         Arc::make_mut(&mut self.node_annos).calculate_statistics()
     }
+    fn load_annotations_from(&mut self, path: &Path) -> Result<()> {
+        Arc::make_mut(&mut self.node_annos).load_annotations_from(path)
+    }
+
+    fn save_annotations_to(&self, location: &Path) -> Result<()> {
+        self.node_annos.save_annotations_to(location)
+    }
 }
 
 impl Graph {
@@ -444,8 +437,8 @@ impl Graph {
 
         let mut node_annos_tmp: annostorage::inmemory::AnnoStorageImpl<NodeID> =
             annostorage::inmemory::AnnoStorageImpl::new();
-        node_annos_tmp.load_from_file(&dir2load.join("nodes_v1.bin").to_string_lossy())?;
-        self.node_annos = Arc::from(node_annos_tmp);
+        node_annos_tmp.load_annotations_from(&dir2load)?;
+        self.node_annos = Arc::new(node_annos_tmp);
 
         let log_path = dir2load.join("update_log.bin");
 
@@ -546,7 +539,7 @@ impl Graph {
 
         std::fs::create_dir_all(&location)?;
 
-        save_bincode(&location, "nodes_v1.bin", self.node_annos.as_ref())?;
+        self.save_annotations_to(&location)?;
 
         for (c, e) in &self.components {
             if let Some(ref data) = *e {
