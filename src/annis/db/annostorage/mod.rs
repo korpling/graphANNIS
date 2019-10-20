@@ -14,11 +14,19 @@ where
     /// Insert an annotation `anno` (with annotation key and value) for an item `item`.
     fn insert(&mut self, item: T, anno: Annotation);
 
-    /// Get all the annotation keys of a node
-    fn get_all_keys_for_item(&self, item: &T) -> Vec<AnnoKey>;
+    /// Get all the annotation keys of a node, filtered by the optional namespace (`ns`) and `name`.
+    fn get_all_keys_for_item(
+        &self,
+        item: &T,
+        ns: Option<&str>,
+        name: Option<&str>,
+    ) -> Vec<Arc<AnnoKey>>;
 
+    /// Remove the annotation given by its `key` for a specific `item`
+    /// Returns the value for that annotation, if it existed.
     fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
 
+    /// Remove all annotations.
     fn clear(&mut self);
 
     /// Get all qualified annotation names (including namespace) for a given annotation name
@@ -27,9 +35,10 @@ where
     /// Get all annotations for an `item` (node or edge).
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
 
+    // Get the annotation for a given `item` and the annotation `key`.
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
 
-    /// Get the annotation keys for each item in the iterator.
+    /// Get the matching annotation keys for each item in the iterator.
     ///
     /// This function allows to filter the received annotation keys by the specifying the namespace and name.
     fn get_keys_for_iterator(
@@ -81,13 +90,6 @@ where
         pattern: &str,
         negated: bool,
     ) -> Box<dyn Iterator<Item = Match> + 'a>;
-
-    fn find_annotations_for_item(
-        &self,
-        item: &T,
-        ns: Option<&str>,
-        name: Option<&str>,
-    ) -> Vec<Arc<AnnoKey>>;
 
     /// Estimate the number of results for an [annotation exact search](#tymethod.exact_anno_search) for a given an inclusive value range.
     ///

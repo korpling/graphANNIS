@@ -930,7 +930,7 @@ impl<'a> NodeSearch<'a> {
                 // fetch annotation candidates for the node based on the original description
                 let node_search_desc = node_search_desc_1.clone();
                 db.node_annos
-                    .find_annotations_for_item(
+                    .get_all_keys_for_item(
                         &node,
                         node_search_desc.qname.0.as_ref().map(String::as_str),
                         node_search_desc.qname.1.as_ref().map(String::as_str),

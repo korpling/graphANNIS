@@ -1824,7 +1824,11 @@ fn create_subgraph_edge(
         {
             if let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {
-                    if !db.node_annos.get_all_keys_for_item(&target).is_empty() {
+                    if !db
+                        .node_annos
+                        .get_all_keys_for_item(&target, None, None)
+                        .is_empty()
+                    {
                         let e = Edge {
                             source: source_id,
                             target,

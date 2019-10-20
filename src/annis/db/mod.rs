@@ -256,10 +256,6 @@ impl AnnotationStorage<NodeID> for Graph {
         Arc::make_mut(&mut self.node_annos).insert(item, anno);
     }
 
-    fn get_all_keys_for_item(&self, item: &NodeID) -> Vec<AnnoKey> {
-        self.node_annos.get_all_keys_for_item(item)
-    }
-
     fn remove_annotation_for_item(&mut self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
         Arc::make_mut(&mut self.node_annos).remove_annotation_for_item(item, key)
     }
@@ -304,13 +300,13 @@ impl AnnotationStorage<NodeID> for Graph {
             .regex_anno_search(namespace, name, pattern, negated)
     }
 
-    fn find_annotations_for_item(
+    fn get_all_keys_for_item(
         &self,
         item: &NodeID,
         ns: Option<&str>,
         name: Option<&str>,
     ) -> Vec<Arc<AnnoKey>> {
-        self.node_annos.find_annotations_for_item(item, ns, name)
+        self.node_annos.get_all_keys_for_item(item, ns, name)
     }
 
     fn guess_max_count(
