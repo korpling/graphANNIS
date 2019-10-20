@@ -1,6 +1,5 @@
 use crate::annis::db::graphstorage::GraphStorage;
-use crate::annis::db::AnnotationStorage;
-use crate::annis::db::Graph;
+use crate::annis::db::{AnnotationStorage, Graph, TOKEN_KEY};
 use crate::annis::types::{Component, ComponentType, NodeID};
 
 use std::collections::HashSet;
@@ -8,11 +7,10 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct TokenHelper {
-    node_annos: Arc<AnnotationStorage<NodeID>>,
-    left_edges: Arc<GraphStorage>,
-    right_edges: Arc<GraphStorage>,
-    cov_edges: Vec<Arc<GraphStorage>>,
-    tok_key: usize,
+    node_annos: Arc<dyn AnnotationStorage<NodeID>>,
+    left_edges: Arc<dyn GraphStorage>,
+    right_edges: Arc<dyn GraphStorage>,
+    cov_edges: Vec<Arc<dyn GraphStorage>>,
 }
 
 lazy_static! {
@@ -47,7 +45,7 @@ pub fn necessary_components(db: &Graph) -> HashSet<Component> {
 
 impl TokenHelper {
     pub fn new(db: &Graph) -> Option<TokenHelper> {
-        let cov_edges: Vec<Arc<GraphStorage>> = db
+        let cov_edges: Vec<Arc<dyn GraphStorage>> = db
             .get_all_components(Some(ComponentType::Coverage), None)
             .into_iter()
             .filter_map(|c| db.get_graphstorage(&c))
@@ -65,25 +63,24 @@ impl TokenHelper {
             left_edges: db.get_graphstorage(&COMPONENT_LEFT)?,
             right_edges: db.get_graphstorage(&COMPONENT_RIGHT)?,
             cov_edges,
-            tok_key: db.node_annos.get_key_id(&db.get_token_key())?,
         })
     }
-    pub fn get_gs_coverage(&self) -> &Vec<Arc<GraphStorage>> {
+    pub fn get_gs_coverage(&self) -> &Vec<Arc<dyn GraphStorage>> {
         &self.cov_edges
     }
 
-    pub fn get_gs_left_token(&self) -> &GraphStorage {
+    pub fn get_gs_left_token(&self) -> &dyn GraphStorage {
         self.left_edges.as_ref()
     }
 
-    pub fn get_gs_right_token_(&self) -> &GraphStorage {
+    pub fn get_gs_right_token_(&self) -> &dyn GraphStorage {
         self.right_edges.as_ref()
     }
 
     pub fn is_token(&self, id: NodeID) -> bool {
         if self
             .node_annos
-            .get_value_for_item_by_id(&id, self.tok_key)
+            .get_value_for_item(&id, &TOKEN_KEY)
             .is_some()
         {
             // check if there is no outgoing edge in any of the coverage components

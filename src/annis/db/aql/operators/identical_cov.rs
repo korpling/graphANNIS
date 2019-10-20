@@ -1,10 +1,10 @@
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, Match};
+use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::EstimationType;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
-use crate::annis::types::{AnnoKeyID, Component, ComponentType};
+use crate::annis::types::{Component, ComponentType};
 
 use std;
 use std::collections::HashSet;
@@ -15,8 +15,8 @@ pub struct IdenticalCoverageSpec;
 
 #[derive(Clone)]
 pub struct IdenticalCoverage {
-    gs_left: Arc<GraphStorage>,
-    gs_order: Arc<GraphStorage>,
+    gs_left: Arc<dyn GraphStorage>,
+    gs_order: Arc<dyn GraphStorage>,
     tok_helper: TokenHelper,
 }
 
@@ -46,7 +46,7 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
         let optional_op = IdenticalCoverage::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -77,7 +77,7 @@ impl std::fmt::Display for IdenticalCoverage {
 }
 
 impl BinaryOperator for IdenticalCoverage {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let n_left = self.tok_helper.left_token_for(lhs.node);
         let n_right = self.tok_helper.right_token_for(lhs.node);
 
@@ -91,7 +91,7 @@ impl BinaryOperator for IdenticalCoverage {
                 // covered range is exactly one token, add token itself
                 result.push(Match {
                     node: n_left,
-                    anno_key: AnnoKeyID::default(),
+                    anno_key: DEFAULT_ANNO_KEY.clone(),
                 });
             }
 
@@ -103,7 +103,7 @@ impl BinaryOperator for IdenticalCoverage {
                     if n_right == c_right {
                         result.push(Match {
                             node: c,
-                            anno_key: AnnoKeyID::default(),
+                            anno_key: DEFAULT_ANNO_KEY.clone(),
                         });
                     }
                 }
@@ -131,7 +131,7 @@ impl BinaryOperator for IdenticalCoverage {
         false
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
+    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
         Some(Box::new(self.clone()))
     }
 

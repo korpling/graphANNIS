@@ -18,9 +18,9 @@ pub enum CollationType {
 pub fn compare_matchgroup_by_text_pos(
     m1: &[Match],
     m2: &[Match],
-    node_annos: &AnnotationStorage<NodeID>,
+    node_annos: &dyn AnnotationStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
-    gs_order: Option<&GraphStorage>,
+    gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
     reverse_path: bool,
 ) -> Ordering {
@@ -133,9 +133,9 @@ lazy_static! {
 pub fn compare_match_by_text_pos(
     m1: &Match,
     m2: &Match,
-    node_annos: &AnnotationStorage<NodeID>,
+    node_annos: &dyn AnnotationStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
-    gs_order: Option<&GraphStorage>,
+    gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
     quirks_mode: bool,
 ) -> Ordering {

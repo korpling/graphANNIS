@@ -1,10 +1,10 @@
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, Match};
+use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::EstimationType;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
-use crate::annis::types::{AnnoKeyID, Component, ComponentType};
+use crate::annis::types::{Component, ComponentType};
 
 use std;
 use std::collections::{HashSet, VecDeque};
@@ -14,7 +14,7 @@ use std::sync::Arc;
 pub struct InclusionSpec;
 
 pub struct Inclusion {
-    gs_order: Arc<GraphStorage>,
+    gs_order: Arc<dyn GraphStorage>,
     tok_helper: TokenHelper,
 }
 
@@ -36,7 +36,7 @@ impl BinaryOperatorSpec for InclusionSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
         let optional_op = Inclusion::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -66,7 +66,7 @@ impl std::fmt::Display for Inclusion {
 }
 
 impl BinaryOperator for Inclusion {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         if let (Some(start_lhs), Some(end_lhs)) = self.tok_helper.left_right_token_for(lhs.node) {
             // span length of LHS
             if let Some(l) = self.gs_order.distance(start_lhs, end_lhs) {
@@ -101,7 +101,7 @@ impl BinaryOperator for Inclusion {
                     })
                     .map(|n| Match {
                         node: n,
-                        anno_key: AnnoKeyID::default(),
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
                     })
                     .collect();
                 return Box::new(result.into_iter());

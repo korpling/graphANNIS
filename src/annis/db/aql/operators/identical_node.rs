@@ -1,6 +1,6 @@
-use crate::annis::db::{Graph, Match};
+use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::*;
-use crate::annis::types::{AnnoKeyID, Component};
+use crate::annis::types::Component;
 use std;
 use std::collections::HashSet;
 
@@ -12,7 +12,7 @@ impl BinaryOperatorSpec for IdenticalNodeSpec {
         HashSet::default()
     }
 
-    fn create_operator(&self, _db: &Graph) -> Option<Box<BinaryOperator>> {
+    fn create_operator(&self, _db: &Graph) -> Option<Box<dyn BinaryOperator>> {
         Some(Box::new(IdenticalNode {}))
     }
 }
@@ -27,10 +27,10 @@ impl std::fmt::Display for IdenticalNode {
 }
 
 impl BinaryOperator for IdenticalNode {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         Box::new(std::iter::once(Match {
             node: lhs.node,
-            anno_key: AnnoKeyID::default(),
+            anno_key: DEFAULT_ANNO_KEY.clone(),
         }))
     }
 
@@ -42,7 +42,7 @@ impl BinaryOperator for IdenticalNode {
         EstimationType::MIN
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
+    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
         Some(Box::new(self.clone()))
     }
 }

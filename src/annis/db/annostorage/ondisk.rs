@@ -2,16 +2,16 @@ use crate::annis::db::annostorage::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
 use crate::annis::types::AnnoKey;
-use crate::annis::types::AnnoKeyID;
 use crate::annis::types::Annotation;
 use crate::annis::types::NodeID;
 use crate::malloc_size_of::MallocSizeOf;
 
+use std::borrow::Cow;
 use std::convert::TryInto;
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::path::Path;
-use std::borrow::Cow;
+use std::sync::Arc;
 
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
 const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
@@ -51,7 +51,9 @@ fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
 }
 
 fn parse_str_vec_key(data: &[u8]) -> Vec<&str> {
-    data.split(|b| *b == 0).map(|part| std::str::from_utf8(part).expect(UTF_8_MSG)).collect()
+    data.split(|b| *b == 0)
+        .map(|part| std::str::from_utf8(part).expect(UTF_8_MSG))
+        .collect()
 }
 
 /// Creates a key for the `by_container` tree.
@@ -60,14 +62,18 @@ fn parse_str_vec_key(data: &[u8]) -> Vec<&str> {
 /// ```text
 /// [64 Bits Node ID][Namespace]\0[Name]\0
 /// ```
-fn create_by_container_key(node : NodeID, anno_key : &AnnoKey) -> Vec<u8> {
+fn create_by_container_key(node: NodeID, anno_key: &AnnoKey) -> Vec<u8> {
     let mut result: Vec<u8> = node.to_le_bytes().iter().cloned().collect();
     result.extend(create_str_vec_key(&[&anno_key.ns, &anno_key.name]));
     result
 }
 
-fn parse_by_container_key(data : &[u8]) -> (NodeID, AnnoKey) {
-    let item = NodeID::from_le_bytes(data[0..8].try_into().expect("Key data must at least have length 8"));
+fn parse_by_container_key(data: &[u8]) -> (NodeID, AnnoKey) {
+    let item = NodeID::from_le_bytes(
+        data[0..8]
+            .try_into()
+            .expect("Key data must at least have length 8"),
+    );
     let str_vec = parse_str_vec_key(&data[8..]);
 
     let anno_key = AnnoKey {
@@ -78,42 +84,39 @@ fn parse_by_container_key(data : &[u8]) -> (NodeID, AnnoKey) {
 }
 
 /// Creates a key for the `by_anno_name` tree.
-/// 
+///
 /// Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
 /// arrays as values, the node ID is part of the key and makes it unique.
-/// 
+///
 /// Structure:
 /// ```text
 /// [Name]\0[Value]\0[Namespace]\0[8 Bits Node ID]
 /// ```
-fn create_by_anno_name_key(node : NodeID, anno : &Annotation) -> Vec<u8> {
+fn create_by_anno_name_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
     // Use the annotation name, the value and the node ID as key for the indexes.
     // Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
     // arrays as values, the node ID is part of the key and makes it unique.
-    let mut result : Vec<u8> = create_str_vec_key(&[&anno.key.name, &anno.val, &anno.key.ns]);
+    let mut result: Vec<u8> = create_str_vec_key(&[&anno.key.name, &anno.val, &anno.key.ns]);
     result.extend(&node.to_le_bytes());
     result
 }
-
-
 
 /// Creates a key for the `by_anno_qname` tree.
 ///
 /// Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
 /// arrays as values, the node ID is part of the key and makes it unique.
-/// 
+///
 /// Structure:
 /// ```text
 /// [Namespace]\0[Name]\0[Value]\0[8 Bits Node ID]
 /// ```
-fn create_by_anno_qname_key(node : NodeID, anno : &Annotation) -> Vec<u8> {
+fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
 
-    let mut result : Vec<u8> = create_str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
+    let mut result: Vec<u8> = create_str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
     result.extend(&node.to_le_bytes());
     result
 }
-
 
 impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
     pub fn new(path: &Path) -> AnnoStorageImpl<T> {
@@ -143,13 +146,19 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
     fn insert(&mut self, item: NodeID, anno: Annotation) {
         // insert the value into main tree
         self.by_container
-            .insert(create_by_container_key(item, &anno.key), anno.val.as_bytes())
+            .insert(
+                create_by_container_key(item, &anno.key),
+                anno.val.as_bytes(),
+            )
             .expect(DEFAULT_MSG);
 
-        
         // To save some space, only a marker value ([1]) of one byte is actually inserted.
-        self.by_anno_name.insert(create_by_anno_name_key(item, &anno), &[1]).expect(DEFAULT_MSG);
-        self.by_anno_qname.insert(create_by_anno_qname_key(item, &anno), &[1]).expect(DEFAULT_MSG);
+        self.by_anno_name
+            .insert(create_by_anno_name_key(item, &anno), &[1])
+            .expect(DEFAULT_MSG);
+        self.by_anno_qname
+            .insert(create_by_anno_qname_key(item, &anno), &[1])
+            .expect(DEFAULT_MSG);
     }
 
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
@@ -172,10 +181,9 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
         }
 
         result
-
     }
 
-    fn remove_annotation_for_item(&mut self, _item: &NodeID, _key: &AnnoKey) -> Option<String> {
+    fn remove_annotation_for_item(&mut self, _item: &NodeID, _key: &AnnoKey) -> Option<Cow<str>> {
         unimplemented!()
     }
 
@@ -189,79 +197,79 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
         unimplemented!()
     }
 
-    fn get_key_id(&self, _key: &AnnoKey) -> Option<AnnoKeyID> {
-        unimplemented!()
-    }
-
-    fn get_key_value(&self, _key_id: AnnoKeyID) -> Option<AnnoKey> {
-        unimplemented!()
-    }
-
     fn number_of_annotations(&self) -> usize {
         self.by_container.len()
     }
 
     fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
-        let raw = self.by_container.get(create_by_container_key(*item, key)).expect(DEFAULT_MSG);
+        let raw = self
+            .by_container
+            .get(create_by_container_key(*item, key))
+            .expect(DEFAULT_MSG);
         if let Some(raw) = raw {
-            let val : String = String::from_utf8_lossy(&raw).to_string();
+            let val: String = String::from_utf8_lossy(&raw).to_string();
             Some(Cow::Owned(val))
         } else {
             None
         }
     }
 
-    fn get_value_for_item_by_id(&self, _item: &NodeID, _key_id: AnnoKeyID) -> Option<Cow<str>> {
+    fn get_keys_for_iterator(
+        &self,
+        _ns: Option<&str>,
+        _name: Option<&str>,
+        _it: Box<dyn Iterator<Item = NodeID>>,
+    ) -> Vec<Match> {
         unimplemented!()
     }
 
-    fn number_of_annotations_by_name(&self, _ns: Option<String>, _name: String) -> usize {
+    fn number_of_annotations_by_name(&self, _ns: Option<&str>, _name: &str) -> usize {
         unimplemented!()
     }
 
     fn exact_anno_search<'a>(
         &'a self,
-        _namespace: Option<String>,
-        _name: String,
-        _value: ValueSearch<String>,
-    ) -> Box<Iterator<Item = Match> + 'a> {
+        _namespace: Option<&str>,
+        _name: &str,
+        _value: ValueSearch<&str>,
+    ) -> Box<dyn Iterator<Item = Match> + 'a> {
         unimplemented!()
     }
 
     fn regex_anno_search<'a>(
         &'a self,
-        _namespace: Option<String>,
-        _name: String,
+        _namespace: Option<&str>,
+        _name: &str,
         _pattern: &str,
         _negated: bool,
-    ) -> Box<Iterator<Item = Match> + 'a> {
+    ) -> Box<dyn Iterator<Item = Match> + 'a> {
         unimplemented!()
     }
 
-    fn find_annotations_for_item(
+    fn get_all_keys_for_item(
         &self,
         _item: &NodeID,
-        _ns: Option<String>,
-        _name: Option<String>,
-    ) -> Vec<AnnoKeyID> {
+        _ns: Option<&str>,
+        _name: Option<&str>,
+    ) -> Vec<Arc<AnnoKey>> {
         unimplemented!()
     }
 
     fn guess_max_count(
         &self,
-        _ns: Option<String>,
-        _name: String,
+        _ns: Option<&str>,
+        _name: &str,
         _lower_val: &str,
         _upper_val: &str,
     ) -> usize {
         unimplemented!()
     }
 
-    fn guess_max_count_regex(&self, _ns: Option<String>, _name: String, _pattern: &str) -> usize {
+    fn guess_max_count_regex(&self, _ns: Option<&str>, _name: &str, _pattern: &str) -> usize {
         unimplemented!()
     }
 
-    fn guess_most_frequent_value(&self, _ns: Option<String>, _name: String) -> Option<String> {
+    fn guess_most_frequent_value(&self, _ns: Option<&str>, _name: &str) -> Option<Cow<str>> {
         unimplemented!()
     }
 

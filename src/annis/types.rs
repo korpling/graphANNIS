@@ -39,8 +39,6 @@ pub struct Annotation {
     pub val: String,
 }
 
-pub type AnnoKeyID = usize;
-
 /// A struct that contains the extended results of the count query.
 #[derive(Debug, Default, Clone)]
 #[repr(C)]

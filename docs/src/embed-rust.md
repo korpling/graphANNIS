@@ -4,7 +4,7 @@
 
 Add a dependency to graphANNIS in you `Cargo.toml` file:
 ```toml
-graphannis = "0.22.0"
+graphannis = "0.23.1"
 ```
 
 ## API documentation
@@ -37,7 +37,7 @@ The `CorpusStorage` is thread-safe, thus multiple threads of the same process ca
 
 ## Adding corpus data
 
-Linguistic annotations as represented in graphANNIS as directed graphs (see the [data model](../data-model/annotation-graph.md) section for more information).
+Linguistic annotations as represented in graphANNIS as directed graphs (see the [data model](annotation-graph.md) section for more information).
 You can add nodes and edges via the `apply_update(...)` function.
 It takes the corpus name and a list of graph updates as argument.
 These graph update lists are represented by the class `GraphUpdate`.

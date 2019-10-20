@@ -1,10 +1,11 @@
 use self::nodesearch::NodeSearch;
 use crate::annis::db::Match;
 use crate::annis::operator::{BinaryOperator, EstimationType};
-use crate::annis::types::AnnoKeyID;
+use crate::annis::types::AnnoKey;
 
 use std;
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct CostEstimate {
@@ -18,6 +19,7 @@ pub struct Desc {
     pub component_nr: usize,
     pub lhs: Option<Box<Desc>>,
     pub rhs: Option<Box<Desc>>,
+    /// Maps the index of the node in the actual result to the index in the internal execution plan intermediate result.
     pub node_pos: BTreeMap<usize, usize>,
     pub impl_description: String,
     pub query_fragment: String,
@@ -25,7 +27,7 @@ pub struct Desc {
 }
 
 fn calculate_outputsize(
-    op: &BinaryOperator,
+    op: &dyn BinaryOperator,
     cost_lhs: &CostEstimate,
     cost_rhs: &CostEstimate,
 ) -> usize {
@@ -76,12 +78,12 @@ impl Desc {
     }
 
     pub fn join(
-        op: &BinaryOperator,
+        op: &dyn BinaryOperator,
         lhs: Option<&Desc>,
         rhs: Option<&Desc>,
         impl_description: &str,
         query_fragment: &str,
-        processed_func: &Fn(EstimationType, usize, usize) -> usize,
+        processed_func: &dyn Fn(EstimationType, usize, usize) -> usize,
     ) -> Desc {
         let component_nr = if let Some(d) = lhs {
             d.component_nr
@@ -182,12 +184,12 @@ impl Desc {
 
 pub struct NodeSearchDesc {
     pub qname: (Option<String>, Option<String>),
-    pub cond: Vec<Box<Fn(&Match) -> bool + Sync + Send>>,
-    pub const_output: Option<AnnoKeyID>,
+    pub cond: Vec<Box<dyn Fn(&Match) -> bool + Sync + Send>>,
+    pub const_output: Option<Arc<AnnoKey>>,
 }
 
 pub trait ExecutionNode: Iterator {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>>;
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>>;
     fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {
         None
     }
@@ -212,7 +214,7 @@ impl Iterator for EmptyResultSet {
 }
 
 impl ExecutionNode for EmptyResultSet {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
         self
     }
     fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {

@@ -36,7 +36,7 @@ impl DenseAdjacencyListStorage {
 
 impl EdgeContainer for DenseAdjacencyListStorage {
     /// Get all outgoing edges for a given `node`.
-    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         if let Some(node) = node.to_usize() {
             if node < self.edges.len() {
                 if let Some(outgoing) = self.edges[node] {
@@ -47,7 +47,7 @@ impl EdgeContainer for DenseAdjacencyListStorage {
         Box::new(std::iter::empty())
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         if let Some(ingoing) = self.inverse_edges.get(&node) {
             return match ingoing.len() {
                 0 => Box::new(std::iter::empty()),
@@ -63,7 +63,7 @@ impl EdgeContainer for DenseAdjacencyListStorage {
     }
 
     /// Provides an iterator over all nodes of this edge container that are the source an edge
-    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         let it = self
             .edges
             .iter()
@@ -80,7 +80,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
         node: NodeID,
         min_distance: usize,
         max_distance: Bound<usize>,
-    ) -> Box<Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
             Bound::Unbounded => usize::max_value(),
@@ -98,7 +98,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
         node: NodeID,
         min_distance: usize,
         max_distance: Bound<usize>,
-    ) -> Box<Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
             Bound::Unbounded => usize::max_value(),
@@ -137,11 +137,11 @@ impl GraphStorage for DenseAdjacencyListStorage {
         it.next().is_some()
     }
 
-    fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
+    fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge> {
         &self.annos
     }
 
-    fn copy(&mut self, db: &Graph, orig: &GraphStorage) {
+    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) {
         self.annos.clear();
         self.edges.clear();
         self.inverse_edges.clear();
@@ -182,7 +182,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
         }
     }
 
-    fn as_edgecontainer(&self) -> &EdgeContainer {
+    fn as_edgecontainer(&self) -> &dyn EdgeContainer {
         self
     }
 
@@ -196,13 +196,13 @@ impl GraphStorage for DenseAdjacencyListStorage {
     }
 
     /// Serialize this graph storage.
-    fn serialize_gs(&self, writer: &mut std::io::Write) -> Result<()> {
+    fn serialize_gs(&self, writer: &mut dyn std::io::Write) -> Result<()> {
         bincode::serialize_into(writer, self)?;
         Ok(())
     }
 
     /// De-serialize this graph storage.
-    fn deserialize_gs(input: &mut std::io::Read) -> Result<Self>
+    fn deserialize_gs(input: &mut dyn std::io::Read) -> Result<Self>
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {

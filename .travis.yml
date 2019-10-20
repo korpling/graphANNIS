@@ -4,18 +4,33 @@ rust:
 os:
   - linux
   - osx
-
-dist: trusty
-sudo: required
+  - windows
 
 cache:
   directories:
-    - $HOME/.cargo
-    - $TRAVIS_BUILD_DIR/target
-    - $TRAVIS_BUILD_DIR/data
+    - $TRAVIS_HOME/.cache/sccache
+    - $TRAVIS_HOME/.cargo/
+    - $TRAVIS_HOME/.rustup/
+    - target
+    - relannis
+    - data
 
+# Create two environments: one for the default tests not requiring any test data and one for the 
+# search tests.
 env:
-  secure: "0OIkzQeI7toU8qOms0mqm0bjrzB2CUOll4w4cPD5zzxq+v91BGYeRve1NcPWlxUv3WbBFOQoS6x2vJ3W92FMKmoJ+pE2ZdVKGzTkrAhBnffZiFYnuK8b3GJ6jOS4zbiNS38fTfDiHU6NtUb1eKYJl7aEH68q3tstXLJY2fJ36/NP4OKe8WlDKcOxsyV/Kn3HLIm9D4dK11jHmNvLISr4+ls5tVgpbDuU06Qz+4PvpkdH3Rb1vX7wMbsR1mhsJGE4tozYb7AupPGT47nFrUnkI9IW3EbIsDJZVhlIwKZf9HCXLIXMuVITdlN2OUKEVBapaQuLBKDmxdsyW+bBFccjjKb9kIhLI+EqQQhQGEeAzozmpWd3krnOGQTDNHddcjBD1sZ+QyG3/nk+y2nvdqd+NUP1DdrwsdSQoL8iksvQ2DTH9XiZxvGh0zCOv/DE8b4l8xZSLugYEHQTWUgReC+5qgLrkzrfMn3oKWUf10izvsMMJ57kftWFfzdgegLaMqe15A+KpU/g9M8aw/12t6MfaCqj/+EBbxYUB1K+vYYtnrdrxYs1xPDWWMa5VDhIsvu+Gn22vuUZOM2K99PHmf3TCxeckpVDRkjqgb6Nvmo6wZy1D8Xaiv7wGXpVACljoQriAOumSB8HvjYr2LDzeXf2QRlD+bK+RtTNZmEDq7JoCl4="
+  - TEST_SUITE=
+  - TEST_SUITE=--ignored
+
+# Execute search tests only on linux
+matrix:
+  exclude:
+  - os: windows
+    env: TEST_SUITE=--ignored
+  - os: osx
+    env: TEST_SUITE=--ignored
+
+before_cache:
+  - rm -rf "$TRAVIS_HOME/.cargo/registry/src"
 
 branches:
   only:
@@ -24,33 +39,37 @@ branches:
     # Develop branch
     - develop
     # used when testing the release process
-    #- feature/doc-deploy-subfolder
+    # - /^test-release-process.*$/
 
 before_script:
   - rustup component add rustfmt
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update) ; fi
-  - (test -x $HOME/.cargo/bin/cargo-install-update || (curl -L -o cargo-install-update.tbz2 https://github.com/nabijaczleweli/cargo-update/releases/download/v1.7.0/cargo-install-update-v1.7.0.tbz2 && tar -C $HOME/.cargo/bin/ -jxf cargo-install-update.tbz2))
-  - (test -x $HOME/.cargo/bin/mdbook || cargo install --vers "^0.3" mdbook)
-  - cargo install-update -a
   - export SHORT_VERSION=`echo ${TRAVIS_TAG:-develop} | sed -E 's/(\.[0-9]+)$//'`
-  
+  - misc/download-mdbook.sh 0.3.1
+  # Build in release mode if search tests are executed
+  - if [[ "$TEST_SUITE" = "--ignored" ]]; then export BUILD_FLAGS="--release" ; fi
+  - echo "Building with flags \"$BUILD_FLAGS\""
+
 
 script:
-  - cargo fmt --  --check
-  - cargo build --release --features "c-api cli"
-  - (test -d data/GUM/ -a -d data/pcc2.1/ || "./misc/download-test-corpora.sh")
-  - (test -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
-  - (test -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
-  - cargo test --release
-  - cargo test --release  -- --ignored
-  # also test that the documentation is generated without error
-  - mdbook test docs/
-  # generate the documentation for possible deploy
+  - cargo fmt -- --check
+  # Build the library, all tests and the annis CLI binary
+  - cargo build $BUILD_FLAGS --tests --lib --bin annis --features="cli c-api"
+  # Download and import test corpora if necessary
+  - (test -z "$TEST_SUITE" -o \( -d relannis/GUM/ -a -d relannis/pcc2.1/ \) || "./misc/download-test-corpora.sh")
+  - (test -z "$TEST_SUITE" -o -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
+  - (test -z "$TEST_SUITE" -o -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
+  - cargo test --features="cli c-api" $BUILD_FLAGS -- $TEST_SUITE
+  # generate the documentation (for testing if it works and later deploy)
   - mdbook build --dest-dir book/${SHORT_VERSION} docs/
+  
 
 before_deploy:
+  # recreate release binary after testing
+  - cargo build --release --features "c-api" --lib
+  # determine which binary to deploy
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dylib ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then export RELEASE_PKG_FILE=target/release/graphannis.dll ; fi
 
 
 deploy:
@@ -63,6 +82,7 @@ deploy:
       repo: korpling/graphANNIS
       branch: master
       tags: true
+      condition: $TEST_SUITE == ""
     skip_cleanup: true
     tag_name: $TRAVIS_TAG
     draft: true
@@ -72,6 +92,6 @@ deploy:
       repo: korpling/graphANNIS
       branch: master
       tags: true
-      condition: $TRAVIS_OS_NAME = linux
+      condition: $TRAVIS_OS_NAME == "linux" && $TEST_SUITE == ""
     skip-cleanup: true
       
