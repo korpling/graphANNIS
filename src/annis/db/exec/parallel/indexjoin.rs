@@ -20,7 +20,7 @@ pub struct IndexJoin<'a> {
     op: Arc<dyn BinaryOperator + 'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
-    node_annos: Arc<dyn AnnotationStorage<NodeID>>,
+    node_annos: &'a dyn AnnotationStorage<NodeID>,
     desc: Desc,
     global_reflexivity: bool,
 }
@@ -39,7 +39,7 @@ impl<'a> IndexJoin<'a> {
         lhs_idx: usize,
         op_entry: BinaryOperatorEntry<'a>,
         node_search_desc: Arc<NodeSearchDesc>,
-        node_annos: Arc<dyn AnnotationStorage<NodeID>>,
+        node_annos: &'a dyn AnnotationStorage<NodeID>,
         rhs_desc: Option<&Desc>,
     ) -> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
@@ -116,7 +116,7 @@ impl<'a> IndexJoin<'a> {
         let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
         let op: Arc<dyn BinaryOperator> = self.op.clone();
         let lhs_idx = self.lhs_idx;
-        let node_annos = self.node_annos.as_ref();
+        let node_annos = self.node_annos;
 
         let op: &dyn BinaryOperator = op.as_ref();
         let global_reflexivity = self.global_reflexivity;

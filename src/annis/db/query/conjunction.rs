@@ -120,7 +120,7 @@ fn create_join<'b>(
                 idx_left,
                 op_entry,
                 exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                db.node_annos.clone(),
+                db.node_annos.as_ref(),
                 exec_right.get_desc(),
             );
             return Box::new(join);
@@ -149,7 +149,7 @@ fn create_join<'b>(
                         global_reflexivity: op_entry.global_reflexivity,
                     },
                     exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.node_annos.clone(),
+                    db.node_annos.as_ref(),
                     exec_left.get_desc(),
                 );
                 return Box::new(join);
