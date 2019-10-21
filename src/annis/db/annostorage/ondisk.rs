@@ -5,14 +5,12 @@ use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::Annotation;
 use crate::annis::types::NodeID;
+use crate::annis::util;
 use crate::annis::util::memory_estimation;
-use crate::malloc_size_of::MallocSizeOf;
 
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::convert::TryInto;
-use std::hash::Hash;
-use std::marker::PhantomData;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -30,19 +28,15 @@ const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
 /// and there is no way of delivering a correct answer.
 /// Retrying the same query again will also not succeed since temporary errors are already handled internally.
 #[derive(MallocSizeOf)]
-pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
-    phantom: PhantomData<T>,
-
+pub struct AnnoStorageImpl {
     #[ignore_malloc_size_of = "is stored on disk"]
     by_container: sled::Tree,
-    #[ignore_malloc_size_of = "is stored on disk"]
-    by_anno_name: sled::Tree,
     #[ignore_malloc_size_of = "is stored on disk"]
     by_anno_qname: sled::Tree,
 
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
-    largest_item: Option<T>,
+    largest_item: Option<NodeID>,
     total_number_of_annos: usize,
 }
 
@@ -91,24 +85,6 @@ fn parse_by_container_key(data: &[u8]) -> (NodeID, AnnoKey) {
     (item, anno_key)
 }
 
-/// Creates a key for the `by_anno_name` tree.
-///
-/// Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
-/// arrays as values, the node ID is part of the key and makes it unique.
-///
-/// Structure:
-/// ```text
-/// [Name]\0[Value]\0[Namespace]\0[8 Bits Node ID]
-/// ```
-fn create_by_anno_name_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
-    // Use the annotation name, the value and the node ID as key for the indexes.
-    // Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
-    // arrays as values, the node ID is part of the key and makes it unique.
-    let mut result: Vec<u8> = create_str_vec_key(&[&anno.key.name, &anno.val, &anno.key.ns]);
-    result.extend(&node.to_le_bytes());
-    result
-}
-
 /// Creates a key for the `by_anno_qname` tree.
 ///
 /// Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
@@ -116,7 +92,7 @@ fn create_by_anno_name_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
 ///
 /// Structure:
 /// ```text
-/// [Namespace]\0[Name]\0[Value]\0[8 Bits Node ID]
+/// [Namespace]\0[Name]\0[Value]\0[64 Bits Node ID]
 /// ```
 fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
@@ -126,34 +102,95 @@ fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
     result
 }
 
-impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
-    pub fn new(path: &Path) -> AnnoStorageImpl<T> {
+impl AnnoStorageImpl {
+    pub fn new(path: &Path) -> AnnoStorageImpl {
         let db = sled::Db::open(path).expect("Can't create annotation storage");
 
         let by_container = db
             .open_tree("by_container")
             .expect("Can't create annotation storage");
-        let by_anno_name = db
-            .open_tree("by_anno_name")
-            .expect("Can't create annotation storage");
-
         let by_anno_qname = db
             .open_tree("by_anno_qname")
             .expect("Can't create annotation storage");
 
         AnnoStorageImpl {
-            phantom: PhantomData::default(),
             by_container,
-            by_anno_name,
             by_anno_qname,
             anno_key_sizes: BTreeMap::new(),
             largest_item: None,
             total_number_of_annos: 0,
         }
     }
+
+    fn matching_items<'a>(
+        &'a self,
+        namespace: Option<&str>,
+        name: &str,
+        value: Option<&str>,
+    ) -> Box<dyn Iterator<Item = (NodeID, Arc<AnnoKey>)> + 'a> {
+        let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
+            vec![Arc::from(AnnoKey {
+                ns: ns.to_string(),
+                name: name.to_string(),
+            })]
+        } else {
+            self.get_qnames(name)
+                .into_iter()
+                .map(|key| Arc::from(key))
+                .collect()
+        };
+
+        let annotation_ranges: Vec<(Arc<AnnoKey>, Vec<u8>, Vec<u8>)> = key_ranges
+            .into_iter()
+            .map(|key| {
+                let lower_bound = Annotation {
+                    key: key.as_ref().clone(),
+                    val: if let Some(value) = value {
+                        value.to_string()
+                    } else {
+                        "".to_string()
+                    },
+                };
+
+                let upper_bound = Annotation {
+                    key: key.as_ref().clone(),
+                    val: if let Some(value) = value {
+                        value.to_string()
+                    } else {
+                        "\0".to_string()
+                    },
+                };
+
+                let lower_bound = create_by_anno_qname_key(NodeID::min_value(), &lower_bound);
+                let upper_bound = create_by_anno_qname_key(NodeID::max_value(), &upper_bound);
+
+                (key, lower_bound, upper_bound)
+            })
+            .collect();
+
+        let it = annotation_ranges
+            .into_iter()
+            .flat_map(move |(key, lower_bound, upper_bound)| {
+                self.by_anno_qname
+                    .range(lower_bound..upper_bound)
+                    .map(|data| {
+                        // the value is only a marker, use the key to extract the node ID
+                        let (data, _) = data.expect(DEFAULT_MSG);
+                        let node_id = NodeID::from_le_bytes(
+                            data[(data.len() - 8)..]
+                                .try_into()
+                                .expect("Key data must at least have length 8"),
+                        );
+                        node_id
+                    })
+                    .zip(std::iter::repeat(key))
+            });
+
+        Box::new(it)
+    }
 }
 
-impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
+impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
     fn insert(&mut self, item: NodeID, anno: Annotation) {
         // insert the value into main tree
         let existing_anno = self
@@ -165,9 +202,6 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
             .expect(DEFAULT_MSG);
 
         // To save some space, only a marker value ([1]) of one byte is actually inserted.
-        self.by_anno_name
-            .insert(create_by_anno_name_key(item, &anno), &[1])
-            .expect(DEFAULT_MSG);
         self.by_anno_qname
             .insert(create_by_anno_qname_key(item, &anno), &[1])
             .expect(DEFAULT_MSG);
@@ -230,7 +264,6 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
     }
 
     fn clear(&mut self) {
-        self.by_anno_name.clear().expect(DEFAULT_MSG);
         self.by_anno_qname.clear().expect(DEFAULT_MSG);
         self.by_container.clear().expect(DEFAULT_MSG);
         self.largest_item = None;
@@ -287,21 +320,72 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
 
     fn exact_anno_search<'a>(
         &'a self,
-        _namespace: Option<&str>,
-        _name: &str,
-        _value: ValueSearch<&str>,
+        namespace: Option<&str>,
+        name: &str,
+        value: ValueSearch<&str>,
     ) -> Box<dyn Iterator<Item = Match> + 'a> {
-        unimplemented!()
+        match value {
+            ValueSearch::Any => {
+                let it = self
+                    .matching_items(namespace, name, None)
+                    .map(move |item| item.into());
+                Box::new(it)
+            }
+            ValueSearch::Some(value) => {
+                let it = self
+                    .matching_items(namespace, name, Some(value))
+                    .map(move |item| item.into());
+                Box::new(it)
+            }
+            ValueSearch::NotSome(value) => {
+                let value = value.to_string();
+                let it = self
+                    .matching_items(namespace, name, None)
+                    .filter(move |(node, anno_key)| {
+                        if let Some(item_value) = self.get_value_for_item(node, anno_key) {
+                            item_value != value
+                        } else {
+                            false
+                        }
+                    })
+                    .map(move |item| item.into());
+                Box::new(it)
+            }
+        }
     }
 
     fn regex_anno_search<'a>(
         &'a self,
-        _namespace: Option<&str>,
-        _name: &str,
-        _pattern: &str,
-        _negated: bool,
+        namespace: Option<&str>,
+        name: &str,
+        pattern: &str,
+        negated: bool,
     ) -> Box<dyn Iterator<Item = Match> + 'a> {
-        unimplemented!()
+        let full_match_pattern = util::regex_full_match(pattern);
+        let compiled_result = regex::Regex::new(&full_match_pattern);
+        if let Ok(re) = compiled_result {
+            let it = self
+                .matching_items(namespace, name, None)
+                .filter(move |(node, anno_key)| {
+                    if let Some(val) = self.get_value_for_item(node, anno_key) {
+                        if negated {
+                            !re.is_match(&val)
+                        } else {
+                            re.is_match(&val)
+                        }
+                    } else {
+                        false
+                    }
+                })
+                .map(move |item| item.into());
+            return Box::new(it);
+        } else if negated {
+            // return all values
+            return self.exact_anno_search(namespace, name, None.into());
+        } else {
+            // if regular expression pattern is invalid return empty iterator
+            return Box::new(std::iter::empty());
+        }
     }
 
     fn get_all_keys_for_item(
@@ -360,8 +444,6 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
 mod tests {
     use super::*;
 
-    use crate::annis::types::NodeID;
-
     #[test]
     fn insert_same_anno() {
         env_logger::init();
@@ -375,7 +457,7 @@ mod tests {
         };
 
         let path = tempfile::TempDir::new().unwrap();
-        let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new(path.path());
+        let mut a = AnnoStorageImpl::new(path.path());
 
         debug!("Inserting annotation for node 1");
         a.insert(1, test_anno.clone());

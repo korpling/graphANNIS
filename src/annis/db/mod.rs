@@ -243,7 +243,7 @@ impl Graph {
                 .prefix("graphannis-ondisk-nodeanno")
                 .tempdir()
                 .unwrap();
-            Box::new(annostorage::ondisk::AnnoStorageImpl::<NodeID>::new(
+            Box::new(annostorage::ondisk::AnnoStorageImpl::new(
                 tmp_dir.as_ref(),
             ))
         } else {
