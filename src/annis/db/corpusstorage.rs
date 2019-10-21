@@ -150,7 +150,11 @@ impl fmt::Display for CorpusInfo {
             }
         };
         if let Some(memory_size) = self.node_annos_load_size {
-            writeln!(f, "Node Annotations: {:.2} MB", memory_size as f64 / f64::from(1024 * 1024))?;
+            writeln!(
+                f,
+                "Node Annotations: {:.2} MB",
+                memory_size as f64 / f64::from(1024 * 1024)
+            )?;
         }
         if !self.graphstorages.is_empty() {
             writeln!(f, "------------")?;
