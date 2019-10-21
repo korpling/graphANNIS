@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   This annotation key symbol has been used in the `Match` class as well, which is now using an `Arc<AnnoKey>` instead. The `AnnoKey` contains
   the fully qualified name as `String`.
   Several functions of the annotation storage that used to have `String` parameters now take `&str` and resulting string values are now returned as `Cow<str>`. The latter change is also meant to enable more flexible implementations, that can choose to allocate new strings (e.g. from disk) or return references to existing memory locations.
+- The `Graph` uses a boxed instance of the general `AnnotationStorage` trait. 
+  Before, this was an `Arc` to the specific implementation, which made it possible to simply clone the node annotation storage.
+  Now, referenced to it must be used, e.g. in the operators. This changes a lot of things in the `BinaryOperator` trait, like
+  the signature of `get_inverse_operator()` and the filter functions that are used as conditions for the node search (these
+  need an argument to the node annotation storage now)
+- `Graph` does not implement the `AnnotationStorage<NodeID>` trait anymore, 
+  but provides a getter to reference its field.
 
 ## [0.23.1] - 2019-10-16
 
