@@ -13,7 +13,6 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use rustc_hash::FxHashMap;
 
@@ -164,7 +163,7 @@ where
         }
 
         progress_callback("calculating node statistics");
-        Arc::make_mut(&mut db.node_annos).calculate_statistics();
+        db.node_annos.calculate_statistics();
 
         for c in db.get_all_components(None, None) {
             progress_callback(&format!("calculating statistics for component {}", c));

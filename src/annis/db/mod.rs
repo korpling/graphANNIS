@@ -174,7 +174,7 @@ impl<T> ValueSearch<T> {
 /// In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
 ///
 pub struct Graph {
-    node_annos: Arc<AnnoStorageImpl<NodeID>>,
+    node_annos: Box<AnnoStorageImpl<NodeID>>,
 
     location: Option<PathBuf>,
 
@@ -239,15 +239,15 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
 
 impl AnnotationStorage<NodeID> for Graph {
     fn insert(&mut self, item: NodeID, anno: Annotation) {
-        Arc::make_mut(&mut self.node_annos).insert(item, anno);
+        self.node_annos.insert(item, anno);
     }
 
     fn remove_annotation_for_item(&mut self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
-        Arc::make_mut(&mut self.node_annos).remove_annotation_for_item(item, key)
+        self.node_annos.remove_annotation_for_item(item, key)
     }
 
     fn clear(&mut self) {
-        Arc::make_mut(&mut self.node_annos).clear()
+        self.node_annos.clear()
     }
 
     fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
@@ -340,10 +340,10 @@ impl AnnotationStorage<NodeID> for Graph {
     }
 
     fn calculate_statistics(&mut self) {
-        Arc::make_mut(&mut self.node_annos).calculate_statistics()
+        self.node_annos.calculate_statistics()
     }
     fn load_annotations_from(&mut self, path: &Path) -> Result<()> {
-        Arc::make_mut(&mut self.node_annos).load_annotations_from(path)
+        self.node_annos.load_annotations_from(path)
     }
 
     fn save_annotations_to(&self, location: &Path) -> Result<()> {
@@ -355,7 +355,7 @@ impl Graph {
     /// Create a new and empty instance without any location on the disk.
     fn new() -> Graph {
         Graph {
-            node_annos: Arc::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new()),
+            node_annos: Box::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new()),
             components: BTreeMap::new(),
 
             location: None,
@@ -410,7 +410,7 @@ impl Graph {
     /// This removes all node annotations, edges and knowledge about components.
     fn clear(&mut self) {
         self.reset_cached_size();
-        self.node_annos = Arc::new(annostorage::inmemory::AnnoStorageImpl::new());
+        self.node_annos = Box::new(annostorage::inmemory::AnnoStorageImpl::new());
         self.components.clear();
     }
 
@@ -439,7 +439,7 @@ impl Graph {
         let mut node_annos_tmp: annostorage::inmemory::AnnoStorageImpl<NodeID> =
             annostorage::inmemory::AnnoStorageImpl::new();
         node_annos_tmp.load_annotations_from(&dir2load)?;
-        self.node_annos = Arc::new(node_annos_tmp);
+        self.node_annos = Box::new(node_annos_tmp);
 
         let log_path = dir2load.join("update_log.bin");
 
@@ -614,9 +614,8 @@ impl Graph {
                         };
 
                         // add the new node (with minimum labels)
-                        let node_annos = Arc::make_mut(&mut self.node_annos);
-                        node_annos.insert(new_node_id, new_anno_name);
-                        node_annos.insert(new_node_id, new_anno_type);
+                        self.node_annos.insert(new_node_id, new_anno_name);
+                        self.node_annos.insert(new_node_id, new_anno_type);
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
@@ -631,9 +630,9 @@ impl Graph {
 
                         // delete all annotations
                         {
-                            let node_annos = Arc::make_mut(&mut self.node_annos);
-                            for a in node_annos.get_annotations_for_item(&existing_node_id) {
-                                node_annos.remove_annotation_for_item(&existing_node_id, &a.key);
+                            for a in self.node_annos.get_annotations_for_item(&existing_node_id) {
+                                self.node_annos
+                                    .remove_annotation_for_item(&existing_node_id, &a.key);
                             }
                         }
                         // delete all edges pointing to this node either as source or target
@@ -658,7 +657,7 @@ impl Graph {
                             },
                             val: anno_value,
                         };
-                        Arc::make_mut(&mut self.node_annos).insert(existing_node_id, anno);
+                        self.node_annos.insert(existing_node_id, anno);
                     }
                 }
                 UpdateEvent::DeleteNodeLabel {
@@ -671,7 +670,7 @@ impl Graph {
                             ns: anno_ns,
                             name: anno_name,
                         };
-                        Arc::make_mut(&mut self.node_annos)
+                        self.node_annos
                             .remove_annotation_for_item(&existing_node_id, &key);
                     }
                 }
