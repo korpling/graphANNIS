@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Graph` does not implement the `AnnotationStorage<NodeID>` trait anymore, 
   but provides a getter to reference its field.
 
+### Added
+
+- Show the used main memory for the node annotations
+
 ## [0.23.1] - 2019-10-16
 
 ### Fixed

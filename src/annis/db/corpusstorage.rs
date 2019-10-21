@@ -122,6 +122,8 @@ pub struct CorpusInfo {
     pub name: String,
     /// Indicates if the corpus is partially or fully loaded.
     pub load_status: LoadStatus,
+    /// The amount of memory that the node annotations are using
+    pub node_annos_load_size: Option<usize>,
     /// A list of descriptions for the graph storages of this corpus.
     pub graphstorages: Vec<GraphStorageInfo>,
 }
@@ -147,6 +149,9 @@ impl fmt::Display for CorpusInfo {
                 )?;
             }
         };
+        if let Some(memory_size) = self.node_annos_load_size {
+            writeln!(f, "Node Annotations: {:.2} MB", memory_size as f64 / f64::from(1024 * 1024))?;
+        }
         if !self.graphstorages.is_empty() {
             writeln!(f, "------------")?;
             for gs in &self.graphstorages {
@@ -486,6 +491,7 @@ impl CorpusStorage {
                 // check if all components are loaded
                 let heap_size = db.size_of(mem_ops);
                 let mut load_status = LoadStatus::FullyLoaded(heap_size);
+                let node_annos_load_size = Some(db.node_annos.size_of(mem_ops));
 
                 let mut graphstorages = Vec::new();
                 for c in db.get_all_components(None, None) {
@@ -513,12 +519,14 @@ impl CorpusStorage {
                     name: corpus_name.to_owned(),
                     load_status,
                     graphstorages,
+                    node_annos_load_size,
                 }
             }
             &CacheEntry::NotLoaded => CorpusInfo {
                 name: corpus_name.to_owned(),
                 load_status: LoadStatus::NotLoaded,
                 graphstorages: vec![],
+                node_annos_load_size: None,
             },
         };
         Ok(corpus_info)
