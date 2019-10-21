@@ -5,9 +5,11 @@ use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::Annotation;
 use crate::annis::types::NodeID;
+use crate::annis::util::memory_estimation;
 use crate::malloc_size_of::MallocSizeOf;
 
 use std::borrow::Cow;
+use std::collections::BTreeMap;
 use std::convert::TryInto;
 use std::hash::Hash;
 use std::marker::PhantomData;
@@ -37,6 +39,11 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
     by_anno_name: sled::Tree,
     #[ignore_malloc_size_of = "is stored on disk"]
     by_anno_qname: sled::Tree,
+
+    #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
+    anno_key_sizes: BTreeMap<AnnoKey, usize>,
+    largest_item: Option<T>,
+    total_number_of_annos: usize,
 }
 
 fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
@@ -139,6 +146,9 @@ impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
             by_container,
             by_anno_name,
             by_anno_qname,
+            anno_key_sizes: BTreeMap::new(),
+            largest_item: None,
+            total_number_of_annos: 0,
         }
     }
 }
@@ -146,7 +156,8 @@ impl<T: Ord + Hash + MallocSizeOf + Default> AnnoStorageImpl<T> {
 impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
     fn insert(&mut self, item: NodeID, anno: Annotation) {
         // insert the value into main tree
-        self.by_container
+        let existing_anno = self
+            .by_container
             .insert(
                 create_by_container_key(item, &anno.key),
                 anno.val.as_bytes(),
@@ -160,6 +171,22 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
         self.by_anno_qname
             .insert(create_by_anno_qname_key(item, &anno), &[1])
             .expect(DEFAULT_MSG);
+
+        if existing_anno.is_none() {
+            // a new annotation entry was inserted and did not replace an existing one
+            self.total_number_of_annos += 1;
+
+            if let Some(largest_item) = self.largest_item.clone() {
+                if largest_item < item {
+                    self.largest_item = Some(item);
+                }
+            } else {
+                self.largest_item = Some(item);
+            }
+
+            let anno_key_entry = self.anno_key_sizes.entry(anno.key.clone()).or_insert(0);
+            *anno_key_entry += 1;
+        }
     }
 
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
@@ -184,14 +211,30 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
         result
     }
 
-    fn remove_annotation_for_item(&mut self, _item: &NodeID, _key: &AnnoKey) -> Option<Cow<str>> {
-        unimplemented!()
+    fn remove_annotation_for_item(&mut self, _item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
+        // TODO: remove annotation from disk trees
+
+        // decrease the annotation count for this key
+        let new_key_count: usize = if let Some(num_of_keys) = self.anno_key_sizes.get_mut(key) {
+            *num_of_keys -= 1;
+            *num_of_keys
+        } else {
+            0
+        };
+        // if annotation count dropped to zero remove the key
+        if new_key_count == 0 {
+            self.anno_key_sizes.remove(key);
+        }
+
+        unimplemented!();
     }
 
     fn clear(&mut self) {
         self.by_anno_name.clear().expect(DEFAULT_MSG);
         self.by_anno_qname.clear().expect(DEFAULT_MSG);
         self.by_container.clear().expect(DEFAULT_MSG);
+        self.largest_item = None;
+        self.anno_key_sizes.clear();
     }
 
     fn get_qnames(&self, _name: &str) -> Vec<AnnoKey> {
@@ -279,11 +322,11 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
     }
 
     fn annotation_keys(&self) -> Vec<AnnoKey> {
-        unimplemented!()
+        self.anno_key_sizes.keys().cloned().collect()
     }
 
     fn get_largest_item(&self) -> Option<NodeID> {
-        unimplemented!()
+        self.largest_item.clone()
     }
 
     fn calculate_statistics(&mut self) {
