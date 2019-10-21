@@ -136,7 +136,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                     // check if all filters are true
                     let mut filter_result = true;
                     for f in &self.node_search_desc.cond {
-                        if !(f)(&m_rhs) {
+                        if !(f)(&m_rhs, self.node_annos.as_ref()) {
                             filter_result = false;
                             break;
                         }
