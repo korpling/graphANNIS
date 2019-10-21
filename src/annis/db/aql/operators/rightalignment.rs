@@ -11,8 +11,8 @@ use std::collections::HashSet;
 pub struct RightAlignmentSpec;
 
 #[derive(Clone)]
-pub struct RightAlignment {
-    tok_helper: TokenHelper,
+pub struct RightAlignment<'a> {
+    tok_helper: &'a TokenHelper,
 }
 
 impl BinaryOperatorSpec for RightAlignmentSpec {
@@ -32,21 +32,21 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
     }
 }
 
-impl RightAlignment {
-    pub fn new(db: &Graph) -> Option<RightAlignment> {
-        let tok_helper = TokenHelper::new(db)?;
+impl<'a> RightAlignment<'a> {
+    pub fn new(graph: &'a Graph) -> Option<RightAlignment<'a>> {
+        let tok_helper = graph.get_token_helper()?;
 
         Some(RightAlignment { tok_helper })
     }
 }
 
-impl std::fmt::Display for RightAlignment {
+impl<'a> std::fmt::Display for RightAlignment<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_r_")
     }
 }
 
-impl BinaryOperator for RightAlignment {
+impl<'a> BinaryOperator for RightAlignment<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let mut aligned = Vec::default();
 
@@ -84,8 +84,10 @@ impl BinaryOperator for RightAlignment {
         false
     }
 
-    fn get_inverse_operator<'a>(&self, _graph : &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
-        Some(Box::new(self.clone()))
+    fn get_inverse_operator<'b>(&self, graph : &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+        let tok_helper = graph.get_token_helper()?;
+
+        Some(Box::new(RightAlignment { tok_helper }))
     }
 
     fn estimation_type(&self) -> EstimationType {
