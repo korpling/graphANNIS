@@ -1,6 +1,5 @@
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
-use crate::annis::db::AnnotationStorage;
 use crate::annis::db::{Graph, Match, ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY};
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,

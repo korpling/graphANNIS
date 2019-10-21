@@ -5,7 +5,7 @@ use crate::annis::db::sort_matches;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{AnnotationStorage, Graph, Match, NODE_TYPE_KEY};
+use crate::annis::db::{Graph, Match, NODE_TYPE_KEY};
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Component, ComponentType, NodeID};
 
