@@ -25,7 +25,7 @@ struct BaseEdgeOpSpec {
 struct BaseEdgeOp {
     gs: Vec<Arc<dyn GraphStorage>>,
     spec: BaseEdgeOpSpec,
-    node_annos: Arc<dyn AnnotationStorage<NodeID>>,
+    max_nodes_estimate: usize,
     inverse: bool,
 }
 
@@ -38,7 +38,12 @@ impl BaseEdgeOp {
         Some(BaseEdgeOp {
             gs,
             spec,
-            node_annos: db.node_annos.clone(),
+            max_nodes_estimate: db.node_annos.guess_max_count(
+                Some(&NODE_TYPE_KEY.ns),
+                &NODE_TYPE_KEY.name,
+                "node",
+                "node",
+            ),
             inverse: false,
         })
     }
@@ -341,7 +346,7 @@ impl BinaryOperator for BaseEdgeOp {
         let edge_op = BaseEdgeOp {
             gs: self.gs.clone(),
             spec: self.spec.clone(),
-            node_annos: self.node_annos.clone(),
+            max_nodes_estimate: self.max_nodes_estimate,
             inverse: !self.inverse,
         };
         Some(Box::new(edge_op))
@@ -353,12 +358,7 @@ impl BinaryOperator for BaseEdgeOp {
             return EstimationType::SELECTIVITY(0.0);
         }
 
-        let max_nodes: f64 = self.node_annos.guess_max_count(
-            Some(&NODE_TYPE_KEY.ns),
-            &NODE_TYPE_KEY.name,
-            "node",
-            "node",
-        ) as f64;
+        let max_nodes: f64 = self.max_nodes_estimate as f64;
 
         let mut worst_sel: f64 = 0.0;
 
