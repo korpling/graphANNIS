@@ -330,7 +330,9 @@ impl<'a> NodeSearch<'a> {
                     )
                     .map(move |n| vec![n]);
 
-                let filter_func: Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync> = Box::new(move |m, node_annos| {
+                let filter_func: Box<
+                    dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync,
+                > = Box::new(move |m, node_annos| {
                     if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                         return val == "node";
                     } else {
@@ -442,7 +444,9 @@ impl<'a> NodeSearch<'a> {
 
         let it = base_it.map(|n| vec![n]);
 
-        let mut filters: Vec<Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<
+            Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>,
+        > = Vec::new();
 
         match val {
             ValueSearch::Any => {}
@@ -553,7 +557,9 @@ impl<'a> NodeSearch<'a> {
 
         let it = base_it.map(|n| vec![n]);
 
-        let mut filters: Vec<Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<
+            Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>,
+        > = Vec::new();
 
         let full_match_pattern = util::regex_full_match(&pattern);
         let re = regex::Regex::new(&full_match_pattern);
@@ -681,7 +687,9 @@ impl<'a> NodeSearch<'a> {
             }]
         });
         // create filter functions
-        let mut filters: Vec<Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<
+            Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>,
+        > = Vec::new();
 
         match val {
             ValueSearch::Some(ref val) => {
@@ -763,7 +771,9 @@ impl<'a> NodeSearch<'a> {
                 })
                 .collect();
 
-            let filter_func: Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync> = Box::new(move |m, _| {
+            let filter_func: Box<
+                dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync,
+            > = Box::new(move |m, _| {
                 for cov in cov_gs.iter() {
                     if cov.get_outgoing_edges(m.node).next().is_some() {
                         return false;
@@ -830,7 +840,9 @@ impl<'a> NodeSearch<'a> {
     ) -> Result<NodeSearch<'a>> {
         let it: Box<dyn Iterator<Item = Vec<Match>>> = Box::from(AnyTokenSearch::new(db)?);
         // create filter functions
-        let mut filters: Vec<Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<
+            Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>,
+        > = Vec::new();
 
         let cov_gs: Vec<Arc<dyn GraphStorage>> = db
             .get_all_components(Some(ComponentType::Coverage), None)
@@ -845,14 +857,15 @@ impl<'a> NodeSearch<'a> {
             })
             .collect();
 
-        let filter_func: Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync> = Box::new(move |m, _| {
-            for cov in cov_gs.iter() {
-                if cov.get_outgoing_edges(m.node).next().is_some() {
-                    return false;
+        let filter_func: Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync> =
+            Box::new(move |m, _| {
+                for cov in cov_gs.iter() {
+                    if cov.get_outgoing_edges(m.node).next().is_some() {
+                        return false;
+                    }
                 }
-            }
-            true
-        });
+                true
+            });
         filters.push(filter_func);
 
         let est_output = db
