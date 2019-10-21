@@ -6,8 +6,8 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 #[derive(Clone)]
-pub struct TokenHelper {
-    node_annos: Arc<dyn AnnotationStorage<NodeID>>,
+pub struct TokenHelper<'a> {
+    node_annos: &'a dyn AnnotationStorage<NodeID>,
     left_edges: Arc<dyn GraphStorage>,
     right_edges: Arc<dyn GraphStorage>,
     cov_edges: Vec<Arc<dyn GraphStorage>>,
@@ -43,12 +43,12 @@ pub fn necessary_components(db: &Graph) -> HashSet<Component> {
     result
 }
 
-impl TokenHelper {
-    pub fn new(db: &Graph) -> Option<TokenHelper> {
-        let cov_edges: Vec<Arc<dyn GraphStorage>> = db
+impl<'a> TokenHelper<'a> {
+    pub fn new(graph: &'a Graph) -> Option<TokenHelper<'a>> {
+        let cov_edges: Vec<Arc<dyn GraphStorage>> = graph
             .get_all_components(Some(ComponentType::Coverage), None)
             .into_iter()
-            .filter_map(|c| db.get_graphstorage(&c))
+            .filter_map(|c| graph.get_graphstorage(&c))
             .filter(|gs| {
                 if let Some(stats) = gs.get_statistics() {
                     stats.nodes > 0
@@ -59,9 +59,9 @@ impl TokenHelper {
             .collect();
 
         Some(TokenHelper {
-            node_annos: db.node_annos.clone(),
-            left_edges: db.get_graphstorage(&COMPONENT_LEFT)?,
-            right_edges: db.get_graphstorage(&COMPONENT_RIGHT)?,
+            node_annos: graph.node_annos.as_ref(),
+            left_edges: graph.get_graphstorage(&COMPONENT_LEFT)?,
+            right_edges: graph.get_graphstorage(&COMPONENT_RIGHT)?,
             cov_edges,
         })
     }

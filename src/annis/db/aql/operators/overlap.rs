@@ -20,7 +20,7 @@ pub struct OverlapSpec {
 #[derive(Clone)]
 pub struct Overlap<'a> {
     gs_order: Arc<dyn GraphStorage>,
-    tok_helper: &'a TokenHelper,
+    tok_helper: TokenHelper<'a>,
     reflexive: bool,
 }
 
@@ -55,7 +55,7 @@ impl BinaryOperatorSpec for OverlapSpec {
 impl<'a> Overlap<'a> {
     pub fn new(graph: &'a Graph, reflexive: bool) -> Option<Overlap<'a>> {
         let gs_order = graph.get_graphstorage(&COMPONENT_ORDER)?;
-        let tok_helper = graph.get_token_helper()?;
+        let tok_helper = TokenHelper::new(graph)?;
 
         Some(Overlap {
             gs_order,
@@ -147,7 +147,7 @@ impl<'a> BinaryOperator for Overlap<'a> {
     fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
         Some(Box::new(Overlap {
             gs_order: self.gs_order.clone(),
-            tok_helper: graph.get_token_helper()?,
+            tok_helper: TokenHelper::new(graph)?,
             reflexive: self.reflexive,
         }))
     }

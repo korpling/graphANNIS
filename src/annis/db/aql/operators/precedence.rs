@@ -21,7 +21,7 @@ pub struct Precedence<'a> {
     gs_order: Arc<dyn GraphStorage>,
     gs_left: Arc<dyn GraphStorage>,
     gs_right: Arc<dyn GraphStorage>,
-    tok_helper: &'a TokenHelper,
+    tok_helper: TokenHelper<'a>,
     spec: PrecedenceSpec,
 }
 
@@ -96,7 +96,7 @@ impl<'a> Precedence<'a> {
         let gs_left = graph.get_graphstorage(&COMPONENT_LEFT)?;
         let gs_right = graph.get_graphstorage(&COMPONENT_RIGHT)?;
 
-        let tok_helper = graph.get_token_helper()?;
+        let tok_helper = TokenHelper::new(graph)?;
 
         Some(Precedence {
             gs_order,
@@ -198,7 +198,7 @@ impl<'a> BinaryOperator for Precedence<'a> {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),
             gs_right: self.gs_right.clone(),
-            tok_helper: graph.get_token_helper()?,
+            tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
         };
         Some(Box::new(inv_precedence))
@@ -209,7 +209,7 @@ pub struct InversePrecedence<'a> {
     gs_order: Arc<dyn GraphStorage>,
     gs_left: Arc<dyn GraphStorage>,
     gs_right: Arc<dyn GraphStorage>,
-    tok_helper: &'a TokenHelper,
+    tok_helper: TokenHelper<'a>,
     spec: PrecedenceSpec,
 }
 
@@ -279,7 +279,7 @@ impl<'a> BinaryOperator for InversePrecedence<'a> {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),
             gs_right: self.gs_right.clone(),
-            tok_helper: graph.get_token_helper()?,
+            tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
         };
         Some(Box::new(prec))

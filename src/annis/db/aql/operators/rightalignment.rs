@@ -12,7 +12,7 @@ pub struct RightAlignmentSpec;
 
 #[derive(Clone)]
 pub struct RightAlignment<'a> {
-    tok_helper: &'a TokenHelper,
+    tok_helper: TokenHelper<'a>,
 }
 
 impl BinaryOperatorSpec for RightAlignmentSpec {
@@ -34,7 +34,7 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
 
 impl<'a> RightAlignment<'a> {
     pub fn new(graph: &'a Graph) -> Option<RightAlignment<'a>> {
-        let tok_helper = graph.get_token_helper()?;
+        let tok_helper = TokenHelper::new(graph)?;
 
         Some(RightAlignment { tok_helper })
     }
@@ -85,7 +85,7 @@ impl<'a> BinaryOperator for RightAlignment<'a> {
     }
 
     fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
-        let tok_helper = graph.get_token_helper()?;
+        let tok_helper = TokenHelper::new(graph)?;
 
         Some(Box::new(RightAlignment { tok_helper }))
     }

@@ -4,6 +4,7 @@ use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::sort_matches;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
+use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{AnnotationStorage, Graph, Match, NODE_TYPE_KEY};
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Component, ComponentType, NodeID};
@@ -17,6 +18,7 @@ pub struct AnyTokenSearch<'a> {
     desc: Option<Desc>,
     node_type_key: Arc<AnnoKey>,
     db: &'a Graph,
+    token_helper: Option<TokenHelper<'a>>,
     order_gs: Option<&'a dyn GraphStorage>,
     root_iterators: Option<Vec<Box<dyn Iterator<Item = NodeID> + 'a>>>,
 }
@@ -38,6 +40,7 @@ impl<'a> AnyTokenSearch<'a> {
         Ok(AnyTokenSearch {
             order_gs,
             db,
+            token_helper: TokenHelper::new(db),
             desc: None,
             node_type_key: NODE_TYPE_KEY.clone(),
             root_iterators: None,
@@ -66,7 +69,7 @@ impl<'a> AnyTokenSearch<'a> {
                 if let Some(order_gs) = self.order_gs {
                     is_root_tok = is_root_tok && order_gs.get_ingoing_edges(n).next() == None;
                 }
-                if let Some(ref token_helper) = self.db.token_helper {
+                if let Some(ref token_helper) = self.token_helper {
                     is_root_tok = is_root_tok && token_helper.is_token(n);
                 }
                 if is_root_tok {
@@ -81,7 +84,7 @@ impl<'a> AnyTokenSearch<'a> {
                     b,
                     a,
                     self.db.node_annos.as_ref(),
-                    self.db.token_helper.as_ref(),
+                    self.token_helper.as_ref(),
                     self.order_gs,
                     CollationType::Default,
                     false,

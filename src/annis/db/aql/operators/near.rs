@@ -21,7 +21,7 @@ pub struct NearSpec {
 #[derive(Clone)]
 struct Near<'a> {
     gs_order: Arc<dyn GraphStorage>,
-    tok_helper: &'a TokenHelper,
+    tok_helper: TokenHelper<'a>,
     spec: NearSpec,
 }
 
@@ -75,7 +75,7 @@ impl<'a> Near<'a> {
 
         let gs_order = graph.get_graphstorage(&component_order)?;
 
-        let tok_helper = graph.get_token_helper()?;
+        let tok_helper = TokenHelper::new(graph)?;
 
         Some(Near {
             gs_order,
@@ -206,7 +206,7 @@ impl<'a> BinaryOperator for Near<'a> {
     fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
         Some(Box::new(Near {
             gs_order: self.gs_order.clone(),
-            tok_helper: graph.get_token_helper()?,
+            tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
         }))
     }

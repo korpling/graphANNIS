@@ -15,7 +15,7 @@ pub struct InclusionSpec;
 
 pub struct Inclusion<'a> {
     gs_order: Arc<dyn GraphStorage>,
-    tok_helper: &'a TokenHelper,
+    tok_helper: TokenHelper<'a>,
 }
 
 lazy_static! {
@@ -50,7 +50,7 @@ impl<'a> Inclusion<'a> {
     pub fn new(db: &'a Graph) -> Option<Inclusion<'a>> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
 
-        let tok_helper = db.get_token_helper()?;
+        let tok_helper = TokenHelper::new(db)?;
 
         Some(Inclusion {
             gs_order,

@@ -17,7 +17,7 @@ pub struct IdenticalCoverageSpec;
 pub struct IdenticalCoverage<'a> {
     gs_left: Arc<dyn GraphStorage>,
     gs_order: Arc<dyn GraphStorage>,
-    tok_helper: &'a TokenHelper,
+    tok_helper: TokenHelper<'a>,
 }
 
 lazy_static! {
@@ -64,7 +64,7 @@ impl<'a> IdenticalCoverage<'a> {
         Some(IdenticalCoverage {
             gs_left,
             gs_order,
-            tok_helper: db.get_token_helper()?,
+            tok_helper: TokenHelper::new(db)?,
         })
     }
 }
@@ -134,7 +134,7 @@ impl<'a> BinaryOperator for IdenticalCoverage<'a> {
         Some(Box::new(IdenticalCoverage {
             gs_left: self.gs_left.clone(),
             gs_order: self.gs_order.clone(),
-            tok_helper: graph.get_token_helper()?,
+            tok_helper: TokenHelper::new(graph)?,
         }))
     }
 
