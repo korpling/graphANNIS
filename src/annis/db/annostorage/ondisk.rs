@@ -237,8 +237,22 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
         self.anno_key_sizes.clear();
     }
 
-    fn get_qnames(&self, _name: &str) -> Vec<AnnoKey> {
-        unimplemented!()
+    fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
+        let it = self.anno_key_sizes.range(
+            AnnoKey {
+                name: name.to_owned(),
+                ns: String::default(),
+            }..,
+        );
+        let mut result: Vec<AnnoKey> = Vec::default();
+        for (k, _) in it {
+            if k.name == name {
+                result.push(k.clone());
+            } else {
+                break;
+            }
+        }
+        result
     }
 
     fn number_of_annotations(&self) -> usize {
