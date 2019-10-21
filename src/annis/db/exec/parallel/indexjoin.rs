@@ -116,7 +116,7 @@ impl<'a> IndexJoin<'a> {
         let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
         let op: Arc<dyn BinaryOperator> = self.op.clone();
         let lhs_idx = self.lhs_idx;
-        let node_annos = self.node_annos.clone();
+        let node_annos = self.node_annos.as_ref();
 
         let op: &dyn BinaryOperator = op.as_ref();
         let global_reflexivity = self.global_reflexivity;
@@ -124,7 +124,7 @@ impl<'a> IndexJoin<'a> {
         // find all RHS in parallel
         lhs_buffer.par_iter_mut().for_each(|(m_lhs, tx)| {
             let mut rhs_candidate =
-                next_candidates(m_lhs, op, lhs_idx, &node_annos, &node_search_desc)
+                next_candidates(m_lhs, op, lhs_idx, node_annos, &node_search_desc)
                     .into_iter()
                     .peekable();
             while let Some(mut m_rhs) = rhs_candidate.next() {
@@ -182,7 +182,7 @@ fn next_candidates(
     m_lhs: &[Match],
     op: &dyn BinaryOperator,
     lhs_idx: usize,
-    node_annos: &Arc<dyn AnnotationStorage<NodeID>>,
+    node_annos: &dyn AnnotationStorage<NodeID>,
     node_search_desc: &Arc<NodeSearchDesc>,
 ) -> Vec<Match> {
     let it_nodes = Box::from(op.retrieve_matches(&m_lhs[lhs_idx]).map(|m| m.node).fuse());
