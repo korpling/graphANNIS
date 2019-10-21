@@ -104,7 +104,7 @@ fn should_switch_operand_order(
 }
 
 fn create_join<'b>(
-    db: &Graph,
+    db: &'b Graph,
     config: &Config,
     op_entry: BinaryOperatorEntry<'b>,
     exec_left: Box<dyn ExecutionNode<Item = Vec<Match>> + 'b>,
@@ -137,7 +137,7 @@ fn create_join<'b>(
         }
     } else if exec_left.as_nodesearch().is_some() {
         // avoid a nested loop join by switching the operand and using and index join
-        if let Some(inverse_op) = op_entry.op.get_inverse_operator() {
+        if let Some(inverse_op) = op_entry.op.get_inverse_operator(db) {
             if config.use_parallel_joins {
                 let join = parallel::indexjoin::IndexJoin::new(
                     exec_right,
@@ -642,7 +642,7 @@ impl<'a> Conjunction<'a> {
             let mut spec_idx_left = op_spec_entry.idx_left;
             let mut spec_idx_right = op_spec_entry.idx_right;
 
-            let inverse_op = op.get_inverse_operator();
+            let inverse_op = op.get_inverse_operator(db);
             if let Some(inverse_op) = inverse_op {
                 if should_switch_operand_order(op_spec_entry, &node2cost) {
                     spec_idx_left = op_spec_entry.idx_right;

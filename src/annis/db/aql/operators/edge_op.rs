@@ -330,7 +330,7 @@ impl BinaryOperator for BaseEdgeOp {
         self.spec.is_reflexive
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
+    fn get_inverse_operator<'a>(&self, _graph : &'a Graph) -> Option<Box<dyn BinaryOperator>> {
         // Check if all graph storages have the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         for g in &self.gs {
