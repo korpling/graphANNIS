@@ -12,7 +12,6 @@ use bincode;
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 use std;
-use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::iter::FromIterator;
@@ -236,120 +235,6 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
     p
 }
 
-impl AnnotationStorage<NodeID> for Graph {
-    fn insert(&mut self, item: NodeID, anno: Annotation) {
-        self.node_annos.insert(item, anno);
-    }
-
-    fn remove_annotation_for_item(&mut self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
-        self.node_annos.remove_annotation_for_item(item, key)
-    }
-
-    fn clear(&mut self) {
-        self.node_annos.clear()
-    }
-
-    fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
-        self.node_annos.get_qnames(name)
-    }
-
-    fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
-        self.node_annos.get_annotations_for_item(item)
-    }
-
-    fn number_of_annotations(&self) -> usize {
-        self.node_annos.number_of_annotations()
-    }
-
-    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> usize {
-        self.node_annos.number_of_annotations_by_name(ns, name)
-    }
-
-    fn exact_anno_search<'a>(
-        &'a self,
-        namespace: Option<&str>,
-        name: &str,
-        value: ValueSearch<&str>,
-    ) -> Box<dyn Iterator<Item = Match> + 'a> {
-        self.node_annos.exact_anno_search(namespace, name, value)
-    }
-
-    fn regex_anno_search<'a>(
-        &'a self,
-        namespace: Option<&str>,
-        name: &str,
-        pattern: &str,
-        negated: bool,
-    ) -> Box<dyn Iterator<Item = Match> + 'a> {
-        self.node_annos
-            .regex_anno_search(namespace, name, pattern, negated)
-    }
-
-    fn get_all_keys_for_item(
-        &self,
-        item: &NodeID,
-        ns: Option<&str>,
-        name: Option<&str>,
-    ) -> Vec<Arc<AnnoKey>> {
-        self.node_annos.get_all_keys_for_item(item, ns, name)
-    }
-
-    fn guess_max_count(
-        &self,
-        ns: Option<&str>,
-        name: &str,
-        lower_val: &str,
-        upper_val: &str,
-    ) -> usize {
-        self.node_annos
-            .guess_max_count(ns, name, lower_val, upper_val)
-    }
-
-    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> usize {
-        self.node_annos.guess_max_count_regex(ns, name, pattern)
-    }
-
-    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Option<Cow<str>> {
-        self.node_annos.guess_most_frequent_value(ns, name)
-    }
-
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Cow<str>> {
-        self.node_annos.get_all_values(key, most_frequent_first)
-    }
-
-    fn annotation_keys(&self) -> Vec<AnnoKey> {
-        self.node_annos.annotation_keys()
-    }
-
-    fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
-        self.node_annos.get_value_for_item(item, key)
-    }
-
-    fn get_keys_for_iterator<'a>(
-        &'a self,
-        ns: Option<&str>,
-        name: Option<&str>,
-        it: Box<dyn Iterator<Item = NodeID>>,
-    ) -> Vec<Match> {
-        self.node_annos.get_keys_for_iterator(ns, name, it)
-    }
-
-    fn get_largest_item(&self) -> Option<NodeID> {
-        self.node_annos.get_largest_item()
-    }
-
-    fn calculate_statistics(&mut self) {
-        self.node_annos.calculate_statistics()
-    }
-    fn load_annotations_from(&mut self, path: &Path) -> Result<()> {
-        self.node_annos.load_annotations_from(path)
-    }
-
-    fn save_annotations_to(&self, location: &Path) -> Result<()> {
-        self.node_annos.save_annotations_to(location)
-    }
-}
-
 impl Graph {
     /// Create a new and empty instance without any location on the disk.
     fn new() -> Graph {
@@ -539,7 +424,7 @@ impl Graph {
 
         std::fs::create_dir_all(&location)?;
 
-        self.save_annotations_to(&location)?;
+        self.node_annos.save_annotations_to(&location)?;
 
         for (c, e) in &self.components {
             if let Some(ref data) = *e {
@@ -1366,6 +1251,11 @@ impl Graph {
             }
         }
         None
+    }
+
+    /// Get a read-only reference to the node annotations of this graph
+    pub fn get_node_annos(&self) -> &dyn AnnotationStorage<NodeID> {
+        self.node_annos.as_ref()
     }
 
     fn get_graphstorage_as_ref<'a>(&'a self, c: &Component) -> Option<&'a dyn GraphStorage> {

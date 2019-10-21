@@ -1095,8 +1095,11 @@ impl CorpusStorage {
         // toplevel corpus node.
         let mut relannis_version_33 = false;
         if quirks_mode {
-            let mut relannis_version_it =
-                db.exact_anno_search(Some(ANNIS_NS), "relannis-version", ValueSearch::Any);
+            let mut relannis_version_it = db.node_annos.exact_anno_search(
+                Some(ANNIS_NS),
+                "relannis-version",
+                ValueSearch::Any,
+            );
             if let Some(m) = relannis_version_it.next() {
                 if let Some(v) = db.node_annos.get_value_for_item(&m.node, &m.anno_key) {
                     if v == "3.3" {
