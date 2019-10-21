@@ -34,7 +34,7 @@ lazy_static! {
 impl<'a> AnyTokenSearch<'a> {
     pub fn new(db: &'a Graph) -> Result<AnyTokenSearch<'a>> {
         let order_gs = db.get_graphstorage_as_ref(&COMPONENT_ORDER);
-       
+
         Ok(AnyTokenSearch {
             order_gs,
             db,

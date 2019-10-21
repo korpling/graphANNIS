@@ -19,9 +19,9 @@ pub struct NearSpec {
 }
 
 #[derive(Clone)]
-struct Near {
+struct Near<'a> {
     gs_order: Arc<dyn GraphStorage>,
-    tok_helper: TokenHelper,
+    tok_helper: &'a TokenHelper,
     spec: NearSpec,
 }
 
@@ -62,8 +62,8 @@ impl std::fmt::Display for NearSpec {
     }
 }
 
-impl Near {
-    pub fn new(db: &Graph, spec: NearSpec) -> Option<Near> {
+impl<'a> Near<'a> {
+    pub fn new(graph: &'a Graph, spec: NearSpec) -> Option<Near<'a>> {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
@@ -73,9 +73,9 @@ impl Near {
                 .unwrap_or_else(|| String::from("")),
         };
 
-        let gs_order = db.get_graphstorage(&component_order)?;
+        let gs_order = graph.get_graphstorage(&component_order)?;
 
-        let tok_helper = TokenHelper::new(db)?;
+        let tok_helper = graph.get_token_helper()?;
 
         Some(Near {
             gs_order,
@@ -85,13 +85,13 @@ impl Near {
     }
 }
 
-impl std::fmt::Display for Near {
+impl<'a> std::fmt::Display for Near<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "^{}", self.spec)
     }
 }
 
-impl BinaryOperator for Near {
+impl<'a> BinaryOperator for Near<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let start_forward = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -203,7 +203,11 @@ impl BinaryOperator for Near {
         EstimationType::SELECTIVITY(0.1)
     }
 
-    fn get_inverse_operator<'a>(&self, _graph : &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
-        Some(Box::new(self.clone()))
+    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+        Some(Box::new(Near {
+            gs_order: self.gs_order.clone(),
+            tok_helper: graph.get_token_helper()?,
+            spec: self.spec.clone(),
+        }))
     }
 }
