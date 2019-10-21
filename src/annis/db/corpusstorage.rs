@@ -594,7 +594,7 @@ impl CorpusStorage {
 
         let db = if create_corpus {
             // create the default graph storages that are assumed to exist in every corpus
-            let mut db = Graph::with_default_graphstorages()?;
+            let mut db = Graph::with_default_graphstorages(false)?;
 
             // save corpus to the path where it should be stored
             db.persist_to(&db_path).or_else(|e| {
@@ -605,7 +605,7 @@ impl CorpusStorage {
             })?;
             db
         } else {
-            let mut db = Graph::new();
+            let mut db = Graph::new(false);
             db.load_from(&db_path, false)?;
             db
         };
@@ -1791,7 +1791,7 @@ fn extract_subgraph_by_query(
     // match vector differ.
     let mut match_result: BTreeSet<Match> = BTreeSet::new();
 
-    let mut result = Graph::new();
+    let mut result = Graph::new(false);
 
     // create the subgraph description
     for r in plan {

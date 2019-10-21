@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn find_with_only_one_token() {
-        let mut g = Graph::new();
+        let mut g = Graph::new(false);
 
         let mut update = GraphUpdate::new();
         update.add_event(UpdateEvent::AddNode {

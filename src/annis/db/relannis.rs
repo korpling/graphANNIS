@@ -140,7 +140,7 @@ where
             false
         };
 
-        let mut db = Graph::with_default_graphstorages()?;
+        let mut db = Graph::with_default_graphstorages(true)?;
         let mut updater = ChunkUpdater::new(&mut db, 1_000_000);
         let load_node_and_corpus_result =
             load_node_and_corpus_tables(&path, &mut updater, is_annis_33, &progress_callback)?;

@@ -237,9 +237,19 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
 
 impl Graph {
     /// Create a new and empty instance without any location on the disk.
-    fn new() -> Graph {
+    fn new(disk_based: bool) -> Graph {
+        let node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
+            let tmp_dir = tempfile::Builder::new()
+                .prefix("graphannis-ondisk-nodeanno")
+                .tempdir()
+                .unwrap();
+            Box::new(annostorage::ondisk::AnnoStorageImpl::<NodeID>::new(tmp_dir.as_ref()))
+        } else {
+            Box::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
+        };
+
         Graph {
-            node_annos: Box::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new()),
+            node_annos,
             components: BTreeMap::new(),
 
             location: None,
@@ -253,8 +263,8 @@ impl Graph {
 
     /// Create a new instance without any location on the disk but with the default graph storage components
     /// (Coverage, Order, LeftToken, RightToken, PartOf).
-    fn with_default_graphstorages() -> Result<Graph> {
-        let mut db = Graph::new();
+    fn with_default_graphstorages(disk_based: bool) -> Result<Graph> {
+        let mut db = Graph::new(disk_based);
         db.get_or_create_writable(&Component {
             ctype: ComponentType::Coverage,
             layer: ANNIS_NS.to_owned(),
@@ -1357,7 +1367,7 @@ mod tests {
 
     #[test]
     fn create_writeable_gs() {
-        let mut db = Graph::new();
+        let mut db = Graph::new(false);
 
         let anno_key = AnnoKey {
             ns: "test".to_owned(),
