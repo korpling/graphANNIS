@@ -921,7 +921,7 @@ impl CorpusStorage {
         let mut lock = db_entry.write().unwrap();
         let db: &mut Graph = get_write_or_error(&mut lock)?;
 
-        Arc::make_mut(&mut db.node_annos).calculate_statistics();
+        db.node_annos.calculate_statistics();
         for c in db.get_all_components(None, None) {
             db.calculate_component_statistics(&c)?;
         }
@@ -1804,9 +1804,8 @@ fn extract_subgraph_by_query(
 
 fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) {
     // add all node labels with the same node ID
-    let node_annos = Arc::make_mut(&mut db.node_annos);
     for a in orig_db.node_annos.get_annotations_for_item(&id) {
-        node_annos.insert(id, a);
+        db.node_annos.insert(id, a);
     }
 }
 fn create_subgraph_edge(
