@@ -84,7 +84,7 @@ impl<'a> BinaryOperator for LeftAlignment<'a> {
         false
     }
 
-    fn get_inverse_operator<'b>(&self, graph : &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
         let tok_helper = graph.get_token_helper()?;
 
         Some(Box::new(LeftAlignment { tok_helper }))

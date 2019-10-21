@@ -130,13 +130,10 @@ impl<'a> BinaryOperator for IdenticalCoverage<'a> {
         false
     }
 
-    fn get_inverse_operator<'b>(&self, graph : &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
-        let gs_left = graph.get_graphstorage(&COMPONENT_LEFT)?;
-        let gs_order = graph.get_graphstorage(&COMPONENT_ORDER)?;
-
+    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
         Some(Box::new(IdenticalCoverage {
-            gs_left,
-            gs_order,
+            gs_left: self.gs_left.clone(),
+            gs_order: self.gs_order.clone(),
             tok_helper: graph.get_token_helper()?,
         }))
     }
