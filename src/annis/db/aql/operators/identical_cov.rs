@@ -131,7 +131,7 @@ impl BinaryOperator for IdenticalCoverage {
         false
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
+    fn get_inverse_operator<'a>(&self, _graph : &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         Some(Box::new(self.clone()))
     }
 

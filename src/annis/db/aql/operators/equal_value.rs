@@ -156,7 +156,7 @@ impl BinaryOperator for EqualValue {
         EstimationType::SELECTIVITY(0.5)
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
+    fn get_inverse_operator<'a>(&self, _graph : &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         Some(Box::from(self.clone()))
     }
 }

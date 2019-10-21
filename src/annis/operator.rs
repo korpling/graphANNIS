@@ -154,7 +154,7 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
         true
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
+    fn get_inverse_operator<'a>(&self, _graph : &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         None
     }
 
