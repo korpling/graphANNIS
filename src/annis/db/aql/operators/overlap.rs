@@ -18,9 +18,9 @@ pub struct OverlapSpec {
 }
 
 #[derive(Clone)]
-pub struct Overlap {
+pub struct Overlap<'a> {
     gs_order: Arc<dyn GraphStorage>,
-    tok_helper: TokenHelper,
+    tok_helper: &'a TokenHelper,
     reflexive: bool,
 }
 
@@ -52,10 +52,10 @@ impl BinaryOperatorSpec for OverlapSpec {
     }
 }
 
-impl Overlap {
-    pub fn new(db: &Graph, reflexive: bool) -> Option<Overlap> {
-        let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
-        let tok_helper = TokenHelper::new(db)?;
+impl<'a> Overlap<'a> {
+    pub fn new(graph: &'a Graph, reflexive: bool) -> Option<Overlap<'a>> {
+        let gs_order = graph.get_graphstorage(&COMPONENT_ORDER)?;
+        let tok_helper = graph.get_token_helper()?;
 
         Some(Overlap {
             gs_order,
@@ -65,7 +65,7 @@ impl Overlap {
     }
 }
 
-impl std::fmt::Display for Overlap {
+impl<'a> std::fmt::Display for Overlap<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.reflexive {
             write!(f, "_o_reflexive_")
@@ -75,7 +75,7 @@ impl std::fmt::Display for Overlap {
     }
 }
 
-impl BinaryOperator for Overlap {
+impl<'a> BinaryOperator for Overlap<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         // use set to filter out duplicates
         let mut result = FxHashSet::default();
@@ -144,8 +144,12 @@ impl BinaryOperator for Overlap {
         self.reflexive
     }
 
-    fn get_inverse_operator<'a>(&self, _graph: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
-        Some(Box::new(self.clone()))
+    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+        Some(Box::new(Overlap {
+            gs_order: self.gs_order.clone(),
+            tok_helper: graph.get_token_helper()?,
+            reflexive: self.reflexive,
+        }))
     }
 
     fn estimation_type(&self) -> EstimationType {
