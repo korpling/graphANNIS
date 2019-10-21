@@ -1,4 +1,3 @@
-use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::graphstorage::adjacencylist::AdjacencyListStorage;
 use crate::annis::db::graphstorage::registry;
 use crate::annis::db::graphstorage::union::UnionEdgeContainer;
@@ -174,7 +173,7 @@ impl<T> ValueSearch<T> {
 /// In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
 ///
 pub struct Graph {
-    node_annos: Box<AnnoStorageImpl<NodeID>>,
+    node_annos: Box<dyn AnnotationStorage<NodeID>>,
 
     location: Option<PathBuf>,
 

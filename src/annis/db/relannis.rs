@@ -1,4 +1,3 @@
-use crate::annis::db::annostorage::AnnotationStorage;
 use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::db::{Graph, ANNIS_NS, TOK};
 use crate::annis::errors::*;
