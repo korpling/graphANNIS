@@ -4,7 +4,6 @@ use crate::annis::db::graphstorage::registry;
 use crate::annis::db::graphstorage::union::UnionEdgeContainer;
 use crate::annis::db::graphstorage::EdgeContainer;
 use crate::annis::db::graphstorage::{GraphStorage, WriteableGraphStorage};
-use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::update::{GraphUpdate, UpdateEvent};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
@@ -185,8 +184,6 @@ pub struct Graph {
     background_persistance: Arc<Mutex<()>>,
 
     cached_size: Mutex<Option<usize>>,
-
-    token_helper: Option<TokenHelper>,
 }
 
 impl MallocSizeOf for Graph {
@@ -367,8 +364,6 @@ impl Graph {
 
             background_persistance: Arc::new(Mutex::new(())),
             cached_size: Mutex::new(None),
-
-            token_helper: None,
         }
     }
 
@@ -401,8 +396,6 @@ impl Graph {
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
         })?;
-
-        db.token_helper = TokenHelper::new(&db);
 
         Ok(db)
     }
@@ -1466,10 +1459,6 @@ impl Graph {
         let mut lock = self.cached_size.lock().unwrap();
         let cached_size: &mut Option<usize> = &mut *lock;
         *cached_size = None;
-    }
-
-    pub fn get_token_helper<'a>(&'a self) -> Option<&'a TokenHelper> {
-        self.token_helper.as_ref()
     }
 }
 
