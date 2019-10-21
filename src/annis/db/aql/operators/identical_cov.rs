@@ -14,10 +14,10 @@ use std::sync::Arc;
 pub struct IdenticalCoverageSpec;
 
 #[derive(Clone)]
-pub struct IdenticalCoverage {
+pub struct IdenticalCoverage<'a> {
     gs_left: Arc<dyn GraphStorage>,
     gs_order: Arc<dyn GraphStorage>,
-    tok_helper: TokenHelper,
+    tok_helper: &'a TokenHelper,
 }
 
 lazy_static! {
@@ -56,27 +56,26 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
     }
 }
 
-impl IdenticalCoverage {
-    pub fn new(db: &Graph) -> Option<IdenticalCoverage> {
+impl<'a> IdenticalCoverage<'a> {
+    pub fn new(db: &'a Graph) -> Option<IdenticalCoverage<'a>> {
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
-        let tok_helper = TokenHelper::new(db)?;
 
         Some(IdenticalCoverage {
             gs_left,
             gs_order,
-            tok_helper,
+            tok_helper: db.get_token_helper()?,
         })
     }
 }
 
-impl std::fmt::Display for IdenticalCoverage {
+impl<'a> std::fmt::Display for IdenticalCoverage<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_=_")
     }
 }
 
-impl BinaryOperator for IdenticalCoverage {
+impl<'a> BinaryOperator for IdenticalCoverage<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let n_left = self.tok_helper.left_token_for(lhs.node);
         let n_right = self.tok_helper.right_token_for(lhs.node);
@@ -131,8 +130,15 @@ impl BinaryOperator for IdenticalCoverage {
         false
     }
 
-    fn get_inverse_operator<'a>(&self, _graph : &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
-        Some(Box::new(self.clone()))
+    fn get_inverse_operator<'b>(&self, graph : &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+        let gs_left = graph.get_graphstorage(&COMPONENT_LEFT)?;
+        let gs_order = graph.get_graphstorage(&COMPONENT_ORDER)?;
+
+        Some(Box::new(IdenticalCoverage {
+            gs_left,
+            gs_order,
+            tok_helper: graph.get_token_helper()?,
+        }))
     }
 
     fn estimation_type(&self) -> EstimationType {
