@@ -11,7 +11,6 @@ use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::relannis;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
-use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{
     AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, NODE_NAME_KEY, NODE_TYPE,
 };
@@ -1127,7 +1126,7 @@ impl CorpusStorage {
                 let mut rng = rand::thread_rng();
                 tmp_results.shuffle(&mut rng);
             } else {
-                let token_helper = TokenHelper::new(db);
+                let token_helper = db.get_token_helper();
                 let component_order = Component {
                     ctype: ComponentType::Ordering,
                     layer: String::from("annis"),
@@ -1147,7 +1146,7 @@ impl CorpusStorage {
                             m1,
                             m2,
                             db.node_annos.as_ref(),
-                            token_helper.as_ref(),
+                            token_helper,
                             gs_order,
                             collation,
                             quirks_mode,
@@ -1158,7 +1157,7 @@ impl CorpusStorage {
                             m1,
                             m2,
                             db.node_annos.as_ref(),
-                            token_helper.as_ref(),
+                            token_helper,
                             gs_order,
                             collation,
                             quirks_mode,
