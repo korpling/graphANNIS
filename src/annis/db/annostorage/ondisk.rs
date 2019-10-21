@@ -307,11 +307,32 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
     fn get_keys_for_iterator(
         &self,
-        _ns: Option<&str>,
-        _name: Option<&str>,
-        _it: Box<dyn Iterator<Item = NodeID>>,
+        ns: Option<&str>,
+        name: Option<&str>,
+        it: Box<dyn Iterator<Item = NodeID>>,
     ) -> Vec<Match> {
-        unimplemented!()
+        let result_it = it.flat_map(|item| {
+            if let Some(name) = name {
+                if let Some(ns) = ns {
+                    unimplemented!()
+                } else {
+                    unimplemented!()
+                }
+            } else {
+                // get all annotation keys for this item
+                self.by_container
+                    .range(item.to_le_bytes()..(item + 1).to_le_bytes())
+                    .map(|data| {
+                        let (data, _) = data.expect(DEFAULT_MSG);
+                        let (node, matched_anno_key) = parse_by_container_key(&data);
+                        Match {
+                            node,
+                            anno_key: Arc::from(matched_anno_key),
+                        }
+                    })
+            }
+        });
+        result_it.collect()
     }
 
     fn number_of_annotations_by_name(&self, _ns: Option<&str>, _name: &str) -> usize {
