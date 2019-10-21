@@ -17,11 +17,11 @@ pub struct PrecedenceSpec {
     pub dist: RangeSpec,
 }
 
-pub struct Precedence {
+pub struct Precedence<'a> {
     gs_order: Arc<dyn GraphStorage>,
     gs_left: Arc<dyn GraphStorage>,
     gs_right: Arc<dyn GraphStorage>,
-    tok_helper: TokenHelper,
+    tok_helper: TokenHelper<'a>,
     spec: PrecedenceSpec,
 }
 
@@ -61,7 +61,7 @@ impl BinaryOperatorSpec for PrecedenceSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = Precedence::new(db, self.clone());
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -81,8 +81,8 @@ impl std::fmt::Display for PrecedenceSpec {
     }
 }
 
-impl Precedence {
-    pub fn new(db: &Graph, spec: PrecedenceSpec) -> Option<Precedence> {
+impl<'a> Precedence<'a> {
+    pub fn new(graph: &'a Graph, spec: PrecedenceSpec) -> Option<Precedence<'a>> {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
@@ -92,11 +92,11 @@ impl Precedence {
                 .unwrap_or_else(|| String::from("")),
         };
 
-        let gs_order = db.get_graphstorage(&component_order)?;
-        let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
-        let gs_right = db.get_graphstorage(&COMPONENT_RIGHT)?;
+        let gs_order = graph.get_graphstorage(&component_order)?;
+        let gs_left = graph.get_graphstorage(&COMPONENT_LEFT)?;
+        let gs_right = graph.get_graphstorage(&COMPONENT_RIGHT)?;
 
-        let tok_helper = TokenHelper::new(db)?;
+        let tok_helper = TokenHelper::new(graph)?;
 
         Some(Precedence {
             gs_order,
@@ -108,13 +108,13 @@ impl Precedence {
     }
 }
 
-impl std::fmt::Display for Precedence {
+impl<'a> std::fmt::Display for Precedence<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, ".{}", self.spec)
     }
 }
 
-impl BinaryOperator for Precedence {
+impl<'a> BinaryOperator for Precedence<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -187,7 +187,7 @@ impl BinaryOperator for Precedence {
         EstimationType::SELECTIVITY(0.1)
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
+    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
         // Check if order graph storages has the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         if !self.gs_order.inverse_has_same_cost() {
@@ -198,28 +198,28 @@ impl BinaryOperator for Precedence {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),
             gs_right: self.gs_right.clone(),
-            tok_helper: self.tok_helper.clone(),
+            tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
         };
         Some(Box::new(inv_precedence))
     }
 }
 
-pub struct InversePrecedence {
+pub struct InversePrecedence<'a> {
     gs_order: Arc<dyn GraphStorage>,
     gs_left: Arc<dyn GraphStorage>,
     gs_right: Arc<dyn GraphStorage>,
-    tok_helper: TokenHelper,
+    tok_helper: TokenHelper<'a>,
     spec: PrecedenceSpec,
 }
 
-impl std::fmt::Display for InversePrecedence {
+impl<'a> std::fmt::Display for InversePrecedence<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, ".\u{20D6}{}", self.spec)
     }
 }
 
-impl BinaryOperator for InversePrecedence {
+impl<'a> BinaryOperator for InversePrecedence<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -274,12 +274,12 @@ impl BinaryOperator for InversePrecedence {
         )
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
+    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
         let prec = Precedence {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),
             gs_right: self.gs_right.clone(),
-            tok_helper: self.tok_helper.clone(),
+            tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
         };
         Some(Box::new(prec))

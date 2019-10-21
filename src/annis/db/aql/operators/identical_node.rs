@@ -12,7 +12,7 @@ impl BinaryOperatorSpec for IdenticalNodeSpec {
         HashSet::default()
     }
 
-    fn create_operator(&self, _db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, _db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         Some(Box::new(IdenticalNode {}))
     }
 }
@@ -42,7 +42,7 @@ impl BinaryOperator for IdenticalNode {
         EstimationType::MIN
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
+    fn get_inverse_operator<'a>(&self, _graph: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         Some(Box::new(self.clone()))
     }
 }

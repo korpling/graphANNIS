@@ -5,7 +5,6 @@ use crate::annis::types::{Component, NodeID};
 use std;
 use std::borrow::Cow;
 use std::collections::HashSet;
-use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct EqualValueSpec {
@@ -19,9 +18,9 @@ impl BinaryOperatorSpec for EqualValueSpec {
         HashSet::default()
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         Some(Box::new(EqualValue {
-            node_annos: db.node_annos.clone(),
+            node_annos: db.node_annos.as_ref(),
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
             negated: self.negated,
@@ -34,14 +33,14 @@ impl BinaryOperatorSpec for EqualValueSpec {
 }
 
 #[derive(Clone)]
-pub struct EqualValue {
-    node_annos: Arc<dyn AnnotationStorage<NodeID>>,
+pub struct EqualValue<'a> {
+    node_annos: &'a dyn AnnotationStorage<NodeID>,
     spec_left: NodeSearchSpec,
     spec_right: NodeSearchSpec,
     negated: bool,
 }
 
-impl std::fmt::Display for EqualValue {
+impl<'a> std::fmt::Display for EqualValue<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.negated {
             write!(f, "!=")
@@ -51,7 +50,7 @@ impl std::fmt::Display for EqualValue {
     }
 }
 
-impl EqualValue {
+impl<'a> EqualValue<'a> {
     fn value_for_match(&self, m: &Match, spec: &NodeSearchSpec) -> Option<Cow<str>> {
         match spec {
             NodeSearchSpec::ExactValue { .. }
@@ -93,8 +92,8 @@ impl EqualValue {
     }
 }
 
-impl BinaryOperator for EqualValue {
-    fn retrieve_matches<'a>(&'a self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+impl<'a> BinaryOperator for EqualValue<'a> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let lhs = lhs.clone();
         if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
             let val_search: ValueSearch<&str> = if self.negated {
@@ -156,7 +155,12 @@ impl BinaryOperator for EqualValue {
         EstimationType::SELECTIVITY(0.5)
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
-        Some(Box::from(self.clone()))
+    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+        Some(Box::from(EqualValue {
+            node_annos: graph.node_annos.as_ref(),
+            spec_left: self.spec_left.clone(),
+            spec_right: self.spec_right.clone(),
+            negated: self.negated,
+        }))
     }
 }

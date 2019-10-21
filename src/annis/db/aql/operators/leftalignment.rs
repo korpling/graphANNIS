@@ -11,8 +11,8 @@ use std::collections::HashSet;
 pub struct LeftAlignmentSpec;
 
 #[derive(Clone)]
-pub struct LeftAlignment {
-    tok_helper: TokenHelper,
+pub struct LeftAlignment<'a> {
+    tok_helper: TokenHelper<'a>,
 }
 
 impl BinaryOperatorSpec for LeftAlignmentSpec {
@@ -22,7 +22,7 @@ impl BinaryOperatorSpec for LeftAlignmentSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = LeftAlignment::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -32,21 +32,21 @@ impl BinaryOperatorSpec for LeftAlignmentSpec {
     }
 }
 
-impl LeftAlignment {
-    pub fn new(db: &Graph) -> Option<LeftAlignment> {
-        let tok_helper = TokenHelper::new(db)?;
+impl<'a> LeftAlignment<'a> {
+    pub fn new(graph: &'a Graph) -> Option<LeftAlignment<'a>> {
+        let tok_helper = TokenHelper::new(graph)?;
 
         Some(LeftAlignment { tok_helper })
     }
 }
 
-impl std::fmt::Display for LeftAlignment {
+impl<'a> std::fmt::Display for LeftAlignment<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_l_")
     }
 }
 
-impl BinaryOperator for LeftAlignment {
+impl<'a> BinaryOperator for LeftAlignment<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let mut aligned = Vec::default();
 
@@ -84,8 +84,10 @@ impl BinaryOperator for LeftAlignment {
         false
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
-        Some(Box::new(self.clone()))
+    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+        let tok_helper = TokenHelper::new(graph)?;
+
+        Some(Box::new(LeftAlignment { tok_helper }))
     }
 
     fn estimation_type(&self) -> EstimationType {

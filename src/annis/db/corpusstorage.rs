@@ -122,6 +122,8 @@ pub struct CorpusInfo {
     pub name: String,
     /// Indicates if the corpus is partially or fully loaded.
     pub load_status: LoadStatus,
+    /// The amount of memory that the node annotations are using
+    pub node_annos_load_size: Option<usize>,
     /// A list of descriptions for the graph storages of this corpus.
     pub graphstorages: Vec<GraphStorageInfo>,
 }
@@ -147,6 +149,13 @@ impl fmt::Display for CorpusInfo {
                 )?;
             }
         };
+        if let Some(memory_size) = self.node_annos_load_size {
+            writeln!(
+                f,
+                "Node Annotations: {:.2} MB",
+                memory_size as f64 / f64::from(1024 * 1024)
+            )?;
+        }
         if !self.graphstorages.is_empty() {
             writeln!(f, "------------")?;
             for gs in &self.graphstorages {
@@ -486,6 +495,7 @@ impl CorpusStorage {
                 // check if all components are loaded
                 let heap_size = db.size_of(mem_ops);
                 let mut load_status = LoadStatus::FullyLoaded(heap_size);
+                let node_annos_load_size = Some(db.node_annos.size_of(mem_ops));
 
                 let mut graphstorages = Vec::new();
                 for c in db.get_all_components(None, None) {
@@ -513,12 +523,14 @@ impl CorpusStorage {
                     name: corpus_name.to_owned(),
                     load_status,
                     graphstorages,
+                    node_annos_load_size,
                 }
             }
             &CacheEntry::NotLoaded => CorpusInfo {
                 name: corpus_name.to_owned(),
                 load_status: LoadStatus::NotLoaded,
                 graphstorages: vec![],
+                node_annos_load_size: None,
             },
         };
         Ok(corpus_info)
@@ -921,7 +933,7 @@ impl CorpusStorage {
         let mut lock = db_entry.write().unwrap();
         let db: &mut Graph = get_write_or_error(&mut lock)?;
 
-        Arc::make_mut(&mut db.node_annos).calculate_statistics();
+        db.node_annos.calculate_statistics();
         for c in db.get_all_components(None, None) {
             db.calculate_component_statistics(&c)?;
         }
@@ -1095,8 +1107,11 @@ impl CorpusStorage {
         // toplevel corpus node.
         let mut relannis_version_33 = false;
         if quirks_mode {
-            let mut relannis_version_it =
-                db.exact_anno_search(Some(ANNIS_NS), "relannis-version", ValueSearch::Any);
+            let mut relannis_version_it = db.node_annos.exact_anno_search(
+                Some(ANNIS_NS),
+                "relannis-version",
+                ValueSearch::Any,
+            );
             if let Some(m) = relannis_version_it.next() {
                 if let Some(v) = db.node_annos.get_value_for_item(&m.node, &m.anno_key) {
                     if v == "3.3" {
@@ -1804,9 +1819,8 @@ fn extract_subgraph_by_query(
 
 fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) {
     // add all node labels with the same node ID
-    let node_annos = Arc::make_mut(&mut db.node_annos);
     for a in orig_db.node_annos.get_annotations_for_item(&id) {
-        node_annos.insert(id, a);
+        db.node_annos.insert(id, a);
     }
 }
 fn create_subgraph_edge(

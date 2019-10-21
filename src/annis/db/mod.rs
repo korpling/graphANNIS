@@ -1,4 +1,3 @@
-use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::graphstorage::adjacencylist::AdjacencyListStorage;
 use crate::annis::db::graphstorage::registry;
 use crate::annis::db::graphstorage::union::UnionEdgeContainer;
@@ -12,9 +11,7 @@ use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use bincode;
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
-use serde;
 use std;
-use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::iter::FromIterator;
@@ -175,7 +172,7 @@ impl<T> ValueSearch<T> {
 /// In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
 ///
 pub struct Graph {
-    node_annos: Arc<AnnoStorageImpl<NodeID>>,
+    node_annos: Box<dyn AnnotationStorage<NodeID>>,
 
     location: Option<PathBuf>,
 
@@ -238,131 +235,11 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
     p
 }
 
-fn save_bincode<T>(location: &Path, path: &str, object: &T) -> Result<()>
-where
-    T: serde::Serialize,
-{
-    let mut full_path = PathBuf::from(location);
-    full_path.push(path);
-
-    let f = std::fs::File::create(full_path)?;
-    let mut writer = std::io::BufWriter::new(f);
-    bincode::serialize_into(&mut writer, object)?;
-    Ok(())
-}
-
-impl AnnotationStorage<NodeID> for Graph {
-    fn insert(&mut self, item: NodeID, anno: Annotation) {
-        Arc::make_mut(&mut self.node_annos).insert(item, anno);
-    }
-
-    fn remove_annotation_for_item(&mut self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
-        Arc::make_mut(&mut self.node_annos).remove_annotation_for_item(item, key)
-    }
-
-    fn clear(&mut self) {
-        Arc::make_mut(&mut self.node_annos).clear()
-    }
-
-    fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
-        self.node_annos.get_qnames(name)
-    }
-
-    fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
-        self.node_annos.get_annotations_for_item(item)
-    }
-
-    fn number_of_annotations(&self) -> usize {
-        self.node_annos.number_of_annotations()
-    }
-
-    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> usize {
-        self.node_annos.number_of_annotations_by_name(ns, name)
-    }
-
-    fn exact_anno_search<'a>(
-        &'a self,
-        namespace: Option<&str>,
-        name: &str,
-        value: ValueSearch<&str>,
-    ) -> Box<dyn Iterator<Item = Match> + 'a> {
-        self.node_annos.exact_anno_search(namespace, name, value)
-    }
-
-    fn regex_anno_search<'a>(
-        &'a self,
-        namespace: Option<&str>,
-        name: &str,
-        pattern: &str,
-        negated: bool,
-    ) -> Box<dyn Iterator<Item = Match> + 'a> {
-        self.node_annos
-            .regex_anno_search(namespace, name, pattern, negated)
-    }
-
-    fn get_all_keys_for_item(
-        &self,
-        item: &NodeID,
-        ns: Option<&str>,
-        name: Option<&str>,
-    ) -> Vec<Arc<AnnoKey>> {
-        self.node_annos.get_all_keys_for_item(item, ns, name)
-    }
-
-    fn guess_max_count(
-        &self,
-        ns: Option<&str>,
-        name: &str,
-        lower_val: &str,
-        upper_val: &str,
-    ) -> usize {
-        self.node_annos
-            .guess_max_count(ns, name, lower_val, upper_val)
-    }
-
-    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> usize {
-        self.node_annos.guess_max_count_regex(ns, name, pattern)
-    }
-
-    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Option<Cow<str>> {
-        self.node_annos.guess_most_frequent_value(ns, name)
-    }
-
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Cow<str>> {
-        self.node_annos.get_all_values(key, most_frequent_first)
-    }
-
-    fn annotation_keys(&self) -> Vec<AnnoKey> {
-        self.node_annos.annotation_keys()
-    }
-
-    fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
-        self.node_annos.get_value_for_item(item, key)
-    }
-
-    fn get_keys_for_iterator<'a>(
-        &'a self,
-        ns: Option<&str>,
-        name: Option<&str>,
-        it: Box<dyn Iterator<Item = NodeID>>,
-    ) -> Vec<Match> {
-        self.node_annos.get_keys_for_iterator(ns, name, it)
-    }
-
-    fn get_largest_item(&self) -> Option<NodeID> {
-        self.node_annos.get_largest_item()
-    }
-
-    fn calculate_statistics(&mut self) {
-        Arc::make_mut(&mut self.node_annos).calculate_statistics()
-    }
-}
-
 impl Graph {
     /// Create a new and empty instance without any location on the disk.
     fn new() -> Graph {
         Graph {
-            node_annos: Arc::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new()),
+            node_annos: Box::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new()),
             components: BTreeMap::new(),
 
             location: None,
@@ -403,6 +280,7 @@ impl Graph {
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
         })?;
+
         Ok(db)
     }
 
@@ -416,7 +294,7 @@ impl Graph {
     /// This removes all node annotations, edges and knowledge about components.
     fn clear(&mut self) {
         self.reset_cached_size();
-        self.node_annos = Arc::new(annostorage::inmemory::AnnoStorageImpl::new());
+        self.node_annos = Box::new(annostorage::inmemory::AnnoStorageImpl::new());
         self.components.clear();
     }
 
@@ -444,8 +322,8 @@ impl Graph {
 
         let mut node_annos_tmp: annostorage::inmemory::AnnoStorageImpl<NodeID> =
             annostorage::inmemory::AnnoStorageImpl::new();
-        node_annos_tmp.load_from_file(&dir2load.join("nodes_v1.bin").to_string_lossy())?;
-        self.node_annos = Arc::from(node_annos_tmp);
+        node_annos_tmp.load_annotations_from(&dir2load)?;
+        self.node_annos = Box::new(node_annos_tmp);
 
         let log_path = dir2load.join("update_log.bin");
 
@@ -546,7 +424,7 @@ impl Graph {
 
         std::fs::create_dir_all(&location)?;
 
-        save_bincode(&location, "nodes_v1.bin", self.node_annos.as_ref())?;
+        self.node_annos.save_annotations_to(&location)?;
 
         for (c, e) in &self.components {
             if let Some(ref data) = *e {
@@ -620,9 +498,8 @@ impl Graph {
                         };
 
                         // add the new node (with minimum labels)
-                        let node_annos = Arc::make_mut(&mut self.node_annos);
-                        node_annos.insert(new_node_id, new_anno_name);
-                        node_annos.insert(new_node_id, new_anno_type);
+                        self.node_annos.insert(new_node_id, new_anno_name);
+                        self.node_annos.insert(new_node_id, new_anno_type);
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
@@ -637,9 +514,9 @@ impl Graph {
 
                         // delete all annotations
                         {
-                            let node_annos = Arc::make_mut(&mut self.node_annos);
-                            for a in node_annos.get_annotations_for_item(&existing_node_id) {
-                                node_annos.remove_annotation_for_item(&existing_node_id, &a.key);
+                            for a in self.node_annos.get_annotations_for_item(&existing_node_id) {
+                                self.node_annos
+                                    .remove_annotation_for_item(&existing_node_id, &a.key);
                             }
                         }
                         // delete all edges pointing to this node either as source or target
@@ -664,7 +541,7 @@ impl Graph {
                             },
                             val: anno_value,
                         };
-                        Arc::make_mut(&mut self.node_annos).insert(existing_node_id, anno);
+                        self.node_annos.insert(existing_node_id, anno);
                     }
                 }
                 UpdateEvent::DeleteNodeLabel {
@@ -677,7 +554,7 @@ impl Graph {
                             ns: anno_ns,
                             name: anno_name,
                         };
-                        Arc::make_mut(&mut self.node_annos)
+                        self.node_annos
                             .remove_annotation_for_item(&existing_node_id, &key);
                     }
                 }
@@ -1374,6 +1251,11 @@ impl Graph {
             }
         }
         None
+    }
+
+    /// Get a read-only reference to the node annotations of this graph
+    pub fn get_node_annos(&self) -> &dyn AnnotationStorage<NodeID> {
+        self.node_annos.as_ref()
     }
 
     fn get_graphstorage_as_ref<'a>(&'a self, c: &Component) -> Option<&'a dyn GraphStorage> {

@@ -330,8 +330,9 @@ impl<'a> NodeSearch<'a> {
                     )
                     .map(move |n| vec![n]);
 
-                let node_annos = db.node_annos.clone();
-                let filter_func: Box<dyn Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
+                let filter_func: Box<
+                    dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync,
+                > = Box::new(move |m, node_annos| {
                     if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                         return val == "node";
                     } else {
@@ -443,13 +444,14 @@ impl<'a> NodeSearch<'a> {
 
         let it = base_it.map(|n| vec![n]);
 
-        let mut filters: Vec<Box<dyn Fn(&Match) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<
+            Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>,
+        > = Vec::new();
 
         match val {
             ValueSearch::Any => {}
             ValueSearch::Some(val) => {
-                let node_annos = db.node_annos.clone();
-                filters.push(Box::new(move |m| {
+                filters.push(Box::new(move |m, node_annos| {
                     if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                         return anno_val == val.as_str();
                     } else {
@@ -458,8 +460,7 @@ impl<'a> NodeSearch<'a> {
                 }));
             }
             ValueSearch::NotSome(val) => {
-                let node_annos = db.node_annos.clone();
-                filters.push(Box::new(move |m| {
+                filters.push(Box::new(move |m, node_annos| {
                     if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                         return anno_val != val.as_str();
                     } else {
@@ -556,15 +557,16 @@ impl<'a> NodeSearch<'a> {
 
         let it = base_it.map(|n| vec![n]);
 
-        let mut filters: Vec<Box<dyn Fn(&Match) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<
+            Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>,
+        > = Vec::new();
 
         let full_match_pattern = util::regex_full_match(&pattern);
         let re = regex::Regex::new(&full_match_pattern);
         match re {
             Ok(re) => {
-                let node_annos = db.node_annos.clone();
                 if negated {
-                    filters.push(Box::new(move |m| {
+                    filters.push(Box::new(move |m, node_annos| {
                         if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                             return !re.is_match(&val);
                         } else {
@@ -572,7 +574,7 @@ impl<'a> NodeSearch<'a> {
                         }
                     }));
                 } else {
-                    filters.push(Box::new(move |m| {
+                    filters.push(Box::new(move |m, node_annos| {
                         if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                             return re.is_match(&val);
                         } else {
@@ -685,16 +687,17 @@ impl<'a> NodeSearch<'a> {
             }]
         });
         // create filter functions
-        let mut filters: Vec<Box<dyn Fn(&Match) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<
+            Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>,
+        > = Vec::new();
 
         match val {
             ValueSearch::Some(ref val) => {
                 if match_regex {
                     let full_match_pattern = util::regex_full_match(val);
                     let re = regex::Regex::new(&full_match_pattern);
-                    let node_annos = db.node_annos.clone();
                     match re {
-                        Ok(re) => filters.push(Box::new(move |m| {
+                        Ok(re) => filters.push(Box::new(move |m, node_annos| {
                             if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                                 return re.is_match(&val);
                             } else {
@@ -709,9 +712,8 @@ impl<'a> NodeSearch<'a> {
                         }
                     };
                 } else {
-                    let node_annos = db.node_annos.clone();
                     let val = val.clone();
-                    filters.push(Box::new(move |m| {
+                    filters.push(Box::new(move |m, node_annos| {
                         if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
                         {
                             return anno_val == val.as_str();
@@ -725,9 +727,8 @@ impl<'a> NodeSearch<'a> {
                 if match_regex {
                     let full_match_pattern = util::regex_full_match(val);
                     let re = regex::Regex::new(&full_match_pattern);
-                    let node_annos = db.node_annos.clone();
                     match re {
-                        Ok(re) => filters.push(Box::new(move |m| {
+                        Ok(re) => filters.push(Box::new(move |m, node_annos| {
                             if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
                                 return !re.is_match(&val);
                             } else {
@@ -742,9 +743,8 @@ impl<'a> NodeSearch<'a> {
                         }
                     };
                 } else {
-                    let node_annos = db.node_annos.clone();
                     let val = val.clone();
-                    filters.push(Box::new(move |m| {
+                    filters.push(Box::new(move |m, node_annos| {
                         if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
                         {
                             return anno_val != val.as_str();
@@ -771,7 +771,9 @@ impl<'a> NodeSearch<'a> {
                 })
                 .collect();
 
-            let filter_func: Box<dyn Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
+            let filter_func: Box<
+                dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync,
+            > = Box::new(move |m, _| {
                 for cov in cov_gs.iter() {
                     if cov.get_outgoing_edges(m.node).next().is_some() {
                         return false;
@@ -838,7 +840,9 @@ impl<'a> NodeSearch<'a> {
     ) -> Result<NodeSearch<'a>> {
         let it: Box<dyn Iterator<Item = Vec<Match>>> = Box::from(AnyTokenSearch::new(db)?);
         // create filter functions
-        let mut filters: Vec<Box<dyn Fn(&Match) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<
+            Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>,
+        > = Vec::new();
 
         let cov_gs: Vec<Arc<dyn GraphStorage>> = db
             .get_all_components(Some(ComponentType::Coverage), None)
@@ -853,14 +857,15 @@ impl<'a> NodeSearch<'a> {
             })
             .collect();
 
-        let filter_func: Box<dyn Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
-            for cov in cov_gs.iter() {
-                if cov.get_outgoing_edges(m.node).next().is_some() {
-                    return false;
+        let filter_func: Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync> =
+            Box::new(move |m, _| {
+                for cov in cov_gs.iter() {
+                    if cov.get_outgoing_edges(m.node).next().is_some() {
+                        return false;
+                    }
                 }
-            }
-            true
-        });
+                true
+            });
         filters.push(filter_func);
 
         let est_output = db
@@ -944,7 +949,7 @@ impl<'a> NodeSearch<'a> {
             .filter_map(move |m: Match| -> Option<Vec<Match>> {
                 // only include the nodes that fullfill all original node search predicates
                 for cond in &node_search_desc_2.cond {
-                    if !cond(&m) {
+                    if !cond(&m, db.node_annos.as_ref()) {
                         return None;
                     }
                 }

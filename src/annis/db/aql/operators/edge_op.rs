@@ -1,6 +1,5 @@
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
-use crate::annis::db::AnnotationStorage;
 use crate::annis::db::{Graph, Match, ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY};
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
@@ -25,7 +24,7 @@ struct BaseEdgeOpSpec {
 struct BaseEdgeOp {
     gs: Vec<Arc<dyn GraphStorage>>,
     spec: BaseEdgeOpSpec,
-    node_annos: Arc<dyn AnnotationStorage<NodeID>>,
+    max_nodes_estimate: usize,
     inverse: bool,
 }
 
@@ -38,7 +37,12 @@ impl BaseEdgeOp {
         Some(BaseEdgeOp {
             gs,
             spec,
-            node_annos: db.node_annos.clone(),
+            max_nodes_estimate: db.node_annos.guess_max_count(
+                Some(&NODE_TYPE_KEY.ns),
+                &NODE_TYPE_KEY.name,
+                "node",
+                "node",
+            ),
             inverse: false,
         })
     }
@@ -49,7 +53,7 @@ impl BinaryOperatorSpec for BaseEdgeOpSpec {
         HashSet::from_iter(self.components.clone())
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = BaseEdgeOp::new(db, self.clone());
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -330,7 +334,7 @@ impl BinaryOperator for BaseEdgeOp {
         self.spec.is_reflexive
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
+    fn get_inverse_operator<'a>(&self, _graph: &'a Graph) -> Option<Box<dyn BinaryOperator>> {
         // Check if all graph storages have the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         for g in &self.gs {
@@ -341,7 +345,7 @@ impl BinaryOperator for BaseEdgeOp {
         let edge_op = BaseEdgeOp {
             gs: self.gs.clone(),
             spec: self.spec.clone(),
-            node_annos: self.node_annos.clone(),
+            max_nodes_estimate: self.max_nodes_estimate,
             inverse: !self.inverse,
         };
         Some(Box::new(edge_op))
@@ -353,12 +357,7 @@ impl BinaryOperator for BaseEdgeOp {
             return EstimationType::SELECTIVITY(0.0);
         }
 
-        let max_nodes: f64 = self.node_annos.guess_max_count(
-            Some(&NODE_TYPE_KEY.ns),
-            &NODE_TYPE_KEY.name,
-            "node",
-            "node",
-        ) as f64;
+        let max_nodes: f64 = self.max_nodes_estimate as f64;
 
         let mut worst_sel: f64 = 0.0;
 
@@ -495,7 +494,7 @@ impl BinaryOperatorSpec for DominanceSpec {
         HashSet::from_iter(db.get_all_components(Some(ComponentType::Dominance), Some(&self.name)))
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let components = db.get_all_components(Some(ComponentType::Dominance), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from(">")
@@ -525,7 +524,7 @@ impl BinaryOperatorSpec for PointingSpec {
         HashSet::from_iter(db.get_all_components(Some(ComponentType::Pointing), Some(&self.name)))
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let components = db.get_all_components(Some(ComponentType::Pointing), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from("->")
@@ -560,7 +559,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         components
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let components = vec![Component {
             ctype: ComponentType::PartOf,
             layer: String::from(ANNIS_NS),

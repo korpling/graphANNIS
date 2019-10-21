@@ -37,8 +37,8 @@ struct UnaryOperatorSpecEntry<'a> {
     idx: usize,
 }
 
-pub struct BinaryOperatorEntry {
-    pub op: Box<dyn BinaryOperator>,
+pub struct BinaryOperatorEntry<'a> {
+    pub op: Box<dyn BinaryOperator + 'a>,
     pub node_nr_left: usize,
     pub node_nr_right: usize,
     pub global_reflexivity: bool,
@@ -104,9 +104,9 @@ fn should_switch_operand_order(
 }
 
 fn create_join<'b>(
-    db: &Graph,
+    db: &'b Graph,
     config: &Config,
-    op_entry: BinaryOperatorEntry,
+    op_entry: BinaryOperatorEntry<'b>,
     exec_left: Box<dyn ExecutionNode<Item = Vec<Match>> + 'b>,
     exec_right: Box<dyn ExecutionNode<Item = Vec<Match>> + 'b>,
     idx_left: usize,
@@ -120,7 +120,7 @@ fn create_join<'b>(
                 idx_left,
                 op_entry,
                 exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                db.node_annos.clone(),
+                db.node_annos.as_ref(),
                 exec_right.get_desc(),
             );
             return Box::new(join);
@@ -130,14 +130,14 @@ fn create_join<'b>(
                 idx_left,
                 op_entry,
                 exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                db.node_annos.clone(),
+                db.node_annos.as_ref(),
                 exec_right.get_desc(),
             );
             return Box::new(join);
         }
     } else if exec_left.as_nodesearch().is_some() {
         // avoid a nested loop join by switching the operand and using and index join
-        if let Some(inverse_op) = op_entry.op.get_inverse_operator() {
+        if let Some(inverse_op) = op_entry.op.get_inverse_operator(db) {
             if config.use_parallel_joins {
                 let join = parallel::indexjoin::IndexJoin::new(
                     exec_right,
@@ -149,7 +149,7 @@ fn create_join<'b>(
                         global_reflexivity: op_entry.global_reflexivity,
                     },
                     exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.node_annos.clone(),
+                    db.node_annos.as_ref(),
                     exec_left.get_desc(),
                 );
                 return Box::new(join);
@@ -164,7 +164,7 @@ fn create_join<'b>(
                         global_reflexivity: op_entry.global_reflexivity,
                     },
                     exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.node_annos.clone(),
+                    db.node_annos.as_ref(),
                     exec_left.get_desc(),
                 );
                 return Box::new(join);
@@ -631,7 +631,7 @@ impl<'a> Conjunction<'a> {
         for i in operator_order {
             let op_spec_entry: &BinaryOperatorSpecEntry<'a> = &self.binary_operators[i];
 
-            let mut op: Box<dyn BinaryOperator> =
+            let mut op: Box<dyn BinaryOperator + 'a> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
                     Error::ImpossibleSearch(format!(
                         "could not create operator {:?}",
@@ -642,7 +642,7 @@ impl<'a> Conjunction<'a> {
             let mut spec_idx_left = op_spec_entry.idx_left;
             let mut spec_idx_right = op_spec_entry.idx_right;
 
-            let inverse_op = op.get_inverse_operator();
+            let inverse_op = op.get_inverse_operator(db);
             if let Some(inverse_op) = inverse_op {
                 if should_switch_operand_order(op_spec_entry, &node2cost) {
                     spec_idx_left = op_spec_entry.idx_right;

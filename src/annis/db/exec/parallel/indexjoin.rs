@@ -17,10 +17,10 @@ const MAX_BUFFER_SIZE: usize = 512;
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
     match_receiver: Option<Receiver<Vec<Match>>>,
-    op: Arc<dyn BinaryOperator>,
+    op: Arc<dyn BinaryOperator + 'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
-    node_annos: Arc<dyn AnnotationStorage<NodeID>>,
+    node_annos: &'a dyn AnnotationStorage<NodeID>,
     desc: Desc,
     global_reflexivity: bool,
 }
@@ -37,9 +37,9 @@ impl<'a> IndexJoin<'a> {
     pub fn new(
         lhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
-        op_entry: BinaryOperatorEntry,
+        op_entry: BinaryOperatorEntry<'a>,
         node_search_desc: Arc<NodeSearchDesc>,
-        node_annos: Arc<dyn AnnotationStorage<NodeID>>,
+        node_annos: &'a dyn AnnotationStorage<NodeID>,
         rhs_desc: Option<&Desc>,
     ) -> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
@@ -116,7 +116,7 @@ impl<'a> IndexJoin<'a> {
         let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
         let op: Arc<dyn BinaryOperator> = self.op.clone();
         let lhs_idx = self.lhs_idx;
-        let node_annos = self.node_annos.clone();
+        let node_annos = self.node_annos;
 
         let op: &dyn BinaryOperator = op.as_ref();
         let global_reflexivity = self.global_reflexivity;
@@ -124,14 +124,14 @@ impl<'a> IndexJoin<'a> {
         // find all RHS in parallel
         lhs_buffer.par_iter_mut().for_each(|(m_lhs, tx)| {
             let mut rhs_candidate =
-                next_candidates(m_lhs, op, lhs_idx, &node_annos, &node_search_desc)
+                next_candidates(m_lhs, op, lhs_idx, node_annos, &node_search_desc)
                     .into_iter()
                     .peekable();
             while let Some(mut m_rhs) = rhs_candidate.next() {
                 // check if all filters are true
                 let mut filter_result = true;
                 for f in &node_search_desc.cond {
-                    if !(f)(&m_rhs) {
+                    if !(f)(&m_rhs, node_annos) {
                         filter_result = false;
                         break;
                     }
@@ -182,7 +182,7 @@ fn next_candidates(
     m_lhs: &[Match],
     op: &dyn BinaryOperator,
     lhs_idx: usize,
-    node_annos: &Arc<dyn AnnotationStorage<NodeID>>,
+    node_annos: &dyn AnnotationStorage<NodeID>,
     node_search_desc: &Arc<NodeSearchDesc>,
 ) -> Vec<Match> {
     let it_nodes = Box::from(op.retrieve_matches(&m_lhs[lhs_idx]).map(|m| m.node).fuse());

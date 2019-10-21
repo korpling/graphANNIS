@@ -5,7 +5,7 @@ use crate::annis::db::sort_matches;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{AnnotationStorage, Graph, Match, NODE_TYPE_KEY};
+use crate::annis::db::{Graph, Match, NODE_TYPE_KEY};
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Component, ComponentType, NodeID};
 
@@ -18,7 +18,7 @@ pub struct AnyTokenSearch<'a> {
     desc: Option<Desc>,
     node_type_key: Arc<AnnoKey>,
     db: &'a Graph,
-    token_helper: Option<TokenHelper>,
+    token_helper: Option<TokenHelper<'a>>,
     order_gs: Option<&'a dyn GraphStorage>,
     root_iterators: Option<Vec<Box<dyn Iterator<Item = NodeID> + 'a>>>,
 }
@@ -36,12 +36,11 @@ lazy_static! {
 impl<'a> AnyTokenSearch<'a> {
     pub fn new(db: &'a Graph) -> Result<AnyTokenSearch<'a>> {
         let order_gs = db.get_graphstorage_as_ref(&COMPONENT_ORDER);
-        let token_helper = TokenHelper::new(db);
 
         Ok(AnyTokenSearch {
             order_gs,
-            token_helper,
             db,
+            token_helper: TokenHelper::new(db),
             desc: None,
             node_type_key: NODE_TYPE_KEY.clone(),
             root_iterators: None,

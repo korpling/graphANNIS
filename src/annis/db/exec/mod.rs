@@ -1,7 +1,9 @@
 use self::nodesearch::NodeSearch;
+use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::operator::{BinaryOperator, EstimationType};
 use crate::annis::types::AnnoKey;
+use crate::annis::types::NodeID;
 
 use std;
 use std::collections::BTreeMap;
@@ -184,7 +186,7 @@ impl Desc {
 
 pub struct NodeSearchDesc {
     pub qname: (Option<String>, Option<String>),
-    pub cond: Vec<Box<dyn Fn(&Match) -> bool + Sync + Send>>,
+    pub cond: Vec<Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Sync + Send>>,
     pub const_output: Option<Arc<AnnoKey>>,
 }
 

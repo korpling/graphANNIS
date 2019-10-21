@@ -1,6 +1,7 @@
 use crate::annis::db::annostorage::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
+use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::Annotation;
 use crate::annis::types::NodeID;
@@ -286,6 +287,14 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl<NodeID> {
     }
 
     fn calculate_statistics(&mut self) {
+        unimplemented!()
+    }
+
+    fn load_annotations_from(&mut self, _location: &Path) -> Result<()> {
+        unimplemented!()
+    }
+
+    fn save_annotations_to(&self, _location: &Path) -> Result<()> {
         unimplemented!()
     }
 }

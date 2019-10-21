@@ -14,10 +14,10 @@ use std::sync::Arc;
 pub struct IdenticalCoverageSpec;
 
 #[derive(Clone)]
-pub struct IdenticalCoverage {
+pub struct IdenticalCoverage<'a> {
     gs_left: Arc<dyn GraphStorage>,
     gs_order: Arc<dyn GraphStorage>,
-    tok_helper: TokenHelper,
+    tok_helper: TokenHelper<'a>,
 }
 
 lazy_static! {
@@ -46,7 +46,7 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = IdenticalCoverage::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -56,27 +56,26 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
     }
 }
 
-impl IdenticalCoverage {
-    pub fn new(db: &Graph) -> Option<IdenticalCoverage> {
+impl<'a> IdenticalCoverage<'a> {
+    pub fn new(db: &'a Graph) -> Option<IdenticalCoverage<'a>> {
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
-        let tok_helper = TokenHelper::new(db)?;
 
         Some(IdenticalCoverage {
             gs_left,
             gs_order,
-            tok_helper,
+            tok_helper: TokenHelper::new(db)?,
         })
     }
 }
 
-impl std::fmt::Display for IdenticalCoverage {
+impl<'a> std::fmt::Display for IdenticalCoverage<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_=_")
     }
 }
 
-impl BinaryOperator for IdenticalCoverage {
+impl<'a> BinaryOperator for IdenticalCoverage<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let n_left = self.tok_helper.left_token_for(lhs.node);
         let n_right = self.tok_helper.right_token_for(lhs.node);
@@ -131,8 +130,12 @@ impl BinaryOperator for IdenticalCoverage {
         false
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
-        Some(Box::new(self.clone()))
+    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+        Some(Box::new(IdenticalCoverage {
+            gs_left: self.gs_left.clone(),
+            gs_order: self.gs_order.clone(),
+            tok_helper: TokenHelper::new(graph)?,
+        }))
     }
 
     fn estimation_type(&self) -> EstimationType {

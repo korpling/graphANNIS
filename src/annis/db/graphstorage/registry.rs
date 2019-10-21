@@ -2,7 +2,6 @@ use super::adjacencylist::AdjacencyListStorage;
 use super::dense_adjacency::DenseAdjacencyListStorage;
 use super::linear::LinearGraphStorage;
 use super::prepost::PrePostOrderStorage;
-use crate::annis::db::annostorage::AnnotationStorage;
 use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
 use crate::annis::db::Graph;
 use crate::annis::errors::*;
