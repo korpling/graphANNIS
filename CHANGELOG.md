@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Several functions of the annotation storage that used to have `String` parameters now take `&str` and resulting string values are now returned as `Cow<str>`. The latter change is also meant to enable more flexible implementations, that can choose to allocate new strings (e.g. from disk) or return references to existing memory locations.
 - The `Graph` uses a boxed instance of the general `AnnotationStorage` trait. 
   Before, this was an `Arc` to the specific implementation, which made it possible to simply clone the node annotation storage.
-  Now, referenced to it must be used, e.g. in the operators. This changes a lot of things in the `BinaryOperator` trait, like
+  Now, references to it must be used, e.g. in the operators. This changes a lot of things in the `BinaryOperator` trait, like
   the signature of `get_inverse_operator()` and the filter functions that are used as conditions for the node search (these
   need an argument to the node annotation storage now)
 - `Graph` does not implement the `AnnotationStorage<NodeID>` trait anymore, 
