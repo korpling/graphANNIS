@@ -312,8 +312,8 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         it: Box<dyn Iterator<Item = NodeID>>,
     ) -> Vec<Match> {
         let result_it = it.flat_map(|item| {
-            if let Some(name) = name {
-                if let Some(ns) = ns {
+            if let Some(_name) = name {
+                if let Some(_ns) = ns {
                     unimplemented!()
                 } else {
                     unimplemented!()

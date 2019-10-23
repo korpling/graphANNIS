@@ -502,20 +502,66 @@ where
         name: &str,
         value: ValueSearch<&str>,
     ) -> Box<dyn Iterator<Item = Match> + 'a> {
-        match value {
-            ValueSearch::Any => {
-                let it = self
-                    .matching_items(namespace, name, None)
+        let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
+            vec![Arc::from(AnnoKey {
+                ns: ns.to_string(),
+                name: name.to_string(),
+            })]
+        } else {
+            self.get_qnames(name)
+                .into_iter()
+                .map(|key| Arc::from(key))
+                .collect()
+        };
+        // Create a vector fore each matching AnnoKey to the value map containing all items and their annotation values
+        // for this key.
+        let value_maps: Vec<(Arc<AnnoKey>, &FxHashMap<usize, Vec<T>>)> = key_ranges
+            .into_iter()
+            .filter_map(|key| {
+                let key_id = self.anno_keys.get_symbol(&key)?;
+                if let Some(values_for_key) = self.by_anno.get(&key_id) {
+                    Some((key, values_for_key))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        if let ValueSearch::Some(value) = value {
+            let target_value_symbol = self.anno_values.get_symbol(&value.to_string());
+
+            if let Some(target_value_symbol) = target_value_symbol {
+                let it = value_maps
+                    .into_iter()
+                    // find the items with the correct value
+                    .filter_map(move |(key, values)| {
+                        if let Some(items) = values.get(&target_value_symbol) {
+                            Some((items, key))
+                        } else {
+                            None
+                        }
+                    })
+                    // flatten the hash set of all items, returns all items for the condition
+                    .flat_map(|(items, key)| items.iter().cloned().zip(std::iter::repeat(key)))
                     .map(move |item| item.into());
-                Box::new(it)
+                return Box::new(it);
+            } else {
+                // value is not known, return empty result
+                return Box::new(std::iter::empty());
             }
-            ValueSearch::Some(value) => {
-                let it = self
-                    .matching_items(namespace, name, Some(value))
-                    .map(move |item| item.into());
-                Box::new(it)
-            }
-            ValueSearch::NotSome(value) => {
+        } else {
+            // Search for all annotations having a matching qualified name, regardless of the value
+            let it = value_maps
+                .into_iter()
+                // flatten the hash set of all items of the value map
+                .flat_map(|(key, values)| {
+                    values
+                        .iter()
+                        .flat_map(|(_, items)| items.iter().cloned())
+                        .zip(std::iter::repeat(key))
+                });
+
+            if let ValueSearch::NotSome(value) = value {
                 let value = value.to_string();
                 let it = self
                     .matching_items(namespace, name, None)
@@ -527,7 +573,9 @@ where
                         }
                     })
                     .map(move |item| item.into());
-                Box::new(it)
+                return Box::new(it);
+            } else {
+                return Box::new(it.map(move |item| item.into()));
             }
         }
     }
@@ -872,8 +920,6 @@ where
 
         Ok(())
     }
-
-    //
 }
 
 impl AnnoStorageImpl<Edge> {
