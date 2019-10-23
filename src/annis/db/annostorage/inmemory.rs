@@ -551,7 +551,7 @@ where
             }
         } else {
             // Search for all annotations having a matching qualified name, regardless of the value
-            let it = value_maps
+            let matching_qname_annos = value_maps
                 .into_iter()
                 // flatten the hash set of all items of the value map
                 .flat_map(|(key, values)| {
@@ -563,8 +563,7 @@ where
 
             if let ValueSearch::NotSome(value) = value {
                 let value = value.to_string();
-                let it = self
-                    .matching_items(namespace, name, None)
+                let it = matching_qname_annos
                     .filter(move |(node, anno_key)| {
                         if let Some(item_value) = self.get_value_for_item(node, anno_key) {
                             item_value != value
@@ -575,7 +574,7 @@ where
                     .map(move |item| item.into());
                 return Box::new(it);
             } else {
-                return Box::new(it.map(move |item| item.into()));
+                return Box::new(matching_qname_annos.map(move |item| item.into()));
             }
         }
     }
