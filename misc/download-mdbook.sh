@@ -35,7 +35,7 @@ if [ "$install_mdbook" = true ] ; then
         then
             del /s /q mdbook.tar.gz
             curl -L -o mdbook.zip https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VERSION}/mdBook-v${MDBOOK_VERSION}-x86_64-pc-windows-msvc.zip
-            unzip -d $HOME/.cargo/bin/ mdbook.zip
+            unzip -o -d $HOME/.cargo/bin/ mdbook.zip
         else
             >&2 echo "Unknown value \"${TRAVIS_OS_NAME}\" for environment variable TRAVIS_OS_NAME"
         	exit 1
