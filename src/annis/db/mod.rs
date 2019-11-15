@@ -205,7 +205,7 @@ impl MallocSizeOf for Graph {
 }
 
 fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<dyn GraphStorage>> {
-    let cpath = r#try!(component_path.ok_or("Can't load component with empty path"));
+    let cpath = component_path.ok_or("Can't load component with empty path")?;
 
     // load component into memory
     let impl_path = PathBuf::from(&cpath).join("impl.cfg");
