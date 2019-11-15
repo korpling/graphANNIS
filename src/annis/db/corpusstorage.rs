@@ -1404,26 +1404,60 @@ impl CorpusStorage {
             } else {
                 &source_corpus_id
             };
-            let mut q = Conjunction::new();
-            let corpus_idx = q.add_node(
-                NodeSearchSpec::ExactValue {
-                    ns: Some(db::ANNIS_NS.to_string()),
-                    name: db::NODE_NAME.to_string(),
-                    val: Some(source_corpus_id.to_string()),
-                    is_meta: false,
-                },
-                None,
-            );
-            let any_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-            q.add_operator(
-                Box::new(operators::PartOfSubCorpusSpec {
-                    dist: RangeSpec::Unbound,
-                }),
-                &any_node_idx,
-                &corpus_idx,
-                true,
-            )?;
-            query.alternatives.push(q);
+            // All annotation nodes
+            {
+                let mut q = Conjunction::new();
+                let corpus_idx = q.add_node(
+                    NodeSearchSpec::ExactValue {
+                        ns: Some(db::ANNIS_NS.to_string()),
+                        name: db::NODE_NAME.to_string(),
+                        val: Some(source_corpus_id.to_string()),
+                        is_meta: false,
+                    },
+                    None,
+                );
+                let any_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+                q.add_operator(
+                    Box::new(operators::PartOfSubCorpusSpec {
+                        dist: RangeSpec::Unbound,
+                    }),
+                    &any_node_idx,
+                    &corpus_idx,
+                    true,
+                )?;
+                query.alternatives.push(q);
+            }
+            // All data source nodes
+            {
+                let mut q = Conjunction::new();
+                let corpus_idx = q.add_node(
+                    NodeSearchSpec::ExactValue {
+                        ns: Some(db::ANNIS_NS.to_string()),
+                        name: db::NODE_NAME.to_string(),
+                        val: Some(source_corpus_id.to_string()),
+                        is_meta: false,
+                    },
+                    None,
+                );
+                let any_node_idx = q.add_node(
+                    NodeSearchSpec::ExactValue {
+                        ns: Some(ANNIS_NS.to_string()),
+                        name: NODE_TYPE.to_string(),
+                        val: Some("datasource".to_string()),
+                        is_meta: false,
+                    },
+                    None,
+                );
+                q.add_operator(
+                    Box::new(operators::PartOfSubCorpusSpec {
+                        dist: RangeSpec::Unbound,
+                    }),
+                    &any_node_idx,
+                    &corpus_idx,
+                    true,
+                )?;
+                query.alternatives.push(q);
+            }
         }
 
         extract_subgraph_by_query(&db_entry, &query, &[1], &self.query_config, None)
