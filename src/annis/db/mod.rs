@@ -961,9 +961,9 @@ impl Graph {
             };
             gs.add_edge(e);
 
-            return Some(*t);
+            Some(*t)
         } else {
-            return None;
+            None
         }
     }
 
@@ -1061,7 +1061,6 @@ impl Graph {
         let entry = self.components.remove(c);
         // component exists?
         if let Some(gs_opt) = entry {
-
             let mut loaded_comp: Arc<dyn GraphStorage> = if let Some(gs_opt) = gs_opt {
                 gs_opt
             } else {
@@ -1291,7 +1290,7 @@ impl Graph {
                 }
                 result.push(c.clone());
             }
-            return result;
+            result
         } else if let Some(ctype) = &ctype {
             // lookup component from sorted map
             let mut result: Vec<Component> = Vec::new();
@@ -1307,7 +1306,7 @@ impl Graph {
                 }
                 result.push(c.clone());
             }
-            return result;
+            result
         } else {
             // filter all entries
             let filtered_components =
@@ -1327,7 +1326,7 @@ impl Graph {
                         }
                         true
                     });
-            return filtered_components.collect();
+            filtered_components.collect()
         }
     }
 

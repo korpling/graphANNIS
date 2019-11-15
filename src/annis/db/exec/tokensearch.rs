@@ -55,7 +55,7 @@ impl<'a> AnyTokenSearch<'a> {
 
     fn get_root_iterators(&mut self) -> &mut Vec<Box<dyn Iterator<Item = NodeID> + 'a>> {
         if let Some(ref mut root_iterators) = self.root_iterators {
-            return root_iterators;
+            root_iterators
         } else {
             // iterate over all nodes that are token and check if they are root node nodes in the ORDERING component
             let mut root_nodes: Vec<Match> = Vec::new();
@@ -103,7 +103,7 @@ impl<'a> AnyTokenSearch<'a> {
                 root_iterators.push(it);
             }
             self.root_iterators = Some(root_iterators);
-            return self.root_iterators.as_mut().unwrap();
+            self.root_iterators.as_mut().unwrap()
         }
     }
 }

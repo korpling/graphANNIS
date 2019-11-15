@@ -213,7 +213,7 @@ impl FromStr for FrequencyDefEntry {
         let anno_key = util::split_qname(splitted[1]);
 
         Ok(FrequencyDefEntry {
-            ns: anno_key.0.and_then(|ns| Some(String::from(ns))),
+            ns: anno_key.0.map(String::from),
             name: String::from(anno_key.1),
             node_ref: String::from(node_ref),
         })
@@ -801,9 +801,9 @@ impl CorpusStorage {
                 })?
             }
 
-            return Ok(true);
+            Ok(true)
         } else {
-            return Ok(false);
+            Ok(false)
         }
     }
 
@@ -1747,19 +1747,19 @@ impl Drop for CorpusStorage {
 
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Graph> {
     if let CacheEntry::Loaded(ref db) = &**lock {
-        return Ok(db);
+        Ok(db)
     } else {
-        return Err(Error::LoadingGraphFailed {
+        Err(Error::LoadingGraphFailed {
             name: "".to_string(),
-        });
+        })
     }
 }
 
 fn get_write_or_error<'a>(lock: &'a mut RwLockWriteGuard<CacheEntry>) -> Result<&'a mut Graph> {
     if let CacheEntry::Loaded(ref mut db) = &mut **lock {
-        return Ok(db);
+        Ok(db)
     } else {
-        return Err("Could get loaded graph storage entry".into());
+        Err("Could get loaded graph storage entry".into())
     }
 }
 

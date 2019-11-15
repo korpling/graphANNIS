@@ -123,9 +123,9 @@ impl<'a> NestedLoop<'a> {
         }
 
         if let Some(result) = &self.current_outer {
-            return Some(result.clone());
+            Some(result.clone())
         } else {
-            return None;
+            None
         }
     }
 

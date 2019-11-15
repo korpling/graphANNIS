@@ -269,12 +269,12 @@ impl<'a> Conjunction<'a> {
         if let Some(idx) = self.variables.get(var) {
             self.unary_operators
                 .push(UnaryOperatorSpecEntry { op, idx: *idx });
-            return Ok(());
+            Ok(())
         } else {
-            return Err(Error::AQLSemanticError {
+            Err(Error::AQLSemanticError {
                 desc: format!("Operand '#{}' not found", var),
                 location,
-            });
+            })
         }
     }
 
