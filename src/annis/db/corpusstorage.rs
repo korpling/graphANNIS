@@ -1304,6 +1304,7 @@ impl CorpusStorage {
                 query.alternatives.push(q);
             }
 
+            // token left/right and their overlapped nodes
             if let Some(ref segmentation) = segmentation {
                 add_subgraph_precedence_with_segmentation(
                     &mut query,
@@ -1322,6 +1323,33 @@ impl CorpusStorage {
             } else {
                 add_subgraph_precedence(&mut query, ctx_left, &m, true)?;
                 add_subgraph_precedence(&mut query, ctx_right, &m, false)?;
+            }
+
+            // add the textual data sources (which are not part of the corpus graph)
+            {
+                let mut q = Conjunction::new();
+                let datasource_idx = q.add_node(
+                    NodeSearchSpec::ExactValue {
+                        ns: Some(ANNIS_NS.to_string()),
+                        name: NODE_TYPE.to_string(),
+                        val: Some("datasource".to_string()),
+                        is_meta: false,
+                    },
+                    None,
+                );
+                let m_idx = q.add_node(m.clone(), None);
+                q.add_operator(
+                    Box::new(operators::PartOfSubCorpusSpec {
+                        dist: RangeSpec::Bound {
+                            min_dist: 1,
+                            max_dist: 1,
+                        },
+                    }),
+                    &m_idx,
+                    &datasource_idx,
+                    false,
+                )?;
+                query.alternatives.push(q);
             }
         }
         extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config, None)

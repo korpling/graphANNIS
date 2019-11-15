@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   need an argument to the node annotation storage now)
 - `Graph` does not implement the `AnnotationStorage<NodeID>` trait anymore, 
   but provides a getter to reference its field.
+- Data source nodes are now included when querying for a subgraph with context. This is needed for parallel text support in ANNIS 4.
 
 ### Added
 
