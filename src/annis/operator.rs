@@ -100,15 +100,10 @@ impl EdgeAnnoSearchSpec {
                 ref val,
             } => {
                 if let Some(val) = val {
-                    return anno_storage.guess_max_count(
-                        ns.as_ref().map(String::as_str),
-                        name,
-                        val,
-                        val,
-                    );
+                    anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val)
                 } else {
-                    return anno_storage
-                        .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name);
+                    anno_storage
+                        .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)
                 }
             }
             EdgeAnnoSearchSpec::NotExactValue {

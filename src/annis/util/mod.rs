@@ -27,9 +27,9 @@ pub fn contains_regex_metacharacters(pattern: &str) -> bool {
 pub fn split_qname(qname: &str) -> (Option<&str>, &str) {
     let sep_pos = qname.find("::.+");
     if let Some(sep_pos) = sep_pos {
-        return (Some(&qname[..sep_pos]), &qname[sep_pos + 1..]);
+        (Some(&qname[..sep_pos]), &qname[sep_pos + 1..])
     } else {
-        return (None, qname);
+        (None, qname)
     }
 }
 

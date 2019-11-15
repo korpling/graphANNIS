@@ -29,11 +29,13 @@ struct SparseAnnotation {
     val: usize,
 }
 
+type ValueItemMap<T> = FxHashMap<usize, Vec<T>>;
+
 #[derive(Serialize, Deserialize, Clone, Default, MallocSizeOf)]
 pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
     by_container: FxHashMap<T, Vec<SparseAnnotation>>,
     /// A map from an annotation key symbol to a map of all its values to the items having this value for the annotation key
-    by_anno: FxHashMap<usize, FxHashMap<usize, Vec<T>>>,
+    by_anno: FxHashMap<usize, ValueItemMap<T>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
@@ -160,14 +162,11 @@ where
                 name: name.to_string(),
             })]
         } else {
-            self.get_qnames(name)
-                .into_iter()
-                .map(|key| Arc::from(key))
-                .collect()
+            self.get_qnames(name).into_iter().map(Arc::from).collect()
         };
         // Create a vector fore each matching AnnoKey to the value map containing all items and their annotation values
         // for this key.
-        let value_maps: Vec<(Arc<AnnoKey>, &FxHashMap<usize, Vec<T>>)> = key_ranges
+        let value_maps: Vec<(Arc<AnnoKey>, &ValueItemMap<T>)> = key_ranges
             .into_iter()
             .filter_map(|key| {
                 let key_id = self.anno_keys.get_symbol(&key)?;
@@ -195,10 +194,10 @@ where
                     })
                     // flatten the hash set of all items, returns all items for the condition
                     .flat_map(|(items, key)| items.iter().cloned().zip(std::iter::repeat(key)));
-                return Box::new(it);
+                Box::new(it)
             } else {
                 // value is not known, return empty result
-                return Box::new(std::iter::empty());
+                Box::new(std::iter::empty())
             }
         } else {
             let it = value_maps
@@ -210,7 +209,7 @@ where
                         .flat_map(|(_, items)| items.iter().cloned())
                         .zip(std::iter::repeat(key))
                 });
-            return Box::new(it);
+            Box::new(it)
         }
     }
 }
@@ -425,7 +424,7 @@ where
                         }
                     }
                 }
-                return matches;
+                matches
             } else {
                 let matching_key_symbols: Vec<(usize, Arc<AnnoKey>)> = self
                     .get_qnames(&name)
@@ -452,7 +451,7 @@ where
                         }
                     }
                 }
-                return matches;
+                matches
             }
         } else {
             // return all annotations for each node
@@ -460,10 +459,10 @@ where
             for item in it {
                 let all_keys = self.get_all_keys_for_item(&item, None, None);
                 for anno_key in all_keys {
-                    matches.push((item.clone(), Arc::from(anno_key)).into());
+                    matches.push((item.clone(), anno_key).into());
                 }
             }
-            return matches;
+            matches
         }
     }
 
@@ -556,13 +555,13 @@ where
                     }
                 })
                 .map(move |item| item.into());
-            return Box::new(it);
+            Box::new(it)
         } else if negated {
             // return all values
-            return self.exact_anno_search(namespace, name, None.into());
+            self.exact_anno_search(namespace, name, None.into())
         } else {
             // if regular expression pattern is invalid return empty iterator
-            return Box::new(std::iter::empty());
+            Box::new(std::iter::empty())
         }
     }
 
@@ -597,9 +596,9 @@ where
                     .get_qnames(&name)
                     .into_iter()
                     .filter(|key| self.get_value_for_item(item, key).is_some())
-                    .map(|key| Arc::from(key))
+                    .map(Arc::from)
                     .collect();
-                return res;
+                res
             }
         } else if let Some(all_annos) = self.by_container.get(item) {
             // no annotation name given, return all
@@ -609,7 +608,7 @@ where
                     result.push(key);
                 }
             }
-            return result;
+            result
         } else {
             // return empty result if not found
             return vec![];
@@ -683,8 +682,7 @@ where
             let prefix_set = regex_syntax::hir::literal::Literals::prefixes(&expr);
             let val_prefix = std::str::from_utf8(prefix_set.longest_common_prefix());
 
-            if val_prefix.is_ok() {
-                let lower_val = val_prefix.unwrap();
+            if let Ok(lower_val) = val_prefix {
                 let mut upper_val = String::from(lower_val);
                 upper_val.push(std::char::MAX);
                 return self.guess_max_count(ns, name, &lower_val, &upper_val);

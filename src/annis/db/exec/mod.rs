@@ -184,9 +184,12 @@ impl Desc {
     }
 }
 
+pub type MatchFilterFunc =
+    Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>;
+
 pub struct NodeSearchDesc {
     pub qname: (Option<String>, Option<String>),
-    pub cond: Vec<Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Sync + Send>>,
+    pub cond: Vec<MatchFilterFunc>,
     pub const_output: Option<Arc<AnnoKey>>,
 }
 

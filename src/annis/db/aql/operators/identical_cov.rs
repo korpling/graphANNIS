@@ -49,9 +49,9 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
     fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = IdenticalCoverage::new(db);
         if let Some(op) = optional_op {
-            return Some(Box::new(op));
+            Some(Box::new(op))
         } else {
-            return None;
+            None
         }
     }
 }

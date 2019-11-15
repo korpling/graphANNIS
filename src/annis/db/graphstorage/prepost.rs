@@ -228,9 +228,9 @@ where
                     _ => None,
                 })
                 .filter(move |n| visited.insert(n.clone()));
-            return Box::new(it);
+            Box::new(it)
         } else {
-            return Box::new(std::iter::empty());
+            Box::new(std::iter::empty())
         }
     }
 
@@ -327,9 +327,9 @@ where
                     }
                 })
                 .filter(move |n| visited.insert(n.clone()));
-            return Box::new(it);
+            Box::new(it)
         } else {
-            return Box::new(std::iter::empty());
+            Box::new(std::iter::empty())
         }
     }
 

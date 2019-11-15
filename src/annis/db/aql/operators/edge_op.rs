@@ -56,9 +56,9 @@ impl BinaryOperatorSpec for BaseEdgeOpSpec {
     fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = BaseEdgeOp::new(db, self.clone());
         if let Some(op) = optional_op {
-            return Some(Box::new(op));
+            Some(Box::new(op))
         } else {
-            return None;
+            None
         }
     }
 
@@ -475,9 +475,9 @@ impl BinaryOperator for BaseEdgeOp {
                     }
                 }
             }
-            return Some(worst_sel);
+            Some(worst_sel)
         } else {
-            return Some(1.0);
+            Some(1.0)
         }
     }
 }
