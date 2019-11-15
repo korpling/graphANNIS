@@ -1060,13 +1060,12 @@ impl Graph {
         // move the old entry into the ownership of this function
         let entry = self.components.remove(c);
         // component exists?
-        if entry.is_some() {
-            let gs_opt = entry.unwrap();
+        if let Some(gs_opt) = entry {
 
-            let mut loaded_comp: Arc<dyn GraphStorage> = if gs_opt.is_none() {
-                load_component_from_disk(self.component_path(c))?
+            let mut loaded_comp: Arc<dyn GraphStorage> = if let Some(gs_opt) = gs_opt {
+                gs_opt
             } else {
-                gs_opt.unwrap()
+                load_component_from_disk(self.component_path(c))?
             };
 
             // copy to writable implementation if needed
@@ -1188,12 +1187,12 @@ impl Graph {
         // get and return the reference to the entry if loaded
         let entry: Option<Option<Arc<dyn GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
-            let loaded: Arc<dyn GraphStorage> = if gs_opt.is_none() {
+            let loaded: Arc<dyn GraphStorage> = if let Some(gs_opt) = gs_opt {
+                gs_opt
+            } else {
                 self.reset_cached_size();
                 info!("Loading component {} from disk", c);
                 load_component_from_disk(self.component_path(c))?
-            } else {
-                gs_opt.unwrap()
             };
 
             self.components.insert(c.clone(), Some(loaded));
