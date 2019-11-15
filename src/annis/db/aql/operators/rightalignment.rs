@@ -1,19 +1,18 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::Graph;
-use crate::annis::db::Match;
+use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::BinaryOperator;
 use crate::annis::operator::BinaryOperatorSpec;
 use crate::annis::operator::EstimationType;
-use crate::annis::types::{AnnoKeyID, Component};
+use crate::annis::types::Component;
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct RightAlignmentSpec;
 
 #[derive(Clone)]
-pub struct RightAlignment {
-    tok_helper: TokenHelper,
+pub struct RightAlignment<'a> {
+    tok_helper: TokenHelper<'a>,
 }
 
 impl BinaryOperatorSpec for RightAlignmentSpec {
@@ -23,38 +22,38 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = RightAlignment::new(db);
         if let Some(op) = optional_op {
-            return Some(Box::new(op));
+            Some(Box::new(op))
         } else {
-            return None;
+            None
         }
     }
 }
 
-impl RightAlignment {
-    pub fn new(db: &Graph) -> Option<RightAlignment> {
-        let tok_helper = TokenHelper::new(db)?;
+impl<'a> RightAlignment<'a> {
+    pub fn new(graph: &'a Graph) -> Option<RightAlignment<'a>> {
+        let tok_helper = TokenHelper::new(graph)?;
 
         Some(RightAlignment { tok_helper })
     }
 }
 
-impl std::fmt::Display for RightAlignment {
+impl<'a> std::fmt::Display for RightAlignment<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_r_")
     }
 }
 
-impl BinaryOperator for RightAlignment {
+impl<'a> BinaryOperator for RightAlignment<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let mut aligned = Vec::default();
 
         if let Some(lhs_token) = self.tok_helper.right_token_for(lhs.node) {
             aligned.push(Match {
                 node: lhs_token,
-                anno_key: AnnoKeyID::default(),
+                anno_key: DEFAULT_ANNO_KEY.clone(),
             });
             aligned.extend(
                 self.tok_helper
@@ -62,7 +61,7 @@ impl BinaryOperator for RightAlignment {
                     .get_ingoing_edges(lhs_token)
                     .map(|n| Match {
                         node: n,
-                        anno_key: AnnoKeyID::default(),
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
                     }),
             );
         }
@@ -75,9 +74,9 @@ impl BinaryOperator for RightAlignment {
             self.tok_helper.right_token_for(lhs.node),
             self.tok_helper.right_token_for(rhs.node),
         ) {
-            return lhs_token == rhs_token;
+            lhs_token == rhs_token
         } else {
-            return false;
+            false
         }
     }
 
@@ -85,8 +84,10 @@ impl BinaryOperator for RightAlignment {
         false
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
-        Some(Box::new(self.clone()))
+    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+        let tok_helper = TokenHelper::new(graph)?;
+
+        Some(Box::new(RightAlignment { tok_helper }))
     }
 
     fn estimation_type(&self) -> EstimationType {

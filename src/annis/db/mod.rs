@@ -1,4 +1,3 @@
-use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::graphstorage::adjacencylist::AdjacencyListStorage;
 use crate::annis::db::graphstorage::registry;
 use crate::annis::db::graphstorage::union::UnionEdgeContainer;
@@ -7,13 +6,11 @@ use crate::annis::db::graphstorage::{GraphStorage, WriteableGraphStorage};
 use crate::annis::db::update::{GraphUpdate, UpdateEvent};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
-use crate::annis::types::AnnoKey;
-use crate::annis::types::{AnnoKeyID, Annotation, Component, ComponentType, Edge, NodeID};
+use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use bincode;
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
-use serde;
 use std;
 use std::collections::BTreeMap;
 use std::io::prelude::*;
@@ -40,18 +37,37 @@ pub mod sort_matches;
 pub mod token_helper;
 pub mod update;
 
+pub use annostorage::AnnotationStorage;
+
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
 pub const TOK: &str = "tok";
 pub const NODE_TYPE: &str = "node_type";
+
+lazy_static! {
+    pub static ref DEFAULT_ANNO_KEY: Arc<AnnoKey> = Arc::from(AnnoKey::default());
+    pub static ref NODE_NAME_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
+        ns: ANNIS_NS.to_owned(),
+        name: NODE_NAME.to_owned(),
+    });
+    pub static ref TOKEN_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
+            ns: ANNIS_NS.to_owned(),
+            name: TOK.to_owned(),
+    });
+    /// Return an annotation key which is used for the special `annis::node_type` annotation which every node must have to mark its existance.
+    pub static ref NODE_TYPE_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
+        ns: ANNIS_NS.to_owned(),
+        name: NODE_TYPE.to_owned(),
+    });
+}
 
 /// A match is the result of a query on an annotation storage.
 #[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub struct Match {
     node: NodeID,
-    /// A unique internal identifier for the qualified annotation name.
-    anno_key: AnnoKeyID,
+    /// The qualified annotation name.
+    anno_key: Arc<AnnoKey>,
 }
 
 impl Match {
@@ -65,10 +81,12 @@ impl Match {
     pub fn extract_annotation(&self, graph: &Graph) -> Option<Annotation> {
         let val = graph
             .node_annos
-            .get_value_for_item_by_id(&self.node, self.anno_key)?
+            .get_value_for_item(&self.node, &self.anno_key)?
             .to_owned();
-        let key = graph.node_annos.get_key_value(self.anno_key)?;
-        Some(Annotation { key, val })
+        Some(Annotation {
+            key: self.anno_key.as_ref().clone(),
+            val: val.to_string(),
+        })
     }
 
     /// Returns true if this match is different to all the other matches given as argument.
@@ -91,7 +109,7 @@ impl Match {
     }
 }
 
-impl Into<Match> for (Edge, AnnoKeyID) {
+impl Into<Match> for (Edge, Arc<AnnoKey>) {
     fn into(self) -> Match {
         Match {
             node: self.0.source,
@@ -100,7 +118,7 @@ impl Into<Match> for (Edge, AnnoKeyID) {
     }
 }
 
-impl Into<Match> for (NodeID, AnnoKeyID) {
+impl Into<Match> for (NodeID, Arc<AnnoKey>) {
     fn into(self) -> Match {
         Match {
             node: self.0,
@@ -125,82 +143,24 @@ impl<T> From<Option<T>> for ValueSearch<T> {
     }
 }
 
-/// Access annotations for nodes or edges.
-pub trait AnnotationStorage<T> {
-    /// Get all annotations for an `item` (node or edge).
-    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
+impl<T> ValueSearch<T> {
+    #[inline]
+    pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> ValueSearch<U> {
+        match self {
+            ValueSearch::Any => ValueSearch::Any,
+            ValueSearch::Some(v) => ValueSearch::Some(f(v)),
+            ValueSearch::NotSome(v) => ValueSearch::NotSome(f(v)),
+        }
+    }
 
-    /// Return the total number of annotations contained in this `AnnotationStorage`.
-    fn number_of_annotations(&self) -> usize;
-
-    /// Return the number of annotations contained in this `AnnotationStorage` filtered by `name` and optional namespace (`ns`).
-    fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize;
-
-    /// Returns an iterator for all items that exactly match the given annotation constraints.
-    /// The annotation `name` must be given as argument, the other arguments are optional.
-    ///
-    /// - `namespace`- If given, only annotations having this namespace are returned.
-    /// - `name`  - Only annotations with this name are returned.
-    /// - `value` - If given, only annotation having exactly the given value are returned.
-    ///
-    /// The result is an iterator over matches.
-    /// A match contains the node ID and the qualifed name of the matched annotation
-    /// (e.g. there can be multiple annotations with the same name if the namespace is different).
-    fn exact_anno_search<'a>(
-        &'a self,
-        namespace: Option<String>,
-        name: String,
-        value: ValueSearch<String>,
-    ) -> Box<dyn Iterator<Item = Match> + 'a>;
-
-    /// Returns an iterator for all items where the value matches the regular expression.
-    /// The annotation `name` and the `pattern` for the value must be given as argument, the  
-    /// `namespace` argument is optional and can be used as additional constraint.
-    ///
-    /// - `namespace`- If given, only annotations having this namespace are returned.
-    /// - `name`  - Only annotations with this name are returned.
-    /// - `pattern` - If given, only annotation having a value that mattches this pattern are returned.
-    /// - `negated` - If true, find all annotations that do not match the value
-    ///
-    /// The result is an iterator over matches.
-    /// A match contains the node ID and the qualifed name of the matched annotation
-    /// (e.g. there can be multiple annotations with the same name if the namespace is different).
-    fn regex_anno_search<'a>(
-        &'a self,
-        namespace: Option<String>,
-        name: String,
-        pattern: &str,
-        negated: bool,
-    ) -> Box<dyn Iterator<Item = Match> + 'a>;
-
-    /// Estimate the number of results for an [annotation exact search](#tymethod.exact_anno_search) for a given an inclusive value range.
-    ///
-    /// - `ns` - If given, only annotations having this namespace are considered.
-    /// - `name`  - Only annotations with this name are considered.
-    /// - `lower_val`- Inclusive lower bound for the annotation value.
-    /// - `upper_val`- Inclusive upper bound for the annotation value.
-    fn guess_max_count(
-        &self,
-        ns: Option<String>,
-        name: String,
-        lower_val: &str,
-        upper_val: &str,
-    ) -> usize;
-
-    /// Estimate the number of results for an [annotation regular expression search](#tymethod.regex_anno_search)
-    /// for a given pattern.
-    ///
-    /// - `ns` - If given, only annotations having this namespace are considered.
-    /// - `name`  - Only annotations with this name are considered.
-    /// - `pattern`- The regular expression pattern.
-    fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize;
-
-    /// Return a list of all existing values for a given annotation `key`.
-    /// If the `most_frequent_first`parameter is true, the results are sorted by their frequency.
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str>;
-
-    /// Get all the annotation keys which are part of this annotation storage
-    fn annotation_keys(&self) -> Vec<AnnoKey>;
+    #[inline]
+    pub fn as_ref(&self) -> ValueSearch<&T> {
+        match *self {
+            ValueSearch::Any => ValueSearch::Any,
+            ValueSearch::Some(ref v) => ValueSearch::Some(v),
+            ValueSearch::NotSome(ref v) => ValueSearch::NotSome(v),
+        }
+    }
 }
 
 /// A representation of a graph including node annotations and edges.
@@ -212,7 +172,7 @@ pub trait AnnotationStorage<T> {
 /// In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
 ///
 pub struct Graph {
-    node_annos: Arc<AnnoStorage<NodeID>>,
+    node_annos: Box<dyn AnnotationStorage<NodeID>>,
 
     location: Option<PathBuf>,
 
@@ -245,7 +205,7 @@ impl MallocSizeOf for Graph {
 }
 
 fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<dyn GraphStorage>> {
-    let cpath = r#try!(component_path.ok_or("Can't load component with empty path"));
+    let cpath = component_path.ok_or("Can't load component with empty path")?;
 
     // load component into memory
     let impl_path = PathBuf::from(&cpath).join("impl.cfg");
@@ -275,81 +235,11 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
     p
 }
 
-fn save_bincode<T>(location: &Path, path: &str, object: &T) -> Result<()>
-where
-    T: serde::Serialize,
-{
-    let mut full_path = PathBuf::from(location);
-    full_path.push(path);
-
-    let f = std::fs::File::create(full_path)?;
-    let mut writer = std::io::BufWriter::new(f);
-    bincode::serialize_into(&mut writer, object)?;
-    Ok(())
-}
-
-impl AnnotationStorage<NodeID> for Graph {
-    fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
-        self.node_annos.get_annotations_for_item(item)
-    }
-
-    fn number_of_annotations(&self) -> usize {
-        self.node_annos.number_of_annotations()
-    }
-
-    fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize {
-        self.node_annos.number_of_annotations_by_name(ns, name)
-    }
-
-    fn exact_anno_search<'a>(
-        &'a self,
-        namespace: Option<String>,
-        name: String,
-        value: ValueSearch<String>,
-    ) -> Box<dyn Iterator<Item = Match> + 'a> {
-        self.node_annos.exact_anno_search(namespace, name, value)
-    }
-
-    fn regex_anno_search<'a>(
-        &'a self,
-        namespace: Option<String>,
-        name: String,
-        pattern: &str,
-        negated: bool,
-    ) -> Box<dyn Iterator<Item = Match> + 'a> {
-        self.node_annos
-            .regex_anno_search(namespace, name, pattern, negated)
-    }
-
-    fn guess_max_count(
-        &self,
-        ns: Option<String>,
-        name: String,
-        lower_val: &str,
-        upper_val: &str,
-    ) -> usize {
-        self.node_annos
-            .guess_max_count(ns, name, lower_val, upper_val)
-    }
-
-    fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize {
-        self.node_annos.guess_max_count_regex(ns, name, pattern)
-    }
-
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
-        self.node_annos.get_all_values(key, most_frequent_first)
-    }
-
-    fn annotation_keys(&self) -> Vec<AnnoKey> {
-        self.node_annos.annotation_keys()
-    }
-}
-
 impl Graph {
     /// Create a new and empty instance without any location on the disk.
     fn new() -> Graph {
         Graph {
-            node_annos: Arc::new(AnnoStorage::<NodeID>::new()),
+            node_annos: Box::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new()),
             components: BTreeMap::new(),
 
             location: None,
@@ -390,6 +280,7 @@ impl Graph {
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
         })?;
+
         Ok(db)
     }
 
@@ -403,7 +294,7 @@ impl Graph {
     /// This removes all node annotations, edges and knowledge about components.
     fn clear(&mut self) {
         self.reset_cached_size();
-        self.node_annos = Arc::new(AnnoStorage::new());
+        self.node_annos = Box::new(annostorage::inmemory::AnnoStorageImpl::new());
         self.components.clear();
     }
 
@@ -429,9 +320,10 @@ impl Graph {
             location.join("current")
         };
 
-        let mut node_annos_tmp: AnnoStorage<NodeID> = AnnoStorage::new();
-        node_annos_tmp.load_from_file(&dir2load.join("nodes_v1.bin").to_string_lossy())?;
-        self.node_annos = Arc::from(node_annos_tmp);
+        let mut node_annos_tmp: annostorage::inmemory::AnnoStorageImpl<NodeID> =
+            annostorage::inmemory::AnnoStorageImpl::new();
+        node_annos_tmp.load_annotations_from(&dir2load)?;
+        self.node_annos = Box::new(node_annos_tmp);
 
         let log_path = dir2load.join("update_log.bin");
 
@@ -532,7 +424,7 @@ impl Graph {
 
         std::fs::create_dir_all(&location)?;
 
-        save_bincode(&location, "nodes_v1.bin", self.node_annos.as_ref())?;
+        self.node_annos.save_annotations_to(&location)?;
 
         for (c, e) in &self.components {
             if let Some(ref data) = *e {
@@ -597,18 +489,17 @@ impl Graph {
                             };
 
                         let new_anno_name = Annotation {
-                            key: self.get_node_name_key(),
+                            key: NODE_NAME_KEY.as_ref().clone(),
                             val: node_name,
                         };
                         let new_anno_type = Annotation {
-                            key: self.get_node_type_key(),
+                            key: NODE_TYPE_KEY.as_ref().clone(),
                             val: node_type,
                         };
 
                         // add the new node (with minimum labels)
-                        let node_annos = Arc::make_mut(&mut self.node_annos);
-                        node_annos.insert(new_node_id, new_anno_name);
-                        node_annos.insert(new_node_id, new_anno_type);
+                        self.node_annos.insert(new_node_id, new_anno_name);
+                        self.node_annos.insert(new_node_id, new_anno_type);
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
@@ -623,9 +514,9 @@ impl Graph {
 
                         // delete all annotations
                         {
-                            let node_annos = Arc::make_mut(&mut self.node_annos);
-                            for a in node_annos.get_annotations_for_item(&existing_node_id) {
-                                node_annos.remove_annotation_for_item(&existing_node_id, &a.key);
+                            for a in self.node_annos.get_annotations_for_item(&existing_node_id) {
+                                self.node_annos
+                                    .remove_annotation_for_item(&existing_node_id, &a.key);
                             }
                         }
                         // delete all edges pointing to this node either as source or target
@@ -650,7 +541,7 @@ impl Graph {
                             },
                             val: anno_value,
                         };
-                        Arc::make_mut(&mut self.node_annos).insert(existing_node_id, anno);
+                        self.node_annos.insert(existing_node_id, anno);
                     }
                 }
                 UpdateEvent::DeleteNodeLabel {
@@ -663,7 +554,7 @@ impl Graph {
                             ns: anno_ns,
                             name: anno_name,
                         };
-                        Arc::make_mut(&mut self.node_annos)
+                        self.node_annos
                             .remove_annotation_for_item(&existing_node_id, &key);
                     }
                 }
@@ -956,11 +847,7 @@ impl Graph {
         }
 
         if covered_token.is_empty() {
-            if self
-                .node_annos
-                .get_value_for_item(&n, &self.get_token_key())
-                .is_some()
-            {
+            if self.node_annos.get_value_for_item(&n, &TOKEN_KEY).is_some() {
                 covered_token.insert(n);
             } else {
                 // recursivly get the covered token from all children connected by a dominance relation
@@ -1007,11 +894,7 @@ impl Graph {
         };
 
         // if this is a token, return the token itself
-        if self
-            .node_annos
-            .get_value_for_item(&n, &self.get_token_key())
-            .is_some()
-        {
+        if self.node_annos.get_value_for_item(&n, &TOKEN_KEY).is_some() {
             // also check if this is an actually token and not only a segmentation
             let mut is_token = true;
             for gs_coverage in all_cov_gs.iter() {
@@ -1078,9 +961,9 @@ impl Graph {
             };
             gs.add_edge(e);
 
-            return Some(*t);
+            Some(*t)
         } else {
-            return None;
+            None
         }
     }
 
@@ -1177,13 +1060,11 @@ impl Graph {
         // move the old entry into the ownership of this function
         let entry = self.components.remove(c);
         // component exists?
-        if entry.is_some() {
-            let gs_opt = entry.unwrap();
-
-            let mut loaded_comp: Arc<dyn GraphStorage> = if gs_opt.is_none() {
-                load_component_from_disk(self.component_path(c))?
+        if let Some(gs_opt) = entry {
+            let mut loaded_comp: Arc<dyn GraphStorage> = if let Some(gs_opt) = gs_opt {
+                gs_opt
             } else {
-                gs_opt.unwrap()
+                load_component_from_disk(self.component_path(c))?
             };
 
             // copy to writable implementation if needed
@@ -1305,12 +1186,12 @@ impl Graph {
         // get and return the reference to the entry if loaded
         let entry: Option<Option<Arc<dyn GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
-            let loaded: Arc<dyn GraphStorage> = if gs_opt.is_none() {
+            let loaded: Arc<dyn GraphStorage> = if let Some(gs_opt) = gs_opt {
+                gs_opt
+            } else {
                 self.reset_cached_size();
                 info!("Loading component {} from disk", c);
                 load_component_from_disk(self.component_path(c))?
-            } else {
-                gs_opt.unwrap()
             };
 
             self.components.insert(c.clone(), Some(loaded));
@@ -1348,9 +1229,9 @@ impl Graph {
 
     fn get_node_id_from_name(&self, node_name: &str) -> Option<NodeID> {
         let mut all_nodes_with_anno = self.node_annos.exact_anno_search(
-            Some(ANNIS_NS.to_owned()),
-            NODE_NAME.to_owned(),
-            Some(node_name.to_owned()).into(),
+            Some(&ANNIS_NS.to_owned()),
+            &NODE_NAME.to_owned(),
+            Some(node_name).into(),
         );
         if let Some(m) = all_nodes_with_anno.next() {
             return Some(m.node);
@@ -1368,6 +1249,11 @@ impl Graph {
             }
         }
         None
+    }
+
+    /// Get a read-only reference to the node annotations of this graph
+    pub fn get_node_annos(&self) -> &dyn AnnotationStorage<NodeID> {
+        self.node_annos.as_ref()
     }
 
     fn get_graphstorage_as_ref<'a>(&'a self, c: &Component) -> Option<&'a dyn GraphStorage> {
@@ -1404,7 +1290,7 @@ impl Graph {
                 }
                 result.push(c.clone());
             }
-            return result;
+            result
         } else if let Some(ctype) = &ctype {
             // lookup component from sorted map
             let mut result: Vec<Component> = Vec::new();
@@ -1420,7 +1306,7 @@ impl Graph {
                 }
                 result.push(c.clone());
             }
-            return result;
+            result
         } else {
             // filter all entries
             let filtered_components =
@@ -1440,29 +1326,7 @@ impl Graph {
                         }
                         true
                     });
-            return filtered_components.collect();
-        }
-    }
-
-    fn get_token_key(&self) -> AnnoKey {
-        AnnoKey {
-            ns: ANNIS_NS.to_owned(),
-            name: TOK.to_owned(),
-        }
-    }
-
-    fn get_node_name_key(&self) -> AnnoKey {
-        AnnoKey {
-            ns: ANNIS_NS.to_owned(),
-            name: NODE_NAME.to_owned(),
-        }
-    }
-
-    /// Return the annotation key which is used for the special `annis::node_type` annotation which every node must have to mark its existance.
-    pub fn get_node_type_key(&self) -> AnnoKey {
-        AnnoKey {
-            ns: ANNIS_NS.to_owned(),
-            name: NODE_TYPE.to_owned(),
+            filtered_components.collect()
         }
     }
 

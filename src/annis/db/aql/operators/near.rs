@@ -2,10 +2,10 @@ use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, Match};
+use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::EstimationType;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
-use crate::annis::types::{AnnoKeyID, Component, ComponentType};
+use crate::annis::types::{Component, ComponentType};
 
 use rustc_hash::FxHashSet;
 use std;
@@ -19,9 +19,9 @@ pub struct NearSpec {
 }
 
 #[derive(Clone)]
-struct Near {
+struct Near<'a> {
     gs_order: Arc<dyn GraphStorage>,
-    tok_helper: TokenHelper,
+    tok_helper: TokenHelper<'a>,
     spec: NearSpec,
 }
 
@@ -42,12 +42,12 @@ impl BinaryOperatorSpec for NearSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = Near::new(db, self.clone());
         if let Some(op) = optional_op {
-            return Some(Box::new(op));
+            Some(Box::new(op))
         } else {
-            return None;
+            None
         }
     }
 }
@@ -62,8 +62,8 @@ impl std::fmt::Display for NearSpec {
     }
 }
 
-impl Near {
-    pub fn new(db: &Graph, spec: NearSpec) -> Option<Near> {
+impl<'a> Near<'a> {
+    pub fn new(graph: &'a Graph, spec: NearSpec) -> Option<Near<'a>> {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
@@ -73,9 +73,9 @@ impl Near {
                 .unwrap_or_else(|| String::from("")),
         };
 
-        let gs_order = db.get_graphstorage(&component_order)?;
+        let gs_order = graph.get_graphstorage(&component_order)?;
 
-        let tok_helper = TokenHelper::new(db)?;
+        let tok_helper = TokenHelper::new(graph)?;
 
         Some(Near {
             gs_order,
@@ -85,13 +85,13 @@ impl Near {
     }
 }
 
-impl std::fmt::Display for Near {
+impl<'a> std::fmt::Display for Near<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "^{}", self.spec)
     }
 }
 
-impl BinaryOperator for Near {
+impl<'a> BinaryOperator for Near<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let start_forward = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -143,7 +143,7 @@ impl BinaryOperator for Near {
             // map the result as match
             .map(|n| Match {
                 node: n,
-                anno_key: AnnoKeyID::default(),
+                anno_key: DEFAULT_ANNO_KEY.clone(),
             })
             .collect();
 
@@ -203,7 +203,11 @@ impl BinaryOperator for Near {
         EstimationType::SELECTIVITY(0.1)
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
-        Some(Box::new(self.clone()))
+    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+        Some(Box::new(Near {
+            gs_order: self.gs_order.clone(),
+            tok_helper: TokenHelper::new(graph)?,
+            spec: self.spec.clone(),
+        }))
     }
 }

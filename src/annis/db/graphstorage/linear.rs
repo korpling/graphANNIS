@@ -1,12 +1,10 @@
 use super::{GraphStatistic, GraphStorage};
-use crate::annis::db::annostorage::AnnoStorage;
+use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::graphstorage::EdgeContainer;
-use crate::annis::db::AnnotationStorage;
-use crate::annis::db::Graph;
-use crate::annis::db::Match;
+use crate::annis::db::{AnnotationStorage, Graph, Match, NODE_NAME_KEY};
 use crate::annis::dfs::{CycleSafeDFS, DFSStep};
 use crate::annis::errors::*;
-use crate::annis::types::{AnnoKey, Edge, NodeID, NumValue};
+use crate::annis::types::{Edge, NodeID, NumValue};
 use bincode;
 use rustc_hash::FxHashMap;
 use rustc_hash::FxHashSet;
@@ -24,7 +22,7 @@ struct RelativePosition<PosT> {
 pub struct LinearGraphStorage<PosT: NumValue> {
     node_to_pos: FxHashMap<NodeID, RelativePosition<PosT>>,
     node_chains: FxHashMap<NodeID, Vec<NodeID>>,
-    annos: AnnoStorage<Edge>,
+    annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
 }
 
@@ -36,7 +34,7 @@ where
         LinearGraphStorage {
             node_to_pos: FxHashMap::default(),
             node_chains: FxHashMap::default(),
-            annos: AnnoStorage::new(),
+            annos: AnnoStorageImpl::new(),
             stats: None,
         }
     }
@@ -179,10 +177,10 @@ where
                     let max_distance = match max_distance {
                         std::ops::Bound::Unbounded => 0,
                         std::ops::Bound::Included(max_distance) => {
-                            offset.checked_sub(max_distance).unwrap_or(0)
+                            offset.saturating_sub(max_distance)
                         }
                         std::ops::Bound::Excluded(max_distance) => {
-                            offset.checked_sub(max_distance + 1).unwrap_or(0)
+                            offset.saturating_sub(max_distance + 1)
                         }
                     };
 
@@ -255,10 +253,9 @@ where
 
         // find all roots of the component
         let mut roots: FxHashSet<NodeID> = FxHashSet::default();
-        let node_name_key: AnnoKey = db.get_node_name_key();
         let nodes: Box<dyn Iterator<Item = Match>> = db.node_annos.exact_anno_search(
-            Some(node_name_key.ns.clone()),
-            node_name_key.name.clone(),
+            Some(&NODE_NAME_KEY.ns),
+            &NODE_NAME_KEY.name,
             None.into(),
         );
 
@@ -273,8 +270,8 @@ where
         }
 
         let nodes: Box<dyn Iterator<Item = Match>> = db.node_annos.exact_anno_search(
-            Some(node_name_key.ns),
-            node_name_key.name,
+            Some(&NODE_NAME_KEY.ns),
+            &NODE_NAME_KEY.name,
             None.into(),
         );
         for m in nodes {

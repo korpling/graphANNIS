@@ -1,10 +1,13 @@
 use self::nodesearch::NodeSearch;
+use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::operator::{BinaryOperator, EstimationType};
-use crate::annis::types::AnnoKeyID;
+use crate::annis::types::AnnoKey;
+use crate::annis::types::NodeID;
 
 use std;
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct CostEstimate {
@@ -18,6 +21,7 @@ pub struct Desc {
     pub component_nr: usize,
     pub lhs: Option<Box<Desc>>,
     pub rhs: Option<Box<Desc>>,
+    /// Maps the index of the node in the actual result to the index in the internal execution plan intermediate result.
     pub node_pos: BTreeMap<usize, usize>,
     pub impl_description: String,
     pub query_fragment: String,
@@ -180,10 +184,13 @@ impl Desc {
     }
 }
 
+pub type MatchFilterFunc =
+    Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>;
+
 pub struct NodeSearchDesc {
     pub qname: (Option<String>, Option<String>),
-    pub cond: Vec<Box<dyn Fn(&Match) -> bool + Sync + Send>>,
-    pub const_output: Option<AnnoKeyID>,
+    pub cond: Vec<MatchFilterFunc>,
+    pub const_output: Option<Arc<AnnoKey>>,
 }
 
 pub trait ExecutionNode: Iterator {

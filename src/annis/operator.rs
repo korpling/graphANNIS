@@ -100,10 +100,10 @@ impl EdgeAnnoSearchSpec {
                 ref val,
             } => {
                 if let Some(val) = val {
-                    let val = val.clone();
-                    return anno_storage.guess_max_count(ns.clone(), name.clone(), &val, &val);
+                    anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val)
                 } else {
-                    return anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
+                    anno_storage
+                        .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)
                 }
             }
             EdgeAnnoSearchSpec::NotExactValue {
@@ -111,25 +111,25 @@ impl EdgeAnnoSearchSpec {
                 ref name,
                 ref val,
             } => {
-                let val = val.clone();
-                let total = anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
-                total - anno_storage.guess_max_count(ns.clone(), name.clone(), &val, &val)
+                let total = anno_storage
+                    .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name);
+                total
+                    - anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val)
             }
             EdgeAnnoSearchSpec::RegexValue {
                 ref ns,
                 ref name,
                 ref val,
-            } => {
-                let val = val.clone();
-                anno_storage.guess_max_count_regex(ns.clone(), name.clone(), &val)
-            }
+            } => anno_storage.guess_max_count_regex(ns.as_ref().map(String::as_str), name, val),
             EdgeAnnoSearchSpec::NotRegexValue {
                 ref ns,
                 ref name,
                 ref val,
             } => {
-                let total = anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
-                total - anno_storage.guess_max_count_regex(ns.clone(), name.clone(), &val)
+                let total = anno_storage
+                    .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name);
+                total
+                    - anno_storage.guess_max_count_regex(ns.as_ref().map(String::as_str), name, val)
             }
         }
     }
@@ -149,7 +149,7 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
         true
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
+    fn get_inverse_operator<'a>(&self, _graph: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         None
     }
 
@@ -165,7 +165,7 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
 pub trait BinaryOperatorSpec: std::fmt::Debug {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component>;
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>>;
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>>;
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         None

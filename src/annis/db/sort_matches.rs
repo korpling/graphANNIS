@@ -1,13 +1,13 @@
-use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::{ANNIS_NS, NODE_NAME};
 use crate::annis::types::{AnnoKey, NodeID};
 use std;
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::ffi::CString;
-use std::borrow::Cow;
 
 #[derive(Clone, Copy)]
 pub enum CollationType {
@@ -18,7 +18,7 @@ pub enum CollationType {
 pub fn compare_matchgroup_by_text_pos(
     m1: &[Match],
     m2: &[Match],
-    node_annos: &AnnoStorage<NodeID>,
+    node_annos: &dyn AnnotationStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
@@ -70,8 +70,10 @@ fn compare_document_path(
         let path1: Vec<&str> = it1.collect();
         let path2: Vec<&str> = it2.collect();
         if let (Some(doc1), Some(doc2)) = (path1.last(), path2.last()) {
-            let doc1 : Cow<str> = percent_encoding::percent_decode(doc1.as_bytes()).decode_utf8_lossy();
-            let doc2 : Cow<str> = percent_encoding::percent_decode(doc2.as_bytes()).decode_utf8_lossy();
+            let doc1: Cow<str> =
+                percent_encoding::percent_decode(doc1.as_bytes()).decode_utf8_lossy();
+            let doc2: Cow<str> =
+                percent_encoding::percent_decode(doc2.as_bytes()).decode_utf8_lossy();
             let string_cmp = compare_string(&doc1, &doc2, collation);
             if string_cmp != std::cmp::Ordering::Equal {
                 return string_cmp;
@@ -131,7 +133,7 @@ lazy_static! {
 pub fn compare_match_by_text_pos(
     m1: &Match,
     m2: &Match,
-    node_annos: &AnnoStorage<NodeID>,
+    node_annos: &dyn AnnotationStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
@@ -146,8 +148,8 @@ pub fn compare_match_by_text_pos(
         let m2_anno_val = node_annos.get_value_for_item(&m2.node, &NODE_NAME_KEY);
 
         if let (Some(m1_anno_val), Some(m2_anno_val)) = (m1_anno_val, m2_anno_val) {
-            let (m1_path, m1_name) = split_path_and_nodename(m1_anno_val);
-            let (m2_path, m2_name) = split_path_and_nodename(m2_anno_val);
+            let (m1_path, m1_name) = split_path_and_nodename(&m1_anno_val);
+            let (m2_path, m2_name) = split_path_and_nodename(&m2_anno_val);
 
             // 1. compare the path
             let path_cmp = compare_document_path(m1_path, m2_path, collation, quirks_mode);

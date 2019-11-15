@@ -1,10 +1,10 @@
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, Match};
+use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::EstimationType;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
-use crate::annis::types::{AnnoKeyID, Component, ComponentType};
+use crate::annis::types::{Component, ComponentType};
 
 use std;
 use std::collections::{HashSet, VecDeque};
@@ -13,9 +13,9 @@ use std::sync::Arc;
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct InclusionSpec;
 
-pub struct Inclusion {
+pub struct Inclusion<'a> {
     gs_order: Arc<dyn GraphStorage>,
-    tok_helper: TokenHelper,
+    tok_helper: TokenHelper<'a>,
 }
 
 lazy_static! {
@@ -36,18 +36,18 @@ impl BinaryOperatorSpec for InclusionSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = Inclusion::new(db);
         if let Some(op) = optional_op {
-            return Some(Box::new(op));
+            Some(Box::new(op))
         } else {
-            return None;
+            None
         }
     }
 }
 
-impl Inclusion {
-    pub fn new(db: &Graph) -> Option<Inclusion> {
+impl<'a> Inclusion<'a> {
+    pub fn new(db: &'a Graph) -> Option<Inclusion<'a>> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
 
         let tok_helper = TokenHelper::new(db)?;
@@ -59,13 +59,13 @@ impl Inclusion {
     }
 }
 
-impl std::fmt::Display for Inclusion {
+impl<'a> std::fmt::Display for Inclusion<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_i_")
     }
 }
 
-impl BinaryOperator for Inclusion {
+impl<'a> BinaryOperator for Inclusion<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         if let (Some(start_lhs), Some(end_lhs)) = self.tok_helper.left_right_token_for(lhs.node) {
             // span length of LHS
@@ -101,7 +101,7 @@ impl BinaryOperator for Inclusion {
                     })
                     .map(|n| Match {
                         node: n,
-                        anno_key: AnnoKeyID::default(),
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
                     })
                     .collect();
                 return Box::new(result.into_iter());

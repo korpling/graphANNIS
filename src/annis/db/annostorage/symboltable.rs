@@ -1,8 +1,8 @@
-use crate::annis::util::memory_estimation::shallow_size_of_btreemap;
+use crate::annis::util::memory_estimation::shallow_size_of_fxhashmap;
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std;
-use std::collections::BTreeMap;
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -13,7 +13,7 @@ where
 {
     by_id: Vec<Option<Arc<T>>>,
     #[serde(skip)]
-    by_value: BTreeMap<Arc<T>, usize>,
+    by_value: FxHashMap<Arc<T>, usize>,
     empty_slots: Vec<usize>,
 }
 
@@ -30,7 +30,7 @@ where
 
         // add the size of the vector pointer, the hash map and the strings
         size + (self.by_id.len() * std::mem::size_of::<usize>())
-            + shallow_size_of_btreemap(&self.by_value, ops)
+            + shallow_size_of_fxhashmap(&self.by_value, ops)
     }
 }
 
@@ -42,7 +42,7 @@ where
         let by_id = Vec::default();
         SymbolTable {
             by_id,
-            by_value: BTreeMap::default(),
+            by_value: FxHashMap::default(),
             empty_slots: Vec::default(),
         }
     }
@@ -97,7 +97,16 @@ where
         None
     }
 
-    pub fn get_value(&self, id: usize) -> Option<&T> {
+    pub fn get_value(&self, id: usize) -> Option<Arc<T>> {
+        if id < self.by_id.len() {
+            if let Some(ref val) = self.by_id[id] {
+                return Some(val.clone());
+            }
+        }
+        None
+    }
+
+    pub fn get_value_ref(&self, id: usize) -> Option<&T> {
         if id < self.by_id.len() {
             if let Some(ref val) = self.by_id[id] {
                 return Some(val.as_ref());
@@ -138,7 +147,7 @@ mod tests {
         assert_eq!(id2, id3);
 
         {
-            let x = s.get_value(id1);
+            let x = s.get_value_ref(id1);
             match x {
                 Some(v) => assert_eq!("abc", v),
                 None => panic!("Did not find string"),

@@ -1,10 +1,10 @@
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, Match};
+use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::EstimationType;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
-use crate::annis::types::{AnnoKeyID, Component, ComponentType, NodeID};
+use crate::annis::types::{Component, ComponentType, NodeID};
 use rustc_hash::FxHashSet;
 
 use std;
@@ -18,9 +18,9 @@ pub struct OverlapSpec {
 }
 
 #[derive(Clone)]
-pub struct Overlap {
+pub struct Overlap<'a> {
     gs_order: Arc<dyn GraphStorage>,
-    tok_helper: TokenHelper,
+    tok_helper: TokenHelper<'a>,
     reflexive: bool,
 }
 
@@ -42,20 +42,20 @@ impl BinaryOperatorSpec for OverlapSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = Overlap::new(db, self.reflexive);
         if let Some(op) = optional_op {
-            return Some(Box::new(op));
+            Some(Box::new(op))
         } else {
-            return None;
+            None
         }
     }
 }
 
-impl Overlap {
-    pub fn new(db: &Graph, reflexive: bool) -> Option<Overlap> {
-        let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
-        let tok_helper = TokenHelper::new(db)?;
+impl<'a> Overlap<'a> {
+    pub fn new(graph: &'a Graph, reflexive: bool) -> Option<Overlap<'a>> {
+        let gs_order = graph.get_graphstorage(&COMPONENT_ORDER)?;
+        let tok_helper = TokenHelper::new(graph)?;
 
         Some(Overlap {
             gs_order,
@@ -65,7 +65,7 @@ impl Overlap {
     }
 }
 
-impl std::fmt::Display for Overlap {
+impl<'a> std::fmt::Display for Overlap<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.reflexive {
             write!(f, "_o_reflexive_")
@@ -75,7 +75,7 @@ impl std::fmt::Display for Overlap {
     }
 }
 
-impl BinaryOperator for Overlap {
+impl<'a> BinaryOperator for Overlap<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         // use set to filter out duplicates
         let mut result = FxHashSet::default();
@@ -113,7 +113,7 @@ impl BinaryOperator for Overlap {
 
         Box::new(result.into_iter().map(|n| Match {
             node: n,
-            anno_key: AnnoKeyID::default(),
+            anno_key: DEFAULT_ANNO_KEY.clone(),
         }))
     }
 
@@ -144,8 +144,12 @@ impl BinaryOperator for Overlap {
         self.reflexive
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<dyn BinaryOperator>> {
-        Some(Box::new(self.clone()))
+    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+        Some(Box::new(Overlap {
+            gs_order: self.gs_order.clone(),
+            tok_helper: TokenHelper::new(graph)?,
+            reflexive: self.reflexive,
+        }))
     }
 
     fn estimation_type(&self) -> EstimationType {

@@ -371,7 +371,7 @@ impl AnnisRunner {
                 .count(corpus, args, self.query_language)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
-                info! {"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
             println!("result: {} matches", c);
@@ -398,7 +398,7 @@ impl AnnisRunner {
                 )?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
-                info! {"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
             for m in matches {
@@ -439,7 +439,7 @@ impl AnnisRunner {
                 .frequency(corpus, splitted_arg[1], self.query_language, table_def)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
-                info! {"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
             // map the resulting frequency table to an output

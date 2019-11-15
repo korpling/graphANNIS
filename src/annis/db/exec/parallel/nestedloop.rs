@@ -11,7 +11,7 @@ const MAX_BUFFER_SIZE: usize = 1024;
 pub struct NestedLoop<'a> {
     outer: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
     inner: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
-    op: Arc<dyn BinaryOperator>,
+    op: Arc<dyn BinaryOperator + 'a>,
     inner_idx: usize,
     outer_idx: usize,
 
@@ -31,7 +31,7 @@ type MatchCandidate = (Arc<Vec<Match>>, Arc<Vec<Match>>, Sender<Vec<Match>>);
 
 impl<'a> NestedLoop<'a> {
     pub fn new(
-        op_entry: BinaryOperatorEntry,
+        op_entry: BinaryOperatorEntry<'a>,
         lhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
         rhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
@@ -123,9 +123,9 @@ impl<'a> NestedLoop<'a> {
         }
 
         if let Some(result) = &self.current_outer {
-            return Some(result.clone());
+            Some(result.clone())
         } else {
-            return None;
+            None
         }
     }
 

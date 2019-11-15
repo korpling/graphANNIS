@@ -1,18 +1,16 @@
-use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::graphstorage::GraphStorage;
-use crate::annis::db::Graph;
+use crate::annis::db::{AnnotationStorage, Graph, TOKEN_KEY};
 use crate::annis::types::{Component, ComponentType, NodeID};
 
 use std::collections::HashSet;
 use std::sync::Arc;
 
 #[derive(Clone)]
-pub struct TokenHelper {
-    node_annos: Arc<AnnoStorage<NodeID>>,
+pub struct TokenHelper<'a> {
+    node_annos: &'a dyn AnnotationStorage<NodeID>,
     left_edges: Arc<dyn GraphStorage>,
     right_edges: Arc<dyn GraphStorage>,
     cov_edges: Vec<Arc<dyn GraphStorage>>,
-    tok_key: usize,
 }
 
 lazy_static! {
@@ -45,12 +43,12 @@ pub fn necessary_components(db: &Graph) -> HashSet<Component> {
     result
 }
 
-impl TokenHelper {
-    pub fn new(db: &Graph) -> Option<TokenHelper> {
-        let cov_edges: Vec<Arc<dyn GraphStorage>> = db
+impl<'a> TokenHelper<'a> {
+    pub fn new(graph: &'a Graph) -> Option<TokenHelper<'a>> {
+        let cov_edges: Vec<Arc<dyn GraphStorage>> = graph
             .get_all_components(Some(ComponentType::Coverage), None)
             .into_iter()
-            .filter_map(|c| db.get_graphstorage(&c))
+            .filter_map(|c| graph.get_graphstorage(&c))
             .filter(|gs| {
                 if let Some(stats) = gs.get_statistics() {
                     stats.nodes > 0
@@ -61,11 +59,10 @@ impl TokenHelper {
             .collect();
 
         Some(TokenHelper {
-            node_annos: db.node_annos.clone(),
-            left_edges: db.get_graphstorage(&COMPONENT_LEFT)?,
-            right_edges: db.get_graphstorage(&COMPONENT_RIGHT)?,
+            node_annos: graph.node_annos.as_ref(),
+            left_edges: graph.get_graphstorage(&COMPONENT_LEFT)?,
+            right_edges: graph.get_graphstorage(&COMPONENT_RIGHT)?,
             cov_edges,
-            tok_key: db.node_annos.get_key_id(&db.get_token_key())?,
         })
     }
     pub fn get_gs_coverage(&self) -> &Vec<Arc<dyn GraphStorage>> {
@@ -83,7 +80,7 @@ impl TokenHelper {
     pub fn is_token(&self, id: NodeID) -> bool {
         if self
             .node_annos
-            .get_value_for_item_by_id(&id, self.tok_key)
+            .get_value_for_item(&id, &TOKEN_KEY)
             .is_some()
         {
             // check if there is no outgoing edge in any of the coverage components

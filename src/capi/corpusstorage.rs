@@ -5,7 +5,7 @@ use crate::corpusstorage::{
     CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, ImportFormat,
     QueryAttributeDescription, QueryLanguage, ResultOrder,
 };
-use crate::graph::{AnnotationStorage, Component, ComponentType};
+use crate::graph::{Component, ComponentType};
 use crate::update::GraphUpdate;
 use crate::{CorpusStorage, Graph};
 use libc;
@@ -90,7 +90,7 @@ pub extern "C" fn annis_cs_count(
     query: *const libc::c_char,
     query_language: QueryLanguage,
     err: *mut *mut ErrorList,
-) -> libc::uint64_t {
+) -> u64 {
     let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query);
@@ -207,7 +207,7 @@ pub extern "C" fn annis_cs_subcorpus_graph(
     );
     trace!(
         "annis_cs_subcorpus_graph(...) returns subgraph with {} labels",
-        result.number_of_annotations()
+        result.get_node_annos().number_of_annotations()
     );
     return Box::into_raw(Box::new(result));
 }

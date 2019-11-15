@@ -1,6 +1,5 @@
 use crate::capi::data::IterPtr;
-use crate::graph::{Annotation, AnnotationStorage, Component, ComponentType, Edge, NodeID};
-use crate::graph::{GraphStorage, Match};
+use crate::graph::{Annotation, Component, ComponentType, Edge, GraphStorage, Match, NodeID};
 use crate::Graph;
 use libc;
 use std;
@@ -34,14 +33,9 @@ pub extern "C" fn annis_graph_nodes_by_type(
 ) -> *mut IterPtr<NodeID> {
     let db: &Graph = cast_const!(g);
     let node_type = cstr!(node_type);
-
-    let type_key = db.get_node_type_key();
     let it = db
-        .exact_anno_search(
-            Some(type_key.ns),
-            type_key.name,
-            Some(String::from(node_type)).into(),
-        )
+        .get_node_annos()
+        .exact_anno_search(Some("annis"), "node_type", Some(node_type.as_ref()).into())
         .map(|m: Match| m.get_node());
     return Box::into_raw(Box::new(Box::new(it)));
 }
@@ -53,7 +47,9 @@ pub extern "C" fn annis_graph_annotations_for_node(
 ) -> *mut Vec<Annotation> {
     let db: &Graph = cast_const!(g);
 
-    Box::into_raw(Box::new(db.get_annotations_for_item(&node)))
+    Box::into_raw(Box::new(
+        db.get_node_annos().get_annotations_for_item(&node),
+    ))
 }
 
 #[no_mangle]
