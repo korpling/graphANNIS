@@ -31,7 +31,7 @@ use linked_hash_map::LinkedHashMap;
 use percent_encoding::{utf8_percent_encode, PATH_SEGMENT_ENCODE_SET, SIMPLE_ENCODE_SET};
 use std;
 use std::borrow::Cow;
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashSet};
 use std::fmt;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -50,8 +50,6 @@ use sys_info;
 
 #[cfg(test)]
 mod tests;
-
-mod find;
 
 enum CacheEntry {
     Loaded(Graph),
@@ -184,7 +182,7 @@ pub enum ResultOrder {
     NotSorted,
 }
 
-pub struct PreparationResult<'a> {
+struct PreparationResult<'a> {
     query: Disjunction<'a>,
     db_entry: Arc<RwLock<CacheEntry>>,
 }
@@ -1179,34 +1177,14 @@ impl CorpusStorage {
     /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
     pub fn find(
         &self,
-        corpus_names: &[&str],
+        corpus_name: &str,
         query: &str,
         query_language: QueryLanguage,
         offset: usize,
         limit: usize,
         order: ResultOrder,
     ) -> Result<Vec<String>> {
-        let mut preps_by_corpusnames = BTreeMap::new();
-        for cn in corpus_names {
-            let prep = self.prepare_query(cn, query, query_language, |db| {
-                let mut additional_components = vec![Component {
-                    ctype: ComponentType::Ordering,
-                    layer: String::from("annis"),
-                    name: String::from(""),
-                }];
-                if order == ResultOrder::Normal || order == ResultOrder::Inverted {
-                    for c in token_helper::necessary_components(db) {
-                        additional_components.push(c);
-                    }
-                }
-                additional_components
-            })?;
-            preps_by_corpusnames.insert(cn.to_string(), prep);
-        }
-
-        let find_it = find::FindIterator::new(preps_by_corpusnames, query, query_language, offset, limit, order);
-
-        let prep = self.prepare_query(corpus_names[0], query, query_language, |db| {
+        let prep = self.prepare_query(corpus_name, query, query_language, |db| {
             let mut additional_components = vec![Component {
                 ctype: ComponentType::Ordering,
                 layer: String::from("annis"),

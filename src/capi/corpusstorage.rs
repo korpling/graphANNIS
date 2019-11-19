@@ -136,7 +136,7 @@ pub extern "C" fn annis_cs_find(
     let corpus = cstr!(corpus_name);
 
     let result = try_cerr!(
-        cs.find(&[&corpus], &query, query_language, offset, limit, order),
+        cs.find(&corpus, &query, query_language, offset, limit, order),
         err,
         std::ptr::null_mut()
     );
