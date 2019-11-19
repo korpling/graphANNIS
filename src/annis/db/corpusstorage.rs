@@ -9,8 +9,12 @@ use crate::annis::db::query;
 use crate::annis::db::query::conjunction::Conjunction;
 use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::relannis;
+use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
-use crate::annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_NAME_KEY, NODE_TYPE};
+use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::db::{
+    AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, NODE_NAME_KEY, NODE_TYPE,
+};
 use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::{
@@ -19,6 +23,7 @@ use crate::annis::types::{
 };
 use crate::annis::util;
 use crate::annis::util::memory_estimation;
+use crate::annis::util::quicksort;
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::update::GraphUpdate;
 use fs2::FileExt;
@@ -38,6 +43,8 @@ use std::thread;
 
 use rustc_hash::FxHashMap;
 
+use rand;
+use rand::seq::SliceRandom;
 use std::ffi::CString;
 use sys_info;
 
@@ -1043,6 +1050,120 @@ impl CorpusStorage {
         })
     }
 
+    fn create_find_iterator_for_query<'b>(
+        &'b self,
+        db: &'b Graph,
+        query: &'b Disjunction,
+        offset: usize,
+        limit: usize,
+        order: ResultOrder,
+        quirks_mode: bool,
+    ) -> Result<(Box<dyn Iterator<Item = Vec<Match>> + 'b>, Option<usize>)> {
+        let mut query_config = self.query_config.clone();
+        if order == ResultOrder::NotSorted {
+            // Do execute query in parallel if the order should not be sorted to have a more stable result ordering.
+            // Even if we do not promise to have a stable ordering, it should be the same
+            // for the same session on the same corpus.
+            query_config.use_parallel_joins = false;
+        }
+
+        let plan = ExecutionPlan::from_disjunction(query, &db, &query_config)?;
+
+        // Try to find the relANNIS version by getting the attribute value which should be attached to the
+        // toplevel corpus node.
+        let mut relannis_version_33 = false;
+        if quirks_mode {
+            let mut relannis_version_it = db.node_annos.exact_anno_search(
+                Some(ANNIS_NS),
+                "relannis-version",
+                ValueSearch::Any,
+            );
+            if let Some(m) = relannis_version_it.next() {
+                if let Some(v) = db.node_annos.get_value_for_item(&m.node, &m.anno_key) {
+                    if v == "3.3" {
+                        relannis_version_33 = true;
+                    }
+                }
+            }
+        }
+        let mut expected_size: Option<usize> = None;
+        let base_it: Box<dyn Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
+            || (order == ResultOrder::Normal && plan.is_sorted_by_text() && !quirks_mode)
+        {
+            // If the output is already sorted correctly, directly return the iterator.
+            // Quirks mode may change the order of the results, thus don't use the shortcut
+            // if quirks mode is active.
+            Box::from(plan)
+        } else {
+            let estimated_result_size = plan.estimated_output_size();
+            let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(estimated_result_size);
+
+            for mgroup in plan {
+                // add all matches to temporary vector
+                tmp_results.push(mgroup);
+            }
+
+            // either sort or randomly shuffle results
+            if order == ResultOrder::Randomized {
+                let mut rng = rand::thread_rng();
+                tmp_results.shuffle(&mut rng);
+            } else {
+                let token_helper = TokenHelper::new(db);
+                let component_order = Component {
+                    ctype: ComponentType::Ordering,
+                    layer: String::from("annis"),
+                    name: String::from(""),
+                };
+
+                let collation = if quirks_mode && !relannis_version_33 {
+                    CollationType::Locale
+                } else {
+                    CollationType::Default
+                };
+
+                let gs_order = db.get_graphstorage_as_ref(&component_order);
+                let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
+                    if order == ResultOrder::Inverted {
+                        db::sort_matches::compare_matchgroup_by_text_pos(
+                            m1,
+                            m2,
+                            db.node_annos.as_ref(),
+                            token_helper.as_ref(),
+                            gs_order,
+                            collation,
+                            quirks_mode,
+                        )
+                        .reverse()
+                    } else {
+                        db::sort_matches::compare_matchgroup_by_text_pos(
+                            m1,
+                            m2,
+                            db.node_annos.as_ref(),
+                            token_helper.as_ref(),
+                            gs_order,
+                            collation,
+                            quirks_mode,
+                        )
+                    }
+                };
+
+                if self.query_config.use_parallel_joins {
+                    quicksort::sort_first_n_items_parallel(
+                        &mut tmp_results,
+                        offset + limit,
+                        order_func,
+                    );
+                } else {
+                    quicksort::sort_first_n_items(&mut tmp_results, offset + limit, order_func);
+                }
+            }
+            expected_size = Some(tmp_results.len());
+            Box::from(tmp_results.into_iter())
+        };
+
+        Ok((base_it, expected_size))
+    }
+
     /// Find all results for a `query` and return the match ID for each result.
     ///
     /// The query is paginated and an offset and limit can be specified.
@@ -1083,11 +1204,21 @@ impl CorpusStorage {
             preps_by_corpusnames.insert(cn.to_string(), prep);
         }
 
-        let prep = preps_by_corpusnames
-            .into_iter()
-            .next()
-            .ok_or_else(|| Error::from("Empty corpus list"))?
-            .1;
+        let find_it = find::FindIterator::new(preps_by_corpusnames, query, query_language, offset, limit, order);
+
+        let prep = self.prepare_query(corpus_names[0], query, query_language, |db| {
+            let mut additional_components = vec![Component {
+                ctype: ComponentType::Ordering,
+                layer: String::from("annis"),
+                name: String::from(""),
+            }];
+            if order == ResultOrder::Normal || order == ResultOrder::Inverted {
+                for c in token_helper::necessary_components(db) {
+                    additional_components.push(c);
+                }
+            }
+            additional_components
+        })?;
 
         // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -1098,14 +1229,13 @@ impl CorpusStorage {
             QueryLanguage::AQLQuirksV3 => true,
         };
 
-        let (base_it, expected_size) = find::create_iterator_for_query(
+        let (base_it, expected_size) = self.create_find_iterator_for_query(
             db,
             &prep.query,
             offset,
             limit,
             order,
             quirks_mode,
-            &self.query_config,
         )?;
 
         let mut results: Vec<String> = if let Some(expected_size) = expected_size {
