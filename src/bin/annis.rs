@@ -393,7 +393,7 @@ impl AnnisRunner {
                     args,
                     self.query_language,
                     0,
-                    usize::max_value(),
+                    None,
                     ResultOrder::Normal,
                 )?;
             let load_time = t_before.elapsed();
