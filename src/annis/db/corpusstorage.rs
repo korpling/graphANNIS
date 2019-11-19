@@ -1053,7 +1053,7 @@ impl CorpusStorage {
         db: &'b Graph,
         query: &'b Disjunction,
         offset: usize,
-        limit: usize,
+        limit: Option<usize>,
         order: ResultOrder,
         quirks_mode: bool,
     ) -> Result<(Box<dyn Iterator<Item = Vec<Match>> + 'b>, Option<usize>)> {
@@ -1145,14 +1145,18 @@ impl CorpusStorage {
                     }
                 };
 
-                if self.query_config.use_parallel_joins {
-                    quicksort::sort_first_n_items_parallel(
-                        &mut tmp_results,
-                        offset + limit,
-                        order_func,
-                    );
+                let sort_size = if let Some(limit) = limit {
+                    // we won't need to sort all items
+                    offset + limit
                 } else {
-                    quicksort::sort_first_n_items(&mut tmp_results, offset + limit, order_func);
+                    // sort all items if unlimited iterator is requested
+                    tmp_results.len()
+                };
+
+                if self.query_config.use_parallel_joins {
+                    quicksort::sort_first_n_items_parallel(&mut tmp_results, sort_size, order_func);
+                } else {
+                    quicksort::sort_first_n_items(&mut tmp_results, sort_size, order_func);
                 }
             }
             expected_size = Some(tmp_results.len());
@@ -1168,7 +1172,7 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
         offset: usize,
-        limit: usize,
+        limit: Option<usize>,
         order: ResultOrder,
     ) -> Result<(Vec<String>, usize)> {
         let prep = self.prepare_query(corpus_name, query, query_language, |db| {
@@ -1203,11 +1207,12 @@ impl CorpusStorage {
             quirks_mode,
         )?;
 
-        let mut results: Vec<String> = if let Some(expected_size) = expected_size {
-            Vec::with_capacity(std::cmp::min(expected_size, limit))
-        } else {
-            Vec::new()
-        };
+        let mut results: Vec<String> =
+            if let (Some(expected_size), Some(limit)) = (expected_size, limit) {
+                Vec::with_capacity(std::cmp::min(expected_size, limit))
+            } else {
+                Vec::new()
+            };
         // skip the first entries
         let mut skipped = 0;
         let mut item = base_it.next();
@@ -1215,7 +1220,12 @@ impl CorpusStorage {
             skipped += 1;
             item = base_it.next();
         }
-        results.extend(base_it.take(limit).map(|m: Vec<Match>| {
+        let base_it: Box<dyn Iterator<Item = Vec<Match>>> = if let Some(limit) = limit {
+            Box::new(base_it.take(limit))
+        } else {
+            Box::new(base_it)
+        };
+        results.extend(base_it.map(|m: Vec<Match>| {
             let mut match_desc: Vec<String> = Vec::new();
             for (i, singlematch) in m.iter().enumerate() {
                 // check if query node actually should be included in quirks mode
@@ -1275,7 +1285,7 @@ impl CorpusStorage {
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
     /// - `offset` - Skip the `n` first results, where `n` is the offset.
-    /// - `limit` - Return at most `n` matches, where `n` is the limit.
+    /// - `limit` - Return at most `n` matches, where `n` is the limit.  Use `None` to allow unlimited result sizes.
     /// - `order` - Specify the order of the matches.
     ///
     /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
@@ -1286,12 +1296,31 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
         offset: usize,
-        limit: usize,
+        limit: Option<usize>,
         order: ResultOrder,
     ) -> Result<Vec<String>> {
         let mut result = Vec::new();
+
+        // initialize the limit/offset values for the first corpus
+        let mut offset = offset;
+        let mut limit = limit;
         for cn in corpus_names {
-            let (single_result, skipped) = self.find_in_single_corpus(cn, query, query_language, offset, limit, order)?;
+            let (single_result, skipped) =
+                self.find_in_single_corpus(cn, query, query_language, offset, limit, order)?;
+
+            // Adjust limit and offset according to the found matches for the next corpus.
+            if let Some(mut limit) = &mut limit {
+                limit = limit - single_result.len();
+                if limit <= 0 {
+                    break;
+                }
+            }
+            if skipped < offset {
+                offset -= skipped;
+            } else {
+                offset = 0;
+            }
+
             result.extend(single_result.into_iter());
         }
         Ok(result)

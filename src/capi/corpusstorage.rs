@@ -126,7 +126,7 @@ pub extern "C" fn annis_cs_find(
     query: *const libc::c_char,
     query_language: QueryLanguage,
     offset: libc::size_t,
-    limit: libc::size_t,
+    limit: *const libc::size_t,
     order: ResultOrder,
     err: *mut *mut ErrorList,
 ) -> *mut Vec<CString> {
@@ -134,6 +134,14 @@ pub extern "C" fn annis_cs_find(
 
     let query = cstr!(query);
     let corpus = cstr!(corpus_name);
+
+    let limit = if limit.is_null() {
+        None
+    } else {
+        unsafe {
+            Some(*limit)
+        }
+    };
 
     let result = try_cerr!(
         cs.find(&[&corpus], &query, query_language, offset, limit, order),

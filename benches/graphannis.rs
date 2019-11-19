@@ -57,7 +57,7 @@ fn find_all_nouns_gum(bench: &mut Criterion) {
                 "pos=\"NN\"",
                 QueryLanguage::AQL,
                 usize::min_value(),
-                usize::max_value(),
+                None,
                 ResultOrder::Normal,
             );
             assert!(f.is_ok());
