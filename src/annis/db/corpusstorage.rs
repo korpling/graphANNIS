@@ -1290,9 +1290,9 @@ impl CorpusStorage {
     ///
     /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
     /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
-    pub fn find(
+    pub fn find<S: AsRef<str>>(
         &self,
-        corpus_names: &[&str],
+        corpus_names: &[S],
         query: &str,
         query_language: QueryLanguage,
         offset: usize,
@@ -1306,7 +1306,7 @@ impl CorpusStorage {
         let mut limit = limit;
         for cn in corpus_names {
             let (single_result, skipped) =
-                self.find_in_single_corpus(cn, query, query_language, offset, limit, order)?;
+                self.find_in_single_corpus(cn.as_ref(), query, query_language, offset, limit, order)?;
 
             // Adjust limit and offset according to the found matches for the next corpus.
             if let Some(mut limit) = &mut limit {
