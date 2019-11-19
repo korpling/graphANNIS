@@ -53,7 +53,7 @@ fn find_all_nouns_gum(bench: &mut Criterion) {
     bench.bench_function("find_all_nouns_gum", move |b| {
         b.iter(|| {
             let f = cs.find(
-                &["GUM"],
+                "GUM",
                 "pos=\"NN\"",
                 QueryLanguage::AQL,
                 usize::min_value(),
