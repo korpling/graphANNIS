@@ -1048,46 +1048,15 @@ impl CorpusStorage {
         })
     }
 
-    /// Find all results for a `query` and return the match ID for each result.
-    ///
-    /// The query is paginated and an offset and limit can be specified.
-    ///
-    /// - `corpus_name` - The name of the corpus to execute the query on.
-    /// - `query` - The query as string.
-    /// - `query_language` The query language of the query (e.g. AQL).
-    /// - `offset` - Skip the `n` first results, where `n` is the offset.
-    /// - `limit` - Return at most `n` matches, where `n` is the limit.
-    /// - `order` - Specify the order of the matches.
-    ///
-    /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
-    /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
-    pub fn find(
-        &self,
-        corpus_name: &str,
-        query: &str,
-        query_language: QueryLanguage,
+    fn create_find_iterator_for_query<'b>(
+        &'b self,
+        db: &'b Graph,
+        query: &'b Disjunction,
         offset: usize,
         limit: usize,
         order: ResultOrder,
-    ) -> Result<Vec<String>> {
-        let prep = self.prepare_query(corpus_name, query, query_language, |db| {
-            let mut additional_components = vec![Component {
-                ctype: ComponentType::Ordering,
-                layer: String::from("annis"),
-                name: String::from(""),
-            }];
-            if order == ResultOrder::Normal || order == ResultOrder::Inverted {
-                for c in token_helper::necessary_components(db) {
-                    additional_components.push(c);
-                }
-            }
-            additional_components
-        })?;
-
-        // acquire read-only lock and execute query
-        let lock = prep.db_entry.read().unwrap();
-        let db = get_read_or_error(&lock)?;
-
+        quirks_mode: bool,
+    ) -> Result<(Box<dyn Iterator<Item = Vec<Match>> + 'b>, Option<usize>)> {
         let mut query_config = self.query_config.clone();
         if order == ResultOrder::NotSorted {
             // Do execute query in parallel if the order should not be sorted to have a more stable result ordering.
@@ -1096,12 +1065,7 @@ impl CorpusStorage {
             query_config.use_parallel_joins = false;
         }
 
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &query_config)?;
-
-        let quirks_mode = match query_language {
-            QueryLanguage::AQL => false,
-            QueryLanguage::AQLQuirksV3 => true,
-        };
+        let plan = ExecutionPlan::from_disjunction(query, &db, &query_config)?;
 
         // Try to find the relANNIS version by getting the attribute value which should be attached to the
         // toplevel corpus node.
@@ -1194,6 +1158,63 @@ impl CorpusStorage {
             expected_size = Some(tmp_results.len());
             Box::from(tmp_results.into_iter())
         };
+
+        Ok((base_it, expected_size))
+    }
+
+    /// Find all results for a `query` and return the match ID for each result.
+    ///
+    /// The query is paginated and an offset and limit can be specified.
+    ///
+    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `query` - The query as string.
+    /// - `query_language` The query language of the query (e.g. AQL).
+    /// - `offset` - Skip the `n` first results, where `n` is the offset.
+    /// - `limit` - Return at most `n` matches, where `n` is the limit.
+    /// - `order` - Specify the order of the matches.
+    ///
+    /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
+    /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
+    pub fn find(
+        &self,
+        corpus_name: &str,
+        query: &str,
+        query_language: QueryLanguage,
+        offset: usize,
+        limit: usize,
+        order: ResultOrder,
+    ) -> Result<Vec<String>> {
+        let prep = self.prepare_query(corpus_name, query, query_language, |db| {
+            let mut additional_components = vec![Component {
+                ctype: ComponentType::Ordering,
+                layer: String::from("annis"),
+                name: String::from(""),
+            }];
+            if order == ResultOrder::Normal || order == ResultOrder::Inverted {
+                for c in token_helper::necessary_components(db) {
+                    additional_components.push(c);
+                }
+            }
+            additional_components
+        })?;
+
+        // acquire read-only lock and execute query
+        let lock = prep.db_entry.read().unwrap();
+        let db = get_read_or_error(&lock)?;
+
+        let quirks_mode = match query_language {
+            QueryLanguage::AQL => false,
+            QueryLanguage::AQLQuirksV3 => true,
+        };
+
+        let (base_it, expected_size) = self.create_find_iterator_for_query(
+            db,
+            &prep.query,
+            offset,
+            limit,
+            order,
+            quirks_mode,
+        )?;
 
         let mut results: Vec<String> = if let Some(expected_size) = expected_size {
             Vec::with_capacity(std::cmp::min(expected_size, limit))
