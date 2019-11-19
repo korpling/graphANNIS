@@ -389,7 +389,7 @@ impl AnnisRunner {
                 .as_ref()
                 .ok_or("No corpus storage location set")?
                 .find(
-                    corpus,
+                    &[corpus],
                     args,
                     self.query_language,
                     0,
