@@ -1309,8 +1309,11 @@ impl CorpusStorage {
                 self.find_in_single_corpus(cn.as_ref(), query, query_language, offset, limit, order)?;
 
             // Adjust limit and offset according to the found matches for the next corpus.
+            let single_result_length = single_result.len();
+            result.extend(single_result.into_iter());
+
             if let Some(mut limit) = &mut limit {
-                limit = limit - single_result.len();
+                limit = limit - single_result_length;
                 if limit <= 0 {
                     break;
                 }
@@ -1321,7 +1324,7 @@ impl CorpusStorage {
                 offset = 0;
             }
 
-            result.extend(single_result.into_iter());
+            
         }
         Ok(result)
     }
