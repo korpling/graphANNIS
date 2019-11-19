@@ -1162,20 +1162,7 @@ impl CorpusStorage {
         Ok((base_it, expected_size))
     }
 
-    /// Find all results for a `query` and return the match ID for each result.
-    ///
-    /// The query is paginated and an offset and limit can be specified.
-    ///
-    /// - `corpus_name` - The name of the corpus to execute the query on.
-    /// - `query` - The query as string.
-    /// - `query_language` The query language of the query (e.g. AQL).
-    /// - `offset` - Skip the `n` first results, where `n` is the offset.
-    /// - `limit` - Return at most `n` matches, where `n` is the limit.
-    /// - `order` - Specify the order of the matches.
-    ///
-    /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
-    /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
-    pub fn find(
+    fn find_in_single_corpus(
         &self,
         corpus_name: &str,
         query: &str,
@@ -1183,7 +1170,7 @@ impl CorpusStorage {
         offset: usize,
         limit: usize,
         order: ResultOrder,
-    ) -> Result<Vec<String>> {
+    ) -> Result<(Vec<String>, usize)> {
         let prep = self.prepare_query(corpus_name, query, query_language, |db| {
             let mut additional_components = vec![Component {
                 ctype: ComponentType::Ordering,
@@ -1207,7 +1194,7 @@ impl CorpusStorage {
             QueryLanguage::AQLQuirksV3 => true,
         };
 
-        let (base_it, expected_size) = self.create_find_iterator_for_query(
+        let (mut base_it, expected_size) = self.create_find_iterator_for_query(
             db,
             &prep.query,
             offset,
@@ -1221,7 +1208,14 @@ impl CorpusStorage {
         } else {
             Vec::new()
         };
-        results.extend(base_it.skip(offset).take(limit).map(|m: Vec<Match>| {
+        // skip the first entries
+        let mut skipped = 0;
+        let mut item = base_it.next();
+        while item.is_some() && skipped < offset {
+            skipped += 1;
+            item = base_it.next();
+        }
+        results.extend(base_it.take(limit).map(|m: Vec<Match>| {
             let mut match_desc: Vec<String> = Vec::new();
             for (i, singlematch) in m.iter().enumerate() {
                 // check if query node actually should be included in quirks mode
@@ -1270,7 +1264,33 @@ impl CorpusStorage {
             result
         }));
 
-        Ok(results)
+        Ok((results, skipped))
+    }
+
+    /// Find all results for a `query` and return the match ID for each result.
+    ///
+    /// The query is paginated and an offset and limit can be specified.
+    ///
+    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `query` - The query as string.
+    /// - `query_language` The query language of the query (e.g. AQL).
+    /// - `offset` - Skip the `n` first results, where `n` is the offset.
+    /// - `limit` - Return at most `n` matches, where `n` is the limit.
+    /// - `order` - Specify the order of the matches.
+    ///
+    /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
+    /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
+    pub fn find(
+        &self,
+        corpus_name: &str,
+        query: &str,
+        query_language: QueryLanguage,
+        offset: usize,
+        limit: usize,
+        order: ResultOrder,
+    ) -> Result<Vec<String>> {
+        let single_result = self.find_in_single_corpus(corpus_name, query, query_language, offset, limit, order)?;
+        Ok(single_result.0)
     }
 
     /// Return the copy of a subgraph which includes the given list of node annotation identifiers,
