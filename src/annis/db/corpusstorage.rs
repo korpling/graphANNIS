@@ -1271,7 +1271,7 @@ impl CorpusStorage {
     ///
     /// The query is paginated and an offset and limit can be specified.
     ///
-    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `corpus_names` - The name of the corpora to execute the query on.
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
     /// - `offset` - Skip the `n` first results, where `n` is the offset.
@@ -1282,15 +1282,19 @@ impl CorpusStorage {
     /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
     pub fn find(
         &self,
-        corpus_name: &str,
+        corpus_names: &[&str],
         query: &str,
         query_language: QueryLanguage,
         offset: usize,
         limit: usize,
         order: ResultOrder,
     ) -> Result<Vec<String>> {
-        let single_result = self.find_in_single_corpus(corpus_name, query, query_language, offset, limit, order)?;
-        Ok(single_result.0)
+        let mut result = Vec::new();
+        for cn in corpus_names {
+            let (single_result, skipped) = self.find_in_single_corpus(cn, query, query_language, offset, limit, order)?;
+            result.extend(single_result.into_iter());
+        }
+        Ok(result)
     }
 
     /// Return the copy of a subgraph which includes the given list of node annotation identifiers,
