@@ -1215,10 +1215,8 @@ impl CorpusStorage {
             };
         // skip the first entries
         let mut skipped = 0;
-        let mut item = base_it.next();
-        while item.is_some() && skipped < offset {
+        while skipped < offset && base_it.next().is_some() {
             skipped += 1;
-            item = base_it.next();
         }
         let base_it: Box<dyn Iterator<Item = Vec<Match>>> = if let Some(limit) = limit {
             Box::new(base_it.take(limit))
