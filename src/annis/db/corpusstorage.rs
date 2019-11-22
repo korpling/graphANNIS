@@ -1017,41 +1017,50 @@ impl CorpusStorage {
 
     /// Count the number of results for a `query` and return both the total number of matches and also the number of documents in the result set.
     ///
-    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `corpus_names` - The name of the corpora to execute the query on.
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
-    pub fn count_extra(
+    pub fn count_extra<S: AsRef<str>>(
         &self,
-        corpus_name: &str,
+        corpus_names: &[S],
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<CountExtra> {
-        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
-        // acquire read-only lock and execute query
-        let lock = prep.db_entry.read().unwrap();
-        let db: &Graph = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+        let mut match_count : u64 = 0;
+        let mut document_count : u64 = 0;
 
-        let mut known_documents = HashSet::new();
+        for cn in corpus_names {
+            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
 
-        let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
-            if !m.is_empty() {
-                let m: &Match = &m[0];
-                if let Some(node_name) = db.node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY) {
-                    let node_name: &str = &node_name;
-                    // extract the document path from the node name
-                    let doc_path =
-                        &node_name[0..node_name.rfind('#').unwrap_or_else(|| node_name.len())];
-                    known_documents.insert(doc_path.to_owned());
+            // acquire read-only lock and execute query
+            let lock = prep.db_entry.read().unwrap();
+            let db: &Graph = get_read_or_error(&lock)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+
+            let mut known_documents = HashSet::new();
+
+            let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
+                if !m.is_empty() {
+                    let m: &Match = &m[0];
+                    if let Some(node_name) = db.node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY) {
+                        let node_name: &str = &node_name;
+                        // extract the document path from the node name
+                        let doc_path =
+                            &node_name[0..node_name.rfind('#').unwrap_or_else(|| node_name.len())];
+                        known_documents.insert(doc_path.to_owned());
+                    }
                 }
-            }
-            (acc.0 + 1, known_documents.len())
-        });
+                (acc.0 + 1, known_documents.len())
+            });
+
+            match_count += result.0;
+            document_count += result.1 as u64;
+        }
 
         Ok(CountExtra {
-            match_count: result.0,
-            document_count: result.1 as u64,
+            match_count,
+            document_count,
         })
     }
 
@@ -1586,67 +1595,72 @@ impl CorpusStorage {
 
     /// Execute a frequency query.
     ///
-    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `corpus_names` - The name of the corpora to execute the query on.
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
     /// - `definition` - A list of frequency query definitions.
     ///
     /// Returns a frequency table of strings.
-    pub fn frequency(
+    pub fn frequency<S: AsRef<str>>(
         &self,
-        corpus_name: &str,
+        corpus_names: &[S],
         query: &str,
         query_language: QueryLanguage,
         definition: Vec<FrequencyDefEntry>,
     ) -> Result<FrequencyTable<String>> {
-        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
-
-        // acquire read-only lock and execute query
-        let lock = prep.db_entry.read().unwrap();
-        let db: &Graph = get_read_or_error(&lock)?;
-
-        // get the matching annotation keys for each definition entry
-        let mut annokeys: Vec<(usize, Vec<AnnoKey>)> = Vec::default();
-        for def in definition {
-            if let Some(node_ref) = prep.query.get_variable_pos(&def.node_ref) {
-                if let Some(ns) = def.ns {
-                    // add the single fully qualified annotation key
-                    annokeys.push((
-                        node_ref,
-                        vec![AnnoKey {
-                            ns: ns.clone(),
-                            name: def.name.clone(),
-                        }],
-                    ));
-                } else {
-                    // add all matching annotation keys
-                    annokeys.push((node_ref, db.node_annos.get_qnames(&def.name)));
-                }
-            }
-        }
-
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
         let mut tuple_frequency: FxHashMap<Vec<String>, usize> = FxHashMap::default();
 
-        for mgroup in plan {
-            // for each match, extract the defined annotation (by its key) from the result node
-            let mut tuple: Vec<String> = Vec::with_capacity(annokeys.len());
-            for (node_ref, anno_keys) in &annokeys {
-                let mut tuple_val: String = String::default();
-                if *node_ref < mgroup.len() {
-                    let m: &Match = &mgroup[*node_ref];
-                    for k in anno_keys.iter() {
-                        if let Some(val) = db.node_annos.get_value_for_item(&m.node, k) {
-                            tuple_val = val.to_string();
-                        }
+        for cn in corpus_names {
+            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
+
+            // acquire read-only lock and execute query
+            let lock = prep.db_entry.read().unwrap();
+            let db: &Graph = get_read_or_error(&lock)?;
+
+            // get the matching annotation keys for each definition entry
+            let mut annokeys: Vec<(usize, Vec<AnnoKey>)> = Vec::default();
+            for def in definition.iter() {
+                if let Some(node_ref) = prep.query.get_variable_pos(&def.node_ref) {
+                    if let Some(ns) = &def.ns {
+                        // add the single fully qualified annotation key
+                        annokeys.push((
+                            node_ref,
+                            vec![AnnoKey {
+                                ns: ns.clone(),
+                                name: def.name.clone(),
+                            }],
+                        ));
+                    } else {
+                        // add all matching annotation keys
+                        annokeys.push((node_ref, db.node_annos.get_qnames(&def.name)));
                     }
                 }
-                tuple.push(tuple_val);
             }
-            // add the tuple to the frequency count
-            let tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
-            *tuple_count += 1;
+
+            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+
+            
+
+            for mgroup in plan {
+                // for each match, extract the defined annotation (by its key) from the result node
+                let mut tuple: Vec<String> = Vec::with_capacity(annokeys.len());
+                for (node_ref, anno_keys) in &annokeys {
+                    let mut tuple_val: String = String::default();
+                    if *node_ref < mgroup.len() {
+                        let m: &Match = &mgroup[*node_ref];
+                        for k in anno_keys.iter() {
+                            if let Some(val) = db.node_annos.get_value_for_item(&m.node, k) {
+                                tuple_val = val.to_string();
+                            }
+                        }
+                    }
+                    tuple.push(tuple_val);
+                }
+                // add the tuple to the frequency count
+                let tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
+                *tuple_count += 1;
+            }
         }
 
         // output the frequency
