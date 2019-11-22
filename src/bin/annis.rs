@@ -75,7 +75,7 @@ impl Completer for CommandCompleter {
             return self.filename_completer.complete(line, pos);
         } else if line.starts_with("corpus ") || line.starts_with("delete ") {
             // auto-complete the corpus names
-            if let Some(prefix_len) = line.find(' ') {
+            if let Some(prefix_len) = line.rfind(' ') {
                 let prefix_len = prefix_len + 1;
                 let mut matching_corpora = vec![];
                 let corpus_prefix = &line[prefix_len..];
