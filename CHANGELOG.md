@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 This is especially important for `find`, where the implementation can be optimized to correctly skip over a given offset
 using the internal state.
 Such an optimization is impossible from outside when calling the API and not having access to the iterator.
+- Use `is_connected()` instead of possible more expensive `distance()` function in overlap filter
+
 
 ## [0.24.0] - 2019-11-15
 
