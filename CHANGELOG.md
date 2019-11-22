@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Backward incompatible: the several search functions (`find`, `count`, etc.) not take several corpus names as argument.
+This is especially important for `find`, where the implementation can be optimized to correctly skip over a given offset
+using the internal state.
+Such an optimization is impossible from outside when calling the API and not having access to the iterator.
+
 ## [0.24.0] - 2019-11-15
 
 ### Changed
