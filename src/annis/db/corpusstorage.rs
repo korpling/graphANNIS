@@ -1306,6 +1306,17 @@ impl CorpusStorage {
     ) -> Result<Vec<String>> {
         let mut result = Vec::new();
 
+        // Sort corpus names
+        let mut corpus_names : Vec<String> = corpus_names.iter().map(|c| String::from(c.as_ref())).collect();
+        if order == ResultOrder::Randomized {
+            // This is still oddly ordered, because results from one corpus will always be grouped together.
+            // But it still better than just output the same corpus first.
+            let mut rng = rand::thread_rng();
+            corpus_names.shuffle(&mut rng);
+        } else {
+            corpus_names.sort();
+        }
+
         // initialize the limit/offset values for the first corpus
         let mut offset = offset;
         let mut limit = limit;
