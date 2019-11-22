@@ -147,9 +147,7 @@ pub extern "C" fn annis_cs_find(
     let limit = if limit.is_null() {
         None
     } else {
-        unsafe {
-            Some(*limit)
-        }
+        unsafe { Some(*limit) }
     };
 
     let result = try_cerr!(
