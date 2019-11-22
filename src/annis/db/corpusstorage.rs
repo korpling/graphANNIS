@@ -967,23 +967,27 @@ impl CorpusStorage {
 
     /// Returns a string representation of the execution plan for a `query`.
     ///
-    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `corpus_names` - The name of the corpora to execute the query on.
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
-    pub fn plan(
+    pub fn plan<S: AsRef<str>>(
         &self,
-        corpus_name: &str,
+        corpus_names: &[S],
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<String> {
-        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
+        let mut all_plans = Vec::with_capacity(corpus_names.len());
+        for cn in corpus_names {
+            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
 
-        // acquire read-only lock and plan
-        let lock = prep.db_entry.read().unwrap();
-        let db = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+            // acquire read-only lock and plan
+            let lock = prep.db_entry.read().unwrap();
+            let db = get_read_or_error(&lock)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
-        Ok(format!("{}", plan))
+            all_plans.push(format!("{}:\n{}", cn.as_ref(), plan));
+        }
+        Ok(all_plans.join("\n"))
     }
 
     /// Count the number of results for a `query`.
@@ -998,8 +1002,7 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<u64> {
-
-        let mut total_count : u64 = 0;
+        let mut total_count: u64 = 0;
 
         for cn in corpus_names {
             let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
@@ -1026,9 +1029,8 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<CountExtra> {
-
-        let mut match_count : u64 = 0;
-        let mut document_count : u64 = 0;
+        let mut match_count: u64 = 0;
+        let mut document_count: u64 = 0;
 
         for cn in corpus_names {
             let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
@@ -1043,7 +1045,9 @@ impl CorpusStorage {
             let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
                 if !m.is_empty() {
                     let m: &Match = &m[0];
-                    if let Some(node_name) = db.node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY) {
+                    if let Some(node_name) =
+                        db.node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY)
+                    {
                         let node_name: &str = &node_name;
                         // extract the document path from the node name
                         let doc_path =
@@ -1316,7 +1320,10 @@ impl CorpusStorage {
         let mut result = Vec::new();
 
         // Sort corpus names
-        let mut corpus_names : Vec<String> = corpus_names.iter().map(|c| String::from(c.as_ref())).collect();
+        let mut corpus_names: Vec<String> = corpus_names
+            .iter()
+            .map(|c| String::from(c.as_ref()))
+            .collect();
         if order == ResultOrder::Randomized {
             // This is still oddly ordered, because results from one corpus will always be grouped together.
             // But it still better than just output the same corpus first.
@@ -1330,8 +1337,14 @@ impl CorpusStorage {
         let mut offset = offset;
         let mut limit = limit;
         for cn in corpus_names {
-            let (single_result, skipped) =
-                self.find_in_single_corpus(cn.as_ref(), query, query_language, offset, limit, order)?;
+            let (single_result, skipped) = self.find_in_single_corpus(
+                cn.as_ref(),
+                query,
+                query_language,
+                offset,
+                limit,
+                order,
+            )?;
 
             // Adjust limit and offset according to the found matches for the next corpus.
             let single_result_length = single_result.len();
@@ -1348,8 +1361,6 @@ impl CorpusStorage {
             } else {
                 offset = 0;
             }
-
-            
         }
         Ok(result)
     }
@@ -1608,7 +1619,6 @@ impl CorpusStorage {
         query_language: QueryLanguage,
         definition: Vec<FrequencyDefEntry>,
     ) -> Result<FrequencyTable<String>> {
-
         let mut tuple_frequency: FxHashMap<Vec<String>, usize> = FxHashMap::default();
 
         for cn in corpus_names {
@@ -1639,8 +1649,6 @@ impl CorpusStorage {
             }
 
             let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
-
-            
 
             for mgroup in plan {
                 // for each match, extract the defined annotation (by its key) from the result node

@@ -380,20 +380,18 @@ impl AnnisRunner {
         if self.current_corpus.is_empty() {
             println!("You need to select a corpus first with the \"corpus\" command");
         } else {
-            for corpus in self.current_corpus.iter() {
-                let t_before = std::time::SystemTime::now();
-                let plan = self
-                    .storage
-                    .as_ref()
-                    .ok_or("No corpus storage location set")?
-                    .plan(corpus, args, self.query_language)?;
-                let load_time = t_before.elapsed();
-                if let Ok(t) = load_time {
-                    info! {"Planned query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
-                }
-
-                println!("{}", plan);
+            let t_before = std::time::SystemTime::now();
+            let plan = self
+                .storage
+                .as_ref()
+                .ok_or("No corpus storage location set")?
+                .plan(&self.current_corpus, args, self.query_language)?;
+            let load_time = t_before.elapsed();
+            if let Ok(t) = load_time {
+                info! {"Planned query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
+
+            println!("{}", plan);
         }
         Ok(())
     }
@@ -413,7 +411,6 @@ impl AnnisRunner {
                 info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
             println!("result: {} matches", c);
-        
         }
         Ok(())
     }
@@ -475,7 +472,12 @@ impl AnnisRunner {
                 .storage
                 .as_ref()
                 .ok_or("No corpus storage location set")?
-                .frequency(&self.current_corpus, splitted_arg[1], self.query_language, table_def)?;
+                .frequency(
+                    &self.current_corpus,
+                    splitted_arg[1],
+                    self.query_language,
+                    table_def,
+                )?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -496,7 +498,6 @@ impl AnnisRunner {
             out.printstd();
 
             // TODO output error if needed
-        
         }
 
         Ok(())
