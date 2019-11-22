@@ -128,11 +128,10 @@ impl<'a> BinaryOperator for Overlap<'a> {
             self.tok_helper.left_token_for(rhs.node),
             self.tok_helper.right_token_for(rhs.node),
         ) {
-            // TODO: why not isConnected()? (instead of distance)
             // path between LHS left-most token and RHS right-most token exists in ORDERING component
-            if self.gs_order.distance(start_lhs, end_rhs).is_some()
+            if self.gs_order.is_connected(start_lhs, end_rhs, 0, std::ops::Bound::Unbounded)
                 // path between LHS left-most token and RHS right-most token exists in ORDERING component
-                && self.gs_order.distance(start_rhs, end_lhs).is_some()
+                && self.gs_order.is_connected(start_rhs, end_lhs, 0, std::ops::Bound::Unbounded)
             {
                 return true;
             }
