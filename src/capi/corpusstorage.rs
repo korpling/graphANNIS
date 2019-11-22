@@ -113,7 +113,7 @@ pub extern "C" fn annis_cs_count_extra(
     let corpus = cstr!(corpus);
 
     return try_cerr!(
-        cs.count_extra(&corpus, &query, query_language),
+        cs.count_extra(&[&corpus], &query, query_language),
         err,
         CountExtra::default()
     );
@@ -294,7 +294,7 @@ pub extern "C" fn annis_cs_frequency(
         .collect();
 
     let orig_ft = try_cerr!(
-        cs.frequency(&corpus, &query, query_language, table_def),
+        cs.frequency(&[&corpus], &query, query_language, table_def),
         err,
         std::ptr::null_mut()
     );

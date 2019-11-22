@@ -451,53 +451,52 @@ impl AnnisRunner {
         if self.current_corpus.is_empty() {
             println!("You need to select a corpus first with the \"corpus\" command");
         } else {
-            for corpus in self.current_corpus.iter() {
-                let splitted_arg: Vec<&str> = args.splitn(2, ' ').collect();
-                let table_def: Vec<FrequencyDefEntry> = if splitted_arg.len() == 2 {
-                    // split the second argument
-                    let defs = splitted_arg[0].split(',');
-                    defs.filter_map(|d| -> Option<FrequencyDefEntry> { d.parse().ok() })
-                        .collect()
-                } else {
-                    println!("You have to give the frequency definition as first argument and the AQL as second argument");
-                    return Ok(());
-                };
+            let splitted_arg: Vec<&str> = args.splitn(2, ' ').collect();
+            let table_def: Vec<FrequencyDefEntry> = if splitted_arg.len() == 2 {
+                // split the second argument
+                let defs = splitted_arg[0].split(',');
+                defs.filter_map(|d| -> Option<FrequencyDefEntry> { d.parse().ok() })
+                    .collect()
+            } else {
+                println!("You have to give the frequency definition as first argument and the AQL as second argument");
+                return Ok(());
+            };
 
-                let mut out = Table::new();
-                let mut header_row = Row::empty();
-                for def in table_def.iter() {
-                    header_row.add_cell(Cell::from(&format!("{}#{}", def.node_ref, def.name)));
-                }
-                header_row.add_cell(Cell::from(&"count"));
-                out.add_row(header_row);
-
-                let t_before = std::time::SystemTime::now();
-                let frequency_table = self
-                    .storage
-                    .as_ref()
-                    .ok_or("No corpus storage location set")?
-                    .frequency(corpus, splitted_arg[1], self.query_language, table_def)?;
-                let load_time = t_before.elapsed();
-                if let Ok(t) = load_time {
-                    info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
-                }
-
-                // map the resulting frequency table to an output
-
-                // TODO: map header
-                for row in frequency_table.into_iter() {
-                    let mut out_row = Row::empty();
-                    for att in row.0.iter() {
-                        out_row.add_cell(Cell::from(att));
-                    }
-                    // also add the count
-                    out_row.add_cell(Cell::from(&row.1));
-                    out.add_row(out_row);
-                }
-                out.printstd();
-
-                // TODO output error if needed
+            let mut out = Table::new();
+            let mut header_row = Row::empty();
+            for def in table_def.iter() {
+                header_row.add_cell(Cell::from(&format!("{}#{}", def.node_ref, def.name)));
             }
+            header_row.add_cell(Cell::from(&"count"));
+            out.add_row(header_row);
+
+            let t_before = std::time::SystemTime::now();
+            let frequency_table = self
+                .storage
+                .as_ref()
+                .ok_or("No corpus storage location set")?
+                .frequency(&self.current_corpus, splitted_arg[1], self.query_language, table_def)?;
+            let load_time = t_before.elapsed();
+            if let Ok(t) = load_time {
+                info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+            }
+
+            // map the resulting frequency table to an output
+
+            // TODO: map header
+            for row in frequency_table.into_iter() {
+                let mut out_row = Row::empty();
+                for att in row.0.iter() {
+                    out_row.add_cell(Cell::from(att));
+                }
+                // also add the count
+                out_row.add_cell(Cell::from(&row.1));
+                out.add_row(out_row);
+            }
+            out.printstd();
+
+            // TODO output error if needed
+        
         }
 
         Ok(())
