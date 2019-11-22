@@ -96,7 +96,7 @@ pub extern "C" fn annis_cs_count(
     let query = cstr!(query);
     let corpus = cstr!(corpus);
 
-    return try_cerr!(cs.count(&corpus, &query, query_language), err, 0);
+    return try_cerr!(cs.count(&[&corpus], &query, query_language), err, 0);
 }
 
 #[no_mangle]
