@@ -407,7 +407,7 @@ pub extern "C" fn annis_cs_validate_query(
     let corpus = cstr!(corpus);
 
     return try_cerr!(
-        cs.validate_query(&corpus, &query, query_language),
+        cs.validate_query(&[&corpus], &query, query_language),
         err,
         false
     );
