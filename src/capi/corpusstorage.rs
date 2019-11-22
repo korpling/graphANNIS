@@ -86,7 +86,7 @@ pub extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
 #[no_mangle]
 pub extern "C" fn annis_cs_count(
     ptr: *const CorpusStorage,
-    corpus: *const libc::c_char,
+    corpus_names: *const Vec<CString>,
     query: *const libc::c_char,
     query_language: QueryLanguage,
     err: *mut *mut ErrorList,
@@ -94,15 +94,18 @@ pub extern "C" fn annis_cs_count(
     let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query);
-    let corpus = cstr!(corpus);
+    let corpus_names: Vec<String> = cast_const!(corpus_names)
+        .iter()
+        .map(|cn| String::from(cn.to_string_lossy()))
+        .collect();
 
-    return try_cerr!(cs.count(&[&corpus], &query, query_language), err, 0);
+    return try_cerr!(cs.count(&corpus_names, &query, query_language), err, 0);
 }
 
 #[no_mangle]
 pub extern "C" fn annis_cs_count_extra(
     ptr: *const CorpusStorage,
-    corpus: *const libc::c_char,
+    corpus_names: *const Vec<CString>,
     query: *const libc::c_char,
     query_language: QueryLanguage,
     err: *mut *mut ErrorList,
@@ -110,10 +113,13 @@ pub extern "C" fn annis_cs_count_extra(
     let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query);
-    let corpus = cstr!(corpus);
+    let corpus_names: Vec<String> = cast_const!(corpus_names)
+        .iter()
+        .map(|cn| String::from(cn.to_string_lossy()))
+        .collect();
 
     return try_cerr!(
-        cs.count_extra(&[&corpus], &query, query_language),
+        cs.count_extra(&corpus_names, &query, query_language),
         err,
         CountExtra::default()
     );
@@ -122,7 +128,7 @@ pub extern "C" fn annis_cs_count_extra(
 #[no_mangle]
 pub extern "C" fn annis_cs_find(
     ptr: *const CorpusStorage,
-    corpus_name: *const libc::c_char,
+    corpus_names: *const Vec<CString>,
     query: *const libc::c_char,
     query_language: QueryLanguage,
     offset: libc::size_t,
@@ -133,7 +139,10 @@ pub extern "C" fn annis_cs_find(
     let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query);
-    let corpus = cstr!(corpus_name);
+    let corpus_names: Vec<String> = cast_const!(corpus_names)
+        .iter()
+        .map(|cn| String::from(cn.to_string_lossy()))
+        .collect();
 
     let limit = if limit.is_null() {
         None
@@ -144,7 +153,7 @@ pub extern "C" fn annis_cs_find(
     };
 
     let result = try_cerr!(
-        cs.find(&[&corpus], &query, query_language, offset, limit, order),
+        cs.find(&corpus_names, &query, query_language, offset, limit, order),
         err,
         std::ptr::null_mut()
     );
@@ -277,7 +286,7 @@ pub extern "C" fn annis_cs_subgraph_for_query_with_ctype(
 #[no_mangle]
 pub extern "C" fn annis_cs_frequency(
     ptr: *const CorpusStorage,
-    corpus_name: *const libc::c_char,
+    corpus_names: *const Vec<CString>,
     query: *const libc::c_char,
     query_language: QueryLanguage,
     frequency_query_definition: *const libc::c_char,
@@ -286,7 +295,10 @@ pub extern "C" fn annis_cs_frequency(
     let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query);
-    let corpus = cstr!(corpus_name);
+    let corpus_names: Vec<String> = cast_const!(corpus_names)
+        .iter()
+        .map(|cn| String::from(cn.to_string_lossy()))
+        .collect();
     let frequency_query_definition = cstr!(frequency_query_definition);
     let table_def: Vec<FrequencyDefEntry> = frequency_query_definition
         .split(',')
@@ -294,7 +306,7 @@ pub extern "C" fn annis_cs_frequency(
         .collect();
 
     let orig_ft = try_cerr!(
-        cs.frequency(&[&corpus], &query, query_language, table_def),
+        cs.frequency(&corpus_names, &query, query_language, table_def),
         err,
         std::ptr::null_mut()
     );
@@ -396,7 +408,7 @@ pub extern "C" fn annis_cs_list_edge_annotations(
 #[no_mangle]
 pub extern "C" fn annis_cs_validate_query(
     ptr: *const CorpusStorage,
-    corpus: *const libc::c_char,
+    corpus_names: *const Vec<CString>,
     query: *const libc::c_char,
     query_language: QueryLanguage,
     err: *mut *mut ErrorList,
@@ -404,10 +416,13 @@ pub extern "C" fn annis_cs_validate_query(
     let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query);
-    let corpus = cstr!(corpus);
+    let corpus_names: Vec<String> = cast_const!(corpus_names)
+        .iter()
+        .map(|cn| String::from(cn.to_string_lossy()))
+        .collect();
 
     return try_cerr!(
-        cs.validate_query(&[&corpus], &query, query_language),
+        cs.validate_query(&corpus_names, &query, query_language),
         err,
         false
     );
