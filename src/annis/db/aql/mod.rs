@@ -254,7 +254,6 @@ fn add_legacy_metadata_constraints(
 ) -> Result<()> {
     {
         let mut first_meta_idx: Option<String> = None;
-        // TODO: add warning to the user not to use this construct anymore
         for (spec, _pos) in legacy_meta_search {
             // add an artificial node that describes the document/corpus node
             let meta_node_idx = q.add_node_from_query(spec, None, None, false);

@@ -224,7 +224,6 @@ impl WriteableGraphStorage for AdjacencyListStorage {
                 regular_entry.insert(insertion_idx, edge.target);
             }
             self.stats = None;
-            // TODO: invalid graph statistics
         }
     }
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) {

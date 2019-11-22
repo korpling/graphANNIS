@@ -43,7 +43,6 @@ impl<'a> IndexJoin<'a> {
         rhs_desc: Option<&Desc>,
     ) -> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
-        // TODO, we
         let lhs_peek = lhs.peekable();
 
         let processed_func = |est_type: EstimationType, out_lhs: usize, out_rhs: usize| {

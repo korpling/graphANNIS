@@ -485,7 +485,6 @@ impl AnnisRunner {
 
             // map the resulting frequency table to an output
 
-            // TODO: map header
             for row in frequency_table.into_iter() {
                 let mut out_row = Row::empty();
                 for att in row.0.iter() {
@@ -496,8 +495,6 @@ impl AnnisRunner {
                 out.add_row(out_row);
             }
             out.printstd();
-
-            // TODO output error if needed
         }
 
         Ok(())

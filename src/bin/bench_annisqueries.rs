@@ -140,7 +140,6 @@ fn main() {
             "count",
             |b: &mut Bencher, obj: &CountBench| {
                 for c in obj.def.corpus.iter() {
-                    // TODO: preloading all corpora is necessary, but how do we prevent unloading?
                     obj.cs.preload(c).unwrap();
                 }
                 b.iter(|| {

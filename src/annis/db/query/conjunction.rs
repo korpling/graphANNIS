@@ -389,7 +389,6 @@ impl<'a> Conjunction<'a> {
 
         let mut best_operator_order = Vec::from_iter(0..self.binary_operators.len());
 
-        // TODO: cache the base estimates
         let initial_plan =
             self.make_exec_plan_with_order(db, config, best_operator_order.clone())?;
         let mut best_cost: usize = initial_plan

@@ -391,7 +391,6 @@ fn calculate_automatic_token_order<F>(
 where
     F: Fn(&str) -> (),
 {
-    // TODO: cleanup, better variable naming
     // iterate over all token by their order, find the nodes with the same
     // text coverage (either left or right) and add explicit Ordering edge
 

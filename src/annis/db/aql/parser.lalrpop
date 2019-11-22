@@ -431,7 +431,6 @@ BinaryOpSpec : ast::BinaryOpSpec = {
     RIGHT_ALIGNED => ast::BinaryOpSpec::RightAlignment(RightAlignmentSpec {}),
     // Identical node
     IDENT_NODE => ast::BinaryOpSpec::IdenticalNode(IdenticalNodeSpec {}),
-    // TODO: add more binary operators
 }
 
 /// Filters which can be only applied between node references
@@ -448,7 +447,6 @@ UnaryOpSpec : ast::UnaryOpSpec = {
             children
         })
     },
-    // TODO: add more unary operators
 }
 
 ComparisonOperator: ast::ComparisonOperator = {
@@ -465,8 +463,6 @@ TextSearch: ast::TextSearch = {
 
 EdgeAnno: EdgeAnnoSearchSpec = {
     "[" <name:QName> <cmp:ComparisonOperator> <val:TextSearch> "]"  => {
-        // TODO: multiple edge annotations
-        
         let spec = match val.1 { 
             ast::StringMatchType::Exact => {
                 match cmp {
