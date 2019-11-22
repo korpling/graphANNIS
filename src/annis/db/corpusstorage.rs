@@ -987,25 +987,32 @@ impl CorpusStorage {
     }
 
     /// Count the number of results for a `query`.
-    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `corpus_names` - The name of the corpora to execute the query on.
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
     ///
     /// Returns the count as number.
-    pub fn count(
+    pub fn count<S: AsRef<str>>(
         &self,
-        corpus_name: &str,
+        corpus_names: &[S],
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<u64> {
-        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
-        // acquire read-only lock and execute query
-        let lock = prep.db_entry.read().unwrap();
-        let db = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+        let mut total_count : u64 = 0;
 
-        Ok(plan.count() as u64)
+        for cn in corpus_names {
+            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
+
+            // acquire read-only lock and execute query
+            let lock = prep.db_entry.read().unwrap();
+            let db = get_read_or_error(&lock)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+
+            total_count += plan.count() as u64;
+        }
+
+        Ok(total_count)
     }
 
     /// Count the number of results for a `query` and return both the total number of matches and also the number of documents in the result set.

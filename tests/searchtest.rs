@@ -44,7 +44,7 @@ fn non_reflexivity_nodes() {
             if corpora.contains("GUM") {
                 let node_count = {
                     let cs = cs_mutex.lock().unwrap();
-                    cs.count("GUM", "node", QueryLanguage::AQL).unwrap_or(0)
+                    cs.count(&["GUM"], "node", QueryLanguage::AQL).unwrap_or(0)
                 };
 
                 let operators_to_test = vec![
@@ -55,7 +55,7 @@ fn non_reflexivity_nodes() {
                 for o in operators_to_test.into_iter() {
                     let count = {
                         let cs = cs_mutex.lock().unwrap();
-                        cs.count("GUM", &format!("node {} node", o), QueryLanguage::AQL)
+                        cs.count(&["GUM"], &format!("node {} node", o), QueryLanguage::AQL)
                             .unwrap_or(0)
                     };
                     assert_ne!(
@@ -83,7 +83,7 @@ fn non_reflexivity_tokens() {
             if corpora.contains("GUM") {
                 let tok_count = {
                     let cs = cs_mutex.lock().unwrap();
-                    cs.count("GUM", "tok", QueryLanguage::AQL).unwrap_or(0)
+                    cs.count(&["GUM"], "tok", QueryLanguage::AQL).unwrap_or(0)
                 };
 
                 let operators_to_test = vec![
@@ -93,7 +93,7 @@ fn non_reflexivity_tokens() {
                 for o in operators_to_test.into_iter() {
                     let count = {
                         let cs = cs_mutex.lock().unwrap();
-                        cs.count("GUM", &format!("tok {} tok", o), QueryLanguage::AQL)
+                        cs.count(&["GUM"], &format!("tok {} tok", o), QueryLanguage::AQL)
                             .unwrap_or(0)
                     };
                     assert_ne!(

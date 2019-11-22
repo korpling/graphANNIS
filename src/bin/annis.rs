@@ -402,19 +402,18 @@ impl AnnisRunner {
         if self.current_corpus.is_empty() {
             println!("You need to select a corpus first with the \"corpus\" command");
         } else {
-            for corpus in self.current_corpus.iter() {
-                let t_before = std::time::SystemTime::now();
-                let c = self
-                    .storage
-                    .as_ref()
-                    .ok_or("No corpus storage location set")?
-                    .count(corpus, args, self.query_language)?;
-                let load_time = t_before.elapsed();
-                if let Ok(t) = load_time {
-                    info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
-                }
-                println!("result: {} matches", c);
+            let t_before = std::time::SystemTime::now();
+            let c = self
+                .storage
+                .as_ref()
+                .ok_or("No corpus storage location set")?
+                .count(&self.current_corpus, args, self.query_language)?;
+            let load_time = t_before.elapsed();
+            if let Ok(t) = load_time {
+                info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
+            println!("result: {} matches", c);
+        
         }
         Ok(())
     }
