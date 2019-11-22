@@ -945,23 +945,25 @@ impl CorpusStorage {
 
     /// Parses a `query` and checks if it is valid.
     ///
-    /// - `corpus_name` - The name of the corpus the query would be executed on (needed because missing annotation names can be a semantic parser error).
+    /// - `corpus_names` - The name of the corpora the query would be executed on (needed to catch certain corpus-specific semantic errors).
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
     ///
     /// Returns `true` if valid and an error with the parser message if invalid.
-    pub fn validate_query(
+    pub fn validate_query<S: AsRef<str>>(
         &self,
-        corpus_name: &str,
+        corpus_names: &[S],
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<bool> {
-        let prep: PreparationResult =
-            self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
-        // also get the semantic errors by creating an execution plan on the actual Graph
-        let lock = prep.db_entry.read().unwrap();
-        let db = get_read_or_error(&lock)?;
-        ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+        for cn in corpus_names {
+            let prep: PreparationResult =
+                self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
+            // also get the semantic errors by creating an execution plan on the actual Graph
+            let lock = prep.db_entry.read().unwrap();
+            let db = get_read_or_error(&lock)?;
+            ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+        }
         Ok(true)
     }
 
