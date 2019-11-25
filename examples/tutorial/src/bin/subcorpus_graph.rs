@@ -89,6 +89,7 @@ fn main() {
         let id = m.get_node();
         // get the node name from the ID by searching for the label with the name "annis::node_name"
         let matched_node_name = subgraph
+            .get_node_annos()
             .get_annotations_for_item(&id)
             .into_iter()
             .filter(|anno| anno.key.ns == "annis" && anno.key.name == "node_name")

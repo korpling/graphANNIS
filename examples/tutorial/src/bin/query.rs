@@ -5,17 +5,17 @@ use std::path::PathBuf;
 fn main() {
     let cs = CorpusStorage::with_auto_cache_size(&PathBuf::from("data"), true).unwrap();
     let number_of_matches = cs
-        .count("tutorial", "tok=/.*s.*/", QueryLanguage::AQL)
+        .count(&["tutorial"], "tok=/.*s.*/", QueryLanguage::AQL)
         .unwrap();
     println!("Number of matches: {}", number_of_matches);
 
     let matches = cs
         .find(
-            "tutorial",
+            &["tutorial"],
             "tok=/.*s.*/",
             QueryLanguage::AQL,
             0,
-            100,
+            Some(100),
             ResultOrder::Normal,
         )
         .unwrap();
