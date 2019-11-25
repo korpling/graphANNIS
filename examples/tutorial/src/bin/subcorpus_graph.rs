@@ -1,4 +1,3 @@
-use graphannis::graph::AnnotationStorage;
 use graphannis::update::{GraphUpdate, UpdateEvent};
 use graphannis::CorpusStorage;
 use std::path::PathBuf;
@@ -79,10 +78,10 @@ fn main() {
     let subgraph = cs
         .subcorpus_graph("tutorial", vec!["tutorial/doc1".to_string()])
         .unwrap();
-    let node_search = subgraph.exact_anno_search(
-        Some("annis".to_string()),
-        "node_type".to_string(),
-        Some("node".to_string()).into(),
+    let node_search = subgraph.get_node_annos().exact_anno_search(
+        Some("annis"),
+        "node_type",
+        Some("node").into(),
     );
     for m in node_search {
         // get the numeric node ID from the match
