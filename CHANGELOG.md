@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.0] - 2019-11-25
+
 ### Changed
 
 - Backward incompatible: the several search functions (`find`, `count`, etc.) not take several corpus names as argument.
