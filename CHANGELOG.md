@@ -12,6 +12,12 @@ This is especially important for `find`, where the implementation can be optimiz
 using the internal state.
 Such an optimization is impossible from outside when calling the API and not having access to the iterator.
 
+### Fixed
+
+- Don't assume inverse operator has the same cost when fan-out is too different. 
+Subgraph queries could be very slow for corpora with large documents due to an estimation error from this assumption 
+the `@` operator. 
+
 ## [0.24.0] - 2019-11-15
 
 ### Changed
