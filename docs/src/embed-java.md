@@ -131,22 +131,23 @@ The following example searches for all tokens that contain a `s` character.[^aql
 package org.corpus_tools;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 import org.corpus_tools.graphannis.CorpusStorageManager;
+import org.corpus_tools.graphannis.CorpusStorageManager.QueryLanguage;
 import org.corpus_tools.graphannis.errors.GraphANNISException;
 
 public class Query {
     public static void main(String[] args) throws GraphANNISException {
         CorpusStorageManager cs = new CorpusStorageManager("data");
-        long number_of_matches = cs.count("tutorial", "tok=/.*s.*/");
+        long number_of_matches = cs.count(Arrays.asList("tutorial"), "tok=/.*s.*/", QueryLanguage.AQL);
         System.out.println("Number of matches: " + number_of_matches);
-        String[] matches = cs.find("tutorial", "tok=/.*s.*/", 0, 100);
+        String[] matches = cs.find(Arrays.asList("tutorial"), "tok=/.*s.*/", QueryLanguage.AQL, 0, Optional.of(100l));
         for (int i = 0; i < matches.length; i++) {
             System.out.println("Match " + i + ": " + matches[i]);
         }
     }
 }
-
 ```
 Output:
 ```ignore
@@ -165,9 +166,11 @@ package org.corpus_tools;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.corpus_tools.graphannis.CorpusStorageManager;
 import org.corpus_tools.graphannis.Util;
+import org.corpus_tools.graphannis.CorpusStorageManager.QueryLanguage;
 import org.corpus_tools.graphannis.errors.GraphANNISException;
 import org.corpus_tools.graphannis.model.Graph;
 import org.corpus_tools.graphannis.model.Node;
@@ -175,12 +178,12 @@ import org.corpus_tools.graphannis.model.Node;
 public class FindSubgraph {
     public static void main(String[] args) throws GraphANNISException {
         CorpusStorageManager cs = new CorpusStorageManager("data");
-        String[] matches = cs.find("tutorial", "tok . tok", 0, 100);
+        String[] matches = cs.find(Arrays.asList("tutorial"), "tok . tok", QueryLanguage.AQL, 0, Optional.of(100l));
         for (String m : matches) {
             System.out.println(m);
             // convert the match string to a list of node IDs
             List<String> node_names = Util.nodeNamesFromMatch(m);
-            Graph g = cs.subgraph("tutorial", node_names, 2, 2);
+            Graph g = cs.subgraph("tutorial", node_names, 2, 2, Optional.empty());
             // iterate over all nodes of type "node" and output the name
             int numberOfNodes = 0;
             for (Node n : g.getNodesByType("node")) {
@@ -251,7 +254,6 @@ public class SubcorpusGraph {
         }
     }
 }
-
 ```
 Output:
 ```ignore
