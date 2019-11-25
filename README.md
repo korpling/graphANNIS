@@ -27,7 +27,7 @@ cargo build --release --all-features
 
 ## Documentation
 
-- [Developer Guide](https://korpling.github.io/graphANNIS/docs/v0.24) (including descriptions of the data model and tutorials for the API)
+- [Developer Guide](https://korpling.github.io/graphANNIS/docs/v0.25) (including descriptions of the data model and tutorials for the API)
 - [API documentation](https://docs.rs/graphannis/)
 
 ## 3rd party dependencies
