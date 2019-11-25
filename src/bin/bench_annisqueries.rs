@@ -144,13 +144,15 @@ fn main() {
                     obj.cs.preload(c).unwrap();
                 }
                 b.iter(|| {
-                    let mut all_corpora_count = 0;
-                    for c in obj.def.corpus.iter() {
-                        if let Ok(count) = obj.cs.count(c, &obj.def.aql, QueryLanguage::AQL) {
-                            all_corpora_count += count;
-                        }
-                    }
-                    assert_eq!(obj.def.count, all_corpora_count);
+                    let count = if let Ok(count) =
+                        obj.cs
+                            .count(&obj.def.corpus, &obj.def.aql, QueryLanguage::AQL)
+                    {
+                        count
+                    } else {
+                        0
+                    };
+                    assert_eq!(obj.def.count, count);
                 });
             },
             benches,

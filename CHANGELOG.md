@@ -5,6 +5,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.0] - 2019-11-25
+
+### Changed
+
+- Backward incompatible: the several search functions (`find`, `count`, etc.) not take several corpus names as argument.
+This is especially important for `find`, where the implementation can be optimized to correctly skip over a given offset
+using the internal state.
+Such an optimization is impossible from outside when calling the API and not having access to the iterator.
+
+### Fixed
+
+- Don't assume inverse operator has the same cost when fan-out is too different. 
+Subgraph queries could be very slow for corpora with large documents due to an estimation error from this assumption 
+the `@` operator. 
+
 ## [0.24.0] - 2019-11-15
 
 ### Changed

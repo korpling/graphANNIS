@@ -341,6 +341,12 @@ impl BinaryOperator for BaseEdgeOp {
             if !g.inverse_has_same_cost() {
                 return None;
             }
+            if let Some(stat) = g.get_statistics() {
+                // If input and output estimations are too different, also don't provide a more costly inverse operator
+                if stat.inverse_fan_out_99_percentile > stat.fan_out_99_percentile {
+                    return None;
+                }
+            }
         }
         let edge_op = BaseEdgeOp {
             gs: self.gs.clone(),

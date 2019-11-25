@@ -41,6 +41,8 @@ impl CommandCompleter {
         known_commands.insert("list".to_string());
         known_commands.insert("delete".to_string());
         known_commands.insert("corpus".to_string());
+        known_commands.insert("set-offset".to_string());
+        known_commands.insert("set-limit".to_string());
         known_commands.insert("preload".to_string());
         known_commands.insert("update_statistics".to_string());
         known_commands.insert("count".to_string());
@@ -73,7 +75,7 @@ impl Completer for CommandCompleter {
             return self.filename_completer.complete(line, pos);
         } else if line.starts_with("corpus ") || line.starts_with("delete ") {
             // auto-complete the corpus names
-            if let Some(prefix_len) = line.find(' ') {
+            if let Some(prefix_len) = line.rfind(' ') {
                 let prefix_len = prefix_len + 1;
                 let mut matching_corpora = vec![];
                 let corpus_prefix = &line[prefix_len..];
@@ -104,7 +106,9 @@ impl Completer for CommandCompleter {
 }
 struct AnnisRunner {
     storage: Option<CorpusStorage>,
-    current_corpus: Option<String>,
+    current_corpus: Vec<String>,
+    offset: usize,
+    limit: Option<usize>,
     data_dir: PathBuf,
     use_parallel_joins: bool,
     query_language: QueryLanguage,
@@ -114,10 +118,12 @@ impl AnnisRunner {
     pub fn new(data_dir: &Path) -> Result<AnnisRunner> {
         Ok(AnnisRunner {
             storage: Some(CorpusStorage::with_auto_cache_size(data_dir, true)?),
-            current_corpus: None,
+            current_corpus: vec![],
             data_dir: PathBuf::from(data_dir),
             use_parallel_joins: true,
             query_language: QueryLanguage::AQL,
+            offset: 0,
+            limit: None,
         })
     }
 
@@ -134,10 +140,10 @@ impl AnnisRunner {
         }
 
         loop {
-            let prompt = if let Some(ref c) = self.current_corpus {
-                format!("{}> ", c)
-            } else {
+            let prompt = if self.current_corpus.is_empty() {
                 String::from(">> ")
+            } else {
+                format!("{}> ", self.current_corpus.join(","))
             };
             let readline = rl.readline(&prompt);
             match readline {
@@ -178,6 +184,8 @@ impl AnnisRunner {
                 "list" => self.list(),
                 "delete" => self.delete(&args),
                 "corpus" => self.corpus(&args),
+                "set-offset" => self.set_offset(&args),
+                "set-limit" => self.set_limit(&args),
                 "preload" => self.preload(),
                 "update_statistics" => self.update_statistics(),
                 "plan" => self.plan(&args),
@@ -274,7 +282,7 @@ impl AnnisRunner {
 
     fn corpus(&mut self, args: &str) -> Result<()> {
         if args.is_empty() {
-            self.current_corpus = None;
+            self.current_corpus = vec![];
         } else {
             let corpora = self
                 .storage
@@ -282,118 +290,146 @@ impl AnnisRunner {
                 .ok_or("No corpus storage location set")?
                 .list()?;
             let corpora = BTreeSet::from_iter(corpora.into_iter().map(|c| c.name));
-            let selected = String::from(args);
-            if corpora.contains(&selected) {
-                self.current_corpus = Some(String::from(args));
-            } else {
-                println!("Corpus {} does not exist. Uses the \"list\" command to get all available corpora", selected);
+            let selected = args.split_ascii_whitespace();
+            self.current_corpus = Vec::new();
+            for s in selected {
+                if corpora.contains(s) {
+                    self.current_corpus.push(s.to_string());
+                } else {
+                    println!("Corpus {} does not exist. Uses the \"list\" command to get all available corpora", s);
+                }
             }
+        }
+        Ok(())
+    }
+
+    fn set_offset(&mut self, args: &str) -> Result<()> {
+        if args.is_empty() {
+            self.offset = 0;
+        } else {
+            self.offset = usize::from_str_radix(args.trim(), 10)?;
+        }
+        Ok(())
+    }
+
+    fn set_limit(&mut self, args: &str) -> Result<()> {
+        if args.is_empty() {
+            self.limit = None;
+        } else {
+            self.limit = Some(usize::from_str_radix(args.trim(), 10)?);
         }
         Ok(())
     }
 
     fn info(&self) -> Result<()> {
-        if let Some(ref corpus) = self.current_corpus {
-            let cinfo = self
-                .storage
-                .as_ref()
-                .ok_or("No corpus storage location set")?
-                .info(corpus)?;
-            println!("{}", cinfo);
-        } else {
+        if self.current_corpus.is_empty() {
             println!("You need to select a corpus for the \"info\" command");
+        } else {
+            for corpus in self.current_corpus.iter() {
+                let cinfo = self
+                    .storage
+                    .as_ref()
+                    .ok_or("No corpus storage location set")?
+                    .info(corpus)?;
+                println!("{}", cinfo);
+            }
         }
         Ok(())
     }
 
     fn preload(&mut self) -> Result<()> {
-        if let Some(ref corpus) = self.current_corpus {
-            let t_before = std::time::SystemTime::now();
-            self.storage
-                .as_ref()
-                .ok_or("No corpus storage location set")?
-                .preload(corpus)?;
-            let load_time = t_before.elapsed();
-            if let Ok(t) = load_time {
-                info! {"Preloaded corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
-            }
-        } else {
+        if self.current_corpus.is_empty() {
             println!("You need to select a corpus first with the \"corpus\" command");
+        } else {
+            for corpus in self.current_corpus.iter() {
+                let t_before = std::time::SystemTime::now();
+                self.storage
+                    .as_ref()
+                    .ok_or("No corpus storage location set")?
+                    .preload(corpus)?;
+                let load_time = t_before.elapsed();
+                if let Ok(t) = load_time {
+                    info! {"Preloaded corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                }
+            }
         }
         Ok(())
     }
 
     fn update_statistics(&mut self) -> Result<()> {
-        if let Some(ref corpus) = self.current_corpus {
-            let t_before = std::time::SystemTime::now();
-            self.storage
-                .as_ref()
-                .ok_or("No corpus storage location set")?
-                .update_statistics(corpus)?;
-            let load_time = t_before.elapsed();
-            if let Ok(t) = load_time {
-                info! {"Updated statistics for corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
-            }
-        } else {
+        if self.current_corpus.is_empty() {
             println!("You need to select a corpus first with the \"corpus\" command");
+        } else {
+            for corpus in self.current_corpus.iter() {
+                let t_before = std::time::SystemTime::now();
+                self.storage
+                    .as_ref()
+                    .ok_or("No corpus storage location set")?
+                    .update_statistics(corpus)?;
+                let load_time = t_before.elapsed();
+                if let Ok(t) = load_time {
+                    info! {"Updated statistics for corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                }
+            }
         }
 
         Ok(())
     }
 
     fn plan(&self, args: &str) -> Result<()> {
-        if let Some(ref corpus) = self.current_corpus {
+        if self.current_corpus.is_empty() {
+            println!("You need to select a corpus first with the \"corpus\" command");
+        } else {
             let t_before = std::time::SystemTime::now();
             let plan = self
                 .storage
                 .as_ref()
                 .ok_or("No corpus storage location set")?
-                .plan(corpus, args, self.query_language)?;
+                .plan(&self.current_corpus, args, self.query_language)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info! {"Planned query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
             println!("{}", plan);
-        } else {
-            println!("You need to select a corpus first with the \"corpus\" command");
         }
         Ok(())
     }
 
     fn count(&self, args: &str) -> Result<()> {
-        if let Some(ref corpus) = self.current_corpus {
+        if self.current_corpus.is_empty() {
+            println!("You need to select a corpus first with the \"corpus\" command");
+        } else {
             let t_before = std::time::SystemTime::now();
             let c = self
                 .storage
                 .as_ref()
                 .ok_or("No corpus storage location set")?
-                .count(corpus, args, self.query_language)?;
+                .count(&self.current_corpus, args, self.query_language)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
-
             println!("result: {} matches", c);
-        } else {
-            println!("You need to select a corpus first with the \"corpus\" command");
         }
         Ok(())
     }
 
     fn find(&self, args: &str) -> Result<()> {
-        if let Some(ref corpus) = self.current_corpus {
+        if self.current_corpus.is_empty() {
+            println!("You need to select a corpus first with the \"corpus\" command");
+        } else {
             let t_before = std::time::SystemTime::now();
             let matches = self
                 .storage
                 .as_ref()
                 .ok_or("No corpus storage location set")?
                 .find(
-                    corpus,
+                    &self.current_corpus[..],
                     args,
                     self.query_language,
-                    0,
-                    usize::max_value(),
+                    self.offset,
+                    self.limit,
                     ResultOrder::Normal,
                 )?;
             let load_time = t_before.elapsed();
@@ -404,14 +440,14 @@ impl AnnisRunner {
             for m in matches {
                 println!("{}", m);
             }
-        } else {
-            println!("You need to select a corpus first with the \"corpus\" command");
         }
         Ok(())
     }
 
     fn frequency(&self, args: &str) -> Result<()> {
-        if let Some(ref corpus) = self.current_corpus {
+        if self.current_corpus.is_empty() {
+            println!("You need to select a corpus first with the \"corpus\" command");
+        } else {
             let splitted_arg: Vec<&str> = args.splitn(2, ' ').collect();
             let table_def: Vec<FrequencyDefEntry> = if splitted_arg.len() == 2 {
                 // split the second argument
@@ -436,7 +472,12 @@ impl AnnisRunner {
                 .storage
                 .as_ref()
                 .ok_or("No corpus storage location set")?
-                .frequency(corpus, splitted_arg[1], self.query_language, table_def)?;
+                .frequency(
+                    &self.current_corpus,
+                    splitted_arg[1],
+                    self.query_language,
+                    table_def,
+                )?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -456,9 +497,7 @@ impl AnnisRunner {
             }
             out.printstd();
 
-        // TODO output error if needed
-        } else {
-            println!("You need to select a corpus first with the \"corpus\" command");
+            // TODO output error if needed
         }
 
         Ok(())
