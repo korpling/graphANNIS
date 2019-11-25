@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+###  Fixed
+
+- Inverted sort order did not reverse the corpus name list for multiple corpora
+
 ## [0.25.0] - 2019-11-25
 
 ### Changed
