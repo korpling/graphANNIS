@@ -1331,6 +1331,9 @@ impl CorpusStorage {
             // But it still better than just output the same corpus first.
             let mut rng = rand::thread_rng();
             corpus_names.shuffle(&mut rng);
+        } else if order == ResultOrder::Inverted {
+            corpus_names.sort();
+            corpus_names.reverse();
         } else {
             corpus_names.sort();
         }

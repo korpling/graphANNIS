@@ -1,6 +1,6 @@
 [package]
 name = "graphannis"
-version = "0.25.0"
+version = "0.25.1"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
 license = "Apache-2.0"
@@ -10,9 +10,6 @@ readme = "crate-info.md"
 autobins=true
 build = "build.rs"
 edition = "2018"
-
-[package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docs_rs_workaround"]
 
 [lib]
 crate-type = ["lib", "staticlib","cdylib"]
