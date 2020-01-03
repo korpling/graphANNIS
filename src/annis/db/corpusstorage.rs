@@ -401,7 +401,7 @@ impl CorpusStorage {
     /// Create a new instance with a an automatic determined size of the internal corpus cache.
     ///
     /// Currently, set the maximum cache size to 25% of the available/free memory at construction time.
-    /// This behavior chan change in the future.
+    /// This behavior can change in the future.
     ///
     /// - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
     /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
