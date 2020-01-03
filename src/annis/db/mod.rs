@@ -1330,7 +1330,7 @@ impl Graph {
         }
     }
 
-    pub fn size_of_cached(&self, ops: &mut MallocSizeOfOps) -> usize {
+    fn size_of_cached(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut lock = self.cached_size.lock().unwrap();
         let cached_size: &mut Option<usize> = &mut *lock;
         if let Some(cached) = cached_size {
