@@ -11,9 +11,6 @@ autobins=true
 build = "build.rs"
 edition = "2018"
 
-[package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docs_rs_workaround"]
-
 [lib]
 crate-type = ["lib", "staticlib","cdylib"]
 

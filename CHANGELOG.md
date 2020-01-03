@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ###  Fixed
 
 - Inverted sort order did not reverse the corpus name list for multiple corpora
+- Workaround for docs.rs problems seem to have caused other problems and graphANNIS was not recognized as library
 
 ## [0.25.0] - 2019-11-25
 
