@@ -104,7 +104,7 @@ fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
 
 impl AnnoStorageImpl {
     pub fn new(path: &Path) -> AnnoStorageImpl {
-        let db = sled::Db::open(path).expect("Can't create annotation storage");
+        let db = sled::open(path).expect("Can't create annotation storage");
 
         let by_container = db
             .open_tree("by_container")
