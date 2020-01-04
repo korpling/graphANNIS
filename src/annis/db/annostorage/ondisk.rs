@@ -311,15 +311,48 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         name: Option<&str>,
         it: Box<dyn Iterator<Item = NodeID>>,
     ) -> Vec<Match> {
-        let result_it = it.flat_map(|item| {
-            if let Some(_name) = name {
-                if let Some(_ns) = ns {
-                    unimplemented!()
-                } else {
-                    unimplemented!()
+        if let Some(name) = name {
+            if let Some(ns) = ns {
+                // return the only possible annotation for each node
+                let key = Arc::from(AnnoKey {
+                    ns: ns.to_string(),
+                    name: name.to_string(),
+                });
+                let mut matches: Vec<Match> = Vec::new();
+                for item in it {
+                    if self
+                        .by_container
+                        .contains_key(create_by_container_key(item, &key))
+                        .expect(DEFAULT_MSG)
+                    {
+                        matches.push((item, key.clone()).into());
+                    }
                 }
+                matches
             } else {
-                // get all annotation keys for this item
+                let matching_qnames: Vec<Arc<AnnoKey>> = self
+                    .get_qnames(&name)
+                    .into_iter()
+                    .map(|key| Arc::from(key))
+                    .collect();
+                // return all annotations with the correct name for each node
+                let mut matches: Vec<Match> = Vec::new();
+                for item in it {
+                    for key in matching_qnames.iter() {
+                        if self
+                            .by_container
+                            .contains_key(create_by_container_key(item, &key))
+                            .expect(DEFAULT_MSG)
+                        {
+                            matches.push((item, key.clone()).into());
+                        }
+                    }
+                }
+                matches
+            }
+        } else {
+            // get all annotation keys for this item
+            it.flat_map(|item| {
                 self.by_container
                     .range(item.to_be_bytes()..(item + 1).to_be_bytes())
                     .map(|data| {
@@ -330,9 +363,9 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                             anno_key: Arc::from(matched_anno_key),
                         }
                     })
-            }
-        });
-        result_it.collect()
+            })
+            .collect()
+        }
     }
 
     fn number_of_annotations_by_name(&self, _ns: Option<&str>, _name: &str) -> usize {
