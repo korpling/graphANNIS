@@ -482,11 +482,45 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
     fn get_all_keys_for_item(
         &self,
-        _item: &NodeID,
-        _ns: Option<&str>,
-        _name: Option<&str>,
+        item: &NodeID,
+        ns: Option<&str>,
+        name: Option<&str>,
     ) -> Vec<Arc<AnnoKey>> {
-        unimplemented!()
+        if let Some(name) = name {
+            if let Some(ns) = ns {
+                let key = Arc::from(AnnoKey {
+                    ns: ns.to_string(),
+                    name: name.to_string(),
+                });
+                if self
+                    .by_container
+                    .contains_key(create_by_container_key(*item, &key))
+                    .expect(DEFAULT_MSG)
+                {
+                    return vec![key.clone()];
+                }
+                vec![]
+            } else {
+                // get all qualified names for the given annotation name
+                let res: Vec<Arc<AnnoKey>> = self
+                    .get_qnames(&name)
+                    .into_iter()
+                    .filter(|key| {
+                        self.by_container
+                            .contains_key(create_by_container_key(*item, key))
+                            .expect(DEFAULT_MSG)
+                    })
+                    .map(|key| Arc::from(key))
+                    .collect();
+                res
+            }
+        } else {
+            // no annotation name given, return all
+            self.get_annotations_for_item(item)
+                .into_iter()
+                .map(|anno| Arc::from(anno.key))
+                .collect()
+        }
     }
 
     fn guess_max_count(
