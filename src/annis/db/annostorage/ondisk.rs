@@ -783,7 +783,8 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
     }
 
     fn load_annotations_from(&mut self, location: &Path) -> Result<()> {
-        if !self.location.eq(location) {
+        let location = location.join("nodes_sled_v1");
+        if !self.location.eq(&location) {
             // open a database for the given location and import their data
             let other_db = sled::open(location)?;
 
@@ -826,7 +827,9 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
     }
 
     fn save_annotations_to(&self, location: &Path) -> Result<()> {
-        if self.location.eq(location) {
+        let location = location.join("nodes_sled_v1");
+
+        if self.location.eq(&location) {
             self.db.flush()?;
         } else {
             // open a database for the given location and export to it
