@@ -895,7 +895,7 @@ where
         let f = std::fs::File::open(path.clone()).or_else(|e| {
             Err(Error::Generic {
                 msg: format!(
-                    "Could not load string storage from file {}",
+                    "Could not load annotation storage from file {}",
                     path.to_string_lossy(),
                 ),
                 cause: Some(Box::new(e)),

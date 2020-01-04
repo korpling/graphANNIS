@@ -182,6 +182,8 @@ pub struct Graph {
     background_persistance: Arc<Mutex<()>>,
 
     cached_size: Mutex<Option<usize>>,
+
+    disk_based: bool,
 }
 
 impl MallocSizeOf for Graph {
@@ -243,9 +245,7 @@ impl Graph {
                 .prefix("graphannis-ondisk-nodeanno")
                 .tempdir()
                 .unwrap();
-            Box::new(annostorage::ondisk::AnnoStorageImpl::new(
-                tmp_dir.as_ref(),
-            ))
+            Box::new(annostorage::ondisk::AnnoStorageImpl::new(tmp_dir.as_ref()))
         } else {
             Box::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
         };
@@ -260,6 +260,8 @@ impl Graph {
 
             background_persistance: Arc::new(Mutex::new(())),
             cached_size: Mutex::new(None),
+
+            disk_based,
         }
     }
 
@@ -332,10 +334,20 @@ impl Graph {
             location.join("current")
         };
 
-        let mut node_annos_tmp: annostorage::inmemory::AnnoStorageImpl<NodeID> =
-            annostorage::inmemory::AnnoStorageImpl::new();
-        node_annos_tmp.load_annotations_from(&dir2load)?;
-        self.node_annos = Box::new(node_annos_tmp);
+        let sled_subdirectory = dir2load.join(annostorage::ondisk::SUBFOLDER_NAME);
+        if sled_subdirectory.exists() && sled_subdirectory.is_dir() {
+            self.disk_based = true;
+            // directly load the on disk storage from the given folder to avoid having a temporary directory
+            let node_annos_tmp = annostorage::ondisk::AnnoStorageImpl::new(&sled_subdirectory);
+            self.node_annos = Box::new(node_annos_tmp);
+        } else {
+            // assume a main memory implementation
+            self.disk_based = false;
+            let mut node_annos_tmp: annostorage::inmemory::AnnoStorageImpl<NodeID> =
+                annostorage::inmemory::AnnoStorageImpl::new();
+            node_annos_tmp.load_annotations_from(&dir2load)?;
+            self.node_annos = Box::new(node_annos_tmp);
+        }
 
         let log_path = dir2load.join("update_log.bin");
 

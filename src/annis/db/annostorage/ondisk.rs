@@ -19,6 +19,8 @@ use std::sync::Arc;
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
 const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
 
+pub const SUBFOLDER_NAME: &str = "nodes_sled_v1";
+
 /// An on-disk implementation of an annotation storage.
 ///
 /// # Error handling
@@ -783,7 +785,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
     }
 
     fn load_annotations_from(&mut self, location: &Path) -> Result<()> {
-        let location = location.join("nodes_sled_v1");
+        let location = location.join(SUBFOLDER_NAME);
         if !self.location.eq(&location) {
             // open a database for the given location and import their data
             let other_db = sled::open(location)?;
@@ -827,7 +829,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
     }
 
     fn save_annotations_to(&self, location: &Path) -> Result<()> {
-        let location = location.join("nodes_sled_v1");
+        let location = location.join(SUBFOLDER_NAME);
 
         if self.location.eq(&location) {
             self.db.flush()?;
