@@ -11,7 +11,7 @@ use crate::annis::util::memory_estimation;
 use core::ops::Bound::*;
 use rand::seq::IteratorRandom;
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::convert::TryInto;
 use std::path::Path;
 use std::sync::Arc;
@@ -212,6 +212,23 @@ impl AnnoStorageImpl {
             });
 
         Box::new(it)
+    }
+
+    fn get_by_anno_qname_range(&self, anno_key: &AnnoKey) -> sled::Iter {
+        let lower_bound = Annotation {
+            key: anno_key.clone(),
+            val: "".to_string(),
+        };
+
+        let upper_bound = Annotation {
+            key: anno_key.clone(),
+            val: "\0".to_string(),
+        };
+
+        let lower_bound = create_by_anno_qname_key(NodeID::min_value(), &lower_bound);
+        let upper_bound = create_by_anno_qname_key(NodeID::max_value(), &upper_bound);
+
+        self.by_anno_qname.range(lower_bound..upper_bound)
     }
 }
 
@@ -662,8 +679,37 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         }
     }
 
-    fn get_all_values(&self, _key: &AnnoKey, _most_frequent_first: bool) -> Vec<Cow<str>> {
-        unimplemented!()
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Cow<str>> {
+        if most_frequent_first {
+            let mut values_with_count: HashMap<String, usize> = HashMap::default();
+            for data in self.get_by_anno_qname_range(key) {
+                let (data, _) = data.expect(DEFAULT_MSG);
+                let (_, anno) = parse_by_anno_qname_key(&data);
+                let val = anno.val;
+
+                let count = values_with_count.entry(val).or_insert(0);
+                *count += 1;
+            }
+            let mut values_with_count: Vec<(usize, Cow<str>)> = values_with_count
+                .into_iter()
+                .map(|(val, count)| (count, Cow::Owned(val)))
+                .collect();
+            values_with_count.sort();
+            return values_with_count
+                .into_iter()
+                .map(|(_count, val)| val)
+                .collect();
+        } else {
+            let values_unique: HashSet<Cow<str>> = self
+                .get_by_anno_qname_range(key)
+                .map(|data| {
+                    let (data, _) = data.expect(DEFAULT_MSG);
+                    let (_, anno) = parse_by_anno_qname_key(&data);
+                    Cow::Owned(anno.val)
+                })
+                .collect();
+            return values_unique.into_iter().collect();
+        }
     }
 
     fn annotation_keys(&self) -> Vec<AnnoKey> {
@@ -685,20 +731,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             // sample a maximal number of annotation values
             let mut rng = rand::thread_rng();
 
-            let lower_bound = Annotation {
-                key: anno_key.clone(),
-                val: "".to_string(),
-            };
-
-            let upper_bound = Annotation {
-                key: anno_key.clone(),
-                val: "\0".to_string(),
-            };
-
-            let lower_bound = create_by_anno_qname_key(NodeID::min_value(), &lower_bound);
-            let upper_bound = create_by_anno_qname_key(NodeID::max_value(), &upper_bound);
-
-            let all_values_for_key = self.by_anno_qname.range(lower_bound..upper_bound);
+            let all_values_for_key = self.get_by_anno_qname_range(anno_key);
 
             let mut sampled_anno_values: Vec<String> = all_values_for_key
                 .choose_multiple(&mut rng, max_sampled_annotations)
