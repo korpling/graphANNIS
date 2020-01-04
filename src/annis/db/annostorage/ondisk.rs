@@ -37,7 +37,6 @@ pub struct AnnoStorageImpl {
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
     largest_item: Option<NodeID>,
-    total_number_of_annos: usize,
 }
 
 fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
@@ -118,7 +117,6 @@ impl AnnoStorageImpl {
             by_anno_qname,
             anno_key_sizes: BTreeMap::new(),
             largest_item: None,
-            total_number_of_annos: 0,
         }
     }
 
@@ -208,9 +206,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
         if existing_anno.is_none() {
             // a new annotation entry was inserted and did not replace an existing one
-            self.total_number_of_annos += 1;
-
-            if let Some(largest_item) = self.largest_item.clone() {
+           if let Some(largest_item) = self.largest_item.clone() {
                 if largest_item < item {
                     self.largest_item = Some(item);
                 }
@@ -245,22 +241,38 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         result
     }
 
-    fn remove_annotation_for_item(&mut self, _item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
-        // TODO: remove annotation from disk trees
+    fn remove_annotation_for_item(&mut self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
+        // remove annotation from by_container
+        if let Some(raw_value) = self
+            .by_container
+            .remove(create_by_container_key(*item, key))
+            .expect(DEFAULT_MSG)
+        {
+            // remove annotation from by_anno_qname
+            let anno = Annotation {
+                key: key.clone(),
+                val: String::from_utf8_lossy(&raw_value).to_string(),
+            };
 
-        // decrease the annotation count for this key
-        let new_key_count: usize = if let Some(num_of_keys) = self.anno_key_sizes.get_mut(key) {
-            *num_of_keys -= 1;
-            *num_of_keys
+            self.by_anno_qname
+                .remove(create_by_anno_qname_key(*item, &anno))
+                .expect(DEFAULT_MSG);
+            // decrease the annotation count for this key
+            let new_key_count: usize = if let Some(num_of_keys) = self.anno_key_sizes.get_mut(key) {
+                *num_of_keys -= 1;
+                *num_of_keys
+            } else {
+                0
+            };
+            // if annotation count dropped to zero remove the key
+            if new_key_count == 0 {
+                self.anno_key_sizes.remove(key);
+            }
+
+            Some(Cow::Owned(anno.val))
         } else {
-            0
-        };
-        // if annotation count dropped to zero remove the key
-        if new_key_count == 0 {
-            self.anno_key_sizes.remove(key);
+            None
         }
-
-        unimplemented!();
     }
 
     fn clear(&mut self) {
@@ -498,9 +510,12 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 mod tests {
     use super::*;
 
+    use std::sync::Once;
+    static LOGGER_INIT: Once = Once::new();
+
     #[test]
     fn insert_same_anno() {
-        env_logger::init();
+        LOGGER_INIT.call_once(|| env_logger::init());
 
         let test_anno = Annotation {
             key: AnnoKey {
@@ -535,5 +550,75 @@ mod tests {
             )
             .unwrap()
         );
+    }
+
+    #[test]
+    fn get_all_for_node() {
+        LOGGER_INIT.call_once(|| env_logger::init());
+
+        let test_anno1 = Annotation {
+            key: AnnoKey {
+                name: "anno1".to_owned(),
+                ns: "annis1".to_owned(),
+            },
+            val: "test".to_owned(),
+        };
+        let test_anno2 = Annotation {
+            key: AnnoKey {
+                name: "anno2".to_owned(),
+                ns: "annis2".to_owned(),
+            },
+            val: "test".to_owned(),
+        };
+        let test_anno3 = Annotation {
+            key: AnnoKey {
+                name: "anno3".to_owned(),
+                ns: "annis1".to_owned(),
+            },
+            val: "test".to_owned(),
+        };
+
+        let path = tempfile::TempDir::new().unwrap();
+        let mut a = AnnoStorageImpl::new(path.path());
+
+        a.insert(1, test_anno1.clone());
+        a.insert(1, test_anno2.clone());
+        a.insert(1, test_anno3.clone());
+
+        assert_eq!(3, a.number_of_annotations());
+
+        let all = a.get_annotations_for_item(&1);
+        assert_eq!(3, all.len());
+
+        assert_eq!(test_anno1, all[0]);
+        assert_eq!(test_anno3, all[1]);
+        assert_eq!(test_anno2, all[2]);
+    }
+
+    #[test]
+    fn remove() {
+        LOGGER_INIT.call_once(|| env_logger::init());
+        let test_anno = Annotation {
+            key: AnnoKey {
+                name: "anno1".to_owned(),
+                ns: "annis1".to_owned(),
+            },
+            val: "test".to_owned(),
+        };
+
+        let path = tempfile::TempDir::new().unwrap();
+        let mut a = AnnoStorageImpl::new(path.path());
+        a.insert(1, test_anno.clone());
+
+        assert_eq!(1, a.number_of_annotations());
+        assert_eq!(1, a.by_container.len());
+        assert_eq!(1, a.anno_key_sizes.len());
+        assert_eq!(&1, a.anno_key_sizes.get(&test_anno.key).unwrap());
+
+        a.remove_annotation_for_item(&1, &test_anno.key);
+
+        assert_eq!(0, a.number_of_annotations());
+        assert_eq!(0, a.by_container.len());
+        assert_eq!(&0, a.anno_key_sizes.get(&test_anno.key).unwrap_or(&0));
     }
 }
