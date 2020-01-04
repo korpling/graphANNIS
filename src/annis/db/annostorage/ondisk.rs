@@ -9,6 +9,7 @@ use crate::annis::util;
 use crate::annis::util::memory_estimation;
 
 use core::ops::Bound::*;
+use rand::seq::IteratorRandom;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::convert::TryInto;
@@ -37,6 +38,10 @@ pub struct AnnoStorageImpl {
 
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
+
+    /// additional statistical information
+    #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
+    histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
     largest_item: Option<NodeID>,
 }
 
@@ -71,7 +76,7 @@ fn create_by_container_key(node: NodeID, anno_key: &AnnoKey) -> Vec<u8> {
 }
 
 fn parse_by_container_key(data: &[u8]) -> (NodeID, AnnoKey) {
-    let item = NodeID::from_le_bytes(
+    let item = NodeID::from_be_bytes(
         data[0..8]
             .try_into()
             .expect("Key data must at least have length 8"),
@@ -102,6 +107,26 @@ fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
     result
 }
 
+fn parse_by_anno_qname_key(data: &[u8]) -> (NodeID, Annotation) {
+    let node_id = NodeID::from_be_bytes(
+        data[(data.len() - 8)..]
+            .try_into()
+            .expect("Key data must at least have length 8"),
+    );
+
+    let str_vec = parse_str_vec_key(&data[..(data.len() - 8)]);
+
+    let anno = Annotation {
+        key: AnnoKey {
+            ns: str_vec[0].to_string(),
+            name: str_vec[1].to_string(),
+        },
+        val: str_vec[2].to_string(),
+    };
+
+    (node_id, anno)
+}
+
 impl AnnoStorageImpl {
     pub fn new(path: &Path) -> AnnoStorageImpl {
         let db = sled::open(path).expect("Can't create annotation storage");
@@ -118,6 +143,7 @@ impl AnnoStorageImpl {
             by_anno_qname,
             anno_key_sizes: BTreeMap::new(),
             largest_item: None,
+            histogram_bounds: BTreeMap::new(),
         }
     }
 
@@ -175,7 +201,7 @@ impl AnnoStorageImpl {
                     .map(|data| {
                         // the value is only a marker, use the key to extract the node ID
                         let (data, _) = data.expect(DEFAULT_MSG);
-                        let node_id = NodeID::from_le_bytes(
+                        let node_id = NodeID::from_be_bytes(
                             data[(data.len() - 8)..]
                                 .try_into()
                                 .expect("Key data must at least have length 8"),
@@ -281,6 +307,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         self.by_container.clear().expect(DEFAULT_MSG);
         self.largest_item = None;
         self.anno_key_sizes.clear();
+        self.histogram_bounds.clear();
     }
 
     fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
@@ -554,7 +581,75 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
     }
 
     fn calculate_statistics(&mut self) {
-        unimplemented!()
+        let max_histogram_buckets = 250;
+        let max_sampled_annotations = 2500;
+
+        self.histogram_bounds.clear();
+
+        // collect statistics for each annotation key separately
+        for anno_key in self.anno_key_sizes.keys() {
+            // sample a maximal number of annotation values
+            let mut rng = rand::thread_rng();
+
+            let lower_bound = Annotation {
+                key: anno_key.clone(),
+                val: "".to_string(),
+            };
+
+            let upper_bound = Annotation {
+                key: anno_key.clone(),
+                val: "\0".to_string(),
+            };
+
+            let lower_bound = create_by_anno_qname_key(NodeID::min_value(), &lower_bound);
+            let upper_bound = create_by_anno_qname_key(NodeID::max_value(), &upper_bound);
+
+            let all_values_for_key = self.by_anno_qname.range(lower_bound..upper_bound);
+
+            let mut sampled_anno_values: Vec<String> = all_values_for_key
+                .choose_multiple(&mut rng, max_sampled_annotations)
+                .into_iter()
+                .map(|data| {
+                    let (data, _) = data.expect(DEFAULT_MSG);
+                    let (_, anno) = parse_by_anno_qname_key(&data);
+                    anno.val
+                })
+                .collect();
+
+            // create uniformly distributed histogram bounds
+            sampled_anno_values.sort();
+
+            let num_hist_bounds = if sampled_anno_values.len() < (max_histogram_buckets + 1) {
+                sampled_anno_values.len()
+            } else {
+                max_histogram_buckets + 1
+            };
+
+            let hist = self
+                .histogram_bounds
+                .entry(anno_key.clone())
+                .or_insert_with(std::vec::Vec::new);
+
+            if num_hist_bounds >= 2 {
+                hist.resize(num_hist_bounds, String::from(""));
+
+                let delta: usize = (sampled_anno_values.len() - 1) / (num_hist_bounds - 1);
+                let delta_fraction: usize = (sampled_anno_values.len() - 1) % (num_hist_bounds - 1);
+
+                let mut pos = 0;
+                let mut pos_fraction = 0;
+                for hist_item in hist.iter_mut() {
+                    *hist_item = sampled_anno_values[pos].clone();
+                    pos += delta;
+                    pos_fraction += delta_fraction;
+
+                    if pos_fraction >= (num_hist_bounds - 1) {
+                        pos += 1;
+                        pos_fraction -= num_hist_bounds - 1;
+                    }
+                }
+            }
+        }
     }
 
     fn load_annotations_from(&mut self, _location: &Path) -> Result<()> {
