@@ -25,9 +25,9 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
     fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = RightAlignment::new(db);
         if let Some(op) = optional_op {
-            return Some(Box::new(op));
+            Some(Box::new(op))
         } else {
-            return None;
+            None
         }
     }
 }
@@ -74,9 +74,9 @@ impl<'a> BinaryOperator for RightAlignment<'a> {
             self.tok_helper.right_token_for(lhs.node),
             self.tok_helper.right_token_for(rhs.node),
         ) {
-            return lhs_token == rhs_token;
+            lhs_token == rhs_token
         } else {
-            return false;
+            false
         }
     }
 

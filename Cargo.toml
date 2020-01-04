@@ -1,6 +1,6 @@
 [package]
 name = "graphannis"
-version = "0.24.0-dev"
+version = "0.25.2-dev"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
 license = "Apache-2.0"
@@ -11,9 +11,6 @@ autobins=true
 build = "build.rs"
 edition = "2018"
 
-[package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docs_rs_workaround"]
-
 [lib]
 crate-type = ["lib", "staticlib","cdylib"]
 
@@ -22,9 +19,6 @@ lalrpop = "0.17"
 csv = "1"
 regex = "1"
 file_diff = "1"
-
-[dev-dependencies]
-env_logger = "0.6"
 
 [dependencies]
 regex = "1"
@@ -59,13 +53,17 @@ graphannis-malloc_size_of_derive = "2.0"
 rustyline = {version="1.0", optional=true }
 simplelog = {version="0.6", optional=true}
 clap = {version="2", optional=true, default-features=false}
-criterion = {version="0.2", optional=true, default-features=false}
+criterion = {version="0.3", optional=true, default-features=false}
 prettytable-rs = {version="0.8", optional=true, default-features=false}
 
 libc = {version="0.2"}
 
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = { version = "0.2.2" }
+
+[dev-dependencies]
+criterion = "0.3"
+env_logger = "0.6"
 
 [features]
 cli = ["rustyline", "simplelog", "clap", "prettytable-rs"]

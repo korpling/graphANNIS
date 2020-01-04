@@ -213,7 +213,7 @@ impl FromStr for FrequencyDefEntry {
         let anno_key = util::split_qname(splitted[1]);
 
         Ok(FrequencyDefEntry {
-            ns: anno_key.0.and_then(|ns| Some(String::from(ns))),
+            ns: anno_key.0.map(String::from),
             name: String::from(anno_key.1),
             node_ref: String::from(node_ref),
         })
@@ -401,7 +401,7 @@ impl CorpusStorage {
     /// Create a new instance with a an automatic determined size of the internal corpus cache.
     ///
     /// Currently, set the maximum cache size to 25% of the available/free memory at construction time.
-    /// This behavior chan change in the future.
+    /// This behavior can change in the future.
     ///
     /// - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
     /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
@@ -801,9 +801,9 @@ impl CorpusStorage {
                 })?
             }
 
-            return Ok(true);
+            Ok(true)
         } else {
-            return Ok(false);
+            Ok(false)
         }
     }
 
@@ -945,149 +945,140 @@ impl CorpusStorage {
 
     /// Parses a `query` and checks if it is valid.
     ///
-    /// - `corpus_name` - The name of the corpus the query would be executed on (needed because missing annotation names can be a semantic parser error).
+    /// - `corpus_names` - The name of the corpora the query would be executed on (needed to catch certain corpus-specific semantic errors).
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
     ///
     /// Returns `true` if valid and an error with the parser message if invalid.
-    pub fn validate_query(
+    pub fn validate_query<S: AsRef<str>>(
         &self,
-        corpus_name: &str,
+        corpus_names: &[S],
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<bool> {
-        let prep: PreparationResult =
-            self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
-        // also get the semantic errors by creating an execution plan on the actual Graph
-        let lock = prep.db_entry.read().unwrap();
-        let db = get_read_or_error(&lock)?;
-        ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+        for cn in corpus_names {
+            let prep: PreparationResult =
+                self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
+            // also get the semantic errors by creating an execution plan on the actual Graph
+            let lock = prep.db_entry.read().unwrap();
+            let db = get_read_or_error(&lock)?;
+            ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+        }
         Ok(true)
     }
 
     /// Returns a string representation of the execution plan for a `query`.
     ///
-    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `corpus_names` - The name of the corpora to execute the query on.
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
-    pub fn plan(
+    pub fn plan<S: AsRef<str>>(
         &self,
-        corpus_name: &str,
+        corpus_names: &[S],
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<String> {
-        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
+        let mut all_plans = Vec::with_capacity(corpus_names.len());
+        for cn in corpus_names {
+            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
 
-        // acquire read-only lock and plan
-        let lock = prep.db_entry.read().unwrap();
-        let db = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+            // acquire read-only lock and plan
+            let lock = prep.db_entry.read().unwrap();
+            let db = get_read_or_error(&lock)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
-        Ok(format!("{}", plan))
+            all_plans.push(format!("{}:\n{}", cn.as_ref(), plan));
+        }
+        Ok(all_plans.join("\n"))
     }
 
     /// Count the number of results for a `query`.
-    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `corpus_names` - The name of the corpora to execute the query on.
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
     ///
     /// Returns the count as number.
-    pub fn count(
+    pub fn count<S: AsRef<str>>(
         &self,
-        corpus_name: &str,
+        corpus_names: &[S],
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<u64> {
-        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
+        let mut total_count: u64 = 0;
 
-        // acquire read-only lock and execute query
-        let lock = prep.db_entry.read().unwrap();
-        let db = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+        for cn in corpus_names {
+            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
 
-        Ok(plan.count() as u64)
+            // acquire read-only lock and execute query
+            let lock = prep.db_entry.read().unwrap();
+            let db = get_read_or_error(&lock)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+
+            total_count += plan.count() as u64;
+        }
+
+        Ok(total_count)
     }
 
     /// Count the number of results for a `query` and return both the total number of matches and also the number of documents in the result set.
     ///
-    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `corpus_names` - The name of the corpora to execute the query on.
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
-    pub fn count_extra(
+    pub fn count_extra<S: AsRef<str>>(
         &self,
-        corpus_name: &str,
+        corpus_names: &[S],
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<CountExtra> {
-        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
+        let mut match_count: u64 = 0;
+        let mut document_count: u64 = 0;
 
-        // acquire read-only lock and execute query
-        let lock = prep.db_entry.read().unwrap();
-        let db: &Graph = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+        for cn in corpus_names {
+            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
 
-        let mut known_documents = HashSet::new();
+            // acquire read-only lock and execute query
+            let lock = prep.db_entry.read().unwrap();
+            let db: &Graph = get_read_or_error(&lock)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
-        let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
-            if !m.is_empty() {
-                let m: &Match = &m[0];
-                if let Some(node_name) = db.node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY) {
-                    let node_name: &str = &node_name;
-                    // extract the document path from the node name
-                    let doc_path =
-                        &node_name[0..node_name.rfind('#').unwrap_or_else(|| node_name.len())];
-                    known_documents.insert(doc_path.to_owned());
+            let mut known_documents = HashSet::new();
+
+            let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
+                if !m.is_empty() {
+                    let m: &Match = &m[0];
+                    if let Some(node_name) =
+                        db.node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY)
+                    {
+                        let node_name: &str = &node_name;
+                        // extract the document path from the node name
+                        let doc_path =
+                            &node_name[0..node_name.rfind('#').unwrap_or_else(|| node_name.len())];
+                        known_documents.insert(doc_path.to_owned());
+                    }
                 }
-            }
-            (acc.0 + 1, known_documents.len())
-        });
+                (acc.0 + 1, known_documents.len())
+            });
+
+            match_count += result.0;
+            document_count += result.1 as u64;
+        }
 
         Ok(CountExtra {
-            match_count: result.0,
-            document_count: result.1 as u64,
+            match_count,
+            document_count,
         })
     }
 
-    /// Find all results for a `query` and return the match ID for each result.
-    ///
-    /// The query is paginated and an offset and limit can be specified.
-    ///
-    /// - `corpus_name` - The name of the corpus to execute the query on.
-    /// - `query` - The query as string.
-    /// - `query_language` The query language of the query (e.g. AQL).
-    /// - `offset` - Skip the `n` first results, where `n` is the offset.
-    /// - `limit` - Return at most `n` matches, where `n` is the limit.
-    /// - `order` - Specify the order of the matches.
-    ///
-    /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
-    /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
-    pub fn find(
-        &self,
-        corpus_name: &str,
-        query: &str,
-        query_language: QueryLanguage,
+    fn create_find_iterator_for_query<'b>(
+        &'b self,
+        db: &'b Graph,
+        query: &'b Disjunction,
         offset: usize,
-        limit: usize,
+        limit: Option<usize>,
         order: ResultOrder,
-    ) -> Result<Vec<String>> {
-        let prep = self.prepare_query(corpus_name, query, query_language, |db| {
-            let mut additional_components = vec![Component {
-                ctype: ComponentType::Ordering,
-                layer: String::from("annis"),
-                name: String::from(""),
-            }];
-            if order == ResultOrder::Normal || order == ResultOrder::Inverted {
-                for c in token_helper::necessary_components(db) {
-                    additional_components.push(c);
-                }
-            }
-            additional_components
-        })?;
-
-        // acquire read-only lock and execute query
-        let lock = prep.db_entry.read().unwrap();
-        let db = get_read_or_error(&lock)?;
-
+        quirks_mode: bool,
+    ) -> Result<(Box<dyn Iterator<Item = Vec<Match>> + 'b>, Option<usize>)> {
         let mut query_config = self.query_config.clone();
         if order == ResultOrder::NotSorted {
             // Do execute query in parallel if the order should not be sorted to have a more stable result ordering.
@@ -1096,12 +1087,7 @@ impl CorpusStorage {
             query_config.use_parallel_joins = false;
         }
 
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &query_config)?;
-
-        let quirks_mode = match query_language {
-            QueryLanguage::AQL => false,
-            QueryLanguage::AQLQuirksV3 => true,
-        };
+        let plan = ExecutionPlan::from_disjunction(query, &db, &query_config)?;
 
         // Try to find the relANNIS version by getting the attribute value which should be attached to the
         // toplevel corpus node.
@@ -1181,26 +1167,85 @@ impl CorpusStorage {
                     }
                 };
 
-                if self.query_config.use_parallel_joins {
-                    quicksort::sort_first_n_items_parallel(
-                        &mut tmp_results,
-                        offset + limit,
-                        order_func,
-                    );
+                let sort_size = if let Some(limit) = limit {
+                    // we won't need to sort all items
+                    offset + limit
                 } else {
-                    quicksort::sort_first_n_items(&mut tmp_results, offset + limit, order_func);
+                    // sort all items if unlimited iterator is requested
+                    tmp_results.len()
+                };
+
+                if self.query_config.use_parallel_joins {
+                    quicksort::sort_first_n_items_parallel(&mut tmp_results, sort_size, order_func);
+                } else {
+                    quicksort::sort_first_n_items(&mut tmp_results, sort_size, order_func);
                 }
             }
             expected_size = Some(tmp_results.len());
             Box::from(tmp_results.into_iter())
         };
 
-        let mut results: Vec<String> = if let Some(expected_size) = expected_size {
-            Vec::with_capacity(std::cmp::min(expected_size, limit))
-        } else {
-            Vec::new()
+        Ok((base_it, expected_size))
+    }
+
+    fn find_in_single_corpus(
+        &self,
+        corpus_name: &str,
+        query: &str,
+        query_language: QueryLanguage,
+        offset: usize,
+        limit: Option<usize>,
+        order: ResultOrder,
+    ) -> Result<(Vec<String>, usize)> {
+        let prep = self.prepare_query(corpus_name, query, query_language, |db| {
+            let mut additional_components = vec![Component {
+                ctype: ComponentType::Ordering,
+                layer: String::from("annis"),
+                name: String::from(""),
+            }];
+            if order == ResultOrder::Normal || order == ResultOrder::Inverted {
+                for c in token_helper::necessary_components(db) {
+                    additional_components.push(c);
+                }
+            }
+            additional_components
+        })?;
+
+        // acquire read-only lock and execute query
+        let lock = prep.db_entry.read().unwrap();
+        let db = get_read_or_error(&lock)?;
+
+        let quirks_mode = match query_language {
+            QueryLanguage::AQL => false,
+            QueryLanguage::AQLQuirksV3 => true,
         };
-        results.extend(base_it.skip(offset).take(limit).map(|m: Vec<Match>| {
+
+        let (mut base_it, expected_size) = self.create_find_iterator_for_query(
+            db,
+            &prep.query,
+            offset,
+            limit,
+            order,
+            quirks_mode,
+        )?;
+
+        let mut results: Vec<String> =
+            if let (Some(expected_size), Some(limit)) = (expected_size, limit) {
+                Vec::with_capacity(std::cmp::min(expected_size, limit))
+            } else {
+                Vec::new()
+            };
+        // skip the first entries
+        let mut skipped = 0;
+        while skipped < offset && base_it.next().is_some() {
+            skipped += 1;
+        }
+        let base_it: Box<dyn Iterator<Item = Vec<Match>>> = if let Some(limit) = limit {
+            Box::new(base_it.take(limit))
+        } else {
+            Box::new(base_it)
+        };
+        results.extend(base_it.map(|m: Vec<Match>| {
             let mut match_desc: Vec<String> = Vec::new();
             for (i, singlematch) in m.iter().enumerate() {
                 // check if query node actually should be included in quirks mode
@@ -1249,7 +1294,80 @@ impl CorpusStorage {
             result
         }));
 
-        Ok(results)
+        Ok((results, skipped))
+    }
+
+    /// Find all results for a `query` and return the match ID for each result.
+    ///
+    /// The query is paginated and an offset and limit can be specified.
+    ///
+    /// - `corpus_names` - The name of the corpora to execute the query on.
+    /// - `query` - The query as string.
+    /// - `query_language` The query language of the query (e.g. AQL).
+    /// - `offset` - Skip the `n` first results, where `n` is the offset.
+    /// - `limit` - Return at most `n` matches, where `n` is the limit.  Use `None` to allow unlimited result sizes.
+    /// - `order` - Specify the order of the matches.
+    ///
+    /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
+    /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
+    pub fn find<S: AsRef<str>>(
+        &self,
+        corpus_names: &[S],
+        query: &str,
+        query_language: QueryLanguage,
+        offset: usize,
+        limit: Option<usize>,
+        order: ResultOrder,
+    ) -> Result<Vec<String>> {
+        let mut result = Vec::new();
+
+        // Sort corpus names
+        let mut corpus_names: Vec<String> = corpus_names
+            .iter()
+            .map(|c| String::from(c.as_ref()))
+            .collect();
+        if order == ResultOrder::Randomized {
+            // This is still oddly ordered, because results from one corpus will always be grouped together.
+            // But it still better than just output the same corpus first.
+            let mut rng = rand::thread_rng();
+            corpus_names.shuffle(&mut rng);
+        } else if order == ResultOrder::Inverted {
+            corpus_names.sort();
+            corpus_names.reverse();
+        } else {
+            corpus_names.sort();
+        }
+
+        // initialize the limit/offset values for the first corpus
+        let mut offset = offset;
+        let mut limit = limit;
+        for cn in corpus_names {
+            let (single_result, skipped) = self.find_in_single_corpus(
+                cn.as_ref(),
+                query,
+                query_language,
+                offset,
+                limit,
+                order,
+            )?;
+
+            // Adjust limit and offset according to the found matches for the next corpus.
+            let single_result_length = single_result.len();
+            result.extend(single_result.into_iter());
+
+            if let Some(mut limit) = &mut limit {
+                limit = limit - single_result_length;
+                if limit <= 0 {
+                    break;
+                }
+            }
+            if skipped < offset {
+                offset -= skipped;
+            } else {
+                offset = 0;
+            }
+        }
+        Ok(result)
     }
 
     /// Return the copy of a subgraph which includes the given list of node annotation identifiers,
@@ -1304,6 +1422,7 @@ impl CorpusStorage {
                 query.alternatives.push(q);
             }
 
+            // token left/right and their overlapped nodes
             if let Some(ref segmentation) = segmentation {
                 add_subgraph_precedence_with_segmentation(
                     &mut query,
@@ -1322,6 +1441,33 @@ impl CorpusStorage {
             } else {
                 add_subgraph_precedence(&mut query, ctx_left, &m, true)?;
                 add_subgraph_precedence(&mut query, ctx_right, &m, false)?;
+            }
+
+            // add the textual data sources (which are not part of the corpus graph)
+            {
+                let mut q = Conjunction::new();
+                let datasource_idx = q.add_node(
+                    NodeSearchSpec::ExactValue {
+                        ns: Some(ANNIS_NS.to_string()),
+                        name: NODE_TYPE.to_string(),
+                        val: Some("datasource".to_string()),
+                        is_meta: false,
+                    },
+                    None,
+                );
+                let m_idx = q.add_node(m.clone(), None);
+                q.add_operator(
+                    Box::new(operators::PartOfSubCorpusSpec {
+                        dist: RangeSpec::Bound {
+                            min_dist: 1,
+                            max_dist: 1,
+                        },
+                    }),
+                    &m_idx,
+                    &datasource_idx,
+                    false,
+                )?;
+                query.alternatives.push(q);
             }
         }
         extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config, None)
@@ -1376,26 +1522,60 @@ impl CorpusStorage {
             } else {
                 &source_corpus_id
             };
-            let mut q = Conjunction::new();
-            let corpus_idx = q.add_node(
-                NodeSearchSpec::ExactValue {
-                    ns: Some(db::ANNIS_NS.to_string()),
-                    name: db::NODE_NAME.to_string(),
-                    val: Some(source_corpus_id.to_string()),
-                    is_meta: false,
-                },
-                None,
-            );
-            let any_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-            q.add_operator(
-                Box::new(operators::PartOfSubCorpusSpec {
-                    dist: RangeSpec::Unbound,
-                }),
-                &any_node_idx,
-                &corpus_idx,
-                true,
-            )?;
-            query.alternatives.push(q);
+            // All annotation nodes
+            {
+                let mut q = Conjunction::new();
+                let corpus_idx = q.add_node(
+                    NodeSearchSpec::ExactValue {
+                        ns: Some(db::ANNIS_NS.to_string()),
+                        name: db::NODE_NAME.to_string(),
+                        val: Some(source_corpus_id.to_string()),
+                        is_meta: false,
+                    },
+                    None,
+                );
+                let any_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+                q.add_operator(
+                    Box::new(operators::PartOfSubCorpusSpec {
+                        dist: RangeSpec::Unbound,
+                    }),
+                    &any_node_idx,
+                    &corpus_idx,
+                    true,
+                )?;
+                query.alternatives.push(q);
+            }
+            // All data source nodes
+            {
+                let mut q = Conjunction::new();
+                let corpus_idx = q.add_node(
+                    NodeSearchSpec::ExactValue {
+                        ns: Some(db::ANNIS_NS.to_string()),
+                        name: db::NODE_NAME.to_string(),
+                        val: Some(source_corpus_id.to_string()),
+                        is_meta: false,
+                    },
+                    None,
+                );
+                let any_node_idx = q.add_node(
+                    NodeSearchSpec::ExactValue {
+                        ns: Some(ANNIS_NS.to_string()),
+                        name: NODE_TYPE.to_string(),
+                        val: Some("datasource".to_string()),
+                        is_meta: false,
+                    },
+                    None,
+                );
+                q.add_operator(
+                    Box::new(operators::PartOfSubCorpusSpec {
+                        dist: RangeSpec::Unbound,
+                    }),
+                    &any_node_idx,
+                    &corpus_idx,
+                    true,
+                )?;
+                query.alternatives.push(q);
+            }
         }
 
         extract_subgraph_by_query(&db_entry, &query, &[1], &self.query_config, None)
@@ -1431,67 +1611,69 @@ impl CorpusStorage {
 
     /// Execute a frequency query.
     ///
-    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `corpus_names` - The name of the corpora to execute the query on.
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
     /// - `definition` - A list of frequency query definitions.
     ///
     /// Returns a frequency table of strings.
-    pub fn frequency(
+    pub fn frequency<S: AsRef<str>>(
         &self,
-        corpus_name: &str,
+        corpus_names: &[S],
         query: &str,
         query_language: QueryLanguage,
         definition: Vec<FrequencyDefEntry>,
     ) -> Result<FrequencyTable<String>> {
-        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
-
-        // acquire read-only lock and execute query
-        let lock = prep.db_entry.read().unwrap();
-        let db: &Graph = get_read_or_error(&lock)?;
-
-        // get the matching annotation keys for each definition entry
-        let mut annokeys: Vec<(usize, Vec<AnnoKey>)> = Vec::default();
-        for def in definition {
-            if let Some(node_ref) = prep.query.get_variable_pos(&def.node_ref) {
-                if let Some(ns) = def.ns {
-                    // add the single fully qualified annotation key
-                    annokeys.push((
-                        node_ref,
-                        vec![AnnoKey {
-                            ns: ns.clone(),
-                            name: def.name.clone(),
-                        }],
-                    ));
-                } else {
-                    // add all matching annotation keys
-                    annokeys.push((node_ref, db.node_annos.get_qnames(&def.name)));
-                }
-            }
-        }
-
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
-
         let mut tuple_frequency: FxHashMap<Vec<String>, usize> = FxHashMap::default();
 
-        for mgroup in plan {
-            // for each match, extract the defined annotation (by its key) from the result node
-            let mut tuple: Vec<String> = Vec::with_capacity(annokeys.len());
-            for (node_ref, anno_keys) in &annokeys {
-                let mut tuple_val: String = String::default();
-                if *node_ref < mgroup.len() {
-                    let m: &Match = &mgroup[*node_ref];
-                    for k in anno_keys.iter() {
-                        if let Some(val) = db.node_annos.get_value_for_item(&m.node, k) {
-                            tuple_val = val.to_string();
-                        }
+        for cn in corpus_names {
+            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
+
+            // acquire read-only lock and execute query
+            let lock = prep.db_entry.read().unwrap();
+            let db: &Graph = get_read_or_error(&lock)?;
+
+            // get the matching annotation keys for each definition entry
+            let mut annokeys: Vec<(usize, Vec<AnnoKey>)> = Vec::default();
+            for def in definition.iter() {
+                if let Some(node_ref) = prep.query.get_variable_pos(&def.node_ref) {
+                    if let Some(ns) = &def.ns {
+                        // add the single fully qualified annotation key
+                        annokeys.push((
+                            node_ref,
+                            vec![AnnoKey {
+                                ns: ns.clone(),
+                                name: def.name.clone(),
+                            }],
+                        ));
+                    } else {
+                        // add all matching annotation keys
+                        annokeys.push((node_ref, db.node_annos.get_qnames(&def.name)));
                     }
                 }
-                tuple.push(tuple_val);
             }
-            // add the tuple to the frequency count
-            let tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
-            *tuple_count += 1;
+
+            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+
+            for mgroup in plan {
+                // for each match, extract the defined annotation (by its key) from the result node
+                let mut tuple: Vec<String> = Vec::with_capacity(annokeys.len());
+                for (node_ref, anno_keys) in &annokeys {
+                    let mut tuple_val: String = String::default();
+                    if *node_ref < mgroup.len() {
+                        let m: &Match = &mgroup[*node_ref];
+                        for k in anno_keys.iter() {
+                            if let Some(val) = db.node_annos.get_value_for_item(&m.node, k) {
+                                tuple_val = val.to_string();
+                            }
+                        }
+                    }
+                    tuple.push(tuple_val);
+                }
+                // add the tuple to the frequency count
+                let tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
+                *tuple_count += 1;
+            }
         }
 
         // output the frequency
@@ -1685,19 +1867,19 @@ impl Drop for CorpusStorage {
 
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Graph> {
     if let CacheEntry::Loaded(ref db) = &**lock {
-        return Ok(db);
+        Ok(db)
     } else {
-        return Err(Error::LoadingGraphFailed {
+        Err(Error::LoadingGraphFailed {
             name: "".to_string(),
-        });
+        })
     }
 }
 
 fn get_write_or_error<'a>(lock: &'a mut RwLockWriteGuard<CacheEntry>) -> Result<&'a mut Graph> {
     if let CacheEntry::Loaded(ref mut db) = &mut **lock {
-        return Ok(db);
+        Ok(db)
     } else {
-        return Err("Could get loaded graph storage entry".into());
+        Err("Could get loaded graph storage entry".into())
     }
 }
 

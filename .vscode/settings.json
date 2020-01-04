@@ -1,6 +1,5 @@
 {
     "python.pythonPath": "/usr/bin/python3",
-    "cquery.cacheDirectory": "${workspaceFolder}/.vscode/cquery_cached_index/",
     "rust.all_features": true,
     "debug.node.autoAttach": "on"
 }

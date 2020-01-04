@@ -177,10 +177,10 @@ where
                     let max_distance = match max_distance {
                         std::ops::Bound::Unbounded => 0,
                         std::ops::Bound::Included(max_distance) => {
-                            offset.checked_sub(max_distance).unwrap_or(0)
+                            offset.saturating_sub(max_distance)
                         }
                         std::ops::Bound::Excluded(max_distance) => {
-                            offset.checked_sub(max_distance + 1).unwrap_or(0)
+                            offset.saturating_sub(max_distance + 1)
                         }
                     };
 

@@ -44,7 +44,7 @@ branches:
 before_script:
   - rustup component add rustfmt
   - export SHORT_VERSION=`echo ${TRAVIS_TAG:-develop} | sed -E 's/(\.[0-9]+)$//'`
-  - misc/download-mdbook.sh 0.3.1
+  - misc/download-mdbook.sh 0.3.5
   # Build in release mode if search tests are executed
   - if [[ "$TEST_SUITE" = "--ignored" ]]; then export BUILD_FLAGS="--release" ; fi
   - echo "Building with flags \"$BUILD_FLAGS\""

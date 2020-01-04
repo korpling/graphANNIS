@@ -5,6 +5,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.1] - 2020-01-03
+
+###  Fixed
+
+- Inverted sort order did not reverse the corpus name list for multiple corpora
+- Workaround for docs.rs problems seem to have caused other problems and graphANNIS was not recognized as library
+
+## [0.25.0] - 2019-11-25
+
+### Changed
+
+- Backward incompatible: the several search functions (`find`, `count`, etc.) not take several corpus names as argument.
+This is especially important for `find`, where the implementation can be optimized to correctly skip over a given offset
+using the internal state.
+Such an optimization is impossible from outside when calling the API and not having access to the iterator.
+
+### Fixed
+
+- Don't assume inverse operator has the same cost when fan-out is too different. 
+Subgraph queries could be very slow for corpora with large documents due to an estimation error from this assumption 
+the `@` operator. 
+
+## [0.24.0] - 2019-11-15
+
 ### Changed
 
 - The annotation storage is now a complete interface which provides all functions necessary to write and read annotations.
@@ -15,11 +39,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Several functions of the annotation storage that used to have `String` parameters now take `&str` and resulting string values are now returned as `Cow<str>`. The latter change is also meant to enable more flexible implementations, that can choose to allocate new strings (e.g. from disk) or return references to existing memory locations.
 - The `Graph` uses a boxed instance of the general `AnnotationStorage` trait. 
   Before, this was an `Arc` to the specific implementation, which made it possible to simply clone the node annotation storage.
-  Now, referenced to it must be used, e.g. in the operators. This changes a lot of things in the `BinaryOperator` trait, like
+  Now, references to it must be used, e.g. in the operators. This changes a lot of things in the `BinaryOperator` trait, like
   the signature of `get_inverse_operator()` and the filter functions that are used as conditions for the node search (these
   need an argument to the node annotation storage now)
 - `Graph` does not implement the `AnnotationStorage<NodeID>` trait anymore, 
   but provides a getter to reference its field.
+- Data source nodes are now included when querying for a subgraph with context. This is needed for parallel text support in ANNIS 4.
 
 ### Added
 

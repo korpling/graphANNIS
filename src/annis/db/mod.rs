@@ -205,7 +205,7 @@ impl MallocSizeOf for Graph {
 }
 
 fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<dyn GraphStorage>> {
-    let cpath = r#try!(component_path.ok_or("Can't load component with empty path"));
+    let cpath = component_path.ok_or("Can't load component with empty path")?;
 
     // load component into memory
     let impl_path = PathBuf::from(&cpath).join("impl.cfg");
@@ -973,9 +973,9 @@ impl Graph {
             };
             gs.add_edge(e);
 
-            return Some(*t);
+            Some(*t)
         } else {
-            return None;
+            None
         }
     }
 
@@ -1072,13 +1072,11 @@ impl Graph {
         // move the old entry into the ownership of this function
         let entry = self.components.remove(c);
         // component exists?
-        if entry.is_some() {
-            let gs_opt = entry.unwrap();
-
-            let mut loaded_comp: Arc<dyn GraphStorage> = if gs_opt.is_none() {
-                load_component_from_disk(self.component_path(c))?
+        if let Some(gs_opt) = entry {
+            let mut loaded_comp: Arc<dyn GraphStorage> = if let Some(gs_opt) = gs_opt {
+                gs_opt
             } else {
-                gs_opt.unwrap()
+                load_component_from_disk(self.component_path(c))?
             };
 
             // copy to writable implementation if needed
@@ -1200,12 +1198,12 @@ impl Graph {
         // get and return the reference to the entry if loaded
         let entry: Option<Option<Arc<dyn GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
-            let loaded: Arc<dyn GraphStorage> = if gs_opt.is_none() {
+            let loaded: Arc<dyn GraphStorage> = if let Some(gs_opt) = gs_opt {
+                gs_opt
+            } else {
                 self.reset_cached_size();
                 info!("Loading component {} from disk", c);
                 load_component_from_disk(self.component_path(c))?
-            } else {
-                gs_opt.unwrap()
             };
 
             self.components.insert(c.clone(), Some(loaded));
@@ -1304,7 +1302,7 @@ impl Graph {
                 }
                 result.push(c.clone());
             }
-            return result;
+            result
         } else if let Some(ctype) = &ctype {
             // lookup component from sorted map
             let mut result: Vec<Component> = Vec::new();
@@ -1320,7 +1318,7 @@ impl Graph {
                 }
                 result.push(c.clone());
             }
-            return result;
+            result
         } else {
             // filter all entries
             let filtered_components =
@@ -1340,7 +1338,7 @@ impl Graph {
                         }
                         true
                     });
-            return filtered_components.collect();
+            filtered_components.collect()
         }
     }
 

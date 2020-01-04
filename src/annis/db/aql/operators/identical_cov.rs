@@ -49,9 +49,9 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
     fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = IdenticalCoverage::new(db);
         if let Some(op) = optional_op {
-            return Some(Box::new(op));
+            Some(Box::new(op))
         } else {
-            return None;
+            None
         }
     }
 }
@@ -82,10 +82,7 @@ impl<'a> BinaryOperator for IdenticalCoverage<'a> {
 
         let mut result: Vec<Match> = Vec::new();
 
-        if n_left.is_some() && n_right.is_some() {
-            let n_left = n_left.unwrap();
-            let n_right = n_right.unwrap();
-
+        if let (Some(n_left), Some(n_right)) = (n_left, n_right) {
             if n_left == n_right {
                 // covered range is exactly one token, add token itself
                 result.push(Match {

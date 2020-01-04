@@ -226,7 +226,7 @@ fn load_edge_tables<F>(
     is_annis_33: bool,
     id_to_node_name: &FxHashMap<NodeID, String>,
     progress_callback: &F,
-) -> Result<(BTreeSet<Edge>)>
+) -> Result<BTreeSet<Edge>>
 where
     F: Fn(&str) -> (),
 {

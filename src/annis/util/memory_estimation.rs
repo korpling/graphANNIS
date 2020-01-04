@@ -47,6 +47,12 @@ pub mod platform {
     }
 
     /// Get the size of a heap block.
+    ///
+    /// # Safety
+    ///
+    /// This calls a native system function with a user-provided pointer.
+    /// While the pointer is checked not to be null, it can still point to any memory somewhere and causing problematic
+    /// behavior. Therefore, calling this function is unsafe.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
         if ptr.is_null() {
             0
