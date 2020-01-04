@@ -31,6 +31,7 @@ pub enum Error {
     Strum(::strum::ParseError),
     Regex(::regex::Error),
     RandomGenerator(::rand::Error),
+    Sled(sled::Error),
 }
 
 impl std::convert::From<std::io::Error> for Error {
@@ -80,6 +81,14 @@ impl std::convert::From<::rand::Error> for Error {
         Error::RandomGenerator(e)
     }
 }
+
+
+impl std::convert::From<sled::Error> for Error {
+    fn from(e: sled::Error) -> Error {
+        Error::Sled(e)
+    }
+}
+
 
 impl std::convert::From<&str> for Error {
     fn from(e: &str) -> Error {
@@ -132,6 +141,7 @@ impl Display for Error {
             Error::Strum(e) => e.fmt(f),
             Error::Regex(e) => e.fmt(f),
             Error::RandomGenerator(e) => e.fmt(f),
+            Error::Sled(e) => e.fmt(f),
         }
     }
 }
@@ -159,6 +169,7 @@ impl StdError for Error {
             Error::Strum(e) => Some(e),
             Error::Regex(e) => Some(e),
             Error::RandomGenerator(e) => Some(e),
+            Error::Sled(e) => Some(e),
         }
     }
 }

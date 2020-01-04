@@ -13,7 +13,7 @@ use rand::seq::IteratorRandom;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::convert::TryInto;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
@@ -31,6 +31,11 @@ const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
 /// Retrying the same query again will also not succeed since temporary errors are already handled internally.
 #[derive(MallocSizeOf)]
 pub struct AnnoStorageImpl {
+    #[ignore_malloc_size_of = "is stored on disk"]
+    db: sled::Db,
+    #[with_malloc_size_of_func = "memory_estimation::size_of_pathbuf"]
+    location: PathBuf,
+
     #[ignore_malloc_size_of = "is stored on disk"]
     by_container: sled::Tree,
     #[ignore_malloc_size_of = "is stored on disk"]
@@ -129,21 +134,19 @@ fn parse_by_anno_qname_key(data: &[u8]) -> (NodeID, Annotation) {
 
 impl AnnoStorageImpl {
     pub fn new(path: &Path) -> AnnoStorageImpl {
-        let db = sled::open(path).expect("Can't create annotation storage");
+        let db = sled::open(path).expect(DEFAULT_MSG);
 
-        let by_container = db
-            .open_tree("by_container")
-            .expect("Can't create annotation storage");
-        let by_anno_qname = db
-            .open_tree("by_anno_qname")
-            .expect("Can't create annotation storage");
+        let by_container = db.open_tree("by_container").expect(DEFAULT_MSG);
+        let by_anno_qname = db.open_tree("by_anno_qname").expect(DEFAULT_MSG);
 
         AnnoStorageImpl {
+            db,
             by_container,
             by_anno_qname,
             anno_key_sizes: BTreeMap::new(),
             largest_item: None,
             histogram_bounds: BTreeMap::new(),
+            location: path.to_path_buf(),
         }
     }
 
@@ -779,12 +782,59 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         }
     }
 
-    fn load_annotations_from(&mut self, _location: &Path) -> Result<()> {
-        unimplemented!()
+    fn load_annotations_from(&mut self, location: &Path) -> Result<()> {
+        if !self.location.eq(location) {
+            // open a database for the given location and import their data
+            let other_db = sled::open(location)?;
+
+            self.clear();
+
+            let data = other_db.export();
+            self.db.import(data);
+
+            // re-calculate internal helper fields
+            self.largest_item = self
+                .by_container
+                .iter()
+                .map(|data| {
+                    let (data, _) = data.expect(DEFAULT_MSG);
+                    NodeID::from_be_bytes(
+                        data[0..8]
+                            .try_into()
+                            .expect("Key data must at least have length 8"),
+                    )
+                })
+                .max();
+
+            for data in self.by_container.iter() {
+                let (data, _) = data.expect(DEFAULT_MSG);
+                let (item, anno_key) = parse_by_container_key(&data);
+
+                let anno_key_size_entry = self.anno_key_sizes.entry(anno_key).or_insert(0);
+                *anno_key_size_entry += 1;
+
+                if let Some(existing_max_node) = self.largest_item {
+                    self.largest_item = Some(std::cmp::max(existing_max_node, item));
+                } else {
+                    self.largest_item = Some(item)
+                }
+            }
+
+            self.calculate_statistics();
+        }
+        Ok(())
     }
 
-    fn save_annotations_to(&self, _location: &Path) -> Result<()> {
-        unimplemented!()
+    fn save_annotations_to(&self, location: &Path) -> Result<()> {
+        if self.location.eq(location) {
+            self.db.flush()?;
+        } else {
+            // open a database for the given location and export to it
+            let other_db = sled::open(location)?;
+            let data = self.db.export();
+            other_db.import(data);
+        }
+        Ok(())
     }
 }
 

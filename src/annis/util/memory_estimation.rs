@@ -32,6 +32,16 @@ where
     size
 }
 
+pub fn size_of_pathbuf(
+    val: &std::path::PathBuf,
+    ops: &mut MallocSizeOfOps,
+) -> usize
+{
+    // The path uses an OsString internally, use this for the estimation
+    val.as_os_str().size_of(ops)
+}
+
+
 #[cfg(not(windows))]
 pub mod platform {
     use std::os::raw::c_void;
