@@ -65,7 +65,7 @@ fn parse_str_vec_key(data: &[u8]) -> Vec<&str> {
 /// [64 Bits Node ID][Namespace]\0[Name]\0
 /// ```
 fn create_by_container_key(node: NodeID, anno_key: &AnnoKey) -> Vec<u8> {
-    let mut result: Vec<u8> = node.to_le_bytes().iter().cloned().collect();
+    let mut result: Vec<u8> = node.to_be_bytes().iter().cloned().collect();
     result.extend(create_str_vec_key(&[&anno_key.ns, &anno_key.name]));
     result
 }
@@ -98,7 +98,7 @@ fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
 
     let mut result: Vec<u8> = create_str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
-    result.extend(&node.to_le_bytes());
+    result.extend(&node.to_be_bytes());
     result
 }
 
@@ -224,11 +224,11 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
     }
 
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
-        let mut start_key: Vec<u8> = item.to_le_bytes().iter().cloned().collect();
-        start_key.extend(&NodeID::min_value().to_le_bytes());
+        let mut start_key: Vec<u8> = item.to_be_bytes().iter().cloned().collect();
+        start_key.extend(&NodeID::min_value().to_be_bytes());
 
-        let mut end_key: Vec<u8> = item.to_le_bytes().iter().cloned().collect();
-        end_key.extend(&NodeID::max_value().to_le_bytes());
+        let mut end_key: Vec<u8> = item.to_be_bytes().iter().cloned().collect();
+        end_key.extend(&NodeID::max_value().to_be_bytes());
 
         let mut result = Vec::default();
         for it_val in self.by_container.range(start_key..=end_key) {
@@ -321,7 +321,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             } else {
                 // get all annotation keys for this item
                 self.by_container
-                    .range(item.to_le_bytes()..(item + 1).to_le_bytes())
+                    .range(item.to_be_bytes()..(item + 1).to_be_bytes())
                     .map(|data| {
                         let (data, _) = data.expect(DEFAULT_MSG);
                         let (node, matched_anno_key) = parse_by_container_key(&data);
