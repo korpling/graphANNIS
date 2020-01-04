@@ -134,9 +134,15 @@ fn parse_by_anno_qname_key(data: &[u8]) -> (NodeID, Annotation) {
     (node_id, anno)
 }
 
+fn default_config() -> sled::Config {
+    sled::Config::new()
+        .flush_every_ms(None)
+        .cache_capacity(1024 * 1024 * 128)
+}
+
 impl AnnoStorageImpl {
     pub fn new(path: &Path) -> AnnoStorageImpl {
-        let db = sled::open(path).expect(DEFAULT_MSG);
+        let db = default_config().path(path).open().expect(DEFAULT_MSG);
 
         let by_container = db.open_tree("by_container").expect(DEFAULT_MSG);
         let by_anno_qname = db.open_tree("by_anno_qname").expect(DEFAULT_MSG);
@@ -835,9 +841,32 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             self.db.flush()?;
         } else {
             // open a database for the given location and export to it
-            let other_db = sled::open(location)?;
-            let data = self.db.export();
-            other_db.import(data);
+            let other_db = default_config().path(location).open()?;
+
+            other_db
+                .open_tree("by_container")?
+                .transaction(|tree| -> sled::ConflictableTransactionResult<()> {
+                    for entry in self.by_container.iter() {
+                        if let Ok((key, val)) = entry {
+                            tree.insert(key, val)?;
+                        }
+                    }
+                    Ok(())
+                })
+                .expect(DEFAULT_MSG);
+
+            other_db
+                .open_tree("by_anno_qname")?
+                .transaction(|tree| -> sled::ConflictableTransactionResult<()> {
+                    for entry in self.by_anno_qname.iter() {
+                        if let Ok((key, val)) = entry {
+                            tree.insert(key, val)?;
+                        }
+                    }
+                    Ok(())
+                })
+                .expect(DEFAULT_MSG);
+            other_db.flush()?;
         }
         Ok(())
     }
