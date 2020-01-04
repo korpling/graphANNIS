@@ -11,7 +11,7 @@ use crate::annis::util::memory_estimation;
 use core::ops::Bound::*;
 use rand::seq::IteratorRandom;
 use std::borrow::Cow;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::convert::TryInto;
 use std::path::Path;
 use std::sync::Arc;
@@ -552,20 +552,114 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
     fn guess_max_count(
         &self,
-        _ns: Option<&str>,
-        _name: &str,
-        _lower_val: &str,
-        _upper_val: &str,
+        ns: Option<&str>,
+        name: &str,
+        lower_val: &str,
+        upper_val: &str,
     ) -> usize {
-        unimplemented!()
+        // find all complete keys which have the given name (and namespace if given)
+        let qualified_keys = match ns {
+            Some(ns) => vec![AnnoKey {
+                name: name.to_string(),
+                ns: ns.to_string(),
+            }],
+            None => self.get_qnames(&name),
+        };
+
+        let mut universe_size: usize = 0;
+        let mut sum_histogram_buckets: usize = 0;
+        let mut count_matches: usize = 0;
+
+        // guess for each fully qualified annotation key and return the sum of all guesses
+        for anno_key in qualified_keys {
+            if let Some(anno_size) = self.anno_key_sizes.get(&anno_key) {
+                universe_size += *anno_size;
+
+                if let Some(histo) = self.histogram_bounds.get(&anno_key) {
+                    // find the range in which the value is contained
+
+                    // we need to make sure the histogram is not empty -> should have at least two bounds
+                    if histo.len() >= 2 {
+                        sum_histogram_buckets += histo.len() - 1;
+
+                        for i in 0..histo.len() - 1 {
+                            let bucket_begin = &histo[i];
+                            let bucket_end = &histo[i + 1];
+                            // check if the range overlaps with the search range
+                            if bucket_begin.as_str() <= upper_val
+                                && lower_val <= bucket_end.as_str()
+                            {
+                                count_matches += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if sum_histogram_buckets > 0 {
+            let selectivity: f64 = (count_matches as f64) / (sum_histogram_buckets as f64);
+            (selectivity * (universe_size as f64)).round() as usize
+        } else {
+            0
+        }
     }
 
-    fn guess_max_count_regex(&self, _ns: Option<&str>, _name: &str, _pattern: &str) -> usize {
-        unimplemented!()
+    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> usize {
+        let full_match_pattern = util::regex_full_match(pattern);
+
+        let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
+        if let Ok(parsed) = parsed {
+            let expr: regex_syntax::hir::Hir = parsed;
+
+            let prefix_set = regex_syntax::hir::literal::Literals::prefixes(&expr);
+            let val_prefix = std::str::from_utf8(prefix_set.longest_common_prefix());
+
+            if let Ok(lower_val) = val_prefix {
+                let mut upper_val = String::from(lower_val);
+                upper_val.push(std::char::MAX);
+                return self.guess_max_count(ns, name, &lower_val, &upper_val);
+            }
+        }
+
+        0
     }
 
-    fn guess_most_frequent_value(&self, _ns: Option<&str>, _name: &str) -> Option<Cow<str>> {
-        unimplemented!()
+    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Option<Cow<str>> {
+        // find all complete keys which have the given name (and namespace if given)
+        let qualified_keys = match ns {
+            Some(ns) => vec![AnnoKey {
+                name: name.to_string(),
+                ns: ns.to_string(),
+            }],
+            None => self.get_qnames(&name),
+        };
+
+        let mut sampled_values: HashMap<&str, usize> = HashMap::default();
+
+        // guess for each fully qualified annotation key
+        for anno_key in qualified_keys {
+            if let Some(histo) = self.histogram_bounds.get(&anno_key) {
+                for v in histo.iter() {
+                    let count: &mut usize = sampled_values.entry(v).or_insert(0);
+                    *count += 1;
+                }
+            }
+        }
+        // find the value which is most frequent
+        if !sampled_values.is_empty() {
+            let mut max_count = 0;
+            let mut max_value = Cow::Borrowed("");
+            for (v, count) in sampled_values.into_iter() {
+                if count >= max_count {
+                    max_value = Cow::Borrowed(v);
+                    max_count = count;
+                }
+            }
+            Some(max_value)
+        } else {
+            None
+        }
     }
 
     fn get_all_values(&self, _key: &AnnoKey, _most_frequent_first: bool) -> Vec<Cow<str>> {
