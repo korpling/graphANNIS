@@ -8,6 +8,7 @@ use crate::annis::types::NodeID;
 use crate::annis::util;
 use crate::annis::util::memory_estimation;
 
+use core::ops::Bound::*;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::convert::TryInto;
@@ -206,7 +207,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
         if existing_anno.is_none() {
             // a new annotation entry was inserted and did not replace an existing one
-           if let Some(largest_item) = self.largest_item.clone() {
+            if let Some(largest_item) = self.largest_item.clone() {
                 if largest_item < item {
                     self.largest_item = Some(item);
                 }
@@ -380,8 +381,33 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         }
     }
 
-    fn number_of_annotations_by_name(&self, _ns: Option<&str>, _name: &str) -> usize {
-        unimplemented!()
+    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> usize {
+        let qualified_keys = match ns {
+            Some(ns) => self.anno_key_sizes.range((
+                Included(AnnoKey {
+                    name: name.to_string(),
+                    ns: ns.to_string(),
+                }),
+                Included(AnnoKey {
+                    name: name.to_string(),
+                    ns: ns.to_string(),
+                }),
+            )),
+            None => self.anno_key_sizes.range(
+                AnnoKey {
+                    name: name.to_string(),
+                    ns: String::default(),
+                }..AnnoKey {
+                    name: name.to_string(),
+                    ns: std::char::MAX.to_string(),
+                },
+            ),
+        };
+        let mut result = 0;
+        for (_anno_key, anno_size) in qualified_keys {
+            result += anno_size;
+        }
+        result
     }
 
     fn exact_anno_search<'a>(
