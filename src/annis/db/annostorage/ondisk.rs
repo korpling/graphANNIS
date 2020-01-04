@@ -187,7 +187,7 @@ impl AnnoStorageImpl {
                     val: if let Some(value) = value {
                         value.to_string()
                     } else {
-                        "\0".to_string()
+                        std::char::MAX.to_string()
                     },
                 };
 
@@ -227,7 +227,7 @@ impl AnnoStorageImpl {
 
         let upper_bound = Annotation {
             key: anno_key.clone(),
-            val: "\0".to_string(),
+            val: std::char::MAX.to_string(),
         };
 
         let lower_bound = create_by_anno_qname_key(NodeID::min_value(), &lower_bound);
