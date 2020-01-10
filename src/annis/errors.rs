@@ -31,7 +31,7 @@ pub enum Error {
     Strum(::strum::ParseError),
     Regex(::regex::Error),
     RandomGenerator(::rand::Error),
-    Sled(sled::Error),
+    RocksDB(rocksdb::Error),
 }
 
 impl std::convert::From<std::io::Error> for Error {
@@ -83,9 +83,9 @@ impl std::convert::From<::rand::Error> for Error {
 }
 
 
-impl std::convert::From<sled::Error> for Error {
-    fn from(e: sled::Error) -> Error {
-        Error::Sled(e)
+impl std::convert::From<rocksdb::Error> for Error {
+    fn from(e: rocksdb::Error) -> Error {
+        Error::RocksDB(e)
     }
 }
 
@@ -141,7 +141,7 @@ impl Display for Error {
             Error::Strum(e) => e.fmt(f),
             Error::Regex(e) => e.fmt(f),
             Error::RandomGenerator(e) => e.fmt(f),
-            Error::Sled(e) => e.fmt(f),
+            Error::RocksDB(e) => e.fmt(f),
         }
     }
 }
@@ -169,7 +169,7 @@ impl StdError for Error {
             Error::Strum(e) => Some(e),
             Error::Regex(e) => Some(e),
             Error::RandomGenerator(e) => Some(e),
-            Error::Sled(e) => Some(e),
+            Error::RocksDB(e) => Some(e),
         }
     }
 }
