@@ -836,7 +836,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         if !self.location.eq(&location) {
             // open a database for the given location and import their data
             let opts = default_config();
-            let other_db = rocksdb::DB::open(&opts, location)?;
+            let other_db = rocksdb::DB::open_cf(&opts, location, vec!["by_container", "by_anno_qname"])?;
 
             self.clear();
 
@@ -901,7 +901,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             // open a database for the given location and export to it
             let opts = default_config();
 
-            let other_db = rocksdb::DB::open(&opts, location)?;
+            let other_db = rocksdb::DB::open_cf(&opts, location, vec!["by_container", "by_anno_qname"])?;
 
             let by_container = self.db.cf_handle("by_container").expect(DEFAULT_MSG);
             let other_by_container = other_db.cf_handle("by_container").expect(DEFAULT_MSG);
