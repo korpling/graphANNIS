@@ -922,6 +922,8 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             {
                 other_db.put_cf(&other_by_anno_qname, key, val)?;
             }
+
+            self.db.flush()?;
         }
         Ok(())
     }
