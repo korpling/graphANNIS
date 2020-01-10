@@ -334,11 +334,11 @@ impl Graph {
             location.join("current")
         };
 
-        let sled_subdirectory = dir2load.join(annostorage::ondisk::SUBFOLDER_NAME);
-        if sled_subdirectory.exists() && sled_subdirectory.is_dir() {
+        let ondisk_subdirectory = dir2load.join(annostorage::ondisk::SUBFOLDER_NAME);
+        if ondisk_subdirectory.exists() && ondisk_subdirectory.is_dir() {
             self.disk_based = true;
             // directly load the on disk storage from the given folder to avoid having a temporary directory
-            let node_annos_tmp = annostorage::ondisk::AnnoStorageImpl::new(&sled_subdirectory);
+            let node_annos_tmp = annostorage::ondisk::AnnoStorageImpl::new(&ondisk_subdirectory);
             self.node_annos = Box::new(node_annos_tmp);
         } else {
             // assume a main memory implementation
