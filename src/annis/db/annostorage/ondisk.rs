@@ -129,19 +129,48 @@ fn parse_by_anno_qname_key(data: &[u8]) -> (NodeID, Annotation) {
     (node_id, anno)
 }
 
-fn default_config() -> rocksdb::Options {
-    let mut opts = rocksdb::Options::default();
-    opts.create_missing_column_families(true);
-    opts.create_if_missing(true);
-    opts
+fn open_db(path: &Path) -> Result<rocksdb::DB> {
+    let mut db_opts = rocksdb::Options::default();
+    db_opts.create_missing_column_families(true);
+    db_opts.create_if_missing(true);
+
+    // use prefixes for the different column families
+    let mut opts_by_container = rocksdb::Options::default();
+    opts_by_container.set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(
+        std::mem::size_of::<NodeID>(),
+    ));
+    let cf_by_container = rocksdb::ColumnFamilyDescriptor::new("by_container", opts_by_container);
+
+    let mut opts_by_anno_qname = rocksdb::Options::default();
+    opts_by_anno_qname.set_prefix_extractor(rocksdb::SliceTransform::create(
+        "qname",
+        |data| {
+            // Use the namespace/name as prefix.
+            // This means we have to split the first \0 and use the index
+            // of the next one as end position of the prefix.
+            let zero_pos = data
+                .iter()
+                .enumerate()
+                .filter(|(_, b)| **b == 0)
+                .skip(1)
+                .map(|(idx, _)| idx)
+                .next();
+            &data[0..zero_pos.unwrap_or(0)]
+        },
+        None,
+    ));
+    let cf_by_anno_qname =
+        rocksdb::ColumnFamilyDescriptor::new("by_anno_qname", opts_by_anno_qname);
+
+    let db =
+        rocksdb::DB::open_cf_descriptors(&db_opts, path, vec![cf_by_container, cf_by_anno_qname])?;
+
+    Ok(db)
 }
 
 impl AnnoStorageImpl {
     pub fn new(path: &Path) -> AnnoStorageImpl {
-        let opts = default_config();
-
-        let db = rocksdb::DB::open_cf(&opts, path, vec!["by_container", "by_anno_qname"])
-            .expect(DEFAULT_MSG);
+        let db = open_db(path).expect(DEFAULT_MSG);
         AnnoStorageImpl {
             db,
             anno_key_sizes: BTreeMap::new(),
@@ -205,7 +234,7 @@ impl AnnoStorageImpl {
             })
             .collect();
 
-        let cf = self.get_by_container_cf().expect(DEFAULT_MSG);
+        let cf = self.get_by_anno_qname_cf().expect(DEFAULT_MSG);
 
         let it = annotation_ranges
             .into_iter()
@@ -218,11 +247,10 @@ impl AnnoStorageImpl {
                     .expect(DEFAULT_MSG)
                     .filter(move |(key, _)| &key[..] < &upper_bound[..])
                     .fuse()
-                    .map(|data| {
+                    .map(|(data, _)| {
                         // the value is only a marker, use the key to extract the node ID
-                        let (data, _) = data;
                         let node_id = NodeID::from_be_bytes(
-                            data[(data.len() - 8)..]
+                            data[(data.len() - std::mem::size_of::<NodeID>())..]
                                 .try_into()
                                 .expect("Key data must at least have length 8"),
                         );
@@ -259,7 +287,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             .expect(DEFAULT_MSG);
 
         // To save some space, only a marker value ([1]) of one byte is actually inserted.
-        let by_anno_qname = self.get_by_container_cf().expect(DEFAULT_MSG);
+        let by_anno_qname = self.get_by_anno_qname_cf().expect(DEFAULT_MSG);
         self.db
             .put_cf(&by_anno_qname, create_by_anno_qname_key(item, &anno), &[1])
             .expect(DEFAULT_MSG);
@@ -835,8 +863,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         let location = location.join(SUBFOLDER_NAME);
         if !self.location.eq(&location) {
             // open a database for the given location and import their data
-            let opts = default_config();
-            let other_db = rocksdb::DB::open_cf(&opts, location, vec!["by_container", "by_anno_qname"])?;
+            let other_db = open_db(&location)?;
 
             self.clear();
 
@@ -899,9 +926,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             self.db.flush()?;
         } else {
             // open a database for the given location and export to it
-            let opts = default_config();
-
-            let other_db = rocksdb::DB::open_cf(&opts, location, vec!["by_container", "by_anno_qname"])?;
+            let other_db = open_db(&location)?;
 
             let by_container = self.db.cf_handle("by_container").expect(DEFAULT_MSG);
             let other_by_container = other_db.cf_handle("by_container").expect(DEFAULT_MSG);
