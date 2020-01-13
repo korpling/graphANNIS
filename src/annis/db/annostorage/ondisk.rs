@@ -206,9 +206,11 @@ impl AnnoStorageImpl {
                 .collect()
         };
 
-        let annotation_ranges: Vec<(Arc<AnnoKey>, Vec<u8>, Vec<u8>)> = key_ranges
+        let annotation_ranges: Vec<(Arc<AnnoKey>, Vec<u8>, Vec<u8>, Vec<u8>)> = key_ranges
             .into_iter()
             .map(|key| {
+                let prefix: Vec<u8> = create_str_vec_key(&[&key.ns, &key.name]);
+
                 let lower_bound = Annotation {
                     key: key.as_ref().clone(),
                     val: if let Some(value) = value {
@@ -230,22 +232,22 @@ impl AnnoStorageImpl {
                 let lower_bound = create_by_anno_qname_key(NodeID::min_value(), &lower_bound);
                 let upper_bound = create_by_anno_qname_key(NodeID::max_value(), &upper_bound);
 
-                (key, lower_bound, upper_bound)
+                (key, prefix, lower_bound, upper_bound)
             })
             .collect();
 
         let cf = self.get_by_anno_qname_cf().expect(DEFAULT_MSG);
 
-        let it = annotation_ranges
-            .into_iter()
-            .flat_map(move |(key, lower_bound, upper_bound)| {
-                self.db
-                    .iterator_cf(
-                        &cf,
-                        rocksdb::IteratorMode::From(&lower_bound, rocksdb::Direction::Forward),
-                    )
-                    .expect(DEFAULT_MSG)
-                    .filter(move |(key, _)| &key[..] < &upper_bound[..])
+        let it = annotation_ranges.into_iter().flat_map(
+            move |(key, prefix, lower_bound, upper_bound)| {
+                // restrict search to qualified name prefix
+                let mut it = self.db.prefix_iterator_cf(&cf, prefix).expect(DEFAULT_MSG);
+                // seek to position of the lower bound
+                it.set_mode(rocksdb::IteratorMode::From(
+                    &lower_bound,
+                    rocksdb::Direction::Forward,
+                ));
+                it.filter(move |(key, _)| &key[..] < &upper_bound[..])
                     .fuse()
                     .map(|(data, _)| {
                         // the value is only a marker, use the key to extract the node ID
@@ -257,7 +259,8 @@ impl AnnoStorageImpl {
                         node_id
                     })
                     .zip(std::iter::repeat(key))
-            });
+            },
+        );
 
         Box::new(it)
     }
