@@ -107,11 +107,13 @@ impl GraphUpdate {
     }
 
     /// Get all consistent changes
-    pub fn consistent_changes<'a>(&'a self) -> Box<dyn Iterator<Item = (u64, UpdateEvent)> + 'a> {
+    pub fn consistent_changes<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = (u64, &'a UpdateEvent)> + 'a> {
         let last_consistent_change_id = self.last_consistent_change_id;
         let it = self.diffs.iter().filter_map(move |d| {
             if d.0 <= last_consistent_change_id {
-                Some((d.0, d.1.clone()))
+                Some((d.0, &d.1))
             } else {
                 None
             }

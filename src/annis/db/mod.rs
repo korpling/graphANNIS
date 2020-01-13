@@ -495,6 +495,7 @@ impl Graph {
         text_coverage_components
             .extend(self.get_all_components(Some(ComponentType::Coverage), None));
 
+        // Collect all used node names and map them to existing IDs
         for (id, change) in u.consistent_changes() {
             trace!("applying event {:?}", &change);
             match change {
@@ -514,11 +515,11 @@ impl Graph {
 
                         let new_anno_name = Annotation {
                             key: NODE_NAME_KEY.as_ref().clone(),
-                            val: node_name,
+                            val: node_name.to_string(),
                         };
                         let new_anno_type = Annotation {
                             key: NODE_TYPE_KEY.as_ref().clone(),
-                            val: node_type,
+                            val: node_type.to_string(),
                         };
 
                         // add the new node (with minimum labels)
@@ -560,10 +561,10 @@ impl Graph {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
                         let anno = Annotation {
                             key: AnnoKey {
-                                ns: anno_ns,
-                                name: anno_name,
+                                ns: anno_ns.to_string(),
+                                name: anno_name.to_string(),
                             },
-                            val: anno_value,
+                            val: anno_value.to_string(),
                         };
                         self.node_annos.insert(existing_node_id, anno);
                     }
@@ -575,8 +576,8 @@ impl Graph {
                 } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
                         let key = AnnoKey {
-                            ns: anno_ns,
-                            name: anno_name,
+                            ns: anno_ns.to_string(),
+                            name: anno_name.to_string(),
                         };
                         self.node_annos
                             .remove_annotation_for_item(&existing_node_id, &key);
@@ -597,8 +598,8 @@ impl Graph {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
-                                layer,
-                                name: component_name,
+                                layer: layer.to_string(),
+                                name: component_name.to_string(),
                             };
                             let gs = self.get_or_create_writable(&c)?;
                             gs.add_edge(Edge { source, target });
@@ -648,8 +649,8 @@ impl Graph {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
-                                layer,
-                                name: component_name,
+                                layer: layer.to_string(),
+                                name: component_name.to_string(),
                             };
 
                             if c.ctype == ComponentType::Coverage
@@ -694,8 +695,8 @@ impl Graph {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
-                                layer,
-                                name: component_name,
+                                layer: layer.to_string(),
+                                name: component_name.to_string(),
                             };
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
@@ -703,10 +704,10 @@ impl Graph {
                             if gs.is_connected(source, target, 1, Included(1)) {
                                 let anno = Annotation {
                                     key: AnnoKey {
-                                        ns: anno_ns,
-                                        name: anno_name,
+                                        ns: anno_ns.to_string(),
+                                        name: anno_name.to_string(),
                                     },
-                                    val: anno_value,
+                                    val: anno_value.to_string(),
                                 };
                                 gs.add_edge_annotation(e, anno);
                             }
@@ -729,16 +730,16 @@ impl Graph {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
-                                layer,
-                                name: component_name,
+                                layer: layer.to_string(),
+                                name: component_name.to_string(),
                             };
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
                             if gs.is_connected(source, target, 1, Included(1)) {
                                 let key = AnnoKey {
-                                    ns: anno_ns,
-                                    name: anno_name,
+                                    ns: anno_ns.to_string(),
+                                    name: anno_name.to_string(),
                                 };
                                 gs.delete_edge_annotation(&e, &key);
                             }
