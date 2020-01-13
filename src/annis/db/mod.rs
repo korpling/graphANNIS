@@ -494,8 +494,10 @@ impl Graph {
                 | UpdateEvent::AddNodeLabel { node_name, .. }
                 | UpdateEvent::DeleteNode { node_name, .. }
                 | UpdateEvent::DeleteNodeLabel { node_name, .. } => {
-                    if let Some(id) = self.get_node_id_from_name(node_name) {
-                        node_ids.insert(node_name, id);
+                    if !node_ids.contains_key(node_name) {
+                        if let Some(id) = self.get_node_id_from_name(node_name) {
+                            node_ids.insert(node_name, id);
+                        }
                     }
                 }
                 UpdateEvent::AddEdge {
@@ -518,11 +520,15 @@ impl Graph {
                     target_node,
                     ..
                 } => {
-                    if let Some(id) = self.get_node_id_from_name(source_node) {
-                        node_ids.insert(source_node, id);
+                    if !node_ids.contains_key(source_node) {
+                        if let Some(id) = self.get_node_id_from_name(source_node) {
+                            node_ids.insert(source_node, id);
+                        }
                     }
-                    if let Some(id) = self.get_node_id_from_name(target_node) {
-                        node_ids.insert(target_node, id);
+                    if !node_ids.contains_key(target_node) {
+                        if let Some(id) = self.get_node_id_from_name(target_node) {
+                            node_ids.insert(target_node, id);
+                        }
                     }
                 }
             }
