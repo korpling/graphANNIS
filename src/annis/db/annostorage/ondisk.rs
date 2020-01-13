@@ -249,16 +249,15 @@ impl AnnoStorageImpl {
                 ));
                 it.filter(move |(key, _)| &key[..] < &upper_bound[..])
                     .fuse()
-                    .map(|(data, _)| {
+                    .map(move |(data, _)| {
                         // the value is only a marker, use the key to extract the node ID
                         let node_id = NodeID::from_be_bytes(
                             data[(data.len() - std::mem::size_of::<NodeID>())..]
                                 .try_into()
                                 .expect("Key data must at least have length 8"),
                         );
-                        node_id
+                        (node_id, key.clone())
                     })
-                    .zip(std::iter::repeat(key))
             },
         );
 
