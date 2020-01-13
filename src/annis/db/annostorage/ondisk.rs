@@ -239,7 +239,7 @@ impl AnnoStorageImpl {
         let cf = self.get_by_anno_qname_cf().expect(DEFAULT_MSG);
 
         let it = annotation_ranges.into_iter().flat_map(
-            move |(key, prefix, lower_bound, upper_bound)| {
+            move |(anno_key, prefix, lower_bound, upper_bound)| {
                 // restrict search to qualified name prefix
                 let mut it = self.db.prefix_iterator_cf(&cf, prefix).expect(DEFAULT_MSG);
                 // seek to position of the lower bound
@@ -247,17 +247,21 @@ impl AnnoStorageImpl {
                     &lower_bound,
                     rocksdb::Direction::Forward,
                 ));
-                it.filter(move |(key, _)| &key[..] < &upper_bound[..])
-                    .fuse()
-                    .map(move |(data, _)| {
+
+                it.filter_map(move |(found_key, _)| {
+                    if &found_key[..] < &upper_bound[..] {
                         // the value is only a marker, use the key to extract the node ID
                         let node_id = NodeID::from_be_bytes(
-                            data[(data.len() - std::mem::size_of::<NodeID>())..]
+                            found_key[(found_key.len() - std::mem::size_of::<NodeID>())..]
                                 .try_into()
                                 .expect("Key data must at least have length 8"),
                         );
-                        (node_id, key.clone())
-                    })
+                        Some((node_id, anno_key.clone()))
+                    } else {
+                        None
+                    }
+                })
+                .fuse()
             },
         );
 
