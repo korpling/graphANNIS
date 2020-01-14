@@ -178,14 +178,24 @@ impl AnnoStorageImpl {
     pub fn new(path: Option<PathBuf>) -> AnnoStorageImpl {
         if let Some(path) = path {
             let db = open_db(&path).expect(DEFAULT_MSG);
-            AnnoStorageImpl {
+            let mut result = AnnoStorageImpl {
                 db,
                 anno_key_sizes: BTreeMap::new(),
                 largest_item: None,
                 histogram_bounds: BTreeMap::new(),
                 location: path.to_path_buf(),
                 temp_dir: None,
-            }
+            };
+
+            // load internal helper fields
+            let custom_path = path.join("custom.bin");
+            let f = std::fs::File::open(custom_path).expect(DEFAULT_MSG);
+            let mut reader = std::io::BufReader::new(f);
+            result.largest_item = bincode::deserialize_from(&mut reader).expect(DEFAULT_MSG);
+            result.anno_key_sizes = bincode::deserialize_from(&mut reader).expect(DEFAULT_MSG);
+            result.histogram_bounds = bincode::deserialize_from(&mut reader).expect(DEFAULT_MSG);
+
+            result
         } else {
             let tmp_dir = tempfile::Builder::new()
                 .prefix("graphannis-ondisk-nodeanno-")
@@ -893,44 +903,22 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             )? {
                 self.db.put_cf(&by_anno_qname, key, val)?;
             }
-
-            // re-calculate internal helper fields
-            self.largest_item = self
-                .db
-                .iterator_cf_opt(&by_container, &read_opts, rocksdb::IteratorMode::Start)?
-                .map(|(data, _)| {
-                    NodeID::from_be_bytes(
-                        data[0..8]
-                            .try_into()
-                            .expect("Key data must at least have length 8"),
-                    )
-                })
-                .max();
-
-            for (data, _) in
-                self.db
-                    .iterator_cf_opt(&by_container, &read_opts, rocksdb::IteratorMode::Start)?
-            {
-                let (item, anno_key) = parse_by_container_key(&data);
-
-                let anno_key_size_entry = self.anno_key_sizes.entry(anno_key).or_insert(0);
-                *anno_key_size_entry += 1;
-
-                if let Some(existing_max_node) = self.largest_item {
-                    self.largest_item = Some(std::cmp::max(existing_max_node, item));
-                } else {
-                    self.largest_item = Some(item)
-                }
-            }
-
-            self.calculate_statistics();
         }
+
+        // load internal helper fields
+        let f = std::fs::File::open(location.join("custom.bin"))?;
+        let mut reader = std::io::BufReader::new(f);
+        self.largest_item = bincode::deserialize_from(&mut reader)?;
+        self.anno_key_sizes = bincode::deserialize_from(&mut reader)?;
+        self.histogram_bounds = bincode::deserialize_from(&mut reader)?;
+
         Ok(())
     }
 
     fn save_annotations_to(&self, location: &Path) -> Result<()> {
         let location = location.join(SUBFOLDER_NAME);
 
+        // save the rocksdb data
         if self.location.eq(&location) {
             self.db.flush()?;
         } else {
@@ -963,6 +951,14 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
             self.db.flush()?;
         }
+
+        // save the other custom fields
+        let f = std::fs::File::create(location.join("custom.bin"))?;
+        let mut writer = std::io::BufWriter::new(f);
+        bincode::serialize_into(&mut writer, &self.largest_item)?;
+        bincode::serialize_into(&mut writer, &self.anno_key_sizes)?;
+        bincode::serialize_into(&mut writer, &self.histogram_bounds)?;
+
         Ok(())
     }
 }
