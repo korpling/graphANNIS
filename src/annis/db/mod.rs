@@ -484,8 +484,8 @@ impl Graph {
     fn get_existing_node_ids_for_changes<'a>(
         &self,
         changes: Box<dyn Iterator<Item = (u64, &'a UpdateEvent)> + 'a>,
-    ) -> std::collections::HashMap<&'a String, NodeID> {
-        let mut node_ids: std::collections::HashMap<&String, NodeID> =
+    ) -> std::collections::HashMap<&'a String, Option<NodeID>> {
+        let mut node_ids: std::collections::HashMap<&String, Option<NodeID>> =
             std::collections::HashMap::default();
 
         for (_, event) in changes {
@@ -496,7 +496,9 @@ impl Graph {
                 | UpdateEvent::DeleteNodeLabel { node_name, .. } => {
                     if !node_ids.contains_key(node_name) {
                         if let Some(id) = self.get_node_id_from_name(node_name) {
-                            node_ids.insert(node_name, id);
+                            node_ids.insert(node_name, Some(id));
+                        } else {
+                            node_ids.insert(node_name, None);
                         }
                     }
                 }
@@ -522,12 +524,16 @@ impl Graph {
                 } => {
                     if !node_ids.contains_key(source_node) {
                         if let Some(id) = self.get_node_id_from_name(source_node) {
-                            node_ids.insert(source_node, id);
+                            node_ids.insert(source_node, Some(id));
+                        } else {
+                            node_ids.insert(source_node, None);
                         }
                     }
                     if !node_ids.contains_key(target_node) {
                         if let Some(id) = self.get_node_id_from_name(target_node) {
-                            node_ids.insert(target_node, id);
+                            node_ids.insert(target_node, Some(id));
+                        } else {
+                            node_ids.insert(target_node, None);
                         }
                     }
                 }
@@ -551,6 +557,8 @@ impl Graph {
         text_coverage_components
             .extend(self.get_all_components(Some(ComponentType::Coverage), None));
 
+        let msg_missing = "New update event that was not included cache";
+
         // Collect all used node names and map them to existing IDs
         let mut node_ids = self.get_existing_node_ids_for_changes(u.consistent_changes());
         for (id, change) in u.consistent_changes() {
@@ -560,7 +568,7 @@ impl Graph {
                     node_name,
                     node_type,
                 } => {
-                    let existing_node_id = node_ids.get(node_name);
+                    let existing_node_id = node_ids.get(node_name).expect(msg_missing);
                     // only add node if it does not exist yet
                     if existing_node_id.is_none() {
                         let new_node_id: NodeID =
@@ -584,11 +592,11 @@ impl Graph {
                         self.node_annos.insert(new_node_id, new_anno_type);
 
                         // update the internal cache
-                        node_ids.insert(node_name, new_node_id);
+                        node_ids.insert(node_name, Some(new_node_id));
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
-                    if let Some(existing_node_id) = node_ids.get(&node_name) {
+                    if let Some(existing_node_id) = node_ids.get(&node_name).expect(msg_missing) {
                         if !invalid_nodes.contains(&existing_node_id) {
                             self.extend_parent_text_coverage_nodes(
                                 *existing_node_id,
@@ -618,7 +626,7 @@ impl Graph {
                     anno_name,
                     anno_value,
                 } => {
-                    if let Some(existing_node_id) = node_ids.get(&node_name) {
+                    if let Some(existing_node_id) = node_ids.get(&node_name).expect(msg_missing) {
                         let anno = Annotation {
                             key: AnnoKey {
                                 ns: anno_ns.to_string(),
@@ -634,7 +642,7 @@ impl Graph {
                     anno_ns,
                     anno_name,
                 } => {
-                    if let Some(existing_node_id) = node_ids.get(&node_name) {
+                    if let Some(existing_node_id) = node_ids.get(&node_name).expect(msg_missing) {
                         let key = AnnoKey {
                             ns: anno_ns.to_string(),
                             name: anno_name.to_string(),
@@ -651,9 +659,10 @@ impl Graph {
                     component_name,
                 } => {
                     // only add edge if both nodes already exist
-                    if let (Some(source), Some(target)) =
-                        (node_ids.get(&source_node), node_ids.get(&target_node))
-                    {
+                    if let (Some(source), Some(target)) = (
+                        node_ids.get(&source_node).expect(msg_missing),
+                        node_ids.get(&target_node).expect(msg_missing),
+                    ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
@@ -704,9 +713,10 @@ impl Graph {
                     component_type,
                     component_name,
                 } => {
-                    if let (Some(source), Some(target)) =
-                        (node_ids.get(&source_node), node_ids.get(&target_node))
-                    {
+                    if let (Some(source), Some(target)) = (
+                        node_ids.get(&source_node).expect(msg_missing),
+                        node_ids.get(&target_node).expect(msg_missing),
+                    ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
@@ -752,9 +762,10 @@ impl Graph {
                     anno_name,
                     anno_value,
                 } => {
-                    if let (Some(source), Some(target)) =
-                        (node_ids.get(&source_node), node_ids.get(&target_node))
-                    {
+                    if let (Some(source), Some(target)) = (
+                        node_ids.get(&source_node).expect(msg_missing),
+                        node_ids.get(&target_node).expect(msg_missing),
+                    ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
@@ -789,9 +800,10 @@ impl Graph {
                     anno_ns,
                     anno_name,
                 } => {
-                    if let (Some(source), Some(target)) =
-                        (node_ids.get(&source_node), node_ids.get(&target_node))
-                    {
+                    if let (Some(source), Some(target)) = (
+                        node_ids.get(&source_node).expect(msg_missing),
+                        node_ids.get(&target_node).expect(msg_missing),
+                    ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
