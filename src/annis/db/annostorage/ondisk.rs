@@ -37,6 +37,10 @@ pub struct AnnoStorageImpl {
     db: rocksdb::DB,
     #[with_malloc_size_of_func = "memory_estimation::size_of_pathbuf"]
     location: PathBuf,
+    /// A handle to a temporary directory. This must be part of the struct because the temporary directory will
+    /// be deleted when this handle is dropped.
+    #[with_malloc_size_of_func = "memory_estimation::size_of_option_tempdir"]
+    temp_dir: Option<tempfile::TempDir>,
 
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
@@ -169,14 +173,31 @@ fn open_db(path: &Path) -> Result<rocksdb::DB> {
 }
 
 impl AnnoStorageImpl {
-    pub fn new(path: &Path) -> AnnoStorageImpl {
-        let db = open_db(path).expect(DEFAULT_MSG);
-        AnnoStorageImpl {
-            db,
-            anno_key_sizes: BTreeMap::new(),
-            largest_item: None,
-            histogram_bounds: BTreeMap::new(),
-            location: path.to_path_buf(),
+    pub fn new(path: Option<PathBuf>) -> AnnoStorageImpl {
+        if let Some(path) = path {
+            let db = open_db(&path).expect(DEFAULT_MSG);
+            AnnoStorageImpl {
+                db,
+                anno_key_sizes: BTreeMap::new(),
+                largest_item: None,
+                histogram_bounds: BTreeMap::new(),
+                location: path.to_path_buf(),
+                temp_dir: None,
+            }
+        } else {
+            let tmp_dir = tempfile::Builder::new()
+                .prefix("graphannis-ondisk-nodeanno-")
+                .tempdir()
+                .unwrap();
+            let db = open_db(tmp_dir.as_ref()).expect(DEFAULT_MSG);
+            AnnoStorageImpl {
+                db,
+                anno_key_sizes: BTreeMap::new(),
+                largest_item: None,
+                histogram_bounds: BTreeMap::new(),
+                location: tmp_dir.as_ref().to_path_buf(),
+                temp_dir: Some(tmp_dir),
+            }
         }
     }
 
@@ -241,7 +262,7 @@ impl AnnoStorageImpl {
         let it = annotation_ranges.into_iter().flat_map(
             move |(anno_key, prefix, lower_bound, upper_bound)| {
                 let mut opts = rocksdb::ReadOptions::default();
-                // Create a forward-only iterator with an upper bound
+                // Create a forward-only iterator
                 opts.set_tailing(true);
                 opts.set_verify_checksums(false);
 
@@ -300,13 +321,23 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             .expect(DEFAULT_MSG)
             .is_some();
         self.db
-            .put_cf_opt(&by_container, &by_container_key, anno.val.as_bytes(), &write_opts)
+            .put_cf_opt(
+                &by_container,
+                &by_container_key,
+                anno.val.as_bytes(),
+                &write_opts,
+            )
             .expect(DEFAULT_MSG);
 
         // To save some space, only a marker value ([1]) of one byte is actually inserted.
         let by_anno_qname = self.get_by_anno_qname_cf().expect(DEFAULT_MSG);
         self.db
-            .put_cf_opt(&by_anno_qname, create_by_anno_qname_key(item, &anno), &[1], &write_opts)
+            .put_cf_opt(
+                &by_anno_qname,
+                create_by_anno_qname_key(item, &anno),
+                &[1],
+                &write_opts,
+            )
             .expect(DEFAULT_MSG);
 
         if !already_existed {
@@ -990,8 +1021,7 @@ mod tests {
             val: "test".to_owned(),
         };
 
-        let path = tempfile::TempDir::new().unwrap();
-        let mut a = AnnoStorageImpl::new(path.path());
+        let mut a = AnnoStorageImpl::new(None);
 
         debug!("Inserting annotation for node 1");
         a.insert(1, test_anno.clone());
@@ -1043,8 +1073,7 @@ mod tests {
             val: "test".to_owned(),
         };
 
-        let path = tempfile::TempDir::new().unwrap();
-        let mut a = AnnoStorageImpl::new(path.path());
+        let mut a = AnnoStorageImpl::new(None);
 
         a.insert(1, test_anno1.clone());
         a.insert(1, test_anno2.clone());
@@ -1071,8 +1100,7 @@ mod tests {
             val: "test".to_owned(),
         };
 
-        let path = tempfile::TempDir::new().unwrap();
-        let mut a = AnnoStorageImpl::new(path.path());
+        let mut a = AnnoStorageImpl::new(None);
         a.insert(1, test_anno.clone());
 
         assert_eq!(1, a.number_of_annotations());

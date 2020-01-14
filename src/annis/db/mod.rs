@@ -241,11 +241,7 @@ impl Graph {
     /// Create a new and empty instance without any location on the disk.
     fn new(disk_based: bool) -> Graph {
         let node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
-            let tmp_dir = tempfile::Builder::new()
-                .prefix("graphannis-ondisk-nodeanno")
-                .tempdir()
-                .unwrap();
-            Box::new(annostorage::ondisk::AnnoStorageImpl::new(tmp_dir.as_ref()))
+            Box::new(annostorage::ondisk::AnnoStorageImpl::new(None))
         } else {
             Box::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
         };
@@ -338,7 +334,7 @@ impl Graph {
         if ondisk_subdirectory.exists() && ondisk_subdirectory.is_dir() {
             self.disk_based = true;
             // directly load the on disk storage from the given folder to avoid having a temporary directory
-            let node_annos_tmp = annostorage::ondisk::AnnoStorageImpl::new(&ondisk_subdirectory);
+            let node_annos_tmp = annostorage::ondisk::AnnoStorageImpl::new(Some(ondisk_subdirectory));
             self.node_annos = Box::new(node_annos_tmp);
         } else {
             // assume a main memory implementation
