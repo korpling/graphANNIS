@@ -16,6 +16,8 @@ use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+mod rocksdb_iterator;
+
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
 const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
 
@@ -227,69 +229,17 @@ impl AnnoStorageImpl {
                 .collect()
         };
 
-        let annotation_ranges: Vec<(Arc<AnnoKey>, Vec<u8>, Vec<u8>, Vec<u8>)> = key_ranges
-            .into_iter()
-            .map(|key| {
-                let prefix: Vec<u8> = create_str_vec_key(&[&key.ns, &key.name]);
-
-                let lower_bound = Annotation {
-                    key: key.as_ref().clone(),
-                    val: if let Some(value) = value {
-                        value.to_string()
-                    } else {
-                        "".to_string()
-                    },
-                };
-
-                let upper_bound = Annotation {
-                    key: key.as_ref().clone(),
-                    val: if let Some(value) = value {
-                        value.to_string()
-                    } else {
-                        std::char::MAX.to_string()
-                    },
-                };
-
-                let lower_bound = create_by_anno_qname_key(NodeID::min_value(), &lower_bound);
-                let upper_bound = create_by_anno_qname_key(NodeID::max_value(), &upper_bound);
-
-                (key, prefix, lower_bound, upper_bound)
-            })
-            .collect();
-
         let cf = self.get_by_anno_qname_cf().expect(DEFAULT_MSG);
 
-        let it = annotation_ranges.into_iter().flat_map(
-            move |(anno_key, prefix, lower_bound, upper_bound)| {
-                let mut opts = rocksdb::ReadOptions::default();
-                // Create a forward-only iterator
-                opts.set_tailing(true);
-                opts.set_verify_checksums(false);
+        let value = value.map(|v| v.to_string());
 
-                // restrict search to qualified name prefix
-                let mut it = self.db.prefix_iterator_cf(&cf, prefix).expect(DEFAULT_MSG);
-                // seek to position of the lower bound
-                it.set_mode(rocksdb::IteratorMode::From(
-                    &lower_bound,
-                    rocksdb::Direction::Forward,
-                ));
-
-                it.filter_map(move |(found_key, _)| {
-                    if &found_key[..] < &upper_bound[..] {
-                        // the value is only a marker, use the key to extract the node ID
-                        let node_id = NodeID::from_be_bytes(
-                            found_key[(found_key.len() - std::mem::size_of::<NodeID>())..]
-                                .try_into()
-                                .expect("Key data must at least have length 8"),
-                        );
-                        Some((node_id, anno_key.clone()))
-                    } else {
-                        None
-                    }
-                })
-                .fuse()
-            },
-        );
+        let it = key_ranges
+            .into_iter()
+            .flat_map(move |anno_key| {
+                // return the iterator for this annotation key
+                rocksdb_iterator::AnnotationValueIterator::new(&self.db, cf, anno_key, value.clone())
+            })
+            .fuse();
 
         Box::new(it)
     }
