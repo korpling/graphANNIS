@@ -237,7 +237,12 @@ impl AnnoStorageImpl {
             .into_iter()
             .flat_map(move |anno_key| {
                 // return the iterator for this annotation key
-                rocksdb_iterator::AnnotationValueIterator::new(&self.db, cf, anno_key, value.clone())
+                rocksdb_iterator::AnnotationValueIterator::new(
+                    &self.db,
+                    cf,
+                    anno_key,
+                    value.clone(),
+                )
             })
             .fuse();
 
@@ -877,16 +882,22 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             let by_anno_qname = self.db.cf_handle("by_anno_qname").expect(DEFAULT_MSG);
             let other_by_anno_qname = other_db.cf_handle("by_anno_qname").expect(DEFAULT_MSG);
 
-            for (key, val) in
-                other_db.iterator_cf(&other_by_anno_qname, rocksdb::IteratorMode::Start)?
-            {
+            let mut read_opts = rocksdb::ReadOptions::default();
+            read_opts.set_tailing(true);
+            read_opts.set_verify_checksums(false);
+
+            for (key, val) in other_db.iterator_cf_opt(
+                &other_by_anno_qname,
+                &read_opts,
+                rocksdb::IteratorMode::Start,
+            )? {
                 self.db.put_cf(&by_anno_qname, key, val)?;
             }
 
             // re-calculate internal helper fields
             self.largest_item = self
                 .db
-                .iterator_cf(&by_container, rocksdb::IteratorMode::Start)?
+                .iterator_cf_opt(&by_container, &read_opts, rocksdb::IteratorMode::Start)?
                 .map(|(data, _)| {
                     NodeID::from_be_bytes(
                         data[0..8]
@@ -896,9 +907,9 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 })
                 .max();
 
-            for (data, _) in self
-                .db
-                .iterator_cf(&by_container, rocksdb::IteratorMode::Start)?
+            for (data, _) in
+                self.db
+                    .iterator_cf_opt(&by_container, &read_opts, rocksdb::IteratorMode::Start)?
             {
                 let (item, anno_key) = parse_by_container_key(&data);
 
@@ -929,9 +940,13 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             let by_container = self.db.cf_handle("by_container").expect(DEFAULT_MSG);
             let other_by_container = other_db.cf_handle("by_container").expect(DEFAULT_MSG);
 
-            for (key, val) in self
-                .db
-                .iterator_cf(&by_container, rocksdb::IteratorMode::Start)?
+            let mut read_opts = rocksdb::ReadOptions::default();
+            read_opts.set_tailing(true);
+            read_opts.set_verify_checksums(false);
+
+            for (key, val) in
+                self.db
+                    .iterator_cf_opt(&by_container, &read_opts, rocksdb::IteratorMode::Start)?
             {
                 other_db.put_cf(&other_by_container, key, val)?;
             }
@@ -939,9 +954,9 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             let by_anno_qname = self.db.cf_handle("by_anno_qname").expect(DEFAULT_MSG);
             let other_by_anno_qname = other_db.cf_handle("by_anno_qname").expect(DEFAULT_MSG);
 
-            for (key, val) in self
-                .db
-                .iterator_cf(&by_anno_qname, rocksdb::IteratorMode::Start)?
+            for (key, val) in
+                self.db
+                    .iterator_cf_opt(&by_anno_qname, &read_opts, rocksdb::IteratorMode::Start)?
             {
                 other_db.put_cf(&other_by_anno_qname, key, val)?;
             }

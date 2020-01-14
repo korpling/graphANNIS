@@ -757,6 +757,7 @@ impl CorpusStorage {
         }
 
         // save to its location
+        info!("saving corpus {} to disk", corpus_name);
         let save_result = graph.save_to(&db_path);
         if let Err(e) = save_result {
             error!(
