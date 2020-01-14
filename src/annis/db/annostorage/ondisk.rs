@@ -240,6 +240,11 @@ impl AnnoStorageImpl {
 
         let it = annotation_ranges.into_iter().flat_map(
             move |(anno_key, prefix, lower_bound, upper_bound)| {
+                let mut opts = rocksdb::ReadOptions::default();
+                // Create a forward-only iterator with an upper bound
+                opts.set_tailing(true);
+                opts.set_verify_checksums(false);
+
                 // restrict search to qualified name prefix
                 let mut it = self.db.prefix_iterator_cf(&cf, prefix).expect(DEFAULT_MSG);
                 // seek to position of the lower bound
@@ -284,21 +289,27 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         // insert the value into main tree
         let by_container = self.get_by_container_cf().expect(DEFAULT_MSG);
         let by_container_key = create_by_container_key(item, &anno.key);
-        let existing_anno = self
+
+        let mut write_opts = rocksdb::WriteOptions::default();
+        write_opts.set_sync(false);
+        write_opts.disable_wal(true);
+
+        let already_existed = self
             .db
-            .get_cf(&by_container, &by_container_key)
-            .expect(DEFAULT_MSG);
+            .get_pinned_cf(&by_container, &by_container_key)
+            .expect(DEFAULT_MSG)
+            .is_some();
         self.db
-            .put_cf(&by_container, &by_container_key, anno.val.as_bytes())
+            .put_cf_opt(&by_container, &by_container_key, anno.val.as_bytes(), &write_opts)
             .expect(DEFAULT_MSG);
 
         // To save some space, only a marker value ([1]) of one byte is actually inserted.
         let by_anno_qname = self.get_by_anno_qname_cf().expect(DEFAULT_MSG);
         self.db
-            .put_cf(&by_anno_qname, create_by_anno_qname_key(item, &anno), &[1])
+            .put_cf_opt(&by_anno_qname, create_by_anno_qname_key(item, &anno), &[1], &write_opts)
             .expect(DEFAULT_MSG);
 
-        if existing_anno.is_none() {
+        if !already_existed {
             // a new annotation entry was inserted and did not replace an existing one
             if let Some(largest_item) = self.largest_item.clone() {
                 if largest_item < item {
