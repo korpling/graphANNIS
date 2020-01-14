@@ -353,7 +353,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         let by_container_key = create_by_container_key(*item, key);
         if let Some(raw_value) = self
             .db
-            .get_cf(&by_container, &by_container_key)
+            .get_pinned_cf(&by_container, &by_container_key)
             .expect(DEFAULT_MSG)
         {
             self.db
@@ -443,7 +443,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         let by_container = self.get_by_container_cf()?;
         let raw = self
             .db
-            .get_cf(&by_container, create_by_container_key(*item, key))
+            .get_pinned_cf(&by_container, create_by_container_key(*item, key))
             .expect(DEFAULT_MSG);
         if let Some(raw) = raw {
             let val: String = String::from_utf8_lossy(&raw).to_string();
