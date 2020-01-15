@@ -458,6 +458,8 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         let by_container = self.get_by_container_cf().expect(DEFAULT_MSG);
 
         if let Some(name) = name {
+            let node_id_size = std::mem::size_of::<NodeID>();
+
             if let Some(ns) = ns {
                 // return the only possible annotation for each node
                 let key = Arc::from(AnnoKey {
@@ -465,10 +467,16 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                     name: name.to_string(),
                 });
                 let mut matches: Vec<Match> = Vec::new();
+                // createa a template key
+                let mut container_key = create_by_container_key(0, &key);
                 for item in it {
+                    // Set the first bytes to the ID of the item.
+                    // This saves the repeated expensive construction of the annotation key part.
+                    container_key[0..node_id_size][0..node_id_size]
+                        .copy_from_slice(&item.to_be_bytes());
                     if self
                         .db
-                        .get_pinned_cf(&by_container, create_by_container_key(item, &key))
+                        .get_pinned_cf(&by_container, &container_key)
                         .expect(DEFAULT_MSG)
                         .is_some()
                     {
@@ -477,22 +485,26 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 }
                 matches
             } else {
-                let matching_qnames: Vec<Arc<AnnoKey>> = self
+                let mut matching_qnames: Vec<(Vec<u8>, Arc<AnnoKey>)> = self
                     .get_qnames(&name)
                     .into_iter()
-                    .map(|key| Arc::from(key))
+                    .map(|key| (create_by_container_key(0, &key), Arc::from(key)))
                     .collect();
                 // return all annotations with the correct name for each node
                 let mut matches: Vec<Match> = Vec::new();
                 for item in it {
-                    for key in matching_qnames.iter() {
+                    for (container_key, anno_key) in matching_qnames.iter_mut() {
+                        // Set the first bytes to the ID of the item.
+                        // This saves the repeated expensive construction of the annotation key part.
+                        container_key[0..node_id_size][0..node_id_size]
+                            .copy_from_slice(&item.to_be_bytes());
                         if self
                             .db
-                            .get_pinned_cf(&by_container, create_by_container_key(item, &key))
+                            .get_pinned_cf(&by_container, container_key)
                             .expect(DEFAULT_MSG)
                             .is_some()
                         {
-                            matches.push((item, key.clone()).into());
+                            matches.push((item, anno_key.clone()).into());
                         }
                     }
                 }
