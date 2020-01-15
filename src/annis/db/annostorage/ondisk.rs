@@ -139,6 +139,9 @@ fn open_db(path: &Path) -> Result<rocksdb::DB> {
     let mut db_opts = rocksdb::Options::default();
     db_opts.create_missing_column_families(true);
     db_opts.create_if_missing(true);
+    let mut block_opts = rocksdb::BlockBasedOptions::default();
+    block_opts.set_index_type(rocksdb::BlockBasedIndexType::HashSearch);
+    db_opts.set_block_based_table_factory(&block_opts);
 
     // use prefixes for the different column families
     let mut opts_by_container = rocksdb::Options::default();
