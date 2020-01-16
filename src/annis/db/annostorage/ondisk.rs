@@ -141,6 +141,7 @@ fn open_db(path: &Path) -> Result<rocksdb::DB> {
     db_opts.create_if_missing(true);
     let mut block_opts = rocksdb::BlockBasedOptions::default();
     block_opts.set_index_type(rocksdb::BlockBasedIndexType::HashSearch);
+    block_opts.set_bloom_filter(std::mem::size_of::<NodeID>() as i32, false);
     db_opts.set_block_based_table_factory(&block_opts);
 
     // use prefixes for the different column families
