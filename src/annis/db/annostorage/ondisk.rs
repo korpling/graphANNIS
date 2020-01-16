@@ -23,6 +23,8 @@ const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
 
 pub const SUBFOLDER_NAME: &str = "nodes_rocksdb_v1";
 
+const NODE_ID_SIZE: usize = std::mem::size_of::<NodeID>();
+
 /// An on-disk implementation of an annotation storage.
 ///
 /// # Error handling
@@ -84,11 +86,10 @@ fn create_by_container_key(node: NodeID, anno_key: &AnnoKey) -> Vec<u8> {
 }
 
 fn parse_by_container_key(data: &[u8]) -> (NodeID, AnnoKey) {
-    let item = NodeID::from_be_bytes(
-        data[0..8]
-            .try_into()
-            .expect("Key data must at least have length 8"),
-    );
+    let item = NodeID::from_be_bytes(data[0..NODE_ID_SIZE].try_into().expect(&format!(
+        "Key data must at least have length {}",
+        NODE_ID_SIZE
+    )));
     let str_vec = parse_str_vec_key(&data[8..]);
 
     let anno_key = AnnoKey {
@@ -141,14 +142,13 @@ fn open_db(path: &Path) -> Result<rocksdb::DB> {
     db_opts.create_if_missing(true);
     let mut block_opts = rocksdb::BlockBasedOptions::default();
     block_opts.set_index_type(rocksdb::BlockBasedIndexType::HashSearch);
-    block_opts.set_bloom_filter(std::mem::size_of::<NodeID>() as i32, false);
+    block_opts.set_bloom_filter(NODE_ID_SIZE as i32, false);
     db_opts.set_block_based_table_factory(&block_opts);
 
     // use prefixes for the different column families
     let mut opts_by_container = rocksdb::Options::default();
-    opts_by_container.set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(
-        std::mem::size_of::<NodeID>(),
-    ));
+    opts_by_container
+        .set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(NODE_ID_SIZE));
     let cf_by_container = rocksdb::ColumnFamilyDescriptor::new("by_container", opts_by_container);
 
     let mut opts_by_anno_qname = rocksdb::Options::default();
@@ -464,8 +464,6 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         let by_container = self.get_by_container_cf().expect(DEFAULT_MSG);
 
         if let Some(name) = name {
-            let node_id_size = std::mem::size_of::<NodeID>();
-
             if let Some(ns) = ns {
                 // return the only possible annotation for each node
                 let key = Arc::from(AnnoKey {
@@ -478,7 +476,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 for item in it {
                     // Set the first bytes to the ID of the item.
                     // This saves the repeated expensive construction of the annotation key part.
-                    container_key[0..node_id_size][0..node_id_size]
+                    container_key[0..NODE_ID_SIZE][0..NODE_ID_SIZE]
                         .copy_from_slice(&item.to_be_bytes());
                     if self
                         .db
@@ -502,7 +500,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                     for (container_key, anno_key) in matching_qnames.iter_mut() {
                         // Set the first bytes to the ID of the item.
                         // This saves the repeated expensive construction of the annotation key part.
-                        container_key[0..node_id_size][0..node_id_size]
+                        container_key[0..NODE_ID_SIZE][0..NODE_ID_SIZE]
                             .copy_from_slice(&item.to_be_bytes());
                         if self
                             .db
