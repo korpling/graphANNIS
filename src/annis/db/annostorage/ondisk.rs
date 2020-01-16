@@ -179,9 +179,9 @@ fn open_db(path: &Path) -> Result<rocksdb::DB> {
 }
 
 impl AnnoStorageImpl {
-    pub fn new(path: Option<PathBuf>) -> AnnoStorageImpl {
+    pub fn new(path: Option<PathBuf>) -> Result<AnnoStorageImpl> {
         if let Some(path) = path {
-            let db = open_db(&path).expect(DEFAULT_MSG);
+            let db = open_db(&path)?;
             let mut result = AnnoStorageImpl {
                 db,
                 anno_key_sizes: BTreeMap::new(),
@@ -193,27 +193,27 @@ impl AnnoStorageImpl {
 
             // load internal helper fields
             let custom_path = path.join("custom.bin");
-            let f = std::fs::File::open(custom_path).expect(DEFAULT_MSG);
+            let f = std::fs::File::open(custom_path)?;
             let mut reader = std::io::BufReader::new(f);
-            result.largest_item = bincode::deserialize_from(&mut reader).expect(DEFAULT_MSG);
-            result.anno_key_sizes = bincode::deserialize_from(&mut reader).expect(DEFAULT_MSG);
-            result.histogram_bounds = bincode::deserialize_from(&mut reader).expect(DEFAULT_MSG);
+            result.largest_item = bincode::deserialize_from(&mut reader)?;
+            result.anno_key_sizes = bincode::deserialize_from(&mut reader)?;
+            result.histogram_bounds = bincode::deserialize_from(&mut reader)?;
 
-            result
+            Ok(result)
         } else {
             let tmp_dir = tempfile::Builder::new()
                 .prefix("graphannis-ondisk-nodeanno-")
                 .tempdir()
                 .unwrap();
-            let db = open_db(tmp_dir.as_ref()).expect(DEFAULT_MSG);
-            AnnoStorageImpl {
+            let db = open_db(tmp_dir.as_ref())?;
+            Ok(AnnoStorageImpl {
                 db,
                 anno_key_sizes: BTreeMap::new(),
                 largest_item: None,
                 histogram_bounds: BTreeMap::new(),
                 location: tmp_dir.as_ref().to_path_buf(),
                 temp_dir: Some(tmp_dir),
-            }
+            })
         }
     }
 
@@ -898,8 +898,13 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
             self.clear()?;
 
-            let by_container = self.db.cf_handle("by_container").expect(DEFAULT_MSG);
-            let other_by_container = other_db.cf_handle("by_container").expect(DEFAULT_MSG);
+            let by_container = self
+                .db
+                .cf_handle("by_container")
+                .ok_or(Error::from("Column family does not exist"))?;
+            let other_by_container: &rocksdb::ColumnFamily = other_db
+                .cf_handle("by_container")
+                .ok_or(Error::from("Column family does not exist"))?;
 
             for (key, val) in
                 other_db.iterator_cf(&other_by_container, rocksdb::IteratorMode::Start)?
@@ -907,8 +912,13 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 self.db.put_cf(&by_container, key, val)?;
             }
 
-            let by_anno_qname = self.db.cf_handle("by_anno_qname").expect(DEFAULT_MSG);
-            let other_by_anno_qname = other_db.cf_handle("by_anno_qname").expect(DEFAULT_MSG);
+            let by_anno_qname = self
+                .db
+                .cf_handle("by_anno_qname")
+                .ok_or(Error::from("Column family does not exist"))?;
+            let other_by_anno_qname = other_db
+                .cf_handle("by_anno_qname")
+                .ok_or(Error::from("Column family does not exist"))?;
 
             let mut read_opts = rocksdb::ReadOptions::default();
             read_opts.set_tailing(true);
@@ -943,8 +953,13 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             // open a database for the given location and export to it
             let other_db = open_db(&location)?;
 
-            let by_container = self.db.cf_handle("by_container").expect(DEFAULT_MSG);
-            let other_by_container = other_db.cf_handle("by_container").expect(DEFAULT_MSG);
+            let by_container = self
+                .db
+                .cf_handle("by_container")
+                .ok_or(Error::from("Column family does not exist"))?;
+            let other_by_container = other_db
+                .cf_handle("by_container")
+                .ok_or(Error::from("Column family does not exist"))?;
 
             let mut read_opts = rocksdb::ReadOptions::default();
             read_opts.set_tailing(true);
@@ -957,8 +972,13 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 other_db.put_cf(&other_by_container, key, val)?;
             }
 
-            let by_anno_qname = self.db.cf_handle("by_anno_qname").expect(DEFAULT_MSG);
-            let other_by_anno_qname = other_db.cf_handle("by_anno_qname").expect(DEFAULT_MSG);
+            let by_anno_qname = self
+                .db
+                .cf_handle("by_anno_qname")
+                .ok_or(Error::from("Column family does not exist"))?;
+            let other_by_anno_qname = other_db
+                .cf_handle("by_anno_qname")
+                .ok_or(Error::from("Column family does not exist"))?;
 
             for (key, val) in
                 self.db
@@ -1000,7 +1020,7 @@ mod tests {
             val: "test".to_owned(),
         };
 
-        let mut a = AnnoStorageImpl::new(None);
+        let mut a = AnnoStorageImpl::new(None).unwrap();
 
         debug!("Inserting annotation for node 1");
         a.insert(1, test_anno.clone()).unwrap();
@@ -1052,7 +1072,7 @@ mod tests {
             val: "test".to_owned(),
         };
 
-        let mut a = AnnoStorageImpl::new(None);
+        let mut a = AnnoStorageImpl::new(None).unwrap();
 
         a.insert(1, test_anno1.clone()).unwrap();
         a.insert(1, test_anno2.clone()).unwrap();
@@ -1079,7 +1099,7 @@ mod tests {
             val: "test".to_owned(),
         };
 
-        let mut a = AnnoStorageImpl::new(None);
+        let mut a = AnnoStorageImpl::new(None).unwrap();
         a.insert(1, test_anno.clone()).unwrap();
 
         assert_eq!(1, a.number_of_annotations());

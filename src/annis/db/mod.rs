@@ -239,14 +239,14 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
 
 impl Graph {
     /// Create a new and empty instance without any location on the disk.
-    fn new(disk_based: bool) -> Graph {
+    fn new(disk_based: bool) -> Result<Graph> {
         let node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
-            Box::new(annostorage::ondisk::AnnoStorageImpl::new(None))
+            Box::new(annostorage::ondisk::AnnoStorageImpl::new(None)?)
         } else {
             Box::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
         };
 
-        Graph {
+        Ok(Graph {
             node_annos,
             components: BTreeMap::new(),
 
@@ -258,13 +258,13 @@ impl Graph {
             cached_size: Mutex::new(None),
 
             disk_based,
-        }
+        })
     }
 
     /// Create a new instance without any location on the disk but with the default graph storage components
     /// (Coverage, Order, LeftToken, RightToken, PartOf).
     fn with_default_graphstorages(disk_based: bool) -> Result<Graph> {
-        let mut db = Graph::new(disk_based);
+        let mut db = Graph::new(disk_based)?;
         db.get_or_create_writable(&Component {
             ctype: ComponentType::Coverage,
             layer: ANNIS_NS.to_owned(),
@@ -335,7 +335,7 @@ impl Graph {
             self.disk_based = true;
             // directly load the on disk storage from the given folder to avoid having a temporary directory
             let node_annos_tmp =
-                annostorage::ondisk::AnnoStorageImpl::new(Some(ondisk_subdirectory));
+                annostorage::ondisk::AnnoStorageImpl::new(Some(ondisk_subdirectory))?;
             self.node_annos = Box::new(node_annos_tmp);
         } else {
             // assume a main memory implementation
@@ -1459,7 +1459,7 @@ mod tests {
 
     #[test]
     fn create_writeable_gs() {
-        let mut db = Graph::new(false);
+        let mut db = Graph::new(false).unwrap();
 
         let anno_key = AnnoKey {
             ns: "test".to_owned(),

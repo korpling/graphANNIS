@@ -605,7 +605,7 @@ impl CorpusStorage {
             })?;
             db
         } else {
-            let mut db = Graph::new(false);
+            let mut db = Graph::new(false)?;
             db.load_from(&db_path, false)?;
             db
         };
@@ -1974,7 +1974,7 @@ fn extract_subgraph_by_query(
     // match vector differ.
     let mut match_result: BTreeSet<Match> = BTreeSet::new();
 
-    let mut result = Graph::new(false);
+    let mut result = Graph::new(false)?;
 
     // create the subgraph description
     for r in plan {
