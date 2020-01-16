@@ -297,13 +297,14 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             )
             .expect(DEFAULT_MSG);
 
-        // To save some space, only a marker value ([1]) of one byte is actually inserted.
+        // To save some space, insert an empty slice as a marker value 
+        // (all information is part of the key already)
         let by_anno_qname = self.get_by_anno_qname_cf().expect(DEFAULT_MSG);
         self.db
             .put_cf_opt(
                 &by_anno_qname,
                 create_by_anno_qname_key(item, &anno),
-                &[1],
+                &[],
                 &write_opts,
             )
             .expect(DEFAULT_MSG);
