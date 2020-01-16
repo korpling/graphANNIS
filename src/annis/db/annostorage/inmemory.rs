@@ -227,7 +227,7 @@ where
         + serde::de::DeserializeOwned,
     (T, Arc<AnnoKey>): Into<Match>,
 {
-    fn insert(&mut self, item: T, anno: Annotation) {
+    fn insert(&mut self, item: T, anno: Annotation) -> Result<()> {
         let orig_anno_key = anno.key.clone();
         let anno = self.create_sparse_anno(anno);
 
@@ -244,7 +244,7 @@ where
                 let orig_anno = existing_item_entry[existing_entry_idx].clone();
                 // abort if the same annotation key with the same value already exist
                 if orig_anno.val == anno.val {
-                    return;
+                    return Ok(());
                 }
                 // insert annotation for item at existing position
                 existing_item_entry[existing_entry_idx] = anno.clone();
@@ -290,6 +290,8 @@ where
                 .or_insert(0);
             *anno_key_entry += 1;
         }
+
+        Ok(())
     }
 
     fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
@@ -942,10 +944,10 @@ mod tests {
             val: "test".to_owned(),
         };
         let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
-        a.insert(1, test_anno.clone());
-        a.insert(1, test_anno.clone());
-        a.insert(2, test_anno.clone());
-        a.insert(3, test_anno);
+        a.insert(1, test_anno.clone()).unwrap();
+        a.insert(1, test_anno.clone()).unwrap();
+        a.insert(2, test_anno.clone()).unwrap();
+        a.insert(3, test_anno).unwrap();
 
         assert_eq!(3, a.number_of_annotations());
         assert_eq!(3, a.by_container.len());
@@ -990,9 +992,9 @@ mod tests {
         };
 
         let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
-        a.insert(1, test_anno1.clone());
-        a.insert(1, test_anno2.clone());
-        a.insert(1, test_anno3.clone());
+        a.insert(1, test_anno1.clone()).unwrap();
+        a.insert(1, test_anno2.clone()).unwrap();
+        a.insert(1, test_anno3.clone()).unwrap();
 
         assert_eq!(3, a.number_of_annotations());
 
@@ -1014,7 +1016,7 @@ mod tests {
             val: "test".to_owned(),
         };
         let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
-        a.insert(1, test_anno.clone());
+        a.insert(1, test_anno.clone()).unwrap();
 
         assert_eq!(1, a.number_of_annotations());
         assert_eq!(1, a.by_container.len());

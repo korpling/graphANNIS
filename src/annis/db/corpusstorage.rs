@@ -1985,7 +1985,7 @@ fn extract_subgraph_by_query(
                 if !match_result.contains(m) {
                     match_result.insert(m.clone());
                     trace!("subgraph query extracted node {:?}", m.node);
-                    create_subgraph_node(m.node, &mut result, orig_db);
+                    create_subgraph_node(m.node, &mut result, orig_db)?;
                 }
             }
         }
@@ -1994,24 +1994,25 @@ fn extract_subgraph_by_query(
     let components = orig_db.get_all_components(component_type_filter, None);
 
     for m in &match_result {
-        create_subgraph_edge(m.node, &mut result, orig_db, &components);
+        create_subgraph_edge(m.node, &mut result, orig_db, &components)?;
     }
 
     Ok(result)
 }
 
-fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) {
+fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) -> Result<()> {
     // add all node labels with the same node ID
     for a in orig_db.node_annos.get_annotations_for_item(&id) {
-        db.node_annos.insert(id, a);
+        db.node_annos.insert(id, a)?;
     }
+    Ok(())
 }
 fn create_subgraph_edge(
     source_id: NodeID,
     db: &mut Graph,
     orig_db: &Graph,
     components: &[Component],
-) {
+) -> Result<()> {
     // find outgoing edges
     for c in components {
         // don't include index components
@@ -2039,7 +2040,7 @@ fn create_subgraph_edge(
                             target,
                         }) {
                             if let Ok(new_gs) = db.get_or_create_writable(&c) {
-                                new_gs.add_edge_annotation(e.clone(), a);
+                                new_gs.add_edge_annotation(e.clone(), a)?;
                             }
                         }
                     }
@@ -2047,6 +2048,8 @@ fn create_subgraph_edge(
             }
         }
     }
+
+    Ok(())
 }
 
 fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {

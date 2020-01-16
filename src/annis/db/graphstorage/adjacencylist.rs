@@ -176,7 +176,7 @@ impl GraphStorage for AdjacencyListStorage {
         it.next().is_some()
     }
 
-    fn copy(&mut self, _db: &Graph, orig: &dyn GraphStorage) {
+    fn copy(&mut self, _db: &Graph, orig: &dyn GraphStorage) -> Result<()> {
         self.clear();
 
         for source in orig.source_nodes() {
@@ -184,13 +184,14 @@ impl GraphStorage for AdjacencyListStorage {
                 let e = Edge { source, target };
                 self.add_edge(e.clone());
                 for a in orig.get_anno_storage().get_annotations_for_item(&e) {
-                    self.add_edge_annotation(e.clone(), a);
+                    self.add_edge_annotation(e.clone(), a)?;
                 }
             }
         }
 
         self.stats = orig.get_statistics().cloned();
         self.annos.calculate_statistics();
+        Ok(())
     }
 
     fn as_writeable(&mut self) -> Option<&mut dyn WriteableGraphStorage> {
@@ -227,12 +228,13 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             // TODO: invalid graph statistics
         }
     }
-    fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) {
+    fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) -> Result<()> {
         if let Some(outgoing) = self.edges.get(&edge.source) {
             if outgoing.contains(&edge.target) {
-                self.annos.insert(edge, anno);
+                self.annos.insert(edge, anno)?;
             }
         }
+        Ok(())
     }
 
     fn delete_edge(&mut self, edge: &Edge) {

@@ -585,8 +585,8 @@ impl Graph {
                         };
 
                         // add the new node (with minimum labels)
-                        self.node_annos.insert(new_node_id, new_anno_name);
-                        self.node_annos.insert(new_node_id, new_anno_type);
+                        self.node_annos.insert(new_node_id, new_anno_name)?;
+                        self.node_annos.insert(new_node_id, new_anno_type)?;
 
                         // update the internal cache
                         node_ids.insert(node_name, Some(new_node_id));
@@ -631,7 +631,7 @@ impl Graph {
                             },
                             val: anno_value.to_string(),
                         };
-                        self.node_annos.insert(*existing_node_id, anno);
+                        self.node_annos.insert(*existing_node_id, anno)?;
                     }
                 }
                 UpdateEvent::DeleteNodeLabel {
@@ -783,7 +783,7 @@ impl Graph {
                                     },
                                     val: anno_value.to_string(),
                                 };
-                                gs.add_edge_annotation(e, anno);
+                                gs.add_edge_annotation(e, anno)?;
                             }
                         }
                     }
@@ -1181,7 +1181,7 @@ impl Graph {
                 loaded_comp
             } else {
                 let mut gs_copy: AdjacencyListStorage = registry::create_writeable();
-                gs_copy.copy(&self, loaded_comp.as_ref());
+                gs_copy.copy(&self, loaded_comp.as_ref())?;
                 Arc::from(gs_copy)
             };
 
@@ -1301,7 +1301,7 @@ impl Graph {
         Ok(())
     }
 
-    fn optimize_impl(&mut self, c: &Component) {
+    fn optimize_impl(&mut self, c: &Component) -> Result<()> {
         if let Some(gs) = self.get_graphstorage(c) {
             if let Some(stats) = gs.get_statistics() {
                 let opt_info = registry::get_optimal_impl_heuristic(self, stats);
@@ -1310,7 +1310,7 @@ impl Graph {
                 if opt_info.id != gs.serialization_id() {
                     let mut new_gs = registry::create_from_info(&opt_info);
                     let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
-                        new_gs_mut.copy(self, gs.as_ref());
+                        new_gs_mut.copy(self, gs.as_ref())?;
                         true
                     } else {
                         false
@@ -1327,6 +1327,8 @@ impl Graph {
                 }
             }
         }
+
+        Ok(())
     }
 
     fn get_node_id_from_name(&self, node_name: &str) -> Option<NodeID> {
@@ -1487,6 +1489,7 @@ mod tests {
                 key: anno_key,
                 val: anno_val,
             },
-        );
+        )
+        .unwrap();
     }
 }

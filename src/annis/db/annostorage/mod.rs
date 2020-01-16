@@ -17,7 +17,7 @@ where
     T: Send + Sync + MallocSizeOf,
 {
     /// Insert an annotation `anno` (with annotation key and value) for an item `item`.
-    fn insert(&mut self, item: T, anno: Annotation);
+    fn insert(&mut self, item: T, anno: Annotation) -> Result<()>;
 
     /// Get all the annotation keys of a node, filtered by the optional namespace (`ns`) and `name`.
     fn get_all_keys_for_item(

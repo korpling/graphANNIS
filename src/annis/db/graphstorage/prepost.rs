@@ -409,7 +409,7 @@ where
         false
     }
 
-    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) {
+    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) -> Result<()> {
         self.clear();
 
         // find all roots of the component
@@ -449,7 +449,7 @@ where
                 let e = Edge { source, target };
                 let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e);
                 for a in edge_annos {
-                    self.annos.insert(e.clone(), a);
+                    self.annos.insert(e.clone(), a)?;
                 }
             }
         }
@@ -535,6 +535,8 @@ where
         self.annos.calculate_statistics();
 
         self.node_to_order.shrink_to_fit();
+
+        Ok(())
     }
 
     fn as_edgecontainer(&self) -> &dyn EdgeContainer {

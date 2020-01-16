@@ -217,12 +217,16 @@ impl AnnoStorageImpl {
         }
     }
 
-    fn get_by_container_cf(&self) -> Option<&rocksdb::ColumnFamily> {
-        self.db.cf_handle("by_container")
+    fn get_by_container_cf(&self) -> Result<&rocksdb::ColumnFamily> {
+        self.db
+            .cf_handle("by_container")
+            .ok_or("Column familiy \"by_anno_qname\" not found".into())
     }
 
-    fn get_by_anno_qname_cf(&self) -> Option<&rocksdb::ColumnFamily> {
-        self.db.cf_handle("by_anno_qname")
+    fn get_by_anno_qname_cf(&self) -> Result<&rocksdb::ColumnFamily> {
+        self.db
+            .cf_handle("by_anno_qname")
+            .ok_or("Column familiy \"by_anno_qname\" not found".into())
     }
 
     fn matching_items<'a>(
@@ -275,9 +279,9 @@ impl AnnoStorageImpl {
 }
 
 impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
-    fn insert(&mut self, item: NodeID, anno: Annotation) {
+    fn insert(&mut self, item: NodeID, anno: Annotation) -> Result<()> {
         // insert the value into main tree
-        let by_container = self.get_by_container_cf().expect(DEFAULT_MSG);
+        let by_container = self.get_by_container_cf()?;
         let by_container_key = create_by_container_key(item, &anno.key);
 
         let mut write_opts = rocksdb::WriteOptions::default();
@@ -286,29 +290,24 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
         let already_existed = self
             .db
-            .get_pinned_cf(&by_container, &by_container_key)
-            .expect(DEFAULT_MSG)
+            .get_pinned_cf(&by_container, &by_container_key)?
             .is_some();
-        self.db
-            .put_cf_opt(
-                &by_container,
-                &by_container_key,
-                anno.val.as_bytes(),
-                &write_opts,
-            )
-            .expect(DEFAULT_MSG);
+        self.db.put_cf_opt(
+            &by_container,
+            &by_container_key,
+            anno.val.as_bytes(),
+            &write_opts,
+        )?;
 
         // To save some space, insert an empty slice as a marker value
         // (all information is part of the key already)
-        let by_anno_qname = self.get_by_anno_qname_cf().expect(DEFAULT_MSG);
-        self.db
-            .put_cf_opt(
-                &by_anno_qname,
-                create_by_anno_qname_key(item, &anno),
-                &[],
-                &write_opts,
-            )
-            .expect(DEFAULT_MSG);
+        let by_anno_qname = self.get_by_anno_qname_cf()?;
+        self.db.put_cf_opt(
+            &by_anno_qname,
+            create_by_anno_qname_key(item, &anno),
+            &[],
+            &write_opts,
+        )?;
 
         if !already_existed {
             // a new annotation entry was inserted and did not replace an existing one
@@ -323,6 +322,8 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             let anno_key_entry = self.anno_key_sizes.entry(anno.key.clone()).or_insert(0);
             *anno_key_entry += 1;
         }
+
+        Ok(())
     }
 
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
@@ -430,7 +431,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
     }
 
     fn number_of_annotations(&self) -> usize {
-        if let Some(by_container) = self.get_by_container_cf() {
+        if let Ok(by_container) = self.get_by_container_cf() {
             self.db
                 .iterator_cf(by_container, rocksdb::IteratorMode::Start)
                 .expect(DEFAULT_MSG)
@@ -441,7 +442,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
     }
 
     fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
-        let by_container = self.get_by_container_cf()?;
+        let by_container = self.get_by_container_cf().ok()?;
         let raw = self
             .db
             .get_pinned_cf(&by_container, create_by_container_key(*item, key))
@@ -1002,13 +1003,13 @@ mod tests {
         let mut a = AnnoStorageImpl::new(None);
 
         debug!("Inserting annotation for node 1");
-        a.insert(1, test_anno.clone());
+        a.insert(1, test_anno.clone()).unwrap();
         debug!("Inserting annotation for node 1 (again)");
-        a.insert(1, test_anno.clone());
+        a.insert(1, test_anno.clone()).unwrap();
         debug!("Inserting annotation for node 2");
-        a.insert(2, test_anno.clone());
+        a.insert(2, test_anno.clone()).unwrap();
         debug!("Inserting annotation for node 3");
-        a.insert(3, test_anno);
+        a.insert(3, test_anno).unwrap();
 
         assert_eq!(3, a.number_of_annotations());
 
@@ -1053,9 +1054,9 @@ mod tests {
 
         let mut a = AnnoStorageImpl::new(None);
 
-        a.insert(1, test_anno1.clone());
-        a.insert(1, test_anno2.clone());
-        a.insert(1, test_anno3.clone());
+        a.insert(1, test_anno1.clone()).unwrap();
+        a.insert(1, test_anno2.clone()).unwrap();
+        a.insert(1, test_anno3.clone()).unwrap();
 
         assert_eq!(3, a.number_of_annotations());
 
@@ -1079,7 +1080,7 @@ mod tests {
         };
 
         let mut a = AnnoStorageImpl::new(None);
-        a.insert(1, test_anno.clone());
+        a.insert(1, test_anno.clone()).unwrap();
 
         assert_eq!(1, a.number_of_annotations());
         assert_eq!(1, a.anno_key_sizes.len());
