@@ -297,7 +297,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             )
             .expect(DEFAULT_MSG);
 
-        // To save some space, insert an empty slice as a marker value 
+        // To save some space, insert an empty slice as a marker value
         // (all information is part of the key already)
         let by_anno_qname = self.get_by_anno_qname_cf().expect(DEFAULT_MSG);
         self.db

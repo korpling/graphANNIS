@@ -82,13 +82,11 @@ impl std::convert::From<::rand::Error> for Error {
     }
 }
 
-
 impl std::convert::From<rocksdb::Error> for Error {
     fn from(e: rocksdb::Error) -> Error {
         Error::RocksDB(e)
     }
 }
-
 
 impl std::convert::From<&str> for Error {
     fn from(e: &str) -> Error {

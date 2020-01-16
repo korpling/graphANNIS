@@ -334,7 +334,8 @@ impl Graph {
         if ondisk_subdirectory.exists() && ondisk_subdirectory.is_dir() {
             self.disk_based = true;
             // directly load the on disk storage from the given folder to avoid having a temporary directory
-            let node_annos_tmp = annostorage::ondisk::AnnoStorageImpl::new(Some(ondisk_subdirectory));
+            let node_annos_tmp =
+                annostorage::ondisk::AnnoStorageImpl::new(Some(ondisk_subdirectory));
             self.node_annos = Box::new(node_annos_tmp);
         } else {
             // assume a main memory implementation
