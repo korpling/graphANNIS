@@ -388,28 +388,28 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         }
     }
 
-    fn clear(&mut self) {
-        let by_anno_qname = self.get_by_anno_qname_cf().expect(DEFAULT_MSG);
-        let by_container = self.get_by_container_cf().expect(DEFAULT_MSG);
+    fn clear(&mut self) -> Result<()> {
+        let by_anno_qname = self.get_by_anno_qname_cf()?;
+        let by_container = self.get_by_container_cf()?;
 
         for (key, _) in self
             .db
-            .iterator_cf(&by_container, rocksdb::IteratorMode::Start)
-            .expect(DEFAULT_MSG)
+            .iterator_cf(&by_container, rocksdb::IteratorMode::Start)?
         {
-            self.db.delete_cf(&by_container, key).expect(DEFAULT_MSG);
+            self.db.delete_cf(&by_container, key)?;
         }
         for (key, _) in self
             .db
-            .iterator_cf(&by_anno_qname, rocksdb::IteratorMode::Start)
-            .expect(DEFAULT_MSG)
+            .iterator_cf(&by_anno_qname, rocksdb::IteratorMode::Start)?
         {
-            self.db.delete_cf(&by_anno_qname, key).expect(DEFAULT_MSG);
+            self.db.delete_cf(&by_anno_qname, key)?;
         }
 
         self.largest_item = None;
         self.anno_key_sizes.clear();
         self.histogram_bounds.clear();
+
+        Ok(())
     }
 
     fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
@@ -896,7 +896,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             // open a database for the given location and import their data
             let other_db = open_db(&location)?;
 
-            self.clear();
+            self.clear()?;
 
             let by_container = self.db.cf_handle("by_container").expect(DEFAULT_MSG);
             let other_by_container = other_db.cf_handle("by_container").expect(DEFAULT_MSG);

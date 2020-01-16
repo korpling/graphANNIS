@@ -345,8 +345,9 @@ where
         result
     }
 
-    fn clear(&mut self) {
+    fn clear(&mut self) -> Result<()> {
         self.clear_internal();
+        Ok(())
     }
 
     fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {

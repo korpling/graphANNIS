@@ -47,11 +47,12 @@ impl AdjacencyListStorage {
         }
     }
 
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self) -> Result<()> {
         self.edges.clear();
         self.inverse_edges.clear();
-        self.annos.clear();
+        self.annos.clear()?;
         self.stats = None;
+        Ok(())
     }
 }
 
@@ -177,7 +178,7 @@ impl GraphStorage for AdjacencyListStorage {
     }
 
     fn copy(&mut self, _db: &Graph, orig: &dyn GraphStorage) -> Result<()> {
-        self.clear();
+        self.clear()?;
 
         for source in orig.source_nodes() {
             for target in orig.get_outgoing_edges(source) {

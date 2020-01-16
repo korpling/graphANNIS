@@ -72,11 +72,12 @@ where
         }
     }
 
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self) -> Result<()> {
         self.node_to_order.clear();
         self.order_to_node.clear();
-        self.annos.clear();
+        self.annos.clear()?;
         self.stats = None;
+        Ok(())
     }
 
     fn enter_node(
@@ -410,7 +411,7 @@ where
     }
 
     fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) -> Result<()> {
-        self.clear();
+        self.clear()?;
 
         // find all roots of the component
         let mut roots: FxHashSet<NodeID> = FxHashSet::default();

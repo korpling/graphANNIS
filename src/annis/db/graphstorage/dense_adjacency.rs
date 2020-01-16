@@ -142,7 +142,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
     }
 
     fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) -> Result<()> {
-        self.annos.clear();
+        self.annos.clear()?;
         self.edges.clear();
         self.inverse_edges.clear();
 

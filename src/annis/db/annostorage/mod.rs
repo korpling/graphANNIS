@@ -32,7 +32,7 @@ where
     fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
 
     /// Remove all annotations.
-    fn clear(&mut self);
+    fn clear(&mut self) -> Result<()>;
 
     /// Get all qualified annotation names (including namespace) for a given annotation name
     fn get_qnames(&self, name: &str) -> Vec<AnnoKey>;
