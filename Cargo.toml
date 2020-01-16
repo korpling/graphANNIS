@@ -45,7 +45,7 @@ fs2 = "0.4"
 lalrpop-util = "0.17"
 boolean_expression = "0.3"
 percent-encoding = "1.0"
-rocksdb = "0.13.0"
+rocksdb = {version ="0.13.0", default-features = false}
 
 graphannis-malloc_size_of = "1.0"
 graphannis-malloc_size_of_derive = "2.0"
