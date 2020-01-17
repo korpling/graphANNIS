@@ -75,7 +75,7 @@ impl<'a> Iterator for AnnotationValueIterator<'a> {
                     if key < &self.upper_bound[..] {
                         // parse the node ID from this item
                         let node_id = NodeID::from_be_bytes(
-                            key[(key.len() - std::mem::size_of::<NodeID>())..]
+                            key[(key.len() - super::NODE_ID_SIZE)..]
                                 .try_into()
                                 .expect("Key data must at least have length 8"),
                         );

@@ -25,6 +25,8 @@ pub const SUBFOLDER_NAME: &str = "nodes_rocksdb_v1";
 
 const NODE_ID_SIZE: usize = std::mem::size_of::<NodeID>();
 
+const MAX_TRIES: usize = 5;
+
 /// An on-disk implementation of an annotation storage.
 ///
 /// # Error handling
@@ -117,11 +119,9 @@ fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
 }
 
 fn parse_by_anno_qname_key(data: &[u8]) -> (NodeID, Annotation) {
-    let node_id = NodeID::from_be_bytes(
-        data[(data.len() - 8)..]
-            .try_into()
-            .expect("Key data must at least have length 8"),
-    );
+    let node_id = NodeID::from_be_bytes(data[(data.len() - NODE_ID_SIZE)..].try_into().expect(
+        &format!("Key data must at least have length {}", NODE_ID_SIZE),
+    ));
 
     let str_vec = parse_str_vec_key(&data[..(data.len() - 8)]);
 
@@ -269,12 +269,20 @@ impl AnnoStorageImpl {
 
     fn get_by_anno_qname_range(&self, anno_key: &AnnoKey) -> rocksdb::DBIterator {
         let prefix: Vec<u8> = create_str_vec_key(&[&anno_key.ns, &anno_key.name]);
-        self.db
-            .prefix_iterator_cf(
-                self.db.cf_handle("by_anno_qname").expect(DEFAULT_MSG),
-                &prefix,
-            )
-            .expect(DEFAULT_MSG)
+
+        let cf = self.db.cf_handle("by_anno_qname").expect(DEFAULT_MSG);
+
+        let mut last_err = None;
+        for _ in 0..MAX_TRIES {
+            match self.db.prefix_iterator_cf(cf, &prefix) {
+                Ok(result) => return result,
+                Err(e) => last_err = Some(e),
+            }
+            // If this is an intermediate error, wait some time before trying again
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+
+        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
     }
 }
 
