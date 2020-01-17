@@ -58,6 +58,7 @@ prettytable-rs = {version="0.8", optional=true, default-features=false}
 
 libc = {version="0.2"}
 
+
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = { version = "0.2.2" }
 
@@ -71,6 +72,7 @@ c-api = ["simplelog"]
 
 [profile.release]
 incremental = true
+debug = true
 
 [[bench]]
 name = "graphannis"

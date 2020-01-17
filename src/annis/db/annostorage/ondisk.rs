@@ -265,22 +265,27 @@ impl AnnoStorageImpl {
         }
     }
 
-    fn get_by_anno_qname_range(&self, anno_key: &AnnoKey) -> rocksdb::DBIterator {
+    fn get_by_anno_qname_range<'a>(
+        &'a self,
+        anno_key: &AnnoKey,
+    ) -> Box<dyn Iterator<Item = (Box<[u8]>, Box<[u8]>)> + 'a> {
         let prefix: Vec<u8> = create_str_vec_key(&[&anno_key.ns, &anno_key.name]);
 
-        let cf = self.db.cf_handle("by_anno_qname").expect(DEFAULT_MSG);
-
-        let mut last_err = None;
-        for _ in 0..MAX_TRIES {
-            match self.db.prefix_iterator_cf(cf, &prefix) {
-                Ok(result) => return result,
-                Err(e) => last_err = Some(e),
+        if let Some(cf) = self.get_by_anno_qname_cf() {
+            let mut last_err = None;
+            for _ in 0..MAX_TRIES {
+                match self.db.prefix_iterator_cf(cf, &prefix) {
+                    Ok(result) => return Box::new(result),
+                    Err(e) => last_err = Some(e),
+                }
+                // If this is an intermediate error, wait some time before trying again
+                std::thread::sleep(std::time::Duration::from_secs(1));
             }
-            // If this is an intermediate error, wait some time before trying again
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
 
-        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
+            panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
+        } else {
+            Box::new(std::iter::empty())
+        }
     }
 }
 
