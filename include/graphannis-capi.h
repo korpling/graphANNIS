@@ -266,6 +266,7 @@ char *annis_cs_import_from_fs(AnnisCorpusStorage *ptr,
                               const char *path,
                               AnnisImportFormat format,
                               const char *corpus,
+                              bool disk_based,
                               AnnisErrorList **err);
 
 /**

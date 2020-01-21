@@ -13,7 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added a disk-based annotation storages for nodes as an alternative to the memory-only variant.
+- Added disk-based annotation storage for nodes as an alternative to the memory-only variant.
+  On the console, use `use_disk <on|off>` to set if newly imported corpora prefer disk-based annotation storage.
+  `disk_based` parameters are also added to the various "import relANNIS" API functions.
 
 ## [0.25.1] - 2020-01-03
 

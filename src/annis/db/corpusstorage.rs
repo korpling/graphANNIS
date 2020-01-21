@@ -705,14 +705,16 @@ impl CorpusStorage {
     /// - `path` - The location on the file system where the corpus data is located.
     /// - `format` - The format in which this corpus data is stored.
     /// - `corpus_name` - Optionally override the name of the new corpus for file formats that already provide a corpus name.
+    /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
     pub fn import_from_fs(
         &self,
         path: &Path,
         format: ImportFormat,
         corpus_name: Option<String>,
+        disk_based: bool,
     ) -> Result<String> {
         let (orig_name, mut graph) = match format {
-            ImportFormat::RelANNIS => relannis::load(path, |status| {
+            ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
                 info!("{}", status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regulary to allow it to adapat
                 self.check_cache_size_and_remove(vec![]);

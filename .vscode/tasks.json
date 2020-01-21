@@ -15,9 +15,7 @@
                 "--features",
                 "\"c-api cli\""
             ],
-            "group": {
-                "kind": "build",
-            },
+            "group": "build",
             "problemMatcher": "$rustc"
         },
         {
@@ -50,7 +48,7 @@
             "type": "shell",
             "command": "cargo",
             "args": [
-                "clippy" 
+                "clippy"
             ],
             "group": "build",
             "problemMatcher": "$rustc"
@@ -110,12 +108,15 @@
             "label": "Generate C Bindings Header",
             "command": "cbindgen",
             "args": [
-                "--lockfile", "${workspaceFolder}/Cargo.lock",
-                "-o", "include/graphannis-capi.h"
+                "--lockfile",
+                "${workspaceFolder}/Cargo.lock",
+                "-o",
+                "include/graphannis-capi.h"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
             },
+            "group": "build",
             "problemMatcher": []
         }
     ]
