@@ -29,7 +29,7 @@ const MAX_TRIES: usize = 5;
 
 /// An on-disk implementation of an annotation storage.
 ///
-/// # Error handling
+/// # Panics
 ///
 /// In contrast to the main-memory implementation, accessing the disk can fail.
 /// This is handled as a fatal error with panic except for specific scenarios where we know how to recover from this error.
@@ -69,6 +69,10 @@ fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
     result
 }
 
+/// Parses the raw data and split it at `\0` characters.
+///
+/// # Panics
+/// Panics if one of the sub-strings is not valid UTF-8.
 fn parse_str_vec_key(data: &[u8]) -> Vec<&str> {
     data.split(|b| *b == 0)
         .map(|part| std::str::from_utf8(part).expect(UTF_8_MSG))
@@ -87,6 +91,10 @@ fn create_by_container_key(node: NodeID, anno_key: &AnnoKey) -> Vec<u8> {
     result
 }
 
+/// Parse the raw data and extract the node ID and the annotation key.
+///
+/// # Panics
+/// Panics if the raw data is smaller than the length of a node ID bit-representation.
 fn parse_by_container_key(data: &[u8]) -> (NodeID, AnnoKey) {
     let item = NodeID::from_be_bytes(data[0..NODE_ID_SIZE].try_into().expect(&format!(
         "Key data must at least have length {}",
@@ -118,6 +126,10 @@ fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
     result
 }
 
+/// Parse the raw data and extract the node ID and the annotation.
+///
+/// # Panics
+/// Panics if the raw data is smaller than the length of a node ID bit-representation.
 fn parse_by_anno_qname_key(data: &[u8]) -> (NodeID, Annotation) {
     let node_id = NodeID::from_be_bytes(data[(data.len() - NODE_ID_SIZE)..].try_into().expect(
         &format!("Key data must at least have length {}", NODE_ID_SIZE),
@@ -281,20 +293,52 @@ impl AnnoStorageImpl {
         let prefix: Vec<u8> = create_str_vec_key(&[&anno_key.ns, &anno_key.name]);
 
         if let Some(cf) = self.get_by_anno_qname_cf() {
-            let mut last_err = None;
-            for _ in 0..MAX_TRIES {
-                match self.db.prefix_iterator_cf(cf, &prefix) {
-                    Ok(result) => return Box::new(result),
-                    Err(e) => last_err = Some(e),
-                }
-                // If this is an intermediate error, wait some time before trying again
-                std::thread::sleep(std::time::Duration::from_secs(1));
-            }
-
-            panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
+            Box::new(self.prefix_iterator(cf, &prefix))
         } else {
             Box::new(std::iter::empty())
         }
+    }
+
+    /// Get a prefix iterator for a column family
+    ///
+    /// # Panics
+    /// This will try to get an iterator several times.
+    /// If a maximum number of tries is reached and all attempts failed, this will panic.
+    fn prefix_iterator<P: AsRef<[u8]> + Clone>(
+        &self,
+        cf: &rocksdb::ColumnFamily,
+        prefix: P,
+    ) -> rocksdb::DBIterator {
+        let mut last_err = None;
+        for _ in 0..MAX_TRIES {
+            // return the iterator for this annotation key
+            match self.db.prefix_iterator_cf(cf, prefix.clone()) {
+                Ok(result) => return result,
+                Err(e) => last_err = Some(e),
+            }
+            // If this is an intermediate error, wait some time before trying again
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
+    }
+
+    /// Get an iterator for a column family.
+    ///
+    /// # Panics
+    /// This will try to get an iterator several times.
+    /// If a maximum number of tries is reached and all attempts failed, this will panic.
+    fn iterator_cf_from_start(&self, cf: &rocksdb::ColumnFamily) -> rocksdb::DBIterator {
+        let mut last_err = None;
+        for _ in 0..MAX_TRIES {
+            // return the iterator for this annotation key
+            match self.db.iterator_cf(cf, rocksdb::IteratorMode::Start) {
+                Ok(result) => return result,
+                Err(e) => last_err = Some(e),
+            }
+            // If this is an intermediate error, wait some time before trying again
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
     }
 }
 
@@ -355,11 +399,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
         let mut result = Vec::default();
         if let Some(by_container) = self.get_by_container_cf() {
-            for (key, val) in self
-                .db
-                .prefix_iterator_cf(&by_container, prefix)
-                .expect(DEFAULT_MSG)
-            {
+            for (key, val) in self.prefix_iterator(&by_container, prefix) {
                 let parsed_key = parse_by_container_key(&key);
                 let anno = Annotation {
                     key: parsed_key.1,
@@ -462,10 +502,14 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
     fn number_of_annotations(&self) -> usize {
         if let Some(by_container) = self.get_by_container_cf() {
-            self.db
-                .iterator_cf(by_container, rocksdb::IteratorMode::Start)
-                .expect(DEFAULT_MSG)
-                .count()
+            let mut it_raw: rocksdb::DBRawIterator =
+                self.iterator_cf_from_start(by_container).into();
+            let mut result = 0;
+            while it_raw.valid() {
+                result += 1;
+                it_raw.next();
+            }
+            result
         } else {
             0
         }
@@ -549,9 +593,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             } else {
                 // get all annotation keys for this item
                 it.flat_map(|item| {
-                    self.db
-                        .prefix_iterator_cf(&by_container, item.to_be_bytes())
-                        .expect(DEFAULT_MSG)
+                    self.prefix_iterator(&by_container, item.to_be_bytes())
                         .map(|(data, _)| {
                             let (node, matched_anno_key) = parse_by_container_key(&data);
                             Match {
