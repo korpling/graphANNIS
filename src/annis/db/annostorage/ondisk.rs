@@ -215,8 +215,7 @@ impl AnnoStorageImpl {
         } else {
             let tmp_dir = tempfile::Builder::new()
                 .prefix("graphannis-ondisk-nodeanno-")
-                .tempdir()
-                .unwrap();
+                .tempdir()?;
             let db = open_db(tmp_dir.as_ref())?;
             Ok(AnnoStorageImpl {
                 db,
@@ -304,7 +303,7 @@ impl AnnoStorageImpl {
     /// # Panics
     /// This will try to get an iterator several times.
     /// If a maximum number of tries is reached and all attempts failed, this will panic.
-    fn prefix_iterator<P: AsRef<[u8]> + Clone>(
+    fn prefix_iterator<P: AsRef<[u8]>>(
         &self,
         cf: &rocksdb::ColumnFamily,
         prefix: P,
@@ -312,7 +311,7 @@ impl AnnoStorageImpl {
         let mut last_err = None;
         for _ in 0..MAX_TRIES {
             // return the iterator for this annotation key
-            match self.db.prefix_iterator_cf(cf, prefix.clone()) {
+            match self.db.prefix_iterator_cf(cf, &prefix) {
                 Ok(result) => return result,
                 Err(e) => last_err = Some(e),
             }
@@ -332,6 +331,29 @@ impl AnnoStorageImpl {
         for _ in 0..MAX_TRIES {
             // return the iterator for this annotation key
             match self.db.iterator_cf(cf, rocksdb::IteratorMode::Start) {
+                Ok(result) => return result,
+                Err(e) => last_err = Some(e),
+            }
+            // If this is an intermediate error, wait some time before trying again
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
+    }
+
+    /// Get the pinned entry for a key in a column family.
+    ///
+    /// # Panics
+    /// This will try to get an iterator several times.
+    /// If a maximum number of tries is reached and all attempts failed, this will panic.
+    fn get_pinned_cf<K: AsRef<[u8]>>(
+        &self,
+        cf: &rocksdb::ColumnFamily,
+        key: K,
+    ) -> Option<rocksdb::DBPinnableSlice> {
+        let mut last_err = None;
+        for _ in 0..MAX_TRIES {
+            // return the iterator for this annotation key
+            match self.db.get_pinned_cf(cf, &key) {
                 Ok(result) => return result,
                 Err(e) => last_err = Some(e),
             }
@@ -514,10 +536,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
     fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
         if let Some(by_container) = self.get_by_container_cf() {
-            let raw = self
-                .db
-                .get_pinned_cf(&by_container, create_by_container_key(*item, key))
-                .expect(DEFAULT_MSG);
+            let raw = self.get_pinned_cf(&by_container, create_by_container_key(*item, key));
             if let Some(raw) = raw {
                 let val: String = String::from_utf8_lossy(&raw).to_string();
                 Some(Cow::Owned(val))
@@ -551,12 +570,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                         // This saves the repeated expensive construction of the annotation key part.
                         container_key[0..NODE_ID_SIZE][0..NODE_ID_SIZE]
                             .copy_from_slice(&item.to_be_bytes());
-                        if self
-                            .db
-                            .get_pinned_cf(&by_container, &container_key)
-                            .expect(DEFAULT_MSG)
-                            .is_some()
-                        {
+                        if self.get_pinned_cf(&by_container, &container_key).is_some() {
                             matches.push((item, key.clone()).into());
                         }
                     }
@@ -575,12 +589,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                             // This saves the repeated expensive construction of the annotation key part.
                             container_key[0..NODE_ID_SIZE][0..NODE_ID_SIZE]
                                 .copy_from_slice(&item.to_be_bytes());
-                            if self
-                                .db
-                                .get_pinned_cf(&by_container, container_key)
-                                .expect(DEFAULT_MSG)
-                                .is_some()
-                            {
+                            if self.get_pinned_cf(&by_container, container_key).is_some() {
                                 matches.push((item, anno_key.clone()).into());
                             }
                         }
@@ -719,9 +728,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                         name: name.to_string(),
                     });
                     if self
-                        .db
                         .get_pinned_cf(&by_container, create_by_container_key(*item, &key))
-                        .expect(DEFAULT_MSG)
                         .is_some()
                     {
                         return vec![key.clone()];
@@ -733,9 +740,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                         .get_qnames(&name)
                         .into_iter()
                         .filter(|key| {
-                            self.db
-                                .get_pinned_cf(&by_container, create_by_container_key(*item, key))
-                                .expect(DEFAULT_MSG)
+                            self.get_pinned_cf(&by_container, create_by_container_key(*item, key))
                                 .is_some()
                         })
                         .map(|key| Arc::from(key))
