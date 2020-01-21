@@ -5,6 +5,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Backward incompatible: the `AnnotationStorage` and `WriteableGraphStorage` interfaces have been adjusted to return `Result` types
+  for mutable functions. This is necessary because on-disk annotation storage implementations might fail and we want to handle it when 
+  modifying the annotation storage.
+
+### Added
+
+- Added a disk-based annotation storages for nodes as an alternative to the memory-only variant.
+
 ## [0.25.1] - 2020-01-03
 
 ###  Fixed
