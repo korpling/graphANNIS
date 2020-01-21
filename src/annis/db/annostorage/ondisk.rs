@@ -249,13 +249,22 @@ impl AnnoStorageImpl {
             let it = key_ranges
                 .into_iter()
                 .flat_map(move |anno_key| {
-                    // return the iterator for this annotation key
-                    rocksdb_iterator::AnnotationValueIterator::new(
-                        &self.db,
-                        cf,
-                        anno_key,
-                        value.clone(),
-                    )
+                    let mut last_err = None;
+                    for _ in 0..MAX_TRIES {
+                        // return the iterator for this annotation key
+                        match rocksdb_iterator::AnnotationValueIterator::new(
+                            &self.db,
+                            cf,
+                            anno_key.clone(),
+                            value.clone(),
+                        ) {
+                            Ok(result) => return Box::new(result),
+                            Err(e) => last_err = Some(e),
+                        }
+                        // If this is an intermediate error, wait some time before trying again
+                        std::thread::sleep(std::time::Duration::from_secs(1));
+                    }
+                    panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
                 })
                 .fuse();
 

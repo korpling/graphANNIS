@@ -1,3 +1,4 @@
+use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Annotation, NodeID};
 use rocksdb::{DBRawIterator, DB};
 
@@ -17,7 +18,7 @@ impl<'a> AnnotationValueIterator<'a> {
         cf: &'a rocksdb::ColumnFamily,
         anno_key: Arc<AnnoKey>,
         value: Option<String>,
-    ) -> AnnotationValueIterator<'a> {
+    ) -> Result<AnnotationValueIterator<'a>> {
         let mut opts = rocksdb::ReadOptions::default();
         // Create a forward-only iterator
         opts.set_tailing(true);
@@ -25,9 +26,7 @@ impl<'a> AnnotationValueIterator<'a> {
 
         // restrict search to qualified name prefix
         let prefix: Vec<u8> = super::create_str_vec_key(&[&anno_key.ns, &anno_key.name]);
-        let it = db
-            .prefix_iterator_cf(&cf, prefix)
-            .expect(super::DEFAULT_MSG);
+        let it = db.prefix_iterator_cf(&cf, prefix)?;
 
         let lower_bound = Annotation {
             key: anno_key.as_ref().clone(),
@@ -54,12 +53,12 @@ impl<'a> AnnotationValueIterator<'a> {
 
         raw.seek(lower_bound);
 
-        AnnotationValueIterator {
+        Ok(AnnotationValueIterator {
             raw,
             anno_key,
             upper_bound,
             exhausted: false,
-        }
+        })
     }
 }
 
