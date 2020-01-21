@@ -104,7 +104,7 @@ pub trait GraphStorage: EdgeContainer {
 
     /// Copy the content of another component.
     /// This removes the existing content of this graph storage.
-    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage);
+    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) -> Result<()>;
 
     /// Upcast this graph storage to the [EdgeContainer](trait.EdgeContainer.html) trait.
     fn as_edgecontainer(&self) -> &dyn EdgeContainer;
@@ -139,17 +139,17 @@ pub trait WriteableGraphStorage: GraphStorage {
 
     /// Add an annotation to an edge in this graph storage.
     /// The edge has to exist.
-    fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation);
+    fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) -> Result<()>;
 
     /// Delete an existing edge.
-    fn delete_edge(&mut self, edge: &Edge);
+    fn delete_edge(&mut self, edge: &Edge) -> Result<()>;
 
     /// Delete the annotation (defined by the qualified annotation name in `anno_key`) for an `edge`.
-    fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey);
+    fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey) -> Result<()>;
 
     /// Delete a node from this graph storage.
     /// This deletes both edges edges where the node is the source or the target node.
-    fn delete_node(&mut self, node: NodeID);
+    fn delete_node(&mut self, node: NodeID) -> Result<()>;
 
     /// Re-calculate the [statistics](struct.GraphStatistic.html) of this graph storage.
     fn calculate_statistics(&mut self);

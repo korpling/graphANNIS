@@ -121,7 +121,7 @@ impl<'a> ChunkUpdater<'a> {
 /// Load a c corpus in the legacy relANNIS format from the specified `path`.
 ///
 /// Returns a tuple consisting of the corpus name and the extracted annotation graph.
-pub fn load<F>(path: &Path, progress_callback: F) -> Result<(String, Graph)>
+pub fn load<F>(path: &Path, disk_based: bool, progress_callback: F) -> Result<(String, Graph)>
 where
     F: Fn(&str) -> (),
 {
@@ -140,7 +140,7 @@ where
             false
         };
 
-        let mut db = Graph::with_default_graphstorages()?;
+        let mut db = Graph::with_default_graphstorages(disk_based)?;
         let mut updater = ChunkUpdater::new(&mut db, 1_000_000);
         let load_node_and_corpus_result =
             load_node_and_corpus_tables(&path, &mut updater, is_annis_33, &progress_callback)?;
@@ -167,7 +167,7 @@ where
         for c in db.get_all_components(None, None) {
             progress_callback(&format!("calculating statistics for component {}", c));
             db.calculate_component_statistics(&c)?;
-            db.optimize_impl(&c);
+            db.optimize_impl(&c)?;
         }
 
         progress_callback(&format!(
@@ -1009,7 +1009,7 @@ where
         .get_all_components(Some(ComponentType::Ordering), None)
     {
         updater.g.calculate_component_statistics(&order_component)?;
-        updater.g.optimize_impl(&order_component);
+        updater.g.optimize_impl(&order_component)?;
     }
 
     load_node_anno_tab(

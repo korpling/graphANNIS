@@ -1,4 +1,5 @@
 pub mod inmemory;
+pub mod ondisk;
 mod symboltable;
 
 use crate::annis::db::{Match, ValueSearch};
@@ -16,7 +17,7 @@ where
     T: Send + Sync + MallocSizeOf,
 {
     /// Insert an annotation `anno` (with annotation key and value) for an item `item`.
-    fn insert(&mut self, item: T, anno: Annotation);
+    fn insert(&mut self, item: T, anno: Annotation) -> Result<()>;
 
     /// Get all the annotation keys of a node, filtered by the optional namespace (`ns`) and `name`.
     fn get_all_keys_for_item(
@@ -28,10 +29,10 @@ where
 
     /// Remove the annotation given by its `key` for a specific `item`
     /// Returns the value for that annotation, if it existed.
-    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
+    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>>;
 
     /// Remove all annotations.
-    fn clear(&mut self);
+    fn clear(&mut self) -> Result<()>;
 
     /// Get all qualified annotation names (including namespace) for a given annotation name
     fn get_qnames(&self, name: &str) -> Vec<AnnoKey>;
@@ -63,7 +64,7 @@ where
     ///
     /// - `namespace`- If given, only annotations having this namespace are returned.
     /// - `name`  - Only annotations with this name are returned.
-    /// - `value` - If given, only annotation having exactly the given value are returned.
+    /// - `value` - Constrain the value of the annotation.
     ///
     /// The result is an iterator over matches.
     /// A match contains the node ID and the qualifed name of the matched annotation

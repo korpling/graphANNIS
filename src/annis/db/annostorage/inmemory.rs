@@ -9,6 +9,7 @@ use crate::annis::util;
 use crate::annis::util::memory_estimation;
 use crate::malloc_size_of::MallocSizeOf;
 use bincode;
+use core::ops::Bound::*;
 use itertools::Itertools;
 use rand;
 use regex;
@@ -17,13 +18,12 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde;
 use std;
 use std::borrow::Cow;
-use std::collections::Bound::*;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 use std::path::Path;
 use std::sync::Arc;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf, Copy)]
 struct SparseAnnotation {
     key: usize,
     val: usize,
@@ -227,7 +227,7 @@ where
         + serde::de::DeserializeOwned,
     (T, Arc<AnnoKey>): Into<Match>,
 {
-    fn insert(&mut self, item: T, anno: Annotation) {
+    fn insert(&mut self, item: T, anno: Annotation) -> Result<()> {
         let orig_anno_key = anno.key.clone();
         let anno = self.create_sparse_anno(anno);
 
@@ -244,7 +244,7 @@ where
                 let orig_anno = existing_item_entry[existing_entry_idx].clone();
                 // abort if the same annotation key with the same value already exist
                 if orig_anno.val == anno.val {
-                    return;
+                    return Ok(());
                 }
                 // insert annotation for item at existing position
                 existing_item_entry[existing_entry_idx] = anno.clone();
@@ -290,61 +290,64 @@ where
                 .or_insert(0);
             *anno_key_entry += 1;
         }
+
+        Ok(())
     }
 
-    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
+    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>> {
         let mut result = None;
 
         let orig_key = key;
-        let key = self.anno_keys.get_symbol(key)?;
+        if let Some(key) = self.anno_keys.get_symbol(key) {
+            if let Some(mut all_annos) = self.by_container.remove(item) {
+                // find the specific annotation key from the sorted vector of all annotations of this item
+                let anno_idx = all_annos.binary_search_by_key(&key, |a| a.key);
 
-        if let Some(mut all_annos) = self.by_container.remove(item) {
-            // find the specific annotation key from the sorted vector of all annotations of this item
-            let anno_idx = all_annos.binary_search_by_key(&key, |a| a.key);
+                if let Ok(anno_idx) = anno_idx {
+                    // since value was found, also remove the item from the other containers
+                    self.remove_element_from_by_anno(&all_annos[anno_idx], item);
 
-            if let Ok(anno_idx) = anno_idx {
-                // since value was found, also remove the item from the other containers
-                self.remove_element_from_by_anno(&all_annos[anno_idx], item);
+                    let old_value = all_annos[anno_idx].val;
 
-                let old_value = all_annos[anno_idx].val;
+                    // remove the specific annotation key from the entry
+                    all_annos.remove(anno_idx);
 
-                // remove the specific annotation key from the entry
-                all_annos.remove(anno_idx);
+                    // decrease the annotation count for this key
+                    let new_key_count: usize =
+                        if let Some(num_of_keys) = self.anno_key_sizes.get_mut(orig_key) {
+                            *num_of_keys -= 1;
+                            *num_of_keys
+                        } else {
+                            0
+                        };
+                    // if annotation count dropped to zero remove the key
+                    if new_key_count == 0 {
+                        self.by_anno.remove(&key);
+                        self.anno_key_sizes.remove(&orig_key);
+                        self.anno_keys.remove(key);
+                    }
 
-                // decrease the annotation count for this key
-                let new_key_count: usize =
-                    if let Some(num_of_keys) = self.anno_key_sizes.get_mut(orig_key) {
-                        *num_of_keys -= 1;
-                        *num_of_keys
-                    } else {
-                        0
-                    };
-                // if annotation count dropped to zero remove the key
-                if new_key_count == 0 {
-                    self.by_anno.remove(&key);
-                    self.anno_key_sizes.remove(&orig_key);
-                    self.anno_keys.remove(key);
+                    result = self
+                        .anno_values
+                        .get_value_ref(old_value)
+                        .map(|v| Cow::Owned(v.clone()));
+
+                    self.check_and_remove_value_symbol(old_value);
+                    self.total_number_of_annos -= 1;
                 }
-
-                result = self
-                    .anno_values
-                    .get_value_ref(old_value)
-                    .map(|v| Cow::Owned(v.clone()));
-
-                self.check_and_remove_value_symbol(old_value);
-                self.total_number_of_annos -= 1;
-            }
-            // if there are more annotations for this item, re-insert them
-            if !all_annos.is_empty() {
-                self.by_container.insert(item.clone(), all_annos);
+                // if there are more annotations for this item, re-insert them
+                if !all_annos.is_empty() {
+                    self.by_container.insert(item.clone(), all_annos);
+                }
             }
         }
 
-        result
+        Ok(result)
     }
 
-    fn clear(&mut self) {
+    fn clear(&mut self) -> Result<()> {
         self.clear_internal();
+        Ok(())
     }
 
     fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
@@ -501,23 +504,68 @@ where
         name: &str,
         value: ValueSearch<&str>,
     ) -> Box<dyn Iterator<Item = Match> + 'a> {
-        match value {
-            ValueSearch::Any => {
-                let it = self
-                    .matching_items(namespace, name, None)
+        let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
+            vec![Arc::from(AnnoKey {
+                ns: ns.to_string(),
+                name: name.to_string(),
+            })]
+        } else {
+            self.get_qnames(name)
+                .into_iter()
+                .map(|key| Arc::from(key))
+                .collect()
+        };
+        // Create a vector fore each matching AnnoKey to the value map containing all items and their annotation values
+        // for this key.
+        let value_maps: Vec<(Arc<AnnoKey>, &FxHashMap<usize, Vec<T>>)> = key_ranges
+            .into_iter()
+            .filter_map(|key| {
+                let key_id = self.anno_keys.get_symbol(&key)?;
+                if let Some(values_for_key) = self.by_anno.get(&key_id) {
+                    Some((key, values_for_key))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        if let ValueSearch::Some(value) = value {
+            let target_value_symbol = self.anno_values.get_symbol(&value.to_string());
+
+            if let Some(target_value_symbol) = target_value_symbol {
+                let it = value_maps
+                    .into_iter()
+                    // find the items with the correct value
+                    .filter_map(move |(key, values)| {
+                        if let Some(items) = values.get(&target_value_symbol) {
+                            Some((items, key))
+                        } else {
+                            None
+                        }
+                    })
+                    // flatten the hash set of all items, returns all items for the condition
+                    .flat_map(|(items, key)| items.iter().cloned().zip(std::iter::repeat(key)))
                     .map(move |item| item.into());
-                Box::new(it)
+                return Box::new(it);
+            } else {
+                // value is not known, return empty result
+                return Box::new(std::iter::empty());
             }
-            ValueSearch::Some(value) => {
-                let it = self
-                    .matching_items(namespace, name, Some(value))
-                    .map(move |item| item.into());
-                Box::new(it)
-            }
-            ValueSearch::NotSome(value) => {
+        } else {
+            // Search for all annotations having a matching qualified name, regardless of the value
+            let matching_qname_annos = value_maps
+                .into_iter()
+                // flatten the hash set of all items of the value map
+                .flat_map(|(key, values)| {
+                    values
+                        .iter()
+                        .flat_map(|(_, items)| items.iter().cloned())
+                        .zip(std::iter::repeat(key))
+                });
+
+            if let ValueSearch::NotSome(value) = value {
                 let value = value.to_string();
-                let it = self
-                    .matching_items(namespace, name, None)
+                let it = matching_qname_annos
                     .filter(move |(node, anno_key)| {
                         if let Some(item_value) = self.get_value_for_item(node, anno_key) {
                             item_value != value
@@ -526,7 +574,9 @@ where
                         }
                     })
                     .map(move |item| item.into());
-                Box::new(it)
+                return Box::new(it);
+            } else {
+                return Box::new(matching_qname_annos.map(move |item| item.into()));
             }
         }
     }
@@ -848,7 +898,7 @@ where
         let f = std::fs::File::open(path.clone()).or_else(|e| {
             Err(Error::Generic {
                 msg: format!(
-                    "Could not load string storage from file {}",
+                    "Could not load annotation storage from file {}",
                     path.to_string_lossy(),
                 ),
                 cause: Some(Box::new(e)),
@@ -870,8 +920,6 @@ where
 
         Ok(())
     }
-
-    //
 }
 
 impl AnnoStorageImpl<Edge> {
@@ -897,10 +945,10 @@ mod tests {
             val: "test".to_owned(),
         };
         let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
-        a.insert(1, test_anno.clone());
-        a.insert(1, test_anno.clone());
-        a.insert(2, test_anno.clone());
-        a.insert(3, test_anno);
+        a.insert(1, test_anno.clone()).unwrap();
+        a.insert(1, test_anno.clone()).unwrap();
+        a.insert(2, test_anno.clone()).unwrap();
+        a.insert(3, test_anno).unwrap();
 
         assert_eq!(3, a.number_of_annotations());
         assert_eq!(3, a.by_container.len());
@@ -945,9 +993,9 @@ mod tests {
         };
 
         let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
-        a.insert(1, test_anno1.clone());
-        a.insert(1, test_anno2.clone());
-        a.insert(1, test_anno3.clone());
+        a.insert(1, test_anno1.clone()).unwrap();
+        a.insert(1, test_anno2.clone()).unwrap();
+        a.insert(1, test_anno3.clone()).unwrap();
 
         assert_eq!(3, a.number_of_annotations());
 
@@ -969,7 +1017,7 @@ mod tests {
             val: "test".to_owned(),
         };
         let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
-        a.insert(1, test_anno.clone());
+        a.insert(1, test_anno.clone()).unwrap();
 
         assert_eq!(1, a.number_of_annotations());
         assert_eq!(1, a.by_container.len());
@@ -977,7 +1025,7 @@ mod tests {
         assert_eq!(1, a.anno_key_sizes.len());
         assert_eq!(&1, a.anno_key_sizes.get(&test_anno.key).unwrap());
 
-        a.remove_annotation_for_item(&1, &test_anno.key);
+        a.remove_annotation_for_item(&1, &test_anno.key).unwrap();
 
         assert_eq!(0, a.number_of_annotations());
         assert_eq!(0, a.by_container.len());

@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed the accidentally public `size_of_cached` function of `Graph` from the API.
 
+
+### Changed
+
+- Backward incompatible: the `AnnotationStorage` and `WriteableGraphStorage` interfaces have been adjusted to return `Result` types
+  for mutable functions. This is necessary because on-disk annotation storage implementations might fail and we want to handle it when 
+  modifying the annotation storage.
+
+
+### Added
+
+- Added disk-based annotation storage for nodes as an alternative to the memory-only variant.
+  This is based on <https://rocksdb.org/>.
+  On the console, use `use_disk <on|off>` to set if newly imported corpora prefer disk-based annotation storage.
+  `disk_based` parameters are also added to the various "import relANNIS" API functions.
+
 ## [0.25.1] - 2020-01-03
 
 ###  Fixed

@@ -182,6 +182,8 @@ pub struct Graph {
     background_persistance: Arc<Mutex<()>>,
 
     cached_size: Mutex<Option<usize>>,
+
+    disk_based: bool,
 }
 
 impl MallocSizeOf for Graph {
@@ -237,9 +239,15 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
 
 impl Graph {
     /// Create a new and empty instance without any location on the disk.
-    fn new() -> Graph {
-        Graph {
-            node_annos: Box::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new()),
+    fn new(disk_based: bool) -> Result<Graph> {
+        let node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
+            Box::new(annostorage::ondisk::AnnoStorageImpl::new(None)?)
+        } else {
+            Box::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
+        };
+
+        Ok(Graph {
+            node_annos,
             components: BTreeMap::new(),
 
             location: None,
@@ -248,13 +256,15 @@ impl Graph {
 
             background_persistance: Arc::new(Mutex::new(())),
             cached_size: Mutex::new(None),
-        }
+
+            disk_based,
+        })
     }
 
     /// Create a new instance without any location on the disk but with the default graph storage components
     /// (Coverage, Order, LeftToken, RightToken, PartOf).
-    fn with_default_graphstorages() -> Result<Graph> {
-        let mut db = Graph::new();
+    fn with_default_graphstorages(disk_based: bool) -> Result<Graph> {
+        let mut db = Graph::new(disk_based)?;
         db.get_or_create_writable(&Component {
             ctype: ComponentType::Coverage,
             layer: ANNIS_NS.to_owned(),
@@ -320,10 +330,21 @@ impl Graph {
             location.join("current")
         };
 
-        let mut node_annos_tmp: annostorage::inmemory::AnnoStorageImpl<NodeID> =
-            annostorage::inmemory::AnnoStorageImpl::new();
-        node_annos_tmp.load_annotations_from(&dir2load)?;
-        self.node_annos = Box::new(node_annos_tmp);
+        let ondisk_subdirectory = dir2load.join(annostorage::ondisk::SUBFOLDER_NAME);
+        if ondisk_subdirectory.exists() && ondisk_subdirectory.is_dir() {
+            self.disk_based = true;
+            // directly load the on disk storage from the given folder to avoid having a temporary directory
+            let node_annos_tmp =
+                annostorage::ondisk::AnnoStorageImpl::new(Some(ondisk_subdirectory))?;
+            self.node_annos = Box::new(node_annos_tmp);
+        } else {
+            // assume a main memory implementation
+            self.disk_based = false;
+            let mut node_annos_tmp: annostorage::inmemory::AnnoStorageImpl<NodeID> =
+                annostorage::inmemory::AnnoStorageImpl::new();
+            node_annos_tmp.load_annotations_from(&dir2load)?;
+            self.node_annos = Box::new(node_annos_tmp);
+        }
 
         let log_path = dir2load.join("update_log.bin");
 
@@ -457,6 +478,68 @@ impl Graph {
         self.internal_save(&location.join("current"))
     }
 
+    fn get_existing_node_ids_for_changes<'a>(
+        &self,
+        changes: Box<dyn Iterator<Item = (u64, &'a UpdateEvent)> + 'a>,
+    ) -> std::collections::HashMap<&'a String, Option<NodeID>> {
+        let mut node_ids: std::collections::HashMap<&String, Option<NodeID>> =
+            std::collections::HashMap::default();
+
+        for (_, event) in changes {
+            match event {
+                UpdateEvent::AddNode { node_name, .. }
+                | UpdateEvent::AddNodeLabel { node_name, .. }
+                | UpdateEvent::DeleteNode { node_name, .. }
+                | UpdateEvent::DeleteNodeLabel { node_name, .. } => {
+                    if !node_ids.contains_key(node_name) {
+                        if let Some(id) = self.get_node_id_from_name(node_name) {
+                            node_ids.insert(node_name, Some(id));
+                        } else {
+                            node_ids.insert(node_name, None);
+                        }
+                    }
+                }
+                UpdateEvent::AddEdge {
+                    source_node,
+                    target_node,
+                    ..
+                }
+                | UpdateEvent::AddEdgeLabel {
+                    source_node,
+                    target_node,
+                    ..
+                }
+                | UpdateEvent::DeleteEdge {
+                    source_node,
+                    target_node,
+                    ..
+                }
+                | UpdateEvent::DeleteEdgeLabel {
+                    source_node,
+                    target_node,
+                    ..
+                } => {
+                    if !node_ids.contains_key(source_node) {
+                        if let Some(id) = self.get_node_id_from_name(source_node) {
+                            node_ids.insert(source_node, Some(id));
+                        } else {
+                            node_ids.insert(source_node, None);
+                        }
+                    }
+                    if !node_ids.contains_key(target_node) {
+                        if let Some(id) = self.get_node_id_from_name(target_node) {
+                            node_ids.insert(target_node, Some(id));
+                        } else {
+                            node_ids.insert(target_node, None);
+                        }
+                    }
+                }
+            }
+        }
+
+        node_ids
+    }
+
     #[allow(clippy::cognitive_complexity)]
     fn apply_update_in_memory(&mut self, u: &mut GraphUpdate) -> Result<()> {
         self.reset_cached_size();
@@ -471,6 +554,10 @@ impl Graph {
         text_coverage_components
             .extend(self.get_all_components(Some(ComponentType::Coverage), None));
 
+        let msg_missing = "New update event that was not included cache";
+
+        // Collect all used node names and map them to existing IDs
+        let mut node_ids = self.get_existing_node_ids_for_changes(u.consistent_changes());
         for (id, change) in u.consistent_changes() {
             trace!("applying event {:?}", &change);
             match change {
@@ -478,7 +565,7 @@ impl Graph {
                     node_name,
                     node_type,
                 } => {
-                    let existing_node_id = self.get_node_id_from_name(&node_name);
+                    let existing_node_id = node_ids.get(node_name).expect(msg_missing);
                     // only add node if it does not exist yet
                     if existing_node_id.is_none() {
                         let new_node_id: NodeID =
@@ -490,23 +577,26 @@ impl Graph {
 
                         let new_anno_name = Annotation {
                             key: NODE_NAME_KEY.as_ref().clone(),
-                            val: node_name,
+                            val: node_name.to_string(),
                         };
                         let new_anno_type = Annotation {
                             key: NODE_TYPE_KEY.as_ref().clone(),
-                            val: node_type,
+                            val: node_type.to_string(),
                         };
 
                         // add the new node (with minimum labels)
-                        self.node_annos.insert(new_node_id, new_anno_name);
-                        self.node_annos.insert(new_node_id, new_anno_type);
+                        self.node_annos.insert(new_node_id, new_anno_name)?;
+                        self.node_annos.insert(new_node_id, new_anno_type)?;
+
+                        // update the internal cache
+                        node_ids.insert(node_name, Some(new_node_id));
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
-                    if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
+                    if let Some(existing_node_id) = node_ids.get(&node_name).expect(msg_missing) {
                         if !invalid_nodes.contains(&existing_node_id) {
                             self.extend_parent_text_coverage_nodes(
-                                existing_node_id,
+                                *existing_node_id,
                                 &text_coverage_components,
                                 &mut invalid_nodes,
                             );
@@ -516,13 +606,13 @@ impl Graph {
                         {
                             for a in self.node_annos.get_annotations_for_item(&existing_node_id) {
                                 self.node_annos
-                                    .remove_annotation_for_item(&existing_node_id, &a.key);
+                                    .remove_annotation_for_item(&existing_node_id, &a.key)?;
                             }
                         }
                         // delete all edges pointing to this node either as source or target
                         for c in all_components.iter() {
                             if let Ok(gs) = self.get_or_create_writable(c) {
-                                gs.delete_node(existing_node_id);
+                                gs.delete_node(*existing_node_id)?;
                             }
                         }
                     }
@@ -533,15 +623,15 @@ impl Graph {
                     anno_name,
                     anno_value,
                 } => {
-                    if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
+                    if let Some(existing_node_id) = node_ids.get(&node_name).expect(msg_missing) {
                         let anno = Annotation {
                             key: AnnoKey {
-                                ns: anno_ns,
-                                name: anno_name,
+                                ns: anno_ns.to_string(),
+                                name: anno_name.to_string(),
                             },
-                            val: anno_value,
+                            val: anno_value.to_string(),
                         };
-                        self.node_annos.insert(existing_node_id, anno);
+                        self.node_annos.insert(*existing_node_id, anno)?;
                     }
                 }
                 UpdateEvent::DeleteNodeLabel {
@@ -549,13 +639,13 @@ impl Graph {
                     anno_ns,
                     anno_name,
                 } => {
-                    if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
+                    if let Some(existing_node_id) = node_ids.get(&node_name).expect(msg_missing) {
                         let key = AnnoKey {
-                            ns: anno_ns,
-                            name: anno_name,
+                            ns: anno_ns.to_string(),
+                            name: anno_name.to_string(),
                         };
                         self.node_annos
-                            .remove_annotation_for_item(&existing_node_id, &key);
+                            .remove_annotation_for_item(existing_node_id, &key)?;
                     }
                 }
                 UpdateEvent::AddEdge {
@@ -567,17 +657,20 @@ impl Graph {
                 } => {
                     // only add edge if both nodes already exist
                     if let (Some(source), Some(target)) = (
-                        self.get_node_id_from_name(&source_node),
-                        self.get_node_id_from_name(&target_node),
+                        node_ids.get(&source_node).expect(msg_missing),
+                        node_ids.get(&target_node).expect(msg_missing),
                     ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
-                                layer,
-                                name: component_name,
+                                layer: layer.to_string(),
+                                name: component_name.to_string(),
                             };
                             let gs = self.get_or_create_writable(&c)?;
-                            gs.add_edge(Edge { source, target });
+                            gs.add_edge(Edge {
+                                source: *source,
+                                target: *target,
+                            });
 
                             if (c.ctype == ComponentType::Dominance
                                 || c.ctype == ComponentType::Coverage)
@@ -594,7 +687,7 @@ impl Graph {
                                 || c.ctype == ComponentType::RightToken
                             {
                                 self.extend_parent_text_coverage_nodes(
-                                    source,
+                                    *source,
                                     &text_coverage_components,
                                     &mut invalid_nodes,
                                 );
@@ -602,7 +695,7 @@ impl Graph {
 
                             if c.ctype == ComponentType::Ordering {
                                 self.extend_parent_text_coverage_nodes(
-                                    target,
+                                    *target,
                                     &text_coverage_components,
                                     &mut invalid_nodes,
                                 );
@@ -618,14 +711,14 @@ impl Graph {
                     component_name,
                 } => {
                     if let (Some(source), Some(target)) = (
-                        self.get_node_id_from_name(&source_node),
-                        self.get_node_id_from_name(&target_node),
+                        node_ids.get(&source_node).expect(msg_missing),
+                        node_ids.get(&target_node).expect(msg_missing),
                     ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
-                                layer,
-                                name: component_name,
+                                layer: layer.to_string(),
+                                name: component_name.to_string(),
                             };
 
                             if c.ctype == ComponentType::Coverage
@@ -635,7 +728,7 @@ impl Graph {
                                 || c.ctype == ComponentType::RightToken
                             {
                                 self.extend_parent_text_coverage_nodes(
-                                    source,
+                                    *source,
                                     &text_coverage_components,
                                     &mut invalid_nodes,
                                 );
@@ -643,13 +736,16 @@ impl Graph {
 
                             if c.ctype == ComponentType::Ordering {
                                 self.extend_parent_text_coverage_nodes(
-                                    target,
+                                    *target,
                                     &text_coverage_components,
                                     &mut invalid_nodes,
                                 );
                             }
                             let gs = self.get_or_create_writable(&c)?;
-                            gs.delete_edge(&Edge { source, target });
+                            gs.delete_edge(&Edge {
+                                source: *source,
+                                target: *target,
+                            })?;
                         }
                     }
                 }
@@ -664,27 +760,30 @@ impl Graph {
                     anno_value,
                 } => {
                     if let (Some(source), Some(target)) = (
-                        self.get_node_id_from_name(&source_node),
-                        self.get_node_id_from_name(&target_node),
+                        node_ids.get(&source_node).expect(msg_missing),
+                        node_ids.get(&target_node).expect(msg_missing),
                     ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
-                                layer,
-                                name: component_name,
+                                layer: layer.to_string(),
+                                name: component_name.to_string(),
                             };
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
-                            let e = Edge { source, target };
-                            if gs.is_connected(source, target, 1, Included(1)) {
+                            let e = Edge {
+                                source: *source,
+                                target: *target,
+                            };
+                            if gs.is_connected(*source, *target, 1, Included(1)) {
                                 let anno = Annotation {
                                     key: AnnoKey {
-                                        ns: anno_ns,
-                                        name: anno_name,
+                                        ns: anno_ns.to_string(),
+                                        name: anno_name.to_string(),
                                     },
-                                    val: anno_value,
+                                    val: anno_value.to_string(),
                                 };
-                                gs.add_edge_annotation(e, anno);
+                                gs.add_edge_annotation(e, anno)?;
                             }
                         }
                     }
@@ -699,24 +798,27 @@ impl Graph {
                     anno_name,
                 } => {
                     if let (Some(source), Some(target)) = (
-                        self.get_node_id_from_name(&source_node),
-                        self.get_node_id_from_name(&target_node),
+                        node_ids.get(&source_node).expect(msg_missing),
+                        node_ids.get(&target_node).expect(msg_missing),
                     ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
-                                layer,
-                                name: component_name,
+                                layer: layer.to_string(),
+                                name: component_name.to_string(),
                             };
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
-                            let e = Edge { source, target };
-                            if gs.is_connected(source, target, 1, Included(1)) {
+                            let e = Edge {
+                                source: *source,
+                                target: *target,
+                            };
+                            if gs.is_connected(*source, *target, 1, Included(1)) {
                                 let key = AnnoKey {
-                                    ns: anno_ns,
-                                    name: anno_name,
+                                    ns: anno_ns.to_string(),
+                                    name: anno_name.to_string(),
                                 };
-                                gs.delete_edge_annotation(&e, &key);
+                                gs.delete_edge_annotation(&e, &key)?;
                             }
                         }
                     }
@@ -771,7 +873,7 @@ impl Graph {
             })?;
 
             for n in invalid_nodes.iter() {
-                gs_left.delete_node(*n);
+                gs_left.delete_node(*n)?;
             }
 
             let gs_right = self.get_or_create_writable(&Component {
@@ -781,7 +883,7 @@ impl Graph {
             })?;
 
             for n in invalid_nodes.iter() {
-                gs_right.delete_node(*n);
+                gs_right.delete_node(*n)?;
             }
 
             let gs_cov = self.get_or_create_writable(&Component {
@@ -790,7 +892,7 @@ impl Graph {
                 layer: ANNIS_NS.to_owned(),
             })?;
             for n in invalid_nodes.iter() {
-                gs_cov.delete_node(*n);
+                gs_cov.delete_node(*n)?;
             }
         }
 
@@ -1079,7 +1181,7 @@ impl Graph {
                 loaded_comp
             } else {
                 let mut gs_copy: AdjacencyListStorage = registry::create_writeable();
-                gs_copy.copy(&self, loaded_comp.as_ref());
+                gs_copy.copy(&self, loaded_comp.as_ref())?;
                 Arc::from(gs_copy)
             };
 
@@ -1199,7 +1301,7 @@ impl Graph {
         Ok(())
     }
 
-    fn optimize_impl(&mut self, c: &Component) {
+    fn optimize_impl(&mut self, c: &Component) -> Result<()> {
         if let Some(gs) = self.get_graphstorage(c) {
             if let Some(stats) = gs.get_statistics() {
                 let opt_info = registry::get_optimal_impl_heuristic(self, stats);
@@ -1208,7 +1310,7 @@ impl Graph {
                 if opt_info.id != gs.serialization_id() {
                     let mut new_gs = registry::create_from_info(&opt_info);
                     let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
-                        new_gs_mut.copy(self, gs.as_ref());
+                        new_gs_mut.copy(self, gs.as_ref())?;
                         true
                     } else {
                         false
@@ -1225,6 +1327,8 @@ impl Graph {
                 }
             }
         }
+
+        Ok(())
     }
 
     fn get_node_id_from_name(&self, node_name: &str) -> Option<NodeID> {
@@ -1355,7 +1459,7 @@ mod tests {
 
     #[test]
     fn create_writeable_gs() {
-        let mut db = Graph::new();
+        let mut db = Graph::new(false).unwrap();
 
         let anno_key = AnnoKey {
             ns: "test".to_owned(),
@@ -1385,6 +1489,7 @@ mod tests {
                 key: anno_key,
                 val: anno_val,
             },
-        );
+        )
+        .unwrap();
     }
 }

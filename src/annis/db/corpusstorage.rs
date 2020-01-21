@@ -594,7 +594,7 @@ impl CorpusStorage {
 
         let db = if create_corpus {
             // create the default graph storages that are assumed to exist in every corpus
-            let mut db = Graph::with_default_graphstorages()?;
+            let mut db = Graph::with_default_graphstorages(false)?;
 
             // save corpus to the path where it should be stored
             db.persist_to(&db_path).or_else(|e| {
@@ -605,7 +605,7 @@ impl CorpusStorage {
             })?;
             db
         } else {
-            let mut db = Graph::new();
+            let mut db = Graph::new(false)?;
             db.load_from(&db_path, false)?;
             db
         };
@@ -705,14 +705,16 @@ impl CorpusStorage {
     /// - `path` - The location on the file system where the corpus data is located.
     /// - `format` - The format in which this corpus data is stored.
     /// - `corpus_name` - Optionally override the name of the new corpus for file formats that already provide a corpus name.
+    /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
     pub fn import_from_fs(
         &self,
         path: &Path,
         format: ImportFormat,
         corpus_name: Option<String>,
+        disk_based: bool,
     ) -> Result<String> {
         let (orig_name, mut graph) = match format {
-            ImportFormat::RelANNIS => relannis::load(path, |status| {
+            ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
                 info!("{}", status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regulary to allow it to adapat
                 self.check_cache_size_and_remove(vec![]);
@@ -757,6 +759,7 @@ impl CorpusStorage {
         }
 
         // save to its location
+        info!("saving corpus {} to disk", corpus_name);
         let save_result = graph.save_to(&db_path);
         if let Err(e) = save_result {
             error!(
@@ -1973,7 +1976,7 @@ fn extract_subgraph_by_query(
     // match vector differ.
     let mut match_result: BTreeSet<Match> = BTreeSet::new();
 
-    let mut result = Graph::new();
+    let mut result = Graph::new(false)?;
 
     // create the subgraph description
     for r in plan {
@@ -1984,7 +1987,7 @@ fn extract_subgraph_by_query(
                 if !match_result.contains(m) {
                     match_result.insert(m.clone());
                     trace!("subgraph query extracted node {:?}", m.node);
-                    create_subgraph_node(m.node, &mut result, orig_db);
+                    create_subgraph_node(m.node, &mut result, orig_db)?;
                 }
             }
         }
@@ -1993,24 +1996,25 @@ fn extract_subgraph_by_query(
     let components = orig_db.get_all_components(component_type_filter, None);
 
     for m in &match_result {
-        create_subgraph_edge(m.node, &mut result, orig_db, &components);
+        create_subgraph_edge(m.node, &mut result, orig_db, &components)?;
     }
 
     Ok(result)
 }
 
-fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) {
+fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) -> Result<()> {
     // add all node labels with the same node ID
     for a in orig_db.node_annos.get_annotations_for_item(&id) {
-        db.node_annos.insert(id, a);
+        db.node_annos.insert(id, a)?;
     }
+    Ok(())
 }
 fn create_subgraph_edge(
     source_id: NodeID,
     db: &mut Graph,
     orig_db: &Graph,
     components: &[Component],
-) {
+) -> Result<()> {
     // find outgoing edges
     for c in components {
         // don't include index components
@@ -2038,7 +2042,7 @@ fn create_subgraph_edge(
                             target,
                         }) {
                             if let Ok(new_gs) = db.get_or_create_writable(&c) {
-                                new_gs.add_edge_annotation(e.clone(), a);
+                                new_gs.add_edge_annotation(e.clone(), a)?;
                             }
                         }
                     }
@@ -2046,6 +2050,8 @@ fn create_subgraph_edge(
             }
         }
     }
+
+    Ok(())
 }
 
 fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {

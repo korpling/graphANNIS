@@ -39,11 +39,12 @@ where
         }
     }
 
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self) -> Result<()> {
         self.node_to_pos.clear();
         self.node_chains.clear();
-        self.annos.clear();
+        self.annos.clear()?;
         self.stats = None;
+        Ok(())
     }
 }
 
@@ -248,8 +249,8 @@ where
         false
     }
 
-    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) {
-        self.clear();
+    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) -> Result<()> {
+        self.clear()?;
 
         // find all roots of the component
         let mut roots: FxHashSet<NodeID> = FxHashSet::default();
@@ -288,7 +289,7 @@ where
                 let e = Edge { source, target };
                 let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e);
                 for a in edge_annos {
-                    self.annos.insert(e.clone(), a);
+                    self.annos.insert(e.clone(), a)?;
                 }
             }
         }
@@ -324,6 +325,8 @@ where
 
         self.stats = orig.get_statistics().cloned();
         self.annos.calculate_statistics();
+
+        Ok(())
     }
 
     fn inverse_has_same_cost(&self) -> bool {
