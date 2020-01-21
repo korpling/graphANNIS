@@ -29,7 +29,7 @@ where
 
     /// Remove the annotation given by its `key` for a specific `item`
     /// Returns the value for that annotation, if it existed.
-    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
+    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>>;
 
     /// Remove all annotations.
     fn clear(&mut self) -> Result<()>;

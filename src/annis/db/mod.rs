@@ -606,13 +606,13 @@ impl Graph {
                         {
                             for a in self.node_annos.get_annotations_for_item(&existing_node_id) {
                                 self.node_annos
-                                    .remove_annotation_for_item(&existing_node_id, &a.key);
+                                    .remove_annotation_for_item(&existing_node_id, &a.key)?;
                             }
                         }
                         // delete all edges pointing to this node either as source or target
                         for c in all_components.iter() {
                             if let Ok(gs) = self.get_or_create_writable(c) {
-                                gs.delete_node(*existing_node_id);
+                                gs.delete_node(*existing_node_id)?;
                             }
                         }
                     }
@@ -645,7 +645,7 @@ impl Graph {
                             name: anno_name.to_string(),
                         };
                         self.node_annos
-                            .remove_annotation_for_item(existing_node_id, &key);
+                            .remove_annotation_for_item(existing_node_id, &key)?;
                     }
                 }
                 UpdateEvent::AddEdge {
@@ -745,7 +745,7 @@ impl Graph {
                             gs.delete_edge(&Edge {
                                 source: *source,
                                 target: *target,
-                            });
+                            })?;
                         }
                     }
                 }
@@ -818,7 +818,7 @@ impl Graph {
                                     ns: anno_ns.to_string(),
                                     name: anno_name.to_string(),
                                 };
-                                gs.delete_edge_annotation(&e, &key);
+                                gs.delete_edge_annotation(&e, &key)?;
                             }
                         }
                     }
@@ -873,7 +873,7 @@ impl Graph {
             })?;
 
             for n in invalid_nodes.iter() {
-                gs_left.delete_node(*n);
+                gs_left.delete_node(*n)?;
             }
 
             let gs_right = self.get_or_create_writable(&Component {
@@ -883,7 +883,7 @@ impl Graph {
             })?;
 
             for n in invalid_nodes.iter() {
-                gs_right.delete_node(*n);
+                gs_right.delete_node(*n)?;
             }
 
             let gs_cov = self.get_or_create_writable(&Component {
@@ -892,7 +892,7 @@ impl Graph {
                 layer: ANNIS_NS.to_owned(),
             })?;
             for n in invalid_nodes.iter() {
-                gs_cov.delete_node(*n);
+                gs_cov.delete_node(*n)?;
             }
         }
 

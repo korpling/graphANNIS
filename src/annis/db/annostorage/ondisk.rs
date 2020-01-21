@@ -411,20 +411,18 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         result
     }
 
-    fn remove_annotation_for_item(&mut self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
+    fn remove_annotation_for_item(
+        &mut self,
+        item: &NodeID,
+        key: &AnnoKey,
+    ) -> Result<Option<Cow<str>>> {
         if let (Some(by_container), Some(by_anno_qname)) =
             (self.get_by_container_cf(), self.get_by_anno_qname_cf())
         {
             // remove annotation from by_container
             let by_container_key = create_by_container_key(*item, key);
-            if let Some(raw_value) = self
-                .db
-                .get_pinned_cf(&by_container, &by_container_key)
-                .expect(DEFAULT_MSG)
-            {
-                self.db
-                    .delete_cf(&by_container, &by_container_key)
-                    .expect(DEFAULT_MSG);
+            if let Some(raw_value) = self.db.get_pinned_cf(&by_container, &by_container_key)? {
+                self.db.delete_cf(&by_container, &by_container_key)?;
                 // remove annotation from by_anno_qname
                 let anno = Annotation {
                     key: key.clone(),
@@ -432,8 +430,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 };
 
                 self.db
-                    .delete_cf(&by_anno_qname, create_by_anno_qname_key(*item, &anno))
-                    .expect(DEFAULT_MSG);
+                    .delete_cf(&by_anno_qname, create_by_anno_qname_key(*item, &anno))?;
                 // decrease the annotation count for this key
                 let new_key_count: usize =
                     if let Some(num_of_keys) = self.anno_key_sizes.get_mut(key) {
@@ -447,12 +444,12 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                     self.anno_key_sizes.remove(key);
                 }
 
-                Some(Cow::Owned(anno.val))
+                Ok(Some(Cow::Owned(anno.val)))
             } else {
-                None
+                Ok(None)
             }
         } else {
-            None
+            Ok(None)
         }
     }
 
@@ -1183,7 +1180,7 @@ mod tests {
         assert_eq!(1, a.anno_key_sizes.len());
         assert_eq!(&1, a.anno_key_sizes.get(&test_anno.key).unwrap());
 
-        a.remove_annotation_for_item(&1, &test_anno.key);
+        a.remove_annotation_for_item(&1, &test_anno.key).unwrap();
 
         assert_eq!(0, a.number_of_annotations());
         assert_eq!(&0, a.anno_key_sizes.get(&test_anno.key).unwrap_or(&0));

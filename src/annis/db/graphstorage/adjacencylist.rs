@@ -238,7 +238,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         Ok(())
     }
 
-    fn delete_edge(&mut self, edge: &Edge) {
+    fn delete_edge(&mut self, edge: &Edge) -> Result<()> {
         if let Some(outgoing) = self.edges.get_mut(&edge.source) {
             if let Ok(idx) = outgoing.binary_search(&edge.target) {
                 outgoing.remove(idx);
@@ -252,13 +252,16 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         }
         let annos = self.annos.get_annotations_for_item(edge);
         for a in annos {
-            self.annos.remove_annotation_for_item(edge, &a.key);
+            self.annos.remove_annotation_for_item(edge, &a.key)?;
         }
+
+        Ok(())
     }
-    fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey) {
-        self.annos.remove_annotation_for_item(edge, anno_key);
+    fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey) -> Result<()> {
+        self.annos.remove_annotation_for_item(edge, anno_key)?;
+        Ok(())
     }
-    fn delete_node(&mut self, node: NodeID) {
+    fn delete_node(&mut self, node: NodeID) -> Result<()> {
         // find all both ingoing and outgoing edges
         let mut to_delete = std::collections::LinkedList::<Edge>::new();
 
@@ -280,8 +283,10 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         }
 
         for e in to_delete {
-            self.delete_edge(&e);
+            self.delete_edge(&e)?;
         }
+
+        Ok(())
     }
 
     fn calculate_statistics(&mut self) {

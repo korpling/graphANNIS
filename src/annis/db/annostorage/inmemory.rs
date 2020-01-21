@@ -294,55 +294,55 @@ where
         Ok(())
     }
 
-    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
+    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>> {
         let mut result = None;
 
         let orig_key = key;
-        let key = self.anno_keys.get_symbol(key)?;
+        if let Some(key) = self.anno_keys.get_symbol(key) {
+            if let Some(mut all_annos) = self.by_container.remove(item) {
+                // find the specific annotation key from the sorted vector of all annotations of this item
+                let anno_idx = all_annos.binary_search_by_key(&key, |a| a.key);
 
-        if let Some(mut all_annos) = self.by_container.remove(item) {
-            // find the specific annotation key from the sorted vector of all annotations of this item
-            let anno_idx = all_annos.binary_search_by_key(&key, |a| a.key);
+                if let Ok(anno_idx) = anno_idx {
+                    // since value was found, also remove the item from the other containers
+                    self.remove_element_from_by_anno(&all_annos[anno_idx], item);
 
-            if let Ok(anno_idx) = anno_idx {
-                // since value was found, also remove the item from the other containers
-                self.remove_element_from_by_anno(&all_annos[anno_idx], item);
+                    let old_value = all_annos[anno_idx].val;
 
-                let old_value = all_annos[anno_idx].val;
+                    // remove the specific annotation key from the entry
+                    all_annos.remove(anno_idx);
 
-                // remove the specific annotation key from the entry
-                all_annos.remove(anno_idx);
+                    // decrease the annotation count for this key
+                    let new_key_count: usize =
+                        if let Some(num_of_keys) = self.anno_key_sizes.get_mut(orig_key) {
+                            *num_of_keys -= 1;
+                            *num_of_keys
+                        } else {
+                            0
+                        };
+                    // if annotation count dropped to zero remove the key
+                    if new_key_count == 0 {
+                        self.by_anno.remove(&key);
+                        self.anno_key_sizes.remove(&orig_key);
+                        self.anno_keys.remove(key);
+                    }
 
-                // decrease the annotation count for this key
-                let new_key_count: usize =
-                    if let Some(num_of_keys) = self.anno_key_sizes.get_mut(orig_key) {
-                        *num_of_keys -= 1;
-                        *num_of_keys
-                    } else {
-                        0
-                    };
-                // if annotation count dropped to zero remove the key
-                if new_key_count == 0 {
-                    self.by_anno.remove(&key);
-                    self.anno_key_sizes.remove(&orig_key);
-                    self.anno_keys.remove(key);
+                    result = self
+                        .anno_values
+                        .get_value_ref(old_value)
+                        .map(|v| Cow::Owned(v.clone()));
+
+                    self.check_and_remove_value_symbol(old_value);
+                    self.total_number_of_annos -= 1;
                 }
-
-                result = self
-                    .anno_values
-                    .get_value_ref(old_value)
-                    .map(|v| Cow::Owned(v.clone()));
-
-                self.check_and_remove_value_symbol(old_value);
-                self.total_number_of_annos -= 1;
-            }
-            // if there are more annotations for this item, re-insert them
-            if !all_annos.is_empty() {
-                self.by_container.insert(item.clone(), all_annos);
+                // if there are more annotations for this item, re-insert them
+                if !all_annos.is_empty() {
+                    self.by_container.insert(item.clone(), all_annos);
+                }
             }
         }
 
-        result
+        Ok(result)
     }
 
     fn clear(&mut self) -> Result<()> {
@@ -1025,7 +1025,7 @@ mod tests {
         assert_eq!(1, a.anno_key_sizes.len());
         assert_eq!(&1, a.anno_key_sizes.get(&test_anno.key).unwrap());
 
-        a.remove_annotation_for_item(&1, &test_anno.key);
+        a.remove_annotation_for_item(&1, &test_anno.key).unwrap();
 
         assert_eq!(0, a.number_of_annotations());
         assert_eq!(0, a.by_container.len());
