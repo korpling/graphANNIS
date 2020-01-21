@@ -64,7 +64,7 @@ where
     ///
     /// - `namespace`- If given, only annotations having this namespace are returned.
     /// - `name`  - Only annotations with this name are returned.
-    /// - `value` - Constrain the value of the annotaion.
+    /// - `value` - Constrain the value of the annotation.
     ///
     /// The result is an iterator over matches.
     /// A match contains the node ID and the qualifed name of the matched annotation
