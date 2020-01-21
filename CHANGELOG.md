@@ -5,11 +5,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Removed the accidentally public `size_of_cached` function of `Graph` from the API.
+
+
 ### Changed
 
 - Backward incompatible: the `AnnotationStorage` and `WriteableGraphStorage` interfaces have been adjusted to return `Result` types
   for mutable functions. This is necessary because on-disk annotation storage implementations might fail and we want to handle it when 
   modifying the annotation storage.
+
 
 ### Added
 
