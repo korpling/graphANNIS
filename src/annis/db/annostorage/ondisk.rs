@@ -27,6 +27,16 @@ const NODE_ID_SIZE: usize = std::mem::size_of::<NodeID>();
 
 const MAX_TRIES: usize = 5;
 
+trait KeyProvider {
+    fn into_key(self) -> Vec<u8>;
+}
+
+impl KeyProvider for NodeID {
+    fn into_key(self) -> Vec<u8> {
+        self.to_be_bytes().to_vec()
+    }
+}
+
 /// An on-disk implementation of an annotation storage.
 ///
 /// # Panics
@@ -85,8 +95,8 @@ fn parse_str_vec_key(data: &[u8]) -> Vec<&str> {
 /// ```text
 /// [64 Bits Node ID][Namespace]\0[Name]\0
 /// ```
-fn create_by_container_key(node: NodeID, anno_key: &AnnoKey) -> Vec<u8> {
-    let mut result: Vec<u8> = node.to_be_bytes().iter().cloned().collect();
+fn create_by_container_key<K: KeyProvider>(item: K, anno_key: &AnnoKey) -> Vec<u8> {
+    let mut result: Vec<u8> = item.into_key().iter().cloned().collect();
     result.extend(create_str_vec_key(&[&anno_key.ns, &anno_key.name]));
     result
 }
