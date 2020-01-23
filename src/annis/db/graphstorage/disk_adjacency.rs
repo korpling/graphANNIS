@@ -30,23 +30,8 @@ pub struct DiskAdjacencyListStorage {
     #[with_malloc_size_of_func = "memory_estimation::size_of_option_tempdir"]
     temp_dir: Option<tempfile::TempDir>,
 
-    edges: FxHashMap<NodeID, Vec<NodeID>>,
-    inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,
     annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
-}
-
-fn get_fan_outs(edges: &FxHashMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
-    let mut fan_outs: Vec<usize> = Vec::new();
-    if !edges.is_empty() {
-        for outgoing in edges.values() {
-            fan_outs.push(outgoing.len());
-        }
-    }
-    // order the fan-outs
-    fan_outs.sort();
-
-    fan_outs
 }
 
 fn open_db(path: &Path) -> Result<rocksdb::DB> {
@@ -87,14 +72,28 @@ fn create_key(edge: &Edge) -> Vec<u8> {
     result
 }
 
+fn get_source_for_key(key: &[u8]) -> NodeID {
+    NodeID::from_be_bytes(
+        key[..NODE_ID_SIZE]
+            .try_into()
+            .expect("Key data must be large enough"),
+    )
+}
+
+fn get_target_for_key(key: &[u8]) -> NodeID {
+    NodeID::from_be_bytes(
+        key[NODE_ID_SIZE..]
+            .try_into()
+            .expect("Key data must be large enough"),
+    )
+}
+
 impl DiskAdjacencyListStorage {
     pub fn new(location: Option<&Path>) -> Result<DiskAdjacencyListStorage> {
         if let Some(location) = location {
             let db = open_db(location)?;
             let anno_location = location.join("annos");
             let gs = DiskAdjacencyListStorage {
-                edges: FxHashMap::default(),
-                inverse_edges: FxHashMap::default(),
                 annos: AnnoStorageImpl::new(Some(anno_location))?,
                 stats: None,
                 location: location.to_path_buf(),
@@ -109,8 +108,6 @@ impl DiskAdjacencyListStorage {
             let anno_location = tmp_dir.as_ref().join("annos");
             let db = open_db(tmp_dir.as_ref())?;
             let gs = DiskAdjacencyListStorage {
-                edges: FxHashMap::default(),
-                inverse_edges: FxHashMap::default(),
                 annos: AnnoStorageImpl::new(Some(anno_location))?,
                 stats: None,
                 location: tmp_dir.as_ref().to_path_buf(),
@@ -182,6 +179,38 @@ impl DiskAdjacencyListStorage {
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
         panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
+    }
+
+    fn get_fan_outs(&self, inverse: bool) -> Vec<usize> {
+        let mut fan_outs: Vec<usize> = Vec::new();
+        let mut opts = rocksdb::ReadOptions::default();
+        // Create a forward-only iterator
+        opts.set_tailing(true);
+        opts.set_verify_checksums(false);
+
+        let cf = if inverse {
+            self.get_cf_inverse_edges()
+        } else {
+            self.get_cf_edges()
+        };
+
+        if let Some(cf) = cf {
+            let mut it = self.iterator_cf_opt_from_start(cf, &opts).peekable();
+            while let Some((key, _)) = it.next() {
+                let source = get_source_for_key(&key);
+                let target = get_target_for_key(&key);
+                // count fan-out: iterate until next source ID
+                let mut number_outgoing = 0;
+                while Some(source) == it.peek().map(|(key, _)| get_source_for_key(&key)) {
+                    number_outgoing += 1;
+                    it.next();
+                }
+                fan_outs.push(number_outgoing);
+            }
+            // order the fan-outs
+            fan_outs.sort();
+        }
+        fan_outs
     }
 }
 
@@ -439,60 +468,49 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
 
         let mut has_incoming_edge: BTreeSet<NodeID> = BTreeSet::new();
 
-        // find all root nodes
+        let fan_outs = self.get_fan_outs(false);
+        let inverse_fan_outs = self.get_fan_outs(true);
+        let mut has_edges = false;
         let mut roots: BTreeSet<NodeID> = BTreeSet::new();
-        {
-            if let Some(cf_edges) = self.get_cf_edges() {
-                let mut all_nodes: BTreeSet<NodeID> = BTreeSet::new();
-                let mut opts = rocksdb::ReadOptions::default();
-                // Create a forward-only iterator
-                opts.set_tailing(true);
-                opts.set_verify_checksums(false);
 
-                let it = self.iterator_cf_opt_from_start(cf_edges, &opts);
-                for (key, _) in it {
-                    let source = NodeID::from_be_bytes(
-                        key[0..NODE_ID_SIZE]
-                            .try_into()
-                            .expect("Key data must be large enough"),
-                    );
-                    let target = NodeID::from_be_bytes(
-                        key[NODE_ID_SIZE..]
-                            .try_into()
-                            .expect("Key data must be large enough"),
-                    );
+        if let Some(cf_edges) = self.get_cf_edges() {
+            // find all root nodes
+            let mut all_nodes: BTreeSet<NodeID> = BTreeSet::new();
+            let mut opts = rocksdb::ReadOptions::default();
+            // Create a forward-only iterator
+            opts.set_tailing(true);
+            opts.set_verify_checksums(false);
 
-                    roots.insert(source);
-                    all_nodes.insert(source);
-                    all_nodes.insert(target);
-                    if stats.rooted_tree {
-                        if has_incoming_edge.contains(&target) {
-                            stats.rooted_tree = false;
-                        } else {
-                            has_incoming_edge.insert(target);
-                        }
+            let it = self.iterator_cf_opt_from_start(cf_edges, &opts);
+            for (key, _) in it {
+                let source = get_source_for_key(&key);
+                let target = get_target_for_key(&key);
+
+                roots.insert(source);
+                all_nodes.insert(source);
+                all_nodes.insert(target);
+                if stats.rooted_tree {
+                    if has_incoming_edge.contains(&target) {
+                        stats.rooted_tree = false;
+                    } else {
+                        has_incoming_edge.insert(target);
                     }
                 }
-                stats.nodes = all_nodes.len();
+            }
+            stats.nodes = all_nodes.len();
+
+            let mut it = self.iterator_cf_opt_from_start(cf_edges, &opts).peekable();
+            while let Some((key, _)) = it.next() {
+                has_edges = true;
+                let target = get_target_for_key(&key);
+                roots.remove(&target);
             }
         }
-
-        if !self.edges.is_empty() {
-            for outgoing in self.edges.values() {
-                for target in outgoing {
-                    roots.remove(&target);
-                }
-            }
-        }
-
-        let fan_outs = get_fan_outs(&self.edges);
         let sum_fan_out: usize = fan_outs.iter().sum();
 
         if let Some(last) = fan_outs.last() {
             stats.max_fan_out = *last;
         }
-        let inverse_fan_outs = get_fan_outs(&self.inverse_edges);
-
         // get the percentile value(s)
         // set some default values in case there are not enough elements in the component
         if !fan_outs.is_empty() {
@@ -516,7 +534,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         }
 
         let mut number_of_visits = 0;
-        if roots.is_empty() && !self.edges.is_empty() {
+        if roots.is_empty() && has_edges {
             // if we have edges but no roots at all there must be a cycle
             stats.cyclic = true;
         } else {
@@ -531,7 +549,6 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
                 }
             }
         }
-
         if stats.cyclic {
             stats.rooted_tree = false;
             // it's infinite
@@ -540,7 +557,6 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         } else if stats.nodes > 0 {
             stats.dfs_visit_ratio = f64::from(number_of_visits) / (stats.nodes as f64);
         }
-
         if sum_fan_out > 0 && stats.nodes > 0 {
             stats.avg_fan_out = (sum_fan_out as f64) / (stats.nodes as f64);
         }
