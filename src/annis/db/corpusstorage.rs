@@ -2034,7 +2034,7 @@ fn create_subgraph_edge(
                             target,
                         };
                         if let Ok(new_gs) = db.get_or_create_writable(&c) {
-                            new_gs.add_edge(e.clone());
+                            new_gs.add_edge(e.clone())?;
                         }
 
                         for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {

@@ -917,14 +917,14 @@ impl Graph {
                     gs_order.as_ref(),
                     &all_cov_gs,
                     &all_dom_gs,
-                );
+                )?;
                 self.calculate_token_alignment(
                     *n,
                     ComponentType::RightToken,
                     gs_order.as_ref(),
                     &all_cov_gs,
                     &all_dom_gs,
-                );
+                )?;
             }
         }
 

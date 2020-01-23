@@ -226,7 +226,7 @@ fn parse_by_anno_qname_key<K: KeyProvider>(data: &[u8]) -> (K, Annotation) {
     (item_id, anno)
 }
 
-fn open_db<K : KeyProvider>(path: &Path) -> Result<rocksdb::DB> {
+fn open_db<K: KeyProvider>(path: &Path) -> Result<rocksdb::DB> {
     let mut db_opts = rocksdb::Options::default();
     db_opts.create_missing_column_families(true);
     db_opts.create_if_missing(true);
