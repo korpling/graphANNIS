@@ -5,7 +5,7 @@ use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::types::Edge;
 use crate::annis::util::memory_estimation;
 
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 use std::collections::BTreeSet;
 use std::convert::TryInto;
 use std::ops::Bound;
@@ -105,10 +105,9 @@ impl DiskAdjacencyListStorage {
             let tmp_dir = tempfile::Builder::new()
                 .prefix("graphannis-ondisk-adjacency-")
                 .tempdir()?;
-            let anno_location = tmp_dir.as_ref().join("annos");
             let db = open_db(tmp_dir.as_ref())?;
             let gs = DiskAdjacencyListStorage {
-                annos: AnnoStorageImpl::new(Some(anno_location))?,
+                annos: AnnoStorageImpl::new(None)?,
                 stats: None,
                 location: tmp_dir.as_ref().to_path_buf(),
                 temp_dir: Some(tmp_dir),
@@ -198,7 +197,6 @@ impl DiskAdjacencyListStorage {
             let mut it = self.iterator_cf_opt_from_start(cf, &opts).peekable();
             while let Some((key, _)) = it.next() {
                 let source = get_source_for_key(&key);
-                let target = get_target_for_key(&key);
                 // count fan-out: iterate until next source ID
                 let mut number_outgoing = 0;
                 while Some(source) == it.peek().map(|(key, _)| get_source_for_key(&key)) {
