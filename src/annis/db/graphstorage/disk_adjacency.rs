@@ -3,8 +3,8 @@ use crate::annis::db::annostorage::ondisk::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
-use crate::annis::util::memory_estimation;
 use crate::annis::types::Edge;
+use crate::annis::util::memory_estimation;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeSet;
@@ -73,10 +73,11 @@ impl DiskAdjacencyListStorage {
     pub fn new(location: Option<&Path>) -> Result<DiskAdjacencyListStorage> {
         if let Some(location) = location {
             let db = open_db(location)?;
+            let anno_location = location.join("annos");
             let gs = DiskAdjacencyListStorage {
                 edges: FxHashMap::default(),
                 inverse_edges: FxHashMap::default(),
-                annos: AnnoStorageImpl::new(None)?,
+                annos: AnnoStorageImpl::new(Some(anno_location))?,
                 stats: None,
                 location: location.to_path_buf(),
                 temp_dir: None,
@@ -87,11 +88,12 @@ impl DiskAdjacencyListStorage {
             let tmp_dir = tempfile::Builder::new()
                 .prefix("graphannis-ondisk-adjacency-")
                 .tempdir()?;
+            let anno_location = tmp_dir.as_ref().join("annos");
             let db = open_db(tmp_dir.as_ref())?;
             let gs = DiskAdjacencyListStorage {
                 edges: FxHashMap::default(),
                 inverse_edges: FxHashMap::default(),
-                annos: AnnoStorageImpl::new(None)?,
+                annos: AnnoStorageImpl::new(Some(anno_location))?,
                 stats: None,
                 location: tmp_dir.as_ref().to_path_buf(),
                 temp_dir: Some(tmp_dir),
@@ -107,6 +109,14 @@ impl DiskAdjacencyListStorage {
         self.annos.clear()?;
         self.stats = None;
         Ok(())
+    }
+
+    fn get_edges(&self) -> Option<&rocksdb::ColumnFamily> {
+        self.db.cf_handle("edges")
+    }
+
+    fn get_inverse_edges(&self) -> Option<&rocksdb::ColumnFamily> {
+        self.db.cf_handle("inverse_edges")
     }
 }
 
