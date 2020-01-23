@@ -3,14 +3,25 @@ use crate::annis::db::annostorage::ondisk::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
+use crate::annis::util::memory_estimation;
 use crate::annis::types::Edge;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeSet;
 use std::ops::Bound;
+use std::path::{Path, PathBuf};
 
 #[derive(MallocSizeOf)]
 pub struct DiskAdjacencyListStorage {
+    #[ignore_malloc_size_of = "is stored on disk"]
+    db: rocksdb::DB,
+    #[with_malloc_size_of_func = "memory_estimation::size_of_pathbuf"]
+    location: PathBuf,
+    /// A handle to a temporary directory. This must be part of the struct because the temporary directory will
+    /// be deleted when this handle is dropped.
+    #[with_malloc_size_of_func = "memory_estimation::size_of_option_tempdir"]
+    temp_dir: Option<tempfile::TempDir>,
+
     edges: FxHashMap<NodeID, Vec<NodeID>>,
     inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,
     annos: AnnoStorageImpl<Edge>,
@@ -30,15 +41,64 @@ fn get_fan_outs(edges: &FxHashMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
     fan_outs
 }
 
+fn open_db(path: &Path) -> Result<rocksdb::DB> {
+    let mut db_opts = rocksdb::Options::default();
+    db_opts.create_missing_column_families(true);
+    db_opts.create_if_missing(true);
+    let mut block_opts = rocksdb::BlockBasedOptions::default();
+    block_opts.set_index_type(rocksdb::BlockBasedIndexType::HashSearch);
+    block_opts.set_bloom_filter(std::mem::size_of::<NodeID>() as i32, false);
+    db_opts.set_block_based_table_factory(&block_opts);
+
+    // use prefixes for the different column families
+    let mut opts_edges = rocksdb::Options::default();
+    opts_edges.set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(
+        std::mem::size_of::<NodeID>(),
+    ));
+    let cf_edges = rocksdb::ColumnFamilyDescriptor::new("edges", opts_edges);
+
+    let mut opts_inverse_edges = rocksdb::Options::default();
+    opts_inverse_edges.set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(
+        std::mem::size_of::<NodeID>(),
+    ));
+    let cf_inverse_edges =
+        rocksdb::ColumnFamilyDescriptor::new("inverse_edges", opts_inverse_edges);
+
+    let db = rocksdb::DB::open_cf_descriptors(&db_opts, path, vec![cf_edges, cf_inverse_edges])?;
+
+    Ok(db)
+}
+
 impl DiskAdjacencyListStorage {
-    pub fn new() -> Result<DiskAdjacencyListStorage> {
-        let gs = DiskAdjacencyListStorage {
-            edges: FxHashMap::default(),
-            inverse_edges: FxHashMap::default(),
-            annos: AnnoStorageImpl::new(None)?,
-            stats: None,
-        };
-        Ok(gs)
+    pub fn new(location: Option<&Path>) -> Result<DiskAdjacencyListStorage> {
+        if let Some(location) = location {
+            let db = open_db(location)?;
+            let gs = DiskAdjacencyListStorage {
+                edges: FxHashMap::default(),
+                inverse_edges: FxHashMap::default(),
+                annos: AnnoStorageImpl::new(None)?,
+                stats: None,
+                location: location.to_path_buf(),
+                temp_dir: None,
+                db,
+            };
+            Ok(gs)
+        } else {
+            let tmp_dir = tempfile::Builder::new()
+                .prefix("graphannis-ondisk-adjacency-")
+                .tempdir()?;
+            let db = open_db(tmp_dir.as_ref())?;
+            let gs = DiskAdjacencyListStorage {
+                edges: FxHashMap::default(),
+                inverse_edges: FxHashMap::default(),
+                annos: AnnoStorageImpl::new(None)?,
+                stats: None,
+                location: tmp_dir.as_ref().to_path_buf(),
+                temp_dir: Some(tmp_dir),
+                db: db,
+            };
+            Ok(gs)
+        }
     }
 
     pub fn clear(&mut self) -> Result<()> {
@@ -430,7 +490,7 @@ mod tests {
         +---+
         */
 
-        let mut gs = DiskAdjacencyListStorage::new().unwrap();
+        let mut gs = DiskAdjacencyListStorage::new(None).unwrap();
         gs.add_edge(Edge {
             source: 1,
             target: 2,
@@ -482,7 +542,7 @@ mod tests {
                               +-----> | 4 |
                                       +---+
         */
-        let mut gs = DiskAdjacencyListStorage::new().unwrap();
+        let mut gs = DiskAdjacencyListStorage::new(None).unwrap();
 
         gs.add_edge(Edge {
             source: 1,
@@ -542,7 +602,7 @@ mod tests {
 
     #[test]
     fn indirect_cycle_statistics() {
-        let mut gs = DiskAdjacencyListStorage::new().unwrap();
+        let mut gs = DiskAdjacencyListStorage::new(None).unwrap();
 
         gs.add_edge(Edge {
             source: 1,
@@ -577,7 +637,7 @@ mod tests {
 
     #[test]
     fn multi_branch_cycle_statistics() {
-        let mut gs = DiskAdjacencyListStorage::new().unwrap();
+        let mut gs = DiskAdjacencyListStorage::new(None).unwrap();
 
         gs.add_edge(Edge {
             source: 903,

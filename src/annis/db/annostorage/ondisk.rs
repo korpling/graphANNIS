@@ -226,19 +226,19 @@ fn parse_by_anno_qname_key<K: KeyProvider>(data: &[u8]) -> (K, Annotation) {
     (item_id, anno)
 }
 
-fn open_db(path: &Path) -> Result<rocksdb::DB> {
+fn open_db<K : KeyProvider>(path: &Path) -> Result<rocksdb::DB> {
     let mut db_opts = rocksdb::Options::default();
     db_opts.create_missing_column_families(true);
     db_opts.create_if_missing(true);
     let mut block_opts = rocksdb::BlockBasedOptions::default();
     block_opts.set_index_type(rocksdb::BlockBasedIndexType::HashSearch);
-    block_opts.set_bloom_filter(NODE_ID_SIZE as i32, false);
+    block_opts.set_bloom_filter(K::key_size() as i32, false);
     db_opts.set_block_based_table_factory(&block_opts);
 
     // use prefixes for the different column families
     let mut opts_by_container = rocksdb::Options::default();
     opts_by_container
-        .set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(NODE_ID_SIZE));
+        .set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(K::key_size()));
     let cf_by_container = rocksdb::ColumnFamilyDescriptor::new("by_container", opts_by_container);
 
     let mut opts_by_anno_qname = rocksdb::Options::default();
@@ -284,7 +284,7 @@ where
 {
     pub fn new(path: Option<PathBuf>) -> Result<AnnoStorageImpl<T>> {
         if let Some(path) = path {
-            let db = open_db(&path)?;
+            let db = open_db::<T>(&path)?;
             let mut result = AnnoStorageImpl {
                 db,
                 anno_key_sizes: BTreeMap::new(),
@@ -307,7 +307,7 @@ where
             let tmp_dir = tempfile::Builder::new()
                 .prefix("graphannis-ondisk-nodeanno-")
                 .tempdir()?;
-            let db = open_db(tmp_dir.as_ref())?;
+            let db = open_db::<T>(tmp_dir.as_ref())?;
             Ok(AnnoStorageImpl {
                 db,
                 anno_key_sizes: BTreeMap::new(),
@@ -1073,7 +1073,7 @@ where
         let location = location.join(SUBFOLDER_NAME);
         if !self.location.eq(&location) {
             // open a database for the given location and import their data
-            let other_db = open_db(&location)?;
+            let other_db = open_db::<T>(&location)?;
 
             self.clear()?;
 
@@ -1130,7 +1130,7 @@ where
             self.db.flush()?;
         } else {
             // open a database for the given location and export to it
-            let other_db = open_db(&location)?;
+            let other_db = open_db::<T>(&location)?;
 
             let by_container = self
                 .db
