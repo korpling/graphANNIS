@@ -307,8 +307,9 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         Ok(())
     }
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) -> Result<()> {
-        if let Some(outgoing) = self.edges.get(&edge.source) {
-            if outgoing.contains(&edge.target) {
+        if let Some(cf_edges) = self.get_cf_edges() {
+            let key = create_key(&edge);
+            if self.db.get_pinned_cf(&cf_edges, key)?.is_some() {
                 self.annos.insert(edge, anno)?;
             }
         }
@@ -316,17 +317,18 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
     }
 
     fn delete_edge(&mut self, edge: &Edge) -> Result<()> {
-        if let Some(outgoing) = self.edges.get_mut(&edge.source) {
-            if let Ok(idx) = outgoing.binary_search(&edge.target) {
-                outgoing.remove(idx);
-            }
-        }
+        let key = create_key(edge);
+        let cf_edges = self
+            .get_cf_edges()
+            .ok_or_else(|| Error::from("Column family \"edges\" not found"))?;
+        self.db.delete_cf(cf_edges, &key)?;
 
-        if let Some(ingoing) = self.inverse_edges.get_mut(&edge.target) {
-            if let Ok(idx) = ingoing.binary_search(&edge.source) {
-                ingoing.remove(idx);
-            }
-        }
+        let inverse_key = create_key(&edge.inverse());
+        let cf_inverse_edges = self
+            .get_cf_inverse_edges()
+            .ok_or_else(|| Error::from("Column family \"inverse_edges\" not found"))?;
+        self.db.delete_cf(cf_inverse_edges, &inverse_key)?;
+
         let annos = self.annos.get_annotations_for_item(edge);
         for a in annos {
             self.annos.remove_annotation_for_item(edge, &a.key)?;
