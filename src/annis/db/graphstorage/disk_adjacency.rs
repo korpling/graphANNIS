@@ -1,16 +1,15 @@
 use super::*;
-use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
+use crate::annis::db::annostorage::ondisk::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::dfs::CycleSafeDFS;
+use crate::annis::errors::*;
 use crate::annis::types::Edge;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeSet;
 use std::ops::Bound;
 
-use bincode;
-
-#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 pub struct DiskAdjacencyListStorage {
     edges: FxHashMap<NodeID, Vec<NodeID>>,
     inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,
@@ -31,20 +30,15 @@ fn get_fan_outs(edges: &FxHashMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
     fan_outs
 }
 
-impl Default for DiskAdjacencyListStorage {
-    fn default() -> Self {
-        DiskAdjacencyListStorage::new()
-    }
-}
-
 impl DiskAdjacencyListStorage {
-    pub fn new() -> DiskAdjacencyListStorage {
-        DiskAdjacencyListStorage {
+    pub fn new() -> Result<DiskAdjacencyListStorage> {
+        let gs = DiskAdjacencyListStorage {
             edges: FxHashMap::default(),
             inverse_edges: FxHashMap::default(),
-            annos: AnnoStorageImpl::new(),
+            annos: AnnoStorageImpl::new(None)?,
             stats: None,
-        }
+        };
+        Ok(gs)
     }
 
     pub fn clear(&mut self) -> Result<()> {
@@ -102,17 +96,14 @@ impl GraphStorage for DiskAdjacencyListStorage {
     }
 
     fn serialize_gs(&self, writer: &mut dyn std::io::Write) -> Result<()> {
-        bincode::serialize_into(writer, self)?;
-        Ok(())
+        unimplemented!()
     }
 
     fn deserialize_gs(input: &mut dyn std::io::Read) -> Result<Self>
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
-        let mut result: DiskAdjacencyListStorage = bincode::deserialize_from(input)?;
-        result.annos.after_deserialization();
-        Ok(result)
+        unimplemented!()
     }
 
     fn find_connected<'a>(
@@ -439,7 +430,7 @@ mod tests {
         +---+
         */
 
-        let mut gs = DiskAdjacencyListStorage::new();
+        let mut gs = DiskAdjacencyListStorage::new().unwrap();
         gs.add_edge(Edge {
             source: 1,
             target: 2,
@@ -491,7 +482,7 @@ mod tests {
                               +-----> | 4 |
                                       +---+
         */
-        let mut gs = DiskAdjacencyListStorage::new();
+        let mut gs = DiskAdjacencyListStorage::new().unwrap();
 
         gs.add_edge(Edge {
             source: 1,
@@ -551,7 +542,7 @@ mod tests {
 
     #[test]
     fn indirect_cycle_statistics() {
-        let mut gs = DiskAdjacencyListStorage::new();
+        let mut gs = DiskAdjacencyListStorage::new().unwrap();
 
         gs.add_edge(Edge {
             source: 1,
@@ -586,7 +577,7 @@ mod tests {
 
     #[test]
     fn multi_branch_cycle_statistics() {
-        let mut gs = DiskAdjacencyListStorage::new();
+        let mut gs = DiskAdjacencyListStorage::new().unwrap();
 
         gs.add_edge(Edge {
             source: 903,
