@@ -10,6 +10,14 @@ use std::collections::BTreeSet;
 use std::ops::Bound;
 use std::path::{Path, PathBuf};
 
+mod rocksdb_iterator;
+
+const MAX_TRIES: usize = 5;
+
+const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
+
+const NODE_ID_SIZE: usize = std::mem::size_of::<NodeID>();
+
 #[derive(MallocSizeOf)]
 pub struct DiskAdjacencyListStorage {
     #[ignore_malloc_size_of = "is stored on disk"]
@@ -46,20 +54,17 @@ fn open_db(path: &Path) -> Result<rocksdb::DB> {
     db_opts.create_if_missing(true);
     let mut block_opts = rocksdb::BlockBasedOptions::default();
     block_opts.set_index_type(rocksdb::BlockBasedIndexType::HashSearch);
-    block_opts.set_bloom_filter(std::mem::size_of::<NodeID>() as i32, false);
+    block_opts.set_bloom_filter(NODE_ID_SIZE as i32, false);
     db_opts.set_block_based_table_factory(&block_opts);
 
     // use prefixes for the different column families
     let mut opts_edges = rocksdb::Options::default();
-    opts_edges.set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(
-        std::mem::size_of::<NodeID>(),
-    ));
+    opts_edges.set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(NODE_ID_SIZE));
     let cf_edges = rocksdb::ColumnFamilyDescriptor::new("edges", opts_edges);
 
     let mut opts_inverse_edges = rocksdb::Options::default();
-    opts_inverse_edges.set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(
-        std::mem::size_of::<NodeID>(),
-    ));
+    opts_inverse_edges
+        .set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(NODE_ID_SIZE));
     let cf_inverse_edges =
         rocksdb::ColumnFamilyDescriptor::new("inverse_edges", opts_inverse_edges);
 
@@ -130,29 +135,48 @@ impl DiskAdjacencyListStorage {
     fn get_cf_inverse_edges(&self) -> Option<&rocksdb::ColumnFamily> {
         self.db.cf_handle("inverse_edges")
     }
+
+    /// Get a prefix iterator for a column family
+    ///
+    /// # Panics
+    /// This will try to get an iterator several times.
+    /// If a maximum number of tries is reached and all attempts failed, this will panic.
+    fn prefix_iterator<P: AsRef<[u8]>>(
+        &self,
+        cf: &rocksdb::ColumnFamily,
+        prefix: P,
+    ) -> rocksdb::DBIterator {
+        let mut last_err = None;
+        for _ in 0..MAX_TRIES {
+            // return the iterator for this annotation key
+            match self.db.prefix_iterator_cf(cf, &prefix) {
+                Ok(result) => return result,
+                Err(e) => last_err = Some(e),
+            }
+            // If this is an intermediate error, wait some time before trying again
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
+    }
 }
 
 impl EdgeContainer for DiskAdjacencyListStorage {
     fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        if let Some(outgoing) = self.edges.get(&node) {
-            return match outgoing.len() {
-                0 => Box::new(std::iter::empty()),
-                1 => Box::new(std::iter::once(outgoing[0])),
-                _ => Box::new(outgoing.iter().cloned()),
-            };
+        if let Some(cf_edges) = self.get_cf_edges() {
+            let it = rocksdb_iterator::OutgoingEdgesIterator::new(&self, &cf_edges, node);
+            Box::new(it)
+        } else {
+            Box::new(std::iter::empty())
         }
-        Box::new(std::iter::empty())
     }
 
     fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        if let Some(ingoing) = self.inverse_edges.get(&node) {
-            return match ingoing.len() {
-                0 => Box::new(std::iter::empty()),
-                1 => Box::new(std::iter::once(ingoing[0])),
-                _ => Box::new(ingoing.iter().cloned()),
-            };
+        if let Some(cf_inverse_edges) = self.get_cf_inverse_edges() {
+            let it = rocksdb_iterator::OutgoingEdgesIterator::new(&self, &cf_inverse_edges, node);
+            Box::new(it)
+        } else {
+            Box::new(std::iter::empty())
         }
-        Box::new(std::iter::empty())
     }
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         let it = self
