@@ -91,10 +91,7 @@ impl<'a> Iterator for OutgoingEdgesIterator<'a> {
                         let outgoing_id = NodeID::from_be_bytes(
                             key[(key.len() - super::NODE_ID_SIZE)..]
                                 .try_into()
-                                .expect(&format!(
-                                    "Key data must at least have length {}",
-                                    super::NODE_ID_SIZE
-                                )),
+                                .expect("Key data must be large enough"),
                         );
                         // set iterator to next item
                         self.raw.next();

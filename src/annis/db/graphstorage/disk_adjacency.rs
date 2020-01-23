@@ -7,6 +7,7 @@ use crate::annis::util::memory_estimation;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeSet;
+use std::convert::TryInto;
 use std::ops::Bound;
 use std::path::{Path, PathBuf};
 
@@ -441,23 +442,39 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         // find all root nodes
         let mut roots: BTreeSet<NodeID> = BTreeSet::new();
         {
-            let mut all_nodes: BTreeSet<NodeID> = BTreeSet::new();
-            for (source, outgoing) in &self.edges {
-                roots.insert(*source);
-                all_nodes.insert(*source);
-                for target in outgoing {
-                    all_nodes.insert(*target);
+            if let Some(cf_edges) = self.get_cf_edges() {
+                let mut all_nodes: BTreeSet<NodeID> = BTreeSet::new();
+                let mut opts = rocksdb::ReadOptions::default();
+                // Create a forward-only iterator
+                opts.set_tailing(true);
+                opts.set_verify_checksums(false);
 
+                let it = self.iterator_cf_opt_from_start(cf_edges, &opts);
+                for (key, _) in it {
+                    let source = NodeID::from_be_bytes(
+                        key[0..NODE_ID_SIZE]
+                            .try_into()
+                            .expect("Key data must be large enough"),
+                    );
+                    let target = NodeID::from_be_bytes(
+                        key[NODE_ID_SIZE..]
+                            .try_into()
+                            .expect("Key data must be large enough"),
+                    );
+
+                    roots.insert(source);
+                    all_nodes.insert(source);
+                    all_nodes.insert(target);
                     if stats.rooted_tree {
-                        if has_incoming_edge.contains(target) {
+                        if has_incoming_edge.contains(&target) {
                             stats.rooted_tree = false;
                         } else {
-                            has_incoming_edge.insert(*target);
+                            has_incoming_edge.insert(target);
                         }
                     }
                 }
+                stats.nodes = all_nodes.len();
             }
-            stats.nodes = all_nodes.len();
         }
 
         if !self.edges.is_empty() {
