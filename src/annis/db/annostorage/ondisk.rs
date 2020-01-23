@@ -2,9 +2,7 @@ use crate::annis::db::annostorage::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
 use crate::annis::errors::*;
-use crate::annis::types::AnnoKey;
-use crate::annis::types::Annotation;
-use crate::annis::types::NodeID;
+use crate::annis::types::{AnnoKey, Annotation, Edge, NodeID};
 use crate::annis::util;
 use crate::annis::util::memory_estimation;
 
@@ -49,6 +47,27 @@ impl KeyProvider for NodeID {
 
     fn key_size() -> usize {
         NODE_ID_SIZE
+    }
+}
+
+impl KeyProvider for Edge {
+    fn into_key(self) -> Vec<u8> {
+        let mut result = Vec::with_capacity(NODE_ID_SIZE * 2);
+        result.append(&mut self.source.into_key());
+        result.append(&mut self.target.into_key());
+
+        result
+    }
+
+    fn from_key(k: &[u8]) -> Self {
+        let source = NodeID::from_key(&k[0..NODE_ID_SIZE]);
+        let target = NodeID::from_key(&k[NODE_ID_SIZE..]);
+
+        Edge { source, target }
+    }
+
+    fn key_size() -> usize {
+        NODE_ID_SIZE * 2
     }
 }
 
