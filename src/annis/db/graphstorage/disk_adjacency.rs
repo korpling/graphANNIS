@@ -121,11 +121,9 @@ impl DiskAdjacencyListStorage {
     }
 
     pub fn clear(&mut self) -> Result<()> {
-        self.edges.clear();
-        self.inverse_edges.clear();
         self.annos.clear()?;
         self.stats = None;
-        Ok(())
+        unimplemented!()
     }
 
     fn get_cf_edges(&self) -> Option<&rocksdb::ColumnFamily> {
@@ -394,21 +392,26 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         // find all both ingoing and outgoing edges
         let mut to_delete = std::collections::LinkedList::<Edge>::new();
 
-        if let Some(outgoing) = self.edges.get(&node) {
-            for target in outgoing.iter() {
-                to_delete.push_back(Edge {
-                    source: node,
-                    target: *target,
-                })
-            }
+        let cf_edges = self
+            .get_cf_edges()
+            .ok_or_else(|| Error::from("Column family \"edges\" does not exist"))?;
+        for target in rocksdb_iterator::OutgoingEdgesIterator::try_new(self, &cf_edges, node)? {
+            to_delete.push_back(Edge {
+                source: node,
+                target,
+            });
         }
-        if let Some(ingoing) = self.inverse_edges.get(&node) {
-            for source in ingoing.iter() {
-                to_delete.push_back(Edge {
-                    source: *source,
-                    target: node,
-                })
-            }
+
+        let cf_inverse_edges = self
+            .get_cf_inverse_edges()
+            .ok_or_else(|| Error::from("Column family \"inverse_edges\" does not exist"))?;
+        for target in
+            rocksdb_iterator::OutgoingEdgesIterator::try_new(self, &cf_inverse_edges, node)?
+        {
+            to_delete.push_back(Edge {
+                source: node,
+                target,
+            });
         }
 
         for e in to_delete {

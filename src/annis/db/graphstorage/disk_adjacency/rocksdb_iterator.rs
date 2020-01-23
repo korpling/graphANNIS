@@ -1,3 +1,4 @@
+use crate::annis::errors::*;
 use crate::annis::types::{Edge, NodeID};
 use rocksdb::DBRawIterator;
 use std::convert::TryInto;
@@ -40,6 +41,39 @@ impl<'a> OutgoingEdgesIterator<'a> {
             upper_bound,
             exhausted: false,
         }
+    }
+
+    pub fn try_new(
+        gs: &'a super::DiskAdjacencyListStorage,
+        cf: &'a rocksdb::ColumnFamily,
+        source: NodeID,
+    ) -> Result<OutgoingEdgesIterator<'a>> {
+        // restrict search to source node prefix
+        let prefix: Vec<u8> = source.to_be_bytes().to_vec();
+        let it = gs.db.prefix_iterator_cf(&cf, &prefix)?;
+
+        let lower_bound = Edge {
+            source,
+            target: NodeID::min_value(),
+        };
+
+        let upper_bound = Edge {
+            source,
+            target: NodeID::min_value(),
+        };
+
+        let lower_bound = super::create_key(&lower_bound);
+        let upper_bound = super::create_key(&upper_bound);
+
+        let mut raw: DBRawIterator = it.into();
+
+        raw.seek(lower_bound);
+
+        Ok(OutgoingEdgesIterator {
+            raw,
+            upper_bound,
+            exhausted: false,
+        })
     }
 }
 
