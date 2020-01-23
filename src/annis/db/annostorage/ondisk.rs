@@ -29,11 +29,26 @@ const MAX_TRIES: usize = 5;
 
 trait KeyProvider {
     fn into_key(self) -> Vec<u8>;
+
+    fn from_key(k: &[u8]) -> Self;
+
+    fn key_size() -> usize;
 }
 
 impl KeyProvider for NodeID {
     fn into_key(self) -> Vec<u8> {
         self.to_be_bytes().to_vec()
+    }
+
+    fn from_key(k: &[u8]) -> Self {
+        NodeID::from_be_bytes(k[0..NODE_ID_SIZE].try_into().expect(&format!(
+            "Key data must at least have length {}",
+            NODE_ID_SIZE
+        )))
+    }
+
+    fn key_size() -> usize {
+        NODE_ID_SIZE
     }
 }
 
@@ -93,7 +108,7 @@ fn parse_str_vec_key(data: &[u8]) -> Vec<&str> {
 ///
 /// Structure:
 /// ```text
-/// [64 Bits Node ID][Namespace]\0[Name]\0
+/// [sizeof(K) Bits item ID][Namespace]\0[Name]\0
 /// ```
 fn create_by_container_key<K: KeyProvider>(item: K, anno_key: &AnnoKey) -> Vec<u8> {
     let mut result: Vec<u8> = item.into_key().iter().cloned().collect();
@@ -104,12 +119,9 @@ fn create_by_container_key<K: KeyProvider>(item: K, anno_key: &AnnoKey) -> Vec<u
 /// Parse the raw data and extract the node ID and the annotation key.
 ///
 /// # Panics
-/// Panics if the raw data is smaller than the length of a node ID bit-representation.
-fn parse_by_container_key(data: &[u8]) -> (NodeID, AnnoKey) {
-    let item = NodeID::from_be_bytes(data[0..NODE_ID_SIZE].try_into().expect(&format!(
-        "Key data must at least have length {}",
-        NODE_ID_SIZE
-    )));
+/// Panics if the raw data is smaller than the length of item bit-representation.
+fn parse_by_container_key<K: KeyProvider>(data: &[u8]) -> (K, AnnoKey) {
+    let item = K::from_key(data);
     let str_vec = parse_str_vec_key(&data[8..]);
 
     let anno_key = AnnoKey {
@@ -121,18 +133,18 @@ fn parse_by_container_key(data: &[u8]) -> (NodeID, AnnoKey) {
 
 /// Creates a key for the `by_anno_qname` tree.
 ///
-/// Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
-/// arrays as values, the node ID is part of the key and makes it unique.
+/// Since the same (name, ns, value) triple can be used by multiple items and we want to avoid
+/// arrays as values, the item ID is part of the key and makes it unique.
 ///
 /// Structure:
 /// ```text
-/// [Namespace]\0[Name]\0[Value]\0[64 Bits Node ID]
+/// [Namespace]\0[Name]\0[Value]\0[sizeof(K) Bits item ID]
 /// ```
-fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
+fn create_by_anno_qname_key<K: KeyProvider>(item: K, anno: &Annotation) -> Vec<u8> {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
 
     let mut result: Vec<u8> = create_str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
-    result.extend(&node.to_be_bytes());
+    result.extend(&item.into_key());
     result
 }
 
@@ -140,10 +152,8 @@ fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
 ///
 /// # Panics
 /// Panics if the raw data is smaller than the length of a node ID bit-representation.
-fn parse_by_anno_qname_key(data: &[u8]) -> (NodeID, Annotation) {
-    let node_id = NodeID::from_be_bytes(data[(data.len() - NODE_ID_SIZE)..].try_into().expect(
-        &format!("Key data must at least have length {}", NODE_ID_SIZE),
-    ));
+fn parse_by_anno_qname_key<K: KeyProvider>(data: &[u8]) -> (K, Annotation) {
+    let item_id = K::from_key(&data[(data.len() - K::key_size())..]);
 
     let str_vec = parse_str_vec_key(&data[..(data.len() - 8)]);
 
@@ -155,7 +165,7 @@ fn parse_by_anno_qname_key(data: &[u8]) -> (NodeID, Annotation) {
         val: str_vec[2].to_string(),
     };
 
-    (node_id, anno)
+    (item_id, anno)
 }
 
 fn open_db(path: &Path) -> Result<rocksdb::DB> {
@@ -432,7 +442,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         let mut result = Vec::default();
         if let Some(by_container) = self.get_by_container_cf() {
             for (key, val) in self.prefix_iterator(&by_container, prefix) {
-                let parsed_key = parse_by_container_key(&key);
+                let parsed_key: (NodeID, AnnoKey) = parse_by_container_key(&key);
                 let anno = Annotation {
                     key: parsed_key.1,
                     val: String::from_utf8_lossy(&val).to_string(),
@@ -885,7 +895,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         if most_frequent_first {
             let mut values_with_count: HashMap<String, usize> = HashMap::default();
             for (data, _) in self.get_by_anno_qname_range(key) {
-                let (_, anno) = parse_by_anno_qname_key(&data);
+                let (_, anno): (NodeID, Annotation) = parse_by_anno_qname_key(&data);
                 let val = anno.val;
 
                 let count = values_with_count.entry(val).or_insert(0);
@@ -904,7 +914,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             let values_unique: HashSet<Cow<str>> = self
                 .get_by_anno_qname_range(key)
                 .map(|(data, _)| {
-                    let (_, anno) = parse_by_anno_qname_key(&data);
+                    let (_, anno): (NodeID, Annotation) = parse_by_anno_qname_key(&data);
                     Cow::Owned(anno.val)
                 })
                 .collect();
@@ -938,7 +948,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 .into_iter()
                 .map(|data| {
                     let (data, _) = data;
-                    let (_, anno) = parse_by_anno_qname_key(&data);
+                    let (_, anno): (NodeID, Annotation) = parse_by_anno_qname_key(&data);
                     anno.val
                 })
                 .collect();
