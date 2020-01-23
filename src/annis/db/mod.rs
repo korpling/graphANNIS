@@ -670,7 +670,7 @@ impl Graph {
                             gs.add_edge(Edge {
                                 source: *source,
                                 target: *target,
-                            });
+                            })?;
 
                             if (c.ctype == ComponentType::Dominance
                                 || c.ctype == ComponentType::Coverage)
@@ -929,7 +929,7 @@ impl Graph {
         }
 
         for n in invalid_nodes.iter() {
-            self.calculate_inherited_coverage_edges(*n, &all_cov_components, &all_dom_gs);
+            self.calculate_inherited_coverage_edges(*n, &all_cov_components, &all_dom_gs)?;
         }
 
         Ok(())
@@ -940,7 +940,7 @@ impl Graph {
         n: NodeID,
         all_cov_components: &[Component],
         all_dom_gs: &[Arc<dyn GraphStorage>],
-    ) -> FxHashSet<NodeID> {
+    ) -> Result<FxHashSet<NodeID>> {
         let mut covered_token = FxHashSet::default();
         for c in all_cov_components.iter() {
             if let Some(gs) = self.get_graphstorage_as_ref(c) {
@@ -959,7 +959,7 @@ impl Graph {
                             out,
                             all_cov_components,
                             all_dom_gs,
-                        ));
+                        )?);
                     }
                 }
             }
@@ -974,11 +974,11 @@ impl Graph {
                 gs_cov.add_edge(Edge {
                     source: n,
                     target: *t,
-                });
+                })?;
             }
         }
 
-        covered_token
+        Ok(covered_token)
     }
 
     fn calculate_token_alignment(
@@ -988,7 +988,7 @@ impl Graph {
         gs_order: &dyn GraphStorage,
         all_cov_gs: &[Arc<dyn GraphStorage>],
         all_dom_gs: &[Arc<dyn GraphStorage>],
-    ) -> Option<NodeID> {
+    ) -> Result<Option<NodeID>> {
         let alignment_component = Component {
             ctype: ctype.clone(),
             name: "".to_owned(),
@@ -1006,17 +1006,16 @@ impl Graph {
                 }
             }
             if is_token {
-                return Some(n);
+                return Ok(Some(n));
             }
         }
 
         // if the node already has a left/right token, just return this value
-        let existing = self
-            .get_graphstorage_as_ref(&alignment_component)?
-            .get_outgoing_edges(n)
-            .next();
-        if let Some(existing) = existing {
-            return Some(existing);
+        if let Some(alignment_gs) = self.get_graphstorage_as_ref(&alignment_component) {
+            let existing = alignment_gs.get_outgoing_edges(n).next();
+            if let Some(existing) = existing {
+                return Ok(Some(existing));
+            }
         }
 
         // recursively get all candidate token by iterating over text-coverage edges
@@ -1024,14 +1023,17 @@ impl Graph {
 
         for gs_for_component in all_dom_gs.iter().chain(all_cov_gs.iter()) {
             for target in gs_for_component.get_outgoing_edges(n) {
-                let candidate_for_target = self.calculate_token_alignment(
+                if let Some(candidate_for_target) = self.calculate_token_alignment(
                     target,
                     ctype.clone(),
                     gs_order,
                     all_cov_gs,
                     all_dom_gs,
-                )?;
-                candidates.insert(candidate_for_target);
+                )? {
+                    candidates.insert(candidate_for_target);
+                } else {
+                    return Ok(None);
+                }
             }
         }
 
@@ -1056,16 +1058,16 @@ impl Graph {
             candidates.first()
         };
         if let Some(t) = t {
-            let gs = self.get_or_create_writable(&alignment_component).ok()?;
+            let gs = self.get_or_create_writable(&alignment_component)?;
             let e = Edge {
                 source: n,
                 target: *t,
             };
-            gs.add_edge(e);
+            gs.add_edge(e)?;
 
-            Some(*t)
+            Ok(Some(*t))
         } else {
-            None
+            Ok(None)
         }
     }
 
@@ -1478,7 +1480,8 @@ mod tests {
         gs.add_edge(Edge {
             source: 0,
             target: 1,
-        });
+        })
+        .unwrap();
 
         gs.add_edge_annotation(
             Edge {

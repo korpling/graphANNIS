@@ -135,7 +135,7 @@ pub trait GraphStorage: EdgeContainer {
 /// Trait for accessing graph storages which can be written to.
 pub trait WriteableGraphStorage: GraphStorage {
     /// Add an edge to this graph storage.
-    fn add_edge(&mut self, edge: Edge);
+    fn add_edge(&mut self, edge: Edge) -> Result<()>;
 
     /// Add an annotation to an edge in this graph storage.
     /// The edge has to exist.

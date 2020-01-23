@@ -183,7 +183,7 @@ impl GraphStorage for AdjacencyListStorage {
         for source in orig.source_nodes() {
             for target in orig.get_outgoing_edges(source) {
                 let e = Edge { source, target };
-                self.add_edge(e.clone());
+                self.add_edge(e.clone())?;
                 for a in orig.get_anno_storage().get_annotations_for_item(&e) {
                     self.add_edge_annotation(e.clone(), a)?;
                 }
@@ -208,7 +208,7 @@ impl GraphStorage for AdjacencyListStorage {
 }
 
 impl WriteableGraphStorage for AdjacencyListStorage {
-    fn add_edge(&mut self, edge: Edge) {
+    fn add_edge(&mut self, edge: Edge) -> Result<()> {
         if edge.source != edge.target {
             // insert to both regular and inverse maps
 
@@ -226,9 +226,10 @@ impl WriteableGraphStorage for AdjacencyListStorage {
                 regular_entry.insert(insertion_idx, edge.target);
             }
             self.stats = None;
-            // TODO: invalid graph statistics
         }
+        Ok(())
     }
+
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) -> Result<()> {
         if let Some(outgoing) = self.edges.get(&edge.source) {
             if outgoing.contains(&edge.target) {
@@ -443,23 +444,28 @@ mod tests {
         gs.add_edge(Edge {
             source: 1,
             target: 2,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 2,
             target: 3,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 3,
             target: 4,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1,
             target: 3,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 4,
             target: 5,
-        });
+        })
+        .unwrap();
 
         let mut found: Vec<NodeID> = gs
             .find_connected(1, 3, std::ops::Bound::Included(3))
@@ -496,31 +502,38 @@ mod tests {
         gs.add_edge(Edge {
             source: 1,
             target: 2,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 2,
             target: 4,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1,
             target: 3,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 3,
             target: 5,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 5,
             target: 7,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 5,
             target: 6,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 3,
             target: 4,
-        });
+        })
+        .unwrap();
 
         assert_eq!(
             vec![2, 3],
@@ -556,27 +569,32 @@ mod tests {
         gs.add_edge(Edge {
             source: 1,
             target: 2,
-        });
+        })
+        .unwrap();
 
         gs.add_edge(Edge {
             source: 2,
             target: 3,
-        });
+        })
+        .unwrap();
 
         gs.add_edge(Edge {
             source: 3,
             target: 4,
-        });
+        })
+        .unwrap();
 
         gs.add_edge(Edge {
             source: 4,
             target: 5,
-        });
+        })
+        .unwrap();
 
         gs.add_edge(Edge {
             source: 5,
             target: 2,
-        });
+        })
+        .unwrap();
 
         gs.calculate_statistics();
         assert_eq!(true, gs.get_statistics().is_some());
@@ -591,183 +609,228 @@ mod tests {
         gs.add_edge(Edge {
             source: 903,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 904,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1174,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1295,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1310,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1334,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1335,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1336,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1337,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1338,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1339,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1340,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1341,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1342,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1343,
             target: 1343,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 903,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 904,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1174,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1295,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1310,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1334,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1335,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1336,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1337,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1338,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1339,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1340,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1341,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1342,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1343,
             target: 1342,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 903,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 904,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1174,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1295,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1310,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1334,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1335,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1336,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1337,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1338,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1339,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1340,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1341,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1342,
             target: 1339,
-        });
+        })
+        .unwrap();
         gs.add_edge(Edge {
             source: 1343,
             target: 1339,
-        });
+        })
+        .unwrap();
 
         gs.calculate_statistics();
         assert_eq!(true, gs.get_statistics().is_some());
