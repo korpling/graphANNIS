@@ -23,11 +23,7 @@ where
         anno_key: Arc<AnnoKey>,
         value: Option<String>,
     ) -> Result<AnnotationValueIterator<'a, T>> {
-        let mut opts = rocksdb::ReadOptions::default();
-        // Create a forward-only iterator
-        opts.set_tailing(true);
-        opts.set_verify_checksums(false);
-
+       
         // restrict search to qualified name prefix
         let prefix: Vec<u8> = super::create_str_vec_key(&[&anno_key.ns, &anno_key.name]);
         let it = db.prefix_iterator_cf(&cf, prefix)?;

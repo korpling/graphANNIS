@@ -158,6 +158,32 @@ impl DiskAdjacencyListStorage {
         }
         panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
     }
+
+    /// Get an iterator for a column family.
+    ///
+    /// # Panics
+    /// This will try to get an iterator several times.
+    /// If a maximum number of tries is reached and all attempts failed, this will panic.
+    fn iterator_cf_opt_from_start(
+        &self,
+        cf: &rocksdb::ColumnFamily,
+        opts: &rocksdb::ReadOptions,
+    ) -> rocksdb::DBIterator {
+        let mut last_err = None;
+        for _ in 0..MAX_TRIES {
+            // return the iterator for this annotation key
+            match self
+                .db
+                .iterator_cf_opt(cf, opts, rocksdb::IteratorMode::Start)
+            {
+                Ok(result) => return result,
+                Err(e) => last_err = Some(e),
+            }
+            // If this is an intermediate error, wait some time before trying again
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
+    }
 }
 
 impl EdgeContainer for DiskAdjacencyListStorage {
@@ -179,12 +205,12 @@ impl EdgeContainer for DiskAdjacencyListStorage {
         }
     }
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        let it = self
-            .edges
-            .iter()
-            .filter(|(_, outgoing)| !outgoing.is_empty())
-            .map(|(key, _)| *key);
-        Box::new(it)
+        if let Some(cf_edges) = self.get_cf_edges() {
+            let it = rocksdb_iterator::SourceIterator::new(self, cf_edges);
+            Box::new(it)
+        } else {
+            Box::new(std::iter::empty())
+        }
     }
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {

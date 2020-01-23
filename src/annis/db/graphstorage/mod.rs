@@ -64,7 +64,7 @@ pub trait EdgeContainer: Sync + Send + MallocSizeOf {
         None
     }
 
-    /// Provides an iterator over all nodes of this edge container that are the source an edge
+    /// Provides an iterator over all nodes of this edge container that are the source of an edge
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a>;
 }
 

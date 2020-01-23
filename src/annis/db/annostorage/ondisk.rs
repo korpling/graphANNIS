@@ -50,10 +50,11 @@ impl KeyProvider for NodeID {
     }
 
     fn from_key(k: &[u8]) -> Self {
-        NodeID::from_be_bytes(k[0..NODE_ID_SIZE].try_into().expect(&format!(
-            "Key data must at least have length {}",
-            NODE_ID_SIZE
-        )))
+        NodeID::from_be_bytes(
+            k[0..NODE_ID_SIZE]
+                .try_into()
+                .expect("Key data must was not large enough"),
+        )
     }
 
     fn key_size() -> usize {
