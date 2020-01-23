@@ -1,24 +1,28 @@
 use crate::annis::errors::*;
-use crate::annis::types::{AnnoKey, Annotation, NodeID};
+use crate::annis::types::{AnnoKey, Annotation};
 use rocksdb::{DBRawIterator, DB};
 
-use std::convert::TryInto;
+use std::marker::PhantomData;
 use std::sync::Arc;
 
-pub struct AnnotationValueIterator<'a> {
+pub struct AnnotationValueIterator<'a, T> {
     raw: DBRawIterator<'a>,
     anno_key: Arc<AnnoKey>,
     upper_bound: Vec<u8>,
     exhausted: bool,
+    phantom: PhantomData<T>,
 }
 
-impl<'a> AnnotationValueIterator<'a> {
+impl<'a, T> AnnotationValueIterator<'a, T>
+where
+    T: super::KeyProvider,
+{
     pub fn new(
         db: &'a DB,
         cf: &'a rocksdb::ColumnFamily,
         anno_key: Arc<AnnoKey>,
         value: Option<String>,
-    ) -> Result<AnnotationValueIterator<'a>> {
+    ) -> Result<AnnotationValueIterator<'a, T>> {
         let mut opts = rocksdb::ReadOptions::default();
         // Create a forward-only iterator
         opts.set_tailing(true);
@@ -46,8 +50,8 @@ impl<'a> AnnotationValueIterator<'a> {
             },
         };
 
-        let lower_bound = super::create_by_anno_qname_key(NodeID::min_value(), &lower_bound);
-        let upper_bound = super::create_by_anno_qname_key(NodeID::max_value(), &upper_bound);
+        let lower_bound = super::create_by_anno_qname_key(&T::min_value(), &lower_bound);
+        let upper_bound = super::create_by_anno_qname_key(&T::max_value(), &upper_bound);
 
         let mut raw: DBRawIterator = it.into();
 
@@ -58,14 +62,18 @@ impl<'a> AnnotationValueIterator<'a> {
             anno_key,
             upper_bound,
             exhausted: false,
+            phantom: PhantomData,
         })
     }
 }
 
-impl<'a> Iterator for AnnotationValueIterator<'a> {
-    type Item = (NodeID, Arc<AnnoKey>);
+impl<'a, T> Iterator for AnnotationValueIterator<'a, T>
+where
+    T: super::KeyProvider,
+{
+    type Item = (T, Arc<AnnoKey>);
 
-    fn next(&mut self) -> Option<(NodeID, Arc<AnnoKey>)> {
+    fn next(&mut self) -> Option<(T, Arc<AnnoKey>)> {
         if !self.exhausted {
             if self.raw.valid() {
                 // get the current item
@@ -73,15 +81,11 @@ impl<'a> Iterator for AnnotationValueIterator<'a> {
                     // check if item has reached the upper bound
                     if key < &self.upper_bound[..] {
                         // parse the node ID from this item
-                        let node_id = NodeID::from_be_bytes(
-                            key[(key.len() - super::NODE_ID_SIZE)..]
-                                .try_into()
-                                .expect("Key data must at least have length 8"),
-                        );
+                        let item_id = T::from_key(&key[(key.len() - T::key_size())..]);
                         // set iterator to next item
                         self.raw.next();
 
-                        return Some((node_id, self.anno_key.clone()));
+                        return Some((item_id, self.anno_key.clone()));
                     } else {
                         // iterator is exhausted: make sure that raw.next() is not called again
                         self.exhausted = true;

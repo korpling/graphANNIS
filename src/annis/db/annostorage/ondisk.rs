@@ -6,7 +6,9 @@ use crate::annis::types::{AnnoKey, Annotation, Edge, NodeID};
 use crate::annis::util;
 use crate::annis::util::memory_estimation;
 
+use core::hash::Hash;
 use core::ops::Bound::*;
+use graphannis_malloc_size_of::MallocSizeOf;
 use rand::seq::IteratorRandom;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -25,16 +27,25 @@ const NODE_ID_SIZE: usize = std::mem::size_of::<NodeID>();
 
 const MAX_TRIES: usize = 5;
 
-trait KeyProvider {
+pub trait KeyProvider {
     fn into_key(self) -> Vec<u8>;
+
+    fn as_key(&self) -> Vec<u8>;
 
     fn from_key(k: &[u8]) -> Self;
 
     fn key_size() -> usize;
+
+    fn min_value() -> Self;
+
+    fn max_value() -> Self;
 }
 
 impl KeyProvider for NodeID {
     fn into_key(self) -> Vec<u8> {
+        self.to_be_bytes().to_vec()
+    }
+    fn as_key(&self) -> Vec<u8> {
         self.to_be_bytes().to_vec()
     }
 
@@ -48,10 +59,25 @@ impl KeyProvider for NodeID {
     fn key_size() -> usize {
         NODE_ID_SIZE
     }
+
+    fn min_value() -> Self {
+        NodeID::min_value()
+    }
+    fn max_value() -> Self {
+        NodeID::max_value()
+    }
 }
 
 impl KeyProvider for Edge {
     fn into_key(self) -> Vec<u8> {
+        let mut result = Vec::with_capacity(NODE_ID_SIZE * 2);
+        result.append(&mut self.source.into_key());
+        result.append(&mut self.target.into_key());
+
+        result
+    }
+
+    fn as_key(&self) -> Vec<u8> {
         let mut result = Vec::with_capacity(NODE_ID_SIZE * 2);
         result.append(&mut self.source.into_key());
         result.append(&mut self.target.into_key());
@@ -69,6 +95,19 @@ impl KeyProvider for Edge {
     fn key_size() -> usize {
         NODE_ID_SIZE * 2
     }
+
+    fn min_value() -> Self {
+        Edge {
+            source: NodeID::min_value(),
+            target: NodeID::min_value(),
+        }
+    }
+    fn max_value() -> Self {
+        Edge {
+            source: NodeID::max_value(),
+            target: NodeID::max_value(),
+        }
+    }
 }
 
 /// An on-disk implementation of an annotation storage.
@@ -82,7 +121,7 @@ impl KeyProvider for Edge {
 /// and there is no way of delivering a correct answer.
 /// Retrying the same query again will also not succeed since temporary errors are already handled internally.
 #[derive(MallocSizeOf)]
-pub struct AnnoStorageImpl {
+pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
     #[ignore_malloc_size_of = "is stored on disk"]
     db: rocksdb::DB,
     #[with_malloc_size_of_func = "memory_estimation::size_of_pathbuf"]
@@ -98,7 +137,7 @@ pub struct AnnoStorageImpl {
     /// additional statistical information
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
-    largest_item: Option<NodeID>,
+    largest_item: Option<T>,
 }
 
 fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
@@ -129,8 +168,8 @@ fn parse_str_vec_key(data: &[u8]) -> Vec<&str> {
 /// ```text
 /// [sizeof(K) Bits item ID][Namespace]\0[Name]\0
 /// ```
-fn create_by_container_key<K: KeyProvider>(item: K, anno_key: &AnnoKey) -> Vec<u8> {
-    let mut result: Vec<u8> = item.into_key().iter().cloned().collect();
+fn create_by_container_key<K: KeyProvider>(item: &K, anno_key: &AnnoKey) -> Vec<u8> {
+    let mut result: Vec<u8> = item.as_key().iter().cloned().collect();
     result.extend(create_str_vec_key(&[&anno_key.ns, &anno_key.name]));
     result
 }
@@ -159,11 +198,11 @@ fn parse_by_container_key<K: KeyProvider>(data: &[u8]) -> (K, AnnoKey) {
 /// ```text
 /// [Namespace]\0[Name]\0[Value]\0[sizeof(K) Bits item ID]
 /// ```
-fn create_by_anno_qname_key<K: KeyProvider>(item: K, anno: &Annotation) -> Vec<u8> {
+fn create_by_anno_qname_key<K: KeyProvider>(item: &K, anno: &Annotation) -> Vec<u8> {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
 
     let mut result: Vec<u8> = create_str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
-    result.extend(&item.into_key());
+    result.extend(&item.as_key());
     result
 }
 
@@ -229,8 +268,21 @@ fn open_db(path: &Path) -> Result<rocksdb::DB> {
     Ok(db)
 }
 
-impl AnnoStorageImpl {
-    pub fn new(path: Option<PathBuf>) -> Result<AnnoStorageImpl> {
+impl<T> AnnoStorageImpl<T>
+where
+    T: Ord
+        + Hash
+        + MallocSizeOf
+        + Default
+        + Clone
+        + serde::Serialize
+        + serde::de::DeserializeOwned
+        + Send
+        + Sync
+        + KeyProvider,
+    (T, Arc<AnnoKey>): Into<Match>,
+{
+    pub fn new(path: Option<PathBuf>) -> Result<AnnoStorageImpl<T>> {
         if let Some(path) = path {
             let db = open_db(&path)?;
             let mut result = AnnoStorageImpl {
@@ -280,7 +332,7 @@ impl AnnoStorageImpl {
         namespace: Option<&str>,
         name: &str,
         value: Option<&str>,
-    ) -> Box<dyn Iterator<Item = (NodeID, Arc<AnnoKey>)> + 'a> {
+    ) -> Box<dyn Iterator<Item = (T, Arc<AnnoKey>)> + 'a> {
         let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
             vec![Arc::from(AnnoKey {
                 ns: ns.to_string(),
@@ -403,13 +455,26 @@ impl AnnoStorageImpl {
     }
 }
 
-impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
-    fn insert(&mut self, item: NodeID, anno: Annotation) -> Result<()> {
+impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
+where
+    T: Ord
+        + Hash
+        + MallocSizeOf
+        + Default
+        + Clone
+        + serde::Serialize
+        + serde::de::DeserializeOwned
+        + Send
+        + Sync
+        + KeyProvider,
+    (T, Arc<AnnoKey>): Into<Match>,
+{
+    fn insert(&mut self, item: T, anno: Annotation) -> Result<()> {
         // insert the value into main tree
         let by_container = self
             .get_by_container_cf()
             .ok_or_else(|| Error::from("Column familiy \"by_container\" not found"))?;
-        let by_container_key = create_by_container_key(item, &anno.key);
+        let by_container_key = create_by_container_key(&item, &anno.key);
 
         let mut write_opts = rocksdb::WriteOptions::default();
         write_opts.set_sync(false);
@@ -433,7 +498,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             .ok_or_else(|| Error::from("Column familiy \"by_container\" not found"))?;
         self.db.put_cf_opt(
             &by_anno_qname,
-            create_by_anno_qname_key(item, &anno),
+            create_by_anno_qname_key(&item, &anno),
             &[],
             &write_opts,
         )?;
@@ -455,13 +520,13 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         Ok(())
     }
 
-    fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
-        let prefix: Vec<u8> = item.to_be_bytes().iter().cloned().collect();
+    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
+        let prefix: Vec<u8> = item.as_key();
 
         let mut result = Vec::default();
         if let Some(by_container) = self.get_by_container_cf() {
             for (key, val) in self.prefix_iterator(&by_container, prefix) {
-                let parsed_key: (NodeID, AnnoKey) = parse_by_container_key(&key);
+                let parsed_key: (T, AnnoKey) = parse_by_container_key(&key);
                 let anno = Annotation {
                     key: parsed_key.1,
                     val: String::from_utf8_lossy(&val).to_string(),
@@ -472,16 +537,12 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         result
     }
 
-    fn remove_annotation_for_item(
-        &mut self,
-        item: &NodeID,
-        key: &AnnoKey,
-    ) -> Result<Option<Cow<str>>> {
+    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>> {
         if let (Some(by_container), Some(by_anno_qname)) =
             (self.get_by_container_cf(), self.get_by_anno_qname_cf())
         {
             // remove annotation from by_container
-            let by_container_key = create_by_container_key(*item, key);
+            let by_container_key = create_by_container_key(item, key);
             if let Some(raw_value) = self.db.get_pinned_cf(&by_container, &by_container_key)? {
                 self.db.delete_cf(&by_container, &by_container_key)?;
                 // remove annotation from by_anno_qname
@@ -491,7 +552,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 };
 
                 self.db
-                    .delete_cf(&by_anno_qname, create_by_anno_qname_key(*item, &anno))?;
+                    .delete_cf(&by_anno_qname, create_by_anno_qname_key(item, &anno))?;
                 // decrease the annotation count for this key
                 let new_key_count: usize =
                     if let Some(num_of_keys) = self.anno_key_sizes.get_mut(key) {
@@ -573,9 +634,9 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         }
     }
 
-    fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
+    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
         if let Some(by_container) = self.get_by_container_cf() {
-            let raw = self.get_pinned_cf(&by_container, create_by_container_key(*item, key));
+            let raw = self.get_pinned_cf(&by_container, create_by_container_key(item, key));
             if let Some(raw) = raw {
                 let val: String = String::from_utf8_lossy(&raw).to_string();
                 Some(Cow::Owned(val))
@@ -591,7 +652,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         &self,
         ns: Option<&str>,
         name: Option<&str>,
-        it: Box<dyn Iterator<Item = NodeID>>,
+        it: Box<dyn Iterator<Item = T>>,
     ) -> Vec<Match> {
         if let Some(by_container) = self.get_by_container_cf() {
             if let Some(name) = name {
@@ -603,12 +664,12 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                     });
                     let mut matches: Vec<Match> = Vec::new();
                     // createa a template key
-                    let mut container_key = create_by_container_key(0, &key);
+                    let mut container_key = create_by_container_key(&T::default(), &key);
                     for item in it {
                         // Set the first bytes to the ID of the item.
                         // This saves the repeated expensive construction of the annotation key part.
-                        container_key[0..NODE_ID_SIZE][0..NODE_ID_SIZE]
-                            .copy_from_slice(&item.to_be_bytes());
+                        container_key[0..T::key_size()][0..T::key_size()]
+                            .copy_from_slice(&item.as_key());
                         if self.get_pinned_cf(&by_container, &container_key).is_some() {
                             matches.push((item, key.clone()).into());
                         }
@@ -618,7 +679,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                     let mut matching_qnames: Vec<(Vec<u8>, Arc<AnnoKey>)> = self
                         .get_qnames(&name)
                         .into_iter()
-                        .map(|key| (create_by_container_key(0, &key), Arc::from(key)))
+                        .map(|key| (create_by_container_key(&T::default(), &key), Arc::from(key)))
                         .collect();
                     // return all annotations with the correct name for each node
                     let mut matches: Vec<Match> = Vec::new();
@@ -626,10 +687,10 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                         for (container_key, anno_key) in matching_qnames.iter_mut() {
                             // Set the first bytes to the ID of the item.
                             // This saves the repeated expensive construction of the annotation key part.
-                            container_key[0..NODE_ID_SIZE][0..NODE_ID_SIZE]
-                                .copy_from_slice(&item.to_be_bytes());
+                            container_key[0..T::key_size()][0..T::key_size()]
+                                .copy_from_slice(&item.as_key());
                             if self.get_pinned_cf(&by_container, container_key).is_some() {
-                                matches.push((item, anno_key.clone()).into());
+                                matches.push((item.clone(), anno_key.clone()).into());
                             }
                         }
                     }
@@ -638,7 +699,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             } else {
                 // get all annotation keys for this item
                 it.flat_map(|item| {
-                    self.prefix_iterator(&by_container, item.to_be_bytes())
+                    self.prefix_iterator(&by_container, item.as_key())
                         .map(|(data, _)| {
                             let (node, matched_anno_key) = parse_by_container_key(&data);
                             Match {
@@ -706,8 +767,8 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 let value = value.to_string();
                 let it = self
                     .matching_items(namespace, name, None)
-                    .filter(move |(node, anno_key)| {
-                        if let Some(item_value) = self.get_value_for_item(node, anno_key) {
+                    .filter(move |(item, anno_key)| {
+                        if let Some(item_value) = self.get_value_for_item(item, anno_key) {
                             item_value != value
                         } else {
                             false
@@ -755,7 +816,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
     fn get_all_keys_for_item(
         &self,
-        item: &NodeID,
+        item: &T,
         ns: Option<&str>,
         name: Option<&str>,
     ) -> Vec<Arc<AnnoKey>> {
@@ -767,7 +828,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                         name: name.to_string(),
                     });
                     if self
-                        .get_pinned_cf(&by_container, create_by_container_key(*item, &key))
+                        .get_pinned_cf(&by_container, create_by_container_key(item, &key))
                         .is_some()
                     {
                         return vec![key.clone()];
@@ -779,7 +840,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                         .get_qnames(&name)
                         .into_iter()
                         .filter(|key| {
-                            self.get_pinned_cf(&by_container, create_by_container_key(*item, key))
+                            self.get_pinned_cf(&by_container, create_by_container_key(item, key))
                                 .is_some()
                         })
                         .map(|key| Arc::from(key))
@@ -945,7 +1006,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         self.anno_key_sizes.keys().cloned().collect()
     }
 
-    fn get_largest_item(&self) -> Option<NodeID> {
+    fn get_largest_item(&self) -> Option<T> {
         self.largest_item.clone()
     }
 
