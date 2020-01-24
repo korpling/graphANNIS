@@ -26,7 +26,7 @@ impl<'a> OutgoingEdgesIterator<'a> {
 
         let upper_bound = Edge {
             source,
-            target: NodeID::min_value(),
+            target: NodeID::max_value(),
         };
 
         let lower_bound = super::create_key(&lower_bound);
