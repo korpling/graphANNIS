@@ -1,4 +1,4 @@
-use num::{Bounded, FromPrimitive, Num, ToPrimitive};
+use num_traits::{Bounded, FromPrimitive, Num, ToPrimitive};
 use std;
 use std::fmt;
 use std::ops::AddAssign;
