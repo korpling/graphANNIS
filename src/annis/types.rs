@@ -1,8 +1,10 @@
-use num::{Bounded, FromPrimitive, Num, ToPrimitive};
+use num_traits::{Bounded, FromPrimitive, Num, ToPrimitive};
 use std;
 use std::fmt;
 use std::ops::AddAssign;
 use std::string::String;
+
+use strum_macros::{EnumIter, EnumString};
 
 use crate::malloc_size_of::MallocSizeOf;
 
