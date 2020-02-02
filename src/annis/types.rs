@@ -4,6 +4,8 @@ use std::fmt;
 use std::ops::AddAssign;
 use std::string::String;
 
+use strum_macros::{EnumIter, EnumString};
+
 use crate::malloc_size_of::MallocSizeOf;
 
 /// Unique internal identifier for a single node.
