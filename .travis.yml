@@ -2,11 +2,6 @@ language: rust
 rust:
   - stable
 
-os:
-  - linux
-  - osx
-  - windows
-
 cache:
   directories:
     - $TRAVIS_HOME/.cache/sccache
@@ -16,9 +11,7 @@ cache:
     - relannis
     - data
 
-
-
-matrix:
+jobs:
   include:
     - os: linux
     # Execute search tests only on linux
@@ -28,10 +21,6 @@ matrix:
     # Use MSVC toolchain on windows
     - os: windows
       env: TARGET=x86_64-pc-windows-msvc
-  exclude:
-    # Ignore default configuration
-    - os: windows
-      env:
  
 before_cache:
   - rm -rf "$TRAVIS_HOME/.cargo/registry/src"
