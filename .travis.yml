@@ -17,18 +17,14 @@ cache:
     - data
 
 
-# Don't execute search tests per default
-env: TEST_SUITE=
 
 matrix:
   include:
     - os: linux
-      env: TEST_SUITE=
     # Execute search tests only on linux
     - os: linux
       env: TEST_SUITE=--ignored
     - os: osx
-      env: TEST_SUITE=
     # Use MSVC toolchain on windows
     - os: windows
       env: TARGET=x86_64-pc-windows-msvc
