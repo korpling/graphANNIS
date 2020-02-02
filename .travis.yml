@@ -26,6 +26,7 @@ matrix:
   exclude:
   - os: windows
     env: TEST_SUITE=--ignored
+    compiler: clang
   - os: osx
     env: TEST_SUITE=--ignored
 
