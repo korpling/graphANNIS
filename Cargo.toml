@@ -50,7 +50,8 @@ libc = {version="0.2"}
 graphannis-malloc_size_of = "1.0"
 graphannis-malloc_size_of_derive = "2.0"
 
-rustyline = {version="1.0", optional=true }
+rustyline = {version="6.0", optional=true }
+rustyline-derive = {version="0.3", optional=true }
 simplelog = {version="0.7", optional=true}
 clap = {version="2", optional=true, default-features=false}
 criterion = {version="0.3", optional=true, default-features=false}
@@ -65,7 +66,7 @@ criterion = "0.3"
 env_logger = "0.6"
 
 [features]
-cli = ["rustyline", "simplelog", "clap", "prettytable-rs"]
+cli = ["rustyline", "rustyline-derive", "simplelog", "clap", "prettytable-rs"]
 c-api = ["simplelog"]
 
 [profile.release]

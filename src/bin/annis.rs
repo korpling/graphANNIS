@@ -1,13 +1,3 @@
-extern crate clap;
-#[macro_use]
-extern crate log;
-
-extern crate prettytable;
-
-extern crate graphannis;
-extern crate rustyline;
-extern crate simplelog;
-
 use clap::{App, Arg};
 use graphannis::corpusstorage::CorpusInfo;
 use graphannis::corpusstorage::FrequencyDefEntry;
@@ -17,25 +7,28 @@ use graphannis::corpusstorage::QueryLanguage;
 use graphannis::corpusstorage::ResultOrder;
 use graphannis::errors::*;
 use graphannis::CorpusStorage;
+use log::info;
 use prettytable::Cell;
 use prettytable::Row;
 use prettytable::Table;
 use rustyline::completion::{Completer, FilenameCompleter};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use rustyline_derive::{Helper, Highlighter, Hinter, Validator};
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 
-struct CommandCompleter {
+#[derive(Helper, Hinter, Highlighter, Validator)]
+struct ConsoleHelper {
     known_commands: BTreeSet<String>,
     filename_completer: FilenameCompleter,
     pub corpora: Vec<CorpusInfo>,
 }
 
-impl CommandCompleter {
-    pub fn new(corpora: Vec<CorpusInfo>) -> CommandCompleter {
+impl ConsoleHelper {
+    pub fn new(corpora: Vec<CorpusInfo>) -> ConsoleHelper {
         let mut known_commands = BTreeSet::new();
         known_commands.insert("import".to_string());
         known_commands.insert("list".to_string());
@@ -57,7 +50,7 @@ impl CommandCompleter {
         known_commands.insert("quit".to_string());
         known_commands.insert("exit".to_string());
 
-        CommandCompleter {
+        ConsoleHelper {
             known_commands,
             filename_completer: FilenameCompleter::new(),
             corpora,
@@ -65,15 +58,18 @@ impl CommandCompleter {
     }
 }
 
-impl Completer for CommandCompleter {
+impl Completer for ConsoleHelper {
+    type Candidate = rustyline::completion::Pair;
+
     fn complete(
         &self,
         line: &str,
         pos: usize,
-    ) -> std::result::Result<(usize, Vec<String>), ReadlineError> {
+        ctx: &rustyline::Context,
+    ) -> std::result::Result<(usize, Vec<rustyline::completion::Pair>), ReadlineError> {
         // check for more specialized completers
         if line.starts_with("import ") {
-            return self.filename_completer.complete(line, pos);
+            return self.filename_completer.complete(line, pos, ctx);
         } else if line.starts_with("corpus ") || line.starts_with("delete ") {
             // auto-complete the corpus names
             if let Some(prefix_len) = line.rfind(' ') {
@@ -82,7 +78,11 @@ impl Completer for CommandCompleter {
                 let corpus_prefix = &line[prefix_len..];
                 for c in self.corpora.iter() {
                     if c.name.starts_with(corpus_prefix) {
-                        matching_corpora.push(c.name.clone());
+                        let p = rustyline::completion::Pair {
+                            display: c.name.clone(),
+                            replacement: c.name.clone(),
+                        };
+                        matching_corpora.push(p);
                     }
                 }
                 return Ok((pos - corpus_prefix.len(), matching_corpora));
@@ -98,13 +98,18 @@ impl Completer for CommandCompleter {
             // check alll commands if the current string is a valid suffix
             for candidate in self.known_commands.iter() {
                 if candidate.starts_with(line) {
-                    cmds.push(candidate.clone());
+                    let p = rustyline::completion::Pair {
+                        display: candidate.clone(),
+                        replacement: candidate.clone(),
+                    };
+                    cmds.push(p);
                 }
             }
         }
         Ok((0, cmds))
     }
 }
+
 struct AnnisRunner {
     storage: Option<CorpusStorage>,
     current_corpus: Vec<String>,
@@ -131,15 +136,16 @@ impl AnnisRunner {
     }
 
     pub fn start_loop(&mut self) {
-        let mut rl = Editor::<CommandCompleter>::new();
+        let config = rustyline::Config::builder()
+            .completion_type(rustyline::CompletionType::List)
+            .build();
+        let mut rl = Editor::with_config(config);
         if let Err(_) = rl.load_history("annis_history.txt") {
             println!("No previous history.");
         }
 
         if let Some(ref storage) = self.storage {
-            rl.set_completer(Some(CommandCompleter::new(
-                storage.list().unwrap_or_default(),
-            )));
+            rl.set_helper(Some(ConsoleHelper::new(storage.list().unwrap_or_default())));
         }
 
         loop {
