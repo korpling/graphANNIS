@@ -41,7 +41,6 @@ extern crate fs2;
 extern crate itertools;
 #[macro_use]
 extern crate lalrpop_util;
-extern crate num;
 extern crate rayon;
 extern crate sys_info;
 
