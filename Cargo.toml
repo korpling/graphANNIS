@@ -72,7 +72,6 @@ c-api = ["simplelog"]
 
 [profile.release]
 incremental = true
-debug = true
 
 [[bench]]
 name = "graphannis"
