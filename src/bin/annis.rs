@@ -14,19 +14,21 @@ use prettytable::Table;
 use rustyline::completion::{Completer, FilenameCompleter};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use rustyline_derive::{Helper, Highlighter, Hinter, Validator};
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 
-struct CommandCompleter {
+#[derive(Helper, Hinter, Highlighter, Validator)]
+struct ConsoleHelper {
     known_commands: BTreeSet<String>,
     filename_completer: FilenameCompleter,
     pub corpora: Vec<CorpusInfo>,
 }
 
-impl CommandCompleter {
-    pub fn new(corpora: Vec<CorpusInfo>) -> CommandCompleter {
+impl ConsoleHelper {
+    pub fn new(corpora: Vec<CorpusInfo>) -> ConsoleHelper {
         let mut known_commands = BTreeSet::new();
         known_commands.insert("import".to_string());
         known_commands.insert("list".to_string());
@@ -48,7 +50,7 @@ impl CommandCompleter {
         known_commands.insert("quit".to_string());
         known_commands.insert("exit".to_string());
 
-        CommandCompleter {
+        ConsoleHelper {
             known_commands,
             filename_completer: FilenameCompleter::new(),
             corpora,
@@ -56,7 +58,7 @@ impl CommandCompleter {
     }
 }
 
-impl Completer for CommandCompleter {
+impl Completer for ConsoleHelper {
     type Candidate = rustyline::completion::Pair;
 
     fn complete(
@@ -107,6 +109,7 @@ impl Completer for CommandCompleter {
         Ok((0, cmds))
     }
 }
+
 struct AnnisRunner {
     storage: Option<CorpusStorage>,
     current_corpus: Vec<String>,
@@ -133,16 +136,17 @@ impl AnnisRunner {
     }
 
     pub fn start_loop(&mut self) {
-        let mut rl = Editor::<()>::new();
+        let config = rustyline::Config::builder()
+            .completion_type(rustyline::CompletionType::List)
+            .build();
+        let mut rl = Editor::with_config(config);
         if let Err(_) = rl.load_history("annis_history.txt") {
             println!("No previous history.");
         }
 
-        // if let Some(ref storage) = self.storage {
-        //     rl.set_completer(Some(CommandCompleter::new(
-        //         storage.list().unwrap_or_default(),
-        //     )));
-        // }
+        if let Some(ref storage) = self.storage {
+            rl.set_helper(Some(ConsoleHelper::new(storage.list().unwrap_or_default())));
+        }
 
         loop {
             let prompt = if self.current_corpus.is_empty() {
