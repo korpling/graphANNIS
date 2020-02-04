@@ -1,8 +1,6 @@
-use crate::annis::types::{Component, Edge};
-use crate::annis::util::disk_collections::{DiskMap, DiskMapBuilder};
 use crate::annis::errors::*;
-
-use shardio::{ShardReader, ShardWriter};
+use crate::annis::types::{Component, Edge, NodeID};
+use crate::annis::util::disk_collections::{DiskMap, DiskMapBuilder};
 
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize, PartialOrd, Ord, Debug)]
 struct ComponentEntry {
@@ -23,7 +21,6 @@ pub struct LoadRankResultBuilder {
 
 impl LoadRankResultBuilder {
     pub fn new() -> Result<LoadRankResultBuilder> {
-
         let components_by_pre = DiskMapBuilder::new()?;
         let edges_by_pre = DiskMapBuilder::new()?;
 
@@ -63,7 +60,11 @@ impl LoadRankResult {
         self.edges_by_pre.get(&pre)
     }
 
-    pub fn is_text_coverage(&self, edge: &Edge) -> Result<bool> {
+    pub fn is_text_coverage(&self, _edge: &Edge) -> Result<bool> {
+        unimplemented!()
+    }
+
+    pub fn has_outgoing_text_coverage_edge(&self, _n: NodeID) -> Result<bool> {
         unimplemented!()
     }
 }

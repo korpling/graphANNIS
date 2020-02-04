@@ -35,7 +35,7 @@ where
     pub fn new() -> Result<DiskMapBuilder<K, V>> {
         let tmp_file = tempfile::NamedTempFile::new()?;
 
-        let mut shard_writer: ShardWriter<Entry<K, V>> =
+        let shard_writer: ShardWriter<Entry<K, V>> =
             ShardWriter::new(&tmp_file.path(), 64, 256, 1 << 16)?;
 
         Ok(DiskMapBuilder {
@@ -57,8 +57,7 @@ where
         let reader = ShardReader::<Entry<K, V>>::open(self.tmp_file.path())?;
         // Create the indexes by iterating over the sorted entries
         let tmp_file = tempfile::NamedTempFile::new()?;
-        let mut table_builder =
-            sstable::TableBuilder::new(sstable::Options::default(), tmp_file.as_file());
+        let mut table_builder = TableBuilder::new(sstable::Options::default(), tmp_file.as_file());
         for entry in reader.iter()? {
             let entry: Entry<K, V> = entry?;
             table_builder.add(
