@@ -1,8 +1,8 @@
 use crate::annis::types::{Component, Edge};
-
+use crate::annis::util::disk_collections::{DiskMap, DiskMapBuilder};
 use crate::annis::errors::*;
 
-use shardio::ShardWriter;
+use shardio::{ShardReader, ShardWriter};
 
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize, PartialOrd, Ord, Debug)]
 struct ComponentEntry {
@@ -17,58 +17,50 @@ struct EdgeEntry {
 }
 
 pub struct LoadRankResultBuilder {
-    tmp_dir: tempfile::TempDir,
-    writer_components: ShardWriter<ComponentEntry>,
-    writer_edges: ShardWriter<EdgeEntry>,
+    components_by_pre: DiskMapBuilder<u32, Component>,
+    edges_by_pre: DiskMapBuilder<u32, Edge>,
 }
 
 impl LoadRankResultBuilder {
     pub fn new() -> Result<LoadRankResultBuilder> {
-        let tmp_dir = tempfile::tempdir()?;
 
-        let mut writer_components: ShardWriter<ComponentEntry> =
-            ShardWriter::new(&tmp_dir.path().join("components.idx"), 64, 256, 1 << 16)?;
-
-        let mut writer_edges: ShardWriter<EdgeEntry> =
-            ShardWriter::new(&tmp_dir.path().join("edges.idx"), 64, 256, 1 << 16)?;
+        let components_by_pre = DiskMapBuilder::new()?;
+        let edges_by_pre = DiskMapBuilder::new()?;
 
         Ok(LoadRankResultBuilder {
-            tmp_dir,
-            writer_components,
-            writer_edges,
+            components_by_pre,
+            edges_by_pre,
         })
     }
 
     pub fn add_edge(&mut self, pre: u32, component: Component, edge: Edge) -> Result<()> {
-        self.writer_components
-            .get_sender()
-            .send(ComponentEntry { pre, component })?;
-        self.writer_edges
-            .get_sender()
-            .send(EdgeEntry { pre, edge })?;
+        self.components_by_pre.insert(pre, component)?;
+        self.edges_by_pre.insert(pre, edge)?;
         Ok(())
     }
 
-    pub fn finish(mut self) -> Result<LoadRankResult> {
-        self.writer_components.finish()?;
-        self.writer_edges.finish()?;
-        unimplemented!()
+    pub fn finish(self) -> Result<LoadRankResult> {
+        let components_by_pre = self.components_by_pre.finish()?;
+        let edges_by_pre = self.edges_by_pre.finish()?;
+        Ok(LoadRankResult {
+            components_by_pre,
+            edges_by_pre,
+        })
     }
 }
 
-pub struct LoadRankResult {}
+pub struct LoadRankResult {
+    components_by_pre: DiskMap<u32, Component>,
+    edges_by_pre: DiskMap<u32, Edge>,
+}
 
 impl LoadRankResult {
-    pub fn new() -> Result<LoadRankResult> {
-        unimplemented!()
+    pub fn get_component_by_pre(&self, pre: u32) -> Result<Option<Component>> {
+        self.components_by_pre.get(&pre)
     }
 
-    pub fn component_by_pre(&self, pre: u32) -> Result<Component> {
-        unimplemented!()
-    }
-
-    pub fn edge_by_pre(&self, pre: u32) -> Result<Edge> {
-        unimplemented!()
+    pub fn get_edge_by_pre(&self, pre: u32) -> Result<Option<Edge>> {
+        self.edges_by_pre.get(&pre)
     }
 
     pub fn is_text_coverage(&self, edge: &Edge) -> Result<bool> {
