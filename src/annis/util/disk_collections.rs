@@ -17,20 +17,37 @@ where
 
 pub struct DiskMapBuilder<K, V>
 where
-    for<'de> K:
-        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
+    for<'de> K: 'static
+        + Clone
+        + Eq
+        + PartialEq
+        + PartialOrd
+        + Ord
+        + Serialize
+        + Deserialize<'de>
+        + Send
+        + core::fmt::Debug,
     for<'de> V:
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
     shard_writer: ShardWriter<Entry<K, V>>,
     shard_sender: ShardSender<Entry<K, V>>,
+    serialization: bincode::Config,
     tmp_file: tempfile::NamedTempFile,
 }
 
 impl<K, V> DiskMapBuilder<K, V>
 where
-    for<'de> K:
-        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
+    for<'de> K: 'static
+        + Clone
+        + Eq
+        + PartialEq
+        + PartialOrd
+        + Ord
+        + Serialize
+        + Deserialize<'de>
+        + Send
+        + core::fmt::Debug,
     for<'de> V:
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
@@ -40,10 +57,14 @@ where
         let shard_writer: ShardWriter<Entry<K, V>> =
             ShardWriter::new(&tmp_file.path(), 64, 256, 1 << 16)?;
 
+        let mut serialization = bincode::config();
+        serialization.big_endian();
+
         Ok(DiskMapBuilder {
             tmp_file,
             shard_sender: shard_writer.get_sender(),
             shard_writer,
+            serialization,
         })
     }
 
@@ -54,6 +75,7 @@ where
 
     pub fn finish(mut self) -> Result<DiskMap<K, V>> {
         // Finish sorting
+        self.shard_sender.finished()?;
         self.shard_writer.finish()?;
         // Open sorted shard for reading
         let reader = ShardReader::<Entry<K, V>>::open(self.tmp_file.path())?;
@@ -62,9 +84,13 @@ where
         let mut table_builder = TableBuilder::new(sstable::Options::default(), tmp_file.as_file());
         for entry in reader.iter()? {
             let entry: Entry<K, V> = entry?;
+
+//            dbg!(&entry.key);
+            let serialized_key = self.serialization.serialize(&entry.key)?;
+//            dbg!(&serialized_key);
             table_builder.add(
-                &bincode::serialize(&entry.key)?,
-                &bincode::serialize(&entry.value)?,
+                &serialized_key,
+                &self.serialization.serialize(&entry.value)?,
             )?;
         }
         table_builder.finish()?;
@@ -74,6 +100,7 @@ where
         let table = Table::new_from_file(sstable::Options::default(), tmp_file.path())?;
         Ok(DiskMap {
             table,
+            serialization: self.serialization,
             phantom: std::marker::PhantomData,
         })
     }
@@ -85,6 +112,7 @@ where
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send,
 {
     table: Table,
+    serialization: bincode::Config,
     phantom: std::marker::PhantomData<(K, V)>,
 }
 
@@ -96,9 +124,9 @@ where
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
     pub fn get(&self, key: &K) -> Result<Option<V>> {
-        let key = bincode::serialize(key)?;
+        let key = self.serialization.serialize(key)?;
         if let Some(value) = self.table.get(&key)? {
-            let value = bincode::deserialize(&value)?;
+            let value = self.serialization.deserialize(&value)?;
             Ok(Some(value))
         } else {
             Ok(None)
@@ -112,17 +140,19 @@ where
         let mut table_it = self.table.iter();
         match range.start_bound() {
             Bound::Included(start) => {
-                let start = bincode::serialize(start)?;
+                let start = self.serialization.serialize(start)?;
                 table_it.seek(&start);
             }
             Bound::Excluded(start_bound) => {
-                let start = bincode::serialize(start_bound)?;
+                let start = self.serialization.serialize(start_bound)?;
                 table_it.seek(&start);
                 let mut key = Vec::default();
                 let mut value = Vec::default();
 
                 if table_it.valid() && table_it.current(&mut key, &mut value) {
-                    let key : K = bincode::deserialize(&key)
+                    let key: K = self
+                        .serialization
+                        .deserialize(&key)
                         .expect("Could not decode previously written data from disk.");
                     if key == *start_bound {
                         // We need to exclude the first match
@@ -138,6 +168,7 @@ where
             range,
             table_it,
             exhausted: false,
+            serialization: self.serialization.clone(),
             phantom: std::marker::PhantomData,
         })
     }
@@ -150,6 +181,7 @@ where
     range: R,
     table_it: TableIterator,
     exhausted: bool,
+    serialization: bincode::Config,
     phantom: std::marker::PhantomData<(K, V)>,
 }
 
@@ -169,10 +201,14 @@ where
             let mut value = Vec::default();
 
             if self.table_it.current(&mut key, &mut value) {
-                let key = bincode::deserialize(&key)
+                let key = self
+                    .serialization
+                    .deserialize(&key)
                     .expect("Could not decode previously written data from disk.");
                 if self.range.contains(&key) {
-                    let value = bincode::deserialize(&value)
+                    let value = self
+                        .serialization
+                        .deserialize(&value)
                         .expect("Could not decode previously written data from disk.");
 
                     self.table_it.advance();
