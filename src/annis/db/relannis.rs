@@ -7,7 +7,7 @@ use csv;
 use multimap::MultiMap;
 use percent_encoding::utf8_percent_encode;
 use std;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
@@ -1025,8 +1025,6 @@ fn load_rank_tab<F>(
 where
     F: Fn(&str) -> (),
 {
-    let mut text_coverage_edges: BTreeSet<Edge> = BTreeSet::default();
-
     let mut rank_tab_path = PathBuf::from(path);
     rank_tab_path.push(if is_annis_33 {
         "rank.annis"
@@ -1100,10 +1098,6 @@ where
                         source: *source,
                         target,
                     };
-
-                    if c.ctype == ComponentType::Coverage {
-                        text_coverage_edges.insert(e.clone());
-                    }
 
                     result_builder.add_edge(pre, c.clone(), e)?;
                 }
