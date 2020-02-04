@@ -1319,7 +1319,7 @@ impl Graph {
                         self.reset_cached_size();
                         // insert into components map
                         info!(
-                            "Converted component {} to implementation {}",
+                            "converted component {} to implementation {}",
                             c, opt_info.id,
                         );
                         self.components.insert(c.clone(), Some(new_gs.clone()));

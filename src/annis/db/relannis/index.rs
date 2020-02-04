@@ -46,6 +46,8 @@ impl LoadRankResultBuilder {
     }
 
     pub fn finish(self) -> Result<LoadRankResult> {
+        info!("creating rank table index");
+
         let components_by_pre = self.components_by_pre.finish()?;
         let edges_by_pre = self.edges_by_pre.finish()?;
         let text_coverage_edges = self.text_coverage_edges.finish()?;
