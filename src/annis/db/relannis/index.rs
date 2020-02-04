@@ -2,6 +2,8 @@ use crate::annis::errors::*;
 use crate::annis::types::{Component, ComponentType, Edge, NodeID};
 use crate::annis::util::disk_collections::{DiskMap, DiskMapBuilder};
 
+use std::ops::Bound::Included;
+
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize, PartialOrd, Ord, Debug)]
 struct ComponentEntry {
     pre: u32,
@@ -34,14 +36,12 @@ impl LoadRankResultBuilder {
     }
 
     pub fn add_edge(&mut self, pre: u32, component: Component, edge: Edge) -> Result<()> {
-        
         if component.ctype == ComponentType::Coverage {
             self.text_coverage_edges.insert(edge.clone(), true)?;
         }
 
         self.components_by_pre.insert(pre, component)?;
         self.edges_by_pre.insert(pre, edge)?;
-        
         Ok(())
     }
 
@@ -76,7 +76,18 @@ impl LoadRankResult {
         self.text_coverage_edges.get(edge).map(|e| e.is_some())
     }
 
-    pub fn has_outgoing_text_coverage_edge(&self, _n: NodeID) -> Result<bool> {
-        unimplemented!()
+    pub fn has_outgoing_text_coverage_edge(&self, n: NodeID) -> Result<bool> {
+        let nodes_with_same_source = (
+            Included(Edge {
+                source: n,
+                target: NodeID::min_value(),
+            }),
+            Included(Edge {
+                source: n,
+                target: NodeID::max_value(),
+            }),
+        );
+        let mut it = self.text_coverage_edges.range(nodes_with_same_source)?;
+        Ok(it.next().is_some())
     }
 }

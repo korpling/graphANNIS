@@ -1,7 +1,9 @@
 use crate::annis::errors::*;
 use serde::{Deserialize, Serialize};
 use shardio::{ShardReader, ShardSender, ShardWriter};
-use sstable::{Table, TableBuilder};
+use sstable::{SSIterator, Table, TableBuilder, TableIterator};
+
+use std::ops::{Bound, RangeBounds};
 
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize, PartialOrd, Ord)]
 struct Entry<K, V>
@@ -72,8 +74,7 @@ where
         let table = Table::new_from_file(sstable::Options::default(), tmp_file.path())?;
         Ok(DiskMap {
             table,
-            phantom_key: std::marker::PhantomData,
-            phantom_value: std::marker::PhantomData,
+            phantom: std::marker::PhantomData,
         })
     }
 }
@@ -84,8 +85,7 @@ where
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send,
 {
     table: Table,
-    phantom_key: std::marker::PhantomData<K>,
-    phantom_value: std::marker::PhantomData<V>,
+    phantom: std::marker::PhantomData<(K, V)>,
 }
 
 impl<K, V> DiskMap<K, V>
@@ -103,5 +103,86 @@ where
         } else {
             Ok(None)
         }
+    }
+
+    pub fn range<R>(&self, range: R) -> Result<Range<K, V, R>>
+    where
+        R: RangeBounds<K>,
+    {
+        let mut table_it = self.table.iter();
+        match range.start_bound() {
+            Bound::Included(start) => {
+                let start = bincode::serialize(start)?;
+                table_it.seek(&start);
+            }
+            Bound::Excluded(start_bound) => {
+                let start = bincode::serialize(start_bound)?;
+                table_it.seek(&start);
+                let mut key = Vec::default();
+                let mut value = Vec::default();
+
+                if table_it.valid() && table_it.current(&mut key, &mut value) {
+                    let key : K = bincode::deserialize(&key)
+                        .expect("Could not decode previously written data from disk.");
+                    if key == *start_bound {
+                        // We need to exclude the first match
+                        table_it.advance();
+                    }
+                }
+            }
+            Bound::Unbounded => {
+                table_it.seek_to_first();
+            }
+        };
+        Ok(Range {
+            range,
+            table_it,
+            exhausted: false,
+            phantom: std::marker::PhantomData,
+        })
+    }
+}
+
+pub struct Range<K, V, R>
+where
+    R: RangeBounds<K>,
+{
+    range: R,
+    table_it: TableIterator,
+    exhausted: bool,
+    phantom: std::marker::PhantomData<(K, V)>,
+}
+
+impl<K, V, R> Iterator for Range<K, V, R>
+where
+    R: RangeBounds<K>,
+    for<'de> K:
+        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
+    for<'de> V:
+        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
+{
+    type Item = (K, V);
+
+    fn next(&mut self) -> Option<(K, V)> {
+        if !self.exhausted && self.table_it.valid() {
+            let mut key = Vec::default();
+            let mut value = Vec::default();
+
+            if self.table_it.current(&mut key, &mut value) {
+                let key = bincode::deserialize(&key)
+                    .expect("Could not decode previously written data from disk.");
+                if self.range.contains(&key) {
+                    let value = bincode::deserialize(&value)
+                        .expect("Could not decode previously written data from disk.");
+
+                    self.table_it.advance();
+                    return Some((key, value));
+                } else {
+                    self.exhausted = true;
+                }
+            }
+        }
+
+        None
     }
 }
