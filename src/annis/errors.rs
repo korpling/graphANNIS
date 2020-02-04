@@ -33,6 +33,7 @@ pub enum Error {
     RandomGenerator(::rand::Error),
     RocksDB(rocksdb::Error),
     Failure(failure::Compat<failure::Error>),
+    SSTable(sstable::error::Status),
 }
 
 impl std::convert::From<std::io::Error> for Error {
@@ -95,6 +96,12 @@ impl std::convert::From<failure::Error> for Error {
     }
 }
 
+impl std::convert::From<sstable::error::Status> for Error {
+    fn from(e: sstable::error::Status) -> Error {
+        Error::SSTable(e)
+    }
+}
+
 impl std::convert::From<&str> for Error {
     fn from(e: &str) -> Error {
         Error::Generic {
@@ -148,6 +155,7 @@ impl Display for Error {
             Error::RandomGenerator(e) => e.fmt(f),
             Error::RocksDB(e) => e.fmt(f),
             Error::Failure(e) => e.fmt(f),
+            Error::SSTable(e) => e.fmt(f),
         }
     }
 }
@@ -177,6 +185,7 @@ impl StdError for Error {
             Error::RandomGenerator(e) => Some(e),
             Error::RocksDB(e) => Some(e),
             Error::Failure(e) => Some(e),
+            Error::SSTable(e) => Some(e),
         }
     }
 }
