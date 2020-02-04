@@ -1,8 +1,9 @@
 use crate::annis::errors::*;
 use serde::{Deserialize, Serialize};
-use shardio::{ShardReader, ShardSender, ShardWriter};
+use shardio::{ShardReader, ShardWriter};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 
+use std::io::Write;
 use std::ops::{Bound, RangeBounds};
 
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize, PartialOrd, Ord)]
@@ -31,7 +32,6 @@ where
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
     shard_writer: ShardWriter<Entry<K, V>>,
-    shard_sender: ShardSender<Entry<K, V>>,
     serialization: bincode::Config,
     tmp_file: tempfile::NamedTempFile,
 }
@@ -62,41 +62,36 @@ where
 
         Ok(DiskMapBuilder {
             tmp_file,
-            shard_sender: shard_writer.get_sender(),
             shard_writer,
             serialization,
         })
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Result<()> {
-        self.shard_sender.send(Entry { key, value })?;
+        self.shard_writer.get_sender().send(Entry { key, value })?;
         Ok(())
     }
 
     pub fn finish(mut self) -> Result<DiskMap<K, V>> {
         // Finish sorting
-        self.shard_sender.finished()?;
         self.shard_writer.finish()?;
         // Open sorted shard for reading
         let reader = ShardReader::<Entry<K, V>>::open(self.tmp_file.path())?;
         // Create the indexes by iterating over the sorted entries
-        let tmp_file = tempfile::NamedTempFile::new()?;
+        let mut tmp_file = tempfile::NamedTempFile::new()?;
         let mut table_builder = TableBuilder::new(sstable::Options::default(), tmp_file.as_file());
         for entry in reader.iter()? {
             let entry: Entry<K, V> = entry?;
 
-//            dbg!(&entry.key);
-            let serialized_key = self.serialization.serialize(&entry.key)?;
-//            dbg!(&serialized_key);
             table_builder.add(
-                &serialized_key,
+                &self.serialization.serialize(&entry.key)?,
                 &self.serialization.serialize(&entry.value)?,
             )?;
         }
         table_builder.finish()?;
+        tmp_file.flush()?;
 
         // Open the created index file as table
-        let tmp_file = tempfile::NamedTempFile::new()?;
         let table = Table::new_from_file(sstable::Options::default(), tmp_file.path())?;
         Ok(DiskMap {
             table,
