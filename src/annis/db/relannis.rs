@@ -15,6 +15,8 @@ use std::path::{Path, PathBuf};
 
 use rustc_hash::FxHashMap;
 
+mod index;
+
 #[derive(Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
 struct TextProperty {
     segmentation: String,

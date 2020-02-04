@@ -32,6 +32,7 @@ pub enum Error {
     Regex(::regex::Error),
     RandomGenerator(::rand::Error),
     RocksDB(rocksdb::Error),
+    Failure(failure::Compat<failure::Error>),
 }
 
 impl std::convert::From<std::io::Error> for Error {
@@ -88,6 +89,12 @@ impl std::convert::From<rocksdb::Error> for Error {
     }
 }
 
+impl std::convert::From<failure::Error> for Error {
+    fn from(e: failure::Error) -> Error {
+        Error::Failure(e.compat())
+    }
+}
+
 impl std::convert::From<&str> for Error {
     fn from(e: &str) -> Error {
         Error::Generic {
@@ -140,6 +147,7 @@ impl Display for Error {
             Error::Regex(e) => e.fmt(f),
             Error::RandomGenerator(e) => e.fmt(f),
             Error::RocksDB(e) => e.fmt(f),
+            Error::Failure(e) => e.fmt(f),
         }
     }
 }
@@ -168,6 +176,7 @@ impl StdError for Error {
             Error::Regex(e) => Some(e),
             Error::RandomGenerator(e) => Some(e),
             Error::RocksDB(e) => Some(e),
+            Error::Failure(e) => Some(e),
         }
     }
 }
