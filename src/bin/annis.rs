@@ -246,7 +246,7 @@ impl AnnisRunner {
             )?;
         let load_time = t_before.elapsed();
         if let Ok(t) = load_time {
-            info! {"Imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+            info! {"imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
         }
 
         Ok(())
