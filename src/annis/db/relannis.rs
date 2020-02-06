@@ -1037,7 +1037,7 @@ where
         rank_tab_path.to_str().unwrap_or_default()
     ));
 
-    let mut result_builder = index::LoadRankResultBuilder::new()?;
+    let mut load_rank_result = index::LoadRankResult::new();
 
     let mut rank_tab_csv = postgresql_import_reader(rank_tab_path.as_path())?;
 
@@ -1099,7 +1099,7 @@ where
                         target,
                     };
 
-                    result_builder.add_edge(pre, c.clone(), e)?;
+                    load_rank_result.add_edge(pre, c.clone(), e)?;
                 }
             }
         }
@@ -1107,7 +1107,8 @@ where
 
     updater.commit(Some(msg), progress_callback)?;
 
-    result_builder.finish()
+    load_rank_result.finish()?;
+    Ok(load_rank_result)
 }
 
 fn load_edge_annotation<F>(
