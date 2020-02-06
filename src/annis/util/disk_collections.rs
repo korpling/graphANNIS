@@ -6,6 +6,10 @@ use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 use std::io::Write;
 use std::ops::{Bound, RangeBounds};
 
+mod serializer;
+
+pub use serializer::KeySerializer;
+
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize, PartialOrd, Ord)]
 struct Entry<K, V>
 where
