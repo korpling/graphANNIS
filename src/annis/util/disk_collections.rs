@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::Write;
 use std::ops::{Bound, RangeBounds};
+use std::path::{Path, PathBuf};
 
 mod serializer;
 
@@ -101,10 +102,11 @@ where
         // Open the created index file as a single disk table
         let table = Table::new_from_file(sstable::Options::default(), tmp_file.path())?;
         Ok(DiskMap {
+            compaction_strategy: CompactionStrategy::MaximumElements(1_000_000),
+            path: None,
             c0: BTreeMap::default(),
             disk_tables: vec![table],
             serialization: self.serialization,
-            phantom: std::marker::PhantomData,
         })
     }
 }
@@ -114,10 +116,15 @@ where
     K: 'static + KeySerializer + Send,
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send,
 {
+    path: Option<PathBuf>,
+    compaction_strategy: CompactionStrategy,
     c0: BTreeMap<K, Option<V>>,
     disk_tables: Vec<Table>,
     serialization: bincode::Config,
-    phantom: std::marker::PhantomData<(K, V)>,
+}
+
+pub enum CompactionStrategy {
+    MaximumElements(usize),
 }
 
 impl<K, V> DiskMap<K, V>
@@ -126,14 +133,34 @@ where
     for<'de> V:
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
+    pub fn new(path: Option<&Path>, compaction_strategy: CompactionStrategy) -> DiskMap<K, V> {
+        let mut serialization = bincode::config();
+        serialization.big_endian();
+
+        DiskMap {
+            compaction_strategy,
+            path: path.map(|p| p.to_owned()),
+            c0: BTreeMap::default(),
+            disk_tables: Vec::default(),
+            serialization: serialization,
+        }
+    }
+
     pub fn insert(&mut self, key: K, value: V) -> Result<Option<V>> {
         let existing = self.get(&key)?;
         self.c0.insert(key, Some(value));
+
+        match self.compaction_strategy {
+            CompactionStrategy::MaximumElements(n) => {
+                if self.c0.len() > n {
+                    self.compact()?;
+                }
+            }
+        }
         Ok(existing)
-        // TODO: compact if capacity is reached
     }
 
-    pub fn remove(&mut self, key : &K) -> Result<Option<V>> {
+    pub fn remove(&mut self, key: &K) -> Result<Option<V>> {
         let existing = self.get(key)?;
         if existing.is_some() {
             // Add tombstone entry
