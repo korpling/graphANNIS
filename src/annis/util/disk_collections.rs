@@ -184,6 +184,8 @@ where
         })
     }
 
+    /// Merges two disk tables.
+    /// Newer entries overwrite older ones and tombstones for deleted entries are preserved.
     fn merge_disk_tables(&self, older: &Table, newer: &Table, file: &File) -> Result<()> {
         let mut builder = TableBuilder::new(sstable::Options::default(), file);
 
@@ -196,25 +198,16 @@ where
         while let (Some((k_older, v_older)), Some((k_newer, v_newer))) = (&item_older, &item_newer)
         {
             if k_older < k_newer {
-                // Add the value from the older table, but do not add a deleted entry
-                let parsed: Option<V> = self.serialization.deserialize(v_older)?;
-                if parsed.is_some() {
-                    builder.add(k_older, &v_older)?;
-                }
+                // Add the value from the older table
+                builder.add(k_older, &v_older)?;
                 item_older = it_older.next();
             } else if k_older > k_newer {
-                // Add the value from the newer table, but do not add a deleted entry
-                let parsed: Option<V> = self.serialization.deserialize(v_newer)?;
-                if parsed.is_some() {
-                    builder.add(k_newer, &v_newer)?;
-                }
+                // Add the value from the newer table
+                builder.add(k_newer, &v_newer)?;
                 item_newer = it_newer.next();
             } else {
-                // Use the newer values for the same keys, but check if the newer one is a deletion
-                let parsed: Option<V> = self.serialization.deserialize(v_newer)?;
-                if parsed.is_some() {
-                    builder.add(k_newer, &v_newer)?;
-                }
+                // Use the newer values for the same keys
+                builder.add(k_newer, &v_newer)?;
                 item_older = it_older.next();
                 item_newer = it_newer.next();
             }
@@ -225,6 +218,10 @@ where
         Ok(())
     }
 
+    /// Merges the in-memory map with a disk-based one.
+    /// Entries from the in-memory map overwrite the one from the disk.
+    /// Since tombstones entries for deleted entries are omitted, this function only works if the resulting table is the only
+    /// disk-based one left.
     fn merge_disk_with_c0(
         &self,
         older: &Table,
