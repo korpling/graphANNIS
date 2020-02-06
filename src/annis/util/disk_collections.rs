@@ -185,7 +185,7 @@ impl<K, V, R> Iterator for Range<K, V, R>
 where
     R: RangeBounds<K>,
     for<'de> K:
-        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
+        'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
     for<'de> V:
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
@@ -197,10 +197,7 @@ where
             let mut value = Vec::default();
 
             if self.table_it.current(&mut key, &mut value) {
-                let key = self
-                    .serialization
-                    .deserialize(&key)
-                    .expect("Could not decode previously written data from disk.");
+                let key = K::parse_key(&key);
                 if self.range.contains(&key) {
                     let value = self
                         .serialization
