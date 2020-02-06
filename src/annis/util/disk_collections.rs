@@ -4,6 +4,7 @@ use shardio::{ShardReader, ShardWriter};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 
 use std::collections::BTreeMap;
+use std::fs::File;
 use std::io::Write;
 use std::ops::{Bound, RangeBounds};
 
@@ -110,7 +111,7 @@ where
 
 pub struct DiskMap<K, V>
 where
-    for<'de> K: 'static + KeySerializer + Send,
+    K: 'static + KeySerializer + Send,
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send,
 {
     c0: BTreeMap<K, Option<V>>,
@@ -121,7 +122,7 @@ where
 
 impl<K, V> DiskMap<K, V>
 where
-    for<'de> K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
+    K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
     for<'de> V:
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
@@ -139,7 +140,7 @@ where
         let key: Vec<u8> = key.create_key();
         for table in self.disk_tables.iter() {
             if let Some(value) = table.get(&key)? {
-                let value : Option<V> = self.serialization.deserialize(&value)?;
+                let value: Option<V> = self.serialization.deserialize(&value)?;
                 if value.is_some() {
                     return Ok(value.clone());
                 } else {
@@ -196,6 +197,151 @@ where
             phantom: std::marker::PhantomData,
         })
     }
+
+    fn merge_disk_tables(&self, older: &Table, newer: &Table, file: &File) -> Result<()> {
+        let mut builder = TableBuilder::new(sstable::Options::default(), file);
+
+        let mut it_older = older.iter();
+        let mut it_newer = newer.iter();
+
+        let mut item_older = it_older.next();
+        let mut item_newer = it_newer.next();
+
+        while let (Some((k_older, v_older)), Some((k_newer, v_newer))) = (&item_older, &item_newer)
+        {
+            if k_older < k_newer {
+                // Add the value from the older table, but do not add a deleted entry
+                let parsed: Option<V> = self.serialization.deserialize(v_older)?;
+                if parsed.is_some() {
+                    builder.add(k_older, &v_older)?;
+                }
+                item_older = it_older.next();
+            } else if k_older > k_newer {
+                // Add the value from the newer table, but do not add a deleted entry
+                let parsed: Option<V> = self.serialization.deserialize(v_newer)?;
+                if parsed.is_some() {
+                    builder.add(k_newer, &v_newer)?;
+                }
+                item_newer = it_newer.next();
+            } else {
+                // Use the newer values for the same keys, but check if the newer one is a deletion
+                let parsed: Option<V> = self.serialization.deserialize(v_newer)?;
+                if parsed.is_some() {
+                    builder.add(k_newer, &v_newer)?;
+                }
+                item_older = it_older.next();
+                item_newer = it_newer.next();
+            }
+        }
+
+        builder.finish()?;
+
+        Ok(())
+    }
+
+    fn merge_disk_with_c0(
+        &self,
+        older: &Table,
+        newer: &BTreeMap<K, Option<V>>,
+        file: &File,
+    ) -> Result<()> {
+        let mut builder = TableBuilder::new(sstable::Options::default(), file);
+
+        let mut it_older = older.iter();
+        let mut it_newer = newer.into_iter();
+
+        let mut item_older = it_older.next();
+        let mut item_newer = it_newer.next();
+
+        while let (Some((k_older, v_older)), Some((k_newer, v_newer))) = (&item_older, item_newer) {
+            // Create the actual value for the disk key for comparision
+            let k_older_parsed = K::parse_key(k_older);
+            if &k_older_parsed < k_newer {
+                // Add the value from the older table, but do not add a deleted entry
+                let parsed: Option<V> = self.serialization.deserialize(v_older)?;
+                if parsed.is_some() {
+                    builder.add(k_older, &v_older)?;
+                }
+                item_older = it_older.next();
+            } else if &k_older_parsed > k_newer {
+                // Add the value from the newer table, but do not add a deleted entry
+                if v_newer.is_some() {
+                    let raw_key = k_newer.create_key();
+                    builder.add(&raw_key, &self.serialization.serialize(&v_newer)?)?;
+                }
+                item_newer = it_newer.next();
+            } else {
+                // Use the newer values for the same keys, but check if the newer one is a deletion
+                if v_newer.is_some() {
+                    let raw_key = k_newer.create_key();
+                    builder.add(&raw_key, &self.serialization.serialize(&v_newer)?)?;
+                }
+                item_older = it_older.next();
+                item_newer = it_newer.next();
+            }
+        }
+
+        builder.finish()?;
+
+        Ok(())
+    }
+
+    /// Compact the existing disk tables and the in-memory table to a single disk table.
+    pub fn compact(&mut self) -> Result<()> {
+        // Start from the end of disk tables and merge them pairwise into temporary tables
+        let mut older_optional = self.disk_tables.pop();
+        let mut newer_optional = self.disk_tables.pop();
+        let mut last_outfile = None;
+        while let (Some(older), Some(newer)) = (&older_optional, &newer_optional) {
+            let out_file = tempfile::NamedTempFile::new()?;
+            self.merge_disk_tables(older, newer, out_file.as_file())?;
+            // Re-Open as "older" table
+            older_optional = Some(Table::new_from_file(
+                sstable::Options::default(),
+                out_file.path(),
+            )?);
+            newer_optional = self.disk_tables.pop();
+            last_outfile = Some(out_file);
+        }
+
+        let table = if self.c0.is_empty() {
+            if let Some(last_outfile) = last_outfile {
+                // Skip merging C0 and use last table file directly
+                Table::new_from_file(sstable::Options::default(), last_outfile.path())?
+            } else {
+                // C0 is empty and there was no disk table: return new empty disk table
+                let out_file = tempfile::NamedTempFile::new()?;
+                let builder = TableBuilder::new(sstable::Options::default(), out_file.as_file());
+                builder.finish()?;
+                Table::new_from_file(sstable::Options::default(), out_file.path())?
+            }
+        } else if let Some(newer_optional) = newer_optional {
+            // merge C0 and disk-table into new disk table
+            let out_file = tempfile::NamedTempFile::new()?;
+            self.merge_disk_with_c0(&newer_optional, &self.c0, out_file.as_file())?;
+            Table::new_from_file(sstable::Options::default(), out_file.path())?
+        } else {
+            // C0 is non-empty but there is no existing disk: write out C0
+            let out_file = tempfile::NamedTempFile::new()?;
+            let mut builder = TableBuilder::new(sstable::Options::default(), out_file.as_file());
+
+            for (key, value) in self.c0.iter() {
+                // Don't write out deleted values
+                if value.is_some() {
+                    let key = key.create_key();
+                    builder.add(&key, &self.serialization.serialize(value)?)?;
+                }
+            }
+
+            builder.finish()?;
+            Table::new_from_file(sstable::Options::default(), out_file.path())?
+        };
+
+        self.c0.clear();
+        self.disk_tables = vec![table];
+
+        Ok(())
+    }
 }
 
 pub struct Range<'a, K, V, R>
@@ -220,7 +366,6 @@ where
     type Item = (K, V);
 
     fn next(&mut self) -> Option<(K, V)> {
-
         // TODO: how do we handle deleted values in range queries?
 
         // Try C0 first
