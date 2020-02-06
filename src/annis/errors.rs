@@ -42,6 +42,12 @@ impl std::convert::From<std::io::Error> for Error {
     }
 }
 
+impl std::convert::From<tempfile::PersistError> for Error {
+    fn from(e: tempfile::PersistError) -> Error {
+        Error::IO(e.error)
+    }
+}
+
 impl std::convert::From<::bincode::Error> for Error {
     fn from(e: ::bincode::Error) -> Error {
         Error::Bincode(e)
