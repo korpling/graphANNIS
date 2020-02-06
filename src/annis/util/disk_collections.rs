@@ -1,11 +1,9 @@
 use crate::annis::errors::*;
 use serde::{Deserialize, Serialize};
-use shardio::{ShardReader, ShardWriter};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 
 use std::collections::BTreeMap;
 use std::fs::File;
-use std::io::Write;
 use std::ops::{Bound, RangeBounds};
 use std::path::{Path, PathBuf};
 
@@ -23,94 +21,6 @@ where
     value: V,
 }
 
-pub struct DiskMapBuilder<K, V>
-where
-    for<'de> K: 'static
-        + Clone
-        + Eq
-        + PartialEq
-        + PartialOrd
-        + Ord
-        + KeySerializer
-        + Serialize
-        + Send
-        + core::fmt::Debug,
-    for<'de> V:
-        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
-{
-    shard_writer: ShardWriter<Entry<K, V>>,
-    serialization: bincode::Config,
-    tmp_file: tempfile::NamedTempFile,
-}
-
-impl<K, V> DiskMapBuilder<K, V>
-where
-    for<'de> K: 'static
-        + Clone
-        + Eq
-        + PartialEq
-        + PartialOrd
-        + Ord
-        + KeySerializer
-        + Serialize
-        + Deserialize<'de>
-        + Send
-        + core::fmt::Debug,
-    for<'de> V:
-        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
-{
-    pub fn new() -> Result<DiskMapBuilder<K, V>> {
-        let tmp_file = tempfile::NamedTempFile::new()?;
-
-        let shard_writer: ShardWriter<Entry<K, V>> =
-            ShardWriter::new(&tmp_file.path(), 64, 256, 1 << 16)?;
-
-        let mut serialization = bincode::config();
-        serialization.big_endian();
-
-        Ok(DiskMapBuilder {
-            tmp_file,
-            shard_writer,
-            serialization,
-        })
-    }
-
-    pub fn insert(&mut self, key: K, value: V) -> Result<()> {
-        self.shard_writer.get_sender().send(Entry { key, value })?;
-        Ok(())
-    }
-
-    pub fn finish(mut self) -> Result<DiskMap<K, V>> {
-        // Finish sorting
-        self.shard_writer.finish()?;
-        // Open sorted shard for reading
-        let reader = ShardReader::<Entry<K, V>>::open(self.tmp_file.path())?;
-        // Create the indexes by iterating over the sorted entries
-        let mut tmp_file = tempfile::NamedTempFile::new()?;
-        let mut table_builder = TableBuilder::new(sstable::Options::default(), tmp_file.as_file());
-        for entry in reader.iter()? {
-            let entry: Entry<K, V> = entry?;
-
-            table_builder.add(
-                &entry.key.create_key(),
-                &self.serialization.serialize(&Some(entry.value))?,
-            )?;
-        }
-        table_builder.finish()?;
-        tmp_file.flush()?;
-
-        // Open the created index file as a single disk table
-        let table = Table::new_from_file(sstable::Options::default(), tmp_file.path())?;
-        Ok(DiskMap {
-            compaction_strategy: CompactionStrategy::MaximumElements(1_000_000),
-            persistance_file: None,
-            c0: BTreeMap::default(),
-            disk_tables: vec![table],
-            serialization: self.serialization,
-        })
-    }
-}
-
 pub struct DiskMap<K, V>
 where
     K: 'static + KeySerializer + Send,
@@ -125,6 +35,12 @@ where
 
 pub enum CompactionStrategy {
     MaximumElements(usize),
+}
+
+impl Default for CompactionStrategy {
+    fn default() -> Self {
+        CompactionStrategy::MaximumElements(10_000)
+    }
 }
 
 impl<K, V> DiskMap<K, V>
@@ -418,6 +334,17 @@ where
     }
 }
 
+impl<K, V> Default for DiskMap<K, V>
+where
+    K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
+    for<'de> V:
+        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
+{
+    fn default() -> Self {
+        DiskMap::new(None, CompactionStrategy::default())
+    }
+}
+
 pub struct Range<'a, K, V, R>
 where
     R: RangeBounds<K>,
@@ -486,14 +413,13 @@ mod tests {
 
     #[test]
     fn test_range() {
-        let mut builder = DiskMapBuilder::new().unwrap();
-        builder.insert(0, true).unwrap();
-        builder.insert(1, true).unwrap();
-        builder.insert(2, true).unwrap();
-        builder.insert(3, true).unwrap();
-        builder.insert(4, true).unwrap();
-        builder.insert(5, true).unwrap();
-        let table = builder.finish().unwrap();
+        let mut table = DiskMap::new(None, CompactionStrategy::MaximumElements(3));
+        table.insert(0, true).unwrap();
+        table.insert(1, true).unwrap();
+        table.insert(2, true).unwrap();
+        table.insert(3, true).unwrap();
+        table.insert(4, true).unwrap();
+        table.insert(5, true).unwrap();
 
         // Start from beginning, exclusive end
         let result: Vec<(u8, bool)> = table.range(0..6).unwrap().collect();

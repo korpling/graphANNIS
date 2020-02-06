@@ -1,6 +1,6 @@
 use crate::annis::errors::*;
 use crate::annis::types::{Component, ComponentType, Edge, NodeID};
-use crate::annis::util::disk_collections::{DiskMap, DiskMapBuilder};
+use crate::annis::util::disk_collections::DiskMap;
 
 use std::ops::Bound::Included;
 
@@ -16,23 +16,23 @@ struct EdgeEntry {
     edge: Edge,
 }
 
-pub struct LoadRankResultBuilder {
-    components_by_pre: DiskMapBuilder<u32, Component>,
-    edges_by_pre: DiskMapBuilder<u32, Edge>,
-    text_coverage_edges: DiskMapBuilder<Edge, bool>,
+pub struct LoadRankResult {
+    components_by_pre: DiskMap<u32, Component>,
+    edges_by_pre: DiskMap<u32, Edge>,
+    text_coverage_edges: DiskMap<Edge, bool>,
 }
 
-impl LoadRankResultBuilder {
-    pub fn new() -> Result<LoadRankResultBuilder> {
-        let components_by_pre = DiskMapBuilder::new()?;
-        let edges_by_pre = DiskMapBuilder::new()?;
-        let text_coverage_edges = DiskMapBuilder::new()?;
+impl LoadRankResult {
+    pub fn new() -> LoadRankResult {
+        let components_by_pre = DiskMap::default();
+        let edges_by_pre = DiskMap::default();
+        let text_coverage_edges = DiskMap::default();
 
-        Ok(LoadRankResultBuilder {
+        LoadRankResult {
             components_by_pre,
             edges_by_pre,
             text_coverage_edges,
-        })
+        }
     }
 
     pub fn add_edge(&mut self, pre: u32, component: Component, edge: Edge) -> Result<()> {
@@ -44,28 +44,6 @@ impl LoadRankResultBuilder {
         self.edges_by_pre.insert(pre, edge)?;
         Ok(())
     }
-
-    pub fn finish(self) -> Result<LoadRankResult> {
-        info!("creating rank table index");
-
-        let components_by_pre = self.components_by_pre.finish()?;
-        let edges_by_pre = self.edges_by_pre.finish()?;
-        let text_coverage_edges = self.text_coverage_edges.finish()?;
-        Ok(LoadRankResult {
-            components_by_pre,
-            edges_by_pre,
-            text_coverage_edges,
-        })
-    }
-}
-
-pub struct LoadRankResult {
-    components_by_pre: DiskMap<u32, Component>,
-    edges_by_pre: DiskMap<u32, Edge>,
-    text_coverage_edges: DiskMap<Edge, bool>,
-}
-
-impl LoadRankResult {
     pub fn get_component_by_pre(&self, pre: u32) -> Result<Option<Component>> {
         self.components_by_pre.get(&pre)
     }
@@ -91,5 +69,14 @@ impl LoadRankResult {
         );
         let mut it = self.text_coverage_edges.range(nodes_with_same_source)?;
         Ok(it.next().is_some())
+    }
+
+    pub fn finish(&mut self) -> Result<()> {
+        info!("creating rank table index");
+
+        self.components_by_pre.compact()?;
+        self.edges_by_pre.compact()?;
+        self.text_coverage_edges.compact()?;
+        Ok(())
     }
 }
