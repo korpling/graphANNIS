@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use shardio::{ShardReader, ShardWriter};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 
+use std::collections::BTreeMap;
 use std::io::Write;
 use std::ops::{Bound, RangeBounds};
 
@@ -89,17 +90,18 @@ where
             let entry: Entry<K, V> = entry?;
 
             table_builder.add(
-                &self.serialization.serialize(&entry.key)?,
-                &self.serialization.serialize(&entry.value)?,
+                &entry.key.create_key(),
+                &self.serialization.serialize(&Some(entry.value))?,
             )?;
         }
         table_builder.finish()?;
         tmp_file.flush()?;
 
-        // Open the created index file as table
+        // Open the created index file as a single disk table
         let table = Table::new_from_file(sstable::Options::default(), tmp_file.path())?;
         Ok(DiskMap {
-            table,
+            c0: BTreeMap::default(),
+            disk_tables: vec![table],
             serialization: self.serialization,
             phantom: std::marker::PhantomData,
         })
@@ -111,7 +113,8 @@ where
     for<'de> K: 'static + KeySerializer + Send,
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send,
 {
-    table: Table,
+    c0: BTreeMap<K, Option<V>>,
+    disk_tables: Vec<Table>,
     serialization: bincode::Config,
     phantom: std::marker::PhantomData<(K, V)>,
 }
@@ -123,91 +126,120 @@ where
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
     pub fn get(&self, key: &K) -> Result<Option<V>> {
-        let key = key.clone().create_key();
-        if let Some(value) = self.table.get(&key)? {
-            let value = self.serialization.deserialize(&value)?;
-            Ok(Some(value))
-        } else {
-            Ok(None)
+        // Check C0 first
+        if let Some(value) = self.c0.get(&key) {
+            return Ok(value.clone());
         }
+        // Iterate over all disk-tables to find the entry
+        let key: Vec<u8> = key.create_key();
+        for table in self.disk_tables.iter() {
+            if let Some(value) = table.get(&key)? {
+                let value = self.serialization.deserialize(&value)?;
+                return Ok(Some(value));
+            }
+        }
+
+        Ok(None)
     }
 
     pub fn range<R>(&self, range: R) -> Result<Range<K, V, R>>
     where
-        R: RangeBounds<K>,
+        R: RangeBounds<K> + Clone,
     {
-        let mut table_it = self.table.iter();
+        let mut table_iterators: Vec<TableIterator> =
+            self.disk_tables.iter().map(|t| t.iter()).collect();
         match range.start_bound() {
             Bound::Included(start) => {
                 let start = start.create_key();
-                table_it.seek(&start);
+                for ti in table_iterators.iter_mut() {
+                    ti.seek(&start);
+                }
             }
             Bound::Excluded(start_bound) => {
                 let start = start_bound.create_key();
-                table_it.seek(&start);
                 let mut key: Vec<u8> = Vec::default();
                 let mut value = Vec::default();
 
-                if table_it.valid() && table_it.current(&mut key, &mut value) {
-                    let key = K::parse_key(&key);
-                    if key == *start_bound {
-                        // We need to exclude the first match
-                        table_it.advance();
+                for ti in table_iterators.iter_mut() {
+                    ti.seek(&start);
+                    if ti.valid() && ti.current(&mut key, &mut value) {
+                        let key = K::parse_key(&key);
+                        if key == *start_bound {
+                            // We need to exclude the first match
+                            ti.advance();
+                        }
                     }
                 }
             }
             Bound::Unbounded => {
-                table_it.seek_to_first();
+                table_iterators[0].seek_to_first();
             }
         };
         Ok(Range {
+            c0_range: self.c0.range(range.clone()),
             range,
-            table_it,
-            exhausted: false,
+            exhausted: std::iter::repeat(false)
+                .take(table_iterators.len())
+                .collect(),
+            table_iterators,
             serialization: self.serialization.clone(),
             phantom: std::marker::PhantomData,
         })
     }
 }
 
-pub struct Range<K, V, R>
+pub struct Range<'a, K, V, R>
 where
     R: RangeBounds<K>,
 {
     range: R,
-    table_it: TableIterator,
-    exhausted: bool,
+    c0_range: std::collections::btree_map::Range<'a, K, Option<V>>,
+    table_iterators: Vec<TableIterator>,
+    exhausted: Vec<bool>,
     serialization: bincode::Config,
     phantom: std::marker::PhantomData<(K, V)>,
 }
 
-impl<K, V, R> Iterator for Range<K, V, R>
+impl<'a, K, V, R> Iterator for Range<'a, K, V, R>
 where
     R: RangeBounds<K>,
-    for<'de> K:
-        'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
+    for<'de> K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
     for<'de> V:
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
     type Item = (K, V);
 
     fn next(&mut self) -> Option<(K, V)> {
-        if !self.exhausted && self.table_it.valid() {
-            let mut key = Vec::default();
-            let mut value = Vec::default();
+        // Try C0 first
+        if let Some((key, value)) = self.c0_range.next() {
+            if let Some(value) = value {
+                return Some((key.clone(), value.clone()));
+            }
+        }
 
-            if self.table_it.current(&mut key, &mut value) {
-                let key = K::parse_key(&key);
-                if self.range.contains(&key) {
-                    let value = self
-                        .serialization
-                        .deserialize(&value)
-                        .expect("Could not decode previously written data from disk.");
+        // Iterate over all disk tables
+        for i in 0..self.table_iterators.len() {
+            let exhausted = &mut self.exhausted[i];
+            let table_it = &mut self.table_iterators[i];
 
-                    self.table_it.advance();
-                    return Some((key, value));
-                } else {
-                    self.exhausted = true;
+            if *exhausted == false && table_it.valid() {
+                let mut key = Vec::default();
+                let mut value = Vec::default();
+                if table_it.current(&mut key, &mut value) {
+                    let key = K::parse_key(&key);
+                    if self.range.contains(&key) {
+                        let value: Option<V> = self
+                            .serialization
+                            .deserialize(&value)
+                            .expect("Could not decode previously written data from disk.");
+                        table_it.advance();
+
+                        if let Some(value) = value {
+                            return Some((key, value));
+                        }
+                    } else {
+                        *exhausted = true;
+                    }
                 }
             }
         }
