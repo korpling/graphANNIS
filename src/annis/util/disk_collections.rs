@@ -103,7 +103,7 @@ where
         let table = Table::new_from_file(sstable::Options::default(), tmp_file.path())?;
         Ok(DiskMap {
             compaction_strategy: CompactionStrategy::MaximumElements(1_000_000),
-            path: None,
+            persistance_file: None,
             c0: BTreeMap::default(),
             disk_tables: vec![table],
             serialization: self.serialization,
@@ -116,7 +116,7 @@ where
     K: 'static + KeySerializer + Send,
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send,
 {
-    path: Option<PathBuf>,
+    persistance_file: Option<PathBuf>,
     compaction_strategy: CompactionStrategy,
     c0: BTreeMap<K, Option<V>>,
     disk_tables: Vec<Table>,
@@ -133,13 +133,16 @@ where
     for<'de> V:
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
-    pub fn new(path: Option<&Path>, compaction_strategy: CompactionStrategy) -> DiskMap<K, V> {
+    pub fn new(
+        persistance_file: Option<&Path>,
+        compaction_strategy: CompactionStrategy,
+    ) -> DiskMap<K, V> {
         let mut serialization = bincode::config();
         serialization.big_endian();
 
         DiskMap {
             compaction_strategy,
-            path: path.map(|p| p.to_owned()),
+            persistance_file: persistance_file.map(|p| p.to_owned()),
             c0: BTreeMap::default(),
             disk_tables: Vec::default(),
             serialization: serialization,
@@ -355,19 +358,36 @@ where
         let table = if self.c0.is_empty() {
             if let Some(last_outfile) = last_outfile {
                 // Skip merging C0 and use last table file directly
-                Table::new_from_file(sstable::Options::default(), last_outfile.path())?
+                if let Some(persistance_file) = &self.persistance_file {
+                    last_outfile.persist(persistance_file)?;
+                    Table::new_from_file(sstable::Options::default(), persistance_file)?
+                } else {
+                    Table::new_from_file(sstable::Options::default(), last_outfile.path())?
+                }
             } else {
                 // C0 is empty and there was no disk table: return new empty disk table
                 let out_file = tempfile::NamedTempFile::new()?;
                 let builder = TableBuilder::new(sstable::Options::default(), out_file.as_file());
                 builder.finish()?;
-                Table::new_from_file(sstable::Options::default(), out_file.path())?
+
+                if let Some(persistance_file) = &self.persistance_file {
+                    out_file.persist(persistance_file)?;
+                    Table::new_from_file(sstable::Options::default(), persistance_file)?
+                } else {
+                    Table::new_from_file(sstable::Options::default(), out_file.path())?
+                }
             }
         } else if let Some(newer_optional) = newer_optional {
             // merge C0 and disk-table into new disk table
             let out_file = tempfile::NamedTempFile::new()?;
             self.merge_disk_with_c0(&newer_optional, &self.c0, out_file.as_file())?;
-            Table::new_from_file(sstable::Options::default(), out_file.path())?
+
+            if let Some(persistance_file) = &self.persistance_file {
+                out_file.persist(persistance_file)?;
+                Table::new_from_file(sstable::Options::default(), persistance_file)?
+            } else {
+                Table::new_from_file(sstable::Options::default(), out_file.path())?
+            }
         } else {
             // C0 is non-empty but there is no existing disk: write out C0
             let out_file = tempfile::NamedTempFile::new()?;
@@ -382,7 +402,13 @@ where
             }
 
             builder.finish()?;
-            Table::new_from_file(sstable::Options::default(), out_file.path())?
+
+            if let Some(persistance_file) = &self.persistance_file {
+                out_file.persist(persistance_file)?;
+                Table::new_from_file(sstable::Options::default(), persistance_file)?
+            } else {
+                Table::new_from_file(sstable::Options::default(), out_file.path())?
+            }
         };
 
         self.c0.clear();
