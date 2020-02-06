@@ -28,8 +28,8 @@ where
         + PartialEq
         + PartialOrd
         + Ord
+        + KeySerializer
         + Serialize
-        + Deserialize<'de>
         + Send
         + core::fmt::Debug,
     for<'de> V:
@@ -48,6 +48,7 @@ where
         + PartialEq
         + PartialOrd
         + Ord
+        + KeySerializer
         + Serialize
         + Deserialize<'de>
         + Send
@@ -107,7 +108,7 @@ where
 
 pub struct DiskMap<K, V>
 where
-    for<'de> K: 'static + Serialize + Deserialize<'de> + Send,
+    for<'de> K: 'static + KeySerializer + Send,
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send,
 {
     table: Table,
@@ -117,13 +118,12 @@ where
 
 impl<K, V> DiskMap<K, V>
 where
-    for<'de> K:
-        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
+    for<'de> K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
     for<'de> V:
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
     pub fn get(&self, key: &K) -> Result<Option<V>> {
-        let key = self.serialization.serialize(key)?;
+        let key = key.clone().create_key();
         if let Some(value) = self.table.get(&key)? {
             let value = self.serialization.deserialize(&value)?;
             Ok(Some(value))
@@ -139,20 +139,17 @@ where
         let mut table_it = self.table.iter();
         match range.start_bound() {
             Bound::Included(start) => {
-                let start = self.serialization.serialize(start)?;
+                let start = start.create_key();
                 table_it.seek(&start);
             }
             Bound::Excluded(start_bound) => {
-                let start = self.serialization.serialize(start_bound)?;
+                let start = start_bound.create_key();
                 table_it.seek(&start);
-                let mut key = Vec::default();
+                let mut key: Vec<u8> = Vec::default();
                 let mut value = Vec::default();
 
                 if table_it.valid() && table_it.current(&mut key, &mut value) {
-                    let key: K = self
-                        .serialization
-                        .deserialize(&key)
-                        .expect("Could not decode previously written data from disk.");
+                    let key = K::parse_key(&key);
                     if key == *start_bound {
                         // We need to exclude the first match
                         table_it.advance();

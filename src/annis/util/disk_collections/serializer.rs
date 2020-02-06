@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 pub trait KeySerializer {
-    fn create_key(self) -> Vec<u8>;
+    fn create_key(&self) -> Vec<u8>;
     fn parse_key(key: &[u8]) -> Self
     where
         Self: std::marker::Sized;
@@ -10,8 +10,8 @@ pub trait KeySerializer {
 const PANIC_MESSAGE_SIZE: &str = "Key data must fullfill minimal size for type";
 
 impl KeySerializer for Vec<u8> {
-    fn create_key(self) -> Vec<u8> {
-        self
+    fn create_key(&self) -> Vec<u8> {
+        self.clone()
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -20,7 +20,7 @@ impl KeySerializer for Vec<u8> {
 }
 
 impl KeySerializer for u8 {
-    fn create_key(self) -> Vec<u8> {
+    fn create_key(&self) -> Vec<u8> {
         self.to_be_bytes().iter().cloned().collect()
     }
 
@@ -34,7 +34,7 @@ impl KeySerializer for u8 {
 }
 
 impl KeySerializer for u16 {
-    fn create_key(self) -> Vec<u8> {
+    fn create_key(&self) -> Vec<u8> {
         self.to_be_bytes().iter().cloned().collect()
     }
 
@@ -48,7 +48,7 @@ impl KeySerializer for u16 {
 }
 
 impl KeySerializer for u32 {
-    fn create_key(self) -> Vec<u8> {
+    fn create_key(&self) -> Vec<u8> {
         self.to_be_bytes().iter().cloned().collect()
     }
 
@@ -62,7 +62,7 @@ impl KeySerializer for u32 {
 }
 
 impl KeySerializer for u64 {
-    fn create_key(self) -> Vec<u8> {
+    fn create_key(&self) -> Vec<u8> {
         self.to_be_bytes().iter().cloned().collect()
     }
 
@@ -76,7 +76,7 @@ impl KeySerializer for u64 {
 }
 
 impl KeySerializer for u128 {
-    fn create_key(self) -> Vec<u8> {
+    fn create_key(&self) -> Vec<u8> {
         self.to_be_bytes().iter().cloned().collect()
     }
 
@@ -90,7 +90,7 @@ impl KeySerializer for u128 {
 }
 
 impl KeySerializer for i8 {
-    fn create_key(self) -> Vec<u8> {
+    fn create_key(&self) -> Vec<u8> {
         self.to_be_bytes().iter().cloned().collect()
     }
 
@@ -104,7 +104,7 @@ impl KeySerializer for i8 {
 }
 
 impl KeySerializer for i16 {
-    fn create_key(self) -> Vec<u8> {
+    fn create_key(&self) -> Vec<u8> {
         self.to_be_bytes().iter().cloned().collect()
     }
 
@@ -118,7 +118,7 @@ impl KeySerializer for i16 {
 }
 
 impl KeySerializer for i32 {
-    fn create_key(self) -> Vec<u8> {
+    fn create_key(&self) -> Vec<u8> {
         self.to_be_bytes().iter().cloned().collect()
     }
 
@@ -132,7 +132,7 @@ impl KeySerializer for i32 {
 }
 
 impl KeySerializer for i64 {
-    fn create_key(self) -> Vec<u8> {
+    fn create_key(&self) -> Vec<u8> {
         self.to_be_bytes().iter().cloned().collect()
     }
 
@@ -146,7 +146,7 @@ impl KeySerializer for i64 {
 }
 
 impl KeySerializer for i128 {
-    fn create_key(self) -> Vec<u8> {
+    fn create_key(&self) -> Vec<u8> {
         self.to_be_bytes().iter().cloned().collect()
     }
 
