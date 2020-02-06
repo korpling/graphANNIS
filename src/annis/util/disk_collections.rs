@@ -27,19 +27,19 @@ where
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send,
 {
     persistance_file: Option<PathBuf>,
-    compaction_strategy: CompactionStrategy,
+    eviction_strategy: EvictionStrategy,
     c0: BTreeMap<K, Option<V>>,
     disk_tables: Vec<Table>,
     serialization: bincode::Config,
 }
 
-pub enum CompactionStrategy {
-    MaximumElements(usize),
+pub enum EvictionStrategy {
+    MaximumItems(usize),
 }
 
-impl Default for CompactionStrategy {
+impl Default for EvictionStrategy {
     fn default() -> Self {
-        CompactionStrategy::MaximumElements(10_000)
+        EvictionStrategy::MaximumItems(1024)
     }
 }
 
@@ -51,13 +51,13 @@ where
 {
     pub fn new(
         persistance_file: Option<&Path>,
-        compaction_strategy: CompactionStrategy,
+        eviction_strategy: EvictionStrategy,
     ) -> DiskMap<K, V> {
         let mut serialization = bincode::config();
         serialization.big_endian();
 
         DiskMap {
-            compaction_strategy,
+            eviction_strategy,
             persistance_file: persistance_file.map(|p| p.to_owned()),
             c0: BTreeMap::default(),
             disk_tables: Vec::default(),
@@ -69,14 +69,33 @@ where
         let existing = self.get(&key)?;
         self.c0.insert(key, Some(value));
 
-        match self.compaction_strategy {
-            CompactionStrategy::MaximumElements(n) => {
+        match self.eviction_strategy {
+            EvictionStrategy::MaximumItems(n) => {
                 if self.c0.len() > n {
-                    self.compact()?;
+                    self.evict_c0()?;
                 }
             }
         }
         Ok(existing)
+    }
+
+    fn evict_c0(&mut self) -> Result<tempfile::NamedTempFile> {
+        let out_file = tempfile::NamedTempFile::new()?;
+        let mut builder = TableBuilder::new(sstable::Options::default(), out_file.as_file());
+
+        for (key, value) in self.c0.iter() {
+            let key = key.create_key();
+            builder.add(&key, &self.serialization.serialize(value)?)?;
+        }
+        builder.finish()?;
+
+        let table = Table::new_from_file(sstable::Options::default(), out_file.path())?;
+
+        self.disk_tables.push(table);
+
+        self.c0.clear();
+
+        Ok(out_file)
     }
 
     pub fn remove(&mut self, key: &K) -> Result<Option<V>> {
@@ -105,7 +124,7 @@ where
         }
         // Iterate over all disk-tables to find the entry
         let key: Vec<u8> = key.create_key();
-        for table in self.disk_tables.iter() {
+        for table in self.disk_tables.iter().rev() {
             if let Some(value) = table.get(&key)? {
                 let value: Option<V> = self.serialization.deserialize(&value)?;
                 if value.is_some() {
@@ -125,7 +144,7 @@ where
         R: RangeBounds<K> + Clone,
     {
         let mut table_iterators: Vec<TableIterator> =
-            self.disk_tables.iter().map(|t| t.iter()).collect();
+            self.disk_tables.iter().rev().map(|t| t.iter()).collect();
         match range.start_bound() {
             Bound::Included(start) => {
                 let start = start.create_key();
@@ -255,7 +274,10 @@ where
 
     /// Compact the existing disk tables and the in-memory table to a single disk table.
     pub fn compact(&mut self) -> Result<()> {
-        // Start from the end of disk tables and merge them pairwise into temporary tables
+        // Newer entries are always appended to the end, to make it easier to pop entries reverse the vector.
+        // At the end of the compaction, there is always at most one entry left which is the single most current entry.
+        self.disk_tables.reverse();
+        // Start from the end of disk tables (now containing the older entries) and merge them pairwise into temporary tables
         let mut older_optional = self.disk_tables.pop();
         let mut newer_optional = self.disk_tables.pop();
         let mut last_outfile = None;
@@ -306,19 +328,7 @@ where
             }
         } else {
             // C0 is non-empty but there is no existing disk: write out C0
-            let out_file = tempfile::NamedTempFile::new()?;
-            let mut builder = TableBuilder::new(sstable::Options::default(), out_file.as_file());
-
-            for (key, value) in self.c0.iter() {
-                // Don't write out deleted values
-                if value.is_some() {
-                    let key = key.create_key();
-                    builder.add(&key, &self.serialization.serialize(value)?)?;
-                }
-            }
-
-            builder.finish()?;
-
+            let out_file = self.evict_c0()?;
             if let Some(persistance_file) = &self.persistance_file {
                 out_file.persist(persistance_file)?;
                 Table::new_from_file(sstable::Options::default(), persistance_file)?
@@ -341,7 +351,7 @@ where
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
     fn default() -> Self {
-        DiskMap::new(None, CompactionStrategy::default())
+        DiskMap::new(None, EvictionStrategy::default())
     }
 }
 
@@ -413,7 +423,7 @@ mod tests {
 
     #[test]
     fn test_range() {
-        let mut table = DiskMap::new(None, CompactionStrategy::MaximumElements(3));
+        let mut table = DiskMap::new(None, EvictionStrategy::MaximumItems(3));
         table.insert(0, true).unwrap();
         table.insert(1, true).unwrap();
         table.insert(2, true).unwrap();
