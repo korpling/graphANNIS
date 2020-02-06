@@ -128,14 +128,24 @@ where
     pub fn get(&self, key: &K) -> Result<Option<V>> {
         // Check C0 first
         if let Some(value) = self.c0.get(&key) {
-            return Ok(value.clone());
+            if value.is_some() {
+                return Ok(value.clone());
+            } else {
+                // Value was explicitly deleted, do not query the disk tables
+                return Ok(None);
+            }
         }
         // Iterate over all disk-tables to find the entry
         let key: Vec<u8> = key.create_key();
         for table in self.disk_tables.iter() {
             if let Some(value) = table.get(&key)? {
-                let value = self.serialization.deserialize(&value)?;
-                return Ok(Some(value));
+                let value : Option<V> = self.serialization.deserialize(&value)?;
+                if value.is_some() {
+                    return Ok(value.clone());
+                } else {
+                    // Value was explicitly deleted, do not query the rest of the disk tables
+                    return Ok(None);
+                }
             }
         }
 
@@ -210,6 +220,9 @@ where
     type Item = (K, V);
 
     fn next(&mut self) -> Option<(K, V)> {
+
+        // TODO: how do we handle deleted values in range queries?
+
         // Try C0 first
         if let Some((key, value)) = self.c0_range.next() {
             if let Some(value) = value {
