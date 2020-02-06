@@ -126,6 +126,27 @@ where
     for<'de> V:
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
+    pub fn insert(&mut self, key: K, value: V) -> Result<Option<V>> {
+        let existing = self.get(&key)?;
+        self.c0.insert(key, Some(value));
+        Ok(existing)
+        // TODO: compact if capacity is reached
+    }
+
+    pub fn remove(&mut self, key : &K) -> Result<Option<V>> {
+        let existing = self.get(key)?;
+        if existing.is_some() {
+            // Add tombstone entry
+            self.c0.insert(key.clone(), None);
+        }
+        Ok(existing)
+    }
+
+    pub fn clear(&mut self) {
+        self.c0.clear();
+        self.disk_tables.clear();
+    }
+
     pub fn get(&self, key: &K) -> Result<Option<V>> {
         // Check C0 first
         if let Some(value) = self.c0.get(&key) {
