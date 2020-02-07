@@ -21,16 +21,15 @@ where
     value: V,
 }
 
-pub struct DiskMap<K, V>
-where
-    K: 'static + KeySerializer + Send,
-    for<'de> V: 'static + Serialize + Deserialize<'de> + Send,
-{
-    persistance_file: Option<PathBuf>,
-    eviction_strategy: EvictionStrategy,
-    c0: BTreeMap<K, Option<V>>,
-    disk_tables: Vec<Table>,
-    serialization: bincode::Config,
+enum TableEntry {
+    Temporary {
+        table: Table,
+        tmp_file: tempfile::NamedTempFile,
+    },
+    Persistant {
+        table: Table,
+        path: PathBuf,
+    },
 }
 
 pub enum EvictionStrategy {
@@ -43,6 +42,19 @@ impl Default for EvictionStrategy {
     }
 }
 
+pub struct DiskMap<K, V>
+where
+    K: 'static + KeySerializer + Send,
+    for<'de> V: 'static + Serialize + Deserialize<'de> + Send,
+{
+    persistance_file: Option<PathBuf>,
+    eviction_strategy: EvictionStrategy,
+    c0: BTreeMap<K, Option<V>>,
+    disk_tables: Vec<TableEntry>,
+    serialization: bincode::Config,
+    table_opts: sstable::Options,
+}
+
 impl<K, V> DiskMap<K, V>
 where
     K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
@@ -52,17 +64,31 @@ where
     pub fn new(
         persistance_file: Option<&Path>,
         eviction_strategy: EvictionStrategy,
-    ) -> DiskMap<K, V> {
+    ) -> Result<DiskMap<K, V>> {
         let mut serialization = bincode::config();
         serialization.big_endian();
 
-        DiskMap {
+        let table_opts = sstable::Options::default();
+
+        let mut disk_tables = Vec::default();
+
+        if let Some(persistance_file) = persistance_file {
+            // Use existing file as read-only table which contains the whole map
+            let table = Table::new_from_file(table_opts.clone(), persistance_file)?;
+            disk_tables.push(TableEntry::Persistant {
+                table,
+                path: persistance_file.to_owned(),
+            });
+        }
+
+        Ok(DiskMap {
             eviction_strategy,
             persistance_file: persistance_file.map(|p| p.to_owned()),
             c0: BTreeMap::default(),
             disk_tables: Vec::default(),
             serialization: serialization,
-        }
+            table_opts,
+        })
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Result<Option<V>> {
@@ -72,30 +98,37 @@ where
         match self.eviction_strategy {
             EvictionStrategy::MaximumItems(n) => {
                 if self.c0.len() > n {
-                    self.evict_c0()?;
+                    self.evict_c0(true)?;
                 }
             }
         }
         Ok(existing)
     }
 
-    fn evict_c0(&mut self) -> Result<tempfile::NamedTempFile> {
+    fn evict_c0(&mut self, write_deleted: bool) -> Result<()> {
         let out_file = tempfile::NamedTempFile::new()?;
-        let mut builder = TableBuilder::new(sstable::Options::default(), out_file.as_file());
+        {
+            let mut builder = TableBuilder::new(self.table_opts.clone(), out_file.as_file());
 
-        for (key, value) in self.c0.iter() {
-            let key = key.create_key();
-            builder.add(&key, &self.serialization.serialize(value)?)?;
+            for (key, value) in self.c0.iter() {
+                let key = key.create_key();
+                if write_deleted || value.is_some() {
+                    builder.add(&key, &self.serialization.serialize(value)?)?;
+                }
+            }
+            builder.finish()?;
         }
-        builder.finish()?;
 
-        let table = Table::new_from_file(sstable::Options::default(), out_file.path())?;
+        let table = Table::new_from_file(self.table_opts.clone(), out_file.path())?;
 
-        self.disk_tables.push(table);
+        self.disk_tables.push(TableEntry::Temporary {
+            table,
+            tmp_file: out_file,
+        });
 
         self.c0.clear();
 
-        Ok(out_file)
+        Ok(())
     }
 
     pub fn remove(&mut self, key: &K) -> Result<Option<V>> {
@@ -124,14 +157,18 @@ where
         }
         // Iterate over all disk-tables to find the entry
         let key: Vec<u8> = key.create_key();
-        for table in self.disk_tables.iter().rev() {
-            if let Some(value) = table.get(&key)? {
-                let value: Option<V> = self.serialization.deserialize(&value)?;
-                if value.is_some() {
-                    return Ok(value.clone());
-                } else {
-                    // Value was explicitly deleted, do not query the rest of the disk tables
-                    return Ok(None);
+        for table_entry in self.disk_tables.iter().rev() {
+            match table_entry {
+                TableEntry::Temporary { table, .. } | TableEntry::Persistant { table, .. } => {
+                    if let Some(value) = table.get(&key)? {
+                        let value: Option<V> = self.serialization.deserialize(&value)?;
+                        if value.is_some() {
+                            return Ok(value.clone());
+                        } else {
+                            // Value was explicitly deleted, do not query the rest of the disk tables
+                            return Ok(None);
+                        }
+                    }
                 }
             }
         }
@@ -143,8 +180,16 @@ where
     where
         R: RangeBounds<K> + Clone,
     {
-        let mut table_iterators: Vec<TableIterator> =
-            self.disk_tables.iter().rev().map(|t| t.iter()).collect();
+        let mut table_iterators: Vec<TableIterator> = self
+            .disk_tables
+            .iter()
+            .rev()
+            .map(|entry| match entry {
+                TableEntry::Temporary { table, .. } | TableEntry::Persistant { table, .. } => {
+                    table.iter()
+                }
+            })
+            .collect();
         match range.start_bound() {
             Bound::Included(start) => {
                 let start = start.create_key();
@@ -185,12 +230,28 @@ where
     }
 
     /// Merges two disk tables.
-    /// Newer entries overwrite older ones and tombstones for deleted entries are preserved.
-    fn merge_disk_tables(&self, older: &Table, newer: &Table, file: &File) -> Result<()> {
-        let mut builder = TableBuilder::new(sstable::Options::default(), file);
+    /// Newer entries overwrite older ones from the base table.
+    ///
+    /// - `write_deleted` - If `true`, tombstones for deleted entries are preserved and written to disk
+    fn merge_disk_tables(
+        &self,
+        older: &TableEntry,
+        newer: &TableEntry,
+        file: &File,
+        write_deleted: bool,
+    ) -> Result<()> {
+        let mut builder = TableBuilder::new(self.table_opts.clone(), file);
 
-        let mut it_older = older.iter();
-        let mut it_newer = newer.iter();
+        let mut it_older = match older {
+            TableEntry::Temporary { table, .. } | TableEntry::Persistant { table, .. } => {
+                table.iter()
+            }
+        };
+        let mut it_newer = match newer {
+            TableEntry::Temporary { table, .. } | TableEntry::Persistant { table, .. } => {
+                table.iter()
+            }
+        };
 
         let mut item_older = it_older.next();
         let mut item_newer = it_newer.next();
@@ -199,65 +260,35 @@ where
         {
             if k_older < k_newer {
                 // Add the value from the older table
-                builder.add(k_older, &v_older)?;
+                if write_deleted {
+                    builder.add(k_older, &v_older)?;
+                } else {
+                    let parsed: Option<V> = self.serialization.deserialize(&v_older)?;
+                    if parsed.is_some() {
+                        builder.add(k_older, &v_older)?;
+                    }
+                }
                 item_older = it_older.next();
             } else if k_older > k_newer {
                 // Add the value from the newer table
-                builder.add(k_newer, &v_newer)?;
+                if write_deleted {
+                    builder.add(k_newer, &v_newer)?;
+                } else {
+                    let parsed: Option<V> = self.serialization.deserialize(&v_newer)?;
+                    if parsed.is_some() {
+                        builder.add(k_newer, &v_newer)?;
+                    }
+                }
                 item_newer = it_newer.next();
             } else {
                 // Use the newer values for the same keys
-                builder.add(k_newer, &v_newer)?;
-                item_older = it_older.next();
-                item_newer = it_newer.next();
-            }
-        }
-
-        builder.finish()?;
-
-        Ok(())
-    }
-
-    /// Merges the in-memory map with a disk-based one.
-    /// Entries from the in-memory map overwrite the one from the disk.
-    /// Since tombstones entries for deleted entries are omitted, this function only works if the resulting table is the only
-    /// disk-based one left.
-    fn merge_disk_with_c0(
-        &self,
-        older: &Table,
-        newer: &BTreeMap<K, Option<V>>,
-        file: &File,
-    ) -> Result<()> {
-        let mut builder = TableBuilder::new(sstable::Options::default(), file);
-
-        let mut it_older = older.iter();
-        let mut it_newer = newer.into_iter();
-
-        let mut item_older = it_older.next();
-        let mut item_newer = it_newer.next();
-
-        while let (Some((k_older, v_older)), Some((k_newer, v_newer))) = (&item_older, item_newer) {
-            // Create the actual value for the disk key for comparision
-            let k_older_parsed = K::parse_key(k_older);
-            if &k_older_parsed < k_newer {
-                // Add the value from the older table, but do not add a deleted entry
-                let parsed: Option<V> = self.serialization.deserialize(v_older)?;
-                if parsed.is_some() {
-                    builder.add(k_older, &v_older)?;
-                }
-                item_older = it_older.next();
-            } else if &k_older_parsed > k_newer {
-                // Add the value from the newer table, but do not add a deleted entry
-                if v_newer.is_some() {
-                    let raw_key = k_newer.create_key();
-                    builder.add(&raw_key, &self.serialization.serialize(&v_newer)?)?;
-                }
-                item_newer = it_newer.next();
-            } else {
-                // Use the newer values for the same keys, but check if the newer one is a deletion
-                if v_newer.is_some() {
-                    let raw_key = k_newer.create_key();
-                    builder.add(&raw_key, &self.serialization.serialize(&v_newer)?)?;
+                if write_deleted {
+                    builder.add(k_newer, &v_newer)?;
+                } else {
+                    let parsed: Option<V> = self.serialization.deserialize(&v_newer)?;
+                    if parsed.is_some() {
+                        builder.add(k_newer, &v_newer)?;
+                    }
                 }
                 item_older = it_older.next();
                 item_newer = it_newer.next();
@@ -270,72 +301,74 @@ where
     }
 
     /// Compact the existing disk tables and the in-memory table to a single disk table.
+    /// If the map has a persistance file set, affter calling this function the persistance
+    /// file will contain the complete content of the map.
     pub fn compact(&mut self) -> Result<()> {
-        // Newer entries are always appended to the end, to make it easier to pop entries reverse the vector.
-        // At the end of the compaction, there is always at most one entry left which is the single most current entry.
-        self.disk_tables.reverse();
-        // Start from the end of disk tables (now containing the older entries) and merge them pairwise into temporary tables
-        let mut older_optional = self.disk_tables.pop();
-        let mut newer_optional = self.disk_tables.pop();
-        let mut last_outfile = None;
-        while let (Some(older), Some(newer)) = (&older_optional, &newer_optional) {
-            let out_file = tempfile::NamedTempFile::new()?;
-            self.merge_disk_tables(older, newer, out_file.as_file())?;
-            // Re-Open as "older" table
-            older_optional = Some(Table::new_from_file(
-                sstable::Options::default(),
-                out_file.path(),
-            )?);
-            newer_optional = self.disk_tables.pop();
-            last_outfile = Some(out_file);
+        // Make sure all entries of C0 are written to disk.
+        // Ommit all deleted entries if this becomes the only, and therefore complete, disk table
+        if !self.c0.is_empty() {
+            self.evict_c0(!self.disk_tables.is_empty())?;
         }
 
-        let table = if self.c0.is_empty() {
-            if let Some(last_outfile) = last_outfile {
-                // Skip merging C0 and use last table file directly
-                if let Some(persistance_file) = &self.persistance_file {
-                    last_outfile.persist(persistance_file)?;
-                    Table::new_from_file(sstable::Options::default(), persistance_file)?
-                } else {
-                    Table::new_from_file(sstable::Options::default(), last_outfile.path())?
+        // More recent entries are always appended to the end.
+        // To make it easier to pop entries we are reversing the vector once, so calling "pop" will always return
+        // the oldest entry.
+        // We don't need to reverse again after the compaction, because there will be only at most one entry left.
+        self.disk_tables.reverse();
+
+        // Start from the end of disk tables (now containing the older entries) and merge them pairwise into temporary tables
+        let mut base_optional = self.disk_tables.pop();
+        let mut newer_optional = self.disk_tables.pop();
+        while let (Some(base), Some(newer)) = (&base_optional, &newer_optional) {
+            let tmp_file = tempfile::NamedTempFile::new()?;
+
+            // When merging the last two tables, prune the deleted entries
+            let write_deleted = !self.disk_tables.is_empty();
+
+            self.merge_disk_tables(base, newer, tmp_file.as_file(), write_deleted)?;
+            // Re-Open created table as "older" table
+            let table = Table::new_from_file(self.table_opts.clone(), tmp_file.path())?;
+            base_optional = Some(TableEntry::Temporary { table, tmp_file });
+            // Prepare merging with the next younger table from the log
+            newer_optional = self.disk_tables.pop();
+        }
+
+        // After evicting C0 and merging all tables, a single disk-table should have been created.
+        // Check if we need to persist this table to an external location.
+        if let Some(persistance_file) = &self.persistance_file {
+            if let Some(table_entry) = base_optional {
+                match table_entry {
+                    TableEntry::Temporary { tmp_file, .. } => {
+                        tmp_file.persist(persistance_file)?;
+                    }
+                    TableEntry::Persistant { .. } => {
+                        // Do nothing.
+                        // Persistant table entries are only added in the constructor of the map.
+                        // If any change happend, this would lead to changes in C0 and the construction of a new
+                        // temporary file table when the immutable persistant table and the one created from C0 are merged.
+                        // Since the persistance file path can't be changed after construction, we can safely assume
+                        // that the content of the map and the one of the persistant file are the same.
+                    }
                 }
             } else {
-                // C0 is empty and there was no disk table: return new empty disk table
-                let out_file = tempfile::NamedTempFile::new()?;
-                let builder = TableBuilder::new(sstable::Options::default(), out_file.as_file());
+                // Create and persist a new empty table
+                let file = File::create(&persistance_file)?;
+                let builder = TableBuilder::new(self.table_opts.clone(), file);
                 builder.finish()?;
-
-                if let Some(persistance_file) = &self.persistance_file {
-                    out_file.persist(persistance_file)?;
-                    Table::new_from_file(sstable::Options::default(), persistance_file)?
-                } else {
-                    Table::new_from_file(sstable::Options::default(), out_file.path())?
-                }
             }
-        } else if let Some(newer_optional) = newer_optional {
-            // merge C0 and disk-table into new disk table
-            let out_file = tempfile::NamedTempFile::new()?;
-            self.merge_disk_with_c0(&newer_optional, &self.c0, out_file.as_file())?;
-
-            if let Some(persistance_file) = &self.persistance_file {
-                out_file.persist(persistance_file)?;
-                Table::new_from_file(sstable::Options::default(), persistance_file)?
-            } else {
-                Table::new_from_file(sstable::Options::default(), out_file.path())?
-            }
+            // Re-open this file and register it as the only disk table
+            let table = Table::new_from_file(self.table_opts.clone(), persistance_file)?;
+            self.disk_tables = vec![TableEntry::Persistant {
+                table,
+                path: persistance_file.to_owned(),
+            }]
         } else {
-            // C0 is non-empty but there is no existing disk: write out C0
-            let out_file = self.evict_c0()?;
-            if let Some(persistance_file) = &self.persistance_file {
-                out_file.persist(persistance_file)?;
-                Table::new_from_file(sstable::Options::default(), persistance_file)?
+            if let Some(table_entry) = base_optional {
+                self.disk_tables = vec![table_entry];
             } else {
-                Table::new_from_file(sstable::Options::default(), out_file.path())?
+                self.disk_tables = Vec::default();
             }
-        };
-
-        self.c0.clear();
-        self.disk_tables = vec![table];
+        }
 
         Ok(())
     }
@@ -349,6 +382,7 @@ where
 {
     fn default() -> Self {
         DiskMap::new(None, EvictionStrategy::default())
+            .expect("Temporary disk map creation should not fail.")
     }
 }
 
@@ -420,7 +454,7 @@ mod tests {
 
     #[test]
     fn test_range() {
-        let mut table = DiskMap::new(None, EvictionStrategy::MaximumItems(3));
+        let mut table = DiskMap::new(None, EvictionStrategy::MaximumItems(3)).unwrap();
         table.insert(0, true).unwrap();
         table.insert(1, true).unwrap();
         table.insert(2, true).unwrap();
