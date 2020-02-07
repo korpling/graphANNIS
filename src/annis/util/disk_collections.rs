@@ -114,13 +114,15 @@ where
         let existing = self.get(&key)?;
 
         if let Some(existing) = &existing {
-            self.est_sum_memory -= std::mem::size_of::<(K, V)>() + key.size_of(&mut self.mem_ops) + existing.size_of(&mut self.mem_ops)
+            self.est_sum_memory -= std::mem::size_of::<(K, V)>()
+                + key.size_of(&mut self.mem_ops)
+                + existing.size_of(&mut self.mem_ops)
         }
-        self.est_sum_memory +=
-            std::mem::size_of::<(K, V)>() + key.size_of(&mut self.mem_ops) + value.size_of(&mut self.mem_ops);
+        self.est_sum_memory += std::mem::size_of::<(K, V)>()
+            + key.size_of(&mut self.mem_ops)
+            + value.size_of(&mut self.mem_ops);
 
         self.c0.insert(key, Some(value));
-        
         self.check_eviction_necessary(true)?;
         Ok(existing)
     }
@@ -136,7 +138,7 @@ where
                 if self.est_sum_memory > b {
                     self.evict_c0(write_deleted)?;
                 }
-            },
+            }
         }
         Ok(())
     }
@@ -452,6 +454,37 @@ where
     phantom: std::marker::PhantomData<(K, V)>,
 }
 
+impl<'a, K, V, R> Range<'a, K, V, R>
+where
+    R: RangeBounds<K>,
+    for<'de> K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
+    for<'de> V:
+        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
+{
+    fn skip_key_in_disk_tables(&mut self, skipped_key: &K, skip_from_table: usize) {
+        if skip_from_table >= self.table_iterators.len() {
+            return;
+        }
+        for i in skip_from_table..self.table_iterators.len() {
+            let exhausted = &mut self.exhausted[i];
+            let table_it = &mut self.table_iterators[i];
+
+            if *exhausted == false && table_it.valid() {
+                let mut key = Vec::default();
+                let mut value = Vec::default();
+                if table_it.current(&mut key, &mut value) {
+                    let key = K::parse_key(&key);
+                    if &key <= skipped_key {
+                        table_it.advance();
+                    } else if !self.range.contains(&key) {
+                        *exhausted = true;
+                    }
+                }
+            }
+        }
+    }
+}
+
 impl<'a, K, V, R> Iterator for Range<'a, K, V, R>
 where
     R: RangeBounds<K>,
@@ -462,11 +495,10 @@ where
     type Item = (K, V);
 
     fn next(&mut self) -> Option<(K, V)> {
-        // TODO: how do we handle deleted values in range queries?
-
         // Try C0 first
         if let Some((key, value)) = self.c0_range.next() {
             if let Some(value) = value {
+                self.skip_key_in_disk_tables(key, 0);
                 return Some((key.clone(), value.clone()));
             }
         }
@@ -489,6 +521,7 @@ where
                         table_it.advance();
 
                         if let Some(value) = value {
+                            self.skip_key_in_disk_tables(&key, i + 1);
                             return Some((key, value));
                         }
                     } else {
