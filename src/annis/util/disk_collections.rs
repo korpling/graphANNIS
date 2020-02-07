@@ -38,7 +38,7 @@ pub enum EvictionStrategy {
 
 impl Default for EvictionStrategy {
     fn default() -> Self {
-        EvictionStrategy::MaximumItems(1024)
+        EvictionStrategy::MaximumItems(10_000)
     }
 }
 
@@ -136,6 +136,13 @@ where
         if existing.is_some() {
             // Add tombstone entry
             self.c0.insert(key.clone(), None);
+            match self.eviction_strategy {
+                EvictionStrategy::MaximumItems(n) => {
+                    if self.c0.len() > n {
+                        self.evict_c0(true)?;
+                    }
+                }
+            }
         }
         Ok(existing)
     }
