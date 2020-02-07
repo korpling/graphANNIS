@@ -497,10 +497,14 @@ where
     fn next(&mut self) -> Option<(K, V)> {
         // Try C0 first
         if let Some((key, value)) = self.c0_range.next() {
+            
+            // Found, skip iterators (and thus ignore their values) for later tables
+            self.skip_key_in_disk_tables(key, 0);
+
             if let Some(value) = value {
-                self.skip_key_in_disk_tables(key, 0);
                 return Some((key.clone(), value.clone()));
             }
+
         }
 
         // Iterate over all disk tables
@@ -520,8 +524,10 @@ where
                             .expect("Could not decode previously written data from disk.");
                         table_it.advance();
 
+                        // Found, skip iterators (and thus ignore their values) for later tables
+                        self.skip_key_in_disk_tables(&key, i + 1);
+
                         if let Some(value) = value {
-                            self.skip_key_in_disk_tables(&key, i + 1);
                             return Some((key, value));
                         }
                     } else {
