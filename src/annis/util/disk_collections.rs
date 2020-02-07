@@ -1,4 +1,6 @@
 use crate::annis::errors::*;
+use crate::annis::util::memory_estimation;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 
@@ -34,11 +36,12 @@ enum TableEntry {
 
 pub enum EvictionStrategy {
     MaximumItems(usize),
+    MaximumBytes(usize),
 }
 
 impl Default for EvictionStrategy {
     fn default() -> Self {
-        EvictionStrategy::MaximumItems(10_000)
+        EvictionStrategy::MaximumBytes(16 * 1024 * 1024)
     }
 }
 
@@ -53,13 +56,24 @@ where
     disk_tables: Vec<TableEntry>,
     serialization: bincode::Config,
     table_opts: sstable::Options,
+
+    mem_ops: MallocSizeOfOps,
+    est_sum_memory: usize,
 }
 
 impl<K, V> DiskMap<K, V>
 where
-    K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
-    for<'de> V:
-        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
+    K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send + MallocSizeOf,
+    for<'de> V: 'static
+        + Clone
+        + Eq
+        + PartialEq
+        + PartialOrd
+        + Ord
+        + Serialize
+        + Deserialize<'de>
+        + Send
+        + MallocSizeOf,
 {
     pub fn new(
         persistance_file: Option<&Path>,
@@ -81,6 +95,8 @@ where
             });
         }
 
+        let mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
+
         Ok(DiskMap {
             eviction_strategy,
             persistance_file: persistance_file.map(|p| p.to_owned()),
@@ -88,21 +104,41 @@ where
             disk_tables: Vec::default(),
             serialization: serialization,
             table_opts,
+
+            mem_ops,
+            est_sum_memory: 0,
         })
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Result<Option<V>> {
         let existing = self.get(&key)?;
-        self.c0.insert(key, Some(value));
 
+        if let Some(existing) = &existing {
+            self.est_sum_memory -= std::mem::size_of::<(K, V)>() + key.size_of(&mut self.mem_ops) + existing.size_of(&mut self.mem_ops)
+        }
+        self.est_sum_memory +=
+            std::mem::size_of::<(K, V)>() + key.size_of(&mut self.mem_ops) + value.size_of(&mut self.mem_ops);
+
+        self.c0.insert(key, Some(value));
+        
+        self.check_eviction_necessary(true)?;
+        Ok(existing)
+    }
+
+    fn check_eviction_necessary(&mut self, write_deleted: bool) -> Result<()> {
         match self.eviction_strategy {
             EvictionStrategy::MaximumItems(n) => {
                 if self.c0.len() > n {
-                    self.evict_c0(true)?;
+                    self.evict_c0(write_deleted)?;
                 }
             }
+            EvictionStrategy::MaximumBytes(b) => {
+                if self.est_sum_memory > b {
+                    self.evict_c0(write_deleted)?;
+                }
+            },
         }
-        Ok(existing)
+        Ok(())
     }
 
     fn evict_c0(&mut self, write_deleted: bool) -> Result<()> {
@@ -119,6 +155,8 @@ where
             builder.finish()?;
         }
 
+        self.est_sum_memory = 0;
+
         let table = Table::new_from_file(self.table_opts.clone(), out_file.path())?;
 
         self.disk_tables.push(TableEntry::Temporary {
@@ -134,15 +172,13 @@ where
     pub fn remove(&mut self, key: &K) -> Result<Option<V>> {
         let existing = self.get(key)?;
         if existing.is_some() {
+            self.est_sum_memory -= existing.size_of(&mut self.mem_ops);
+
             // Add tombstone entry
-            self.c0.insert(key.clone(), None);
-            match self.eviction_strategy {
-                EvictionStrategy::MaximumItems(n) => {
-                    if self.c0.len() > n {
-                        self.evict_c0(true)?;
-                    }
-                }
-            }
+            let empty_value = None;
+            self.est_sum_memory += empty_value.size_of(&mut self.mem_ops);
+            self.c0.insert(key.clone(), empty_value);
+            self.check_eviction_necessary(true)?;
         }
         Ok(existing)
     }
@@ -150,6 +186,7 @@ where
     pub fn clear(&mut self) {
         self.c0.clear();
         self.disk_tables.clear();
+        self.est_sum_memory = 0;
     }
 
     pub fn get(&self, key: &K) -> Result<Option<V>> {
@@ -377,15 +414,25 @@ where
             }
         }
 
+        self.est_sum_memory = 0;
+
         Ok(())
     }
 }
 
 impl<K, V> Default for DiskMap<K, V>
 where
-    K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
-    for<'de> V:
-        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
+    K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send + MallocSizeOf,
+    for<'de> V: 'static
+        + Clone
+        + Eq
+        + PartialEq
+        + PartialOrd
+        + Ord
+        + Serialize
+        + Deserialize<'de>
+        + Send
+        + MallocSizeOf,
 {
     fn default() -> Self {
         DiskMap::new(None, EvictionStrategy::default())
