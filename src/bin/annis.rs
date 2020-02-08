@@ -209,7 +209,7 @@ impl AnnisRunner {
                 _ => Err(format!("unknown command \"{}\"", cmd).into()),
             };
             if let Err(err) = result {
-                println!("{}", err.to_string());
+                println!("Error: {:?}", err);
             }
         }
         // stay in loop
