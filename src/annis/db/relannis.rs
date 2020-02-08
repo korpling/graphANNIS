@@ -780,11 +780,6 @@ where
 
     let msg = "committing nodes";
 
-    // map the "left" value to the nodes it belongs to
-    let mut left_to_node: MultiMap<TextProperty, NodeID> = MultiMap::new();
-    // map the "right" value to the nodes it belongs to
-    let mut right_to_node: MultiMap<TextProperty, NodeID> = MultiMap::new();
-
     // maps a character position to it's token
     let mut textpos_table = TextPosTable {
         token_by_left_textpos: DiskMap::default(),
@@ -874,8 +869,6 @@ where
                 corpus_id,
                 text_id,
             };
-            left_to_node.insert(left.clone(), node_nr);
-            right_to_node.insert(right.clone(), node_nr);
             textpos_table.node_to_left.insert(node_nr, left.clone())?;
             textpos_table.node_to_right.insert(node_nr, right.clone())?;
 
