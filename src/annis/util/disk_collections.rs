@@ -6,6 +6,7 @@ use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 
 use std::collections::BTreeMap;
 use std::fs::File;
+use std::iter::Peekable;
 use std::ops::{Bound, RangeBounds};
 use std::path::{Path, PathBuf};
 
@@ -30,11 +31,11 @@ enum TableEntry {
     },
     Persistant {
         table: Table,
-        path: PathBuf,
     },
 }
 
 pub enum EvictionStrategy {
+    #[allow(dead_code)]
     MaximumItems(usize),
     MaximumBytes(usize),
 }
@@ -89,10 +90,7 @@ where
         if let Some(persistance_file) = persistance_file {
             // Use existing file as read-only table which contains the whole map
             let table = Table::new_from_file(table_opts.clone(), persistance_file)?;
-            disk_tables.push(TableEntry::Persistant {
-                table,
-                path: persistance_file.to_owned(),
-            });
+            disk_tables.push(TableEntry::Persistant { table });
         }
 
         let mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
@@ -171,6 +169,7 @@ where
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn remove(&mut self, key: &K) -> Result<Option<V>> {
         let existing = self.get(key)?;
         if existing.is_some() {
@@ -185,6 +184,7 @@ where
         Ok(existing)
     }
 
+    #[allow(dead_code)]
     pub fn clear(&mut self) {
         self.c0.clear();
         self.disk_tables.clear();
@@ -205,7 +205,7 @@ where
         let key: Vec<u8> = key.create_key();
         for table_entry in self.disk_tables.iter().rev() {
             match table_entry {
-                TableEntry::Temporary { table, .. } | TableEntry::Persistant { table, .. } => {
+                TableEntry::Temporary { table, .. } | TableEntry::Persistant { table } => {
                     if let Some(value) = table.get(&key)? {
                         let value: Option<V> = self.serialization.deserialize(&value)?;
                         if value.is_some() {
@@ -231,16 +231,36 @@ where
             .iter()
             .rev()
             .map(|entry| match entry {
-                TableEntry::Temporary { table, .. } | TableEntry::Persistant { table, .. } => {
+                TableEntry::Temporary { table, .. } | TableEntry::Persistant { table } => {
                     table.iter()
                 }
             })
             .collect();
+        let mut exhausted: Vec<bool> = std::iter::repeat(false)
+            .take(table_iterators.len())
+            .collect();
+
         match range.start_bound() {
             Bound::Included(start) => {
                 let start = start.create_key();
-                for ti in table_iterators.iter_mut() {
+                let mut key = Vec::default();
+                let mut value = Vec::default();
+
+                for i in 0..table_iterators.len() {
+                    let exhausted = &mut exhausted[i];
+                    let ti = &mut table_iterators[i];
                     ti.seek(&start);
+
+                    if ti.valid() && ti.current(&mut key, &mut value) {
+                        // Check if the seeked element is actually part of the range
+                        let key = K::parse_key(&key);
+                        if !range.contains(&key) {
+                            *exhausted = true;
+                        }
+                    } else {
+                        // Seeked behind last element
+                        *exhausted = true;
+                    }
                 }
             }
             Bound::Excluded(start_bound) => {
@@ -248,7 +268,10 @@ where
                 let mut key: Vec<u8> = Vec::default();
                 let mut value = Vec::default();
 
-                for ti in table_iterators.iter_mut() {
+                for i in 0..table_iterators.len() {
+                    let exhausted = &mut exhausted[i];
+                    let ti = &mut table_iterators[i];
+
                     ti.seek(&start);
                     if ti.valid() && ti.current(&mut key, &mut value) {
                         let key = K::parse_key(&key);
@@ -257,18 +280,37 @@ where
                             ti.advance();
                         }
                     }
+
+                    // Check key after advance
+                    if ti.valid() && ti.current(&mut key, &mut value) {
+                        // Check if the seeked element is actually part of the range
+                        let key = K::parse_key(&key);
+                        if !range.contains(&key) {
+                            *exhausted = true;
+                        }
+                    } else {
+                        // Seeked behind last element
+                        *exhausted = true;
+                    }
                 }
             }
             Bound::Unbounded => {
-                table_iterators[0].seek_to_first();
+                for i in 0..table_iterators.len() {
+                    let exhausted = &mut exhausted[i];
+                    let ti = &mut table_iterators[i];
+
+                    ti.seek_to_first();
+
+                    if !ti.valid() {
+                        *exhausted = true;
+                    }
+                }
             }
         };
         Ok(Range {
-            c0_range: self.c0.range(range.clone()),
+            c0_range: self.c0.range(range.clone()).peekable(),
             range,
-            exhausted: std::iter::repeat(false)
-                .take(table_iterators.len())
-                .collect(),
+            exhausted,
             table_iterators,
             serialization: self.serialization.clone(),
             phantom: std::marker::PhantomData,
@@ -289,14 +331,10 @@ where
         let mut builder = TableBuilder::new(self.table_opts.clone(), file);
 
         let mut it_older = match older {
-            TableEntry::Temporary { table, .. } | TableEntry::Persistant { table, .. } => {
-                table.iter()
-            }
+            TableEntry::Temporary { table, .. } | TableEntry::Persistant { table } => table.iter(),
         };
         let mut it_newer = match newer {
-            TableEntry::Temporary { table, .. } | TableEntry::Persistant { table, .. } => {
-                table.iter()
-            }
+            TableEntry::Temporary { table, .. } | TableEntry::Persistant { table } => table.iter(),
         };
 
         let mut item_older = it_older.next();
@@ -349,7 +387,7 @@ where
     /// Compact the existing disk tables and the in-memory table to a single disk table.
     /// If the map has a persistance file set, affter calling this function the persistance
     /// file will contain the complete content of the map.
-    pub fn compact(&mut self) -> Result<()> {
+    pub fn compact_and_flush(&mut self) -> Result<()> {
         // Make sure all entries of C0 are written to disk.
         // Ommit all deleted entries if this becomes the only, and therefore complete, disk table
         if !self.c0.is_empty() {
@@ -404,10 +442,7 @@ where
             }
             // Re-open this file and register it as the only disk table
             let table = Table::new_from_file(self.table_opts.clone(), persistance_file)?;
-            self.disk_tables = vec![TableEntry::Persistant {
-                table,
-                path: persistance_file.to_owned(),
-            }]
+            self.disk_tables = vec![TableEntry::Persistant { table }]
         } else {
             if let Some(table_entry) = base_optional {
                 self.disk_tables = vec![table_entry];
@@ -447,7 +482,7 @@ where
     R: RangeBounds<K>,
 {
     range: R,
-    c0_range: std::collections::btree_map::Range<'a, K, Option<V>>,
+    c0_range: Peekable<std::collections::btree_map::Range<'a, K, Option<V>>>,
     table_iterators: Vec<TableIterator>,
     exhausted: Vec<bool>,
     serialization: bincode::Config,
@@ -461,11 +496,19 @@ where
     for<'de> V:
         'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
 {
-    fn skip_key_in_disk_tables(&mut self, skipped_key: &K, skip_from_table: usize) {
-        if skip_from_table >= self.table_iterators.len() {
-            return;
+    fn advance_all(&mut self, after_key: &K) {
+        // Skip all smaller or equal keys in C0
+        while let Some(c0_item) = self.c0_range.peek() {
+            let key: &K = c0_item.0;
+            if key <= after_key {
+                self.c0_range.next();
+            } else {
+                break;
+            }
         }
-        for i in skip_from_table..self.table_iterators.len() {
+
+        // Skip all smaller or equal keys in all disk tables
+        for i in 0..self.table_iterators.len() {
             let exhausted = &mut self.exhausted[i];
             let table_it = &mut self.table_iterators[i];
 
@@ -474,7 +517,7 @@ where
                 let mut value = Vec::default();
                 if table_it.current(&mut key, &mut value) {
                     let key = K::parse_key(&key);
-                    if &key <= skipped_key {
+                    if &key <= after_key {
                         table_it.advance();
                     } else if !self.range.contains(&key) {
                         *exhausted = true;
@@ -495,49 +538,48 @@ where
     type Item = (K, V);
 
     fn next(&mut self) -> Option<(K, V)> {
-        // Try C0 first
-        if let Some((key, value)) = self.c0_range.next() {
-            
-            // Found, skip iterators (and thus ignore their values) for later tables
-            self.skip_key_in_disk_tables(key, 0);
+        loop {
+            // Find the smallest key in all tables.
+            let mut smallest_key: Option<(K, Option<V>)> = None;
 
-            if let Some(value) = value {
-                return Some((key.clone(), value.clone()));
+            // Try C0 first
+            if let Some(c0_item) = self.c0_range.peek() {
+                let key: &K = c0_item.0;
+                let value: &Option<V> = c0_item.1;
+                smallest_key = Some((key.clone(), value.clone()));
             }
 
-        }
+            // Iterate over all disk tables
+            for i in 0..self.table_iterators.len() {
+                let exhausted = &mut self.exhausted[i];
+                let table_it = &mut self.table_iterators[i];
 
-        // Iterate over all disk tables
-        for i in 0..self.table_iterators.len() {
-            let exhausted = &mut self.exhausted[i];
-            let table_it = &mut self.table_iterators[i];
-
-            if *exhausted == false && table_it.valid() {
-                let mut key = Vec::default();
-                let mut value = Vec::default();
-                if table_it.current(&mut key, &mut value) {
-                    let key = K::parse_key(&key);
-                    if self.range.contains(&key) {
+                if *exhausted == false && table_it.valid() {
+                    let mut key = Vec::default();
+                    let mut value = Vec::default();
+                    if table_it.current(&mut key, &mut value) {
+                        let key = K::parse_key(&key);
                         let value: Option<V> = self
                             .serialization
                             .deserialize(&value)
                             .expect("Could not decode previously written data from disk.");
-                        table_it.advance();
-
-                        // Found, skip iterators (and thus ignore their values) for later tables
-                        self.skip_key_in_disk_tables(&key, i + 1);
-
-                        if let Some(value) = value {
-                            return Some((key, value));
-                        }
-                    } else {
-                        *exhausted = true;
+                        smallest_key = Some((key, value));
                     }
                 }
             }
-        }
 
-        None
+            if let Some(smallest_key) = smallest_key {
+                // Set all iterators to the next element
+                self.advance_all(&smallest_key.0);
+                // Return any non-deleted entry
+                if let Some(value) = smallest_key.1 {
+                    return Some((smallest_key.0, value));
+                }
+            } else {
+                // All iterators are exhausted
+                return None;
+            }
+        }
     }
 }
 
