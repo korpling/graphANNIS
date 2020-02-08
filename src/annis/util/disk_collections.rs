@@ -14,11 +14,10 @@ mod serializer;
 
 pub use serializer::KeySerializer;
 
-#[derive(Clone, Eq, PartialEq, Serialize, Deserialize, PartialOrd, Ord)]
+#[derive(Eq, PartialEq, Serialize, Deserialize, PartialOrd, Ord)]
 struct Entry<K, V>
 where
-    K: Clone + Ord,
-    V: Clone,
+    K: Ord,
 {
     key: K,
     value: V,
@@ -200,7 +199,7 @@ where
                     if let Some(value) = table.get(&key)? {
                         let value: Option<V> = self.serialization.deserialize(&value)?;
                         if value.is_some() {
-                            return Ok(value.clone());
+                            return Ok(value);
                         } else {
                             // Value was explicitly deleted, do not query the rest of the disk tables
                             return Ok(None);
