@@ -17,8 +17,8 @@ pub use serializer::KeySerializer;
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize, PartialOrd, Ord)]
 struct Entry<K, V>
 where
-    K: Clone + Eq + PartialEq + PartialOrd + Ord,
-    V: Clone + Eq + PartialEq + PartialOrd + Ord,
+    K: Clone + Ord,
+    V: Clone,
 {
     key: K,
     value: V,
@@ -64,17 +64,8 @@ where
 
 impl<K, V> DiskMap<K, V>
 where
-    K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send + MallocSizeOf,
-    for<'de> V: 'static
-        + Clone
-        + Eq
-        + PartialEq
-        + PartialOrd
-        + Ord
-        + Serialize
-        + Deserialize<'de>
-        + Send
-        + MallocSizeOf,
+    K: 'static + Clone + KeySerializer + Send + MallocSizeOf,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + MallocSizeOf,
 {
     pub fn new(
         persistance_file: Option<&Path>,
@@ -475,17 +466,8 @@ where
 
 impl<K, V> Default for DiskMap<K, V>
 where
-    K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send + MallocSizeOf,
-    for<'de> V: 'static
-        + Clone
-        + Eq
-        + PartialEq
-        + PartialOrd
-        + Ord
-        + Serialize
-        + Deserialize<'de>
-        + Send
-        + MallocSizeOf,
+    K: 'static + Clone + KeySerializer + Send + MallocSizeOf,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + MallocSizeOf,
 {
     fn default() -> Self {
         DiskMap::new(None, EvictionStrategy::default())
@@ -509,8 +491,7 @@ impl<'a, K, V, R> Range<'a, K, V, R>
 where
     R: RangeBounds<K>,
     for<'de> K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
-    for<'de> V:
-        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
     fn advance_all(&mut self, after_key: &K) {
         // Skip all smaller or equal keys in C0
@@ -548,9 +529,8 @@ where
 impl<'a, K, V, R> Iterator for Range<'a, K, V, R>
 where
     R: RangeBounds<K>,
-    for<'de> K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
-    for<'de> V:
-        'static + Clone + Eq + PartialEq + PartialOrd + Ord + Serialize + Deserialize<'de> + Send,
+    for<'de> K: 'static + Clone + KeySerializer + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
     type Item = (K, V);
 
