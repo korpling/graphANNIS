@@ -1,12 +1,11 @@
 use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::db::{Graph, ANNIS_NS, TOK};
 use crate::annis::errors::*;
-use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
+use crate::annis::types::{AnnoKey, Component, ComponentType, Edge, NodeID};
 use crate::annis::util::disk_collections::{DiskMap, KeySerializer};
 use crate::annis::util::{create_str_vec_key, parse_str_vec_key};
 use crate::update::{GraphUpdate, UpdateEvent};
 use csv;
-use multimap::MultiMap;
 use percent_encoding::utf8_percent_encode;
 use std;
 use std::collections::{BTreeMap, HashMap};
@@ -110,7 +109,7 @@ impl KeySerializer for NodeByTextEntry {
         let mut offset = u32_size;
 
         let corpus_ref = u32::from_be_bytes(
-            key[offset..(offset+u32_size)]
+            key[offset..(offset + u32_size)]
                 .try_into()
                 .expect("NodeByTextEntry deserialization key was too small (corpus_ref)"),
         );
@@ -1331,11 +1330,11 @@ fn load_corpus_annotation<F>(
     path: &PathBuf,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<MultiMap<u32, Annotation>>
+) -> Result<BTreeMap<(u32, AnnoKey), String>>
 where
     F: Fn(&str) -> (),
 {
-    let mut corpus_id_to_anno = MultiMap::new();
+    let mut corpus_id_to_anno = BTreeMap::new();
 
     let mut corpus_anno_tab_path = PathBuf::from(path);
     corpus_anno_tab_path.push(if is_annis_33 {
@@ -1360,12 +1359,9 @@ where
         let name = get_field_str(&line, 2).ok_or("Missing column")?;
         let val = get_field_str(&line, 3).ok_or("Missing column")?;
 
-        let anno = Annotation {
-            key: AnnoKey { ns, name },
-            val,
-        };
+        let anno_key = AnnoKey { ns, name };
 
-        corpus_id_to_anno.insert(id, anno);
+        corpus_id_to_anno.insert((id, anno_key), val);
     }
 
     Ok(corpus_id_to_anno)
@@ -1406,7 +1402,7 @@ fn add_subcorpora<F>(
     corpus_table: &ParsedCorpusTable,
     node_node_result: &LoadNodeResult,
     texts: &HashMap<TextKey, Text>,
-    corpus_id_to_annos: &MultiMap<u32, Annotation>,
+    corpus_id_to_annos: &BTreeMap<(u32, AnnoKey), String>,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<()>
@@ -1443,18 +1439,27 @@ where
 
         // add all metadata for the top-level corpus node
         if let Some(cid) = corpus_table.corpus_by_preorder.get(&0) {
-            if let Some(anno_vec) = corpus_id_to_annos.get_vec(cid) {
-                for anno in anno_vec {
+            let start_key = (
+                *cid,
+                AnnoKey {
+                    ns: "".to_string(),
+                    name: "".to_string(),
+                },
+            );
+            for ((entry_cid, anno_key), val) in corpus_id_to_annos.range(start_key..) {
+                if entry_cid == cid {
                     updater.add_event(
                         UpdateEvent::AddNodeLabel {
                             node_name: corpus_table.toplevel_corpus_name.to_owned(),
-                            anno_ns: anno.key.ns.clone(),
-                            anno_name: anno.key.name.clone(),
-                            anno_value: anno.val.clone(),
+                            anno_ns: anno_key.ns.clone(),
+                            anno_name: anno_key.name.clone(),
+                            anno_value: val.clone(),
                         },
                         Some(msg),
                         progress_callback,
                     )?;
+                } else {
+                    break;
                 }
             }
         }
@@ -1493,18 +1498,27 @@ where
             )?;
 
             // add all metadata for the document node
-            if let Some(anno_vec) = corpus_id_to_annos.get_vec(&corpus_id) {
-                for anno in anno_vec {
+            let start_key = (
+                *corpus_id,
+                AnnoKey {
+                    ns: "".to_string(),
+                    name: "".to_string(),
+                },
+            );
+            for ((entry_cid, anno_key), val) in corpus_id_to_annos.range(start_key..) {
+                if entry_cid == corpus_id {
                     updater.add_event(
                         UpdateEvent::AddNodeLabel {
                             node_name: subcorpus_full_name.clone(),
-                            anno_ns: anno.key.ns.clone(),
-                            anno_name: anno.key.name.clone(),
-                            anno_value: anno.val.clone(),
+                            anno_ns: anno_key.ns.clone(),
+                            anno_name: anno_key.name.clone(),
+                            anno_value: val.clone(),
                         },
                         Some(msg),
                         progress_callback,
                     )?;
+                } else {
+                    break;
                 }
             }
             // add an edge from the document (or sub-corpus) to the top-level corpus
@@ -1591,7 +1605,6 @@ where
                     Some(msg),
                     progress_callback,
                 )?;
-            
             }
         }
     } // end for each text
