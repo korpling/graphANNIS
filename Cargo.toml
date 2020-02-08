@@ -30,7 +30,6 @@ rand = {version = "0.7", features=["small_rng"]}
 csv = "1"
 sstable = "0.6"
 failure = "0.1"
-multimap = {version = "0.8", default-features=false}
 log = "0.4"
 lazy_static = "1.4"
 strum = "0.17"
