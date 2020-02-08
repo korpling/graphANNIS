@@ -533,10 +533,11 @@ where
                 let mut value = Vec::default();
                 if table_it.current(&mut key, &mut value) {
                     let key = K::parse_key(&key);
-                    if &key <= after_key {
-                        table_it.advance();
-                    } else if !self.range.contains(&key) {
+                    if !self.range.contains(&key) {
                         *exhausted = true;
+                        break;
+                    } else if &key <= after_key {
+                        table_it.advance();
                     }
                 }
             }
@@ -575,11 +576,15 @@ where
                     let mut value = Vec::default();
                     if table_it.current(&mut key, &mut value) {
                         let key = K::parse_key(&key);
-                        let value: Option<V> = self
-                            .serialization
-                            .deserialize(&value)
-                            .expect("Could not decode previously written data from disk.");
-                        smallest_key = Some((key, value));
+                        if self.range.contains(&key) {
+                            let value: Option<V> = self
+                                .serialization
+                                .deserialize(&value)
+                                .expect("Could not decode previously written data from disk.");
+                            smallest_key = Some((key, value));
+                        } else {
+                            *exhausted = true;
+                        }
                     }
                 }
             }
