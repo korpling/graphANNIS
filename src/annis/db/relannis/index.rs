@@ -74,9 +74,9 @@ impl LoadRankResult {
     pub fn finish(&mut self) -> Result<()> {
         info!("creating rank table index");
 
-        self.components_by_pre.compact()?;
-        self.edges_by_pre.compact()?;
-        self.text_coverage_edges.compact()?;
+        self.components_by_pre.compact_and_flush()?;
+        self.edges_by_pre.compact_and_flush()?;
+        self.text_coverage_edges.compact_and_flush()?;
         Ok(())
     }
 }
