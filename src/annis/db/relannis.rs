@@ -537,11 +537,11 @@ where
                     UpdateEvent::AddEdge {
                         source_node: id_to_node_name
                             .get(&last_token)?
-                            .ok_or("Missing node name")?
+                            .ok_or_else(|| format!("Can't get node name for last token with ID {} in \"calculate_automatic_token_order\" function.", last_token))?
                             .clone(),
                         target_node: id_to_node_name
                             .get(&current_token)?
-                            .ok_or("Missing node name")?
+                            .ok_or_else(|| format!("Can't get node name for current token with ID {} in \"calculate_automatic_token_order\" function.", current_token))?
                             .clone(),
                         layer: ANNIS_NS.to_owned(),
                         component_type: ComponentType::Ordering.to_string(),

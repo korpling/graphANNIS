@@ -37,7 +37,7 @@ pub fn split_qname(qname: &str) -> (Option<&str>, &str) {
 }
 
 /// Creates a byte array key from a vector of strings.
-/// 
+///
 /// The strings are terminated with `\0`.
 pub fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
     let mut result: Vec<u8> = Vec::default();
