@@ -2,13 +2,15 @@ use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::db::{Graph, ANNIS_NS, TOK};
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
-use crate::annis::util::disk_collections::DiskMap;
+use crate::annis::util::disk_collections::{DiskMap, KeySerializer};
+use crate::annis::util::{create_str_vec_key, parse_str_vec_key};
 use crate::update::{GraphUpdate, UpdateEvent};
 use csv;
 use multimap::MultiMap;
 use percent_encoding::utf8_percent_encode;
 use std;
 use std::collections::{BTreeMap, HashMap};
+use std::convert::TryInto;
 use std::fs::File;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
@@ -24,6 +26,57 @@ struct TextProperty {
     corpus_id: u32,
     text_id: u32,
     val: u32,
+}
+
+impl KeySerializer for TextProperty {
+    fn create_key(&self) -> Vec<u8> {
+        let mut result =
+            Vec::with_capacity(self.segmentation.len() + 1 + std::mem::size_of::<u32>() * 3);
+        result.extend(create_str_vec_key(&[&self.segmentation]));
+        result.extend(&self.corpus_id.to_be_bytes());
+        result.extend(&self.text_id.to_be_bytes());
+        result.extend(&self.val.to_be_bytes());
+        result
+    }
+
+    fn parse_key(key: &[u8]) -> Self {
+        let id_size = std::mem::size_of::<u32>();
+        let mut id_offset = key.len() - id_size * 3;
+        let segmentation_vector = parse_str_vec_key(&key[0..id_offset]);
+
+        let corpus_id = u32::from_be_bytes(
+            key[id_offset..(id_offset + id_size)]
+                .try_into()
+                .expect("TextProperty deserialization key was too small"),
+        );
+        id_offset += id_size;
+
+        let text_id = u32::from_be_bytes(
+            key[id_offset..(id_offset + id_size)]
+                .try_into()
+                .expect("TextProperty deserialization key was too small"),
+        );
+        id_offset += id_size;
+
+        let val = u32::from_be_bytes(
+            key[id_offset..(id_offset + id_size)]
+                .try_into()
+                .expect("TextProperty deserialization key was too small"),
+        );
+
+        let segmentation = if segmentation_vector.is_empty() {
+            String::from("")
+        } else {
+            segmentation_vector[0].to_string()
+        };
+
+        TextProperty {
+            segmentation,
+            corpus_id,
+            text_id,
+            val,
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -49,10 +102,10 @@ struct ParsedCorpusTable {
 }
 
 struct TextPosTable {
-    token_by_left_textpos: BTreeMap<TextProperty, NodeID>,
-    token_by_right_textpos: BTreeMap<TextProperty, NodeID>,
+    token_by_left_textpos: DiskMap<TextProperty, NodeID>,
+    token_by_right_textpos: DiskMap<TextProperty, NodeID>,
     // maps a token index to an node ID
-    token_by_index: BTreeMap<TextProperty, NodeID>,
+    token_by_index: DiskMap<TextProperty, NodeID>,
     // maps a token node id to the token index
     token_to_index: DiskMap<NodeID, TextProperty>,
     // map as node to it's "left" value
@@ -399,7 +452,7 @@ where
 
 fn calculate_automatic_token_order<F>(
     updater: &mut ChunkUpdater,
-    token_by_index: &BTreeMap<TextProperty, NodeID>,
+    token_by_index: &DiskMap<TextProperty, NodeID>,
     id_to_node_name: &FxHashMap<NodeID, String>,
     progress_callback: &F,
 ) -> Result<()>
@@ -416,7 +469,7 @@ where
     let mut last_textprop: Option<TextProperty> = None;
     let mut last_token: Option<NodeID> = None;
 
-    for (current_textprop, current_token) in token_by_index {
+    for (current_textprop, current_token) in token_by_index.iter()? {
         // if the last token/text value is valid and we are still in the same text
         if let (Some(last_token), Some(last_textprop)) = (last_token, last_textprop) {
             if last_textprop.corpus_id == current_textprop.corpus_id
@@ -431,7 +484,7 @@ where
                             .ok_or("Missing node name")?
                             .clone(),
                         target_node: id_to_node_name
-                            .get(current_token)
+                            .get(&current_token)
                             .ok_or("Missing node name")?
                             .clone(),
                         layer: ANNIS_NS.to_owned(),
@@ -446,7 +499,7 @@ where
 
         // update the iterator and other variables
         last_textprop = Some(current_textprop.clone());
-        last_token = Some(*current_token);
+        last_token = Some(current_token);
     } // end for each token
 
     updater.commit(Some(msg), progress_callback)?;
@@ -470,12 +523,12 @@ where
     let left_aligned_tok = load_node_and_corpus_result
         .textpos_table
         .token_by_left_textpos
-        .get(&left_pos)
+        .get(&left_pos)?
         .ok_or_else(|| format!("Can't get left-aligned token for node {}", n,));
     let right_aligned_tok = load_node_and_corpus_result
         .textpos_table
         .token_by_right_textpos
-        .get(&right_pos)
+        .get(&right_pos)?
         .ok_or_else(|| format!("Can't get right-aligned token for node {}", n,));
 
     // If only one of the aligned token is missing, use it for both sides, this is consistent with
@@ -522,12 +575,12 @@ where
         let tok_id = load_node_and_corpus_result
             .textpos_table
             .token_by_index
-            .get(&tok_idx)
+            .get(&tok_idx)?
             .ok_or_else(|| format!("Can't get token ID for position {:?}", tok_idx))?;
-        if n != *tok_id {
+        if n != tok_id {
             let edge = Edge {
                 source: n,
-                target: *tok_id,
+                target: tok_id,
             };
 
             // only add edge of no other coverage edge exists
@@ -564,7 +617,7 @@ where
                             .clone(),
                         target_node: load_node_and_corpus_result
                             .id_to_node_name
-                            .get(tok_id)
+                            .get(&tok_id)
                             .ok_or("Missing node name")?
                             .clone(),
                         layer: ANNIS_NS.to_owned(),
@@ -683,11 +736,11 @@ where
 
     // maps a character position to it's token
     let mut textpos_table = TextPosTable {
-        token_by_left_textpos: BTreeMap::new(),
-        token_by_right_textpos: BTreeMap::new(),
+        token_by_left_textpos: DiskMap::default(),
+        token_by_right_textpos: DiskMap::default(),
         node_to_left: DiskMap::default(),
         node_to_right: DiskMap::default(),
-        token_by_index: BTreeMap::default(),
+        token_by_index: DiskMap::default(),
         token_to_index: DiskMap::default(),
     };
 
@@ -798,10 +851,10 @@ where
                     text_id,
                     corpus_id,
                 };
-                textpos_table.token_by_index.insert(index.clone(), node_nr);
+                textpos_table.token_by_index.insert(index.clone(), node_nr)?;
                 textpos_table.token_to_index.insert(node_nr, index)?;
-                textpos_table.token_by_left_textpos.insert(left, node_nr);
-                textpos_table.token_by_right_textpos.insert(right, node_nr);
+                textpos_table.token_by_left_textpos.insert(left, node_nr)?;
+                textpos_table.token_by_right_textpos.insert(right, node_nr)?;
             } else if has_segmentations {
                 let segmentation_name = if is_annis_33 {
                     get_field_str(&line, 11).ok_or("Missing column")?
@@ -839,7 +892,7 @@ where
                         corpus_id,
                         text_id,
                     };
-                    textpos_table.token_by_index.insert(index, node_nr);
+                    textpos_table.token_by_index.insert(index, node_nr)?;
                 } // end if node has segmentation info
             } // endif if check segmentations
         }
@@ -852,10 +905,13 @@ where
     textpos_table.node_to_left.compact_and_flush()?;
     textpos_table.node_to_right.compact_and_flush()?;
     textpos_table.token_to_index.compact_and_flush()?;
+    textpos_table.token_by_index.compact_and_flush()?;
+    textpos_table.token_by_left_textpos.compact_and_flush()?;
+    textpos_table.token_by_right_textpos.compact_and_flush()?;
 
     updater.commit(Some(msg), progress_callback)?;
 
-    if !textpos_table.token_by_index.is_empty() {
+    if !(textpos_table.token_by_index.is_empty())? {
         calculate_automatic_token_order(
             updater,
             &textpos_table.token_by_index,
