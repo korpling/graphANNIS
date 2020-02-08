@@ -316,11 +316,17 @@ where
     F: Fn(&str) -> (),
 {
     let corpus_table = parse_corpus_tab(&path, is_annis_33, &progress_callback)?;
-    let texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
+    let mut texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
     let corpus_id_to_annos = load_corpus_annotation(&path, is_annis_33, &progress_callback)?;
 
-    let load_nodes_result =
-        load_nodes(path, updater, &corpus_table, is_annis_33, progress_callback)?;
+    let load_nodes_result = load_nodes(
+        path,
+        updater,
+        &mut texts,
+        &corpus_table,
+        is_annis_33,
+        progress_callback,
+    )?;
 
     add_subcorpora(
         updater,
@@ -754,6 +760,7 @@ where
 fn load_node_tab<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
+    texts: &mut HashMap<TextKey, Text>,
     corpus_table: &ParsedCorpusTable,
     is_annis_33: bool,
     progress_callback: &F,
@@ -812,6 +819,21 @@ where
                 },
                 true,
             )?;
+
+            // complete the corpus reference in the texts map for older relANNIS versions
+            if !is_annis_33 {
+                let text_key_without_corpus = TextKey {
+                    id: text_id,
+                    corpus_ref: None,
+                };
+                if let Some(existing_text) = texts.remove(&text_key_without_corpus) {
+                    let text_key = TextKey {
+                        id: text_id,
+                        corpus_ref: Some(corpus_id),
+                    };
+                    texts.insert(text_key, existing_text);
+                }
+            }
 
             let node_path = format!(
                 "{}#{}",
@@ -1111,6 +1133,7 @@ where
 fn load_nodes<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
+    texts: &mut HashMap<TextKey, Text>,
     corpus_table: &ParsedCorpusTable,
     is_annis_33: bool,
     progress_callback: &F,
@@ -1118,8 +1141,14 @@ fn load_nodes<F>(
 where
     F: Fn(&str) -> (),
 {
-    let node_tab_parse_result =
-        load_node_tab(path, updater, corpus_table, is_annis_33, progress_callback)?;
+    let node_tab_parse_result = load_node_tab(
+        path,
+        updater,
+        texts,
+        corpus_table,
+        is_annis_33,
+        progress_callback,
+    )?;
 
     for order_component in updater
         .g
@@ -1537,21 +1566,10 @@ where
     } // end for each document/sub-corpus
 
     // add a node for each text and the connection between all sub-nodes of the text
-    for text_key in texts.keys() {
+    for (text_key, text) in texts {
         // add text node (including its name)
-        let text_name: Option<String> = if is_annis_33 {
-            // corpus_ref is included in the text.annis
-            texts.get(text_key).map(|k| k.name.clone())
-        } else {
-            // create a text key without corpus_ref, since it is not in the parsed result
-            let new_text_key = TextKey {
-                id: text_key.id,
-                corpus_ref: None,
-            };
-            texts.get(&new_text_key).map(|k| k.name.clone())
-        };
-        if let (Some(text_name), Some(corpus_ref)) = (text_name, text_key.corpus_ref) {
-            let text_name = utf8_percent_encode(&text_name, SALT_URI_ENCODE_SET).to_string();
+        if let Some(corpus_ref) = text_key.corpus_ref {
+            let text_name = utf8_percent_encode(&text.name, SALT_URI_ENCODE_SET).to_string();
             let subcorpus_full_name = get_corpus_path(corpus_ref, corpus_table)?;
             let text_full_name = format!("{}#{}", &subcorpus_full_name, &text_name);
 
