@@ -231,7 +231,7 @@ where
             return Ok(true);
         }
         let mut it = self.iter()?;
-        Ok(it.next().is_some())
+        Ok(it.next().is_none())
     }
 
     pub fn iter(&self) -> Result<Range<K, V, std::ops::RangeFull>> {
