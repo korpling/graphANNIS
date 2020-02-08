@@ -226,6 +226,14 @@ where
         self.get(key).map(|item| item.is_some())
     }
 
+    pub fn is_empty(&self) -> Result<bool> {
+        if self.c0.is_empty() && self.disk_tables.is_empty() {
+            return Ok(true);
+        }
+        let mut it = self.iter()?;
+        Ok(it.next().is_some())
+    }
+
     pub fn iter(&self) -> Result<Range<K, V, std::ops::RangeFull>> {
         self.range(..)
     }

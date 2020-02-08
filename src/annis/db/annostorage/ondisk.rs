@@ -6,7 +6,9 @@ use crate::annis::types::AnnoKey;
 use crate::annis::types::Annotation;
 use crate::annis::types::NodeID;
 use crate::annis::util;
+use crate::annis::util::create_str_vec_key;
 use crate::annis::util::memory_estimation;
+use crate::annis::util::parse_str_vec_key;
 
 use core::ops::Bound::*;
 use rand::seq::IteratorRandom;
@@ -19,7 +21,6 @@ use std::sync::Arc;
 mod rocksdb_iterator;
 
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
-const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
 
 pub const SUBFOLDER_NAME: &str = "nodes_rocksdb_v1";
 
@@ -55,28 +56,6 @@ pub struct AnnoStorageImpl {
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
     largest_item: Option<NodeID>,
-}
-
-fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
-    let mut result: Vec<u8> = Vec::default();
-    for v in val {
-        // append null-terminated string to result
-        for b in v.as_bytes() {
-            result.push(*b)
-        }
-        result.push(0);
-    }
-    result
-}
-
-/// Parses the raw data and split it at `\0` characters.
-///
-/// # Panics
-/// Panics if one of the sub-strings is not valid UTF-8.
-fn parse_str_vec_key(data: &[u8]) -> Vec<&str> {
-    data.split(|b| *b == 0)
-        .map(|part| std::str::from_utf8(part).expect(UTF_8_MSG))
-        .collect()
 }
 
 /// Creates a key for the `by_container` tree.

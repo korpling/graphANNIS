@@ -7,6 +7,8 @@ use regex_syntax;
 use std;
 use std::path::Path;
 
+const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
+
 pub fn regex_full_match(pattern: &str) -> String {
     let mut full_match_pattern = String::new();
     full_match_pattern.push_str(r"\A(");
@@ -32,6 +34,31 @@ pub fn split_qname(qname: &str) -> (Option<&str>, &str) {
     } else {
         (None, qname)
     }
+}
+
+/// Creates a byte array key from a vector of strings.
+/// 
+/// The strings are terminated with `\0`.
+pub fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
+    let mut result: Vec<u8> = Vec::default();
+    for v in val {
+        // append null-terminated string to result
+        for b in v.as_bytes() {
+            result.push(*b)
+        }
+        result.push(0);
+    }
+    result
+}
+
+/// Parses the raw data and split it at `\0` characters.
+///
+/// # Panics
+/// Panics if one of the sub-strings is not valid UTF-8.
+pub fn parse_str_vec_key(data: &[u8]) -> Vec<&str> {
+    data.split(|b| *b == 0)
+        .map(|part| std::str::from_utf8(part).expect(UTF_8_MSG))
+        .collect()
 }
 
 /// Defines a definition of a query including its number of expected results.
