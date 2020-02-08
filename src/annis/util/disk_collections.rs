@@ -222,6 +222,14 @@ where
         Ok(None)
     }
 
+    pub fn contains_key(&self, key: &K) -> Result<bool> {
+        self.get(key).map(|item| item.is_some())
+    }
+
+    pub fn iter(&self) -> Result<Range<K, V, std::ops::RangeFull>> {
+        self.range(..)
+    }
+
     pub fn range<R>(&self, range: R) -> Result<Range<K, V, R>>
     where
         R: RangeBounds<K> + Clone,

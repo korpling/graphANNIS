@@ -16,7 +16,9 @@ use std::path::{Path, PathBuf};
 
 use rustc_hash::FxHashMap;
 
-#[derive(Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
+#[derive(
+    Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, Serialize, Deserialize, MallocSizeOf,
+)]
 struct TextProperty {
     segmentation: String,
     corpus_id: u32,
@@ -52,17 +54,30 @@ struct TextPosTable {
     // maps a token index to an node ID
     token_by_index: BTreeMap<TextProperty, NodeID>,
     // maps a token node id to the token index
-    token_to_index: BTreeMap<NodeID, TextProperty>,
+    token_to_index: DiskMap<NodeID, TextProperty>,
     // map as node to it's "left" value
-    node_to_left: BTreeMap<NodeID, TextProperty>,
+    node_to_left: DiskMap<NodeID, TextProperty>,
     // map as node to it's "right" value
-    node_to_right: BTreeMap<NodeID, TextProperty>,
+    node_to_right: DiskMap<NodeID, TextProperty>,
 }
 
 struct LoadRankResult {
     components_by_pre: DiskMap<u32, Component>,
     edges_by_pre: DiskMap<u32, Edge>,
     text_coverage_edges: DiskMap<Edge, bool>,
+}
+
+struct LoadNodeAndCorpusResult {
+    toplevel_corpus_name: String,
+    id_to_node_name: FxHashMap<NodeID, String>,
+    textpos_table: TextPosTable,
+}
+
+struct NodeTabParseResult {
+    nodes_by_text: MultiMap<TextKey, NodeID>,
+    missing_seg_span: BTreeMap<NodeID, String>,
+    id_to_node_name: FxHashMap<NodeID, String>,
+    textpos_table: TextPosTable,
 }
 
 struct ChunkUpdater<'a> {
@@ -186,12 +201,6 @@ where
     }
 
     Err(format!("Directory {} not found", path.to_string_lossy()).into())
-}
-
-struct LoadNodeAndCorpusResult {
-    toplevel_corpus_name: String,
-    id_to_node_name: FxHashMap<NodeID, String>,
-    textpos_table: TextPosTable,
 }
 
 fn load_node_and_corpus_tables<F>(
@@ -485,7 +494,7 @@ where
     let left_tok_pos = load_node_and_corpus_result
         .textpos_table
         .token_to_index
-        .get(&left_aligned_tok)
+        .get(&left_aligned_tok)?
         .ok_or_else(|| {
             format!(
                 "Can't get position of left-aligned token {}",
@@ -495,7 +504,7 @@ where
     let right_tok_pos = load_node_and_corpus_result
         .textpos_table
         .token_to_index
-        .get(&right_aligned_tok)
+        .get(&right_aligned_tok)?
         .ok_or_else(|| {
             format!(
                 "Can't get position of right-aligned token {}",
@@ -587,13 +596,13 @@ where
     for (n, textprop) in load_node_and_corpus_result
         .textpos_table
         .node_to_left
-        .iter()
+        .iter()?
     {
         if textprop.segmentation == ""
             && !load_node_and_corpus_result
                 .textpos_table
                 .token_to_index
-                .contains_key(&n)
+                .contains_key(&n)?
         {
             let left_pos = TextProperty {
                 segmentation: String::from(""),
@@ -604,7 +613,7 @@ where
             let right_pos = load_node_and_corpus_result
                 .textpos_table
                 .node_to_right
-                .get(&n)
+                .get(&n)?
                 .ok_or_else(|| format!("Can't get right position of node {}", n))?;
             let right_pos = TextProperty {
                 segmentation: String::from(""),
@@ -615,7 +624,7 @@ where
 
             if let Err(e) = add_automatic_cov_edge_for_node(
                 updater,
-                *n,
+                n,
                 left_pos,
                 right_pos,
                 &load_node_and_corpus_result,
@@ -637,13 +646,6 @@ where
     )?;
 
     Ok(())
-}
-
-struct NodeTabParseResult {
-    nodes_by_text: MultiMap<TextKey, NodeID>,
-    missing_seg_span: BTreeMap<NodeID, String>,
-    id_to_node_name: FxHashMap<NodeID, String>,
-    textpos_table: TextPosTable,
 }
 
 fn load_node_tab<F>(
@@ -683,10 +685,10 @@ where
     let mut textpos_table = TextPosTable {
         token_by_left_textpos: BTreeMap::new(),
         token_by_right_textpos: BTreeMap::new(),
-        node_to_left: BTreeMap::new(),
-        node_to_right: BTreeMap::new(),
-        token_by_index: BTreeMap::new(),
-        token_to_index: BTreeMap::new(),
+        node_to_left: DiskMap::default(),
+        node_to_right: DiskMap::default(),
+        token_by_index: BTreeMap::default(),
+        token_to_index: DiskMap::default(),
     };
 
     // start "scan all lines" visibility block
@@ -769,8 +771,8 @@ where
             };
             left_to_node.insert(left.clone(), node_nr);
             right_to_node.insert(right.clone(), node_nr);
-            textpos_table.node_to_left.insert(node_nr, left.clone());
-            textpos_table.node_to_right.insert(node_nr, right.clone());
+            textpos_table.node_to_left.insert(node_nr, left.clone())?;
+            textpos_table.node_to_right.insert(node_nr, right.clone())?;
 
             if token_index_raw != "NULL" {
                 let span = if has_segmentations {
@@ -797,7 +799,7 @@ where
                     corpus_id,
                 };
                 textpos_table.token_by_index.insert(index.clone(), node_nr);
-                textpos_table.token_to_index.insert(node_nr, index);
+                textpos_table.token_to_index.insert(node_nr, index)?;
                 textpos_table.token_by_left_textpos.insert(left, node_nr);
                 textpos_table.token_by_right_textpos.insert(right, node_nr);
             } else if has_segmentations {
@@ -842,6 +844,14 @@ where
             } // endif if check segmentations
         }
     } // end "scan all lines" visibility block
+
+    info!(
+        "creating index for content of {}",
+        &node_tab_path.to_string_lossy()
+    );
+    textpos_table.node_to_left.compact_and_flush()?;
+    textpos_table.node_to_right.compact_and_flush()?;
+    textpos_table.token_to_index.compact_and_flush()?;
 
     updater.commit(Some(msg), progress_callback)?;
 
@@ -1136,11 +1146,16 @@ where
         }
     }
 
-    updater.commit(Some(msg), progress_callback)?;
-
+    info!(
+        "creating index for content of {}",
+        &rank_tab_path.to_string_lossy()
+    );
     load_rank_result.components_by_pre.compact_and_flush()?;
     load_rank_result.edges_by_pre.compact_and_flush()?;
     load_rank_result.text_coverage_edges.compact_and_flush()?;
+
+    updater.commit(Some(msg), progress_callback)?;
+
     Ok(load_rank_result)
 }
 
