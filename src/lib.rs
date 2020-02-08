@@ -15,7 +15,6 @@ extern crate percent_encoding;
 
 extern crate boolean_expression;
 extern crate linked_hash_map;
-extern crate multimap;
 extern crate rand;
 extern crate regex;
 extern crate regex_syntax;

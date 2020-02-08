@@ -16,7 +16,6 @@ use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
 
-
 #[derive(
     Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, Serialize, Deserialize, MallocSizeOf,
 )]
@@ -84,6 +83,53 @@ struct TextKey {
     corpus_ref: Option<u32>,
 }
 
+#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, MallocSizeOf)]
+struct NodeByTextEntry {
+    text_id: u32,
+    corpus_ref: u32,
+    node_id: NodeID,
+}
+
+impl KeySerializer for NodeByTextEntry {
+    fn create_key(&self) -> Vec<u8> {
+        let mut result =
+            Vec::with_capacity(std::mem::size_of::<u32>() * 2 + std::mem::size_of::<NodeID>());
+        result.extend(&self.text_id.to_be_bytes());
+        result.extend(&self.corpus_ref.to_be_bytes());
+        result.extend(&self.node_id.to_be_bytes());
+        result
+    }
+
+    fn parse_key(key: &[u8]) -> Self {
+        let u32_size = std::mem::size_of::<u32>();
+        let text_id = u32::from_be_bytes(
+            key[0..u32_size]
+                .try_into()
+                .expect("NodeByTextEntry deserialization key was too small (text_id)"),
+        );
+        let mut offset = u32_size;
+
+        let corpus_ref = u32::from_be_bytes(
+            key[offset..(offset+u32_size)]
+                .try_into()
+                .expect("NodeByTextEntry deserialization key was too small (corpus_ref)"),
+        );
+        offset += u32_size;
+
+        let node_id = NodeID::from_be_bytes(
+            key[offset..]
+                .try_into()
+                .expect("NodeByTextEntry deserialization key was too small (node_id)"),
+        );
+
+        NodeByTextEntry {
+            text_id,
+            corpus_ref,
+            node_id,
+        }
+    }
+}
+
 struct Text {
     name: String,
 }
@@ -126,14 +172,14 @@ struct LoadNodeAndCorpusResult {
 }
 
 struct NodeTabParseResult {
-    nodes_by_text: MultiMap<TextKey, NodeID>,
+    nodes_by_text: DiskMap<NodeByTextEntry, bool>,
     missing_seg_span: BTreeMap<NodeID, String>,
     id_to_node_name: DiskMap<NodeID, String>,
     textpos_table: TextPosTable,
 }
 
 struct LoadNodeResult {
-    nodes_by_text: MultiMap<TextKey, NodeID>,
+    nodes_by_text: DiskMap<NodeByTextEntry, bool>,
     id_to_node_name: DiskMap<NodeID, String>,
     textpos_table: TextPosTable,
 }
@@ -716,7 +762,7 @@ fn load_node_tab<F>(
 where
     F: Fn(&str) -> (),
 {
-    let mut nodes_by_text: MultiMap<TextKey, NodeID> = MultiMap::new();
+    let mut nodes_by_text: DiskMap<NodeByTextEntry, bool> = DiskMap::default();
     let mut missing_seg_span: BTreeMap<NodeID, String> = BTreeMap::new();
     let mut id_to_node_name: DiskMap<NodeID, String> = DiskMap::default();
 
@@ -765,12 +811,13 @@ where
             let node_name = get_field_str(&line, 4).ok_or("Missing column")?;
 
             nodes_by_text.insert(
-                TextKey {
-                    corpus_ref: Some(corpus_id),
-                    id: text_id,
+                NodeByTextEntry {
+                    corpus_ref: corpus_id,
+                    text_id,
+                    node_id: node_nr,
                 },
-                node_nr,
-            );
+                true,
+            )?;
 
             let node_path = format!(
                 "{}#{}",
@@ -912,6 +959,7 @@ where
         &node_tab_path.to_string_lossy()
     );
     id_to_node_name.compact_and_flush()?;
+    nodes_by_text.compact_and_flush()?;
     textpos_table.node_to_left.compact_and_flush()?;
     textpos_table.node_to_right.compact_and_flush()?;
     textpos_table.token_to_index.compact_and_flush()?;
@@ -1482,7 +1530,7 @@ where
     } // end for each document/sub-corpus
 
     // add a node for each text and the connection between all sub-nodes of the text
-    for text_key in node_node_result.nodes_by_text.keys() {
+    for text_key in texts.keys() {
         // add text node (including its name)
         let text_name: Option<String> = if is_annis_33 {
             // corpus_ref is included in the text.annis
@@ -1523,24 +1571,34 @@ where
             )?;
 
             // find all nodes belonging to this text and add a relation
-            if let Some(n_vec) = node_node_result.nodes_by_text.get_vec(text_key) {
-                for n in n_vec {
-                    updater.add_event(
-                        UpdateEvent::AddEdge {
-                            source_node: node_node_result
-                                .id_to_node_name
-                                .get(n)?
-                                .ok_or("Missing node name")?
-                                .clone(),
-                            target_node: text_full_name.clone(),
-                            layer: ANNIS_NS.to_owned(),
-                            component_type: ComponentType::PartOf.to_string(),
-                            component_name: String::default(),
-                        },
-                        Some(msg),
-                        progress_callback,
-                    )?;
-                }
+            let min_key = NodeByTextEntry {
+                corpus_ref,
+                text_id: text_key.id,
+                node_id: NodeID::min_value(),
+            };
+            let max_key = NodeByTextEntry {
+                corpus_ref,
+                text_id: text_key.id,
+                node_id: NodeID::max_value(),
+            };
+            for (text_entry, _) in node_node_result.nodes_by_text.range(min_key..=max_key)? {
+                let n = text_entry.node_id;
+                updater.add_event(
+                    UpdateEvent::AddEdge {
+                        source_node: node_node_result
+                            .id_to_node_name
+                            .get(&n)?
+                            .ok_or("Missing node name")?
+                            .clone(),
+                        target_node: text_full_name.clone(),
+                        layer: ANNIS_NS.to_owned(),
+                        component_type: ComponentType::PartOf.to_string(),
+                        component_name: String::default(),
+                    },
+                    Some(msg),
+                    progress_callback,
+                )?;
+            
             }
         }
     } // end for each text
