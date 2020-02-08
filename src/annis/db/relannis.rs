@@ -16,7 +16,6 @@ use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
 
-use rustc_hash::FxHashMap;
 
 #[derive(
     Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, Serialize, Deserialize, MallocSizeOf,
@@ -122,14 +121,20 @@ struct LoadRankResult {
 
 struct LoadNodeAndCorpusResult {
     toplevel_corpus_name: String,
-    id_to_node_name: FxHashMap<NodeID, String>,
+    id_to_node_name: DiskMap<NodeID, String>,
     textpos_table: TextPosTable,
 }
 
 struct NodeTabParseResult {
     nodes_by_text: MultiMap<TextKey, NodeID>,
     missing_seg_span: BTreeMap<NodeID, String>,
-    id_to_node_name: FxHashMap<NodeID, String>,
+    id_to_node_name: DiskMap<NodeID, String>,
+    textpos_table: TextPosTable,
+}
+
+struct LoadNodeResult {
+    nodes_by_text: MultiMap<TextKey, NodeID>,
+    id_to_node_name: DiskMap<NodeID, String>,
     textpos_table: TextPosTable,
 }
 
@@ -293,7 +298,7 @@ fn load_edge_tables<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
     is_annis_33: bool,
-    id_to_node_name: &FxHashMap<NodeID, String>,
+    id_to_node_name: &DiskMap<NodeID, String>,
     progress_callback: &F,
 ) -> Result<LoadRankResult>
 where
@@ -453,7 +458,7 @@ where
 fn calculate_automatic_token_order<F>(
     updater: &mut ChunkUpdater,
     token_by_index: &DiskMap<TextProperty, NodeID>,
-    id_to_node_name: &FxHashMap<NodeID, String>,
+    id_to_node_name: &DiskMap<NodeID, String>,
     progress_callback: &F,
 ) -> Result<()>
 where
@@ -480,11 +485,11 @@ where
                 updater.add_event(
                     UpdateEvent::AddEdge {
                         source_node: id_to_node_name
-                            .get(&last_token)
+                            .get(&last_token)?
                             .ok_or("Missing node name")?
                             .clone(),
                         target_node: id_to_node_name
-                            .get(&current_token)
+                            .get(&current_token)?
                             .ok_or("Missing node name")?
                             .clone(),
                         layer: ANNIS_NS.to_owned(),
@@ -612,12 +617,12 @@ where
                     UpdateEvent::AddEdge {
                         source_node: load_node_and_corpus_result
                             .id_to_node_name
-                            .get(&n)
+                            .get(&n)?
                             .ok_or("Missing node name")?
                             .clone(),
                         target_node: load_node_and_corpus_result
                             .id_to_node_name
-                            .get(&tok_id)
+                            .get(&tok_id)?
                             .ok_or("Missing node name")?
                             .clone(),
                         layer: ANNIS_NS.to_owned(),
@@ -713,7 +718,7 @@ where
 {
     let mut nodes_by_text: MultiMap<TextKey, NodeID> = MultiMap::new();
     let mut missing_seg_span: BTreeMap<NodeID, String> = BTreeMap::new();
-    let mut id_to_node_name: FxHashMap<NodeID, String> = FxHashMap::default();
+    let mut id_to_node_name: DiskMap<NodeID, String> = DiskMap::default();
 
     let mut node_tab_path = PathBuf::from(path);
     node_tab_path.push(if is_annis_33 {
@@ -781,7 +786,7 @@ where
                 Some(msg),
                 progress_callback,
             )?;
-            id_to_node_name.insert(node_nr, node_path.clone());
+            id_to_node_name.insert(node_nr, node_path.clone())?;
 
             if !layer.is_empty() && layer != "NULL" {
                 updater.add_event(
@@ -851,10 +856,14 @@ where
                     text_id,
                     corpus_id,
                 };
-                textpos_table.token_by_index.insert(index.clone(), node_nr)?;
+                textpos_table
+                    .token_by_index
+                    .insert(index.clone(), node_nr)?;
                 textpos_table.token_to_index.insert(node_nr, index)?;
                 textpos_table.token_by_left_textpos.insert(left, node_nr)?;
-                textpos_table.token_by_right_textpos.insert(right, node_nr)?;
+                textpos_table
+                    .token_by_right_textpos
+                    .insert(right, node_nr)?;
             } else if has_segmentations {
                 let segmentation_name = if is_annis_33 {
                     get_field_str(&line, 11).ok_or("Missing column")?
@@ -902,6 +911,7 @@ where
         "creating index for content of {}",
         &node_tab_path.to_string_lossy()
     );
+    id_to_node_name.compact_and_flush()?;
     textpos_table.node_to_left.compact_and_flush()?;
     textpos_table.node_to_right.compact_and_flush()?;
     textpos_table.token_to_index.compact_and_flush()?;
@@ -932,7 +942,7 @@ fn load_node_anno_tab<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
     missing_seg_span: &BTreeMap<NodeID, String>,
-    id_to_node_name: &FxHashMap<NodeID, String>,
+    id_to_node_name: &DiskMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<()>
@@ -960,7 +970,7 @@ where
 
         let col_id = line.get(0).ok_or("Missing column")?;
         let node_id: NodeID = col_id.parse()?;
-        let node_name = id_to_node_name.get(&node_id).ok_or("Missing node name")?;
+        let node_name = id_to_node_name.get(&node_id)?.ok_or("Missing node name")?;
         let col_ns = get_field_str(&line, 1).ok_or("Missing column")?;
         let col_name = get_field_str(&line, 2).ok_or("Missing column")?;
         let col_val = get_field_str(&line, 3).ok_or("Missing column")?;
@@ -1058,12 +1068,6 @@ where
     Ok(component_by_id)
 }
 
-struct LoadNodeResult {
-    nodes_by_text: MultiMap<TextKey, NodeID>,
-    id_to_node_name: FxHashMap<NodeID, String>,
-    textpos_table: TextPosTable,
-}
-
 fn load_nodes<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
@@ -1105,7 +1109,7 @@ fn load_rank_tab<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
     component_by_id: &BTreeMap<u32, Component>,
-    id_to_node_name: &FxHashMap<NodeID, String>,
+    id_to_node_name: &DiskMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<LoadRankResult>
@@ -1168,11 +1172,11 @@ where
                     updater.add_event(
                         UpdateEvent::AddEdge {
                             source_node: id_to_node_name
-                                .get(&source)
+                                .get(&source)?
                                 .ok_or("Missing node name")?
                                 .to_owned(),
                             target_node: id_to_node_name
-                                .get(&target)
+                                .get(&target)?
                                 .ok_or("Missing node name")?
                                 .to_owned(),
                             layer: c.layer.clone(),
@@ -1219,7 +1223,7 @@ fn load_edge_annotation<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
     rank_result: &LoadRankResult,
-    id_to_node_name: &FxHashMap<NodeID, String>,
+    id_to_node_name: &DiskMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<()>
@@ -1256,11 +1260,11 @@ where
                 updater.add_event(
                     UpdateEvent::AddEdgeLabel {
                         source_node: id_to_node_name
-                            .get(&e.source)
+                            .get(&e.source)?
                             .ok_or("Missing node name")?
                             .to_owned(),
                         target_node: id_to_node_name
-                            .get(&e.target)
+                            .get(&e.target)?
                             .ok_or("Missing node name")?
                             .to_owned(),
                         layer: c.layer.clone(),
@@ -1525,7 +1529,7 @@ where
                         UpdateEvent::AddEdge {
                             source_node: node_node_result
                                 .id_to_node_name
-                                .get(n)
+                                .get(n)?
                                 .ok_or("Missing node name")?
                                 .clone(),
                             target_node: text_full_name.clone(),
