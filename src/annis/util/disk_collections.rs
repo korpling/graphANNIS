@@ -14,7 +14,7 @@ mod serializer;
 
 pub use serializer::KeySerializer;
 
-#[derive(Eq, PartialEq, Serialize, Deserialize, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize)]
 struct Entry<K, V>
 where
     K: Ord,
@@ -283,7 +283,17 @@ where
 
                     if ti.valid() && ti.current(&mut key, &mut value) {
                         // Check if the seeked element is actually part of the range
-                        if !range.contains(&K::parse_key(&key)) {
+                        let start_included = match &mapped_start_bound {
+                            Bound::Included(start) => &key >= start,
+                            Bound::Excluded(start) => &key > start,
+                            Bound::Unbounded => true,
+                        };
+                        let end_included = match &mapped_end_bound {
+                            Bound::Included(end) => &key <= end,
+                            Bound::Excluded(end) => &key < end,
+                            Bound::Unbounded => true,
+                        };
+                        if !start_included || !end_included {
                             *exhausted = true;
                         }
                     } else {
@@ -311,10 +321,18 @@ where
                     // Check key after advance
                     if ti.valid() && ti.current(&mut key, &mut value) {
                         // Check if the seeked element is actually part of the range
-                        match &mapped_end_bound {
-                            Bound::Included(end) => *exhausted = &key > end,
-                            Bound::Excluded(end) => *exhausted = &key >= end,
-                            _ => {}
+                        let start_included = match &mapped_start_bound {
+                            Bound::Included(start) => &key >= start,
+                            Bound::Excluded(start) => &key > start,
+                            Bound::Unbounded => true,
+                        };
+                        let end_included = match &mapped_end_bound {
+                            Bound::Included(end) => &key <= end,
+                            Bound::Excluded(end) => &key < end,
+                            Bound::Unbounded => true,
+                        };
+                        if !start_included || !end_included {
+                            *exhausted = true;
                         }
                     } else {
                         // Seeked behind last element
@@ -548,7 +566,7 @@ pub struct Range<'a, K, V> {
 
 impl<'a, K, V> Range<'a, K, V>
 where
-    for<'de> K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
+    for<'de> K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
     fn range_contains(&self, item: &Vec<u8>) -> bool {
