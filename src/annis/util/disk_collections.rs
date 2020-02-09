@@ -102,9 +102,11 @@ where
         let existing = self.get(&key)?;
 
         if let Some(existing) = &existing {
-            self.est_sum_memory -= std::mem::size_of::<(K, V)>()
-                + key.size_of(&mut self.mem_ops)
-                + existing.size_of(&mut self.mem_ops)
+            if self.c0.contains_key(&key) {
+                self.est_sum_memory -= std::mem::size_of::<(K, V)>()
+                    + key.size_of(&mut self.mem_ops)
+                    + existing.size_of(&mut self.mem_ops)
+            }
         }
         self.est_sum_memory += std::mem::size_of::<(K, V)>()
             + key.size_of(&mut self.mem_ops)
@@ -584,56 +586,4 @@ where
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_range() {
-        let mut table = DiskMap::new(None, EvictionStrategy::MaximumItems(3)).unwrap();
-        table.insert(0, true).unwrap();
-        table.insert(1, true).unwrap();
-        table.insert(2, true).unwrap();
-        table.insert(3, true).unwrap();
-        table.insert(4, true).unwrap();
-        table.insert(5, true).unwrap();
-
-        // Start from beginning, exclusive end
-        let result: Vec<(u8, bool)> = table.range(0..6).unwrap().collect();
-        assert_eq!(
-            vec![
-                (0, true),
-                (1, true),
-                (2, true),
-                (3, true),
-                (4, true),
-                (5, true)
-            ],
-            result
-        );
-
-        // Start in between, exclusive end
-        let result: Vec<(u8, bool)> = table.range(3..5).unwrap().collect();
-        assert_eq!(vec![(3, true), (4, true)], result);
-
-        // Start in between, inclusive end
-        let result: Vec<(u8, bool)> = table.range(3..=5).unwrap().collect();
-        assert_eq!(vec![(3, true), (4, true), (5, true)], result);
-
-        // Start from beginning, but exclude start
-        let result: Vec<(u8, bool)> = table
-            .range((Bound::Excluded(0), Bound::Excluded(6)))
-            .unwrap()
-            .collect();
-        assert_eq!(
-            vec![(1, true), (2, true), (3, true), (4, true), (5, true)],
-            result
-        );
-
-        // Start in between and  exclude start
-        let result: Vec<(u8, bool)> = table
-            .range((Bound::Excluded(4), Bound::Excluded(6)))
-            .unwrap()
-            .collect();
-        assert_eq!(vec![(5, true)], result);
-    }
-}
+mod tests;

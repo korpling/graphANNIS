@@ -65,6 +65,7 @@ kernel32-sys = { version = "0.2.2" }
 [dev-dependencies]
 criterion = "0.3"
 env_logger = "0.6"
+fake = "2.2"
 
 [features]
 cli = ["rustyline", "rustyline-derive", "simplelog", "clap", "prettytable-rs"]
