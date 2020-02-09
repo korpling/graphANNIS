@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-pub trait KeySerializer: Ord {
+pub trait KeySerializer {
     fn create_key(&self) -> Vec<u8>;
     fn parse_key(key: &[u8]) -> Self
     where
