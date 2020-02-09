@@ -345,45 +345,80 @@ where
             TableEntry::Temporary { table, .. } | TableEntry::Persistant { table } => table.iter(),
         };
 
-        let mut item_older = it_older.next();
-        let mut item_newer = it_newer.next();
+        let mut k_newer = Vec::default();
+        let mut v_newer = Vec::default();
 
-        while let (Some((k_older, v_older)), Some((k_newer, v_newer))) = (&item_older, &item_newer)
+        let mut k_older = Vec::default();
+        let mut v_older = Vec::default();
+
+        it_newer.seek_to_first();
+        it_older.seek_to_first();
+
+        while it_older.current(&mut k_older, &mut v_older)
+            && it_newer.current(&mut k_newer, &mut v_newer)
         {
             if k_older < k_newer {
                 // Add the value from the older table
                 if write_deleted {
-                    builder.add(k_older, &v_older)?;
+                    builder.add(&k_older, &v_older)?;
                 } else {
                     let parsed: Option<V> = self.serialization.deserialize(&v_older)?;
                     if parsed.is_some() {
-                        builder.add(k_older, &v_older)?;
+                        builder.add(&k_older, &v_older)?;
                     }
                 }
-                item_older = it_older.next();
+                it_older.advance();
             } else if k_older > k_newer {
                 // Add the value from the newer table
                 if write_deleted {
-                    builder.add(k_newer, &v_newer)?;
+                    builder.add(&k_newer, &v_newer)?;
                 } else {
                     let parsed: Option<V> = self.serialization.deserialize(&v_newer)?;
                     if parsed.is_some() {
-                        builder.add(k_newer, &v_newer)?;
+                        builder.add(&k_newer, &v_newer)?;
                     }
                 }
-                item_newer = it_newer.next();
+                it_newer.advance();
             } else {
                 // Use the newer values for the same keys
                 if write_deleted {
-                    builder.add(k_newer, &v_newer)?;
+                    builder.add(&k_newer, &v_newer)?;
                 } else {
                     let parsed: Option<V> = self.serialization.deserialize(&v_newer)?;
                     if parsed.is_some() {
-                        builder.add(k_newer, &v_newer)?;
+                        builder.add(&k_newer, &v_newer)?;
                     }
                 }
-                item_older = it_older.next();
-                item_newer = it_newer.next();
+                it_older.advance();
+                it_newer.advance();
+            }
+        }
+
+        // The above loop will stop when one or both of the iterators are exhausted.
+        // We need to insert the remaining items of the other table as well
+        if it_newer.valid() {
+            while it_newer.current(&mut k_newer, &mut v_newer) {
+                if write_deleted {
+                    builder.add(&k_newer, &v_newer)?;
+                } else {
+                    let parsed: Option<V> = self.serialization.deserialize(&v_newer)?;
+                    if parsed.is_some() {
+                        builder.add(&k_newer, &v_newer)?;
+                    }
+                }
+                it_newer.advance();
+            }
+        } else if it_older.valid() {
+            while it_older.current(&mut k_older, &mut v_older) {
+                if write_deleted {
+                    builder.add(&k_older, &v_older)?;
+                } else {
+                    let parsed: Option<V> = self.serialization.deserialize(&v_older)?;
+                    if parsed.is_some() {
+                        builder.add(&k_older, &v_older)?;
+                    }
+                }
+                it_newer.advance();
             }
         }
 
