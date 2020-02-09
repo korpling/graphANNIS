@@ -52,13 +52,15 @@ where
 {
     persistance_file: Option<PathBuf>,
     eviction_strategy: EvictionStrategy,
-    c0: BTreeMap<K, Option<V>>,
+    c0: BTreeMap<Vec<u8>, Option<V>>,
     disk_tables: Vec<TableEntry>,
     serialization: bincode::Config,
     table_opts: sstable::Options,
 
     mem_ops: MallocSizeOfOps,
     est_sum_memory: usize,
+
+    phantom: std::marker::PhantomData<K>,
 }
 
 impl<K, V> DiskMap<K, V>
@@ -92,6 +94,7 @@ where
             disk_tables: Vec::default(),
             serialization: serialization,
             table_opts,
+            phantom: std::marker::PhantomData,
 
             mem_ops,
             est_sum_memory: 0,
@@ -99,16 +102,18 @@ where
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Result<Option<V>> {
-        let existing = self.get(&key)?;
+        let key = K::create_key(&key);
+
+        let existing = self.get_raw(&key)?;
 
         if let Some(existing) = &existing {
             if self.c0.contains_key(&key) {
-                self.est_sum_memory -= std::mem::size_of::<(K, V)>()
+                self.est_sum_memory -= std::mem::size_of::<(Vec<u8>, V)>()
                     + key.size_of(&mut self.mem_ops)
                     + existing.size_of(&mut self.mem_ops)
             }
         }
-        self.est_sum_memory += std::mem::size_of::<(K, V)>()
+        self.est_sum_memory += std::mem::size_of::<(Vec<u8>, V)>()
             + key.size_of(&mut self.mem_ops)
             + value.size_of(&mut self.mem_ops);
 
@@ -163,14 +168,16 @@ where
 
     #[allow(dead_code)]
     pub fn remove(&mut self, key: &K) -> Result<Option<V>> {
-        let existing = self.get(key)?;
+        let key = K::create_key(key);
+
+        let existing = self.get_raw(&key)?;
         if existing.is_some() {
             self.est_sum_memory -= existing.size_of(&mut self.mem_ops);
 
             // Add tombstone entry
             let empty_value = None;
             self.est_sum_memory += empty_value.size_of(&mut self.mem_ops);
-            self.c0.insert(key.clone(), empty_value);
+            self.c0.insert(key, empty_value);
             self.check_eviction_necessary(true)?;
         }
         Ok(existing)
@@ -184,8 +191,13 @@ where
     }
 
     pub fn get(&self, key: &K) -> Result<Option<V>> {
+        let key = K::create_key(key);
+        self.get_raw(&key)
+    }
+
+    fn get_raw(&self, key: &Vec<u8>) -> Result<Option<V>> {
         // Check C0 first
-        if let Some(value) = self.c0.get(&key) {
+        if let Some(value) = self.c0.get(key) {
             if value.is_some() {
                 return Ok(value.clone());
             } else {
@@ -194,11 +206,10 @@ where
             }
         }
         // Iterate over all disk-tables to find the entry
-        let key: Vec<u8> = key.create_key();
         for table_entry in self.disk_tables.iter().rev() {
             match table_entry {
                 TableEntry::Temporary { table, .. } | TableEntry::Persistant { table } => {
-                    if let Some(value) = table.get(&key)? {
+                    if let Some(value) = table.get(key)? {
                         let value: Option<V> = self.serialization.deserialize(&value)?;
                         if value.is_some() {
                             return Ok(value);
@@ -226,11 +237,11 @@ where
         Ok(it.next().is_none())
     }
 
-    pub fn iter(&self) -> Result<Range<K, V, std::ops::RangeFull>> {
+    pub fn iter(&self) -> Result<Range<K, V>> {
         self.range(..)
     }
 
-    pub fn range<R>(&self, range: R) -> Result<Range<K, V, R>>
+    pub fn range<R>(&self, range: R) -> Result<Range<K, V>>
     where
         R: RangeBounds<K> + Clone,
     {
@@ -248,9 +259,20 @@ where
             .take(table_iterators.len())
             .collect();
 
-        match range.start_bound() {
+        let mapped_start_bound = match range.start_bound() {
+            Bound::Included(end) => Bound::Included(K::create_key(end)),
+            Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
+            Bound::Unbounded => Bound::Unbounded,
+        };
+
+        let mapped_end_bound = match range.end_bound() {
+            Bound::Included(end) => Bound::Included(K::create_key(end)),
+            Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
+            Bound::Unbounded => Bound::Unbounded,
+        };
+
+        match &mapped_start_bound {
             Bound::Included(start) => {
-                let start = start.create_key();
                 let mut key = Vec::default();
                 let mut value = Vec::default();
 
@@ -261,8 +283,7 @@ where
 
                     if ti.valid() && ti.current(&mut key, &mut value) {
                         // Check if the seeked element is actually part of the range
-                        let key = K::parse_key(&key);
-                        if !range.contains(&key) {
+                        if !range.contains(&K::parse_key(&key)) {
                             *exhausted = true;
                         }
                     } else {
@@ -272,7 +293,6 @@ where
                 }
             }
             Bound::Excluded(start_bound) => {
-                let start = start_bound.create_key();
                 let mut key: Vec<u8> = Vec::default();
                 let mut value = Vec::default();
 
@@ -280,10 +300,9 @@ where
                     let exhausted = &mut exhausted[i];
                     let ti = &mut table_iterators[i];
 
-                    ti.seek(&start);
+                    ti.seek(&start_bound);
                     if ti.valid() && ti.current(&mut key, &mut value) {
-                        let key = K::parse_key(&key);
-                        if key == *start_bound {
+                        if &key == start_bound {
                             // We need to exclude the first match
                             ti.advance();
                         }
@@ -292,9 +311,10 @@ where
                     // Check key after advance
                     if ti.valid() && ti.current(&mut key, &mut value) {
                         // Check if the seeked element is actually part of the range
-                        let key = K::parse_key(&key);
-                        if !range.contains(&key) {
-                            *exhausted = true;
+                        match &mapped_end_bound {
+                            Bound::Included(end) => *exhausted = &key > end,
+                            Bound::Excluded(end) => *exhausted = &key >= end,
+                            _ => {}
                         }
                     } else {
                         // Seeked behind last element
@@ -315,9 +335,14 @@ where
                 }
             }
         };
+
         Ok(Range {
-            c0_range: self.c0.range(range.clone()).peekable(),
-            range,
+            c0_range: self
+                .c0
+                .range((mapped_start_bound.clone(), mapped_end_bound.clone()))
+                .peekable(),
+            range_start: mapped_start_bound,
+            range_end: mapped_end_bound,
             exhausted,
             table_iterators,
             serialization: self.serialization.clone(),
@@ -418,7 +443,7 @@ where
                         builder.add(&k_older, &v_older)?;
                     }
                 }
-                it_newer.advance();
+                it_older.advance();
             }
         }
 
@@ -511,29 +536,37 @@ where
     }
 }
 
-pub struct Range<'a, K, V, R>
-where
-    R: RangeBounds<K>,
-{
-    range: R,
-    c0_range: Peekable<std::collections::btree_map::Range<'a, K, Option<V>>>,
+pub struct Range<'a, K, V> {
+    range_start: Bound<Vec<u8>>,
+    range_end: Bound<Vec<u8>>,
+    c0_range: Peekable<std::collections::btree_map::Range<'a, Vec<u8>, Option<V>>>,
     table_iterators: Vec<TableIterator>,
     exhausted: Vec<bool>,
     serialization: bincode::Config,
     phantom: std::marker::PhantomData<(K, V)>,
 }
 
-impl<'a, K, V, R> Range<'a, K, V, R>
+impl<'a, K, V> Range<'a, K, V>
 where
-    R: RangeBounds<K>,
     for<'de> K: 'static + Clone + Eq + PartialEq + PartialOrd + Ord + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
-    fn advance_all(&mut self, after_key: &K) {
+    fn range_contains(&self, item: &Vec<u8>) -> bool {
+        (match &self.range_start {
+            Bound::Included(ref start) => start <= item,
+            Bound::Excluded(ref start) => start < item,
+            Bound::Unbounded => true,
+        }) && (match &self.range_end {
+            Bound::Included(ref end) => item <= end,
+            Bound::Excluded(ref end) => item < end,
+            Bound::Unbounded => true,
+        })
+    }
+
+    fn advance_all(&mut self, after_key: &Vec<u8>) {
         // Skip all smaller or equal keys in C0
         while let Some(c0_item) = self.c0_range.peek() {
-            let key: &K = c0_item.0;
-            if key <= after_key {
+            if c0_item.0 <= after_key {
                 self.c0_range.next();
             } else {
                 break;
@@ -542,19 +575,16 @@ where
 
         // Skip all smaller or equal keys in all disk tables
         for i in 0..self.table_iterators.len() {
-            let exhausted = &mut self.exhausted[i];
-            let table_it = &mut self.table_iterators[i];
-
-            if *exhausted == false && table_it.valid() {
+            if self.exhausted[i] == false && self.table_iterators[i].valid() {
                 let mut key = Vec::default();
                 let mut value = Vec::default();
-                if table_it.current(&mut key, &mut value) {
-                    let key = K::parse_key(&key);
-                    if !self.range.contains(&key) {
-                        *exhausted = true;
+                if self.table_iterators[i].current(&mut key, &mut value) {
+                    if !self.range_contains(&key) {
+                        self.exhausted[i] = true;
                         break;
-                    } else if &key <= after_key {
-                        table_it.advance();
+                    }
+                    if &key <= after_key {
+                        self.table_iterators[i].advance();
                     }
                 }
             }
@@ -562,9 +592,8 @@ where
     }
 }
 
-impl<'a, K, V, R> Iterator for Range<'a, K, V, R>
+impl<'a, K, V> Iterator for Range<'a, K, V>
 where
-    R: RangeBounds<K>,
     for<'de> K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
@@ -573,33 +602,31 @@ where
     fn next(&mut self) -> Option<(K, V)> {
         loop {
             // Find the smallest key in all tables.
-            let mut smallest_key: Option<(K, Option<V>)> = None;
+            let mut smallest_key: Option<(Vec<u8>, Option<V>)> = None;
 
             // Try C0 first
             if let Some(c0_item) = self.c0_range.peek() {
-                let key: &K = c0_item.0;
+                let key: &Vec<u8> = c0_item.0;
                 let value: &Option<V> = c0_item.1;
                 smallest_key = Some((key.clone(), value.clone()));
             }
 
             // Iterate over all disk tables
             for i in 0..self.table_iterators.len() {
-                let exhausted = &mut self.exhausted[i];
                 let table_it = &mut self.table_iterators[i];
 
-                if *exhausted == false && table_it.valid() {
+                if self.exhausted[i] == false && table_it.valid() {
                     let mut key = Vec::default();
                     let mut value = Vec::default();
                     if table_it.current(&mut key, &mut value) {
-                        let key = K::parse_key(&key);
-                        if self.range.contains(&key) {
+                        if self.range_contains(&key) {
                             let value: Option<V> = self
                                 .serialization
                                 .deserialize(&value)
                                 .expect("Could not decode previously written data from disk.");
                             smallest_key = Some((key, value));
                         } else {
-                            *exhausted = true;
+                            self.exhausted[i] = true;
                         }
                     }
                 }
@@ -610,7 +637,8 @@ where
                 self.advance_all(&smallest_key.0);
                 // Return any non-deleted entry
                 if let Some(value) = smallest_key.1 {
-                    return Some((smallest_key.0, value));
+                    let key = K::parse_key(&smallest_key.0);
+                    return Some((key, value));
                 }
             } else {
                 // All iterators are exhausted
