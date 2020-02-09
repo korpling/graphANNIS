@@ -56,11 +56,8 @@ fn range() {
     assert_eq!(vec![(5, true)], result);
 
     // Unbound end
-    let result: Vec<(u8, bool)> = table
-        .range(3..)
-        .unwrap()
-        .collect();
-    assert_eq!(vec![(3, true),(4, true),(5, true)], result);
+    let result: Vec<(u8, bool)> = table.range(3..).unwrap().collect();
+    assert_eq!(vec![(3, true), (4, true), (5, true)], result);
 
     // After compaction
     table.compact_and_flush().unwrap();
@@ -105,11 +102,8 @@ fn range() {
     assert_eq!(vec![(5, true)], result);
 
     // Unbound end
-    let result: Vec<(u8, bool)> = table
-        .range(3..)
-        .unwrap()
-        .collect();
-    assert_eq!(vec![(3, true),(4, true),(5, true)], result);
+    let result: Vec<(u8, bool)> = table.range(3..).unwrap().collect();
+    assert_eq!(vec![(3, true), (4, true), (5, true)], result);
 }
 
 #[test]
@@ -128,11 +122,22 @@ fn unknown_key() {
 
     // check before compaction both with get() and range()
     assert_eq!(None, table.get(&test_key).unwrap());
-    assert_eq!(None, table.range(test_key.clone()..=test_key.clone()).unwrap().next());
+    assert_eq!(
+        None,
+        table
+            .range(test_key.clone()..=test_key.clone())
+            .unwrap()
+            .next()
+    );
 
     // compact and check again
     table.compact_and_flush().unwrap();
     assert_eq!(None, table.get(&test_key).unwrap());
-    assert_eq!(None, table.range(test_key.clone()..=test_key.clone()).unwrap().next());
+    assert_eq!(
+        None,
+        table
+            .range(test_key.clone()..=test_key.clone())
+            .unwrap()
+            .next()
+    );
 }
-
