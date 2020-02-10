@@ -23,16 +23,6 @@ where
     value: V,
 }
 
-enum TableEntry {
-    Temporary {
-        table: Table,
-        tmp_file: tempfile::NamedTempFile,
-    },
-    Persistant {
-        table: Table,
-    },
-}
-
 pub enum EvictionStrategy {
     #[allow(dead_code)]
     MaximumItems(usize),
@@ -53,7 +43,7 @@ where
     persistance_file: Option<PathBuf>,
     eviction_strategy: EvictionStrategy,
     c0: BTreeMap<Vec<u8>, Option<V>>,
-    disk_tables: Vec<TableEntry>,
+    disk_tables: Vec<Table>,
     serialization: bincode::Config,
     table_opts: sstable::Options,
 
@@ -82,7 +72,7 @@ where
         if let Some(persistance_file) = persistance_file {
             // Use existing file as read-only table which contains the whole map
             let table = Table::new_from_file(table_opts.clone(), persistance_file)?;
-            disk_tables.push(TableEntry::Persistant { table });
+            disk_tables.push(table);
         }
 
         let mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
@@ -126,22 +116,26 @@ where
         match self.eviction_strategy {
             EvictionStrategy::MaximumItems(n) => {
                 if self.c0.len() > n {
-                    self.evict_c0(write_deleted)?;
+                    self.evict_c0(write_deleted, None)?;
                 }
             }
             EvictionStrategy::MaximumBytes(b) => {
                 if self.est_sum_memory > b {
-                    self.evict_c0(write_deleted)?;
+                    self.evict_c0(write_deleted, None)?;
                 }
             }
         }
         Ok(())
     }
 
-    fn evict_c0(&mut self, write_deleted: bool) -> Result<()> {
-        let out_file = tempfile::NamedTempFile::new()?;
+    fn evict_c0(&mut self, write_deleted: bool, output_file: Option<&PathBuf>) -> Result<()> {
+        let out_file = if let Some(output_file) = output_file {
+            std::fs::File::open(output_file)?
+        } else {
+            tempfile::tempfile()?
+        };
         {
-            let mut builder = TableBuilder::new(self.table_opts.clone(), out_file.as_file());
+            let mut builder = TableBuilder::new(self.table_opts.clone(), &out_file);
 
             for (key, value) in self.c0.iter() {
                 let key = key.create_key();
@@ -153,13 +147,9 @@ where
         }
 
         self.est_sum_memory = 0;
-
-        let table = Table::new_from_file(self.table_opts.clone(), out_file.path())?;
-
-        self.disk_tables.push(TableEntry::Temporary {
-            table,
-            tmp_file: out_file,
-        });
+        let size = out_file.metadata()?.len();
+        let table = Table::new(self.table_opts.clone(), Box::new(out_file), size as usize)?;
+        self.disk_tables.push(table);
 
         self.c0.clear();
 
@@ -206,18 +196,14 @@ where
             }
         }
         // Iterate over all disk-tables to find the entry
-        for table_entry in self.disk_tables.iter().rev() {
-            match table_entry {
-                TableEntry::Temporary { table, .. } | TableEntry::Persistant { table } => {
-                    if let Some(value) = table.get(key)? {
-                        let value: Option<V> = self.serialization.deserialize(&value)?;
-                        if value.is_some() {
-                            return Ok(value);
-                        } else {
-                            // Value was explicitly deleted, do not query the rest of the disk tables
-                            return Ok(None);
-                        }
-                    }
+        for table in self.disk_tables.iter().rev() {
+            if let Some(value) = table.get(key)? {
+                let value: Option<V> = self.serialization.deserialize(&value)?;
+                if value.is_some() {
+                    return Ok(value);
+                } else {
+                    // Value was explicitly deleted, do not query the rest of the disk tables
+                    return Ok(None);
                 }
             }
         }
@@ -249,11 +235,7 @@ where
             .disk_tables
             .iter()
             .rev()
-            .map(|entry| match entry {
-                TableEntry::Temporary { table, .. } | TableEntry::Persistant { table } => {
-                    table.iter()
-                }
-            })
+            .map(|table| table.iter())
             .collect();
         let mut exhausted: Vec<bool> = std::iter::repeat(false)
             .take(table_iterators.len())
@@ -374,19 +356,15 @@ where
     /// - `write_deleted` - If `true`, tombstones for deleted entries are preserved and written to disk
     fn merge_disk_tables(
         &self,
-        older: &TableEntry,
-        newer: &TableEntry,
+        older: &Table,
+        newer: &Table,
         file: &File,
         write_deleted: bool,
     ) -> Result<()> {
         let mut builder = TableBuilder::new(self.table_opts.clone(), file);
 
-        let mut it_older = match older {
-            TableEntry::Temporary { table, .. } | TableEntry::Persistant { table } => table.iter(),
-        };
-        let mut it_newer = match newer {
-            TableEntry::Temporary { table, .. } | TableEntry::Persistant { table } => table.iter(),
-        };
+        let mut it_older = older.iter();
+        let mut it_newer = newer.iter();
 
         let mut k_newer = Vec::default();
         let mut v_newer = Vec::default();
@@ -474,10 +452,32 @@ where
     /// If the map has a persistance file set, affter calling this function the persistance
     /// file will contain the complete content of the map.
     pub fn compact_and_flush(&mut self) -> Result<()> {
-        // Make sure all entries of C0 are written to disk.
-        // Ommit all deleted entries if this becomes the only, and therefore complete, disk table
+        self.est_sum_memory = 0;
+
+        if self.c0.is_empty() && self.disk_tables.is_empty() {
+            // The table is completly empty. Check if we need to create and write an empty persistant file.
+            if let Some(persistance_file) = &self.persistance_file {
+                let file = File::create(persistance_file)?;
+                let builder = TableBuilder::new(self.table_opts.clone(), file);
+                builder.finish()?;
+
+                // Re-open this file and register it as the only disk table
+                let table = Table::new_from_file(self.table_opts.clone(), &persistance_file)?;
+                self.disk_tables = vec![table]
+            }
+            return Ok(());
+        }
         if !self.c0.is_empty() {
-            self.evict_c0(!self.disk_tables.is_empty())?;
+            // Make sure all entries of C0 are written to disk.
+            // Ommit all deleted entries if this becomes the only, and therefore complete, disk table
+            if self.disk_tables.is_empty() {
+                // No merging with other tables will be performed, if needed directly persist C0
+                let f = self.persistance_file.clone();
+                self.evict_c0(!self.disk_tables.is_empty(), f.as_ref())?;
+            } else {
+                // Write to temporary file for later merging
+                self.evict_c0(!self.disk_tables.is_empty(), None)?;
+            }
         }
 
         // More recent entries are always appended to the end.
@@ -490,54 +490,30 @@ where
         let mut base_optional = self.disk_tables.pop();
         let mut newer_optional = self.disk_tables.pop();
         while let (Some(base), Some(newer)) = (&base_optional, &newer_optional) {
-            let tmp_file = tempfile::NamedTempFile::new()?;
-
+            let is_last_table = self.disk_tables.is_empty();
             // When merging the last two tables, prune the deleted entries
-            let write_deleted = !self.disk_tables.is_empty();
+            let write_deleted = !is_last_table;
 
-            self.merge_disk_tables(base, newer, tmp_file.as_file(), write_deleted)?;
+            // After evicting C0 and merging all tables, a single disk-table will be created.
+            // Check if we need to persist this table to an external location.
+            let table_file = if is_last_table && self.persistance_file.is_some() {
+                std::fs::File::create(self.persistance_file.as_ref().unwrap())?
+            } else {
+                // Use a temporary file to save the table
+                tempfile::tempfile()?
+            };
+            self.merge_disk_tables(base, newer, &table_file, write_deleted)?;
             // Re-Open created table as "older" table
-            let table = Table::new_from_file(self.table_opts.clone(), tmp_file.path())?;
-            base_optional = Some(TableEntry::Temporary { table, tmp_file });
+            let size = table_file.metadata()?.len() as usize;
+            let table = Table::new(self.table_opts.clone(), Box::from(table_file), size)?;
+            base_optional = Some(table);
             // Prepare merging with the next younger table from the log
             newer_optional = self.disk_tables.pop();
         }
 
-        // After evicting C0 and merging all tables, a single disk-table should have been created.
-        // Check if we need to persist this table to an external location.
-        if let Some(persistance_file) = &self.persistance_file {
-            if let Some(table_entry) = base_optional {
-                match table_entry {
-                    TableEntry::Temporary { tmp_file, .. } => {
-                        tmp_file.persist(persistance_file)?;
-                    }
-                    TableEntry::Persistant { .. } => {
-                        // Do nothing.
-                        // Persistant table entries are only added in the constructor of the map.
-                        // If any change happend, this would lead to changes in C0 and the construction of a new
-                        // temporary file table when the immutable persistant table and the one created from C0 are merged.
-                        // Since the persistance file path can't be changed after construction, we can safely assume
-                        // that the content of the map and the one of the persistant file are the same.
-                    }
-                }
-            } else {
-                // Create and persist a new empty table
-                let file = File::create(&persistance_file)?;
-                let builder = TableBuilder::new(self.table_opts.clone(), file);
-                builder.finish()?;
-            }
-            // Re-open this file and register it as the only disk table
-            let table = Table::new_from_file(self.table_opts.clone(), persistance_file)?;
-            self.disk_tables = vec![TableEntry::Persistant { table }]
-        } else {
-            if let Some(table_entry) = base_optional {
-                self.disk_tables = vec![table_entry];
-            } else {
-                self.disk_tables = Vec::default();
-            }
+        if let Some(table) = base_optional {
+            self.disk_tables = vec![table];
         }
-
-        self.est_sum_memory = 0;
 
         Ok(())
     }
