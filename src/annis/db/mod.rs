@@ -7,12 +7,13 @@ use crate::annis::db::update::{GraphUpdate, UpdateEvent};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
+use crate::annis::util::disk_collections::{DiskMap, EvictionStrategy};
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use bincode;
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 use std;
 use std::collections::BTreeMap;
+use std::convert::TryFrom;
 use std::io::prelude::*;
 use std::iter::FromIterator;
 use std::ops::Bound::Included;
@@ -359,12 +360,12 @@ impl Graph {
 
         if logfile_exists {
             // apply any outstanding log file updates
-            let f_log = std::fs::File::open(log_path)?;
-            let mut buf_reader = std::io::BufReader::new(f_log);
-            let mut update: GraphUpdate = bincode::deserialize_from(&mut buf_reader)?;
-            if update.get_last_consistent_change_id() > self.current_change_id {
-                self.apply_update_in_memory(&mut update)?;
-            }
+            let persisted_map = DiskMap::new(
+                Some(&log_path),
+                EvictionStrategy::MaximumBytes(16 * 1024 * 1024),
+            )?;
+            let mut update = GraphUpdate::try_from(persisted_map)?;
+            self.apply_update_in_memory(&mut update)?;
         } else {
             self.current_change_id = 0;
         }
@@ -480,9 +481,9 @@ impl Graph {
 
     fn get_existing_node_ids_for_changes<'a>(
         &self,
-        changes: Box<dyn Iterator<Item = (u64, &'a UpdateEvent)> + 'a>,
-    ) -> std::collections::HashMap<&'a String, Option<NodeID>> {
-        let mut node_ids: std::collections::HashMap<&String, Option<NodeID>> =
+        changes: Box<dyn Iterator<Item = (u64, UpdateEvent)> + 'a>,
+    ) -> std::collections::HashMap<String, Option<NodeID>> {
+        let mut node_ids: std::collections::HashMap<String, Option<NodeID>> =
             std::collections::HashMap::default();
 
         for (_, event) in changes {
@@ -491,8 +492,8 @@ impl Graph {
                 | UpdateEvent::AddNodeLabel { node_name, .. }
                 | UpdateEvent::DeleteNode { node_name, .. }
                 | UpdateEvent::DeleteNodeLabel { node_name, .. } => {
-                    if !node_ids.contains_key(node_name) {
-                        if let Some(id) = self.get_node_id_from_name(node_name) {
+                    if !node_ids.contains_key(&node_name) {
+                        if let Some(id) = self.get_node_id_from_name(&node_name) {
                             node_ids.insert(node_name, Some(id));
                         } else {
                             node_ids.insert(node_name, None);
@@ -519,15 +520,15 @@ impl Graph {
                     target_node,
                     ..
                 } => {
-                    if !node_ids.contains_key(source_node) {
-                        if let Some(id) = self.get_node_id_from_name(source_node) {
+                    if !node_ids.contains_key(&source_node) {
+                        if let Some(id) = self.get_node_id_from_name(&source_node) {
                             node_ids.insert(source_node, Some(id));
                         } else {
                             node_ids.insert(source_node, None);
                         }
                     }
-                    if !node_ids.contains_key(target_node) {
-                        if let Some(id) = self.get_node_id_from_name(target_node) {
+                    if !node_ids.contains_key(&target_node) {
+                        if let Some(id) = self.get_node_id_from_name(&target_node) {
                             node_ids.insert(target_node, Some(id));
                         } else {
                             node_ids.insert(target_node, None);
@@ -557,15 +558,15 @@ impl Graph {
         let msg_missing = "New update event that was not included cache";
 
         // Collect all used node names and map them to existing IDs
-        let mut node_ids = self.get_existing_node_ids_for_changes(u.consistent_changes());
-        for (id, change) in u.consistent_changes() {
+        let mut node_ids = self.get_existing_node_ids_for_changes(u.iter()?);
+        for (id, change) in u.iter()? {
             trace!("applying event {:?}", &change);
             match change {
                 UpdateEvent::AddNode {
                     node_name,
                     node_type,
                 } => {
-                    let existing_node_id = node_ids.get(node_name).expect(msg_missing);
+                    let existing_node_id = node_ids.get(&node_name).expect(msg_missing);
                     // only add node if it does not exist yet
                     if existing_node_id.is_none() {
                         let new_node_id: NodeID =
@@ -1073,11 +1074,6 @@ impl Graph {
     /// If the graph has a location on the disk, the changes are persisted.
     fn apply_update(&mut self, u: &mut GraphUpdate) -> Result<()> {
         trace!("applying updates");
-        // Always mark the update state as consistent, even if caller forgot this.
-        if !u.is_consistent() {
-            u.finish();
-        }
-
         // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
         self.ensure_loaded_all()?;
 
@@ -1092,13 +1088,25 @@ impl Graph {
                 // make sure the output path exits
                 std::fs::create_dir_all(&current_path)?;
 
-                // if successfull write log
-                let log_path = current_path.join("update_log.bin");
+                // If successfull write log
+                let log_path = location.join("update_log.bin");
 
-                trace!("writing WAL update log to {:?}", &log_path);
-                let f_log = std::fs::File::create(log_path)?;
-                let mut buf_writer = std::io::BufWriter::new(f_log);
-                bincode::serialize_into(&mut buf_writer, &u)?;
+                // Create a temporary directory in the same file system as the output
+                let temporary_dir = tempfile::tempdir_in(&current_path)?;
+                let temporary_disk_file = tempfile::NamedTempFile::new_in(&temporary_dir)?;
+
+                trace!("writing WAL update log to {:?}", temporary_disk_file.path());
+                let mut persisted_map = DiskMap::new(
+                    Some(&temporary_disk_file.path()),
+                    EvictionStrategy::MaximumBytes(16 * 1024 * 1024),
+                )?;
+                for (key, value) in u.iter()? {
+                    persisted_map.insert(key, value)?;
+                }
+                persisted_map.compact_and_flush()?;
+                trace!("moving finished WAL update log to {:?}", &log_path);
+                // Since the temporary file should be on the same file system, persisting/moving it should be an atomic operation
+                temporary_disk_file.persist(&log_path)?;
 
                 trace!("finished writing WAL update log");
             } else {
