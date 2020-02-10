@@ -1,7 +1,11 @@
 //! Types used to describe updates on graphs.
 
+use crate::annis::errors::*;
+use crate::annis::util::disk_collections::DiskMap;
+use std::convert::TryFrom;
+
 /// Describes a single update on the graph.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, MallocSizeOf)]
 pub enum UpdateEvent {
     /// Add a node with a name and type.
     AddNode {
@@ -63,72 +67,49 @@ pub enum UpdateEvent {
 }
 
 /// A list of changes to apply to an graph.
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Default)]
 #[repr(C)]
 pub struct GraphUpdate {
-    diffs: Vec<(u64, UpdateEvent)>,
-    last_consistent_change_id: u64,
+    diffs: DiskMap<u64, UpdateEvent>,
+    last_change_id: u64,
 }
 
 impl GraphUpdate {
     /// Create a new empty list of updates.
     pub fn new() -> GraphUpdate {
         GraphUpdate {
-            diffs: Vec::default(),
-            last_consistent_change_id: 0,
+            diffs: DiskMap::default(),
+            last_change_id: 0,
         }
     }
 
     /// Add the given event to the update list.
-    pub fn add_event(&mut self, event: UpdateEvent) {
-        let change_id = self.last_consistent_change_id + (self.diffs.len() as u64) + 1;
-        self.diffs.push((change_id, event));
+    pub fn add_event(&mut self, event: UpdateEvent) -> Result<()> {
+        self.last_change_id += 1;
+        self.diffs.insert(self.last_change_id, event)?;
+        Ok(())
     }
 
-    /// Check if the last item of the last has been marked as consistent.
-    pub fn is_consistent(&self) -> bool {
-        if let Some(last) = self.diffs.last() {
-            self.last_consistent_change_id == last.0
-        } else {
-            true
-        }
-    }
-
-    /// Get the ID of the last change that has been marked as consistent.
-    pub fn get_last_consistent_change_id(&self) -> u64 {
-        self.last_consistent_change_id
-    }
-
-    /// Mark the current state as consistent.
-    pub fn finish(&mut self) {
-        if let Some(last) = self.diffs.last() {
-            self.last_consistent_change_id = last.0;
-        }
-    }
-
-    /// Get all consistent changes
-    pub fn consistent_changes<'a>(
-        &'a self,
-    ) -> Box<dyn Iterator<Item = (u64, &'a UpdateEvent)> + 'a> {
-        let last_consistent_change_id = self.last_consistent_change_id;
-        let it = self.diffs.iter().filter_map(move |d| {
-            if d.0 <= last_consistent_change_id {
-                Some((d.0, &d.1))
-            } else {
-                None
-            }
-        });
-
-        Box::new(it)
-    }
-
-    /// Return the number of updates in the list.
-    pub fn len(&self) -> usize {
-        self.diffs.len()
+    /// Get all changes
+    pub fn iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = (u64, UpdateEvent)> + 'a>> {
+        let it = self.diffs.iter()?;
+        Ok(Box::new(it))
     }
 
     /// Returns `true` if the update list is empty.
-    pub fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> Result<bool> {
         self.diffs.is_empty()
+    }
+}
+
+impl TryFrom<DiskMap<u64, UpdateEvent>> for GraphUpdate {
+    type Error = crate::annis::errors::Error;
+
+    fn try_from(diffs: DiskMap<u64, UpdateEvent>) -> Result<GraphUpdate> {
+        let last_change_id = diffs.iter()?.map(|(id, _)| id).max();
+        Ok(GraphUpdate {
+            last_change_id: last_change_id.unwrap_or(0),
+            diffs,
+        })
     }
 }
