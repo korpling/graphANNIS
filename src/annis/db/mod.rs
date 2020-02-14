@@ -835,13 +835,15 @@ impl Graph {
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
         };
+        let order_stats_exist = self
+            .get_graphstorage(&order_component)
+            .map(|gs_order| gs_order.get_statistics().is_some())
+            .unwrap_or(false);
+        if !order_stats_exist {
+            self.calculate_component_statistics(&order_component)?;
+        }
+        self.optimize_impl(&order_component)?;
         if let Some(gs_order) = self.get_graphstorage(&order_component) {
-            
-            if gs_order.get_statistics().is_none() {
-                // Only-recalculate statistics if there is none yet.
-                self.calculate_component_statistics(&order_component)?;
-            }
-            self.optimize_impl(&order_component)?;
             self.reindex_inherited_coverage(invalid_nodes, gs_order)?;
         }
 
