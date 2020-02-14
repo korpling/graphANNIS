@@ -130,10 +130,13 @@ where
 
     fn evict_c0(&mut self, write_deleted: bool, output_file: Option<&PathBuf>) -> Result<()> {
         let out_file = if let Some(output_file) = output_file {
+            debug!("Evicting DiskMap C0 to {}", output_file.as_path());
             std::fs::File::open(output_file)?
         } else {
+            debug!("Evicting DiskMap C0 to temporary file");
             tempfile::tempfile()?
         };
+
         {
             let mut builder = TableBuilder::new(self.table_opts.clone(), &out_file);
 
@@ -153,6 +156,7 @@ where
 
         self.c0.clear();
 
+        debug!("Finished evicting DiskMap C0 ");
         Ok(())
     }
 
@@ -486,6 +490,8 @@ where
         // We don't need to reverse again after the compaction, because there will be only at most one entry left.
         self.disk_tables.reverse();
 
+        debug!("Merging {} disk-based tables in DiskMap", self.disk_tables.len());
+
         // Start from the end of disk tables (now containing the older entries) and merge them pairwise into temporary tables
         let mut base_optional = self.disk_tables.pop();
         let mut newer_optional = self.disk_tables.pop();
@@ -514,6 +520,8 @@ where
         if let Some(table) = base_optional {
             self.disk_tables = vec![table];
         }
+
+        debug!("Finished merging disk-based tables in DiskMap");
 
         Ok(())
     }
