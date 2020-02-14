@@ -172,7 +172,7 @@ struct LoadNodeAndCorpusResult {
 
 struct NodeTabParseResult {
     nodes_by_text: DiskMap<NodeByTextEntry, bool>,
-    missing_seg_span: BTreeMap<NodeID, String>,
+    missing_seg_span: DiskMap<NodeID, String>,
     id_to_node_name: DiskMap<NodeID, String>,
     textpos_table: TextPosTable,
 }
@@ -694,7 +694,7 @@ where
     F: Fn(&str) -> (),
 {
     let mut nodes_by_text: DiskMap<NodeByTextEntry, bool> = DiskMap::default();
-    let mut missing_seg_span: BTreeMap<NodeID, String> = BTreeMap::new();
+    let mut missing_seg_span: DiskMap<NodeID, String> = DiskMap::default();
     let mut id_to_node_name: DiskMap<NodeID, String> = DiskMap::default();
 
     let mut node_tab_path = PathBuf::from(path);
@@ -860,7 +860,7 @@ where
                         })?;
                     } else {
                         // we need to get the span information from the node_annotation file later
-                        missing_seg_span.insert(node_nr, segmentation_name.clone());
+                        missing_seg_span.insert(node_nr, segmentation_name.clone())?;
                     }
                     // also add the specific segmentation index
                     let index = TextProperty {
@@ -881,6 +881,7 @@ where
     );
     id_to_node_name.compact_and_flush()?;
     nodes_by_text.compact_and_flush()?;
+    missing_seg_span.compact_and_flush()?;
     textpos_table.node_to_left.compact_and_flush()?;
     textpos_table.node_to_right.compact_and_flush()?;
     textpos_table.token_to_index.compact_and_flush()?;
@@ -909,7 +910,7 @@ where
 fn load_node_anno_tab<F>(
     path: &PathBuf,
     updates: &mut GraphUpdate,
-    missing_seg_span: &BTreeMap<NodeID, String>,
+    missing_seg_span: &DiskMap<NodeID, String>,
     id_to_node_name: &DiskMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
@@ -963,8 +964,8 @@ where
             })?;
 
             // add all missing span values from the annotation, but don't add NULL values
-            if let Some(seg) = missing_seg_span.get(&node_id) {
-                if seg == &get_field_str(&line, 2).ok_or("Missing column")?
+            if let Some(seg) = missing_seg_span.get(&node_id)? {
+                if seg == get_field_str(&line, 2).ok_or("Missing column")?
                     && get_field_str(&line, 3).ok_or("Missing column")? != "NULL"
                 {
                     updates.add_event(UpdateEvent::AddNodeLabel {
