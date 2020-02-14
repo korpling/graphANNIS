@@ -209,7 +209,10 @@ impl AnnisRunner {
                 _ => Err(format!("unknown command \"{}\"", cmd).into()),
             };
             if let Err(err) = result {
-                println!("Error: {:?}", err);
+                match err {
+                    Error::Generic { msg, .. } => println!("Error: {}", msg),
+                    _ => println!("Error: {:?}", err),
+                };
             }
         }
         // stay in loop
