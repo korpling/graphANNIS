@@ -828,12 +828,20 @@ impl Graph {
             self.current_change_id = id;
         } // end for each consistent update entry
 
-        // re-index
-        if let Some(gs_order) = self.get_graphstorage(&Component {
+        // Re-index the inherited coverage component.
+        // To make this operation fast, we might need to optimize the order component first
+        let order_component = Component {
             ctype: ComponentType::Ordering,
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
-        }) {
+        };
+        if let Some(gs_order) = self.get_graphstorage(&order_component) {
+            
+            if gs_order.get_statistics().is_none() {
+                // Only-recalculate statistics if there is none yet.
+                self.calculate_component_statistics(&order_component)?;
+            }
+            self.optimize_impl(&order_component)?;
             self.reindex_inherited_coverage(invalid_nodes, gs_order)?;
         }
 
