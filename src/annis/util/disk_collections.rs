@@ -130,7 +130,7 @@ where
 
     fn evict_c0(&mut self, write_deleted: bool, output_file: Option<&PathBuf>) -> Result<()> {
         let out_file = if let Some(output_file) = output_file {
-            debug!("Evicting DiskMap C0 to {}", output_file.as_path());
+            debug!("Evicting DiskMap C0 to {:?}", output_file.as_path());
             std::fs::File::open(output_file)?
         } else {
             debug!("Evicting DiskMap C0 to temporary file");
