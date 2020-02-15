@@ -9,9 +9,12 @@ extern crate rustc_hash;
 use criterion::Criterion;
 use graphannis::corpusstorage::QueryLanguage;
 use graphannis::corpusstorage::ResultOrder;
+use graphannis::util::DiskMap;
 use graphannis::CorpusStorage;
 use std::collections::HashSet;
 use std::path::PathBuf;
+
+use fake::{Fake, Faker};
 
 lazy_static! {
 
@@ -80,7 +83,24 @@ fn deserialize_gum(bench: &mut Criterion) {
     });
 }
 
+fn insert_disk_map(bench: &mut Criterion) {
+    bench.bench_function("insert_disk_map", move |b| {
+        let mut data = Vec::default();
+        for _ in 0..100_000 {
+            data.push((Faker.fake::<u32>(), Faker.fake::<String>()));
+        }
+        b.iter(|| {
+            let mut m = DiskMap::default();
+            for (key, value) in &data {
+                m.insert(*key, value.clone()).unwrap();
+            }
+        });
+    });
+}
+
 criterion_group!(name=corpusstorage; config= Criterion::default().sample_size(25); targets = find_all_nouns_gum);
 criterion_group!(name=serialization; config= Criterion::default().sample_size(25); targets = deserialize_gum);
 
-criterion_main!(corpusstorage, serialization);
+criterion_group!(name=diskmap; config= Criterion::default().sample_size(10); targets = insert_disk_map);
+
+criterion_main!(corpusstorage, serialization, diskmap);
