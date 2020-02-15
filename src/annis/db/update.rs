@@ -1,7 +1,7 @@
 //! Types used to describe updates on graphs.
 
 use crate::annis::errors::*;
-use crate::annis::util::disk_collections::{DiskMap, EvictionStrategy};
+use crate::annis::util::disk_collections::DiskMap;
 use std::convert::TryFrom;
 
 /// Describes a single update on the graph.
@@ -78,8 +78,7 @@ impl GraphUpdate {
     /// Create a new empty list of updates.
     pub fn new() -> GraphUpdate {
         GraphUpdate {
-            diffs: DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000))
-                .expect("Creating disk-based map with temporary files should never fail."),
+            diffs: DiskMap::default(),
             last_change_id: 0,
         }
     }
