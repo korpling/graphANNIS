@@ -253,7 +253,7 @@ where
         if self.insertion_was_sorted {
             // Use a less complicated and faster iterator over all items
             let mut remaining_table_iterators = Vec::with_capacity(self.disk_tables.len());
-            // The disk tables are sorted by oldest first. Reverse the order to have the oldest ones last, so that 
+            // The disk tables are sorted by oldest first. Reverse the order to have the oldest ones last, so that
             // calling "pop()" will return older disk tables first.
             for t in self.disk_tables.iter().rev() {
                 let it = t.iter();

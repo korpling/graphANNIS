@@ -183,7 +183,6 @@ struct LoadNodeResult {
     textpos_table: TextPosTable,
 }
 
-
 /// Load a c corpus in the legacy relANNIS format from the specified `path`.
 ///
 /// Returns a tuple consisting of the corpus name and the extracted annotation graph.
@@ -229,7 +228,7 @@ where
 
         progress_callback("applying list of atomic updates");
         db.apply_update(&mut updates)?;
-        
+
         progress_callback("calculating node statistics");
         db.node_annos.calculate_statistics();
 
@@ -889,7 +888,6 @@ where
     textpos_table.token_by_left_textpos.compact_and_flush()?;
     textpos_table.token_by_right_textpos.compact_and_flush()?;
 
-
     if !(textpos_table.token_by_index.is_empty())? {
         calculate_automatic_token_order(
             updates,
@@ -1304,8 +1302,7 @@ fn add_subcorpora(
     texts: &HashMap<TextKey, Text>,
     corpus_id_to_annos: &BTreeMap<(u32, AnnoKey), String>,
     is_annis_33: bool,
-) -> Result<()>
-{
+) -> Result<()> {
     // add the toplevel corpus as node
     {
         updates.add_event(UpdateEvent::AddNode {

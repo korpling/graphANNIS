@@ -160,16 +160,20 @@ mod tests {
         let mut g = Graph::new(false).unwrap();
 
         let mut update = GraphUpdate::new();
-        update.add_event(UpdateEvent::AddNode {
-            node_name: "doc1/tok1".to_owned(),
-            node_type: "node".to_owned(),
-        }).unwrap();
-        update.add_event(UpdateEvent::AddNodeLabel {
-            node_name: "doc1/tok1".to_owned(),
-            anno_ns: "annis".to_owned(),
-            anno_name: "tok".to_owned(),
-            anno_value: "The".to_owned(),
-        }).unwrap();
+        update
+            .add_event(UpdateEvent::AddNode {
+                node_name: "doc1/tok1".to_owned(),
+                node_type: "node".to_owned(),
+            })
+            .unwrap();
+        update
+            .add_event(UpdateEvent::AddNodeLabel {
+                node_name: "doc1/tok1".to_owned(),
+                anno_ns: "annis".to_owned(),
+                anno_name: "tok".to_owned(),
+                anno_value: "The".to_owned(),
+            })
+            .unwrap();
 
         g.apply_update(&mut update).unwrap();
 
