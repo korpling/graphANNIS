@@ -7,15 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- Removed the accidentally public `size_of_cached` function of `Graph` from the API.
+- Removed the unintentionally public `size_of_cached` function of `Graph` from the API.
 
 
 ### Changed
 
-- Backward incompatible: the `AnnotationStorage` and `WriteableGraphStorage` interfaces have been adjusted to return `Result` types
-  for mutable functions. This is necessary because on-disk annotation storage implementations might fail and we want to handle it when 
-  modifying the annotation storage.
-
+- Backward incompatible: the `AnnotationStorage` and `WriteableGraphStorage` interfaces have been adjusted to return `Result` types for mutable functions. 
+  This change is necessary because on-disk annotation storage implementations might fail, and we want to handle it when modifying the annotation storage.
+- Improved main memory usage when importing relANNIS files. 
+  The implementation now uses disk-based maps.
 
 ### Added
 
