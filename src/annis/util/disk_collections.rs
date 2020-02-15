@@ -92,24 +92,36 @@ where
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Result<Option<V>> {
-        let key = K::create_key(&key);
+        let binary_key = K::create_key(&key);
+        let binary_key_size = binary_key.size_of(&mut self.mem_ops);
 
-        let existing = self.get_raw(&key)?;
-
-        if let Some(existing) = &existing {
-            if self.c0.contains_key(&key) {
-                self.est_sum_memory -= std::mem::size_of::<(Vec<u8>, V)>()
-                    + key.size_of(&mut self.mem_ops)
-                    + existing.size_of(&mut self.mem_ops)
-            }
-        }
+        // Add memory size for inserted element
         self.est_sum_memory += std::mem::size_of::<(Vec<u8>, V)>()
-            + key.size_of(&mut self.mem_ops)
+            + binary_key_size
             + value.size_of(&mut self.mem_ops);
 
-        self.c0.insert(key, Some(value));
+        let mut result: Option<V> = None;
+
+        let existing_c0_entry = self.c0.insert(binary_key, Some(value));
+        if let Some(existing) = &existing_c0_entry {
+            // Subtract the memory size for the item that was removed
+            self.est_sum_memory -= std::mem::size_of::<(Vec<u8>, V)>()
+                + binary_key_size
+                + existing.size_of(&mut self.mem_ops);
+            result = existing.clone();
+        } else if !self.disk_tables.is_empty() {
+            // Iterate over all disk-tables to find a possible existing value for the same key
+            let binary_key = K::create_key(&key);
+            for table in self.disk_tables.iter().rev() {
+                if let Some(value) = table.get(&binary_key)? {
+                    result = self.serialization.deserialize(&value)?;
+                    break;
+                }
+            }
+        };
+
         self.check_eviction_necessary(true)?;
-        Ok(existing)
+        Ok(result)
     }
 
     fn check_eviction_necessary(&mut self, write_deleted: bool) -> Result<()> {
@@ -490,7 +502,10 @@ where
         // We don't need to reverse again after the compaction, because there will be only at most one entry left.
         self.disk_tables.reverse();
 
-        debug!("Merging {} disk-based tables in DiskMap", self.disk_tables.len());
+        debug!(
+            "Merging {} disk-based tables in DiskMap",
+            self.disk_tables.len()
+        );
 
         // Start from the end of disk tables (now containing the older entries) and merge them pairwise into temporary tables
         let mut base_optional = self.disk_tables.pop();
