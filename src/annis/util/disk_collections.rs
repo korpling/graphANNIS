@@ -91,7 +91,7 @@ where
         })
     }
 
-    pub fn insert(&mut self, key: K, value: V) -> Result<Option<V>> {
+    pub fn insert(&mut self, key: K, value: V) -> Result<()> {
         let binary_key = K::create_key(&key);
         let binary_key_size = binary_key.size_of(&mut self.mem_ops);
 
@@ -100,28 +100,16 @@ where
             + binary_key_size
             + value.size_of(&mut self.mem_ops);
 
-        let mut result: Option<V> = None;
-
         let existing_c0_entry = self.c0.insert(binary_key, Some(value));
         if let Some(existing) = &existing_c0_entry {
             // Subtract the memory size for the item that was removed
             self.est_sum_memory -= std::mem::size_of::<(Vec<u8>, V)>()
                 + binary_key_size
                 + existing.size_of(&mut self.mem_ops);
-            result = existing.clone();
-        } else if !self.disk_tables.is_empty() {
-            // Iterate over all disk-tables to find a possible existing value for the same key
-            let binary_key = K::create_key(&key);
-            for table in self.disk_tables.iter().rev() {
-                if let Some(value) = table.get(&binary_key)? {
-                    result = self.serialization.deserialize(&value)?;
-                    break;
-                }
-            }
-        };
+        }
 
         self.check_eviction_necessary(true)?;
-        Ok(result)
+        Ok(())
     }
 
     fn check_eviction_necessary(&mut self, write_deleted: bool) -> Result<()> {
