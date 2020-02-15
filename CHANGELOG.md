@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   This change is necessary because on-disk annotation storage implementations might fail, and we want to handle it when modifying the annotation storage.
 - Improved main memory usage when importing relANNIS files. 
   The implementation now uses temporary disk-based maps instead of memory-intensive maps.
-  This change also affects the `GraphUpdate` class, which is now disk-based, too
+  This change also affects the `GraphUpdate` class, which is now disk-based, too.
 
 ### Added
 
