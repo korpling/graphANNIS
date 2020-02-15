@@ -44,6 +44,11 @@ where
     eviction_strategy: EvictionStrategy,
     c0: BTreeMap<Vec<u8>, Option<V>>,
     disk_tables: Vec<Table>,
+
+    /// Marks if all items have been inserted in sorted order and if there has not been any delete operation yet.
+    insertion_was_sorted: bool,
+    last_inserted_key: Option<Vec<u8>>,
+
     serialization: bincode::Config,
     table_opts: sstable::Options,
 
@@ -82,6 +87,9 @@ where
             persistance_file: persistance_file.map(|p| p.to_owned()),
             c0: BTreeMap::default(),
             disk_tables: Vec::default(),
+            insertion_was_sorted: true,
+            last_inserted_key: None,
+
             serialization: serialization,
             table_opts,
             phantom: std::marker::PhantomData,
@@ -100,6 +108,14 @@ where
             + binary_key_size
             + value.size_of(&mut self.mem_ops);
 
+        // Check if insertion is still sorted
+        if self.insertion_was_sorted {
+            if let Some(last_key) = &self.last_inserted_key {
+                self.insertion_was_sorted = last_key < &binary_key;
+            }
+            self.last_inserted_key = Some(binary_key.clone());
+        }
+
         let existing_c0_entry = self.c0.insert(binary_key, Some(value));
         if let Some(existing) = &existing_c0_entry {
             // Subtract the memory size for the item that was removed
@@ -109,6 +125,7 @@ where
         }
 
         self.check_eviction_necessary(true)?;
+
         Ok(())
     }
 
@@ -172,6 +189,9 @@ where
             let empty_value = None;
             self.est_sum_memory += empty_value.size_of(&mut self.mem_ops);
             self.c0.insert(key, empty_value);
+
+            self.insertion_was_sorted = false;
+
             self.check_eviction_necessary(true)?;
         }
         Ok(existing)
@@ -182,6 +202,8 @@ where
         self.c0.clear();
         self.disk_tables.clear();
         self.est_sum_memory = 0;
+        self.insertion_was_sorted = true;
+        self.last_inserted_key = None;
     }
 
     pub fn get(&self, key: &K) -> Result<Option<V>> {
@@ -227,8 +249,30 @@ where
         Ok(it.next().is_none())
     }
 
-    pub fn iter(&self) -> Result<Range<K, V>> {
-        self.range(..)
+    pub fn iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = (K, V)> + 'a>> {
+        if self.insertion_was_sorted {
+            // Use a less complicated and faster iterator over all items
+            let mut remaining_table_iterators = Vec::with_capacity(self.disk_tables.len());
+            // The disk tables are sorted by oldest first. Reverse the order to have the oldest ones last, so that 
+            // calling "pop()" will return older disk tables first.
+            for t in self.disk_tables.iter().rev() {
+                let it = t.iter();
+                remaining_table_iterators.push(it);
+            }
+            let current_table_iterator = remaining_table_iterators.pop();
+            let it = SortedLogTableIterator {
+                c0_iterator: self.c0.iter().rev(),
+                current_table_iterator,
+                remaining_table_iterators,
+                serialization: self.serialization.clone(),
+                phantom: std::marker::PhantomData,
+            };
+            Ok(Box::new(it))
+        } else {
+            // Default to an iterator that can handle non-globally sorted tables
+            let it = self.range(..)?;
+            Ok(Box::new(it))
+        }
     }
 
     pub fn range<R>(&self, range: R) -> Result<Range<K, V>>
@@ -650,6 +694,56 @@ where
                 return None;
             }
         }
+    }
+}
+
+/// Implements an optimized iterator over C0 and all disk tables.
+/// This iterator assumes the table entries have been inserted in sorted
+/// order and no delete has occurred.
+struct SortedLogTableIterator<'a, K, V> {
+    current_table_iterator: Option<TableIterator>,
+    remaining_table_iterators: Vec<TableIterator>,
+    c0_iterator: std::iter::Rev<std::collections::btree_map::Iter<'a, Vec<u8>, Option<V>>>,
+    serialization: bincode::Config,
+    phantom: std::marker::PhantomData<K>,
+}
+
+impl<'a, K, V> Iterator for SortedLogTableIterator<'a, K, V>
+where
+    for<'de> K: 'static + Clone + KeySerializer + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+{
+    type Item = (K, V);
+
+    fn next(&mut self) -> Option<(K, V)> {
+        while let Some(t) = &mut self.current_table_iterator {
+            if let Some((key, value)) = t.next() {
+                let key = K::parse_key(&key);
+                let value: Option<V> = self
+                    .serialization
+                    .deserialize(&value)
+                    .expect("Could not decode previously written data from disk.");
+                if let Some(value) = value {
+                    return Some((key, value.clone()));
+                } else {
+                    panic!("Optimized log table iterator should have been called only if no entry was ever deleted");
+                }
+            } else {
+                self.current_table_iterator = self.remaining_table_iterators.pop();
+            }
+        }
+        // Check C0 (which contains the newest entries) in inverse order
+        if let Some((key, value)) = self.c0_iterator.next() {
+            let key = K::parse_key(&key);
+            if let Some(value) = value {
+                return Some((key, value.clone()));
+            } else {
+                panic!("Optimized log table iterator should have been called only if no entry was ever deleted");
+            }
+        } else {
+        }
+
+        None
     }
 }
 
