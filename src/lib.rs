@@ -88,4 +88,6 @@ pub mod util {
     pub use crate::annis::util::get_queries_from_csv;
     pub use crate::annis::util::node_names_from_match;
     pub use crate::annis::util::SearchDef;
+    pub use crate::annis::util::disk_collections::DiskMap;
+    pub use crate::annis::util::disk_collections::EvictionStrategy;
 }
