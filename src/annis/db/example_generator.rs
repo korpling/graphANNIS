@@ -17,10 +17,12 @@ pub fn create_corpus_structure(update: &mut GraphUpdate) {
         })
         .unwrap();
 
-    update.add_event(UpdateEvent::AddNode {
-        node_name: "root/subCorpus1".to_string(),
-        node_type: "corpus".to_string(),
-    }).unwrap();
+    update
+        .add_event(UpdateEvent::AddNode {
+            node_name: "root/subCorpus1".to_string(),
+            node_type: "corpus".to_string(),
+        })
+        .unwrap();
     update
         .add_event(UpdateEvent::AddEdge {
             source_node: "root/subCorpus1".to_string(),
