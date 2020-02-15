@@ -615,13 +615,17 @@ fn main() {
         LevelFilter::Info
     };
 
+    let log_config = simplelog::ConfigBuilder::new()
+        .add_filter_ignore_str("rustyline:")
+        .build();
+
     if let Err(e) = TermLogger::init(
         log_filter,
-        simplelog::Config::default(),
+        log_config.clone(),
         simplelog::TerminalMode::Mixed,
     ) {
         println!("Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger", e);
-        if let Err(e_simple) = SimpleLogger::init(log_filter, simplelog::Config::default()) {
+        if let Err(e_simple) = SimpleLogger::init(log_filter, log_config) {
             println!("Simple logging failed too: {}", e_simple);
         }
     }
