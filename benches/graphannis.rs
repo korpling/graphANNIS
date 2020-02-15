@@ -14,8 +14,6 @@ use graphannis::CorpusStorage;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use fake::{Fake, Faker};
-
 lazy_static! {
 
 static ref CORPUS_STORAGE : Option<CorpusStorage> = {
@@ -84,15 +82,13 @@ fn deserialize_gum(bench: &mut Criterion) {
 }
 
 fn insert_disk_map(bench: &mut Criterion) {
+    let example_value = "This is an example string value".to_string();
+
     bench.bench_function("insert_disk_map", move |b| {
-        let mut data = Vec::default();
-        for _ in 0..100_000 {
-            data.push((Faker.fake::<u32>(), Faker.fake::<String>()));
-        }
         b.iter(|| {
             let mut m = DiskMap::default();
-            for (key, value) in &data {
-                m.insert(*key, value.clone()).unwrap();
+            for i in 0..100_000 {
+                m.insert(i, example_value.clone()).unwrap();
             }
         });
     });
