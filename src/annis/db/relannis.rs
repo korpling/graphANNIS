@@ -227,7 +227,7 @@ where
             )?;
         }
 
-        progress_callback("applying changes");
+        progress_callback("applying list of atomic updated");
         db.apply_update(&mut updates)?;
         
         progress_callback("calculating node statistics");
