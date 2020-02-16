@@ -261,7 +261,7 @@ where
             }
             let current_table_iterator = remaining_table_iterators.pop();
             let it = SortedLogTableIterator {
-                c0_iterator: self.c0.iter().rev(),
+                c0_iterator: self.c0.iter(),
                 current_table_iterator,
                 remaining_table_iterators,
                 serialization: self.serialization.clone(),
@@ -703,7 +703,7 @@ where
 struct SortedLogTableIterator<'a, K, V> {
     current_table_iterator: Option<TableIterator>,
     remaining_table_iterators: Vec<TableIterator>,
-    c0_iterator: std::iter::Rev<std::collections::btree_map::Iter<'a, Vec<u8>, Option<V>>>,
+    c0_iterator: std::collections::btree_map::Iter<'a, Vec<u8>, Option<V>>,
     serialization: bincode::Config,
     phantom: std::marker::PhantomData<K>,
 }
@@ -732,7 +732,7 @@ where
                 self.current_table_iterator = self.remaining_table_iterators.pop();
             }
         }
-        // Check C0 (which contains the newest entries) in inverse order
+        // Check C0 (which contains the newest entries)
         if let Some((key, value)) = self.c0_iterator.next() {
             let key = K::parse_key(&key);
             if let Some(value) = value {
