@@ -40,8 +40,8 @@ impl Default for EvictionStrategy {
 
 pub struct DiskMap<K, V>
 where
-    K: 'static + KeySerializer + Send,
-    for<'de> V: 'static + Serialize + Deserialize<'de> + Send,
+    K: 'static + KeySerializer + Send + Sync,
+    for<'de> V: 'static + Serialize + Deserialize<'de> + Send + Sync,
 {
     persistance_file: Option<PathBuf>,
     eviction_strategy: EvictionStrategy,
@@ -53,9 +53,7 @@ where
     last_inserted_key: Option<Vec<u8>>,
 
     serialization: bincode::Config,
-    table_opts: sstable::Options,
 
-    mem_ops: MallocSizeOfOps,
     est_sum_memory: usize,
 
     phantom: std::marker::PhantomData<K>,
@@ -63,8 +61,8 @@ where
 
 impl<K, V> DiskMap<K, V>
 where
-    K: 'static + Clone + KeySerializer + Send + MallocSizeOf,
-    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + MallocSizeOf,
+    K: 'static + Clone + KeySerializer + Send + Sync + MallocSizeOf,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + Sync + MallocSizeOf,
 {
     pub fn new(
         persistance_file: Option<&Path>,
@@ -72,17 +70,13 @@ where
     ) -> Result<DiskMap<K, V>> {
         let serialization = bincode::config();
 
-        let table_opts = sstable::Options::default();
-
         let mut disk_tables = Vec::default();
 
         if let Some(persistance_file) = persistance_file {
             // Use existing file as read-only table which contains the whole map
-            let table = Table::new_from_file(table_opts.clone(), persistance_file)?;
+            let table = Table::new_from_file(sstable::Options::default(), persistance_file)?;
             disk_tables.push(table);
         }
-
-        let mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
 
         Ok(DiskMap {
             eviction_strategy,
@@ -93,22 +87,21 @@ where
             last_inserted_key: None,
 
             serialization: serialization,
-            table_opts,
             phantom: std::marker::PhantomData,
-
-            mem_ops,
             est_sum_memory: 0,
         })
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Result<()> {
         let binary_key = K::create_key(&key);
-        let binary_key_size = binary_key.size_of(&mut self.mem_ops);
+
+        let mut mem_ops =
+            MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
+        let binary_key_size = binary_key.size_of(&mut mem_ops);
 
         // Add memory size for inserted element
-        self.est_sum_memory += std::mem::size_of::<(Vec<u8>, V)>()
-            + binary_key_size
-            + value.size_of(&mut self.mem_ops);
+        self.est_sum_memory +=
+            std::mem::size_of::<(Vec<u8>, V)>() + binary_key_size + value.size_of(&mut mem_ops);
 
         // Check if insertion is still sorted
         if self.insertion_was_sorted {
@@ -123,7 +116,7 @@ where
             // Subtract the memory size for the item that was removed
             self.est_sum_memory -= std::mem::size_of::<(Vec<u8>, V)>()
                 + binary_key_size
-                + existing.size_of(&mut self.mem_ops);
+                + existing.size_of(&mut mem_ops);
         }
 
         self.check_eviction_necessary(true)?;
@@ -157,7 +150,7 @@ where
         };
 
         {
-            let mut builder = TableBuilder::new(self.table_opts.clone(), &out_file);
+            let mut builder = TableBuilder::new(sstable::Options::default(), &out_file);
 
             for (key, value) in self.c0.iter() {
                 let key = key.create_key();
@@ -170,7 +163,11 @@ where
 
         self.est_sum_memory = 0;
         let size = out_file.metadata()?.len();
-        let table = Table::new(self.table_opts.clone(), Box::new(out_file), size as usize)?;
+        let table = Table::new(
+            sstable::Options::default(),
+            Box::new(out_file),
+            size as usize,
+        )?;
         self.disk_tables.push(table);
 
         self.c0.clear();
@@ -185,11 +182,14 @@ where
 
         let existing = self.get_raw(&key)?;
         if existing.is_some() {
-            self.est_sum_memory -= existing.size_of(&mut self.mem_ops);
+            let mut mem_ops =
+                MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
+
+            self.est_sum_memory -= existing.size_of(&mut mem_ops);
 
             // Add tombstone entry
             let empty_value = None;
-            self.est_sum_memory += empty_value.size_of(&mut self.mem_ops);
+            self.est_sum_memory += empty_value.size_of(&mut mem_ops);
             self.c0.insert(key, empty_value);
 
             self.insertion_was_sorted = false;
@@ -514,7 +514,7 @@ where
         file: &File,
         write_deleted: bool,
     ) -> Result<()> {
-        let mut builder = TableBuilder::new(self.table_opts.clone(), file);
+        let mut builder = TableBuilder::new(sstable::Options::default(), file);
 
         let mut it_older = older.iter();
         let mut it_newer = newer.iter();
@@ -611,11 +611,11 @@ where
             // The table is completly empty. Check if we need to create and write an empty persistant file.
             if let Some(persistance_file) = &self.persistance_file {
                 let file = File::create(persistance_file)?;
-                let builder = TableBuilder::new(self.table_opts.clone(), file);
+                let builder = TableBuilder::new(sstable::Options::default(), file);
                 builder.finish()?;
 
                 // Re-open this file and register it as the only disk table
-                let table = Table::new_from_file(self.table_opts.clone(), &persistance_file)?;
+                let table = Table::new_from_file(sstable::Options::default(), &persistance_file)?;
                 self.disk_tables = vec![table]
             }
             return Ok(());
@@ -663,7 +663,7 @@ where
             self.merge_disk_tables(base, newer, &table_file, write_deleted)?;
             // Re-Open created table as "older" table
             let size = table_file.metadata()?.len() as usize;
-            let table = Table::new(self.table_opts.clone(), Box::from(table_file), size)?;
+            let table = Table::new(sstable::Options::default(), Box::from(table_file), size)?;
             base_optional = Some(table);
             // Prepare merging with the next younger table from the log
             newer_optional = self.disk_tables.pop();
@@ -681,8 +681,8 @@ where
 
 impl<K, V> Default for DiskMap<K, V>
 where
-    K: 'static + Clone + KeySerializer + Send + MallocSizeOf,
-    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + MallocSizeOf,
+    K: 'static + Clone + KeySerializer + Send + Sync + MallocSizeOf,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + Sync + MallocSizeOf,
 {
     fn default() -> Self {
         DiskMap::new(None, EvictionStrategy::default())

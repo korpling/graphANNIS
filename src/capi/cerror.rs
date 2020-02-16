@@ -47,7 +47,6 @@ fn error_kind(e: &errors::Error) -> &str {
         errors::Error::Strum(_) => "Strum",
         errors::Error::Regex(_) => "Regex",
         errors::Error::RandomGenerator(_) => "RandomGenerator",
-        errors::Error::RocksDB(_) => "RocksDB",
         errors::Error::Failure(_) => "Failure",
         errors::Error::SSTable(_) => "SSTable",
     }
