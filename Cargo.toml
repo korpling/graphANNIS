@@ -28,7 +28,7 @@ serde_derive = "1.0"
 bincode = "1.2"
 rand = {version = "0.7", features=["small_rng"]}
 csv = "1"
-sstable = "0.6.5"
+sstable = "0.7"
 failure = "0.1"
 log = "0.4"
 lazy_static = "1.4"
@@ -45,7 +45,6 @@ fs2 = "0.4"
 lalrpop-util = "0.17"
 boolean_expression = "0.3"
 percent-encoding = "1.0"
-rocksdb = {version ="0.13.0", default-features = false}
 libc = {version="0.2"}
 
 graphannis-malloc_size_of = "1.0"
@@ -64,7 +63,7 @@ kernel32-sys = { version = "0.2.2" }
 
 [dev-dependencies]
 criterion = "0.3"
-env_logger = "0.6"
+env_logger = "0.7"
 fake = "2.2"
 
 [features]
