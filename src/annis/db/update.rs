@@ -2,7 +2,10 @@
 
 use crate::annis::errors::*;
 use crate::annis::util::disk_collections::DiskMap;
-use std::convert::TryFrom;
+use serde::de::Error as DeserializeError;
+use serde::de::{MapAccess, Visitor};
+use serde::ser::Error as SerializeError;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Describes a single update on the graph.
 #[derive(Serialize, Deserialize, Clone, Debug, MallocSizeOf)]
@@ -71,7 +74,7 @@ pub enum UpdateEvent {
 #[repr(C)]
 pub struct GraphUpdate {
     diffs: DiskMap<u64, UpdateEvent>,
-    last_change_id: u64,
+    event_counter: u64,
 }
 
 impl GraphUpdate {
@@ -79,21 +82,21 @@ impl GraphUpdate {
     pub fn new() -> GraphUpdate {
         GraphUpdate {
             diffs: DiskMap::default(),
-            last_change_id: 0,
+            event_counter: 0,
         }
     }
 
     /// Add the given event to the update list.
     pub fn add_event(&mut self, event: UpdateEvent) -> Result<()> {
-        self.last_change_id += 1;
-        self.diffs.insert(self.last_change_id, event)?;
+        self.event_counter += 1;
+        self.diffs.insert(self.event_counter, event)?;
         Ok(())
     }
 
     /// Get all changes
-    pub fn iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = (u64, UpdateEvent)> + 'a>> {
-        let it = self.diffs.iter()?;
-        Ok(Box::new(it))
+    pub fn iter<'a>(&'a self) -> Result<GraphUpdateIterator<'a>> {
+        let it = GraphUpdateIterator::new(self)?;
+        Ok(it)
     }
 
     /// Returns `true` if the update list is empty.
@@ -102,14 +105,71 @@ impl GraphUpdate {
     }
 }
 
-impl TryFrom<DiskMap<u64, UpdateEvent>> for GraphUpdate {
-    type Error = crate::annis::errors::Error;
+pub struct GraphUpdateIterator<'a> {
+    diff_iter: Box<dyn Iterator<Item = (u64, UpdateEvent)> + 'a>,
+    length: u64,
+}
 
-    fn try_from(diffs: DiskMap<u64, UpdateEvent>) -> Result<GraphUpdate> {
-        let last_change_id = diffs.iter()?.map(|(id, _)| id).max();
-        Ok(GraphUpdate {
-            last_change_id: last_change_id.unwrap_or(0),
-            diffs,
+impl<'a> GraphUpdateIterator<'a> {
+    fn new(g: &'a GraphUpdate) -> Result<GraphUpdateIterator<'a>> {
+        Ok(GraphUpdateIterator {
+            length: g.event_counter,
+            diff_iter: g.diffs.iter()?,
         })
+    }
+}
+
+impl<'a> std::iter::Iterator for GraphUpdateIterator<'a> {
+    type Item = (u64, UpdateEvent);
+
+    fn next(&mut self) -> Option<(u64, UpdateEvent)> {
+        self.diff_iter.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.length as usize, Some(self.length as usize))
+    }
+}
+
+impl Serialize for GraphUpdate {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let it = self.iter().map_err(S::Error::custom)?;
+        serializer.collect_map(it)
+    }
+}
+
+struct GraphUpdateVisitor {}
+
+impl<'de> Visitor<'de> for GraphUpdateVisitor {
+    type Value = GraphUpdate;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a list of graph updates")
+    }
+
+    fn visit_map<M>(self, mut access: M) -> std::result::Result<Self::Value, M::Error>
+    where
+        M: MapAccess<'de>,
+    {
+        let mut g = GraphUpdate::default();
+
+        while let Some((key, value)) = access.next_entry().map_err(M::Error::custom)? {
+            g.diffs.insert(key, value).map_err(M::Error::custom)?;
+            g.event_counter = key;
+        }
+
+        Ok(g)
+    }
+}
+
+impl<'de> Deserialize<'de> for GraphUpdate {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_map(GraphUpdateVisitor {})
     }
 }
