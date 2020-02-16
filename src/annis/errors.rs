@@ -1,4 +1,5 @@
 use crate::annis::types::LineColumnRange;
+use serde::{de, ser};
 use std::error::Error as StdError;
 use std::fmt::Display;
 
@@ -51,6 +52,30 @@ impl std::convert::From<tempfile::PersistError> for Error {
 impl std::convert::From<::bincode::Error> for Error {
     fn from(e: ::bincode::Error) -> Error {
         Error::Bincode(e)
+    }
+}
+
+impl std::convert::Into<::bincode::Error> for Error {
+    fn into(self) -> ::bincode::Error {
+        Box::new(::bincode::ErrorKind::Custom(format!("{}", &self)))
+    }
+}
+
+impl ser::Error for Error {
+    fn custom<T: Display>(msg: T) -> Self {
+        Error::Generic {
+            msg: msg.to_string(),
+            cause: None,
+        }
+    }
+}
+
+impl de::Error for Error {
+    fn custom<T: Display>(msg: T) -> Self {
+        Error::Generic {
+            msg: msg.to_string(),
+            cause: None,
+        }
     }
 }
 

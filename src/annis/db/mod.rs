@@ -3,17 +3,15 @@ use crate::annis::db::graphstorage::registry;
 use crate::annis::db::graphstorage::union::UnionEdgeContainer;
 use crate::annis::db::graphstorage::EdgeContainer;
 use crate::annis::db::graphstorage::{GraphStorage, WriteableGraphStorage};
-use crate::annis::db::update::{GraphUpdate, UpdateEvent};
+use crate::annis::db::update::{GraphUpdate, GraphUpdateIterator, UpdateEvent};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
-use crate::annis::util::disk_collections::{DiskMap, EvictionStrategy};
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 use std;
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 use std::io::prelude::*;
 use std::iter::FromIterator;
 use std::ops::Bound::Included;
@@ -360,11 +358,8 @@ impl Graph {
 
         if logfile_exists {
             // apply any outstanding log file updates
-            let persisted_map = DiskMap::new(
-                Some(&log_path),
-                EvictionStrategy::MaximumBytes(16 * 1024 * 1024),
-            )?;
-            let mut update = GraphUpdate::try_from(persisted_map)?;
+            let log_reader = std::fs::File::open(&log_path)?;
+            let mut update = bincode::deserialize_from(log_reader)?;
             self.apply_update_in_memory(&mut update)?;
         } else {
             self.current_change_id = 0;
@@ -481,7 +476,7 @@ impl Graph {
 
     fn get_existing_node_ids_for_changes<'a>(
         &self,
-        changes: Box<dyn Iterator<Item = (u64, UpdateEvent)> + 'a>,
+        changes: GraphUpdateIterator<'a>,
     ) -> std::collections::HashMap<String, Option<NodeID>> {
         let mut node_ids: std::collections::HashMap<String, Option<NodeID>> =
             std::collections::HashMap::default();
@@ -1103,17 +1098,11 @@ impl Graph {
 
                 // Create a temporary directory in the same file system as the output
                 let temporary_dir = tempfile::tempdir_in(&current_path)?;
-                let temporary_disk_file = tempfile::NamedTempFile::new_in(&temporary_dir)?;
+                let mut temporary_disk_file = tempfile::NamedTempFile::new_in(&temporary_dir)?;
 
                 trace!("writing WAL update log to {:?}", temporary_disk_file.path());
-                let mut persisted_map = DiskMap::new(
-                    Some(&temporary_disk_file.path()),
-                    EvictionStrategy::MaximumBytes(16 * 1024 * 1024),
-                )?;
-                for (key, value) in u.iter()? {
-                    persisted_map.insert(key, value)?;
-                }
-                persisted_map.compact_and_flush()?;
+                bincode::serialize_into(temporary_disk_file.as_file(), &u)?;
+                temporary_disk_file.flush()?;
                 trace!("moving finished WAL update log to {:?}", &log_path);
                 // Since the temporary file should be on the same file system, persisting/moving it should be an atomic operation
                 temporary_disk_file.persist(&log_path)?;

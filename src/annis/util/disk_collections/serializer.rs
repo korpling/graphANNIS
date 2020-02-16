@@ -100,6 +100,20 @@ impl KeySerializer for u128 {
     }
 }
 
+impl KeySerializer for usize {
+    fn create_key(&self) -> Vec<u8> {
+        self.to_be_bytes().to_vec()
+    }
+
+    fn parse_key(key: &[u8]) -> Self {
+        Self::from_be_bytes(
+            key[..std::mem::size_of::<Self>()]
+                .try_into()
+                .expect(PANIC_MESSAGE_SIZE),
+        )
+    }
+}
+
 impl KeySerializer for i8 {
     fn create_key(&self) -> Vec<u8> {
         self.to_be_bytes().to_vec()
