@@ -67,9 +67,8 @@ where
         persistance_file: Option<&Path>,
         eviction_strategy: EvictionStrategy,
     ) -> Result<DiskMap<K, V>> {
-        let mut serialization = bincode::config();
-        serialization.big_endian();
-
+        let serialization = bincode::config();
+    
         let table_opts = sstable::Options::default();
 
         let mut disk_tables = Vec::default();
