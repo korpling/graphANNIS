@@ -68,7 +68,7 @@ where
         eviction_strategy: EvictionStrategy,
     ) -> Result<DiskMap<K, V>> {
         let serialization = bincode::config();
-    
+
         let table_opts = sstable::Options::default();
 
         let mut disk_tables = Vec::default();
