@@ -7,12 +7,12 @@ use crate::annis::db::update::{GraphUpdate, UpdateEvent};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
+use crate::annis::util::disk_collections::{DiskMap, EvictionStrategy};
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 use std;
 use std::collections::BTreeMap;
-use std::collections::HashMap;
 use std::io::prelude::*;
 use std::iter::FromIterator;
 use std::ops::Bound::Included;
@@ -478,15 +478,15 @@ impl Graph {
     fn get_cached_node_id_from_name(
         &self,
         node_name: String,
-        cache: &mut HashMap<String, Option<NodeID>>,
-    ) -> Option<NodeID> {
-        *cache.entry(node_name.clone()).or_insert_with(|| {
-            if let Some(node_id) = self.get_node_id_from_name(&node_name) {
-                Some(node_id)
-            } else {
-                None
-            }
-        })
+        cache: &mut DiskMap<String, Option<NodeID>>,
+    ) -> Result<Option<NodeID>> {
+        if let Some(id) = cache.try_get(&node_name)? {
+            Ok(id)
+        } else {
+            let id = self.get_node_id_from_name(&node_name);
+            cache.insert(node_name, id.clone())?;
+            Ok(id)
+        }
     }
 
     #[allow(clippy::cognitive_complexity)]
@@ -507,7 +507,8 @@ impl Graph {
             .extend(self.get_all_components(Some(ComponentType::Coverage), None));
 
         // Cache the expensive mapping of node names to IDs
-        let mut node_ids: HashMap<String, Option<NodeID>> = HashMap::default();
+        let mut node_ids: DiskMap<String, Option<NodeID>> =
+            DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000))?;
         // Iterate once over all changes in the same order as the updates have been added
         let mut nr_updates = 0;
         for (id, change) in u.iter()? {
@@ -518,7 +519,7 @@ impl Graph {
                     node_type,
                 } => {
                     let existing_node_id =
-                        self.get_cached_node_id_from_name(node_name.clone(), &mut node_ids);
+                        self.get_cached_node_id_from_name(node_name.clone(), &mut node_ids)?;
                     // only add node if it does not exist yet
                     if existing_node_id.is_none() {
                         let new_node_id: NodeID =
@@ -542,12 +543,12 @@ impl Graph {
                         self.node_annos.insert(new_node_id, new_anno_type)?;
 
                         // update the internal cache
-                        node_ids.insert(node_name, Some(new_node_id));
+                        node_ids.insert(node_name, Some(new_node_id))?;
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
                     if let Some(existing_node_id) =
-                        self.get_cached_node_id_from_name(node_name, &mut node_ids)
+                        self.get_cached_node_id_from_name(node_name, &mut node_ids)?
                     {
                         if !invalid_nodes.contains(&existing_node_id) {
                             self.extend_parent_text_coverage_nodes(
@@ -579,7 +580,7 @@ impl Graph {
                     anno_value,
                 } => {
                     if let Some(existing_node_id) =
-                        self.get_cached_node_id_from_name(node_name, &mut node_ids)
+                        self.get_cached_node_id_from_name(node_name, &mut node_ids)?
                     {
                         let anno = Annotation {
                             key: AnnoKey {
@@ -597,7 +598,7 @@ impl Graph {
                     anno_name,
                 } => {
                     if let Some(existing_node_id) =
-                        self.get_cached_node_id_from_name(node_name, &mut node_ids)
+                        self.get_cached_node_id_from_name(node_name, &mut node_ids)?
                     {
                         let key = AnnoKey {
                             ns: anno_ns.to_string(),
@@ -614,8 +615,8 @@ impl Graph {
                     component_type,
                     component_name,
                 } => {
-                    let source = self.get_cached_node_id_from_name(source_node, &mut node_ids);
-                    let target = self.get_cached_node_id_from_name(target_node, &mut node_ids);
+                    let source = self.get_cached_node_id_from_name(source_node, &mut node_ids)?;
+                    let target = self.get_cached_node_id_from_name(target_node, &mut node_ids)?;
                     // only add edge if both nodes already exist
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
@@ -665,8 +666,8 @@ impl Graph {
                     component_type,
                     component_name,
                 } => {
-                    let source = self.get_cached_node_id_from_name(source_node, &mut node_ids);
-                    let target = self.get_cached_node_id_from_name(target_node, &mut node_ids);
+                    let source = self.get_cached_node_id_from_name(source_node, &mut node_ids)?;
+                    let target = self.get_cached_node_id_from_name(target_node, &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
@@ -710,8 +711,8 @@ impl Graph {
                     anno_name,
                     anno_value,
                 } => {
-                    let source = self.get_cached_node_id_from_name(source_node, &mut node_ids);
-                    let target = self.get_cached_node_id_from_name(target_node, &mut node_ids);
+                    let source = self.get_cached_node_id_from_name(source_node, &mut node_ids)?;
+                    let target = self.get_cached_node_id_from_name(target_node, &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
@@ -744,8 +745,8 @@ impl Graph {
                     anno_ns,
                     anno_name,
                 } => {
-                    let source = self.get_cached_node_id_from_name(source_node, &mut node_ids);
-                    let target = self.get_cached_node_id_from_name(target_node, &mut node_ids);
+                    let source = self.get_cached_node_id_from_name(source_node, &mut node_ids)?;
+                    let target = self.get_cached_node_id_from_name(target_node, &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
