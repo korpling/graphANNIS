@@ -523,10 +523,10 @@ where
         let mut builder = TableBuilder::new(sstable::Options::default(), &out_file);
         for (key, value) in self.try_iter()? {
             let key = key.create_key();
-            builder.add(&key, &self.serialization.serialize(&value)?)?;
+            builder.add(&key, &self.serialization.serialize(&Some(value))?)?;
         }
         let size = builder.finish()?;
-        
+
         // Re-open sorted string table and set it as the only table
         let table = Table::new(sstable::Options::default(), Box::new(out_file), size)?;
         self.disk_tables = vec![table];
@@ -547,7 +547,7 @@ where
         let mut builder = TableBuilder::new(sstable::Options::default(), out_file);
         for (key, value) in self.try_iter()? {
             let key = key.create_key();
-            builder.add(&key, &self.serialization.serialize(&value)?)?;
+            builder.add(&key, &self.serialization.serialize(&Some(value))?)?;
         }
         builder.finish()?;
 
