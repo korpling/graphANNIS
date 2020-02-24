@@ -361,7 +361,7 @@ impl Graph {
             // apply any outstanding log file updates
             let log_reader = std::fs::File::open(&log_path)?;
             let mut update = bincode::deserialize_from(log_reader)?;
-            self.apply_update_in_memory(&mut update)?;
+            self.apply_update_in_memory(&mut update, |_| {})?;
         } else {
             self.current_change_id = 0;
         }
@@ -490,7 +490,10 @@ impl Graph {
     }
 
     #[allow(clippy::cognitive_complexity)]
-    fn apply_update_in_memory(&mut self, u: &mut GraphUpdate) -> Result<()> {
+    fn apply_update_in_memory<F>(&mut self, u: &mut GraphUpdate, progress_callback: F) -> Result<()>
+    where
+        F: Fn(&str) -> (),
+    {
         self.reset_cached_size();
 
         let mut invalid_nodes: FxHashSet<NodeID> = FxHashSet::default();
@@ -506,6 +509,7 @@ impl Graph {
         // Cache the expensive mapping of node names to IDs
         let mut node_ids: HashMap<String, Option<NodeID>> = HashMap::default();
         // Iterate once over all changes in the same order as the updates have been added
+        let mut nr_updates = 0;
         for (id, change) in u.iter()? {
             trace!("applying event {:?}", &change);
             match change {
@@ -764,6 +768,11 @@ impl Graph {
                 }
             } // end match update entry type
             self.current_change_id = id;
+
+            nr_updates += 1;
+            if nr_updates % 1_000 == 0 {
+                progress_callback(&format!("applied {} atomic updates", nr_updates));
+            }
         } // end for each consistent update entry
 
         // Re-index the inherited coverage component.
@@ -1020,14 +1029,18 @@ impl Graph {
 
     /// Apply a sequence of updates (`u` parameter) to this graph.
     /// If the graph has a location on the disk, the changes are persisted.
-    fn apply_update(&mut self, u: &mut GraphUpdate) -> Result<()> {
-        trace!("applying updates");
+    fn apply_update<F>(&mut self, u: &mut GraphUpdate, progress_callback: F) -> Result<()>
+    where
+        F: Fn(&str) -> (),
+    {
+        progress_callback("applying list of atomic updates");
+
         // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
         self.ensure_loaded_all()?;
 
-        let result = self.apply_update_in_memory(u);
+        let result = self.apply_update_in_memory(u, &progress_callback);
 
-        trace!("memory updates completed");
+        progress_callback("memory updates completed, persisting updates to disk");
 
         if let Some(location) = self.location.clone() {
             trace!("output location for persisting updates is {:?}", location);
@@ -1050,7 +1063,7 @@ impl Graph {
                 // Since the temporary file should be on the same file system, persisting/moving it should be an atomic operation
                 temporary_disk_file.persist(&log_path)?;
 
-                debug!("finished writing WAL update log");
+                progress_callback("finished writing WAL update log");
             } else {
                 trace!("error occured while applying updates: {:?}", &result);
                 // load corpus from disk again

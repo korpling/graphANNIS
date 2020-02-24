@@ -812,8 +812,10 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         let location = location.join(SUBFOLDER_NAME);
 
         // write out the disk maps to a single sorted string table
-        self.by_container.write_to(&location.join("by_container.bin"))?;
-        self.by_anno_qname.write_to(&location.join("by_anno_qname.bin"))?;
+        self.by_container
+            .write_to(&location.join("by_container.bin"))?;
+        self.by_anno_qname
+            .write_to(&location.join("by_anno_qname.bin"))?;
 
         // save the other custom fields
         let f = std::fs::File::create(location.join("custom.bin"))?;

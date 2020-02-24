@@ -175,7 +175,7 @@ mod tests {
             })
             .unwrap();
 
-        g.apply_update(&mut update).unwrap();
+        g.apply_update(&mut update, |_| {}).unwrap();
 
         let search_result: Vec<Vec<Match>> = AnyTokenSearch::new(&g).unwrap().collect();
         assert_eq!(1, search_result.len());
