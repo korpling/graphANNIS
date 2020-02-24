@@ -81,7 +81,7 @@ where
         Ok(DiskMap {
             eviction_strategy,
             c0: BTreeMap::default(),
-            disk_tables: Vec::default(),
+            disk_tables,
             insertion_was_sorted: true,
             last_inserted_key: None,
 
