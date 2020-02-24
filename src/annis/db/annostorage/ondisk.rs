@@ -811,29 +811,9 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
     fn save_annotations_to(&self, location: &Path) -> Result<()> {
         let location = location.join(SUBFOLDER_NAME);
 
-        // save the data
-        if self.location.eq(&location) {
-            unimplemented!()
-        } else {
-            // open disk maps for the given location and export to them
-            let mut export_by_container = DiskMap::new(
-                Some(&location.join("by_container.bin")),
-                EvictionStrategy::default(),
-            )?;
-            for (k, v) in self.by_container.try_iter()? {
-                export_by_container.insert(k, v)?;
-            }
-            export_by_container.compact_and_flush()?;
-
-            let mut export_by_anno_qname = DiskMap::new(
-                Some(&location.join("by_anno_qname.bin")),
-                EvictionStrategy::default(),
-            )?;
-            for (k, v) in self.by_container.try_iter()? {
-                export_by_anno_qname.insert(k, v)?;
-            }
-            export_by_anno_qname.compact_and_flush()?;
-        }
+        // write out the disk maps to a single sorted string table
+        self.by_container.write_to(&location.join("by_container.bin"))?;
+        self.by_anno_qname.write_to(&location.join("by_anno_qname.bin"))?;
 
         // save the other custom fields
         let f = std::fs::File::create(location.join("custom.bin"))?;

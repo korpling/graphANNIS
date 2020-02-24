@@ -43,7 +43,6 @@ where
     K: 'static + KeySerializer + Send + Sync,
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send + Sync,
 {
-    persistance_file: Option<PathBuf>,
     eviction_strategy: EvictionStrategy,
     c0: BTreeMap<Vec<u8>, Option<V>>,
     disk_tables: Vec<Table>,
@@ -65,24 +64,23 @@ where
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + Sync + MallocSizeOf,
 {
     pub fn new(
-        persistance_file: Option<&Path>,
+        persisted_file: Option<&Path>,
         eviction_strategy: EvictionStrategy,
     ) -> Result<DiskMap<K, V>> {
         let serialization = bincode::config();
 
         let mut disk_tables = Vec::default();
 
-        if let Some(persistance_file) = persistance_file {
-            if persistance_file.is_file() {
+        if let Some(persisted_file) = persisted_file {
+            if persisted_file.is_file() {
                 // Use existing file as read-only table which contains the whole map
-                let table = Table::new_from_file(sstable::Options::default(), persistance_file)?;
+                let table = Table::new_from_file(sstable::Options::default(), persisted_file)?;
                 disk_tables.push(table);
             }
         }
 
         Ok(DiskMap {
             eviction_strategy,
-            persistance_file: persistance_file.map(|p| p.to_owned()),
             c0: BTreeMap::default(),
             disk_tables: Vec::default(),
             insertion_was_sorted: true,
@@ -611,35 +609,17 @@ where
     }
 
     /// Compact the existing disk tables and the in-memory table to a single disk table.
-    /// If the map has a persistance file set, affter calling this function the persistance
-    /// file will contain the complete content of the map.
     pub fn compact_and_flush(&mut self) -> Result<()> {
         self.est_sum_memory = 0;
 
         if self.c0.is_empty() && self.disk_tables.is_empty() {
-            // The table is completly empty. Check if we need to create and write an empty persistant file.
-            if let Some(persistance_file) = &self.persistance_file {
-                let file = File::create(persistance_file)?;
-                let builder = TableBuilder::new(sstable::Options::default(), file);
-                builder.finish()?;
-
-                // Re-open this file and register it as the only disk table
-                let table = Table::new_from_file(sstable::Options::default(), &persistance_file)?;
-                self.disk_tables = vec![table]
-            }
+            // The table is completly empty.
             return Ok(());
         }
         if !self.c0.is_empty() {
             // Make sure all entries of C0 are written to disk.
             // Ommit all deleted entries if this becomes the only, and therefore complete, disk table
-            if self.disk_tables.is_empty() {
-                // No merging with other tables will be performed, if needed directly persist C0
-                let f = self.persistance_file.clone();
-                self.evict_c0(!self.disk_tables.is_empty(), f.as_ref())?;
-            } else {
-                // Write to temporary file for later merging
-                self.evict_c0(!self.disk_tables.is_empty(), None)?;
-            }
+            self.evict_c0(!self.disk_tables.is_empty(), None)?;
         }
 
         // More recent entries are always appended to the end.
@@ -662,13 +642,8 @@ where
             let write_deleted = !is_last_table;
 
             // After evicting C0 and merging all tables, a single disk-table will be created.
-            // Check if we need to persist this table to an external location.
-            let table_file = if is_last_table && self.persistance_file.is_some() {
-                std::fs::File::create(self.persistance_file.as_ref().unwrap())?
-            } else {
-                // Use a temporary file to save the table
-                tempfile::tempfile()?
-            };
+            // Use a temporary file to save the table.
+            let table_file = tempfile::tempfile()?;
             self.merge_disk_tables(base, newer, &table_file, write_deleted)?;
             // Re-Open created table as "older" table
             let size = table_file.metadata()?.len() as usize;
@@ -683,6 +658,25 @@ where
         }
 
         debug!("Finished merging disk-based tables in DiskMap");
+
+        Ok(())
+    }
+
+    pub fn write_to(&self, location: &Path) -> Result<()> {
+        // Open file as writable
+        let out_file = std::fs::OpenOptions::new()
+            .write(true)
+            .read(true)
+            .create(true)
+            .open(&location)?;
+        let mut builder = TableBuilder::new(sstable::Options::default(), out_file);
+        for (key, value) in self.c0.iter() {
+            let key = key.create_key();
+            if value.is_some() {
+                builder.add(&key, &self.serialization.serialize(value)?)?;
+            }
+        }
+        builder.finish()?;
 
         Ok(())
     }
