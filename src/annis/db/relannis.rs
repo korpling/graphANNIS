@@ -737,7 +737,7 @@ where
             let layer = get_field_str(&line, 3).ok_or("Missing column")?;
             let node_name = get_field_str(&line, 4).ok_or("Missing column")?;
 
-            nodes_by_text.try_insert(
+            nodes_by_text.insert(
                 NodeByTextEntry {
                     corpus_ref: corpus_id,
                     text_id,
@@ -771,7 +771,7 @@ where
                 node_name: node_path.clone(),
                 node_type: "node".to_owned(),
             })?;
-            id_to_node_name.try_insert(node_nr, node_path.clone())?;
+            id_to_node_name.insert(node_nr, node_path.clone())?;
 
             if !layer.is_empty() && layer != "NULL" {
                 updates.add_event(UpdateEvent::AddNodeLabel {
@@ -808,12 +808,8 @@ where
                 corpus_id,
                 text_id,
             };
-            textpos_table
-                .node_to_left
-                .try_insert(node_nr, left.clone())?;
-            textpos_table
-                .node_to_right
-                .try_insert(node_nr, right.clone())?;
+            textpos_table.node_to_left.insert(node_nr, left.clone())?;
+            textpos_table.node_to_right.insert(node_nr, right.clone())?;
 
             if token_index_raw != "NULL" {
                 let span = if has_segmentations {
@@ -837,14 +833,12 @@ where
                 };
                 textpos_table
                     .token_by_index
-                    .try_insert(index.clone(), node_nr)?;
-                textpos_table.token_to_index.try_insert(node_nr, index)?;
-                textpos_table
-                    .token_by_left_textpos
-                    .try_insert(left, node_nr)?;
+                    .insert(index.clone(), node_nr)?;
+                textpos_table.token_to_index.insert(node_nr, index)?;
+                textpos_table.token_by_left_textpos.insert(left, node_nr)?;
                 textpos_table
                     .token_by_right_textpos
-                    .try_insert(right, node_nr)?;
+                    .insert(right, node_nr)?;
             } else if has_segmentations {
                 let segmentation_name = if is_annis_33 {
                     get_field_str(&line, 11).ok_or("Missing column")?
@@ -869,7 +863,7 @@ where
                         })?;
                     } else {
                         // we need to get the span information from the node_annotation file later
-                        missing_seg_span.try_insert(node_nr, segmentation_name.clone())?;
+                        missing_seg_span.insert(node_nr, segmentation_name.clone())?;
                     }
                     // also add the specific segmentation index
                     let index = TextProperty {
@@ -878,7 +872,7 @@ where
                         corpus_id,
                         text_id,
                     };
-                    textpos_table.token_by_index.try_insert(index, node_nr)?;
+                    textpos_table.token_by_index.insert(index, node_nr)?;
                 } // end if node has segmentation info
             } // endif if check segmentations
         }
@@ -1157,12 +1151,10 @@ where
                     if c.ctype == ComponentType::Coverage {
                         load_rank_result
                             .text_coverage_edges
-                            .try_insert(e.clone(), true)?;
+                            .insert(e.clone(), true)?;
                     }
-                    load_rank_result
-                        .components_by_pre
-                        .try_insert(pre, c.clone())?;
-                    load_rank_result.edges_by_pre.try_insert(pre, e)?;
+                    load_rank_result.components_by_pre.insert(pre, c.clone())?;
+                    load_rank_result.edges_by_pre.insert(pre, e)?;
                 }
             }
         }

@@ -89,7 +89,7 @@ impl GraphUpdate {
     /// Add the given event to the update list.
     pub fn add_event(&mut self, event: UpdateEvent) -> Result<()> {
         self.event_counter += 1;
-        self.diffs.try_insert(self.event_counter, event)?;
+        self.diffs.insert(self.event_counter, event)?;
         Ok(())
     }
 
@@ -157,7 +157,7 @@ impl<'de> Visitor<'de> for GraphUpdateVisitor {
         let mut g = GraphUpdate::default();
 
         while let Some((key, value)) = access.next_entry().map_err(M::Error::custom)? {
-            g.diffs.try_insert(key, value).map_err(M::Error::custom)?;
+            g.diffs.insert(key, value).map_err(M::Error::custom)?;
             g.event_counter = key;
         }
 
