@@ -14,6 +14,9 @@ mod serializer;
 
 pub use serializer::KeySerializer;
 
+const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
+const MAX_TRIES: usize = 5;
+
 #[derive(Serialize, Deserialize)]
 struct Entry<K, V>
 where
@@ -98,7 +101,7 @@ where
         })
     }
 
-    pub fn try_insert(&mut self, key: K, value: V) -> Result<()> {
+    pub fn insert(&mut self, key: K, value: V) -> Result<()> {
         let binary_key = K::create_key(&key);
         let binary_key_size = binary_key.size_of(&mut self.mem_ops);
 
@@ -177,7 +180,7 @@ where
     }
 
     #[allow(dead_code)]
-    pub fn try_remove(&mut self, key: &K) -> Result<Option<V>> {
+    pub fn remove(&mut self, key: &K) -> Result<Option<V>> {
         let key = K::create_key(key);
 
         let existing = self.get_raw(&key)?;
@@ -210,6 +213,26 @@ where
         self.get_raw(&key)
     }
 
+    /// Returns an optional value for the given key.
+    ///
+    /// # Panics
+    ///
+    /// The will try to query the disk-based map several times
+    /// If a maximum number of tries is reached and all attempts failed, this will panic.
+    #[allow(dead_code)]
+    pub fn get(&self, key: &K) -> Option<V> {
+        let mut last_err = None;
+        for _ in 0..MAX_TRIES {
+            match self.try_get(key) {
+                Ok(result) => return result,
+                Err(e) => last_err = Some(e),
+            }
+            // If this is an intermediate error, wait some time before trying again
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
+    }
+
     fn get_raw(&self, key: &Vec<u8>) -> Result<Option<V>> {
         // Check C0 first
         if let Some(value) = self.c0.get(key) {
@@ -240,12 +263,52 @@ where
         self.try_get(key).map(|item| item.is_some())
     }
 
+    /// Returns if the given key is contained.
+    ///
+    /// # Panics
+    ///
+    /// The will try to query the disk-based map several times
+    /// If a maximum number of tries is reached and all attempts failed, this will panic.
+    #[allow(dead_code)]
+    pub fn contains_key(&self, key: &K) -> bool {
+        let mut last_err = None;
+        for _ in 0..MAX_TRIES {
+            match self.try_contains_key(key) {
+                Ok(result) => return result,
+                Err(e) => last_err = Some(e),
+            }
+            // If this is an intermediate error, wait some time before trying again
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
+    }
+
     pub fn try_is_empty(&self) -> Result<bool> {
         if self.c0.is_empty() && self.disk_tables.is_empty() {
             return Ok(true);
         }
         let mut it = self.try_iter()?;
         Ok(it.next().is_none())
+    }
+
+    /// Returns if the map is empty
+    ///
+    /// # Panics
+    ///
+    /// The will try to query the disk-based map several times
+    /// If a maximum number of tries is reached and all attempts failed, this will panic.
+    #[allow(dead_code)]
+    pub fn is_empty(&self) -> bool {
+        let mut last_err = None;
+        for _ in 0..MAX_TRIES {
+            match self.try_is_empty() {
+                Ok(result) => return result,
+                Err(e) => last_err = Some(e),
+            }
+            // If this is an intermediate error, wait some time before trying again
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
     }
 
     pub fn try_iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = (K, V)> + 'a>> {
@@ -272,6 +335,26 @@ where
             let it = self.try_range(..)?;
             Ok(Box::new(it))
         }
+    }
+
+    /// Returns an iterator over the all entries.
+    ///
+    /// # Panics
+    ///
+    /// The will try to query the disk-based map several times
+    /// If a maximum number of tries is reached and all attempts failed, this will panic.
+    #[allow(dead_code)]
+    pub fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = (K, V)> + 'a> {
+        let mut last_err = None;
+        for _ in 0..MAX_TRIES {
+            match self.try_iter() {
+                Ok(result) => return result,
+                Err(e) => last_err = Some(e),
+            }
+            // If this is an intermediate error, wait some time before trying again
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
     }
 
     pub fn try_range<R>(&self, range: R) -> Result<Range<K, V>>
@@ -395,6 +478,29 @@ where
             serialization: self.serialization.clone(),
             phantom: std::marker::PhantomData,
         })
+    }
+
+    /// Returns an iterator over a range of entries.
+    ///
+    /// # Panics
+    ///
+    /// The will try to query the disk-based map several times
+    /// If a maximum number of tries is reached and all attempts failed, this will panic.
+    #[allow(dead_code)]
+    pub fn range<R>(&self, range: R) -> Range<K, V>
+    where
+        R: RangeBounds<K> + Clone,
+    {
+        let mut last_err = None;
+        for _ in 0..MAX_TRIES {
+            match self.try_range(range.clone()) {
+                Ok(result) => return result,
+                Err(e) => last_err = Some(e),
+            }
+            // If this is an intermediate error, wait some time before trying again
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
     }
 
     /// Merges two disk tables.

@@ -7,12 +7,12 @@ use fake::Fake;
 #[test]
 fn range() {
     let mut table = DiskMap::new(None, EvictionStrategy::MaximumItems(3)).unwrap();
-    table.try_insert(0, true).unwrap();
-    table.try_insert(1, true).unwrap();
-    table.try_insert(2, true).unwrap();
-    table.try_insert(3, true).unwrap();
-    table.try_insert(4, true).unwrap();
-    table.try_insert(5, true).unwrap();
+    table.insert(0, true).unwrap();
+    table.insert(1, true).unwrap();
+    table.insert(2, true).unwrap();
+    table.insert(3, true).unwrap();
+    table.insert(4, true).unwrap();
+    table.insert(5, true).unwrap();
 
     // Before compaction
 
@@ -116,7 +116,7 @@ fn unknown_key() {
         let last_name: String = LastName(EN).fake();
         let first_name: String = FirstName(EN).fake();
         if test_key != last_name {
-            table.try_insert(last_name, first_name).unwrap();
+            table.insert(last_name, first_name).unwrap();
         }
     }
 
