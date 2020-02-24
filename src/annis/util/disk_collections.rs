@@ -537,6 +537,10 @@ where
         Ok(())
     }
 
+    pub fn number_of_disk_tables(&self) -> usize {
+        self.disk_tables.len()
+    }
+
     pub fn write_to(&self, location: &Path) -> Result<()> {
         // Make sure the parent directory exist
         if let Some(parent) = location.parent() {
