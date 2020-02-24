@@ -612,10 +612,11 @@ where
         }
 
         // Skip all smaller or equal keys in all disk tables
+        let mut key = Vec::default();
+        let mut value = Vec::default();
+
         for i in 0..self.table_iterators.len() {
             if self.exhausted[i] == false && self.table_iterators[i].valid() {
-                let mut key = Vec::default();
-                let mut value = Vec::default();
                 if self.table_iterators[i].current(&mut key, &mut value) {
                     if !self.range_contains(&key) {
                         self.exhausted[i] = true;
@@ -650,12 +651,12 @@ where
             }
 
             // Iterate over all disk tables
+            let mut key = Vec::default();
+            let mut value = Vec::default();
+
             for i in 0..self.table_iterators.len() {
                 let table_it = &mut self.table_iterators[i];
-
                 if self.exhausted[i] == false && table_it.valid() {
-                    let mut key = Vec::default();
-                    let mut value = Vec::default();
                     if table_it.current(&mut key, &mut value) {
                         if self.range_contains(&key) {
                             let key_is_smaller = if let Some((smallest_key, _)) = &smallest_key {
@@ -668,7 +669,7 @@ where
                                     .serialization
                                     .deserialize(&value)
                                     .expect("Could not decode previously written data from disk.");
-                                smallest_key = Some((key, value));
+                                smallest_key = Some((key.clone(), value));
                             }
                         } else {
                             self.exhausted[i] = true;

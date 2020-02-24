@@ -248,7 +248,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         self.by_container
             .insert(by_container_key, anno.val.clone())?;
 
-        if self.by_container.number_of_disk_tables() > 100 {
+        if self.by_container.number_of_disk_tables() > 7 {
             self.by_container.compact()?;
         }
 
@@ -257,7 +257,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         self.by_anno_qname
             .insert(create_by_anno_qname_key(item, &anno), true)?;
 
-        if self.by_anno_qname.number_of_disk_tables() > 100 {
+        if self.by_anno_qname.number_of_disk_tables() > 7 {
             self.by_anno_qname.compact()?;
         }
 
