@@ -822,7 +822,7 @@ impl CorpusStorage {
             let mut lock = db_entry.write().unwrap();
             let db: &mut Graph = get_write_or_error(&mut lock)?;
 
-            db.apply_update(update)?;
+            db.apply_update(update, |_| {})?;
         }
         // start background thread to persists the results
 
