@@ -786,8 +786,16 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
     fn load_annotations_from(&mut self, location: &Path) -> Result<()> {
         let location = location.join(SUBFOLDER_NAME);
+
         if !self.location.eq(&location) {
-            unimplemented!()
+            self.by_container = DiskMap::new(
+                Some(&location.join("by_container.bin")),
+                EvictionStrategy::default(),
+            )?;
+            self.by_anno_qname = DiskMap::new(
+                Some(&location.join("by_anno_qname.bin")),
+                EvictionStrategy::default(),
+            )?;
         }
 
         // load internal helper fields
@@ -807,8 +815,24 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         if self.location.eq(&location) {
             unimplemented!()
         } else {
-            // open a database for the given location and export to it
-            unimplemented!()
+            // open disk maps for the given location and export to them
+            let mut export_by_container = DiskMap::new(
+                Some(&location.join("by_container.bin")),
+                EvictionStrategy::default(),
+            )?;
+            for (k, v) in self.by_container.try_iter()? {
+                export_by_container.insert(k, v)?;
+            }
+            export_by_container.compact_and_flush()?;
+
+            let mut export_by_anno_qname = DiskMap::new(
+                Some(&location.join("by_anno_qname.bin")),
+                EvictionStrategy::default(),
+            )?;
+            for (k, v) in self.by_container.try_iter()? {
+                export_by_anno_qname.insert(k, v)?;
+            }
+            export_by_anno_qname.compact_and_flush()?;
         }
 
         // save the other custom fields
