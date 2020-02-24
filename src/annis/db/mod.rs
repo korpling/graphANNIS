@@ -770,13 +770,13 @@ impl Graph {
             self.current_change_id = id;
 
             nr_updates += 1;
-            if nr_updates % 10_000 == 0 {
+            if nr_updates % 100_000 == 0 {
                 progress_callback(&format!("applied {} atomic updates", nr_updates));
             }
         } // end for each consistent update entry
 
         // Re-index the inherited coverage component.
-        // To make this operation fast, we might need to optimize the order component first
+        // To make this operation fast, we need to optimize the order component first
         let order_component = Component {
             ctype: ComponentType::Ordering,
             layer: ANNIS_NS.to_owned(),
@@ -791,6 +791,7 @@ impl Graph {
         }
         self.optimize_impl(&order_component)?;
         if let Some(gs_order) = self.get_graphstorage(&order_component) {
+            progress_callback("re-indexing the inherited coverage edges");
             self.reindex_inherited_coverage(invalid_nodes, gs_order)?;
         }
 
