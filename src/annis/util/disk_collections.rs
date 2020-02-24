@@ -608,8 +608,8 @@ where
         Ok(())
     }
 
-    /// Compact the existing disk tables and the in-memory table to a single disk table.
-    pub fn compact_and_flush(&mut self) -> Result<()> {
+    /// Compact the existing disk tables and the in-memory table to a single temporary disk table.
+    pub fn compact(&mut self) -> Result<()> {
         self.est_sum_memory = 0;
 
         if self.c0.is_empty() && self.disk_tables.is_empty() {

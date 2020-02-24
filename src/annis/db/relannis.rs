@@ -882,15 +882,15 @@ where
         "creating index for content of {}",
         &node_tab_path.to_string_lossy()
     );
-    id_to_node_name.compact_and_flush()?;
-    nodes_by_text.compact_and_flush()?;
-    missing_seg_span.compact_and_flush()?;
-    textpos_table.node_to_left.compact_and_flush()?;
-    textpos_table.node_to_right.compact_and_flush()?;
-    textpos_table.token_to_index.compact_and_flush()?;
-    textpos_table.token_by_index.compact_and_flush()?;
-    textpos_table.token_by_left_textpos.compact_and_flush()?;
-    textpos_table.token_by_right_textpos.compact_and_flush()?;
+    id_to_node_name.compact()?;
+    nodes_by_text.compact()?;
+    missing_seg_span.compact()?;
+    textpos_table.node_to_left.compact()?;
+    textpos_table.node_to_right.compact()?;
+    textpos_table.token_to_index.compact()?;
+    textpos_table.token_by_index.compact()?;
+    textpos_table.token_by_left_textpos.compact()?;
+    textpos_table.token_by_right_textpos.compact()?;
 
     if !(textpos_table.token_by_index.try_is_empty())? {
         calculate_automatic_token_order(
@@ -1164,9 +1164,9 @@ where
         "creating index for content of {}",
         &rank_tab_path.to_string_lossy()
     );
-    load_rank_result.components_by_pre.compact_and_flush()?;
-    load_rank_result.edges_by_pre.compact_and_flush()?;
-    load_rank_result.text_coverage_edges.compact_and_flush()?;
+    load_rank_result.components_by_pre.compact()?;
+    load_rank_result.edges_by_pre.compact()?;
+    load_rank_result.text_coverage_edges.compact()?;
 
     Ok(load_rank_result)
 }

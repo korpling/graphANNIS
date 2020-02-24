@@ -60,7 +60,7 @@ fn range() {
     assert_eq!(vec![(3, true), (4, true), (5, true)], result);
 
     // After compaction
-    table.compact_and_flush().unwrap();
+    table.compact().unwrap();
 
     // Start from beginning, exclusive end
     let result: Vec<(u8, bool)> = table.try_range(0..6).unwrap().collect();
@@ -131,7 +131,7 @@ fn unknown_key() {
     );
 
     // compact and check again
-    table.compact_and_flush().unwrap();
+    table.compact().unwrap();
     assert_eq!(None, table.try_get(&test_key).unwrap());
     assert_eq!(
         None,
