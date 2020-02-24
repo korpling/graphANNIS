@@ -7,17 +7,17 @@ use fake::Fake;
 #[test]
 fn range() {
     let mut table = DiskMap::new(None, EvictionStrategy::MaximumItems(3)).unwrap();
-    table.insert(0, true).unwrap();
-    table.insert(1, true).unwrap();
-    table.insert(2, true).unwrap();
-    table.insert(3, true).unwrap();
-    table.insert(4, true).unwrap();
-    table.insert(5, true).unwrap();
+    table.try_insert(0, true).unwrap();
+    table.try_insert(1, true).unwrap();
+    table.try_insert(2, true).unwrap();
+    table.try_insert(3, true).unwrap();
+    table.try_insert(4, true).unwrap();
+    table.try_insert(5, true).unwrap();
 
     // Before compaction
 
     // Start from beginning, exclusive end
-    let result: Vec<(u8, bool)> = table.range(0..6).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.try_range(0..6).unwrap().collect();
     assert_eq!(
         vec![
             (0, true),
@@ -31,16 +31,16 @@ fn range() {
     );
 
     // Start in between, exclusive end
-    let result: Vec<(u8, bool)> = table.range(3..5).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.try_range(3..5).unwrap().collect();
     assert_eq!(vec![(3, true), (4, true)], result);
 
     // Start in between, inclusive end
-    let result: Vec<(u8, bool)> = table.range(3..=5).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.try_range(3..=5).unwrap().collect();
     assert_eq!(vec![(3, true), (4, true), (5, true)], result);
 
     // Start from beginning, but exclude start
     let result: Vec<(u8, bool)> = table
-        .range((Bound::Excluded(0), Bound::Excluded(6)))
+        .try_range((Bound::Excluded(0), Bound::Excluded(6)))
         .unwrap()
         .collect();
     assert_eq!(
@@ -50,20 +50,20 @@ fn range() {
 
     // Start in between and  exclude start
     let result: Vec<(u8, bool)> = table
-        .range((Bound::Excluded(4), Bound::Excluded(6)))
+        .try_range((Bound::Excluded(4), Bound::Excluded(6)))
         .unwrap()
         .collect();
     assert_eq!(vec![(5, true)], result);
 
     // Unbound end
-    let result: Vec<(u8, bool)> = table.range(3..).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.try_range(3..).unwrap().collect();
     assert_eq!(vec![(3, true), (4, true), (5, true)], result);
 
     // After compaction
     table.compact_and_flush().unwrap();
 
     // Start from beginning, exclusive end
-    let result: Vec<(u8, bool)> = table.range(0..6).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.try_range(0..6).unwrap().collect();
     assert_eq!(
         vec![
             (0, true),
@@ -77,16 +77,16 @@ fn range() {
     );
 
     // Start in between, exclusive end
-    let result: Vec<(u8, bool)> = table.range(3..5).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.try_range(3..5).unwrap().collect();
     assert_eq!(vec![(3, true), (4, true)], result);
 
     // Start in between, inclusive end
-    let result: Vec<(u8, bool)> = table.range(3..=5).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.try_range(3..=5).unwrap().collect();
     assert_eq!(vec![(3, true), (4, true), (5, true)], result);
 
     // Start from beginning, but exclude start
     let result: Vec<(u8, bool)> = table
-        .range((Bound::Excluded(0), Bound::Excluded(6)))
+        .try_range((Bound::Excluded(0), Bound::Excluded(6)))
         .unwrap()
         .collect();
     assert_eq!(
@@ -96,13 +96,13 @@ fn range() {
 
     // Start in between and  exclude start
     let result: Vec<(u8, bool)> = table
-        .range((Bound::Excluded(4), Bound::Excluded(6)))
+        .try_range((Bound::Excluded(4), Bound::Excluded(6)))
         .unwrap()
         .collect();
     assert_eq!(vec![(5, true)], result);
 
     // Unbound end
-    let result: Vec<(u8, bool)> = table.range(3..).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.try_range(3..).unwrap().collect();
     assert_eq!(vec![(3, true), (4, true), (5, true)], result);
 }
 
@@ -116,27 +116,27 @@ fn unknown_key() {
         let last_name: String = LastName(EN).fake();
         let first_name: String = FirstName(EN).fake();
         if test_key != last_name {
-            table.insert(last_name, first_name).unwrap();
+            table.try_insert(last_name, first_name).unwrap();
         }
     }
 
     // check before compaction both with get() and range()
-    assert_eq!(None, table.get(&test_key).unwrap());
+    assert_eq!(None, table.try_get(&test_key).unwrap());
     assert_eq!(
         None,
         table
-            .range(test_key.clone()..=test_key.clone())
+            .try_range(test_key.clone()..=test_key.clone())
             .unwrap()
             .next()
     );
 
     // compact and check again
     table.compact_and_flush().unwrap();
-    assert_eq!(None, table.get(&test_key).unwrap());
+    assert_eq!(None, table.try_get(&test_key).unwrap());
     assert_eq!(
         None,
         table
-            .range(test_key.clone()..=test_key.clone())
+            .try_range(test_key.clone()..=test_key.clone())
             .unwrap()
             .next()
     );
