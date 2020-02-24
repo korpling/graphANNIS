@@ -650,11 +650,18 @@ where
                     let mut value = Vec::default();
                     if table_it.current(&mut key, &mut value) {
                         if self.range_contains(&key) {
-                            let value: Option<V> = self
-                                .serialization
-                                .deserialize(&value)
-                                .expect("Could not decode previously written data from disk.");
-                            smallest_key = Some((key, value));
+                            let key_is_smaller = if let Some((smallest_key, _)) = &smallest_key {
+                                &key < smallest_key
+                            } else {
+                                true
+                            };
+                            if key_is_smaller {
+                                let value: Option<V> = self
+                                    .serialization
+                                    .deserialize(&value)
+                                    .expect("Could not decode previously written data from disk.");
+                                smallest_key = Some((key, value));
+                            }
                         } else {
                             self.exhausted[i] = true;
                         }
