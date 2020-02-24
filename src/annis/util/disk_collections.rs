@@ -538,6 +538,10 @@ where
     }
 
     pub fn write_to(&self, location: &Path) -> Result<()> {
+        // Make sure the parent directory exist
+        if let Some(parent) = location.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
         // Open file as writable
         let out_file = std::fs::OpenOptions::new()
             .write(true)
