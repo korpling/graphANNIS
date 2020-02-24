@@ -467,7 +467,7 @@ where
     let mut last_textprop: Option<TextProperty> = None;
     let mut last_token: Option<NodeID> = None;
 
-    for (current_textprop, current_token) in token_by_index.iter()? {
+    for (current_textprop, current_token) in token_by_index.try_iter()? {
         // if the last token/text value is valid and we are still in the same text
         if let (Some(last_token), Some(last_textprop)) = (last_token, last_textprop) {
             if last_textprop.corpus_id == current_textprop.corpus_id
@@ -478,11 +478,11 @@ where
                 updates.add_event(
                     UpdateEvent::AddEdge {
                         source_node: id_to_node_name
-                            .get(&last_token)?
+                            .try_get(&last_token)?
                             .ok_or_else(|| format!("Can't get node name for last token with ID {} in \"calculate_automatic_token_order\" function.", last_token))?
                             .clone(),
                         target_node: id_to_node_name
-                            .get(&current_token)?
+                            .try_get(&current_token)?
                             .ok_or_else(|| format!("Can't get node name for current token with ID {} in \"calculate_automatic_token_order\" function.", current_token))?
                             .clone(),
                         layer: ANNIS_NS.to_owned(),
@@ -513,12 +513,12 @@ fn add_automatic_cov_edge_for_node(
     let left_aligned_tok = load_node_and_corpus_result
         .textpos_table
         .token_by_left_textpos
-        .get(&left_pos)?
+        .try_get(&left_pos)?
         .ok_or_else(|| format!("Can't get left-aligned token for node {}", n,));
     let right_aligned_tok = load_node_and_corpus_result
         .textpos_table
         .token_by_right_textpos
-        .get(&right_pos)?
+        .try_get(&right_pos)?
         .ok_or_else(|| format!("Can't get right-aligned token for node {}", n,));
 
     // If only one of the aligned token is missing, use it for both sides, this is consistent with
@@ -537,7 +537,7 @@ fn add_automatic_cov_edge_for_node(
     let left_tok_pos = load_node_and_corpus_result
         .textpos_table
         .token_to_index
-        .get(&left_aligned_tok)?
+        .try_get(&left_aligned_tok)?
         .ok_or_else(|| {
             format!(
                 "Can't get position of left-aligned token {}",
@@ -547,7 +547,7 @@ fn add_automatic_cov_edge_for_node(
     let right_tok_pos = load_node_and_corpus_result
         .textpos_table
         .token_to_index
-        .get(&right_aligned_tok)?
+        .try_get(&right_aligned_tok)?
         .ok_or_else(|| {
             format!(
                 "Can't get position of right-aligned token {}",
@@ -565,7 +565,7 @@ fn add_automatic_cov_edge_for_node(
         let tok_id = load_node_and_corpus_result
             .textpos_table
             .token_by_index
-            .get(&tok_idx)?
+            .try_get(&tok_idx)?
             .ok_or_else(|| format!("Can't get token ID for position {:?}", tok_idx))?;
         if n != tok_id {
             let edge = Edge {
@@ -574,7 +574,11 @@ fn add_automatic_cov_edge_for_node(
             };
 
             // only add edge of no other coverage edge exists
-            if !load_rank_result.text_coverage_edges.get(&edge)?.is_some() {
+            if !load_rank_result
+                .text_coverage_edges
+                .try_get(&edge)?
+                .is_some()
+            {
                 let nodes_with_same_source = (
                     Included(Edge {
                         source: n,
@@ -587,7 +591,7 @@ fn add_automatic_cov_edge_for_node(
                 );
                 let has_outgoing_text_coverage_edge = load_rank_result
                     .text_coverage_edges
-                    .range(nodes_with_same_source)?
+                    .try_range(nodes_with_same_source)?
                     .next()
                     .is_some();
                 let component_name = if has_outgoing_text_coverage_edge {
@@ -601,12 +605,12 @@ fn add_automatic_cov_edge_for_node(
                 updates.add_event(UpdateEvent::AddEdge {
                     source_node: load_node_and_corpus_result
                         .id_to_node_name
-                        .get(&n)?
+                        .try_get(&n)?
                         .ok_or("Missing node name")?
                         .clone(),
                     target_node: load_node_and_corpus_result
                         .id_to_node_name
-                        .get(&tok_id)?
+                        .try_get(&tok_id)?
                         .ok_or("Missing node name")?
                         .clone(),
                     layer: ANNIS_NS.to_owned(),
@@ -635,13 +639,13 @@ where
     for (n, textprop) in load_node_and_corpus_result
         .textpos_table
         .node_to_left
-        .iter()?
+        .try_iter()?
     {
         if textprop.segmentation == ""
             && !load_node_and_corpus_result
                 .textpos_table
                 .token_to_index
-                .contains_key(&n)?
+                .try_contains_key(&n)?
         {
             let left_pos = TextProperty {
                 segmentation: String::from(""),
@@ -652,7 +656,7 @@ where
             let right_pos = load_node_and_corpus_result
                 .textpos_table
                 .node_to_right
-                .get(&n)?
+                .try_get(&n)?
                 .ok_or_else(|| format!("Can't get right position of node {}", n))?;
             let right_pos = TextProperty {
                 segmentation: String::from(""),
@@ -733,7 +737,7 @@ where
             let layer = get_field_str(&line, 3).ok_or("Missing column")?;
             let node_name = get_field_str(&line, 4).ok_or("Missing column")?;
 
-            nodes_by_text.insert(
+            nodes_by_text.try_insert(
                 NodeByTextEntry {
                     corpus_ref: corpus_id,
                     text_id,
@@ -767,7 +771,7 @@ where
                 node_name: node_path.clone(),
                 node_type: "node".to_owned(),
             })?;
-            id_to_node_name.insert(node_nr, node_path.clone())?;
+            id_to_node_name.try_insert(node_nr, node_path.clone())?;
 
             if !layer.is_empty() && layer != "NULL" {
                 updates.add_event(UpdateEvent::AddNodeLabel {
@@ -804,8 +808,12 @@ where
                 corpus_id,
                 text_id,
             };
-            textpos_table.node_to_left.insert(node_nr, left.clone())?;
-            textpos_table.node_to_right.insert(node_nr, right.clone())?;
+            textpos_table
+                .node_to_left
+                .try_insert(node_nr, left.clone())?;
+            textpos_table
+                .node_to_right
+                .try_insert(node_nr, right.clone())?;
 
             if token_index_raw != "NULL" {
                 let span = if has_segmentations {
@@ -829,12 +837,14 @@ where
                 };
                 textpos_table
                     .token_by_index
-                    .insert(index.clone(), node_nr)?;
-                textpos_table.token_to_index.insert(node_nr, index)?;
-                textpos_table.token_by_left_textpos.insert(left, node_nr)?;
+                    .try_insert(index.clone(), node_nr)?;
+                textpos_table.token_to_index.try_insert(node_nr, index)?;
+                textpos_table
+                    .token_by_left_textpos
+                    .try_insert(left, node_nr)?;
                 textpos_table
                     .token_by_right_textpos
-                    .insert(right, node_nr)?;
+                    .try_insert(right, node_nr)?;
             } else if has_segmentations {
                 let segmentation_name = if is_annis_33 {
                     get_field_str(&line, 11).ok_or("Missing column")?
@@ -859,7 +869,7 @@ where
                         })?;
                     } else {
                         // we need to get the span information from the node_annotation file later
-                        missing_seg_span.insert(node_nr, segmentation_name.clone())?;
+                        missing_seg_span.try_insert(node_nr, segmentation_name.clone())?;
                     }
                     // also add the specific segmentation index
                     let index = TextProperty {
@@ -868,7 +878,7 @@ where
                         corpus_id,
                         text_id,
                     };
-                    textpos_table.token_by_index.insert(index, node_nr)?;
+                    textpos_table.token_by_index.try_insert(index, node_nr)?;
                 } // end if node has segmentation info
             } // endif if check segmentations
         }
@@ -888,7 +898,7 @@ where
     textpos_table.token_by_left_textpos.compact_and_flush()?;
     textpos_table.token_by_right_textpos.compact_and_flush()?;
 
-    if !(textpos_table.token_by_index.is_empty())? {
+    if !(textpos_table.token_by_index.try_is_empty())? {
         calculate_automatic_token_order(
             updates,
             &textpos_table.token_by_index,
@@ -935,7 +945,9 @@ where
 
         let col_id = line.get(0).ok_or("Missing column")?;
         let node_id: NodeID = col_id.parse()?;
-        let node_name = id_to_node_name.get(&node_id)?.ok_or("Missing node name")?;
+        let node_name = id_to_node_name
+            .try_get(&node_id)?
+            .ok_or("Missing node name")?;
         let col_ns = get_field_str(&line, 1).ok_or("Missing column")?;
         let col_name = get_field_str(&line, 2).ok_or("Missing column")?;
         let col_val = get_field_str(&line, 3).ok_or("Missing column")?;
@@ -962,7 +974,7 @@ where
             })?;
 
             // add all missing span values from the annotation, but don't add NULL values
-            if let Some(seg) = missing_seg_span.get(&node_id)? {
+            if let Some(seg) = missing_seg_span.try_get(&node_id)? {
                 if seg == get_field_str(&line, 2).ok_or("Missing column")?
                     && get_field_str(&line, 3).ok_or("Missing column")? != "NULL"
                 {
@@ -1123,11 +1135,11 @@ where
 
                     updates.add_event(UpdateEvent::AddEdge {
                         source_node: id_to_node_name
-                            .get(&source)?
+                            .try_get(&source)?
                             .ok_or("Missing node name")?
                             .to_owned(),
                         target_node: id_to_node_name
-                            .get(&target)?
+                            .try_get(&target)?
                             .ok_or("Missing node name")?
                             .to_owned(),
                         layer: c.layer.clone(),
@@ -1145,10 +1157,12 @@ where
                     if c.ctype == ComponentType::Coverage {
                         load_rank_result
                             .text_coverage_edges
-                            .insert(e.clone(), true)?;
+                            .try_insert(e.clone(), true)?;
                     }
-                    load_rank_result.components_by_pre.insert(pre, c.clone())?;
-                    load_rank_result.edges_by_pre.insert(pre, e)?;
+                    load_rank_result
+                        .components_by_pre
+                        .try_insert(pre, c.clone())?;
+                    load_rank_result.edges_by_pre.try_insert(pre, e)?;
                 }
             }
         }
@@ -1194,8 +1208,8 @@ where
         let line = result?;
 
         let pre: u32 = line.get(0).ok_or("Missing column")?.parse()?;
-        if let Some(c) = rank_result.components_by_pre.get(&pre)? {
-            if let Some(e) = rank_result.edges_by_pre.get(&pre)? {
+        if let Some(c) = rank_result.components_by_pre.try_get(&pre)? {
+            if let Some(e) = rank_result.edges_by_pre.try_get(&pre)? {
                 let ns = get_field_str(&line, 1).ok_or("Missing column")?;
                 let ns = if ns == "NULL" { String::default() } else { ns };
                 let name = get_field_str(&line, 2).ok_or("Missing column")?;
@@ -1203,11 +1217,11 @@ where
 
                 updates.add_event(UpdateEvent::AddEdgeLabel {
                     source_node: id_to_node_name
-                        .get(&e.source)?
+                        .try_get(&e.source)?
                         .ok_or("Missing node name")?
                         .to_owned(),
                     target_node: id_to_node_name
-                        .get(&e.target)?
+                        .try_get(&e.target)?
                         .ok_or("Missing node name")?
                         .to_owned(),
                     layer: c.layer.clone(),
@@ -1434,12 +1448,15 @@ fn add_subcorpora(
                 text_id: text_key.id,
                 node_id: NodeID::max_value(),
             };
-            for (text_entry, _) in node_node_result.nodes_by_text.range(min_key..=max_key)? {
+            for (text_entry, _) in node_node_result
+                .nodes_by_text
+                .try_range(min_key..=max_key)?
+            {
                 let n = text_entry.node_id;
                 updates.add_event(UpdateEvent::AddEdge {
                     source_node: node_node_result
                         .id_to_node_name
-                        .get(&n)?
+                        .try_get(&n)?
                         .ok_or("Missing node name")?
                         .clone(),
                     target_node: text_full_name.clone(),

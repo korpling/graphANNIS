@@ -98,7 +98,7 @@ where
         })
     }
 
-    pub fn insert(&mut self, key: K, value: V) -> Result<()> {
+    pub fn try_insert(&mut self, key: K, value: V) -> Result<()> {
         let binary_key = K::create_key(&key);
         let binary_key_size = binary_key.size_of(&mut self.mem_ops);
 
@@ -177,7 +177,7 @@ where
     }
 
     #[allow(dead_code)]
-    pub fn remove(&mut self, key: &K) -> Result<Option<V>> {
+    pub fn try_remove(&mut self, key: &K) -> Result<Option<V>> {
         let key = K::create_key(key);
 
         let existing = self.get_raw(&key)?;
@@ -205,7 +205,7 @@ where
         self.last_inserted_key = None;
     }
 
-    pub fn get(&self, key: &K) -> Result<Option<V>> {
+    pub fn try_get(&self, key: &K) -> Result<Option<V>> {
         let key = K::create_key(key);
         self.get_raw(&key)
     }
@@ -236,19 +236,19 @@ where
         Ok(None)
     }
 
-    pub fn contains_key(&self, key: &K) -> Result<bool> {
-        self.get(key).map(|item| item.is_some())
+    pub fn try_contains_key(&self, key: &K) -> Result<bool> {
+        self.try_get(key).map(|item| item.is_some())
     }
 
-    pub fn is_empty(&self) -> Result<bool> {
+    pub fn try_is_empty(&self) -> Result<bool> {
         if self.c0.is_empty() && self.disk_tables.is_empty() {
             return Ok(true);
         }
-        let mut it = self.iter()?;
+        let mut it = self.try_iter()?;
         Ok(it.next().is_none())
     }
 
-    pub fn iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = (K, V)> + 'a>> {
+    pub fn try_iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = (K, V)> + 'a>> {
         if self.insertion_was_sorted {
             // Use a less complicated and faster iterator over all items
             let mut remaining_table_iterators = Vec::with_capacity(self.disk_tables.len());
@@ -269,12 +269,12 @@ where
             Ok(Box::new(it))
         } else {
             // Default to an iterator that can handle non-globally sorted tables
-            let it = self.range(..)?;
+            let it = self.try_range(..)?;
             Ok(Box::new(it))
         }
     }
 
-    pub fn range<R>(&self, range: R) -> Result<Range<K, V>>
+    pub fn try_range<R>(&self, range: R) -> Result<Range<K, V>>
     where
         R: RangeBounds<K> + Clone,
     {
