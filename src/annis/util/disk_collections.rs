@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 
 use std::collections::BTreeMap;
-use std::fs::File;
 use std::iter::Peekable;
 use std::ops::{Bound, RangeBounds};
 use std::path::{Path, PathBuf};
@@ -510,152 +509,28 @@ where
         panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
     }
 
-    /// Merges two disk tables.
-    /// Newer entries overwrite older ones from the base table.
-    ///
-    /// - `write_deleted` - If `true`, tombstones for deleted entries are preserved and written to disk
-    fn merge_disk_tables(
-        &self,
-        older: &Table,
-        newer: &Table,
-        file: &File,
-        write_deleted: bool,
-    ) -> Result<()> {
-        let mut builder = TableBuilder::new(sstable::Options::default(), file);
-
-        let mut it_older = older.iter();
-        let mut it_newer = newer.iter();
-
-        let mut k_newer = Vec::default();
-        let mut v_newer = Vec::default();
-
-        let mut k_older = Vec::default();
-        let mut v_older = Vec::default();
-
-        it_newer.seek_to_first();
-        it_older.seek_to_first();
-
-        while it_older.current(&mut k_older, &mut v_older)
-            && it_newer.current(&mut k_newer, &mut v_newer)
-        {
-            if k_older < k_newer {
-                // Add the value from the older table
-                if write_deleted {
-                    builder.add(&k_older, &v_older)?;
-                } else {
-                    let parsed: Option<V> = self.serialization.deserialize(&v_older)?;
-                    if parsed.is_some() {
-                        builder.add(&k_older, &v_older)?;
-                    }
-                }
-                it_older.advance();
-            } else if k_older > k_newer {
-                // Add the value from the newer table
-                if write_deleted {
-                    builder.add(&k_newer, &v_newer)?;
-                } else {
-                    let parsed: Option<V> = self.serialization.deserialize(&v_newer)?;
-                    if parsed.is_some() {
-                        builder.add(&k_newer, &v_newer)?;
-                    }
-                }
-                it_newer.advance();
-            } else {
-                // Use the newer values for the same keys
-                if write_deleted {
-                    builder.add(&k_newer, &v_newer)?;
-                } else {
-                    let parsed: Option<V> = self.serialization.deserialize(&v_newer)?;
-                    if parsed.is_some() {
-                        builder.add(&k_newer, &v_newer)?;
-                    }
-                }
-                it_older.advance();
-                it_newer.advance();
-            }
-        }
-
-        // The above loop will stop when one or both of the iterators are exhausted.
-        // We need to insert the remaining items of the other table as well
-        if it_newer.valid() {
-            while it_newer.current(&mut k_newer, &mut v_newer) {
-                if write_deleted {
-                    builder.add(&k_newer, &v_newer)?;
-                } else {
-                    let parsed: Option<V> = self.serialization.deserialize(&v_newer)?;
-                    if parsed.is_some() {
-                        builder.add(&k_newer, &v_newer)?;
-                    }
-                }
-                it_newer.advance();
-            }
-        } else if it_older.valid() {
-            while it_older.current(&mut k_older, &mut v_older) {
-                if write_deleted {
-                    builder.add(&k_older, &v_older)?;
-                } else {
-                    let parsed: Option<V> = self.serialization.deserialize(&v_older)?;
-                    if parsed.is_some() {
-                        builder.add(&k_older, &v_older)?;
-                    }
-                }
-                it_older.advance();
-            }
-        }
-
-        builder.finish()?;
-
-        Ok(())
-    }
-
     /// Compact the existing disk tables and the in-memory table to a single temporary disk table.
     pub fn compact(&mut self) -> Result<()> {
         self.est_sum_memory = 0;
 
         if self.c0.is_empty() && self.disk_tables.is_empty() {
-            // The table is completly empty.
+            // The table is completly empty, there is nothing to do
             return Ok(());
         }
-        if !self.c0.is_empty() {
-            // Make sure all entries of C0 are written to disk.
-            // Ommit all deleted entries if this becomes the only, and therefore complete, disk table
-            self.evict_c0(!self.disk_tables.is_empty(), None)?;
+
+        // Create single temporary sorted string file by iterating over all entries
+        let out_file = tempfile::tempfile()?;
+        let mut builder = TableBuilder::new(sstable::Options::default(), &out_file);
+        for (key, value) in self.try_iter()? {
+            let key = key.create_key();
+            builder.add(&key, &self.serialization.serialize(&value)?)?;
         }
-
-        // More recent entries are always appended to the end.
-        // To make it easier to pop entries we are reversing the vector once, so calling "pop" will always return
-        // the oldest entry.
-        // We don't need to reverse again after the compaction, because there will be only at most one entry left.
-        self.disk_tables.reverse();
-
-        debug!(
-            "Merging {} disk-based tables in DiskMap",
-            self.disk_tables.len()
-        );
-
-        // Start from the end of disk tables (now containing the older entries) and merge them pairwise into temporary tables
-        let mut base_optional = self.disk_tables.pop();
-        let mut newer_optional = self.disk_tables.pop();
-        while let (Some(base), Some(newer)) = (&base_optional, &newer_optional) {
-            let is_last_table = self.disk_tables.is_empty();
-            // When merging the last two tables, prune the deleted entries
-            let write_deleted = !is_last_table;
-
-            // After evicting C0 and merging all tables, a single disk-table will be created.
-            // Use a temporary file to save the table.
-            let table_file = tempfile::tempfile()?;
-            self.merge_disk_tables(base, newer, &table_file, write_deleted)?;
-            // Re-Open created table as "older" table
-            let size = table_file.metadata()?.len() as usize;
-            let table = Table::new(sstable::Options::default(), Box::from(table_file), size)?;
-            base_optional = Some(table);
-            // Prepare merging with the next younger table from the log
-            newer_optional = self.disk_tables.pop();
-        }
-
-        if let Some(table) = base_optional {
-            self.disk_tables = vec![table];
-        }
+        let size = builder.finish()?;
+        
+        // Re-open sorted string table and set it as the only table
+        let table = Table::new(sstable::Options::default(), Box::new(out_file), size)?;
+        self.disk_tables = vec![table];
+        self.c0.clear();
 
         debug!("Finished merging disk-based tables in DiskMap");
 
@@ -670,11 +545,9 @@ where
             .create(true)
             .open(&location)?;
         let mut builder = TableBuilder::new(sstable::Options::default(), out_file);
-        for (key, value) in self.c0.iter() {
+        for (key, value) in self.try_iter()? {
             let key = key.create_key();
-            if value.is_some() {
-                builder.add(&key, &self.serialization.serialize(value)?)?;
-            }
+            builder.add(&key, &self.serialization.serialize(&value)?)?;
         }
         builder.finish()?;
 
