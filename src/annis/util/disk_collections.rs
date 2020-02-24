@@ -73,9 +73,11 @@ where
         let mut disk_tables = Vec::default();
 
         if let Some(persistance_file) = persistance_file {
-            // Use existing file as read-only table which contains the whole map
-            let table = Table::new_from_file(sstable::Options::default(), persistance_file)?;
-            disk_tables.push(table);
+            if persistance_file.is_file() {
+                // Use existing file as read-only table which contains the whole map
+                let table = Table::new_from_file(sstable::Options::default(), persistance_file)?;
+                disk_tables.push(table);
+            }
         }
 
         Ok(DiskMap {
@@ -143,7 +145,14 @@ where
     fn evict_c0(&mut self, write_deleted: bool, output_file: Option<&PathBuf>) -> Result<()> {
         let out_file = if let Some(output_file) = output_file {
             debug!("Evicting DiskMap C0 to {:?}", output_file.as_path());
-            std::fs::File::open(output_file)?
+            if let Some(parent) = output_file.parent() {
+                std::fs::create_dir_all(parent)?
+            }
+            std::fs::OpenOptions::new()
+                .write(true)
+                .read(true)
+                .create(true)
+                .open(output_file)?
         } else {
             debug!("Evicting DiskMap C0 to temporary file");
             tempfile::tempfile()?
