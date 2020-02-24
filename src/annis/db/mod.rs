@@ -770,7 +770,7 @@ impl Graph {
             self.current_change_id = id;
 
             nr_updates += 1;
-            if nr_updates % 1_000 == 0 {
+            if nr_updates % 10_000 == 0 {
                 progress_callback(&format!("applied {} atomic updates", nr_updates));
             }
         } // end for each consistent update entry
