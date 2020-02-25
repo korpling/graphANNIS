@@ -60,7 +60,7 @@ pub struct AnnoStorageImpl {
 /// [64 Bits Node ID][Namespace]\0[Name]\0
 /// ```
 fn create_by_container_key(node: NodeID, anno_key: &AnnoKey) -> Vec<u8> {
-    let mut result: Vec<u8> = node.create_key();
+    let mut result: Vec<u8> = Vec::from(node.create_key());
     result.extend(create_str_vec_key(&[&anno_key.ns, &anno_key.name]));
     result
 }
@@ -93,7 +93,8 @@ fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
 
     let mut result: Vec<u8> = create_str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
-    result.extend(&node.create_key());
+    let node_key: &[u8] = &node.create_key();
+    result.extend(node_key);
     result
 }
 
@@ -280,10 +281,9 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
         let mut result = Vec::default();
-        for (key, val) in self
-            .by_container
-            .range(item.create_key()..(*item + 1).create_key())
-        {
+        let start: Vec<u8> = Vec::from(item.create_key());
+        let end: Vec<u8> = Vec::from((*item + 1).create_key());
+        for (key, val) in self.by_container.range(start..end) {
             let parsed_key = parse_by_container_key(&key);
             let anno = Annotation {
                 key: parsed_key.1,
@@ -421,11 +421,12 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         } else {
             // get all annotation keys for this item
             it.flat_map(|item| {
-                let prefix = item.create_key();
+                let prefix = Vec::from(item.create_key());
                 let mut after_prefix = Vec::with_capacity(prefix.len());
                 if let Some(last) = after_prefix.last_mut() {
                     *last = *last + 1;
                 }
+
                 self.by_container
                     .range(prefix..after_prefix)
                     .map(|(data, _)| {
