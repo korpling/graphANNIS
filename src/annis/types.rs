@@ -5,6 +5,7 @@ use std::ops::AddAssign;
 use std::string::String;
 
 use std::convert::TryInto;
+use std::borrow::Cow;
 use strum_macros::{EnumIter, EnumString};
 
 use crate::annis::util::disk_collections::KeySerializer;
@@ -83,11 +84,11 @@ impl Edge {
 }
 
 impl KeySerializer for Edge {
-    fn create_key(&self) -> Vec<u8> {
+    fn create_key<'a>(&'a self) -> Cow<'a, [u8]> {
         let mut result = Vec::with_capacity(std::mem::size_of::<NodeID>() * 2);
         result.extend(&self.source.to_be_bytes());
         result.extend(&self.target.to_be_bytes());
-        result
+        Cow::Owned(result)
     }
 
     fn parse_key(key: &[u8]) -> Self {

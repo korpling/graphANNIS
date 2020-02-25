@@ -8,6 +8,7 @@ use crate::update::{GraphUpdate, UpdateEvent};
 use csv;
 use percent_encoding::utf8_percent_encode;
 use std;
+use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::convert::TryInto;
 use std::fs::File;
@@ -26,14 +27,14 @@ struct TextProperty {
 }
 
 impl KeySerializer for TextProperty {
-    fn create_key(&self) -> Vec<u8> {
+    fn create_key<'a>(&'a self) -> Cow<'a, [u8]> {
         let mut result =
             Vec::with_capacity(self.segmentation.len() + 1 + std::mem::size_of::<u32>() * 3);
         result.extend(create_str_vec_key(&[&self.segmentation]));
         result.extend(&self.corpus_id.to_be_bytes());
         result.extend(&self.text_id.to_be_bytes());
         result.extend(&self.val.to_be_bytes());
-        result
+        Cow::Owned(result)
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -90,13 +91,13 @@ struct NodeByTextEntry {
 }
 
 impl KeySerializer for NodeByTextEntry {
-    fn create_key(&self) -> Vec<u8> {
+    fn create_key<'a>(&'a self) -> Cow<'a, [u8]> {
         let mut result =
             Vec::with_capacity(std::mem::size_of::<u32>() * 2 + std::mem::size_of::<NodeID>());
         result.extend(&self.text_id.to_be_bytes());
         result.extend(&self.corpus_ref.to_be_bytes());
         result.extend(&self.node_id.to_be_bytes());
-        result
+        Cow::Owned(result)
     }
 
     fn parse_key(key: &[u8]) -> Self {

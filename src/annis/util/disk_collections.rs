@@ -4,6 +4,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::iter::Peekable;
 use std::ops::{Bound, RangeBounds};
@@ -105,12 +106,14 @@ where
         // Check if insertion is still sorted
         if self.insertion_was_sorted {
             if let Some(last_key) = &self.last_inserted_key {
-                self.insertion_was_sorted = last_key < &binary_key;
+                let last_key: &[u8] = last_key;
+                let binary_key: &[u8] = &binary_key;
+                self.insertion_was_sorted = last_key < binary_key;
             }
-            self.last_inserted_key = Some(binary_key.clone());
+            self.last_inserted_key = Some(Vec::from(binary_key.clone()));
         }
 
-        let existing_c0_entry = self.c0.insert(binary_key, Some(value));
+        let existing_c0_entry = self.c0.insert(Vec::from(binary_key), Some(value));
         if let Some(existing) = &existing_c0_entry {
             // Subtract the memory size for the item that was removed
             self.est_sum_memory -= std::mem::size_of::<(Vec<u8>, V)>()
@@ -196,7 +199,7 @@ where
             // Add tombstone entry
             let empty_value = None;
             self.est_sum_memory += empty_value.size_of(&mut mem_ops);
-            self.c0.insert(key, empty_value);
+            self.c0.insert(Vec::from(key), empty_value);
 
             self.insertion_was_sorted = false;
 
@@ -239,9 +242,9 @@ where
         panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
     }
 
-    fn get_raw(&self, key: &Vec<u8>) -> Result<Option<V>> {
+    fn get_raw(&self, key: &Cow<[u8]>) -> Result<Option<V>> {
         // Check C0 first
-        if let Some(value) = self.c0.get(key) {
+        if let Some(value) = self.c0.get(key.as_ref()) {
             if value.is_some() {
                 return Ok(value.clone());
             } else {
@@ -377,38 +380,52 @@ where
             .take(table_iterators.len())
             .collect();
 
-        let mapped_start_bound = match range.start_bound() {
-            Bound::Included(end) => Bound::Included(K::create_key(end)),
-            Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
+        let mapped_start_bound: std::ops::Bound<Vec<u8>> = match range.start_bound() {
+            Bound::Included(end) => Bound::Included(Vec::from(K::create_key(end))),
+            Bound::Excluded(end) => Bound::Excluded(Vec::from(K::create_key(end))),
             Bound::Unbounded => Bound::Unbounded,
         };
 
-        let mapped_end_bound = match range.end_bound() {
-            Bound::Included(end) => Bound::Included(K::create_key(end)),
-            Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
+        let mapped_end_bound: std::ops::Bound<Vec<u8>> = match range.end_bound() {
+            Bound::Included(end) => Bound::Included(Vec::from(K::create_key(end))),
+            Bound::Excluded(end) => Bound::Excluded(Vec::from(K::create_key(end))),
             Bound::Unbounded => Bound::Unbounded,
         };
 
         match &mapped_start_bound {
             Bound::Included(start) => {
+                let start: &[u8] = start;
                 let mut key = Vec::default();
                 let mut value = Vec::default();
 
                 for i in 0..table_iterators.len() {
                     let exhausted = &mut exhausted[i];
                     let ti = &mut table_iterators[i];
-                    ti.seek(&start);
+                    ti.seek(start);
 
                     if ti.valid() && ti.current(&mut key, &mut value) {
+                        let key: &[u8] = &key;
                         // Check if the seeked element is actually part of the range
                         let start_included = match &mapped_start_bound {
-                            Bound::Included(start) => &key >= start,
-                            Bound::Excluded(start) => &key > start,
+                            Bound::Included(start) => {
+                                let start: &[u8] = start;
+                                key >= start
+                            }
+                            Bound::Excluded(start) => {
+                                let start: &[u8] = start;
+                                key > start
+                            }
                             Bound::Unbounded => true,
                         };
                         let end_included = match &mapped_end_bound {
-                            Bound::Included(end) => &key <= end,
-                            Bound::Excluded(end) => &key < end,
+                            Bound::Included(end) => {
+                                let end: &[u8] = end;
+                                key <= end
+                            }
+                            Bound::Excluded(end) => {
+                                let end: &[u8] = end;
+                                key < end
+                            }
                             Bound::Unbounded => true,
                         };
                         if !start_included || !end_included {
@@ -421,6 +438,8 @@ where
                 }
             }
             Bound::Excluded(start_bound) => {
+                let start_bound: &[u8] = start_bound;
+
                 let mut key: Vec<u8> = Vec::default();
                 let mut value = Vec::default();
 
@@ -428,9 +447,10 @@ where
                     let exhausted = &mut exhausted[i];
                     let ti = &mut table_iterators[i];
 
-                    ti.seek(&start_bound);
+                    ti.seek(start_bound);
                     if ti.valid() && ti.current(&mut key, &mut value) {
-                        if &key == start_bound {
+                        let key: &[u8] = &key;
+                        if key == start_bound {
                             // We need to exclude the first match
                             ti.advance();
                         }
@@ -438,15 +458,29 @@ where
 
                     // Check key after advance
                     if ti.valid() && ti.current(&mut key, &mut value) {
+                        let key: &[u8] = &key;
+
                         // Check if the seeked element is actually part of the range
                         let start_included = match &mapped_start_bound {
-                            Bound::Included(start) => &key >= start,
-                            Bound::Excluded(start) => &key > start,
+                            Bound::Included(start) => {
+                                let start: &[u8] = start;
+                                key >= start
+                            }
+                            Bound::Excluded(start) => {
+                                let start: &[u8] = start;
+                                key > start
+                            }
                             Bound::Unbounded => true,
                         };
                         let end_included = match &mapped_end_bound {
-                            Bound::Included(end) => &key <= end,
-                            Bound::Excluded(end) => &key < end,
+                            Bound::Included(end) => {
+                                let end: &[u8] = end;
+                                key <= end
+                            }
+                            Bound::Excluded(end) => {
+                                let end: &[u8] = end;
+                                key < end
+                            }
                             Bound::Unbounded => true,
                         };
                         if !start_included || !end_included {
