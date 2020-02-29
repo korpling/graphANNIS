@@ -4,8 +4,8 @@ use std::fmt;
 use std::ops::AddAssign;
 use std::string::String;
 
-use std::convert::TryInto;
 use std::borrow::Cow;
+use std::convert::TryInto;
 use strum_macros::{EnumIter, EnumString};
 
 use crate::annis::util::disk_collections::KeySerializer;
