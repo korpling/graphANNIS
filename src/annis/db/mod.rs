@@ -638,20 +638,9 @@ impl Graph {
 
                             if c.ctype == ComponentType::Coverage
                                 || c.ctype == ComponentType::Dominance
-                                || c.ctype == ComponentType::Ordering
-                                || c.ctype == ComponentType::LeftToken
-                                || c.ctype == ComponentType::RightToken
                             {
                                 self.extend_parent_text_coverage_nodes(
                                     source,
-                                    &text_coverage_components,
-                                    &mut invalid_nodes,
-                                );
-                            }
-
-                            if c.ctype == ComponentType::Ordering {
-                                self.extend_parent_text_coverage_nodes(
-                                    target,
                                     &text_coverage_components,
                                     &mut invalid_nodes,
                                 );
