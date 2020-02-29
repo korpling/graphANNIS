@@ -1,5 +1,5 @@
-use std::convert::TryInto;
 use std::borrow::Cow;
+use std::convert::TryInto;
 
 pub trait KeySerializer {
     fn create_key<'a>(&'a self) -> Cow<'a, [u8]>;
@@ -7,8 +7,6 @@ pub trait KeySerializer {
     where
         Self: std::marker::Sized;
 }
-
-
 
 const PANIC_MESSAGE_SIZE: &str = "Key data must fullfill minimal size for type";
 
