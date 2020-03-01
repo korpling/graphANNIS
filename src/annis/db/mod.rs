@@ -499,7 +499,7 @@ impl Graph {
         let mut invalid_nodes: DiskMap<NodeID, bool> = DiskMap::default();
         // Calculating the invalid nodes adds additional computational overhead. If there are no nodes yet in the graph,
         // we already know that all new nodes are invalid and don't need calculate the invalid ones.
-        let calculate_invalid_nodes = self.node_annos.number_of_annotations() > 0;
+        let calculate_invalid_nodes = !self.node_annos.is_empty();
 
         let all_components = self.get_all_components(None, None);
 

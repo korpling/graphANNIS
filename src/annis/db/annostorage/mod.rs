@@ -56,6 +56,9 @@ where
     /// Return the total number of annotations contained in this `AnnotationStorage`.
     fn number_of_annotations(&self) -> usize;
 
+    /// Return true if there are no annotations in this `AnnotationStorage`.
+    fn is_empty(&self) -> bool;
+
     /// Return the number of annotations contained in this `AnnotationStorage` filtered by `name` and optional namespace (`ns`).
     fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> usize;
 
