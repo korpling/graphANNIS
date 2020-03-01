@@ -362,6 +362,10 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         self.by_container.iter().count()
     }
 
+    fn is_empty(&self) -> bool {
+        self.by_container.is_empty()
+    }
+
     fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
         let raw = self.by_container.get(&create_by_container_key(*item, key));
         if let Some(val) = raw {

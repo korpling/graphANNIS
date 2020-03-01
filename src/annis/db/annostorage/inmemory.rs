@@ -386,6 +386,10 @@ where
         self.total_number_of_annos
     }
 
+    fn is_empty(&self) -> bool {
+        self.total_number_of_annos == 0
+    }
+
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
         let key_symbol = self.anno_keys.get_symbol(key)?;
 
