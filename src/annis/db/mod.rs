@@ -496,7 +496,10 @@ impl Graph {
     {
         self.reset_cached_size();
 
-        let mut invalid_nodes: FxHashSet<NodeID> = FxHashSet::default();
+        let mut invalid_nodes: DiskMap<NodeID, bool> = DiskMap::default();
+        // Calculating the invalid nodes adds additional computational overhead. If there are no nodes yet in the graph,
+        // we already know that all new nodes are invalid and don't need calculate the invalid ones.
+        let calculate_invalid_nodes = self.node_annos.number_of_annotations() > 0;
 
         let all_components = self.get_all_components(None, None);
 
@@ -544,18 +547,25 @@ impl Graph {
 
                         // update the internal cache
                         node_ids.insert(node_name, Some(new_node_id))?;
+
+                        if !calculate_invalid_nodes {
+                            // All new added nodes need to be marked as invalid
+                            invalid_nodes.insert(new_node_id, true)?;
+                        }
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
                     if let Some(existing_node_id) =
                         self.get_cached_node_id_from_name(node_name, &mut node_ids)?
                     {
-                        if !invalid_nodes.contains(&existing_node_id) {
-                            self.extend_parent_text_coverage_nodes(
+                        if !calculate_invalid_nodes
+                            && invalid_nodes.get(&existing_node_id).is_none()
+                        {
+                            self.calculate_invalidated_nodes_by_coverage(
                                 existing_node_id,
                                 &text_coverage_components,
                                 &mut invalid_nodes,
-                            );
+                            )?;
                         }
 
                         // delete all annotations
@@ -636,25 +646,27 @@ impl Graph {
                                 text_coverage_components.insert(c.clone());
                             }
 
-                            if c.ctype == ComponentType::Coverage
-                                || c.ctype == ComponentType::Dominance
-                                || c.ctype == ComponentType::Ordering
-                                || c.ctype == ComponentType::LeftToken
-                                || c.ctype == ComponentType::RightToken
-                            {
-                                self.extend_parent_text_coverage_nodes(
-                                    source,
-                                    &text_coverage_components,
-                                    &mut invalid_nodes,
-                                );
-                            }
+                            if calculate_invalid_nodes {
+                                if c.ctype == ComponentType::Coverage
+                                    || c.ctype == ComponentType::Dominance
+                                    || c.ctype == ComponentType::Ordering
+                                    || c.ctype == ComponentType::LeftToken
+                                    || c.ctype == ComponentType::RightToken
+                                {
+                                    self.calculate_invalidated_nodes_by_coverage(
+                                        source,
+                                        &text_coverage_components,
+                                        &mut invalid_nodes,
+                                    )?;
+                                }
 
-                            if c.ctype == ComponentType::Ordering {
-                                self.extend_parent_text_coverage_nodes(
-                                    target,
-                                    &text_coverage_components,
-                                    &mut invalid_nodes,
-                                );
+                                if c.ctype == ComponentType::Ordering {
+                                    self.calculate_invalidated_nodes_by_coverage(
+                                        target,
+                                        &text_coverage_components,
+                                        &mut invalid_nodes,
+                                    )?;
+                                }
                             }
                         }
                     }
@@ -676,26 +688,29 @@ impl Graph {
                                 name: component_name.to_string(),
                             };
 
-                            if c.ctype == ComponentType::Coverage
-                                || c.ctype == ComponentType::Dominance
-                                || c.ctype == ComponentType::Ordering
-                                || c.ctype == ComponentType::LeftToken
-                                || c.ctype == ComponentType::RightToken
-                            {
-                                self.extend_parent_text_coverage_nodes(
-                                    source,
-                                    &text_coverage_components,
-                                    &mut invalid_nodes,
-                                );
+                            if calculate_invalid_nodes {
+                                if c.ctype == ComponentType::Coverage
+                                    || c.ctype == ComponentType::Dominance
+                                    || c.ctype == ComponentType::Ordering
+                                    || c.ctype == ComponentType::LeftToken
+                                    || c.ctype == ComponentType::RightToken
+                                {
+                                    self.calculate_invalidated_nodes_by_coverage(
+                                        source,
+                                        &text_coverage_components,
+                                        &mut invalid_nodes,
+                                    )?;
+                                }
+
+                                if c.ctype == ComponentType::Ordering {
+                                    self.calculate_invalidated_nodes_by_coverage(
+                                        target,
+                                        &text_coverage_components,
+                                        &mut invalid_nodes,
+                                    )?;
+                                }
                             }
 
-                            if c.ctype == ComponentType::Ordering {
-                                self.extend_parent_text_coverage_nodes(
-                                    target,
-                                    &text_coverage_components,
-                                    &mut invalid_nodes,
-                                );
-                            }
                             let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target })?;
                         }
@@ -793,18 +808,20 @@ impl Graph {
         self.optimize_impl(&order_component)?;
         if let Some(gs_order) = self.get_graphstorage(&order_component) {
             progress_callback("re-indexing the inherited coverage edges");
+
+            invalid_nodes.compact()?;
             self.reindex_inherited_coverage(invalid_nodes, gs_order)?;
         }
 
         Ok(())
     }
 
-    fn extend_parent_text_coverage_nodes(
+    fn calculate_invalidated_nodes_by_coverage(
         &self,
         node: NodeID,
         text_coverage_components: &FxHashSet<Component>,
-        invalid_nodes: &mut FxHashSet<NodeID>,
-    ) {
+        invalid_nodes: &mut DiskMap<NodeID, bool>,
+    ) -> Result<()> {
         let containers: Vec<&dyn EdgeContainer> = text_coverage_components
             .iter()
             .filter_map(|c| self.get_graphstorage_as_ref(c))
@@ -815,13 +832,15 @@ impl Graph {
 
         let dfs = CycleSafeDFS::new_inverse(&union, node, 0, usize::max_value());
         for step in dfs {
-            invalid_nodes.insert(step.node);
+            invalid_nodes.insert(step.node, true)?;
         }
+
+        Ok(())
     }
 
     fn reindex_inherited_coverage(
         &mut self,
-        invalid_nodes: FxHashSet<NodeID>,
+        invalid_nodes: DiskMap<NodeID, bool>,
         gs_order: Arc<dyn GraphStorage>,
     ) -> Result<()> {
         {
@@ -832,8 +851,8 @@ impl Graph {
                 layer: ANNIS_NS.to_owned(),
             })?;
 
-            for n in invalid_nodes.iter() {
-                gs_left.delete_node(*n)?;
+            for (n, _) in invalid_nodes.iter() {
+                gs_left.delete_node(n)?;
             }
 
             let gs_right = self.get_or_create_writable(&Component {
@@ -842,8 +861,8 @@ impl Graph {
                 layer: ANNIS_NS.to_owned(),
             })?;
 
-            for n in invalid_nodes.iter() {
-                gs_right.delete_node(*n)?;
+            for (n, _) in invalid_nodes.iter() {
+                gs_right.delete_node(n)?;
             }
 
             let gs_cov = self.get_or_create_writable(&Component {
@@ -851,8 +870,8 @@ impl Graph {
                 name: "inherited-coverage".to_owned(),
                 layer: ANNIS_NS.to_owned(),
             })?;
-            for n in invalid_nodes.iter() {
-                gs_cov.delete_node(*n)?;
+            for (n, _) in invalid_nodes.iter() {
+                gs_cov.delete_node(n)?;
             }
         }
 
@@ -870,16 +889,16 @@ impl Graph {
                 .filter_map(|c| self.get_graphstorage(c))
                 .collect();
 
-            for n in invalid_nodes.iter() {
+            for (n, _) in invalid_nodes.iter() {
                 self.calculate_token_alignment(
-                    *n,
+                    n,
                     ComponentType::LeftToken,
                     gs_order.as_ref(),
                     &all_cov_gs,
                     &all_dom_gs,
                 );
                 self.calculate_token_alignment(
-                    *n,
+                    n,
                     ComponentType::RightToken,
                     gs_order.as_ref(),
                     &all_cov_gs,
@@ -888,8 +907,8 @@ impl Graph {
             }
         }
 
-        for n in invalid_nodes.iter() {
-            self.calculate_inherited_coverage_edges(*n, &all_cov_components, &all_dom_gs);
+        for (n, _) in invalid_nodes.iter() {
+            self.calculate_inherited_coverage_edges(n, &all_cov_components, &all_dom_gs);
         }
 
         Ok(())
