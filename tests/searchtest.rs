@@ -48,7 +48,7 @@ fn non_reflexivity_nodes() {
                 };
 
                 let operators_to_test = vec![
-                    ".", ".*", "^", "^*", ">", ">*", "_=_", "_i_", "_o_", "_l_", "_r_", "->dep",
+                    ".", ".1,10", "^", "^1,10", ">", ">*", "_=_", "_i_", "_o_", "_l_", "_r_", "->dep",
                     "->dep *",
                 ];
 
@@ -87,7 +87,7 @@ fn non_reflexivity_tokens() {
                 };
 
                 let operators_to_test = vec![
-                    ".", ".*", ">", ">*", "_=_", "_i_", "_o_", "_l_", "_r_", "->dep", "->dep *",
+                    ".", ".1,10", ">", ">*", "_=_", "_i_", "_o_", "_l_", "_r_", "->dep", "->dep *",
                 ];
 
                 for o in operators_to_test.into_iter() {

@@ -496,7 +496,8 @@ impl Graph {
     {
         self.reset_cached_size();
 
-        let mut invalid_nodes: DiskMap<NodeID, bool> = DiskMap::default();
+        let mut invalid_nodes: DiskMap<NodeID, bool> =
+            DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000))?;
         // Calculating the invalid nodes adds additional computational overhead. If there are no nodes yet in the graph,
         // we already know that all new nodes are invalid and don't need calculate the invalid ones.
         let calculate_invalid_nodes = !self.node_annos.is_empty();
