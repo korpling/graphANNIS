@@ -245,7 +245,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         // insert the value into main tree
         let by_container_key = create_by_container_key(item, &anno.key);
 
-        let already_existed = self.by_container.try_get(&by_container_key)?.is_some();
+        let already_existed = self.by_container.try_contains_key(&by_container_key)?;
         self.by_container
             .insert(by_container_key, anno.val.clone())?;
 
@@ -375,6 +375,11 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         }
     }
 
+    fn has_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> bool {
+        self.by_container
+            .contains_key(&create_by_container_key(*item, key))
+    }
+
     fn get_keys_for_iterator(
         &self,
         ns: Option<&str>,
@@ -396,7 +401,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                     // This saves the repeated expensive construction of the annotation key part.
                     container_key[0..NODE_ID_SIZE][0..NODE_ID_SIZE]
                         .copy_from_slice(&item.to_be_bytes());
-                    if self.by_container.get(&container_key).is_some() {
+                    if self.by_container.contains_key(&container_key) {
                         matches.push((item, key.clone()).into());
                     }
                 }
@@ -415,7 +420,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                         // This saves the repeated expensive construction of the annotation key part.
                         container_key[0..NODE_ID_SIZE][0..NODE_ID_SIZE]
                             .copy_from_slice(&item.to_be_bytes());
-                        if self.by_container.get(container_key).is_some() {
+                        if self.by_container.contains_key(container_key) {
                             matches.push((item, anno_key.clone()).into());
                         }
                     }
@@ -558,8 +563,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 });
                 if self
                     .by_container
-                    .get(&create_by_container_key(*item, &key))
-                    .is_some()
+                    .contains_key(&create_by_container_key(*item, &key))
                 {
                     return vec![key.clone()];
                 }
@@ -571,8 +575,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                     .into_iter()
                     .filter(|key| {
                         self.by_container
-                            .get(&create_by_container_key(*item, key))
-                            .is_some()
+                            .contains_key(&create_by_container_key(*item, key))
                     })
                     .map(|key| Arc::from(key))
                     .collect();

@@ -27,7 +27,6 @@ where
 }
 
 pub enum EvictionStrategy {
-    #[allow(dead_code)]
     MaximumItems(usize),
     MaximumBytes(usize),
 }
@@ -208,7 +207,6 @@ where
         Ok(existing)
     }
 
-    #[allow(dead_code)]
     pub fn clear(&mut self) {
         self.c0.clear();
         self.disk_tables.clear();
@@ -228,7 +226,6 @@ where
     ///
     /// The will try to query the disk-based map several times
     /// If a maximum number of tries is reached and all attempts failed, this will panic.
-    #[allow(dead_code)]
     pub fn get(&self, key: &K) -> Option<V> {
         let mut last_err = None;
         for _ in 0..MAX_TRIES {
@@ -269,7 +266,27 @@ where
     }
 
     pub fn try_contains_key(&self, key: &K) -> Result<bool> {
-        self.try_get(key).map(|item| item.is_some())
+        let key = K::create_key(key);
+        // Check C0 first
+        if let Some(value) = self.c0.get(key.as_ref()) {
+            if value.is_some() {
+                return Ok(true);
+            } else {
+                // Value was explicitly deleted, do not query the disk tables
+                return Ok(false);
+            }
+        }
+        // Iterate over all disk-tables to find the entry
+        for table in self.disk_tables.iter().rev() {
+            if table.get(key.as_ref())?.is_some() {
+                return Ok(true);
+            } else {
+                // Value was explicitly deleted, do not query the rest of the disk tables
+                return Ok(false);
+            }
+        }
+
+        Ok(false)
     }
 
     /// Returns if the given key is contained.
@@ -278,7 +295,6 @@ where
     ///
     /// The will try to query the disk-based map several times
     /// If a maximum number of tries is reached and all attempts failed, this will panic.
-    #[allow(dead_code)]
     pub fn contains_key(&self, key: &K) -> bool {
         let mut last_err = None;
         for _ in 0..MAX_TRIES {
@@ -306,7 +322,6 @@ where
     ///
     /// The will try to query the disk-based map several times
     /// If a maximum number of tries is reached and all attempts failed, this will panic.
-    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         let mut last_err = None;
         for _ in 0..MAX_TRIES {
@@ -352,7 +367,6 @@ where
     ///
     /// The will try to query the disk-based map several times
     /// If a maximum number of tries is reached and all attempts failed, this will panic.
-    #[allow(dead_code)]
     pub fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = (K, V)> + 'a> {
         let mut last_err = None;
         for _ in 0..MAX_TRIES {
@@ -526,7 +540,6 @@ where
     ///
     /// The will try to query the disk-based map several times
     /// If a maximum number of tries is reached and all attempts failed, this will panic.
-    #[allow(dead_code)]
     pub fn range<R>(&self, range: R) -> Range<K, V>
     where
         R: RangeBounds<K> + Clone,

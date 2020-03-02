@@ -43,6 +43,9 @@ where
     /// Get the annotation for a given `item` and the annotation `key`.
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
 
+    /// Returns `true` if the given `item` has an annotation for the given `key`.
+    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> bool;
+
     /// Get the matching annotation keys for each item in the iterator.
     ///
     /// This function allows to filter the received annotation keys by the specifying the namespace and name.
