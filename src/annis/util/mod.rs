@@ -49,7 +49,6 @@ pub fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
     result
 }
 
-
 /// Defines a definition of a query including its number of expected results.
 #[derive(Debug, Deserialize)]
 pub struct SearchDef {

@@ -120,9 +120,7 @@ fn unknown_key() {
     assert_eq!(None, table.try_get(&test_key).unwrap());
     assert_eq!(
         None,
-        table
-            .range(test_key.clone()..=test_key.clone())
-            .next()
+        table.range(test_key.clone()..=test_key.clone()).next()
     );
 
     // compact and check again
@@ -130,8 +128,6 @@ fn unknown_key() {
     assert_eq!(None, table.try_get(&test_key).unwrap());
     assert_eq!(
         None,
-        table
-            .range(test_key.clone()..=test_key.clone())
-            .next()
+        table.range(test_key.clone()..=test_key.clone()).next()
     );
 }
