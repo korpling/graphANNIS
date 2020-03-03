@@ -75,12 +75,16 @@ fn parse_by_container_key(mut data: Vec<u8>) -> (NodeID, AnnoKey) {
     let item = NodeID::parse_key(&data);
 
     let anno_key = if let Some(idx0) = anno_key_raw.find('\0') {
-        let mut name = anno_key_raw.split_off(idx0);
+        let mut name = anno_key_raw.split_off(idx0 + 1);
         // name now ends with \0
         if name.ends_with("\0") {
             name.split_off(name.len() - 1);
         }
-        let ns = anno_key_raw;
+        let mut ns = anno_key_raw;
+        // namespace also ends with \0
+        if ns.ends_with('\0') {
+            ns.split_off(ns.len() - 1);
+        }
         AnnoKey { ns, name }
     } else {
         AnnoKey {
@@ -229,9 +233,9 @@ impl AnnoStorageImpl {
                 let node_id = NodeID::parse_key(&data.split_off(data.len() - NODE_ID_SIZE));
                 let mut data = String::from_utf8(data).expect(UTF_8_MSG);
                 let key = if let Some(sep_ns_name) = data.find('\0') {
-                    let mut name = data.split_off(sep_ns_name);
+                    let mut name = data.split_off(sep_ns_name + 1);
                     if let Some(sep_name_value) = name.find('\0') {
-                        name.split_off(sep_name_value);
+                        name.split_off(sep_name_value + 1);
                     }
                     let ns = data;
                     AnnoKey { ns, name }
