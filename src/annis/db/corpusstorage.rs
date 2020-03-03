@@ -203,11 +203,9 @@ impl FromStr for FrequencyDefEntry {
     fn from_str(s: &str) -> std::result::Result<FrequencyDefEntry, Self::Err> {
         let splitted: Vec<&str> = s.splitn(2, ':').collect();
         if splitted.len() != 2 {
-            return Err(
-                "Frequency definition must consists of two parts: \
+            return Err("Frequency definition must consists of two parts: \
                  the referenced node and the annotation name or \"tok\" separated by \":\""
-                    .into(),
-            );
+                .into());
         }
         let node_ref = splitted[0];
         let anno_key = util::split_qname(splitted[1]);
