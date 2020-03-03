@@ -210,8 +210,15 @@ impl AnnoStorageImpl {
             })
             .fuse()
             .map(|(data, _)| {
-                let parsed = parse_by_anno_qname_key(&data);
-                (parsed.0, Arc::from(parsed.1.key))
+                let node_id = NodeID::parse_key(&data[(data.len() - NODE_ID_SIZE)..]);
+                let str_vec = parse_str_vec_key(&data[..(data.len() - NODE_ID_SIZE)]);
+                (
+                    node_id,
+                    Arc::from(AnnoKey {
+                        ns: str_vec[0].to_string(),
+                        name: str_vec[1].to_string(),
+                    }),
+                )
             });
 
         Box::new(it)
