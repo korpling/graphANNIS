@@ -394,7 +394,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                     name: name.to_string(),
                 });
                 let mut matches: Vec<Match> = Vec::new();
-                // createa a template key
+                // create a template key
                 let mut container_key = create_by_container_key(0, &key);
                 for item in it {
                     // Set the first bytes to the ID of the item.

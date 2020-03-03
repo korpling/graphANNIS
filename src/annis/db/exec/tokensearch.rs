@@ -70,7 +70,7 @@ impl<'a> AnyTokenSearch<'a> {
                     is_root_tok = is_root_tok && order_gs.get_ingoing_edges(n).next() == None;
                 }
                 if let Some(ref token_helper) = self.token_helper {
-                    is_root_tok = is_root_tok && token_helper.is_token(n);
+                    is_root_tok = is_root_tok && !token_helper.has_outgoing_coverage_edges(n);
                 }
                 if is_root_tok {
                     root_nodes.push(Match {
