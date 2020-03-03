@@ -240,7 +240,7 @@ impl AnnoStorageImpl {
                     }
                     let mut ns = data;
                     if ns.ends_with('\0') {
-                        ns.split_off(ns.len()-1);
+                        ns.split_off(ns.len() - 1);
                     }
                     AnnoKey { ns, name }
                 } else {

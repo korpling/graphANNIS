@@ -2,8 +2,8 @@ use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::db::{Graph, ANNIS_NS, TOK};
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Component, ComponentType, Edge, NodeID};
+use crate::annis::util::create_str_vec_key;
 use crate::annis::util::disk_collections::{DiskMap, KeySerializer};
-use crate::annis::util::{create_str_vec_key};
 use crate::update::{GraphUpdate, UpdateEvent};
 use csv;
 use percent_encoding::utf8_percent_encode;
@@ -41,7 +41,7 @@ impl KeySerializer for TextProperty {
         let id_size = std::mem::size_of::<u32>();
         let mut id_offset = key.len() - id_size * 3;
         let key_as_string = String::from_utf8_lossy(key);
-        let segmentation_vector : Vec<_> = key_as_string.split_terminator('\0').collect();
+        let segmentation_vector: Vec<_> = key_as_string.split_terminator('\0').collect();
 
         let corpus_id = u32::from_be_bytes(
             key[id_offset..(id_offset + id_size)]
@@ -1441,10 +1441,7 @@ fn add_subcorpora(
                 text_id: text_key.id,
                 node_id: NodeID::max_value(),
             };
-            for (text_entry, _) in node_node_result
-                .nodes_by_text
-                .range(min_key..=max_key)
-            {
+            for (text_entry, _) in node_node_result.nodes_by_text.range(min_key..=max_key) {
                 let n = text_entry.node_id;
                 updates.add_event(UpdateEvent::AddEdge {
                     source_node: node_node_result
