@@ -17,7 +17,7 @@ fn range() {
     // Before compaction
 
     // Start from beginning, exclusive end
-    let result: Vec<(u8, bool)> = table.try_range(0..6).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.range(0..6).collect();
     assert_eq!(
         vec![
             (0, true),
@@ -31,17 +31,16 @@ fn range() {
     );
 
     // Start in between, exclusive end
-    let result: Vec<(u8, bool)> = table.try_range(3..5).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.range(3..5).collect();
     assert_eq!(vec![(3, true), (4, true)], result);
 
     // Start in between, inclusive end
-    let result: Vec<(u8, bool)> = table.try_range(3..=5).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.range(3..=5).collect();
     assert_eq!(vec![(3, true), (4, true), (5, true)], result);
 
     // Start from beginning, but exclude start
     let result: Vec<(u8, bool)> = table
-        .try_range((Bound::Excluded(0), Bound::Excluded(6)))
-        .unwrap()
+        .range((Bound::Excluded(0), Bound::Excluded(6)))
         .collect();
     assert_eq!(
         vec![(1, true), (2, true), (3, true), (4, true), (5, true)],
@@ -50,20 +49,19 @@ fn range() {
 
     // Start in between and  exclude start
     let result: Vec<(u8, bool)> = table
-        .try_range((Bound::Excluded(4), Bound::Excluded(6)))
-        .unwrap()
+        .range((Bound::Excluded(4), Bound::Excluded(6)))
         .collect();
     assert_eq!(vec![(5, true)], result);
 
     // Unbound end
-    let result: Vec<(u8, bool)> = table.try_range(3..).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.range(3..).collect();
     assert_eq!(vec![(3, true), (4, true), (5, true)], result);
 
     // After compaction
     table.compact().unwrap();
 
     // Start from beginning, exclusive end
-    let result: Vec<(u8, bool)> = table.try_range(0..6).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.range(0..6).collect();
     assert_eq!(
         vec![
             (0, true),
@@ -77,17 +75,16 @@ fn range() {
     );
 
     // Start in between, exclusive end
-    let result: Vec<(u8, bool)> = table.try_range(3..5).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.range(3..5).collect();
     assert_eq!(vec![(3, true), (4, true)], result);
 
     // Start in between, inclusive end
-    let result: Vec<(u8, bool)> = table.try_range(3..=5).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.range(3..=5).collect();
     assert_eq!(vec![(3, true), (4, true), (5, true)], result);
 
     // Start from beginning, but exclude start
     let result: Vec<(u8, bool)> = table
-        .try_range((Bound::Excluded(0), Bound::Excluded(6)))
-        .unwrap()
+        .range((Bound::Excluded(0), Bound::Excluded(6)))
         .collect();
     assert_eq!(
         vec![(1, true), (2, true), (3, true), (4, true), (5, true)],
@@ -96,13 +93,12 @@ fn range() {
 
     // Start in between and  exclude start
     let result: Vec<(u8, bool)> = table
-        .try_range((Bound::Excluded(4), Bound::Excluded(6)))
-        .unwrap()
+        .range((Bound::Excluded(4), Bound::Excluded(6)))
         .collect();
     assert_eq!(vec![(5, true)], result);
 
     // Unbound end
-    let result: Vec<(u8, bool)> = table.try_range(3..).unwrap().collect();
+    let result: Vec<(u8, bool)> = table.range(3..).collect();
     assert_eq!(vec![(3, true), (4, true), (5, true)], result);
 }
 
@@ -125,8 +121,7 @@ fn unknown_key() {
     assert_eq!(
         None,
         table
-            .try_range(test_key.clone()..=test_key.clone())
-            .unwrap()
+            .range(test_key.clone()..=test_key.clone())
             .next()
     );
 
@@ -136,8 +131,7 @@ fn unknown_key() {
     assert_eq!(
         None,
         table
-            .try_range(test_key.clone()..=test_key.clone())
-            .unwrap()
+            .range(test_key.clone()..=test_key.clone())
             .next()
     );
 }

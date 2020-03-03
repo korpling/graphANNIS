@@ -356,7 +356,7 @@ where
             Ok(Box::new(it))
         } else {
             // Default to an iterator that can handle non-globally sorted tables
-            let it = self.try_range(..)?;
+            let it = self.range(..);
             Ok(Box::new(it))
         }
     }
@@ -380,7 +380,8 @@ where
         panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
     }
 
-    pub fn try_range<R>(&self, range: R) -> Result<Range<K, V>>
+    /// Returns an iterator over a range of entries.
+    pub fn range<'b, R>(&'b self, range: R) -> Box<dyn Iterator<Item = (K, V)> + 'b>
     where
         R: RangeBounds<K> + Clone,
     {
@@ -396,35 +397,22 @@ where
             Bound::Unbounded => Bound::Unbounded,
         };
 
-        Ok(Range::new(
-            mapped_start_bound,
-            mapped_end_bound,
-            &self.disk_tables[..],
-            &self.c0,
-            self.serialization.clone(),
-        ))
-    }
-
-    /// Returns an iterator over a range of entries.
-    ///
-    /// # Panics
-    ///
-    /// The will try to query the disk-based map several times
-    /// If a maximum number of tries is reached and all attempts failed, this will panic.
-    pub fn range<R>(&self, range: R) -> Range<K, V>
-    where
-        R: RangeBounds<K> + Clone,
-    {
-        let mut last_err = None;
-        for _ in 0..MAX_TRIES {
-            match self.try_range(range.clone()) {
-                Ok(result) => return result,
-                Err(e) => last_err = Some(e),
-            }
-            // If this is an intermediate error, wait some time before trying again
-            std::thread::sleep(std::time::Duration::from_secs(1));
+        if self.c0.is_empty() && self.disk_tables.len() == 1 {
+            Box::new(SimplifiedRange::new(
+                mapped_start_bound,
+                mapped_end_bound,
+                &self.disk_tables[0],
+                self.serialization.clone(),
+            ))
+        } else {
+            Box::new(Range::new(
+                mapped_start_bound,
+                mapped_end_bound,
+                &self.disk_tables[..],
+                &self.c0,
+                self.serialization.clone(),
+            ))
         }
-        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
     }
 
     /// Compact the existing disk tables and the in-memory table to a single temporary disk table.
@@ -772,6 +760,128 @@ where
     for<'de> K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
+    fn new(
+        range_start: Bound<Vec<u8>>,
+        range_end: Bound<Vec<u8>>,
+        disk_table: &Table,
+        serialization: bincode::Config,
+    ) -> SimplifiedRange<K, V> {
+        let mut table_it = disk_table.iter();
+        let mut exhausted = false;
+
+        // Initialize the table iterators
+        match &range_start {
+            Bound::Included(start) => {
+                let start: &[u8] = start;
+                let mut key = Vec::default();
+                let mut value = Vec::default();
+
+                table_it.seek(start);
+
+                if table_it.valid() && table_it.current(&mut key, &mut value) {
+                    let key: &[u8] = &key;
+                    // Check if the seeked element is actually part of the range
+                    let start_included = match &range_start {
+                        Bound::Included(start) => {
+                            let start: &[u8] = start;
+                            key >= start
+                        }
+                        Bound::Excluded(start) => {
+                            let start: &[u8] = start;
+                            key > start
+                        }
+                        Bound::Unbounded => true,
+                    };
+                    let end_included = match &range_end {
+                        Bound::Included(end) => {
+                            let end: &[u8] = end;
+                            key <= end
+                        }
+                        Bound::Excluded(end) => {
+                            let end: &[u8] = end;
+                            key < end
+                        }
+                        Bound::Unbounded => true,
+                    };
+                    if !start_included || !end_included {
+                        exhausted = true;
+                    }
+                } else {
+                    // Seeked behind last element
+                    exhausted = true;
+                }
+            }
+            Bound::Excluded(start_bound) => {
+                let start_bound: &[u8] = start_bound;
+
+                let mut key: Vec<u8> = Vec::default();
+                let mut value = Vec::default();
+
+                table_it.seek(start_bound);
+                if table_it.valid() && table_it.current(&mut key, &mut value) {
+                    let key: &[u8] = &key;
+                    if key == start_bound {
+                        // We need to exclude the first match
+                        table_it.advance();
+                    }
+                }
+
+                // Check key after advance
+                if table_it.valid() && table_it.current(&mut key, &mut value) {
+                    let key: &[u8] = &key;
+
+                    // Check if the seeked element is actually part of the range
+                    let start_included = match &range_start {
+                        Bound::Included(start) => {
+                            let start: &[u8] = start;
+                            key >= start
+                        }
+                        Bound::Excluded(start) => {
+                            let start: &[u8] = start;
+                            key > start
+                        }
+                        Bound::Unbounded => true,
+                    };
+                    let end_included = match &range_end {
+                        Bound::Included(end) => {
+                            let end: &[u8] = end;
+                            key <= end
+                        }
+                        Bound::Excluded(end) => {
+                            let end: &[u8] = end;
+                            key < end
+                        }
+                        Bound::Unbounded => true,
+                    };
+                    if !start_included || !end_included {
+                        exhausted = true;
+                    }
+                } else {
+                    // Seeked behind last element
+                    exhausted = true;
+                }
+            }
+            Bound::Unbounded => {
+                table_it.seek_to_first();
+
+                if !table_it.valid() {
+                    exhausted = true;
+                }
+            }
+        };
+
+        SimplifiedRange {
+            range_start,
+            range_end,
+            exhausted,
+            table_it,
+            serialization: serialization,
+            current_key: Vec::new(),
+            current_value: Vec::new(),
+            phantom: std::marker::PhantomData,
+        }
+    }
+
     fn range_contains(&self, item: &Vec<u8>) -> bool {
         (match &self.range_start {
             Bound::Included(ref start) => start <= item,

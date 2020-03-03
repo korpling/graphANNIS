@@ -592,7 +592,7 @@ fn add_automatic_cov_edge_for_node(
                 );
                 let has_outgoing_text_coverage_edge = load_rank_result
                     .text_coverage_edges
-                    .try_range(nodes_with_same_source)?
+                    .range(nodes_with_same_source)
                     .next()
                     .is_some();
                 let component_name = if has_outgoing_text_coverage_edge {
@@ -1443,7 +1443,7 @@ fn add_subcorpora(
             };
             for (text_entry, _) in node_node_result
                 .nodes_by_text
-                .try_range(min_key..=max_key)?
+                .range(min_key..=max_key)
             {
                 let n = text_entry.node_id;
                 updates.add_event(UpdateEvent::AddEdge {
