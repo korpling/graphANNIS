@@ -384,16 +384,6 @@ where
     where
         R: RangeBounds<K> + Clone,
     {
-        let mut table_iterators: Vec<TableIterator> = self
-            .disk_tables
-            .iter()
-            .rev()
-            .map(|table| table.iter())
-            .collect();
-        let mut exhausted: Vec<bool> = std::iter::repeat(false)
-            .take(table_iterators.len())
-            .collect();
-
         let mapped_start_bound: std::ops::Bound<Vec<u8>> = match range.start_bound() {
             Bound::Included(end) => Bound::Included(Vec::from(K::create_key(end))),
             Bound::Excluded(end) => Bound::Excluded(Vec::from(K::create_key(end))),
@@ -406,134 +396,13 @@ where
             Bound::Unbounded => Bound::Unbounded,
         };
 
-        match &mapped_start_bound {
-            Bound::Included(start) => {
-                let start: &[u8] = start;
-                let mut key = Vec::default();
-                let mut value = Vec::default();
-
-                for i in 0..table_iterators.len() {
-                    let exhausted = &mut exhausted[i];
-                    let ti = &mut table_iterators[i];
-                    ti.seek(start);
-
-                    if ti.valid() && ti.current(&mut key, &mut value) {
-                        let key: &[u8] = &key;
-                        // Check if the seeked element is actually part of the range
-                        let start_included = match &mapped_start_bound {
-                            Bound::Included(start) => {
-                                let start: &[u8] = start;
-                                key >= start
-                            }
-                            Bound::Excluded(start) => {
-                                let start: &[u8] = start;
-                                key > start
-                            }
-                            Bound::Unbounded => true,
-                        };
-                        let end_included = match &mapped_end_bound {
-                            Bound::Included(end) => {
-                                let end: &[u8] = end;
-                                key <= end
-                            }
-                            Bound::Excluded(end) => {
-                                let end: &[u8] = end;
-                                key < end
-                            }
-                            Bound::Unbounded => true,
-                        };
-                        if !start_included || !end_included {
-                            *exhausted = true;
-                        }
-                    } else {
-                        // Seeked behind last element
-                        *exhausted = true;
-                    }
-                }
-            }
-            Bound::Excluded(start_bound) => {
-                let start_bound: &[u8] = start_bound;
-
-                let mut key: Vec<u8> = Vec::default();
-                let mut value = Vec::default();
-
-                for i in 0..table_iterators.len() {
-                    let exhausted = &mut exhausted[i];
-                    let ti = &mut table_iterators[i];
-
-                    ti.seek(start_bound);
-                    if ti.valid() && ti.current(&mut key, &mut value) {
-                        let key: &[u8] = &key;
-                        if key == start_bound {
-                            // We need to exclude the first match
-                            ti.advance();
-                        }
-                    }
-
-                    // Check key after advance
-                    if ti.valid() && ti.current(&mut key, &mut value) {
-                        let key: &[u8] = &key;
-
-                        // Check if the seeked element is actually part of the range
-                        let start_included = match &mapped_start_bound {
-                            Bound::Included(start) => {
-                                let start: &[u8] = start;
-                                key >= start
-                            }
-                            Bound::Excluded(start) => {
-                                let start: &[u8] = start;
-                                key > start
-                            }
-                            Bound::Unbounded => true,
-                        };
-                        let end_included = match &mapped_end_bound {
-                            Bound::Included(end) => {
-                                let end: &[u8] = end;
-                                key <= end
-                            }
-                            Bound::Excluded(end) => {
-                                let end: &[u8] = end;
-                                key < end
-                            }
-                            Bound::Unbounded => true,
-                        };
-                        if !start_included || !end_included {
-                            *exhausted = true;
-                        }
-                    } else {
-                        // Seeked behind last element
-                        *exhausted = true;
-                    }
-                }
-            }
-            Bound::Unbounded => {
-                for i in 0..table_iterators.len() {
-                    let exhausted = &mut exhausted[i];
-                    let ti = &mut table_iterators[i];
-
-                    ti.seek_to_first();
-
-                    if !ti.valid() {
-                        *exhausted = true;
-                    }
-                }
-            }
-        };
-
-        Ok(Range {
-            c0_range: self
-                .c0
-                .range((mapped_start_bound.clone(), mapped_end_bound.clone()))
-                .peekable(),
-            range_start: mapped_start_bound,
-            range_end: mapped_end_bound,
-            exhausted,
-            table_iterators,
-            serialization: self.serialization.clone(),
-            current_key: Vec::new(),
-            current_value: Vec::new(),
-            phantom: std::marker::PhantomData,
-        })
+        Ok(Range::new(
+            mapped_start_bound,
+            mapped_end_bound,
+            &self.disk_tables[..],
+            &self.c0,
+            self.serialization.clone(),
+        ))
     }
 
     /// Returns an iterator over a range of entries.
@@ -642,6 +511,149 @@ where
     for<'de> K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
+    fn new(
+        range_start: Bound<Vec<u8>>,
+        range_end: Bound<Vec<u8>>,
+        disk_tables: &[Table],
+        c0: &'a BTreeMap<Vec<u8>, Option<V>>,
+        serialization: bincode::Config,
+    ) -> Range<'a, K, V> {
+        let mut table_iterators: Vec<TableIterator> =
+            disk_tables.iter().rev().map(|table| table.iter()).collect();
+        let mut exhausted: Vec<bool> = std::iter::repeat(false)
+            .take(table_iterators.len())
+            .collect();
+
+        // Initialize the table iterators
+        match &range_start {
+            Bound::Included(start) => {
+                let start: &[u8] = start;
+                let mut key = Vec::default();
+                let mut value = Vec::default();
+
+                for i in 0..table_iterators.len() {
+                    let exhausted = &mut exhausted[i];
+                    let ti = &mut table_iterators[i];
+                    ti.seek(start);
+
+                    if ti.valid() && ti.current(&mut key, &mut value) {
+                        let key: &[u8] = &key;
+                        // Check if the seeked element is actually part of the range
+                        let start_included = match &range_start {
+                            Bound::Included(start) => {
+                                let start: &[u8] = start;
+                                key >= start
+                            }
+                            Bound::Excluded(start) => {
+                                let start: &[u8] = start;
+                                key > start
+                            }
+                            Bound::Unbounded => true,
+                        };
+                        let end_included = match &range_end {
+                            Bound::Included(end) => {
+                                let end: &[u8] = end;
+                                key <= end
+                            }
+                            Bound::Excluded(end) => {
+                                let end: &[u8] = end;
+                                key < end
+                            }
+                            Bound::Unbounded => true,
+                        };
+                        if !start_included || !end_included {
+                            *exhausted = true;
+                        }
+                    } else {
+                        // Seeked behind last element
+                        *exhausted = true;
+                    }
+                }
+            }
+            Bound::Excluded(start_bound) => {
+                let start_bound: &[u8] = start_bound;
+
+                let mut key: Vec<u8> = Vec::default();
+                let mut value = Vec::default();
+
+                for i in 0..table_iterators.len() {
+                    let exhausted = &mut exhausted[i];
+                    let ti = &mut table_iterators[i];
+
+                    ti.seek(start_bound);
+                    if ti.valid() && ti.current(&mut key, &mut value) {
+                        let key: &[u8] = &key;
+                        if key == start_bound {
+                            // We need to exclude the first match
+                            ti.advance();
+                        }
+                    }
+
+                    // Check key after advance
+                    if ti.valid() && ti.current(&mut key, &mut value) {
+                        let key: &[u8] = &key;
+
+                        // Check if the seeked element is actually part of the range
+                        let start_included = match &range_start {
+                            Bound::Included(start) => {
+                                let start: &[u8] = start;
+                                key >= start
+                            }
+                            Bound::Excluded(start) => {
+                                let start: &[u8] = start;
+                                key > start
+                            }
+                            Bound::Unbounded => true,
+                        };
+                        let end_included = match &range_end {
+                            Bound::Included(end) => {
+                                let end: &[u8] = end;
+                                key <= end
+                            }
+                            Bound::Excluded(end) => {
+                                let end: &[u8] = end;
+                                key < end
+                            }
+                            Bound::Unbounded => true,
+                        };
+                        if !start_included || !end_included {
+                            *exhausted = true;
+                        }
+                    } else {
+                        // Seeked behind last element
+                        *exhausted = true;
+                    }
+                }
+            }
+            Bound::Unbounded => {
+                for i in 0..table_iterators.len() {
+                    let exhausted = &mut exhausted[i];
+                    let ti = &mut table_iterators[i];
+
+                    ti.seek_to_first();
+
+                    if !ti.valid() {
+                        *exhausted = true;
+                    }
+                }
+            }
+        };
+
+        Range {
+            c0_range: c0
+                .range((range_start.clone(), range_end.clone()))
+                .peekable(),
+            range_start,
+            range_end,
+            exhausted,
+            table_iterators,
+            serialization: serialization,
+            current_key: Vec::new(),
+            current_value: Vec::new(),
+            phantom: std::marker::PhantomData,
+        }
+    }
+
     fn range_contains(&self, item: &Vec<u8>) -> bool {
         (match &self.range_start {
             Bound::Included(ref start) => start <= item,
@@ -738,6 +750,71 @@ where
                 return None;
             }
         }
+    }
+}
+
+/// An iterator implementation for the case that there is only a single disk-table and no C0
+pub struct SimplifiedRange<K, V> {
+    range_start: Bound<Vec<u8>>,
+    range_end: Bound<Vec<u8>>,
+    table_it: TableIterator,
+    exhausted: bool,
+    serialization: bincode::Config,
+
+    current_key: Vec<u8>,
+    current_value: Vec<u8>,
+
+    phantom: std::marker::PhantomData<(K, V)>,
+}
+
+impl<K, V> SimplifiedRange<K, V>
+where
+    for<'de> K: 'static + Clone + KeySerializer + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+{
+    fn range_contains(&self, item: &Vec<u8>) -> bool {
+        (match &self.range_start {
+            Bound::Included(ref start) => start <= item,
+            Bound::Excluded(ref start) => start < item,
+            Bound::Unbounded => true,
+        }) && (match &self.range_end {
+            Bound::Included(ref end) => item <= end,
+            Bound::Excluded(ref end) => item < end,
+            Bound::Unbounded => true,
+        })
+    }
+}
+
+impl<K, V> Iterator for SimplifiedRange<K, V>
+where
+    for<'de> K: 'static + Clone + KeySerializer + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+{
+    type Item = (K, V);
+
+    fn next(&mut self) -> Option<(K, V)> {
+        while self.exhausted == false && self.table_it.valid() {
+            if self
+                .table_it
+                .current(&mut self.current_key, &mut self.current_value)
+            {
+                if self.range_contains(&self.current_key) {
+                    let value: Option<V> = self
+                        .serialization
+                        .deserialize(&self.current_value)
+                        .expect("Could not decode previously written data from disk.");
+
+                    self.table_it.advance();
+
+                    if let Some(value) = value {
+                        return Some((K::parse_key(&self.current_key), value));
+                    }
+                } else {
+                    self.exhausted = true;
+                }
+            }
+        }
+        None
     }
 }
 
