@@ -230,14 +230,18 @@ impl AnnoStorageImpl {
             })
             .fuse()
             .map(|(mut data, _)| {
-                let node_id = NodeID::parse_key(&data.split_off(data.len() - NODE_ID_SIZE));
+                let node_id_raw = data.split_off(data.len() - NODE_ID_SIZE);
+                let node_id = NodeID::parse_key(&node_id_raw);
                 let mut data = String::from_utf8(data).expect(UTF_8_MSG);
                 let key = if let Some(sep_ns_name) = data.find('\0') {
                     let mut name = data.split_off(sep_ns_name + 1);
                     if let Some(sep_name_value) = name.find('\0') {
-                        name.split_off(sep_name_value + 1);
+                        name.split_off(sep_name_value);
                     }
-                    let ns = data;
+                    let mut ns = data;
+                    if ns.ends_with('\0') {
+                        ns.split_off(ns.len()-1);
+                    }
                     AnnoKey { ns, name }
                 } else {
                     AnnoKey {
