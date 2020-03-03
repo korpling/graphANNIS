@@ -530,6 +530,8 @@ where
             exhausted,
             table_iterators,
             serialization: self.serialization.clone(),
+            current_key: Vec::new(),
+            current_value: Vec::new(),
             phantom: std::marker::PhantomData,
         })
     }
@@ -628,6 +630,10 @@ pub struct Range<'a, K, V> {
     table_iterators: Vec<TableIterator>,
     exhausted: Vec<bool>,
     serialization: bincode::Config,
+
+    current_key: Vec<u8>,
+    current_value: Vec<u8>,
+
     phantom: std::marker::PhantomData<(K, V)>,
 }
 
@@ -659,17 +665,14 @@ where
         }
 
         // Skip all smaller or equal keys in all disk tables
-        let mut key = Vec::default();
-        let mut value = Vec::default();
-
         for i in 0..self.table_iterators.len() {
             if self.exhausted[i] == false && self.table_iterators[i].valid() {
-                if self.table_iterators[i].current(&mut key, &mut value) {
-                    if !self.range_contains(&key) {
+                if self.table_iterators[i].current(&mut self.current_key, &mut self.current_value) {
+                    if !self.range_contains(&self.current_key) {
                         self.exhausted[i] = true;
                         break;
                     }
-                    if &key <= after_key {
+                    if &self.current_key <= after_key {
                         self.table_iterators[i].advance();
                     }
                 }
@@ -698,25 +701,22 @@ where
             }
 
             // Iterate over all disk tables
-            let mut key = Vec::default();
-            let mut value = Vec::default();
-
             for i in 0..self.table_iterators.len() {
                 let table_it = &mut self.table_iterators[i];
                 if self.exhausted[i] == false && table_it.valid() {
-                    if table_it.current(&mut key, &mut value) {
-                        if self.range_contains(&key) {
+                    if table_it.current(&mut self.current_key, &mut self.current_value) {
+                        if self.range_contains(&self.current_key) {
                             let key_is_smaller = if let Some((smallest_key, _)) = &smallest_key {
-                                &key < smallest_key
+                                &self.current_key < smallest_key
                             } else {
                                 true
                             };
                             if key_is_smaller {
                                 let value: Option<V> = self
                                     .serialization
-                                    .deserialize(&value)
+                                    .deserialize(&self.current_value)
                                     .expect("Could not decode previously written data from disk.");
-                                smallest_key = Some((key.clone(), value));
+                                smallest_key = Some((self.current_key.clone(), value));
                             }
                         } else {
                             self.exhausted[i] = true;
