@@ -9,7 +9,6 @@ use crate::annis::util;
 use crate::annis::util::create_str_vec_key;
 use crate::annis::util::disk_collections::{DiskMap, EvictionStrategy, KeySerializer};
 use crate::annis::util::memory_estimation;
-use crate::annis::util::parse_str_vec_key;
 use core::ops::Bound::*;
 use rand::seq::IteratorRandom;
 use std::borrow::Cow;
@@ -20,6 +19,8 @@ use std::sync::Arc;
 pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v1";
 
 const NODE_ID_SIZE: usize = std::mem::size_of::<NodeID>();
+
+const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
 
 /// An on-disk implementation of an annotation storage.
 ///
@@ -69,13 +70,23 @@ fn create_by_container_key(node: NodeID, anno_key: &AnnoKey) -> Vec<u8> {
 ///
 /// # Panics
 /// Panics if the raw data is smaller than the length of a node ID bit-representation.
-fn parse_by_container_key(data: &[u8]) -> (NodeID, AnnoKey) {
-    let item = NodeID::parse_key(data);
-    let str_vec = parse_str_vec_key(&data[8..]);
+fn parse_by_container_key(mut data: Vec<u8>) -> (NodeID, AnnoKey) {
+    let mut anno_key_raw = String::from_utf8(data.split_off(NODE_ID_SIZE)).expect(UTF_8_MSG);
+    let item = NodeID::parse_key(&data);
 
-    let anno_key = AnnoKey {
-        ns: str_vec[0].to_string(),
-        name: str_vec[1].to_string(),
+    let anno_key = if let Some(idx0) = anno_key_raw.find('\0') {
+        let mut name = anno_key_raw.split_off(idx0);
+        // name now ends with \0
+        if name.ends_with("\0") {
+            name.split_off(name.len() - 1);
+        }
+        let ns = anno_key_raw;
+        AnnoKey { ns, name }
+    } else {
+        AnnoKey {
+            ns: "".to_string(),
+            name: anno_key_raw,
+        }
     };
     (item, anno_key)
 }
@@ -101,10 +112,15 @@ fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
 /// Parse the raw data and extract the node ID and the annotation.
 ///
 /// # Panics
-/// Panics if the raw data is smaller than the length of a node ID bit-representation.
-fn parse_by_anno_qname_key(data: &[u8]) -> (NodeID, Annotation) {
-    let node_id = NodeID::parse_key(&data[(data.len() - NODE_ID_SIZE)..]);
-    let str_vec = parse_str_vec_key(&data[..(data.len() - NODE_ID_SIZE)]);
+/// Panics if the raw data is smaller than the length of a node ID bit-representation or if the strings are not valid
+/// UTF-8.
+fn parse_by_anno_qname_key(mut data: Vec<u8>) -> (NodeID, Annotation) {
+    let node_id_raw = data.split_off(data.len() - NODE_ID_SIZE);
+    let node_id = NodeID::parse_key(&node_id_raw);
+
+    let key_raw = String::from_utf8(data).expect(UTF_8_MSG);
+
+    let str_vec: Vec<&str> = key_raw.split_terminator('\0').collect();
 
     let anno = Annotation {
         key: AnnoKey {
@@ -209,16 +225,23 @@ impl AnnoStorageImpl {
                 self.by_anno_qname.range(lower_bound..upper_bound)
             })
             .fuse()
-            .map(|(data, _)| {
-                let node_id = NodeID::parse_key(&data[(data.len() - NODE_ID_SIZE)..]);
-                let str_vec = parse_str_vec_key(&data[..(data.len() - NODE_ID_SIZE)]);
-                (
-                    node_id,
-                    Arc::from(AnnoKey {
-                        ns: str_vec[0].to_string(),
-                        name: str_vec[1].to_string(),
-                    }),
-                )
+            .map(|(mut data, _)| {
+                let node_id = NodeID::parse_key(&data.split_off(data.len() - NODE_ID_SIZE));
+                let mut data = String::from_utf8(data).expect(UTF_8_MSG);
+                let key = if let Some(sep_ns_name) = data.find('\0') {
+                    let mut name = data.split_off(sep_ns_name);
+                    if let Some(sep_name_value) = name.find('\0') {
+                        name.split_off(sep_name_value);
+                    }
+                    let ns = data;
+                    AnnoKey { ns, name }
+                } else {
+                    AnnoKey {
+                        ns: "".to_string(),
+                        name: data,
+                    }
+                };
+                (node_id, Arc::from(key))
             });
 
         Box::new(it)
@@ -291,7 +314,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         let start: Vec<u8> = Vec::from(item.create_key());
         let end: Vec<u8> = Vec::from((*item + 1).create_key());
         for (key, val) in self.by_container.range(start..end) {
-            let parsed_key = parse_by_container_key(&key);
+            let parsed_key = parse_by_container_key(key);
             let anno = Annotation {
                 key: parsed_key.1,
                 val: val,
@@ -446,7 +469,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 self.by_container
                     .range(prefix..after_prefix)
                     .map(|(data, _)| {
-                        let (node, matched_anno_key) = parse_by_container_key(&data);
+                        let (node, matched_anno_key) = parse_by_container_key(data);
                         Match {
                             node,
                             anno_key: Arc::from(matched_anno_key),
@@ -713,7 +736,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         if most_frequent_first {
             let mut values_with_count: HashMap<String, usize> = HashMap::default();
             for (data, _) in self.get_by_anno_qname_range(key) {
-                let (_, anno) = parse_by_anno_qname_key(&data);
+                let (_, anno) = parse_by_anno_qname_key(data);
                 let val = anno.val;
 
                 let count = values_with_count.entry(val).or_insert(0);
@@ -732,7 +755,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             let values_unique: HashSet<Cow<str>> = self
                 .get_by_anno_qname_range(key)
                 .map(|(data, _)| {
-                    let (_, anno) = parse_by_anno_qname_key(&data);
+                    let (_, anno) = parse_by_anno_qname_key(data);
                     Cow::Owned(anno.val)
                 })
                 .collect();
@@ -766,7 +789,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 .into_iter()
                 .map(|data| {
                     let (data, _) = data;
-                    let (_, anno) = parse_by_anno_qname_key(&data);
+                    let (_, anno) = parse_by_anno_qname_key(data);
                     anno.val
                 })
                 .collect();

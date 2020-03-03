@@ -3,7 +3,7 @@ use crate::annis::db::{Graph, ANNIS_NS, TOK};
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Component, ComponentType, Edge, NodeID};
 use crate::annis::util::disk_collections::{DiskMap, KeySerializer};
-use crate::annis::util::{create_str_vec_key, parse_str_vec_key};
+use crate::annis::util::{create_str_vec_key};
 use crate::update::{GraphUpdate, UpdateEvent};
 use csv;
 use percent_encoding::utf8_percent_encode;
@@ -40,7 +40,8 @@ impl KeySerializer for TextProperty {
     fn parse_key(key: &[u8]) -> Self {
         let id_size = std::mem::size_of::<u32>();
         let mut id_offset = key.len() - id_size * 3;
-        let segmentation_vector = parse_str_vec_key(&key[0..id_offset]);
+        let key_as_string = String::from_utf8_lossy(key);
+        let segmentation_vector : Vec<_> = key_as_string.split_terminator('\0').collect();
 
         let corpus_id = u32::from_be_bytes(
             key[id_offset..(id_offset + id_size)]
