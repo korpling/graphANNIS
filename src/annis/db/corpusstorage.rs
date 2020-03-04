@@ -704,6 +704,8 @@ impl CorpusStorage {
     /// - `format` - The format in which this corpus data is stored.
     /// - `corpus_name` - Optionally override the name of the new corpus for file formats that already provide a corpus name.
     /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
+    ///
+    /// Returns the name of the imported corpus.
     pub fn import_from_fs(
         &self,
         path: &Path,

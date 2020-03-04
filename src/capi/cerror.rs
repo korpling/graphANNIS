@@ -109,7 +109,7 @@ impl From<std::io::Error> for Error {
     }
 }
 /// Creates a new error from the internal type
-fn new(err: errors::Error) -> *mut ErrorList {
+pub fn new(err: errors::Error) -> *mut ErrorList {
     Box::into_raw(Box::new(ErrorList::from(err)))
 }
 
