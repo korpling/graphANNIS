@@ -229,10 +229,19 @@ char *annis_annotation_ns(const AnnisAnnotation *ptr);
  */
 char *annis_annotation_val(const AnnisAnnotation *ptr);
 
+/**
+ * Get the layer of the given component.
+ */
 char *annis_component_layer(const AnnisComponent *c);
 
+/**
+ * Get the name of the given component.
+ */
 char *annis_component_name(const AnnisComponent *c);
 
+/**
+ * Get the type of the given component.
+ */
 AnnisComponentType annis_component_type(const AnnisComponent *c);
 
 /**
@@ -585,19 +594,38 @@ size_t annis_freqtable_str_ncols(const AnnisFrequencyTable_CString *ptr);
  */
 size_t annis_freqtable_str_nrows(const AnnisFrequencyTable_CString *ptr);
 
+/**
+ * Return a vector of all components for the graph `g`.
+ */
 AnnisVec_Component *annis_graph_all_components(const AnnisGraph *g);
 
+/**
+ * Return a vector of all components for the graph `g` and the given component type.
+ */
 AnnisVec_Component *annis_graph_all_components_by_type(const AnnisGraph *g,
                                                        AnnisComponentType ctype);
 
+/**
+ * Return a vector of annnotations for the given `edge` in the `component` of graph `g.
+ */
 AnnisVec_Annotation *annis_graph_annotations_for_edge(const AnnisGraph *g,
                                                       AnnisEdge edge,
                                                       const AnnisComponent *component);
 
+/**
+ * Return a vector of all annotations for the given `node` in the graph `g`.
+ */
 AnnisVec_Annotation *annis_graph_annotations_for_node(const AnnisGraph *g, AnnisNodeID node);
 
-AnnisIterPtr_NodeID *annis_graph_nodes_by_type(const AnnisGraph *g, const char *node_type);
+/**
+ * Return an iterator over all nodes of the graph `g` and the given `node_type` (e.g. "node" or "corpus").
+ */
+AnnisIterPtr_NodeID *annis_graph_nodes_by_type(const AnnisGraph *g,
+                                               const char *node_type);
 
+/**
+ * Return a vector of all outgoing edges for the graph `g`, the `source` node and the given `component`.
+ */
 AnnisVec_Edge *annis_graph_outgoing_edges(const AnnisGraph *g,
                                           AnnisNodeID source,
                                           const AnnisComponent *component);
