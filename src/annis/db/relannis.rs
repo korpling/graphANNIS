@@ -1187,7 +1187,9 @@ where
     load_rank_result.components_by_pre.compact()?;
     load_rank_result.edges_by_pre.compact()?;
     load_rank_result.text_coverage_edges.compact()?;
-    load_rank_result.component_for_parentless_target_node.compact()?;
+    load_rank_result
+        .component_for_parentless_target_node
+        .compact()?;
 
     Ok(load_rank_result)
 }
