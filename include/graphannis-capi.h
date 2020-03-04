@@ -633,6 +633,17 @@ AnnisVec_Edge *annis_graph_outgoing_edges(const AnnisGraph *g,
                                           AnnisNodeID source,
                                           const AnnisComponent *component);
 
+/**
+ * Add "add edge" action to the graph update object.
+ *
+ * - `ptr` - The graph update object.
+ * - `source_node` - Name of source node of the new edge.
+ * - `target_node` - Name of target node of the new edge.
+ * - `layer` - Layer of the new edge.
+ * - `component_type` - Type of the component of the new edge.
+ * - `component_name` - Name of the component of the new edge.
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ */
 void annis_graphupdate_add_edge(AnnisGraphUpdate *ptr,
                                 const char *source_node,
                                 const char *target_node,
@@ -641,6 +652,20 @@ void annis_graphupdate_add_edge(AnnisGraphUpdate *ptr,
                                 const char *component_name,
                                 AnnisErrorList **err);
 
+/**
+ * Add "add edge label" action to the graph update object.
+ *
+ * - `ptr` - The graph update object.
+ * - `source_node` - Name of source node of the edge.
+ * - `target_node` - Name of target node of the edge.
+ * - `layer` - Layer of the edge.
+ * - `component_type` - Type of the component of the edge.
+ * - `component_name` - Name of the component of the edge.
+ * - `annos_ns` - Namespace of the new annotation.
+ * - `annos_name` - Name of the new annotation.
+ * - `annos_value` - Value of the new annotation.
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ */
 void annis_graphupdate_add_edge_label(AnnisGraphUpdate *ptr,
                                       const char *source_node,
                                       const char *target_node,
@@ -652,11 +677,29 @@ void annis_graphupdate_add_edge_label(AnnisGraphUpdate *ptr,
                                       const char *anno_value,
                                       AnnisErrorList **err);
 
+/**
+ * Add "add node" action to the graph update object.
+ *
+ * - `ptr` - The graph update object.
+ * - `node_name` - Name of the new node.
+ * - `node_type` - Type of the new node, e.g. "node" or "corpus".
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ */
 void annis_graphupdate_add_node(AnnisGraphUpdate *ptr,
                                 const char *node_name,
                                 const char *node_type,
                                 AnnisErrorList **err);
 
+/**
+ * Add "add node label" action to the graph update object.
+ *
+ * - `ptr` - The graph update object.
+ * - `node_name` - Name of the node the label is attached to.
+ * - `annos_ns` - Namespace of the new annotation.
+ * - `annos_name` - Name of the new annotation.
+ * - `annos_value` - Value of the new annotation.
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ */
 void annis_graphupdate_add_node_label(AnnisGraphUpdate *ptr,
                                       const char *node_name,
                                       const char *anno_ns,
@@ -664,6 +707,17 @@ void annis_graphupdate_add_node_label(AnnisGraphUpdate *ptr,
                                       const char *anno_value,
                                       AnnisErrorList **err);
 
+/**
+ * Add "delete edge" action to the graph update object.
+ *
+ * - `ptr` - The graph update object.
+ * - `source_node` - Name of source node of the edge to delete.
+ * - `target_node` - Name of target node of the edge to delete.
+ * - `layer` - Layer of the edge to delete.
+ * - `component_type` - Type of the component of the edge to delete.
+ * - `component_name` - Name of the component of the edge to delete.
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ */
 void annis_graphupdate_delete_edge(AnnisGraphUpdate *ptr,
                                    const char *source_node,
                                    const char *target_node,
@@ -672,6 +726,19 @@ void annis_graphupdate_delete_edge(AnnisGraphUpdate *ptr,
                                    const char *component_name,
                                    AnnisErrorList **err);
 
+/**
+ * Add "delete edge label" action to the graph update object.
+ *
+ * - `ptr` - The graph update object.
+ * - `source_node` - Name of source node of the edge.
+ * - `target_node` - Name of target node of the edge.
+ * - `layer` - Layer of the edge.
+ * - `component_type` - Type of the component of the edge.
+ * - `component_name` - Name of the component of the edge.
+ * - `annos_ns` - Namespace of the annotation to delete.
+ * - `annos_name` - Name of the annotation to delete.
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ */
 void annis_graphupdate_delete_edge_label(AnnisGraphUpdate *ptr,
                                          const char *source_node,
                                          const char *target_node,
@@ -682,10 +749,26 @@ void annis_graphupdate_delete_edge_label(AnnisGraphUpdate *ptr,
                                          const char *anno_name,
                                          AnnisErrorList **err);
 
+/**
+ * Add "delete node" action to the graph update object.
+ *
+ * - `ptr` - The graph update object.
+ * - `node_name` - Name of node to delete.
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ */
 void annis_graphupdate_delete_node(AnnisGraphUpdate *ptr,
                                    const char *node_name,
                                    AnnisErrorList **err);
 
+/**
+ * Add "delete node label" action to the graph update object.
+ *
+ * - `ptr` - The graph update object.
+ * - `node_name` - Name of the node the label is attached to.
+ * - `annos_ns` - Namespace of deleted new annotation.
+ * - `annos_name` - Name of the deleted annotation.
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ */
 void annis_graphupdate_delete_node_label(AnnisGraphUpdate *ptr,
                                          const char *node_name,
                                          const char *anno_ns,
@@ -693,7 +776,7 @@ void annis_graphupdate_delete_node_label(AnnisGraphUpdate *ptr,
                                          AnnisErrorList **err);
 
 /**
- * Create a new graph update instance
+ * Create a new graph (empty) update instance
  */
 AnnisGraphUpdate *annis_graphupdate_new(void);
 
