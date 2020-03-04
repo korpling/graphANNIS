@@ -177,6 +177,9 @@ typedef struct {
   uint64_t event_counter;
 } AnnisGraphUpdate;
 
+/**
+ * A list of multiple errors.
+ */
 typedef AnnisVec_Error AnnisErrorList;
 
 /**
@@ -353,10 +356,19 @@ AnnisCorpusStorage *annis_cs_with_max_cache_size(const char *db_dir,
                                                  bool use_parallel,
                                                  AnnisErrorList **err);
 
+/**
+ * Get the kind or type for the error at position `i` in the list.
+ */
 const char *annis_error_get_kind(const AnnisErrorList *ptr, size_t i);
 
+/**
+ * Get the message for the error at position `i` in the list.
+ */
 const char *annis_error_get_msg(const AnnisErrorList *ptr, size_t i);
 
+/**
+ * Returns the number of errors in the list.
+ */
 size_t annis_error_size(const AnnisErrorList *ptr);
 
 void annis_free(void *ptr);
