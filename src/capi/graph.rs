@@ -6,12 +6,14 @@ use std;
 use std::ffi::CString;
 use std::sync::Arc;
 
+/// Get the type of the given component.
 #[no_mangle]
 pub extern "C" fn annis_component_type(c: *const Component) -> ComponentType {
     let c: &Component = cast_const!(c);
     return c.ctype.clone();
 }
 
+/// Get the layer of the given component.
 #[no_mangle]
 pub extern "C" fn annis_component_layer(c: *const Component) -> *mut libc::c_char {
     let c: &Component = cast_const!(c);
@@ -19,6 +21,7 @@ pub extern "C" fn annis_component_layer(c: *const Component) -> *mut libc::c_cha
     return CString::new(as_string).unwrap_or_default().into_raw();
 }
 
+/// Get the name of the given component.
 #[no_mangle]
 pub extern "C" fn annis_component_name(c: *const Component) -> *mut libc::c_char {
     let c: &Component = cast_const!(c);
@@ -26,6 +29,7 @@ pub extern "C" fn annis_component_name(c: *const Component) -> *mut libc::c_char
     return CString::new(as_string).unwrap_or_default().into_raw();
 }
 
+/// Return an iterator over all nodes of the graph `g` and the given `node_type` (e.g. "node" or "corpus").
 #[no_mangle]
 pub extern "C" fn annis_graph_nodes_by_type(
     g: *const Graph,
@@ -40,6 +44,7 @@ pub extern "C" fn annis_graph_nodes_by_type(
     return Box::into_raw(Box::new(Box::new(it)));
 }
 
+/// Return a vector of all annotations for the given `node` in the graph `g`.
 #[no_mangle]
 pub extern "C" fn annis_graph_annotations_for_node(
     g: *const Graph,
@@ -52,6 +57,7 @@ pub extern "C" fn annis_graph_annotations_for_node(
     ))
 }
 
+/// Return a vector of all components for the graph `g`.
 #[no_mangle]
 pub extern "C" fn annis_graph_all_components(g: *const Graph) -> *mut Vec<Component> {
     let db: &Graph = cast_const!(g);
@@ -59,6 +65,7 @@ pub extern "C" fn annis_graph_all_components(g: *const Graph) -> *mut Vec<Compon
     Box::into_raw(Box::new(db.get_all_components(None, None)))
 }
 
+/// Return a vector of all components for the graph `g` and the given component type.
 #[no_mangle]
 pub extern "C" fn annis_graph_all_components_by_type(
     g: *const Graph,
@@ -69,6 +76,7 @@ pub extern "C" fn annis_graph_all_components_by_type(
     Box::into_raw(Box::new(db.get_all_components(Some(ctype), None)))
 }
 
+/// Return a vector of all outgoing edges for the graph `g`, the `source` node and the given `component`.
 #[no_mangle]
 pub extern "C" fn annis_graph_outgoing_edges(
     g: *const Graph,
@@ -91,6 +99,7 @@ pub extern "C" fn annis_graph_outgoing_edges(
     Box::into_raw(Box::new(result))
 }
 
+/// Return a vector of annnotations for the given `edge` in the `component` of graph `g.
 #[no_mangle]
 pub extern "C" fn annis_graph_annotations_for_edge(
     g: *const Graph,
