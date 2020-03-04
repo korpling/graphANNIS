@@ -66,6 +66,9 @@ typedef enum {
   RelANNIS,
 } AnnisImportFormat;
 
+/**
+ * Different levels of logging. Higher levels activate logging of events of lower levels as well.
+ */
 typedef enum {
   Off,
   Error,
@@ -694,6 +697,13 @@ void annis_graphupdate_delete_node_label(AnnisGraphUpdate *ptr,
  */
 AnnisGraphUpdate *annis_graphupdate_new(void);
 
+/**
+ * Initialize the logging of this library.
+ *
+ * - `logfile` - The file that is used to output the log messages.
+ * - `level` - Minimum level to output.
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ */
 void annis_init_logging(const char *logfile, AnnisLogLevel level, AnnisErrorList **err);
 
 /**

@@ -5,6 +5,7 @@ use simplelog::{Config, LevelFilter, WriteLogger};
 use std;
 use std::fs::File;
 
+/// Different levels of logging. Higher levels activate logging of events of lower levels as well.
 #[repr(C)]
 pub enum LogLevel {
     Off,
@@ -28,6 +29,11 @@ impl From<LogLevel> for simplelog::LevelFilter {
     }
 }
 
+/// Initialize the logging of this library.
+///
+/// - `logfile` - The file that is used to output the log messages.
+/// - `level` - Minimum level to output.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_init_logging(
     logfile: *const libc::c_char,
