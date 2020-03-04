@@ -4,13 +4,19 @@ use crate::update::*;
 use libc;
 use std;
 
-/// Create a new graph update instance
+/// Create a new graph (empty) update instance
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_new() -> *mut GraphUpdate {
     let gu = GraphUpdate::new();
     return Box::into_raw(Box::new(gu));
 }
 
+/// Add "add node" action to the graph update object.
+///
+/// - `ptr` - The graph update object.
+/// - `node_name` - Name of the new node.
+/// - `node_type` - Type of the new node, e.g. "node" or "corpus".
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_add_node(
     ptr: *mut GraphUpdate,
@@ -29,6 +35,11 @@ pub extern "C" fn annis_graphupdate_add_node(
     );
 }
 
+/// Add "delete node" action to the graph update object.
+///
+/// - `ptr` - The graph update object.
+/// - `node_name` - Name of node to delete.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_delete_node(
     ptr: *mut GraphUpdate,
@@ -45,6 +56,14 @@ pub extern "C" fn annis_graphupdate_delete_node(
     );
 }
 
+/// Add "add node label" action to the graph update object.
+///
+/// - `ptr` - The graph update object.
+/// - `node_name` - Name of the node the label is attached to.
+/// - `annos_ns` - Namespace of the new annotation.
+/// - `annos_name` - Name of the new annotation.
+/// - `annos_value` - Value of the new annotation.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_add_node_label(
     ptr: *mut GraphUpdate,
@@ -67,6 +86,13 @@ pub extern "C" fn annis_graphupdate_add_node_label(
     );
 }
 
+/// Add "delete node label" action to the graph update object.
+///
+/// - `ptr` - The graph update object.
+/// - `node_name` - Name of the node the label is attached to.
+/// - `annos_ns` - Namespace of deleted new annotation.
+/// - `annos_name` - Name of the deleted annotation.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_delete_node_label(
     ptr: *mut GraphUpdate,
@@ -87,6 +113,15 @@ pub extern "C" fn annis_graphupdate_delete_node_label(
     );
 }
 
+/// Add "add edge" action to the graph update object.
+///
+/// - `ptr` - The graph update object.
+/// - `source_node` - Name of source node of the new edge.
+/// - `target_node` - Name of target node of the new edge.
+/// - `layer` - Layer of the new edge.
+/// - `component_type` - Type of the component of the new edge.
+/// - `component_name` - Name of the component of the new edge.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_add_edge(
     ptr: *mut GraphUpdate,
@@ -111,6 +146,15 @@ pub extern "C" fn annis_graphupdate_add_edge(
     );
 }
 
+/// Add "delete edge" action to the graph update object.
+///
+/// - `ptr` - The graph update object.
+/// - `source_node` - Name of source node of the edge to delete.
+/// - `target_node` - Name of target node of the edge to delete.
+/// - `layer` - Layer of the edge to delete.
+/// - `component_type` - Type of the component of the edge to delete.
+/// - `component_name` - Name of the component of the edge to delete.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_delete_edge(
     ptr: *mut GraphUpdate,
@@ -135,6 +179,18 @@ pub extern "C" fn annis_graphupdate_delete_edge(
     );
 }
 
+/// Add "add edge label" action to the graph update object.
+///
+/// - `ptr` - The graph update object.
+/// - `source_node` - Name of source node of the edge.
+/// - `target_node` - Name of target node of the edge.
+/// - `layer` - Layer of the edge.
+/// - `component_type` - Type of the component of the edge.
+/// - `component_name` - Name of the component of the edge.
+/// - `annos_ns` - Namespace of the new annotation.
+/// - `annos_name` - Name of the new annotation.
+/// - `annos_value` - Value of the new annotation.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_add_edge_label(
     ptr: *mut GraphUpdate,
@@ -165,6 +221,17 @@ pub extern "C" fn annis_graphupdate_add_edge_label(
     );
 }
 
+/// Add "delete edge label" action to the graph update object.
+///
+/// - `ptr` - The graph update object.
+/// - `source_node` - Name of source node of the edge.
+/// - `target_node` - Name of target node of the edge.
+/// - `layer` - Layer of the edge.
+/// - `component_type` - Type of the component of the edge.
+/// - `component_name` - Name of the component of the edge.
+/// - `annos_ns` - Namespace of the annotation to delete.
+/// - `annos_name` - Name of the annotation to delete.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_delete_edge_label(
     ptr: *mut GraphUpdate,
