@@ -8,7 +8,7 @@ use std::borrow::Cow;
 use std::convert::TryInto;
 use strum_macros::{EnumIter, EnumString};
 
-use crate::annis::util::disk_collections::KeySerializer;
+use crate::annis::util::disk_collections::{FixedSizeKeySerializer, KeySerializer};
 use crate::malloc_size_of::MallocSizeOf;
 
 /// Unique internal identifier for a single node.
@@ -105,6 +105,12 @@ impl KeySerializer for Edge {
                 .expect("Edge deserialization key has wrong size"),
         );
         Edge { source, target }
+    }
+}
+
+impl FixedSizeKeySerializer for Edge {
+    fn key_size() -> usize {
+        std::mem::size_of::<NodeID>() * 2
     }
 }
 
