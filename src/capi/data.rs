@@ -5,6 +5,7 @@ use libc::{c_char, c_void, size_t};
 use std;
 use std::ffi::CString;
 
+/// Frees the internal object given as `ptr` argument.
 #[no_mangle]
 pub extern "C" fn annis_free(ptr: *mut c_void) {
     if ptr.is_null() {
@@ -14,6 +15,7 @@ pub extern "C" fn annis_free(ptr: *mut c_void) {
     unsafe { Box::from_raw(ptr) };
 }
 
+/// Frees the string given as `s` argument.
 #[no_mangle]
 pub extern "C" fn annis_str_free(s: *mut c_char) {
     unsafe {
@@ -35,6 +37,8 @@ pub fn iter_next<T>(ptr: *mut Box<dyn Iterator<Item = T>>) -> *mut T {
     return std::ptr::null_mut();
 }
 
+/// Returns a pointer to the next node ID for the iterator given by the `ptr` argument
+/// or `NULL` if iterator is empty.
 #[no_mangle]
 pub extern "C" fn annis_iter_nodeid_next(ptr: *mut IterPtr<NodeID>) -> *mut NodeID {
     return iter_next(ptr);
@@ -53,11 +57,13 @@ pub fn vec_get<T>(ptr: *const Vec<T>, i: size_t) -> *const T {
     return std::ptr::null();
 }
 
+/// Returns the number of elements of the string vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_str_size(ptr: *const Vec<CString>) -> size_t {
     vec_size(ptr)
 }
 
+/// Get a read-only reference to the string at position `i` of the vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_str_get(ptr: *const Vec<CString>, i: size_t) -> *const c_char {
     // custom implementation for string vectors, don't return a referance to CString but a char pointer
@@ -69,12 +75,14 @@ pub extern "C" fn annis_vec_str_get(ptr: *const Vec<CString>, i: size_t) -> *con
     }
 }
 
+/// Create a new string vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_str_new() -> *mut Vec<CString> {
     let result: Vec<CString> = Vec::new();
     return Box::into_raw(Box::new(result));
 }
 
+/// Add an element to the string vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_str_push(ptr: *mut Vec<CString>, v: *const c_char) {
     let strvec: &mut Vec<CString> = cast_mut!(ptr);
@@ -84,6 +92,7 @@ pub extern "C" fn annis_vec_str_push(ptr: *mut Vec<CString>, v: *const c_char) {
     }
 }
 
+/// Get the namespace of the given annotation object.
 #[no_mangle]
 pub extern "C" fn annis_annotation_ns(ptr: *const Annotation) -> *mut c_char {
     let anno: &Annotation = cast_const!(ptr);
@@ -92,6 +101,7 @@ pub extern "C" fn annis_annotation_ns(ptr: *const Annotation) -> *mut c_char {
         .into_raw();
 }
 
+/// Get the name of the given annotation object.
 #[no_mangle]
 pub extern "C" fn annis_annotation_name(ptr: *const Annotation) -> *mut c_char {
     let anno: &Annotation = cast_const!(ptr);
@@ -100,6 +110,7 @@ pub extern "C" fn annis_annotation_name(ptr: *const Annotation) -> *mut c_char {
         .into_raw();
 }
 
+/// Get the value of the given annotation object.
 #[no_mangle]
 pub extern "C" fn annis_annotation_val(ptr: *const Annotation) -> *mut c_char {
     let anno: &Annotation = cast_const!(ptr);
@@ -108,11 +119,13 @@ pub extern "C" fn annis_annotation_val(ptr: *const Annotation) -> *mut c_char {
         .into_raw();
 }
 
+/// Returns the number of elements of the annotation vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_annotation_size(ptr: *const Vec<Annotation>) -> size_t {
     vec_size(ptr)
 }
 
+/// Get a read-only reference to the annotation at position `i` of the vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_annotation_get(
     ptr: *const Vec<Annotation>,
@@ -121,21 +134,25 @@ pub extern "C" fn annis_vec_annotation_get(
     vec_get(ptr, i)
 }
 
+/// Returns the number of elements of the edge vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_edge_size(ptr: *const Vec<Edge>) -> size_t {
     vec_size(ptr)
 }
 
+/// Get a read-only reference to the edge at position `i` of the vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_edge_get(ptr: *const Vec<Edge>, i: size_t) -> *const Edge {
     vec_get(ptr, i)
 }
 
+/// Returns the number of elements of the component vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_component_size(ptr: *const Vec<Component>) -> size_t {
     vec_size(ptr)
 }
 
+/// Get a read-only reference to the component at position `i` of the vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_component_get(
     ptr: *const Vec<Component>,
@@ -144,11 +161,13 @@ pub extern "C" fn annis_vec_component_get(
     vec_get(ptr, i)
 }
 
+/// Returns the number of elements of the query attribute description vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_qattdesc_size(ptr: *const Vec<QueryAttributeDescription>) -> size_t {
     vec_size(ptr)
 }
 
+/// Get a read-only reference to the query attribute description at position `i` of the vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_qattdesc_get_component_nr(
     ptr: *const Vec<QueryAttributeDescription>,
@@ -159,7 +178,9 @@ pub extern "C" fn annis_vec_qattdesc_get_component_nr(
     return desc.alternative;
 }
 
-/// Result char* must be freeed with annis_str_free!
+/// Create a string representing the AQL fragment part of the query attribute description.
+///
+/// The resulting char* must be freeed with annis_str_free!
 #[no_mangle]
 pub extern "C" fn annis_vec_qattdesc_get_aql_fragment(
     ptr: *const Vec<QueryAttributeDescription>,
@@ -171,7 +192,9 @@ pub extern "C" fn annis_vec_qattdesc_get_aql_fragment(
     return cstr.into_raw();
 }
 
-/// Result char* must be freeed with annis_str_free!
+/// Create a string representing the variable part of the query attribute description.
+///
+/// The resulting char* must be freeed with annis_str_free!
 #[no_mangle]
 pub extern "C" fn annis_vec_qattdesc_get_variable(
     ptr: *const Vec<QueryAttributeDescription>,
@@ -183,7 +206,9 @@ pub extern "C" fn annis_vec_qattdesc_get_variable(
     return cstr.into_raw();
 }
 
-/// Result char* must be freeed with annis_str_free!
+/// Create a string representing the annotation name part of the query attribute description.
+///
+/// The resulting char* must be freeed with annis_str_free!
 #[no_mangle]
 pub extern "C" fn annis_vec_qattdesc_get_anno_name(
     ptr: *const Vec<QueryAttributeDescription>,
@@ -199,11 +224,13 @@ pub extern "C" fn annis_vec_qattdesc_get_anno_name(
     }
 }
 
+/// Returns the number of rows of the string matrix.
 #[no_mangle]
 pub extern "C" fn annis_matrix_str_nrows(ptr: *const Matrix<CString>) -> size_t {
     vec_size(ptr)
 }
 
+/// Returns the number of columns of the string matrix.
 #[no_mangle]
 pub extern "C" fn annis_matrix_str_ncols(ptr: *const Matrix<CString>) -> size_t {
     let v: &Vec<Vec<CString>> = cast_const!(ptr);
@@ -213,6 +240,7 @@ pub extern "C" fn annis_matrix_str_ncols(ptr: *const Matrix<CString>) -> size_t 
     return 0;
 }
 
+/// Get a read-only reference to the string at the at position (`row`, `col`) of the matrix.
 #[no_mangle]
 pub extern "C" fn annis_matrix_str_get(
     ptr: *const Matrix<CString>,
@@ -229,11 +257,13 @@ pub extern "C" fn annis_matrix_str_get(
     return std::ptr::null();
 }
 
+/// Returns the number of rows of the frequency table.
 #[no_mangle]
 pub extern "C" fn annis_freqtable_str_nrows(ptr: *const FrequencyTable<CString>) -> size_t {
     vec_size(ptr)
 }
 
+/// Returns the number of columns of the frequency table.
 #[no_mangle]
 pub extern "C" fn annis_freqtable_str_ncols(ptr: *const FrequencyTable<CString>) -> size_t {
     let v: &FrequencyTable<CString> = cast_const!(ptr);
@@ -243,6 +273,7 @@ pub extern "C" fn annis_freqtable_str_ncols(ptr: *const FrequencyTable<CString>)
     return 0;
 }
 
+/// Get a read-only reference to the string at the at position (`row`, `col`) of the frequency table.
 #[no_mangle]
 pub extern "C" fn annis_freqtable_str_get(
     ptr: *const FrequencyTable<CString>,
@@ -259,6 +290,7 @@ pub extern "C" fn annis_freqtable_str_get(
     return std::ptr::null();
 }
 
+/// Get the count of the `row` of the frequency table.
 #[no_mangle]
 pub extern "C" fn annis_freqtable_str_count(
     ptr: *const FrequencyTable<CString>,

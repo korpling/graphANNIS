@@ -4,7 +4,7 @@ use crate::annis::db::{AnnotationStorage, Graph};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
 use crate::annis::types::{Edge, NodeID};
-use num::ToPrimitive;
+use num_traits::ToPrimitive;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Deserialize;
 use std::ops::Bound;
@@ -141,8 +141,8 @@ impl GraphStorage for DenseAdjacencyListStorage {
         &self.annos
     }
 
-    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) {
-        self.annos.clear();
+    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) -> Result<()> {
+        self.annos.clear()?;
         self.edges.clear();
         self.inverse_edges.clear();
 
@@ -172,7 +172,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
                         }
                         // insert annotation
                         for a in orig.get_anno_storage().get_annotations_for_item(&e) {
-                            self.annos.insert(e.clone(), a);
+                            self.annos.insert(e.clone(), a)?;
                         }
                     }
                 }
@@ -180,6 +180,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
             self.stats = orig.get_statistics().cloned();
             self.annos.calculate_statistics();
         }
+        Ok(())
     }
 
     fn as_edgecontainer(&self) -> &dyn EdgeContainer {

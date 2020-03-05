@@ -1,9 +1,14 @@
-use num::{Bounded, FromPrimitive, Num, ToPrimitive};
+use num_traits::{Bounded, FromPrimitive, Num, ToPrimitive};
 use std;
 use std::fmt;
 use std::ops::AddAssign;
 use std::string::String;
 
+use std::borrow::Cow;
+use std::convert::TryInto;
+use strum_macros::{EnumIter, EnumString};
+
+use crate::annis::util::disk_collections::{FixedSizeKeySerializer, KeySerializer};
 use crate::malloc_size_of::MallocSizeOf;
 
 /// Unique internal identifier for a single node.
@@ -75,6 +80,37 @@ impl Edge {
             source: self.target,
             target: self.source,
         }
+    }
+}
+
+impl KeySerializer for Edge {
+    fn create_key<'a>(&'a self) -> Cow<'a, [u8]> {
+        let mut result = Vec::with_capacity(std::mem::size_of::<NodeID>() * 2);
+        result.extend(&self.source.to_be_bytes());
+        result.extend(&self.target.to_be_bytes());
+        Cow::Owned(result)
+    }
+
+    fn parse_key(key: &[u8]) -> Self {
+        let id_size = std::mem::size_of::<NodeID>();
+
+        let source = NodeID::from_be_bytes(
+            key[..id_size]
+                .try_into()
+                .expect("Edge deserialization key was too small"),
+        );
+        let target = NodeID::from_be_bytes(
+            key[id_size..]
+                .try_into()
+                .expect("Edge deserialization key has wrong size"),
+        );
+        Edge { source, target }
+    }
+}
+
+impl FixedSizeKeySerializer for Edge {
+    fn key_size() -> usize {
+        std::mem::size_of::<NodeID>() * 2
     }
 }
 

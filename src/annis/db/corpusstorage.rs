@@ -203,11 +203,9 @@ impl FromStr for FrequencyDefEntry {
     fn from_str(s: &str) -> std::result::Result<FrequencyDefEntry, Self::Err> {
         let splitted: Vec<&str> = s.splitn(2, ':').collect();
         if splitted.len() != 2 {
-            return Err(
-                "Frequency definition must consists of two parts: \
+            return Err("Frequency definition must consists of two parts: \
                  the referenced node and the annotation name or \"tok\" separated by \":\""
-                    .into(),
-            );
+                .into());
         }
         let node_ref = splitted[0];
         let anno_key = util::split_qname(splitted[1]);
@@ -401,7 +399,7 @@ impl CorpusStorage {
     /// Create a new instance with a an automatic determined size of the internal corpus cache.
     ///
     /// Currently, set the maximum cache size to 25% of the available/free memory at construction time.
-    /// This behavior chan change in the future.
+    /// This behavior can change in the future.
     ///
     /// - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
     /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
@@ -594,7 +592,7 @@ impl CorpusStorage {
 
         let db = if create_corpus {
             // create the default graph storages that are assumed to exist in every corpus
-            let mut db = Graph::with_default_graphstorages()?;
+            let mut db = Graph::with_default_graphstorages(false)?;
 
             // save corpus to the path where it should be stored
             db.persist_to(&db_path).or_else(|e| {
@@ -605,7 +603,7 @@ impl CorpusStorage {
             })?;
             db
         } else {
-            let mut db = Graph::new();
+            let mut db = Graph::new(false)?;
             db.load_from(&db_path, false)?;
             db
         };
@@ -705,14 +703,18 @@ impl CorpusStorage {
     /// - `path` - The location on the file system where the corpus data is located.
     /// - `format` - The format in which this corpus data is stored.
     /// - `corpus_name` - Optionally override the name of the new corpus for file formats that already provide a corpus name.
+    /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
+    ///
+    /// Returns the name of the imported corpus.
     pub fn import_from_fs(
         &self,
         path: &Path,
         format: ImportFormat,
         corpus_name: Option<String>,
+        disk_based: bool,
     ) -> Result<String> {
         let (orig_name, mut graph) = match format {
-            ImportFormat::RelANNIS => relannis::load(path, |status| {
+            ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
                 info!("{}", status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regulary to allow it to adapat
                 self.check_cache_size_and_remove(vec![]);
@@ -757,6 +759,7 @@ impl CorpusStorage {
         }
 
         // save to its location
+        info!("saving corpus {} to disk", corpus_name);
         let save_result = graph.save_to(&db_path);
         if let Err(e) = save_result {
             error!(
@@ -821,7 +824,7 @@ impl CorpusStorage {
             let mut lock = db_entry.write().unwrap();
             let db: &mut Graph = get_write_or_error(&mut lock)?;
 
-            db.apply_update(update)?;
+            db.apply_update(update, |_| {})?;
         }
         // start background thread to persists the results
 
@@ -1973,7 +1976,7 @@ fn extract_subgraph_by_query(
     // match vector differ.
     let mut match_result: BTreeSet<Match> = BTreeSet::new();
 
-    let mut result = Graph::new();
+    let mut result = Graph::new(false)?;
 
     // create the subgraph description
     for r in plan {
@@ -1984,7 +1987,7 @@ fn extract_subgraph_by_query(
                 if !match_result.contains(m) {
                     match_result.insert(m.clone());
                     trace!("subgraph query extracted node {:?}", m.node);
-                    create_subgraph_node(m.node, &mut result, orig_db);
+                    create_subgraph_node(m.node, &mut result, orig_db)?;
                 }
             }
         }
@@ -1993,24 +1996,25 @@ fn extract_subgraph_by_query(
     let components = orig_db.get_all_components(component_type_filter, None);
 
     for m in &match_result {
-        create_subgraph_edge(m.node, &mut result, orig_db, &components);
+        create_subgraph_edge(m.node, &mut result, orig_db, &components)?;
     }
 
     Ok(result)
 }
 
-fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) {
+fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) -> Result<()> {
     // add all node labels with the same node ID
     for a in orig_db.node_annos.get_annotations_for_item(&id) {
-        db.node_annos.insert(id, a);
+        db.node_annos.insert(id, a)?;
     }
+    Ok(())
 }
 fn create_subgraph_edge(
     source_id: NodeID,
     db: &mut Graph,
     orig_db: &Graph,
     components: &[Component],
-) {
+) -> Result<()> {
     // find outgoing edges
     for c in components {
         // don't include index components
@@ -2038,7 +2042,7 @@ fn create_subgraph_edge(
                             target,
                         }) {
                             if let Ok(new_gs) = db.get_or_create_writable(&c) {
-                                new_gs.add_edge_annotation(e.clone(), a);
+                                new_gs.add_edge_annotation(e.clone(), a)?;
                             }
                         }
                     }
@@ -2046,6 +2050,8 @@ fn create_subgraph_edge(
             }
         }
     }
+
+    Ok(())
 }
 
 fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {

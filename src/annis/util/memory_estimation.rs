@@ -32,6 +32,20 @@ where
     size
 }
 
+pub fn size_of_pathbuf(val: &std::path::PathBuf, ops: &mut MallocSizeOfOps) -> usize {
+    // The path uses an OsString internally, use this for the estimation
+    val.as_os_str().size_of(ops)
+}
+
+pub fn size_of_option_tempdir(val: &Option<tempfile::TempDir>, ops: &mut MallocSizeOfOps) -> usize {
+    let mut result = std::mem::size_of::<Option<tempfile::TempDir>>();
+    if let Some(dir) = val {
+        // The path uses an OsString internally, use this for the estimation
+        result += dir.path().as_os_str().size_of(ops)
+    }
+    result
+}
+
 #[cfg(not(windows))]
 pub mod platform {
     use std::os::raw::c_void;

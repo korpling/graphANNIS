@@ -47,11 +47,12 @@ impl AdjacencyListStorage {
         }
     }
 
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self) -> Result<()> {
         self.edges.clear();
         self.inverse_edges.clear();
-        self.annos.clear();
+        self.annos.clear()?;
         self.stats = None;
+        Ok(())
     }
 }
 
@@ -176,21 +177,22 @@ impl GraphStorage for AdjacencyListStorage {
         it.next().is_some()
     }
 
-    fn copy(&mut self, _db: &Graph, orig: &dyn GraphStorage) {
-        self.clear();
+    fn copy(&mut self, _db: &Graph, orig: &dyn GraphStorage) -> Result<()> {
+        self.clear()?;
 
         for source in orig.source_nodes() {
             for target in orig.get_outgoing_edges(source) {
                 let e = Edge { source, target };
                 self.add_edge(e.clone());
                 for a in orig.get_anno_storage().get_annotations_for_item(&e) {
-                    self.add_edge_annotation(e.clone(), a);
+                    self.add_edge_annotation(e.clone(), a)?;
                 }
             }
         }
 
         self.stats = orig.get_statistics().cloned();
         self.annos.calculate_statistics();
+        Ok(())
     }
 
     fn as_writeable(&mut self) -> Option<&mut dyn WriteableGraphStorage> {
@@ -227,15 +229,16 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             // TODO: invalid graph statistics
         }
     }
-    fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) {
+    fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) -> Result<()> {
         if let Some(outgoing) = self.edges.get(&edge.source) {
             if outgoing.contains(&edge.target) {
-                self.annos.insert(edge, anno);
+                self.annos.insert(edge, anno)?;
             }
         }
+        Ok(())
     }
 
-    fn delete_edge(&mut self, edge: &Edge) {
+    fn delete_edge(&mut self, edge: &Edge) -> Result<()> {
         if let Some(outgoing) = self.edges.get_mut(&edge.source) {
             if let Ok(idx) = outgoing.binary_search(&edge.target) {
                 outgoing.remove(idx);
@@ -249,13 +252,16 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         }
         let annos = self.annos.get_annotations_for_item(edge);
         for a in annos {
-            self.annos.remove_annotation_for_item(edge, &a.key);
+            self.annos.remove_annotation_for_item(edge, &a.key)?;
         }
+
+        Ok(())
     }
-    fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey) {
-        self.annos.remove_annotation_for_item(edge, anno_key);
+    fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey) -> Result<()> {
+        self.annos.remove_annotation_for_item(edge, anno_key)?;
+        Ok(())
     }
-    fn delete_node(&mut self, node: NodeID) {
+    fn delete_node(&mut self, node: NodeID) -> Result<()> {
         // find all both ingoing and outgoing edges
         let mut to_delete = std::collections::LinkedList::<Edge>::new();
 
@@ -277,8 +283,10 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         }
 
         for e in to_delete {
-            self.delete_edge(&e);
+            self.delete_edge(&e)?;
         }
+
+        Ok(())
     }
 
     fn calculate_statistics(&mut self) {

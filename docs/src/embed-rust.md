@@ -4,7 +4,7 @@
 
 Add a dependency to graphANNIS in you `Cargo.toml` file:
 ```toml
-graphannis = "0.25.1"
+graphannis = "0.26.0"
 ```
 
 ## API documentation

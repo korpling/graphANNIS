@@ -1,10 +1,6 @@
 language: rust
 rust:
   - stable
-os:
-  - linux
-  - osx
-  - windows
 
 cache:
   directories:
@@ -15,20 +11,17 @@ cache:
     - relannis
     - data
 
-# Create two environments: one for the default tests not requiring any test data and one for the 
-# search tests.
-env:
-  - TEST_SUITE=
-  - TEST_SUITE=--ignored
-
-# Execute search tests only on linux
-matrix:
-  exclude:
-  - os: windows
-    env: TEST_SUITE=--ignored
-  - os: osx
-    env: TEST_SUITE=--ignored
-
+jobs:
+  include:
+    - os: linux
+    # Execute search tests only on linux
+    - os: linux
+      env: TEST_SUITE=--ignored
+    - os: osx
+    # Use MSVC toolchain on windows
+    - os: windows
+      rust: stable-x86_64-pc-windows-msvc
+ 
 before_cache:
   - rm -rf "$TRAVIS_HOME/.cargo/registry/src"
 

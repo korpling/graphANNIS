@@ -70,7 +70,7 @@ impl<'a> AnyTokenSearch<'a> {
                     is_root_tok = is_root_tok && order_gs.get_ingoing_edges(n).next() == None;
                 }
                 if let Some(ref token_helper) = self.token_helper {
-                    is_root_tok = is_root_tok && token_helper.is_token(n);
+                    is_root_tok = is_root_tok && !token_helper.has_outgoing_coverage_edges(n);
                 }
                 if is_root_tok {
                     root_nodes.push(Match {
@@ -157,22 +157,25 @@ mod tests {
 
     #[test]
     fn find_with_only_one_token() {
-        let mut g = Graph::new();
+        let mut g = Graph::new(false).unwrap();
 
         let mut update = GraphUpdate::new();
-        update.add_event(UpdateEvent::AddNode {
-            node_name: "doc1/tok1".to_owned(),
-            node_type: "node".to_owned(),
-        });
-        update.add_event(UpdateEvent::AddNodeLabel {
-            node_name: "doc1/tok1".to_owned(),
-            anno_ns: "annis".to_owned(),
-            anno_name: "tok".to_owned(),
-            anno_value: "The".to_owned(),
-        });
-        update.finish();
+        update
+            .add_event(UpdateEvent::AddNode {
+                node_name: "doc1/tok1".to_owned(),
+                node_type: "node".to_owned(),
+            })
+            .unwrap();
+        update
+            .add_event(UpdateEvent::AddNodeLabel {
+                node_name: "doc1/tok1".to_owned(),
+                anno_ns: "annis".to_owned(),
+                anno_name: "tok".to_owned(),
+                anno_value: "The".to_owned(),
+            })
+            .unwrap();
 
-        g.apply_update(&mut update).unwrap();
+        g.apply_update(&mut update, |_| {}).unwrap();
 
         let search_result: Vec<Vec<Match>> = AnyTokenSearch::new(&g).unwrap().collect();
         assert_eq!(1, search_result.len());

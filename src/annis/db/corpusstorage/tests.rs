@@ -16,7 +16,8 @@ fn delete() {
     g.add_event(UpdateEvent::AddNode {
         node_name: "test".to_string(),
         node_type: "node".to_string(),
-    });
+    })
+    .unwrap();
 
     cs.apply_update("testcorpus", &mut g).unwrap();
     cs.preload("testcorpus").unwrap();
@@ -32,7 +33,8 @@ fn load_cs_twice() {
         g.add_event(UpdateEvent::AddNode {
             node_name: "test".to_string(),
             node_type: "node".to_string(),
-        });
+        })
+        .unwrap();
 
         cs.apply_update("testcorpus", &mut g).unwrap();
     }
@@ -43,7 +45,8 @@ fn load_cs_twice() {
         g.add_event(UpdateEvent::AddNode {
             node_name: "test".to_string(),
             node_type: "node".to_string(),
-        });
+        })
+        .unwrap();
 
         cs.apply_update("testcorpus", &mut g).unwrap();
     }
@@ -65,7 +68,8 @@ fn apply_update_add_and_delete_nodes() {
         layer: "dep".to_owned(),
         component_type: "Pointing".to_owned(),
         component_name: "dep".to_owned(),
-    });
+    })
+    .unwrap();
 
     cs.apply_update("root", &mut g).unwrap();
 
@@ -81,7 +85,8 @@ fn apply_update_add_and_delete_nodes() {
     let mut g = GraphUpdate::new();
     g.add_event(UpdateEvent::DeleteNode {
         node_name: "root/subCorpus1/doc1#tok2".to_string(),
-    });
+    })
+    .unwrap();
     cs.apply_update("root", &mut g).unwrap();
 
     let node_count = cs.count(&["root"], "node", QueryLanguage::AQL).unwrap();
@@ -118,7 +123,8 @@ fn subgraph_with_segmentation() {
             anno_ns: "default_ns".to_string(),
             anno_name: "seg".to_string(),
             anno_value: t.to_string(),
-        });
+        })
+        .unwrap();
     }
     for i in 0..seg_tokens.len() {
         g.add_event(UpdateEvent::AddEdge {
@@ -127,7 +133,8 @@ fn subgraph_with_segmentation() {
             layer: "annis".to_string(),
             component_type: "Ordering".to_string(),
             component_name: "seg".to_string(),
-        });
+        })
+        .unwrap();
     }
     // add coverage for seg
     example_generator::make_span(
