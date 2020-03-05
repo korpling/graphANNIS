@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.0] - 2020-03-05
+
 ### Removed
 
 - Removed the unintentionally public `size_of_cached` function of `Graph` from the API.
