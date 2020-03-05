@@ -910,17 +910,13 @@ where
             )?;
         }
 
-        let f = std::fs::File::open(location.join("symbols.bin"))?;
-        let mut reader = std::io::BufReader::new(f);
-        self.anno_key_symbols = bincode::deserialize_from(&mut reader)?;
-
-
         // load internal helper fields
         let f = std::fs::File::open(location.join("custom.bin"))?;
         let mut reader = std::io::BufReader::new(f);
         self.largest_item = bincode::deserialize_from(&mut reader)?;
         self.anno_key_sizes = bincode::deserialize_from(&mut reader)?;
         self.histogram_bounds = bincode::deserialize_from(&mut reader)?;
+        self.anno_key_symbols = bincode::deserialize_from(&mut reader)?;
 
         Ok(())
     }
@@ -935,15 +931,12 @@ where
             .write_to(&location.join("by_anno_qname.bin"))?;
 
         // save the other custom fields
-        let f = std::fs::File::create(location.join("symbols.bin"))?;
-        let mut writer = std::io::BufWriter::new(f);
-        bincode::serialize_into(&mut writer, &self.anno_key_symbols)?;
-
         let f = std::fs::File::create(location.join("custom.bin"))?;
         let mut writer = std::io::BufWriter::new(f);
         bincode::serialize_into(&mut writer, &self.largest_item)?;
         bincode::serialize_into(&mut writer, &self.anno_key_sizes)?;
         bincode::serialize_into(&mut writer, &self.histogram_bounds)?;
+        bincode::serialize_into(&mut writer, &self.anno_key_symbols)?;
 
         Ok(())
     }
