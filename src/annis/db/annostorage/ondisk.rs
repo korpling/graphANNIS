@@ -8,7 +8,7 @@ use crate::annis::types::Annotation;
 use crate::annis::types::NodeID;
 use crate::annis::util;
 use crate::annis::util::create_str_vec_key;
-use crate::annis::util::disk_collections::{DiskMap, EvictionStrategy, KeySerializer};
+use crate::annis::util::disk_collections::{DiskMap, EvictionStrategy, FixedSizeKeySerializer};
 use crate::annis::util::memory_estimation;
 use core::ops::Bound::*;
 use rand::seq::IteratorRandom;
@@ -18,8 +18,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v1";
-
-const NODE_ID_SIZE: usize = std::mem::size_of::<NodeID>();
 
 const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
 
@@ -34,7 +32,16 @@ const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
 /// and there is no way of delivering a correct answer.
 /// Retrying the same query again will also not succeed since temporary errors are already handled internally.
 #[derive(MallocSizeOf)]
-pub struct AnnoStorageImpl {
+pub struct AnnoStorageImpl<T>
+where
+    T: FixedSizeKeySerializer
+        + Send
+        + Sync
+        + malloc_size_of::MallocSizeOf
+        + Clone
+        + serde::ser::Serialize
+        + serde::de::DeserializeOwned,
+{
     #[ignore_malloc_size_of = "is stored on disk"]
     by_container: DiskMap<Vec<u8>, String>,
     #[ignore_malloc_size_of = "is stored on disk"]
@@ -54,17 +61,19 @@ pub struct AnnoStorageImpl {
     /// additional statistical information
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
-    largest_item: Option<NodeID>,
+    largest_item: Option<T>,
+
+    phantom: std::marker::PhantomData<T>,
 }
 
 /// Creates a key for the `by_container` tree.
 ///
 /// Structure:
 /// ```text
-/// [size_of(item) Bits Item ID][Namespace]\0[Name]\0
+/// [x Bits item ID][Namespace]\0[Name]\0
 /// ```
-fn create_by_container_key(node: NodeID, anno_key: &AnnoKey) -> Vec<u8> {
-    let mut result: Vec<u8> = Vec::from(node.create_key());
+fn create_by_container_key<T: FixedSizeKeySerializer>(item: T, anno_key: &AnnoKey) -> Vec<u8> {
+    let mut result: Vec<u8> = Vec::from(item.create_key());
     result.extend(create_str_vec_key(&[&anno_key.ns, &anno_key.name]));
     result
 }
@@ -73,9 +82,10 @@ fn create_by_container_key(node: NodeID, anno_key: &AnnoKey) -> Vec<u8> {
 ///
 /// # Panics
 /// Panics if the raw data is smaller than the length of a node ID bit-representation.
-fn parse_by_container_key(mut data: Vec<u8>) -> (NodeID, AnnoKey) {
-    let mut anno_key_raw = String::from_utf8(data.split_off(NODE_ID_SIZE)).expect(UTF_8_MSG);
-    let item = NodeID::parse_key(&data);
+fn parse_by_container_key<T: FixedSizeKeySerializer>(mut data: Vec<u8>) -> (T, AnnoKey) {
+    let mut anno_key_raw =
+        String::from_utf8(data.split_off(T::key_size())).expect(UTF_8_MSG);
+    let item = T::parse_key(&data);
 
     let anno_key = if let Some(idx0) = anno_key_raw.find('\0') {
         let mut name = anno_key_raw.split_off(idx0 + 1);
@@ -105,14 +115,14 @@ fn parse_by_container_key(mut data: Vec<u8>) -> (NodeID, AnnoKey) {
 ///
 /// Structure:
 /// ```text
-/// [Namespace]\0[Name]\0[Value]\0[size_of(item) Bits Item ID]
+/// [Namespace]\0[Name]\0[Value]\0[x Bits item ID]
 /// ```
-fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
+fn create_by_anno_qname_key<T: FixedSizeKeySerializer>(item: T, anno: &Annotation) -> Vec<u8> {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
 
     let mut result: Vec<u8> = create_str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
-    let node_key: &[u8] = &node.create_key();
-    result.extend(node_key);
+    let item_key: &[u8] = &item.create_key();
+    result.extend(item_key);
     result
 }
 
@@ -121,9 +131,9 @@ fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
 /// # Panics
 /// Panics if the raw data is smaller than the length of a node ID bit-representation or if the strings are not valid
 /// UTF-8.
-fn parse_by_anno_qname_key(mut data: Vec<u8>) -> (NodeID, Annotation) {
-    let node_id_raw = data.split_off(data.len() - NODE_ID_SIZE);
-    let node_id = NodeID::parse_key(&node_id_raw);
+fn parse_by_anno_qname_key<T: FixedSizeKeySerializer>(mut data: Vec<u8>) -> (T, Annotation) {
+    let item_id_raw = data.split_off(data.len() - T::key_size());
+    let item_id = T::parse_key(&item_id_raw);
 
     let key_raw = String::from_utf8(data).expect(UTF_8_MSG);
 
@@ -137,11 +147,21 @@ fn parse_by_anno_qname_key(mut data: Vec<u8>) -> (NodeID, Annotation) {
         val: str_vec[2].to_string(),
     };
 
-    (node_id, anno)
+    (item_id, anno)
 }
 
-impl AnnoStorageImpl {
-    pub fn new(path: Option<PathBuf>) -> Result<AnnoStorageImpl> {
+impl<T> AnnoStorageImpl<T>
+where
+    T: FixedSizeKeySerializer
+        + Send
+        + Sync
+        + malloc_size_of::MallocSizeOf
+        + Clone
+        + serde::ser::Serialize
+        + serde::de::DeserializeOwned,
+    (T, Arc<AnnoKey>): Into<Match>,
+{
+    pub fn new(path: Option<PathBuf>) -> Result<AnnoStorageImpl<T>> {
         if let Some(path) = path {
             let path_by_container = path.join("by_container.bin");
             let path_by_anno_qname = path.join("by_anno_qname.bin");
@@ -158,6 +178,7 @@ impl AnnoStorageImpl {
                 histogram_bounds: BTreeMap::new(),
                 location: path.to_path_buf(),
                 temp_dir: None,
+                phantom: std::marker::PhantomData,
             };
 
             // load internal helper fields
@@ -182,6 +203,7 @@ impl AnnoStorageImpl {
                 histogram_bounds: BTreeMap::new(),
                 location: tmp_dir.as_ref().to_path_buf(),
                 temp_dir: Some(tmp_dir),
+                phantom: std::marker::PhantomData,
             })
         }
     }
@@ -191,7 +213,10 @@ impl AnnoStorageImpl {
         namespace: Option<&str>,
         name: &str,
         value: Option<&str>,
-    ) -> Box<dyn Iterator<Item = (NodeID, Arc<AnnoKey>)> + 'a> {
+    ) -> Box<dyn Iterator<Item = (T, Arc<AnnoKey>)> + 'a>
+    where
+        T: FixedSizeKeySerializer + Send + Sync + malloc_size_of::MallocSizeOf + PartialOrd,
+    {
         let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
             vec![Arc::from(AnnoKey {
                 ns: ns.to_string(),
@@ -235,8 +260,8 @@ impl AnnoStorageImpl {
             })
             .fuse()
             .map(|(mut data, _)| {
-                let node_id_raw = data.split_off(data.len() - NODE_ID_SIZE);
-                let node_id = NodeID::parse_key(&node_id_raw);
+                let item_id_raw = data.split_off(data.len() - T::key_size());
+                let item_id = T::parse_key(&item_id_raw);
                 let mut data = String::from_utf8(data).expect(UTF_8_MSG);
                 let key = if let Some(sep_ns_name) = data.find('\0') {
                     let mut name = data.split_off(sep_ns_name + 1);
@@ -254,7 +279,7 @@ impl AnnoStorageImpl {
                         name: data,
                     }
                 };
-                (node_id, Arc::from(key))
+                (item_id, Arc::from(key))
             });
 
         Box::new(it)
@@ -283,10 +308,21 @@ impl AnnoStorageImpl {
     }
 }
 
-impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
-    fn insert(&mut self, item: NodeID, anno: Annotation) -> Result<()> {
+impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
+where
+    T: FixedSizeKeySerializer
+        + Send
+        + Sync
+        + malloc_size_of::MallocSizeOf
+        + PartialOrd
+        + Clone
+        + serde::ser::Serialize
+        + serde::de::DeserializeOwned,
+    (T, Arc<AnnoKey>): Into<Match>,
+{
+    fn insert(&mut self, item: T, anno: Annotation) -> Result<()> {
         // insert the value into main tree
-        let by_container_key = create_by_container_key(item, &anno.key);
+        let by_container_key = create_by_container_key(item.clone(), &anno.key);
 
         let already_existed = self.by_container.try_contains_key(&by_container_key)?;
         self.by_container
@@ -299,7 +335,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         // To save some space, insert an empty array as a marker value
         // (all information is part of the key already)
         self.by_anno_qname
-            .insert(create_by_anno_qname_key(item, &anno), true)?;
+            .insert(create_by_anno_qname_key(item.clone(), &anno), true)?;
 
         if self.by_anno_qname.number_of_disk_tables() > 7 {
             self.by_anno_qname.compact()?;
@@ -322,12 +358,24 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         Ok(())
     }
 
-    fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
+    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
         let mut result = Vec::default();
-        let start: Vec<u8> = Vec::from(item.create_key());
-        let end: Vec<u8> = Vec::from((*item + 1).create_key());
+        let start = create_by_container_key(
+            item.clone(),
+            &AnnoKey {
+                ns: "".to_string(),
+                name: "".to_string(),
+            },
+        );
+        let end = create_by_container_key(
+            item.clone(),
+            &AnnoKey {
+                ns: std::char::MAX.to_string(),
+                name: std::char::MAX.to_string(),
+            },
+        );
         for (key, val) in self.by_container.range(start..end) {
-            let parsed_key = parse_by_container_key(key);
+            let parsed_key = parse_by_container_key::<T>(key);
             let anno = Annotation {
                 key: parsed_key.1,
                 val: val,
@@ -338,13 +386,9 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         result
     }
 
-    fn remove_annotation_for_item(
-        &mut self,
-        item: &NodeID,
-        key: &AnnoKey,
-    ) -> Result<Option<Cow<str>>> {
+    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>> {
         // remove annotation from by_container
-        let by_container_key = create_by_container_key(*item, key);
+        let by_container_key = create_by_container_key(item.clone(), key);
         if let Some(val) = self.by_container.remove(&by_container_key)? {
             // remove annotation from by_anno_qname
             let anno = Annotation {
@@ -353,7 +397,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             };
 
             self.by_anno_qname
-                .remove(&create_by_anno_qname_key(*item, &anno))?;
+                .remove(&create_by_anno_qname_key(item.clone(), &anno))?;
             // decrease the annotation count for this key
             let new_key_count: usize = if let Some(num_of_keys) = self.anno_key_sizes.get_mut(key) {
                 *num_of_keys -= 1;
@@ -409,8 +453,10 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         self.by_container.is_empty()
     }
 
-    fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<Cow<str>> {
-        let raw = self.by_container.get(&create_by_container_key(*item, key));
+    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
+        let raw = self
+            .by_container
+            .get(&create_by_container_key(item.clone(), key));
         if let Some(val) = raw {
             Some(Cow::Owned(val))
         } else {
@@ -418,16 +464,16 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         }
     }
 
-    fn has_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> bool {
+    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> bool {
         self.by_container
-            .contains_key(&create_by_container_key(*item, key))
+            .contains_key(&create_by_container_key(item.clone(), key))
     }
 
     fn get_keys_for_iterator(
         &self,
         ns: Option<&str>,
         name: Option<&str>,
-        it: Box<dyn Iterator<Item = NodeID>>,
+        it: Box<dyn Iterator<Item = T>>,
     ) -> Vec<Match> {
         if let Some(name) = name {
             if let Some(ns) = ns {
@@ -442,8 +488,8 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 for item in it {
                     // Set the first bytes to the ID of the item.
                     // This saves the repeated expensive construction of the annotation key part.
-                    container_key[0..NODE_ID_SIZE][0..NODE_ID_SIZE]
-                        .copy_from_slice(&item.to_be_bytes());
+                    container_key[0..T::key_size()][0..T::key_size()]
+                        .copy_from_slice(&item.create_key());
                     if self.by_container.contains_key(&container_key) {
                         matches.push((item, key.clone()).into());
                     }
@@ -461,10 +507,10 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                     for (container_key, anno_key) in matching_qnames.iter_mut() {
                         // Set the first bytes to the ID of the item.
                         // This saves the repeated expensive construction of the annotation key part.
-                        container_key[0..NODE_ID_SIZE][0..NODE_ID_SIZE]
-                            .copy_from_slice(&item.to_be_bytes());
+                        container_key[0..T::key_size()][0..T::key_size()]
+                            .copy_from_slice(&item.create_key());
                         if self.by_container.contains_key(container_key) {
-                            matches.push((item, anno_key.clone()).into());
+                            matches.push((item.clone(), anno_key.clone()).into());
                         }
                     }
                 }
@@ -594,7 +640,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
 
     fn get_all_keys_for_item(
         &self,
-        item: &NodeID,
+        item: &T,
         ns: Option<&str>,
         name: Option<&str>,
     ) -> Vec<Arc<AnnoKey>> {
@@ -606,7 +652,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 });
                 if self
                     .by_container
-                    .contains_key(&create_by_container_key(*item, &key))
+                    .contains_key(&create_by_container_key(item.clone(), &key))
                 {
                     return vec![key.clone()];
                 }
@@ -618,7 +664,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                     .into_iter()
                     .filter(|key| {
                         self.by_container
-                            .contains_key(&create_by_container_key(*item, key))
+                            .contains_key(&create_by_container_key(item.clone(), key))
                     })
                     .map(|key| Arc::from(key))
                     .collect();
@@ -749,7 +795,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         if most_frequent_first {
             let mut values_with_count: HashMap<String, usize> = HashMap::default();
             for (data, _) in self.get_by_anno_qname_range(key) {
-                let (_, anno) = parse_by_anno_qname_key(data);
+                let (_, anno) = parse_by_anno_qname_key::<T>(data);
                 let val = anno.val;
 
                 let count = values_with_count.entry(val).or_insert(0);
@@ -768,7 +814,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
             let values_unique: HashSet<Cow<str>> = self
                 .get_by_anno_qname_range(key)
                 .map(|(data, _)| {
-                    let (_, anno) = parse_by_anno_qname_key(data);
+                    let (_, anno) = parse_by_anno_qname_key::<T>(data);
                     Cow::Owned(anno.val)
                 })
                 .collect();
@@ -780,7 +826,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         self.anno_key_sizes.keys().cloned().collect()
     }
 
-    fn get_largest_item(&self) -> Option<NodeID> {
+    fn get_largest_item(&self) -> Option<T> {
         self.largest_item.clone()
     }
 
@@ -802,7 +848,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
                 .into_iter()
                 .map(|data| {
                     let (data, _) = data;
-                    let (_, anno) = parse_by_anno_qname_key(data);
+                    let (_, anno) = parse_by_anno_qname_key::<T>(data);
                     anno.val
                 })
                 .collect();
