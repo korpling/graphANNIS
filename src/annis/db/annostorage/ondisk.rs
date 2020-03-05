@@ -146,7 +146,6 @@ where
             result.anno_key_symbols = bincode::deserialize_from(&mut reader)?;
             result.anno_key_symbols.after_deserialization();
 
-
             Ok(result)
         } else {
             let tmp_dir = tempfile::Builder::new()
@@ -217,26 +216,11 @@ where
                 self.by_anno_qname.range(lower_bound..upper_bound)
             })
             .fuse()
-            .map(|(mut data, _)| {
-                let item_id_raw = data.split_off(data.len() - T::key_size());
-                let item_id = T::parse_key(&item_id_raw);
-                let mut data = String::from_utf8(data).expect(UTF_8_MSG);
-                let key = if let Some(sep_ns_name) = data.find('\0') {
-                    let mut name = data.split_off(sep_ns_name + 1);
-                    if let Some(sep_name_value) = name.find('\0') {
-                        name.split_off(sep_name_value);
-                    }
-                    let mut ns = data;
-                    if ns.ends_with('\0') {
-                        ns.split_off(ns.len() - 1);
-                    }
-                    AnnoKey { ns, name }
-                } else {
-                    AnnoKey {
-                        ns: "".to_string(),
-                        name: data,
-                    }
-                };
+            .map(move |(data, _)| {
+                // get the item ID at the end
+                let item_id = T::parse_key(&data[data.len() - T::key_size()..]);
+                let anno_key_symbol = usize::parse_key(&data[0..std::mem::size_of::<usize>()]);
+                let key = self.anno_key_symbols.get_value(anno_key_symbol).unwrap_or_default();
                 (item_id, Arc::from(key))
             });
 
