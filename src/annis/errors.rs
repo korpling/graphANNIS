@@ -113,7 +113,6 @@ impl std::convert::From<::rand::Error> for Error {
     }
 }
 
-
 impl std::convert::From<sstable::error::Status> for Error {
     fn from(e: sstable::error::Status) -> Error {
         Error::SSTable(e)
