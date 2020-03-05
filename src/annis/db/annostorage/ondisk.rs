@@ -143,6 +143,9 @@ where
             result.largest_item = bincode::deserialize_from(&mut reader)?;
             result.anno_key_sizes = bincode::deserialize_from(&mut reader)?;
             result.histogram_bounds = bincode::deserialize_from(&mut reader)?;
+            result.anno_key_symbols = bincode::deserialize_from(&mut reader)?;
+            result.anno_key_symbols.after_deserialization();
+
 
             Ok(result)
         } else {
@@ -917,6 +920,7 @@ where
         self.anno_key_sizes = bincode::deserialize_from(&mut reader)?;
         self.histogram_bounds = bincode::deserialize_from(&mut reader)?;
         self.anno_key_symbols = bincode::deserialize_from(&mut reader)?;
+        self.anno_key_symbols.after_deserialization();
 
         Ok(())
     }
