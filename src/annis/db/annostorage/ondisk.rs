@@ -8,7 +8,9 @@ use crate::annis::types::Annotation;
 use crate::annis::types::NodeID;
 use crate::annis::util;
 use crate::annis::util::create_str_vec_key;
-use crate::annis::util::disk_collections::{DiskMap, EvictionStrategy, FixedSizeKeySerializer};
+use crate::annis::util::disk_collections::{
+    DiskMap, EvictionStrategy, FixedSizeKeySerializer, KeySerializer,
+};
 use crate::annis::util::memory_estimation;
 use core::ops::Bound::*;
 use rand::seq::IteratorRandom;
@@ -53,7 +55,7 @@ where
     #[with_malloc_size_of_func = "memory_estimation::size_of_option_tempdir"]
     temp_dir: Option<tempfile::TempDir>,
 
-    anno_key_symbols : SymbolTable<AnnoKey>,
+    anno_key_symbols: SymbolTable<AnnoKey>,
 
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
@@ -70,42 +72,12 @@ where
 ///
 /// Structure:
 /// ```text
-/// [x Bits item ID][Namespace]\0[Name]\0
+/// [x Bits item ID][64 Bits symbol ID]
 /// ```
-fn create_by_container_key<T: FixedSizeKeySerializer>(item: T, anno_key: &AnnoKey) -> Vec<u8> {
+fn create_by_container_key<T: FixedSizeKeySerializer>(item: T, anno_key_symbol: usize) -> Vec<u8> {
     let mut result: Vec<u8> = Vec::from(item.create_key());
-    result.extend(create_str_vec_key(&[&anno_key.ns, &anno_key.name]));
+    result.extend_from_slice(&anno_key_symbol.create_key());
     result
-}
-
-/// Parse the raw data and extract the node ID and the annotation key.
-///
-/// # Panics
-/// Panics if the raw data is smaller than the length of a node ID bit-representation.
-fn parse_by_container_key<T: FixedSizeKeySerializer>(mut data: Vec<u8>) -> (T, AnnoKey) {
-    let mut anno_key_raw =
-        String::from_utf8(data.split_off(T::key_size())).expect(UTF_8_MSG);
-    let item = T::parse_key(&data);
-
-    let anno_key = if let Some(idx0) = anno_key_raw.find('\0') {
-        let mut name = anno_key_raw.split_off(idx0 + 1);
-        // name now ends with \0
-        if name.ends_with("\0") {
-            name.split_off(name.len() - 1);
-        }
-        let mut ns = anno_key_raw;
-        // namespace also ends with \0
-        if ns.ends_with('\0') {
-            ns.split_off(ns.len() - 1);
-        }
-        AnnoKey { ns, name }
-    } else {
-        AnnoKey {
-            ns: "".to_string(),
-            name: anno_key_raw,
-        }
-    };
-    (item, anno_key)
 }
 
 /// Creates a key for the `by_anno_qname` tree.
@@ -157,6 +129,7 @@ where
         + Sync
         + malloc_size_of::MallocSizeOf
         + Clone
+        + Default
         + serde::ser::Serialize
         + serde::de::DeserializeOwned,
     (T, Arc<AnnoKey>): Into<Match>,
@@ -285,6 +258,22 @@ where
         Box::new(it)
     }
 
+    /// Parse the raw data and extract the item ID and the annotation key.
+    ///
+    /// # Panics
+    /// Panics if the raw data is smaller than the length of a item ID bit-representation.
+    fn parse_by_container_key(&self, data: Vec<u8>) -> (T, Arc<AnnoKey>) {
+        let item = T::parse_key(&data[0..T::key_size()]);
+        let anno_key_symbol = usize::parse_key(&data[T::key_size()..]);
+
+        (
+            item,
+            self.anno_key_symbols
+                .get_value(anno_key_symbol)
+                .unwrap_or_default(),
+        )
+    }
+
     fn get_by_anno_qname_range<'a>(
         &'a self,
         anno_key: &AnnoKey,
@@ -316,13 +305,17 @@ where
         + malloc_size_of::MallocSizeOf
         + PartialOrd
         + Clone
+        + Default
         + serde::ser::Serialize
         + serde::de::DeserializeOwned,
     (T, Arc<AnnoKey>): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) -> Result<()> {
+        // make sure the symbol ID for this annotation key is created
+        let anno_key_symbol = self.anno_key_symbols.insert(anno.key.clone());
+
         // insert the value into main tree
-        let by_container_key = create_by_container_key(item.clone(), &anno.key);
+        let by_container_key = create_by_container_key(item.clone(), anno_key_symbol);
 
         let already_existed = self.by_container.try_contains_key(&by_container_key)?;
         self.by_container
@@ -360,24 +353,12 @@ where
 
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
         let mut result = Vec::default();
-        let start = create_by_container_key(
-            item.clone(),
-            &AnnoKey {
-                ns: "".to_string(),
-                name: "".to_string(),
-            },
-        );
-        let end = create_by_container_key(
-            item.clone(),
-            &AnnoKey {
-                ns: std::char::MAX.to_string(),
-                name: std::char::MAX.to_string(),
-            },
-        );
-        for (key, val) in self.by_container.range(start..end) {
-            let parsed_key = parse_by_container_key::<T>(key);
+        let start = create_by_container_key(item.clone(), usize::min_value());
+        let end = create_by_container_key(item.clone(), usize::max_value());
+        for (key, val) in self.by_container.range(start..=end) {
+            let parsed_key = self.parse_by_container_key(key);
             let anno = Annotation {
-                key: parsed_key.1,
+                key: parsed_key.1.as_ref().clone(),
                 val: val,
             };
             result.push(anno);
@@ -388,32 +369,37 @@ where
 
     fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>> {
         // remove annotation from by_container
-        let by_container_key = create_by_container_key(item.clone(), key);
-        if let Some(val) = self.by_container.remove(&by_container_key)? {
-            // remove annotation from by_anno_qname
-            let anno = Annotation {
-                key: key.clone(),
-                val,
-            };
+        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
+            let by_container_key = create_by_container_key(item.clone(), symbol_id);
+            if let Some(val) = self.by_container.remove(&by_container_key)? {
+                // remove annotation from by_anno_qname
+                let anno = Annotation {
+                    key: key.clone(),
+                    val,
+                };
 
-            self.by_anno_qname
-                .remove(&create_by_anno_qname_key(item.clone(), &anno))?;
-            // decrease the annotation count for this key
-            let new_key_count: usize = if let Some(num_of_keys) = self.anno_key_sizes.get_mut(key) {
-                *num_of_keys -= 1;
-                *num_of_keys
-            } else {
-                0
-            };
-            // if annotation count dropped to zero remove the key
-            if new_key_count == 0 {
-                self.anno_key_sizes.remove(key);
+                self.by_anno_qname
+                    .remove(&create_by_anno_qname_key(item.clone(), &anno))?;
+                // decrease the annotation count for this key
+                let new_key_count: usize =
+                    if let Some(num_of_keys) = self.anno_key_sizes.get_mut(key) {
+                        *num_of_keys -= 1;
+                        *num_of_keys
+                    } else {
+                        0
+                    };
+                // if annotation count dropped to zero remove the key
+                if new_key_count == 0 {
+                    self.anno_key_sizes.remove(key);
+                    if let Some(id) = self.anno_key_symbols.get_symbol(key) {
+                        self.anno_key_symbols.remove(id);
+                    }
+                }
+
+                return Ok(Some(Cow::Owned(anno.val)));
             }
-
-            Ok(Some(Cow::Owned(anno.val)))
-        } else {
-            Ok(None)
         }
+        Ok(None)
     }
 
     fn clear(&mut self) -> Result<()> {
@@ -454,19 +440,24 @@ where
     }
 
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
-        let raw = self
-            .by_container
-            .get(&create_by_container_key(item.clone(), key));
-        if let Some(val) = raw {
-            Some(Cow::Owned(val))
-        } else {
-            None
+        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
+            let raw = self
+                .by_container
+                .get(&create_by_container_key(item.clone(), symbol_id));
+            if let Some(val) = raw {
+                return Some(Cow::Owned(val));
+            }
         }
+        None
     }
 
     fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> bool {
-        self.by_container
-            .contains_key(&create_by_container_key(item.clone(), key))
+        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
+            self.by_container
+                .contains_key(&create_by_container_key(item.clone(), symbol_id))
+        } else {
+            false
+        }
     }
 
     fn get_keys_for_iterator(
@@ -483,15 +474,16 @@ where
                     name: name.to_string(),
                 });
                 let mut matches: Vec<Match> = Vec::new();
-                // create a template key
-                let mut container_key = create_by_container_key(0, &key);
-                for item in it {
-                    // Set the first bytes to the ID of the item.
-                    // This saves the repeated expensive construction of the annotation key part.
-                    container_key[0..T::key_size()][0..T::key_size()]
-                        .copy_from_slice(&item.create_key());
-                    if self.by_container.contains_key(&container_key) {
-                        matches.push((item, key.clone()).into());
+                if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
+                    // create a template key
+                    let mut container_key = create_by_container_key(T::default(), symbol_id);
+                    for item in it {
+                        // Set the first bytes to the ID of the item.
+                        // This saves the repeated expensive construction of the annotation key part.
+                        container_key[0..T::key_size()].copy_from_slice(&item.create_key());
+                        if self.by_container.contains_key(&container_key) {
+                            matches.push((item, key.clone()).into());
+                        }
                     }
                 }
                 matches
@@ -499,7 +491,14 @@ where
                 let mut matching_qnames: Vec<(Vec<u8>, Arc<AnnoKey>)> = self
                     .get_qnames(&name)
                     .into_iter()
-                    .map(|key| (create_by_container_key(0, &key), Arc::from(key)))
+                    .filter_map(|key| {
+                        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
+                            let serialized_key = create_by_container_key(T::default(), symbol_id);
+                            Some((serialized_key, Arc::from(key)))
+                        } else {
+                            None
+                        }
+                    })
                     .collect();
                 // return all annotations with the correct name for each node
                 let mut matches: Vec<Match> = Vec::new();
@@ -507,8 +506,7 @@ where
                     for (container_key, anno_key) in matching_qnames.iter_mut() {
                         // Set the first bytes to the ID of the item.
                         // This saves the repeated expensive construction of the annotation key part.
-                        container_key[0..T::key_size()][0..T::key_size()]
-                            .copy_from_slice(&item.create_key());
+                        container_key[0..T::key_size()].copy_from_slice(&item.create_key());
                         if self.by_container.contains_key(container_key) {
                             matches.push((item.clone(), anno_key.clone()).into());
                         }
@@ -519,21 +517,12 @@ where
         } else {
             // get all annotation keys for this item
             it.flat_map(|item| {
-                let prefix = Vec::from(item.create_key());
-                let mut after_prefix = Vec::with_capacity(prefix.len());
-                if let Some(last) = after_prefix.last_mut() {
-                    *last = *last + 1;
-                }
+                let start = create_by_container_key(item.clone(), usize::min_value());
+                let end = create_by_container_key(item, usize::max_value());
 
                 self.by_container
-                    .range(prefix..after_prefix)
-                    .map(|(data, _)| {
-                        let (node, matched_anno_key) = parse_by_container_key(data);
-                        Match {
-                            node,
-                            anno_key: Arc::from(matched_anno_key),
-                        }
-                    })
+                    .range(start..=end)
+                    .map(|(data, _)| self.parse_by_container_key(data).into())
             })
             .collect()
         }
@@ -650,11 +639,13 @@ where
                     ns: ns.to_string(),
                     name: name.to_string(),
                 });
-                if self
-                    .by_container
-                    .contains_key(&create_by_container_key(item.clone(), &key))
-                {
-                    return vec![key.clone()];
+                if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
+                    if self
+                        .by_container
+                        .contains_key(&create_by_container_key(item.clone(), symbol_id))
+                    {
+                        return vec![key.clone()];
+                    }
                 }
                 vec![]
             } else {
@@ -663,8 +654,12 @@ where
                     .get_qnames(&name)
                     .into_iter()
                     .filter(|key| {
-                        self.by_container
-                            .contains_key(&create_by_container_key(item.clone(), key))
+                        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
+                            self.by_container
+                                .contains_key(&create_by_container_key(item.clone(), symbol_id))
+                        } else {
+                            false
+                        }
                     })
                     .map(|key| Arc::from(key))
                     .collect();
@@ -930,7 +925,7 @@ where
         bincode::serialize_into(&mut writer, &self.anno_key_sizes)?;
         bincode::serialize_into(&mut writer, &self.histogram_bounds)?;
         bincode::serialize_into(&mut writer, &self.anno_key_symbols)?;
-        
+
         Ok(())
     }
 }
