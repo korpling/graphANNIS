@@ -1,3 +1,4 @@
+use super::symboltable::SymbolTable;
 use crate::annis::db::annostorage::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
@@ -45,6 +46,8 @@ pub struct AnnoStorageImpl {
     #[with_malloc_size_of_func = "memory_estimation::size_of_option_tempdir"]
     temp_dir: Option<tempfile::TempDir>,
 
+    anno_key_symbols : SymbolTable<AnnoKey>,
+
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
 
@@ -58,7 +61,7 @@ pub struct AnnoStorageImpl {
 ///
 /// Structure:
 /// ```text
-/// [64 Bits Node ID][Namespace]\0[Name]\0
+/// [size_of(item) Bits Item ID][Namespace]\0[Name]\0
 /// ```
 fn create_by_container_key(node: NodeID, anno_key: &AnnoKey) -> Vec<u8> {
     let mut result: Vec<u8> = Vec::from(node.create_key());
@@ -102,7 +105,7 @@ fn parse_by_container_key(mut data: Vec<u8>) -> (NodeID, AnnoKey) {
 ///
 /// Structure:
 /// ```text
-/// [Namespace]\0[Name]\0[Value]\0[64 Bits Node ID]
+/// [Namespace]\0[Name]\0[Value]\0[size_of(item) Bits Item ID]
 /// ```
 fn create_by_anno_qname_key(node: NodeID, anno: &Annotation) -> Vec<u8> {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
@@ -149,6 +152,7 @@ impl AnnoStorageImpl {
                     Some(&path_by_anno_qname),
                     EvictionStrategy::default(),
                 )?,
+                anno_key_symbols: SymbolTable::default(),
                 anno_key_sizes: BTreeMap::new(),
                 largest_item: None,
                 histogram_bounds: BTreeMap::new(),
@@ -172,6 +176,7 @@ impl AnnoStorageImpl {
             Ok(AnnoStorageImpl {
                 by_container: DiskMap::default(),
                 by_anno_qname: DiskMap::default(),
+                anno_key_symbols: SymbolTable::default(),
                 anno_key_sizes: BTreeMap::new(),
                 largest_item: None,
                 histogram_bounds: BTreeMap::new(),
@@ -858,6 +863,7 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         self.largest_item = bincode::deserialize_from(&mut reader)?;
         self.anno_key_sizes = bincode::deserialize_from(&mut reader)?;
         self.histogram_bounds = bincode::deserialize_from(&mut reader)?;
+        self.anno_key_symbols = bincode::deserialize_from(&mut reader)?;
 
         Ok(())
     }
@@ -877,7 +883,8 @@ impl<'de> AnnotationStorage<NodeID> for AnnoStorageImpl {
         bincode::serialize_into(&mut writer, &self.largest_item)?;
         bincode::serialize_into(&mut writer, &self.anno_key_sizes)?;
         bincode::serialize_into(&mut writer, &self.histogram_bounds)?;
-
+        bincode::serialize_into(&mut writer, &self.anno_key_symbols)?;
+        
         Ok(())
     }
 }
