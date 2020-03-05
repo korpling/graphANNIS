@@ -1009,12 +1009,14 @@ mod tests {
 
         assert_eq!(3, a.number_of_annotations());
 
-        let all = a.get_annotations_for_item(&1);
+        let mut all = a.get_annotations_for_item(&1);
         assert_eq!(3, all.len());
 
+        all.sort_by(|a, b| a.key.partial_cmp(&b.key).unwrap());
+
         assert_eq!(test_anno1, all[0]);
-        assert_eq!(test_anno3, all[1]);
-        assert_eq!(test_anno2, all[2]);
+        assert_eq!(test_anno2, all[1]);
+        assert_eq!(test_anno3, all[2]);
     }
 
     #[test]
