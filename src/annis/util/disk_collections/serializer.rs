@@ -8,7 +8,7 @@ pub trait KeySerializer {
         Self: std::marker::Sized;
 }
 
-pub trait FixedSizeKeySerializer : KeySerializer {
+pub trait FixedSizeKeySerializer: KeySerializer {
     fn key_size() -> usize;
 }
 

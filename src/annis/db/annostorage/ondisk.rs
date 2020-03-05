@@ -220,7 +220,10 @@ where
                 // get the item ID at the end
                 let item_id = T::parse_key(&data[data.len() - T::key_size()..]);
                 let anno_key_symbol = usize::parse_key(&data[0..std::mem::size_of::<usize>()]);
-                let key = self.anno_key_symbols.get_value(anno_key_symbol).unwrap_or_default();
+                let key = self
+                    .anno_key_symbols
+                    .get_value(anno_key_symbol)
+                    .unwrap_or_default();
                 (item_id, Arc::from(key))
             });
 
