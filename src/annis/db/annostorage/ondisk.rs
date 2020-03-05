@@ -7,7 +7,6 @@ use crate::annis::types::AnnoKey;
 use crate::annis::types::Annotation;
 use crate::annis::types::NodeID;
 use crate::annis::util;
-use crate::annis::util::create_str_vec_key;
 use crate::annis::util::disk_collections::{
     DiskMap, EvictionStrategy, FixedSizeKeySerializer, KeySerializer,
 };
@@ -87,39 +86,22 @@ fn create_by_container_key<T: FixedSizeKeySerializer>(item: T, anno_key_symbol: 
 ///
 /// Structure:
 /// ```text
-/// [Namespace]\0[Name]\0[Value]\0[x Bits item ID]
+/// [64 Bits Annotation Key Symbol][Value]\0[x Bits item ID]
 /// ```
-fn create_by_anno_qname_key<T: FixedSizeKeySerializer>(item: T, anno: &Annotation) -> Vec<u8> {
+fn create_by_anno_qname_key<T: FixedSizeKeySerializer>(
+    item: T,
+    anno_key_symbol: usize,
+    anno_value: &str,
+) -> Vec<u8> {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
-
-    let mut result: Vec<u8> = create_str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
+    let mut result: Vec<u8> = Vec::from(anno_key_symbol.create_key());
+    for b in anno_value.as_bytes() {
+        result.push(*b);
+    }
+    result.push(0);
     let item_key: &[u8] = &item.create_key();
     result.extend(item_key);
     result
-}
-
-/// Parse the raw data and extract the node ID and the annotation.
-///
-/// # Panics
-/// Panics if the raw data is smaller than the length of a node ID bit-representation or if the strings are not valid
-/// UTF-8.
-fn parse_by_anno_qname_key<T: FixedSizeKeySerializer>(mut data: Vec<u8>) -> (T, Annotation) {
-    let item_id_raw = data.split_off(data.len() - T::key_size());
-    let item_id = T::parse_key(&item_id_raw);
-
-    let key_raw = String::from_utf8(data).expect(UTF_8_MSG);
-
-    let str_vec: Vec<&str> = key_raw.split_terminator('\0').collect();
-
-    let anno = Annotation {
-        key: AnnoKey {
-            ns: str_vec[0].to_string(),
-            name: str_vec[1].to_string(),
-        },
-        val: str_vec[2].to_string(),
-    };
-
-    (item_id, anno)
 }
 
 impl<T> AnnoStorageImpl<T>
@@ -201,33 +183,33 @@ where
                 .map(|key| Arc::from(key))
                 .collect()
         };
+        let key_ranges: Vec<usize> = key_ranges
+            .into_iter()
+            .filter_map(|k| self.anno_key_symbols.get_symbol(&k))
+            .collect();
 
         let value = value.map(|v| v.to_string());
 
         let it = key_ranges
             .into_iter()
-            .flat_map(move |anno_key| {
+            .flat_map(move |anno_key_symbol| {
+                let lower_bound_value = if let Some(value) = &value { value } else { "" };
                 let lower_bound = create_by_anno_qname_key(
                     NodeID::min_value(),
-                    &Annotation {
-                        key: anno_key.as_ref().clone(),
-                        val: if let Some(value) = &value {
-                            value.to_string()
-                        } else {
-                            "".to_string()
-                        },
-                    },
+                    anno_key_symbol,
+                    lower_bound_value,
                 );
+
+                let upper_bound_value = if let Some(value) = &value {
+                    Cow::Borrowed(value)
+                } else {
+                    Cow::Owned(std::char::MAX.to_string())
+                };
+
                 let upper_bound = create_by_anno_qname_key(
                     NodeID::max_value(),
-                    &Annotation {
-                        key: anno_key.as_ref().clone(),
-                        val: if let Some(value) = &value {
-                            value.to_string()
-                        } else {
-                            std::char::MAX.to_string()
-                        },
-                    },
+                    anno_key_symbol,
+                    &upper_bound_value,
                 );
                 self.by_anno_qname.range(lower_bound..upper_bound)
             })
@@ -274,26 +256,52 @@ where
         )
     }
 
+    /// Parse the raw data and extract the node ID and the annotation.
+    ///
+    /// # Panics
+    /// Panics if the raw data is smaller than the length of a node ID bit-representation or if the strings are not valid
+    /// UTF-8.
+    fn parse_by_anno_qname_key(&self, mut data: Vec<u8>) -> (T, Arc<AnnoKey>, String) {
+        // get the item ID at the end
+        let item_id_raw = data.split_off(data.len() - T::key_size());
+        let item_id = T::parse_key(&item_id_raw);
+
+        // remove the trailing '\0' character
+        data.pop();
+
+        // split off the annotation value string
+        let anno_val_raw = data.split_off(std::mem::size_of::<usize>());
+        let anno_val = String::from_utf8(anno_val_raw).expect(UTF_8_MSG);
+
+        // parse the remaining annotation key symbol
+        let anno_key_symbol = usize::parse_key(&data);
+
+        (
+            item_id,
+            self.anno_key_symbols
+                .get_value(anno_key_symbol)
+                .unwrap_or_default(),
+            anno_val,
+        )
+    }
+
     fn get_by_anno_qname_range<'a>(
         &'a self,
         anno_key: &AnnoKey,
     ) -> Box<dyn Iterator<Item = (Vec<u8>, bool)> + 'a> {
-        let lower_bound = create_by_anno_qname_key(
-            NodeID::min_value(),
-            &Annotation {
-                key: anno_key.clone(),
-                val: "".to_string(),
-            },
-        );
-        let upper_bound = create_by_anno_qname_key(
-            NodeID::max_value(),
-            &Annotation {
-                key: anno_key.clone(),
-                val: std::char::MAX.to_string(),
-            },
-        );
+        if let Some(anno_key_symbol) = self.anno_key_symbols.get_symbol(anno_key) {
+            let lower_bound = create_by_anno_qname_key(NodeID::min_value(), anno_key_symbol, "");
 
-        Box::new(self.by_anno_qname.range(lower_bound..upper_bound))
+            let upper_bound = create_by_anno_qname_key(
+                NodeID::max_value(),
+                anno_key_symbol,
+                &std::char::MAX.to_string(),
+            );
+
+            Box::new(self.by_anno_qname.range(lower_bound..upper_bound))
+        } else {
+            Box::from(std::iter::empty())
+        }
     }
 }
 
@@ -327,8 +335,10 @@ where
 
         // To save some space, insert an empty array as a marker value
         // (all information is part of the key already)
-        self.by_anno_qname
-            .insert(create_by_anno_qname_key(item.clone(), &anno), true)?;
+        self.by_anno_qname.insert(
+            create_by_anno_qname_key(item.clone(), anno_key_symbol, &anno.val),
+            true,
+        )?;
 
         if self.by_anno_qname.number_of_disk_tables() > 7 {
             self.by_anno_qname.compact()?;
@@ -378,8 +388,11 @@ where
                     val,
                 };
 
-                self.by_anno_qname
-                    .remove(&create_by_anno_qname_key(item.clone(), &anno))?;
+                self.by_anno_qname.remove(&create_by_anno_qname_key(
+                    item.clone(),
+                    symbol_id,
+                    &anno.val,
+                ))?;
                 // decrease the annotation count for this key
                 let new_key_count: usize =
                     if let Some(num_of_keys) = self.anno_key_sizes.get_mut(key) {
@@ -790,8 +803,7 @@ where
         if most_frequent_first {
             let mut values_with_count: HashMap<String, usize> = HashMap::default();
             for (data, _) in self.get_by_anno_qname_range(key) {
-                let (_, anno) = parse_by_anno_qname_key::<T>(data);
-                let val = anno.val;
+                let (_, _, val) = self.parse_by_anno_qname_key(data);
 
                 let count = values_with_count.entry(val).or_insert(0);
                 *count += 1;
@@ -809,8 +821,8 @@ where
             let values_unique: HashSet<Cow<str>> = self
                 .get_by_anno_qname_range(key)
                 .map(|(data, _)| {
-                    let (_, anno) = parse_by_anno_qname_key::<T>(data);
-                    Cow::Owned(anno.val)
+                    let (_, _, val) = self.parse_by_anno_qname_key(data);
+                    Cow::Owned(val)
                 })
                 .collect();
             return values_unique.into_iter().collect();
@@ -843,8 +855,8 @@ where
                 .into_iter()
                 .map(|data| {
                     let (data, _) = data;
-                    let (_, anno) = parse_by_anno_qname_key::<T>(data);
-                    anno.val
+                    let (_, _, val) = self.parse_by_anno_qname_key(data);
+                    val
                 })
                 .collect();
 
