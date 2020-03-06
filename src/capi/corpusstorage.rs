@@ -577,6 +577,7 @@ pub extern "C" fn annis_cs_node_descriptions(
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 ///
 /// Returns the name of the imported corpus.
+/// The returned string must be deallocated by the caller using annis_str_free()!
 #[no_mangle]
 pub extern "C" fn annis_cs_import_from_fs(
     ptr: *mut CorpusStorage,

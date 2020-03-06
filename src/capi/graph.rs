@@ -14,6 +14,8 @@ pub extern "C" fn annis_component_type(c: *const Component) -> ComponentType {
 }
 
 /// Get the layer of the given component.
+///
+/// The returned string must be deallocated by the caller using annis_str_free()!
 #[no_mangle]
 pub extern "C" fn annis_component_layer(c: *const Component) -> *mut libc::c_char {
     let c: &Component = cast_const!(c);
@@ -22,6 +24,8 @@ pub extern "C" fn annis_component_layer(c: *const Component) -> *mut libc::c_cha
 }
 
 /// Get the name of the given component.
+///
+/// The returned string must be deallocated by the caller using annis_str_free()!
 #[no_mangle]
 pub extern "C" fn annis_component_name(c: *const Component) -> *mut libc::c_char {
     let c: &Component = cast_const!(c);
