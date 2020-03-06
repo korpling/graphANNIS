@@ -234,11 +234,15 @@ char *annis_annotation_val(const AnnisAnnotation *ptr);
 
 /**
  * Get the layer of the given component.
+ *
+ * The returned string must be deallocated by the caller using annis_str_free()!
  */
 char *annis_component_layer(const AnnisComponent *c);
 
 /**
  * Get the name of the given component.
+ *
+ * The returned string must be deallocated by the caller using annis_str_free()!
  */
 char *annis_component_name(const AnnisComponent *c);
 
@@ -372,6 +376,7 @@ AnnisFrequencyTable_CString *annis_cs_frequency(const AnnisCorpusStorage *ptr,
  * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
  *
  * Returns the name of the imported corpus.
+ * The returned string must be deallocated by the caller using annis_str_free()!
  */
 char *annis_cs_import_from_fs(AnnisCorpusStorage *ptr,
                               const char *path,
