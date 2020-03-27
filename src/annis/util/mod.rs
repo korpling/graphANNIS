@@ -1,3 +1,4 @@
+pub mod disk_collections;
 pub mod memory_estimation;
 pub mod quicksort;
 
@@ -31,6 +32,21 @@ pub fn split_qname(qname: &str) -> (Option<&str>, &str) {
     } else {
         (None, qname)
     }
+}
+
+/// Creates a byte array key from a vector of strings.
+///
+/// The strings are terminated with `\0`.
+pub fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
+    let mut result: Vec<u8> = Vec::default();
+    for v in val {
+        // append null-terminated string to result
+        for b in v.as_bytes() {
+            result.push(*b)
+        }
+        result.push(0);
+    }
+    result
 }
 
 /// Defines a definition of a query including its number of expected results.

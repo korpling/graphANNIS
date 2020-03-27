@@ -1,242 +1,90 @@
 use super::*;
-use crate::annis::db::annostorage::ondisk::AnnoStorageImpl;
+use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::types::Edge;
-use crate::annis::util::memory_estimation;
 
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeSet;
-use std::convert::TryInto;
 use std::ops::Bound;
-use std::path::{Path, PathBuf};
 
-mod rocksdb_iterator;
+use bincode;
 
-const MAX_TRIES: usize = 5;
-
-const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
-
-const NODE_ID_SIZE: usize = std::mem::size_of::<NodeID>();
-
-#[derive(MallocSizeOf)]
+#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 pub struct DiskAdjacencyListStorage {
-    #[ignore_malloc_size_of = "is stored on disk"]
-    db: rocksdb::DB,
-    #[with_malloc_size_of_func = "memory_estimation::size_of_pathbuf"]
-    location: PathBuf,
-    /// A handle to a temporary directory. This must be part of the struct because the temporary directory will
-    /// be deleted when this handle is dropped.
-    #[with_malloc_size_of_func = "memory_estimation::size_of_option_tempdir"]
-    temp_dir: Option<tempfile::TempDir>,
-
+    edges: FxHashMap<NodeID, Vec<NodeID>>,
+    inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,
     annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
 }
 
-fn open_db(path: &Path) -> Result<rocksdb::DB> {
-    let mut db_opts = rocksdb::Options::default();
-    db_opts.create_missing_column_families(true);
-    db_opts.create_if_missing(true);
-    let mut block_opts = rocksdb::BlockBasedOptions::default();
-    block_opts.set_index_type(rocksdb::BlockBasedIndexType::HashSearch);
-    block_opts.set_bloom_filter(NODE_ID_SIZE as i32, false);
-    db_opts.set_block_based_table_factory(&block_opts);
+fn get_fan_outs(edges: &FxHashMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
+    let mut fan_outs: Vec<usize> = Vec::new();
+    if !edges.is_empty() {
+        for outgoing in edges.values() {
+            fan_outs.push(outgoing.len());
+        }
+    }
+    // order the fan-outs
+    fan_outs.sort();
 
-    // use prefixes for the different column families
-    let mut opts_edges = rocksdb::Options::default();
-    opts_edges.set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(NODE_ID_SIZE));
-    let cf_edges = rocksdb::ColumnFamilyDescriptor::new("edges", opts_edges);
-
-    let mut opts_inverse_edges = rocksdb::Options::default();
-    opts_inverse_edges
-        .set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(NODE_ID_SIZE));
-    let cf_inverse_edges =
-        rocksdb::ColumnFamilyDescriptor::new("inverse_edges", opts_inverse_edges);
-
-    let db = rocksdb::DB::open_cf_descriptors(&db_opts, path, vec![cf_edges, cf_inverse_edges])?;
-
-    Ok(db)
+    fan_outs
 }
 
-/// Creates a key for an edge.
-///
-/// Structure:
-/// ```text
-/// [64 Bits source ID][64 Bits target ID]
-/// ```
-fn create_key(edge: &Edge) -> Vec<u8> {
-    let mut result: Vec<u8> = Vec::with_capacity(std::mem::size_of::<NodeID>() * 2);
-    result.extend(edge.source.to_be_bytes().into_iter());
-    result.extend(edge.target.to_be_bytes().into_iter());
-    result
-}
-
-fn get_source_for_key(key: &[u8]) -> NodeID {
-    NodeID::from_be_bytes(
-        key[..NODE_ID_SIZE]
-            .try_into()
-            .expect("Key data must be large enough"),
-    )
-}
-
-fn get_target_for_key(key: &[u8]) -> NodeID {
-    NodeID::from_be_bytes(
-        key[NODE_ID_SIZE..]
-            .try_into()
-            .expect("Key data must be large enough"),
-    )
+impl Default for DiskAdjacencyListStorage {
+    fn default() -> Self {
+        DiskAdjacencyListStorage::new()
+    }
 }
 
 impl DiskAdjacencyListStorage {
-    pub fn new(location: Option<&Path>) -> Result<DiskAdjacencyListStorage> {
-        if let Some(location) = location {
-            let db = open_db(location)?;
-            let anno_location = location.join("annos");
-            let gs = DiskAdjacencyListStorage {
-                annos: AnnoStorageImpl::new(Some(anno_location))?,
-                stats: None,
-                location: location.to_path_buf(),
-                temp_dir: None,
-                db,
-            };
-            Ok(gs)
-        } else {
-            let tmp_dir = tempfile::Builder::new()
-                .prefix("graphannis-ondisk-adjacency-")
-                .tempdir()?;
-            let db = open_db(tmp_dir.as_ref())?;
-            let gs = DiskAdjacencyListStorage {
-                annos: AnnoStorageImpl::new(None)?,
-                stats: None,
-                location: tmp_dir.as_ref().to_path_buf(),
-                temp_dir: Some(tmp_dir),
-                db: db,
-            };
-            Ok(gs)
+    pub fn new() -> DiskAdjacencyListStorage {
+        DiskAdjacencyListStorage {
+            edges: FxHashMap::default(),
+            inverse_edges: FxHashMap::default(),
+            annos: AnnoStorageImpl::new(),
+            stats: None,
         }
     }
 
     pub fn clear(&mut self) -> Result<()> {
+        self.edges.clear();
+        self.inverse_edges.clear();
         self.annos.clear()?;
         self.stats = None;
-        unimplemented!()
-    }
-
-    fn get_cf_edges(&self) -> Option<&rocksdb::ColumnFamily> {
-        self.db.cf_handle("edges")
-    }
-
-    fn get_cf_inverse_edges(&self) -> Option<&rocksdb::ColumnFamily> {
-        self.db.cf_handle("inverse_edges")
-    }
-
-    /// Get a prefix iterator for a column family
-    ///
-    /// # Panics
-    /// This will try to get an iterator several times.
-    /// If a maximum number of tries is reached and all attempts failed, this will panic.
-    fn prefix_iterator<P: AsRef<[u8]>>(
-        &self,
-        cf: &rocksdb::ColumnFamily,
-        prefix: P,
-    ) -> rocksdb::DBIterator {
-        let mut last_err = None;
-        for _ in 0..MAX_TRIES {
-            // return the iterator for this annotation key
-            match self.db.prefix_iterator_cf(cf, &prefix) {
-                Ok(result) => return result,
-                Err(e) => last_err = Some(e),
-            }
-            // If this is an intermediate error, wait some time before trying again
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
-        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
-    }
-
-    /// Get an iterator for a column family.
-    ///
-    /// # Panics
-    /// This will try to get an iterator several times.
-    /// If a maximum number of tries is reached and all attempts failed, this will panic.
-    fn iterator_cf_opt_from_start(
-        &self,
-        cf: &rocksdb::ColumnFamily,
-        opts: &rocksdb::ReadOptions,
-    ) -> rocksdb::DBIterator {
-        let mut last_err = None;
-        for _ in 0..MAX_TRIES {
-            // return the iterator for this annotation key
-            match self
-                .db
-                .iterator_cf_opt(cf, opts, rocksdb::IteratorMode::Start)
-            {
-                Ok(result) => return result,
-                Err(e) => last_err = Some(e),
-            }
-            // If this is an intermediate error, wait some time before trying again
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
-        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
-    }
-
-    fn get_fan_outs(&self, inverse: bool) -> Vec<usize> {
-        let mut fan_outs: Vec<usize> = Vec::new();
-        let mut opts = rocksdb::ReadOptions::default();
-        // Create a forward-only iterator
-        opts.set_tailing(true);
-        opts.set_verify_checksums(false);
-
-        let cf = if inverse {
-            self.get_cf_inverse_edges()
-        } else {
-            self.get_cf_edges()
-        };
-
-        if let Some(cf) = cf {
-            let mut it = self.iterator_cf_opt_from_start(cf, &opts).peekable();
-            while let Some((key, _)) = it.next() {
-                let source = get_source_for_key(&key);
-                // count fan-out: iterate until next source ID
-                let mut number_outgoing = 0;
-                while Some(source) == it.peek().map(|(key, _)| get_source_for_key(&key)) {
-                    number_outgoing += 1;
-                    it.next();
-                }
-                fan_outs.push(number_outgoing);
-            }
-            // order the fan-outs
-            fan_outs.sort();
-        }
-        fan_outs
+        Ok(())
     }
 }
 
 impl EdgeContainer for DiskAdjacencyListStorage {
     fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        if let Some(cf_edges) = self.get_cf_edges() {
-            let it = rocksdb_iterator::OutgoingEdgesIterator::new(&self, &cf_edges, node);
-            Box::new(it)
-        } else {
-            Box::new(std::iter::empty())
+        if let Some(outgoing) = self.edges.get(&node) {
+            return match outgoing.len() {
+                0 => Box::new(std::iter::empty()),
+                1 => Box::new(std::iter::once(outgoing[0])),
+                _ => Box::new(outgoing.iter().cloned()),
+            };
         }
+        Box::new(std::iter::empty())
     }
 
     fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        if let Some(cf_inverse_edges) = self.get_cf_inverse_edges() {
-            let it = rocksdb_iterator::OutgoingEdgesIterator::new(&self, &cf_inverse_edges, node);
-            Box::new(it)
-        } else {
-            Box::new(std::iter::empty())
+        if let Some(ingoing) = self.inverse_edges.get(&node) {
+            return match ingoing.len() {
+                0 => Box::new(std::iter::empty()),
+                1 => Box::new(std::iter::once(ingoing[0])),
+                _ => Box::new(ingoing.iter().cloned()),
+            };
         }
+        Box::new(std::iter::empty())
     }
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        if let Some(cf_edges) = self.get_cf_edges() {
-            let it = rocksdb_iterator::SourceIterator::new(self, cf_edges);
-            Box::new(it)
-        } else {
-            Box::new(std::iter::empty())
-        }
+        let it = self
+            .edges
+            .iter()
+            .filter(|(_, outgoing)| !outgoing.is_empty())
+            .map(|(key, _)| *key);
+        Box::new(it)
     }
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {
@@ -250,18 +98,21 @@ impl GraphStorage for DiskAdjacencyListStorage {
     }
 
     fn serialization_id(&self) -> String {
-        "DiskAdjacencyListV1".to_owned()
+        "AdjacencyListV1".to_owned()
     }
 
-    fn serialize_gs(&self, _writer: &mut dyn std::io::Write) -> Result<()> {
-        unimplemented!()
+    fn serialize_gs(&self, writer: &mut dyn std::io::Write) -> Result<()> {
+        bincode::serialize_into(writer, self)?;
+        Ok(())
     }
 
-    fn deserialize_gs(_input: &mut dyn std::io::Read) -> Result<Self>
+    fn deserialize_gs(input: &mut dyn std::io::Read) -> Result<Self>
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
-        unimplemented!()
+        let mut result: DiskAdjacencyListStorage = bincode::deserialize_from(input)?;
+        result.annos.after_deserialization();
+        Ok(result)
     }
 
     fn find_connected<'a>(
@@ -361,31 +212,27 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         if edge.source != edge.target {
             // insert to both regular and inverse maps
 
-            let cf_edges = self
-                .get_cf_edges()
-                .ok_or_else(|| Error::from("Column familiy \"edges\" not found"))?;
-            let cf_inverse_edges = self
-                .get_cf_inverse_edges()
-                .ok_or_else(|| Error::from("Column familiy \"inverse_edges\" not found"))?;
+            let inverse_entry = self
+                .inverse_edges
+                .entry(edge.target)
+                .or_insert_with(Vec::default);
+            // no need to insert it: edge already exists
+            if let Err(insertion_idx) = inverse_entry.binary_search(&edge.source) {
+                inverse_entry.insert(insertion_idx, edge.source);
+            }
 
-            let mut write_opts = rocksdb::WriteOptions::default();
-            write_opts.set_sync(false);
-            write_opts.disable_wal(true);
-            let key = create_key(&edge);
-            let inverse_key = create_key(&edge.inverse());
-
-            self.db.put_cf_opt(&cf_edges, &key, &[], &write_opts)?;
-            self.db
-                .put_cf_opt(&cf_inverse_edges, &inverse_key, &[], &write_opts)?;
-
+            let regular_entry = self.edges.entry(edge.source).or_insert_with(Vec::default);
+            if let Err(insertion_idx) = regular_entry.binary_search(&edge.target) {
+                regular_entry.insert(insertion_idx, edge.target);
+            }
             self.stats = None;
         }
         Ok(())
     }
+
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) -> Result<()> {
-        if let Some(cf_edges) = self.get_cf_edges() {
-            let key = create_key(&edge);
-            if self.db.get_pinned_cf(&cf_edges, key)?.is_some() {
+        if let Some(outgoing) = self.edges.get(&edge.source) {
+            if outgoing.contains(&edge.target) {
                 self.annos.insert(edge, anno)?;
             }
         }
@@ -393,18 +240,17 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
     }
 
     fn delete_edge(&mut self, edge: &Edge) -> Result<()> {
-        let key = create_key(edge);
-        let cf_edges = self
-            .get_cf_edges()
-            .ok_or_else(|| Error::from("Column family \"edges\" not found"))?;
-        self.db.delete_cf(cf_edges, &key)?;
+        if let Some(outgoing) = self.edges.get_mut(&edge.source) {
+            if let Ok(idx) = outgoing.binary_search(&edge.target) {
+                outgoing.remove(idx);
+            }
+        }
 
-        let inverse_key = create_key(&edge.inverse());
-        let cf_inverse_edges = self
-            .get_cf_inverse_edges()
-            .ok_or_else(|| Error::from("Column family \"inverse_edges\" not found"))?;
-        self.db.delete_cf(cf_inverse_edges, &inverse_key)?;
-
+        if let Some(ingoing) = self.inverse_edges.get_mut(&edge.target) {
+            if let Ok(idx) = ingoing.binary_search(&edge.source) {
+                ingoing.remove(idx);
+            }
+        }
         let annos = self.annos.get_annotations_for_item(edge);
         for a in annos {
             self.annos.remove_annotation_for_item(edge, &a.key)?;
@@ -420,26 +266,21 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         // find all both ingoing and outgoing edges
         let mut to_delete = std::collections::LinkedList::<Edge>::new();
 
-        let cf_edges = self
-            .get_cf_edges()
-            .ok_or_else(|| Error::from("Column family \"edges\" does not exist"))?;
-        for target in rocksdb_iterator::OutgoingEdgesIterator::try_new(self, &cf_edges, node)? {
-            to_delete.push_back(Edge {
-                source: node,
-                target,
-            });
+        if let Some(outgoing) = self.edges.get(&node) {
+            for target in outgoing.iter() {
+                to_delete.push_back(Edge {
+                    source: node,
+                    target: *target,
+                })
+            }
         }
-
-        let cf_inverse_edges = self
-            .get_cf_inverse_edges()
-            .ok_or_else(|| Error::from("Column family \"inverse_edges\" does not exist"))?;
-        for target in
-            rocksdb_iterator::OutgoingEdgesIterator::try_new(self, &cf_inverse_edges, node)?
-        {
-            to_delete.push_back(Edge {
-                source: node,
-                target,
-            });
+        if let Some(ingoing) = self.inverse_edges.get(&node) {
+            for source in ingoing.iter() {
+                to_delete.push_back(Edge {
+                    source: *source,
+                    target: node,
+                })
+            }
         }
 
         for e in to_delete {
@@ -466,49 +307,44 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
 
         let mut has_incoming_edge: BTreeSet<NodeID> = BTreeSet::new();
 
-        let fan_outs = self.get_fan_outs(false);
-        let inverse_fan_outs = self.get_fan_outs(true);
-        let mut has_edges = false;
+        // find all root nodes
         let mut roots: BTreeSet<NodeID> = BTreeSet::new();
-
-        if let Some(cf_edges) = self.get_cf_edges() {
-            // find all root nodes
+        {
             let mut all_nodes: BTreeSet<NodeID> = BTreeSet::new();
-            let mut opts = rocksdb::ReadOptions::default();
-            // Create a forward-only iterator
-            opts.set_tailing(true);
-            opts.set_verify_checksums(false);
+            for (source, outgoing) in &self.edges {
+                roots.insert(*source);
+                all_nodes.insert(*source);
+                for target in outgoing {
+                    all_nodes.insert(*target);
 
-            let it = self.iterator_cf_opt_from_start(cf_edges, &opts);
-            for (key, _) in it {
-                let source = get_source_for_key(&key);
-                let target = get_target_for_key(&key);
-
-                roots.insert(source);
-                all_nodes.insert(source);
-                all_nodes.insert(target);
-                if stats.rooted_tree {
-                    if has_incoming_edge.contains(&target) {
-                        stats.rooted_tree = false;
-                    } else {
-                        has_incoming_edge.insert(target);
+                    if stats.rooted_tree {
+                        if has_incoming_edge.contains(target) {
+                            stats.rooted_tree = false;
+                        } else {
+                            has_incoming_edge.insert(*target);
+                        }
                     }
                 }
             }
             stats.nodes = all_nodes.len();
+        }
 
-            let mut it = self.iterator_cf_opt_from_start(cf_edges, &opts).peekable();
-            while let Some((key, _)) = it.next() {
-                has_edges = true;
-                let target = get_target_for_key(&key);
-                roots.remove(&target);
+        if !self.edges.is_empty() {
+            for outgoing in self.edges.values() {
+                for target in outgoing {
+                    roots.remove(&target);
+                }
             }
         }
+
+        let fan_outs = get_fan_outs(&self.edges);
         let sum_fan_out: usize = fan_outs.iter().sum();
 
         if let Some(last) = fan_outs.last() {
             stats.max_fan_out = *last;
         }
+        let inverse_fan_outs = get_fan_outs(&self.inverse_edges);
+
         // get the percentile value(s)
         // set some default values in case there are not enough elements in the component
         if !fan_outs.is_empty() {
@@ -532,7 +368,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         }
 
         let mut number_of_visits = 0;
-        if roots.is_empty() && has_edges {
+        if roots.is_empty() && !self.edges.is_empty() {
             // if we have edges but no roots at all there must be a cycle
             stats.cyclic = true;
         } else {
@@ -547,6 +383,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
                 }
             }
         }
+
         if stats.cyclic {
             stats.rooted_tree = false;
             // it's infinite
@@ -555,6 +392,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         } else if stats.nodes > 0 {
             stats.dfs_visit_ratio = f64::from(number_of_visits) / (stats.nodes as f64);
         }
+
         if sum_fan_out > 0 && stats.nodes > 0 {
             stats.avg_fan_out = (sum_fan_out as f64) / (stats.nodes as f64);
         }
@@ -602,7 +440,7 @@ mod tests {
         +---+
         */
 
-        let mut gs = DiskAdjacencyListStorage::new(None).unwrap();
+        let mut gs = DiskAdjacencyListStorage::new();
         gs.add_edge(Edge {
             source: 1,
             target: 2,
@@ -659,7 +497,7 @@ mod tests {
                               +-----> | 4 |
                                       +---+
         */
-        let mut gs = DiskAdjacencyListStorage::new(None).unwrap();
+        let mut gs = DiskAdjacencyListStorage::new();
 
         gs.add_edge(Edge {
             source: 1,
@@ -726,7 +564,7 @@ mod tests {
 
     #[test]
     fn indirect_cycle_statistics() {
-        let mut gs = DiskAdjacencyListStorage::new(None).unwrap();
+        let mut gs = DiskAdjacencyListStorage::new();
 
         gs.add_edge(Edge {
             source: 1,
@@ -766,7 +604,7 @@ mod tests {
 
     #[test]
     fn multi_branch_cycle_statistics() {
-        let mut gs = DiskAdjacencyListStorage::new(None).unwrap();
+        let mut gs = DiskAdjacencyListStorage::new();
 
         gs.add_edge(Edge {
             source: 903,

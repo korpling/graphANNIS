@@ -7,8 +7,8 @@ use crate::annis::db::update::{GraphUpdate, UpdateEvent};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
+use crate::annis::util::disk_collections::{DiskMap, EvictionStrategy};
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use bincode;
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 use std;
@@ -359,12 +359,9 @@ impl Graph {
 
         if logfile_exists {
             // apply any outstanding log file updates
-            let f_log = std::fs::File::open(log_path)?;
-            let mut buf_reader = std::io::BufReader::new(f_log);
-            let mut update: GraphUpdate = bincode::deserialize_from(&mut buf_reader)?;
-            if update.get_last_consistent_change_id() > self.current_change_id {
-                self.apply_update_in_memory(&mut update)?;
-            }
+            let log_reader = std::fs::File::open(&log_path)?;
+            let mut update = bincode::deserialize_from(log_reader)?;
+            self.apply_update_in_memory(&mut update, |_| {})?;
         } else {
             self.current_change_id = 0;
         }
@@ -478,73 +475,32 @@ impl Graph {
         self.internal_save(&location.join("current"))
     }
 
-    fn get_existing_node_ids_for_changes<'a>(
+    fn get_cached_node_id_from_name(
         &self,
-        changes: Box<dyn Iterator<Item = (u64, &'a UpdateEvent)> + 'a>,
-    ) -> std::collections::HashMap<&'a String, Option<NodeID>> {
-        let mut node_ids: std::collections::HashMap<&String, Option<NodeID>> =
-            std::collections::HashMap::default();
-
-        for (_, event) in changes {
-            match event {
-                UpdateEvent::AddNode { node_name, .. }
-                | UpdateEvent::AddNodeLabel { node_name, .. }
-                | UpdateEvent::DeleteNode { node_name, .. }
-                | UpdateEvent::DeleteNodeLabel { node_name, .. } => {
-                    if !node_ids.contains_key(node_name) {
-                        if let Some(id) = self.get_node_id_from_name(node_name) {
-                            node_ids.insert(node_name, Some(id));
-                        } else {
-                            node_ids.insert(node_name, None);
-                        }
-                    }
-                }
-                UpdateEvent::AddEdge {
-                    source_node,
-                    target_node,
-                    ..
-                }
-                | UpdateEvent::AddEdgeLabel {
-                    source_node,
-                    target_node,
-                    ..
-                }
-                | UpdateEvent::DeleteEdge {
-                    source_node,
-                    target_node,
-                    ..
-                }
-                | UpdateEvent::DeleteEdgeLabel {
-                    source_node,
-                    target_node,
-                    ..
-                } => {
-                    if !node_ids.contains_key(source_node) {
-                        if let Some(id) = self.get_node_id_from_name(source_node) {
-                            node_ids.insert(source_node, Some(id));
-                        } else {
-                            node_ids.insert(source_node, None);
-                        }
-                    }
-                    if !node_ids.contains_key(target_node) {
-                        if let Some(id) = self.get_node_id_from_name(target_node) {
-                            node_ids.insert(target_node, Some(id));
-                        } else {
-                            node_ids.insert(target_node, None);
-                        }
-                    }
-                }
-            }
+        node_name: String,
+        cache: &mut DiskMap<String, Option<NodeID>>,
+    ) -> Result<Option<NodeID>> {
+        if let Some(id) = cache.try_get(&node_name)? {
+            Ok(id)
+        } else {
+            let id = self.get_node_id_from_name(&node_name);
+            cache.insert(node_name, id.clone())?;
+            Ok(id)
         }
-
-        node_ids
     }
 
     #[allow(clippy::cognitive_complexity)]
-    fn apply_update_in_memory(&mut self, u: &mut GraphUpdate) -> Result<()> {
+    fn apply_update_in_memory<F>(&mut self, u: &mut GraphUpdate, progress_callback: F) -> Result<()>
+    where
+        F: Fn(&str) -> (),
+    {
         self.reset_cached_size();
 
-        let mut invalid_nodes: FxHashSet<NodeID> = FxHashSet::default();
+        let mut invalid_nodes: DiskMap<NodeID, bool> =
+            DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000))?;
+        // Calculating the invalid nodes adds additional computational overhead. If there are no nodes yet in the graph,
+        // we already know that all new nodes are invalid and don't need calculate the invalid ones.
+        let calculate_invalid_nodes = !self.node_annos.is_empty();
 
         let all_components = self.get_all_components(None, None);
 
@@ -554,18 +510,20 @@ impl Graph {
         text_coverage_components
             .extend(self.get_all_components(Some(ComponentType::Coverage), None));
 
-        let msg_missing = "New update event that was not included cache";
-
-        // Collect all used node names and map them to existing IDs
-        let mut node_ids = self.get_existing_node_ids_for_changes(u.consistent_changes());
-        for (id, change) in u.consistent_changes() {
+        // Cache the expensive mapping of node names to IDs
+        let mut node_ids: DiskMap<String, Option<NodeID>> =
+            DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000))?;
+        // Iterate once over all changes in the same order as the updates have been added
+        let mut nr_updates = 0;
+        for (id, change) in u.iter()? {
             trace!("applying event {:?}", &change);
             match change {
                 UpdateEvent::AddNode {
                     node_name,
                     node_type,
                 } => {
-                    let existing_node_id = node_ids.get(node_name).expect(msg_missing);
+                    let existing_node_id =
+                        self.get_cached_node_id_from_name(node_name.clone(), &mut node_ids)?;
                     // only add node if it does not exist yet
                     if existing_node_id.is_none() {
                         let new_node_id: NodeID =
@@ -589,17 +547,26 @@ impl Graph {
                         self.node_annos.insert(new_node_id, new_anno_type)?;
 
                         // update the internal cache
-                        node_ids.insert(node_name, Some(new_node_id));
+                        node_ids.insert(node_name, Some(new_node_id))?;
+
+                        if !calculate_invalid_nodes {
+                            // All new added nodes need to be marked as invalid
+                            invalid_nodes.insert(new_node_id, true)?;
+                        }
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
-                    if let Some(existing_node_id) = node_ids.get(&node_name).expect(msg_missing) {
-                        if !invalid_nodes.contains(&existing_node_id) {
-                            self.extend_parent_text_coverage_nodes(
-                                *existing_node_id,
+                    if let Some(existing_node_id) =
+                        self.get_cached_node_id_from_name(node_name, &mut node_ids)?
+                    {
+                        if !calculate_invalid_nodes
+                            && invalid_nodes.get(&existing_node_id).is_none()
+                        {
+                            self.calculate_invalidated_nodes_by_coverage(
+                                existing_node_id,
                                 &text_coverage_components,
                                 &mut invalid_nodes,
-                            );
+                            )?;
                         }
 
                         // delete all annotations
@@ -612,7 +579,7 @@ impl Graph {
                         // delete all edges pointing to this node either as source or target
                         for c in all_components.iter() {
                             if let Ok(gs) = self.get_or_create_writable(c) {
-                                gs.delete_node(*existing_node_id)?;
+                                gs.delete_node(existing_node_id)?;
                             }
                         }
                     }
@@ -623,7 +590,9 @@ impl Graph {
                     anno_name,
                     anno_value,
                 } => {
-                    if let Some(existing_node_id) = node_ids.get(&node_name).expect(msg_missing) {
+                    if let Some(existing_node_id) =
+                        self.get_cached_node_id_from_name(node_name, &mut node_ids)?
+                    {
                         let anno = Annotation {
                             key: AnnoKey {
                                 ns: anno_ns.to_string(),
@@ -631,7 +600,7 @@ impl Graph {
                             },
                             val: anno_value.to_string(),
                         };
-                        self.node_annos.insert(*existing_node_id, anno)?;
+                        self.node_annos.insert(existing_node_id, anno)?;
                     }
                 }
                 UpdateEvent::DeleteNodeLabel {
@@ -639,13 +608,15 @@ impl Graph {
                     anno_ns,
                     anno_name,
                 } => {
-                    if let Some(existing_node_id) = node_ids.get(&node_name).expect(msg_missing) {
+                    if let Some(existing_node_id) =
+                        self.get_cached_node_id_from_name(node_name, &mut node_ids)?
+                    {
                         let key = AnnoKey {
                             ns: anno_ns.to_string(),
                             name: anno_name.to_string(),
                         };
                         self.node_annos
-                            .remove_annotation_for_item(existing_node_id, &key)?;
+                            .remove_annotation_for_item(&existing_node_id, &key)?;
                     }
                 }
                 UpdateEvent::AddEdge {
@@ -655,11 +626,10 @@ impl Graph {
                     component_type,
                     component_name,
                 } => {
+                    let source = self.get_cached_node_id_from_name(source_node, &mut node_ids)?;
+                    let target = self.get_cached_node_id_from_name(target_node, &mut node_ids)?;
                     // only add edge if both nodes already exist
-                    if let (Some(source), Some(target)) = (
-                        node_ids.get(&source_node).expect(msg_missing),
-                        node_ids.get(&target_node).expect(msg_missing),
-                    ) {
+                    if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
@@ -667,10 +637,7 @@ impl Graph {
                                 name: component_name.to_string(),
                             };
                             let gs = self.get_or_create_writable(&c)?;
-                            gs.add_edge(Edge {
-                                source: *source,
-                                target: *target,
-                            })?;
+                            gs.add_edge(Edge { source, target })?;
 
                             if (c.ctype == ComponentType::Dominance
                                 || c.ctype == ComponentType::Coverage)
@@ -680,25 +647,27 @@ impl Graph {
                                 text_coverage_components.insert(c.clone());
                             }
 
-                            if c.ctype == ComponentType::Coverage
-                                || c.ctype == ComponentType::Dominance
-                                || c.ctype == ComponentType::Ordering
-                                || c.ctype == ComponentType::LeftToken
-                                || c.ctype == ComponentType::RightToken
-                            {
-                                self.extend_parent_text_coverage_nodes(
-                                    *source,
-                                    &text_coverage_components,
-                                    &mut invalid_nodes,
-                                );
-                            }
+                            if calculate_invalid_nodes {
+                                if c.ctype == ComponentType::Coverage
+                                    || c.ctype == ComponentType::Dominance
+                                    || c.ctype == ComponentType::Ordering
+                                    || c.ctype == ComponentType::LeftToken
+                                    || c.ctype == ComponentType::RightToken
+                                {
+                                    self.calculate_invalidated_nodes_by_coverage(
+                                        source,
+                                        &text_coverage_components,
+                                        &mut invalid_nodes,
+                                    )?;
+                                }
 
-                            if c.ctype == ComponentType::Ordering {
-                                self.extend_parent_text_coverage_nodes(
-                                    *target,
-                                    &text_coverage_components,
-                                    &mut invalid_nodes,
-                                );
+                                if c.ctype == ComponentType::Ordering {
+                                    self.calculate_invalidated_nodes_by_coverage(
+                                        target,
+                                        &text_coverage_components,
+                                        &mut invalid_nodes,
+                                    )?;
+                                }
                             }
                         }
                     }
@@ -710,10 +679,9 @@ impl Graph {
                     component_type,
                     component_name,
                 } => {
-                    if let (Some(source), Some(target)) = (
-                        node_ids.get(&source_node).expect(msg_missing),
-                        node_ids.get(&target_node).expect(msg_missing),
-                    ) {
+                    let source = self.get_cached_node_id_from_name(source_node, &mut node_ids)?;
+                    let target = self.get_cached_node_id_from_name(target_node, &mut node_ids)?;
+                    if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
@@ -721,31 +689,31 @@ impl Graph {
                                 name: component_name.to_string(),
                             };
 
-                            if c.ctype == ComponentType::Coverage
-                                || c.ctype == ComponentType::Dominance
-                                || c.ctype == ComponentType::Ordering
-                                || c.ctype == ComponentType::LeftToken
-                                || c.ctype == ComponentType::RightToken
-                            {
-                                self.extend_parent_text_coverage_nodes(
-                                    *source,
-                                    &text_coverage_components,
-                                    &mut invalid_nodes,
-                                );
+                            if calculate_invalid_nodes {
+                                if c.ctype == ComponentType::Coverage
+                                    || c.ctype == ComponentType::Dominance
+                                    || c.ctype == ComponentType::Ordering
+                                    || c.ctype == ComponentType::LeftToken
+                                    || c.ctype == ComponentType::RightToken
+                                {
+                                    self.calculate_invalidated_nodes_by_coverage(
+                                        source,
+                                        &text_coverage_components,
+                                        &mut invalid_nodes,
+                                    )?;
+                                }
+
+                                if c.ctype == ComponentType::Ordering {
+                                    self.calculate_invalidated_nodes_by_coverage(
+                                        target,
+                                        &text_coverage_components,
+                                        &mut invalid_nodes,
+                                    )?;
+                                }
                             }
 
-                            if c.ctype == ComponentType::Ordering {
-                                self.extend_parent_text_coverage_nodes(
-                                    *target,
-                                    &text_coverage_components,
-                                    &mut invalid_nodes,
-                                );
-                            }
                             let gs = self.get_or_create_writable(&c)?;
-                            gs.delete_edge(&Edge {
-                                source: *source,
-                                target: *target,
-                            })?;
+                            gs.delete_edge(&Edge { source, target })?;
                         }
                     }
                 }
@@ -759,10 +727,9 @@ impl Graph {
                     anno_name,
                     anno_value,
                 } => {
-                    if let (Some(source), Some(target)) = (
-                        node_ids.get(&source_node).expect(msg_missing),
-                        node_ids.get(&target_node).expect(msg_missing),
-                    ) {
+                    let source = self.get_cached_node_id_from_name(source_node, &mut node_ids)?;
+                    let target = self.get_cached_node_id_from_name(target_node, &mut node_ids)?;
+                    if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
@@ -771,11 +738,8 @@ impl Graph {
                             };
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
-                            let e = Edge {
-                                source: *source,
-                                target: *target,
-                            };
-                            if gs.is_connected(*source, *target, 1, Included(1)) {
+                            let e = Edge { source, target };
+                            if gs.is_connected(source, target, 1, Included(1)) {
                                 let anno = Annotation {
                                     key: AnnoKey {
                                         ns: anno_ns.to_string(),
@@ -797,10 +761,9 @@ impl Graph {
                     anno_ns,
                     anno_name,
                 } => {
-                    if let (Some(source), Some(target)) = (
-                        node_ids.get(&source_node).expect(msg_missing),
-                        node_ids.get(&target_node).expect(msg_missing),
-                    ) {
+                    let source = self.get_cached_node_id_from_name(source_node, &mut node_ids)?;
+                    let target = self.get_cached_node_id_from_name(target_node, &mut node_ids)?;
+                    if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
@@ -809,11 +772,8 @@ impl Graph {
                             };
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
-                            let e = Edge {
-                                source: *source,
-                                target: *target,
-                            };
-                            if gs.is_connected(*source, *target, 1, Included(1)) {
+                            let e = Edge { source, target };
+                            if gs.is_connected(source, target, 1, Included(1)) {
                                 let key = AnnoKey {
                                     ns: anno_ns.to_string(),
                                     name: anno_name.to_string(),
@@ -825,26 +785,44 @@ impl Graph {
                 }
             } // end match update entry type
             self.current_change_id = id;
+
+            nr_updates += 1;
+            if nr_updates % 100_000 == 0 {
+                progress_callback(&format!("applied {} atomic updates", nr_updates));
+            }
         } // end for each consistent update entry
 
-        // re-index
-        if let Some(gs_order) = self.get_graphstorage(&Component {
+        // Re-index the inherited coverage component.
+        // To make this operation fast, we need to optimize the order component first
+        let order_component = Component {
             ctype: ComponentType::Ordering,
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
-        }) {
+        };
+        let order_stats_exist = self
+            .get_graphstorage(&order_component)
+            .map(|gs_order| gs_order.get_statistics().is_some())
+            .unwrap_or(false);
+        if !order_stats_exist {
+            self.calculate_component_statistics(&order_component)?;
+        }
+        self.optimize_impl(&order_component)?;
+        if let Some(gs_order) = self.get_graphstorage(&order_component) {
+            progress_callback("re-indexing the inherited coverage edges");
+
+            invalid_nodes.compact()?;
             self.reindex_inherited_coverage(invalid_nodes, gs_order)?;
         }
 
         Ok(())
     }
 
-    fn extend_parent_text_coverage_nodes(
+    fn calculate_invalidated_nodes_by_coverage(
         &self,
         node: NodeID,
         text_coverage_components: &FxHashSet<Component>,
-        invalid_nodes: &mut FxHashSet<NodeID>,
-    ) {
+        invalid_nodes: &mut DiskMap<NodeID, bool>,
+    ) -> Result<()> {
         let containers: Vec<&dyn EdgeContainer> = text_coverage_components
             .iter()
             .filter_map(|c| self.get_graphstorage_as_ref(c))
@@ -855,13 +833,15 @@ impl Graph {
 
         let dfs = CycleSafeDFS::new_inverse(&union, node, 0, usize::max_value());
         for step in dfs {
-            invalid_nodes.insert(step.node);
+            invalid_nodes.insert(step.node, true)?;
         }
+
+        Ok(())
     }
 
     fn reindex_inherited_coverage(
         &mut self,
-        invalid_nodes: FxHashSet<NodeID>,
+        invalid_nodes: DiskMap<NodeID, bool>,
         gs_order: Arc<dyn GraphStorage>,
     ) -> Result<()> {
         {
@@ -872,8 +852,8 @@ impl Graph {
                 layer: ANNIS_NS.to_owned(),
             })?;
 
-            for n in invalid_nodes.iter() {
-                gs_left.delete_node(*n)?;
+            for (n, _) in invalid_nodes.iter() {
+                gs_left.delete_node(n)?;
             }
 
             let gs_right = self.get_or_create_writable(&Component {
@@ -882,8 +862,8 @@ impl Graph {
                 layer: ANNIS_NS.to_owned(),
             })?;
 
-            for n in invalid_nodes.iter() {
-                gs_right.delete_node(*n)?;
+            for (n, _) in invalid_nodes.iter() {
+                gs_right.delete_node(n)?;
             }
 
             let gs_cov = self.get_or_create_writable(&Component {
@@ -891,8 +871,8 @@ impl Graph {
                 name: "inherited-coverage".to_owned(),
                 layer: ANNIS_NS.to_owned(),
             })?;
-            for n in invalid_nodes.iter() {
-                gs_cov.delete_node(*n)?;
+            for (n, _) in invalid_nodes.iter() {
+                gs_cov.delete_node(n)?;
             }
         }
 
@@ -910,16 +890,16 @@ impl Graph {
                 .filter_map(|c| self.get_graphstorage(c))
                 .collect();
 
-            for n in invalid_nodes.iter() {
+            for (n, _) in invalid_nodes.iter() {
                 self.calculate_token_alignment(
-                    *n,
+                    n,
                     ComponentType::LeftToken,
                     gs_order.as_ref(),
                     &all_cov_gs,
                     &all_dom_gs,
                 )?;
                 self.calculate_token_alignment(
-                    *n,
+                    n,
                     ComponentType::RightToken,
                     gs_order.as_ref(),
                     &all_cov_gs,
@@ -928,8 +908,8 @@ impl Graph {
             }
         }
 
-        for n in invalid_nodes.iter() {
-            self.calculate_inherited_coverage_edges(*n, &all_cov_components, &all_dom_gs)?;
+        for (n, _) in invalid_nodes.iter() {
+            self.calculate_inherited_coverage_edges(n, &all_cov_components, &all_dom_gs)?;
         }
 
         Ok(())
@@ -1073,19 +1053,18 @@ impl Graph {
 
     /// Apply a sequence of updates (`u` parameter) to this graph.
     /// If the graph has a location on the disk, the changes are persisted.
-    fn apply_update(&mut self, u: &mut GraphUpdate) -> Result<()> {
-        trace!("applying updates");
-        // Always mark the update state as consistent, even if caller forgot this.
-        if !u.is_consistent() {
-            u.finish();
-        }
+    fn apply_update<F>(&mut self, u: &mut GraphUpdate, progress_callback: F) -> Result<()>
+    where
+        F: Fn(&str) -> (),
+    {
+        progress_callback("applying list of atomic updates");
 
         // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
         self.ensure_loaded_all()?;
 
-        let result = self.apply_update_in_memory(u);
+        let result = self.apply_update_in_memory(u, &progress_callback);
 
-        trace!("memory updates completed");
+        progress_callback("memory updates completed, persisting updates to disk");
 
         if let Some(location) = self.location.clone() {
             trace!("output location for persisting updates is {:?}", location);
@@ -1094,15 +1073,21 @@ impl Graph {
                 // make sure the output path exits
                 std::fs::create_dir_all(&current_path)?;
 
-                // if successfull write log
-                let log_path = current_path.join("update_log.bin");
+                // If successfull write log
+                let log_path = location.join("update_log.bin");
 
-                trace!("writing WAL update log to {:?}", &log_path);
-                let f_log = std::fs::File::create(log_path)?;
-                let mut buf_writer = std::io::BufWriter::new(f_log);
-                bincode::serialize_into(&mut buf_writer, &u)?;
+                // Create a temporary directory in the same file system as the output
+                let temporary_dir = tempfile::tempdir_in(&current_path)?;
+                let mut temporary_disk_file = tempfile::NamedTempFile::new_in(&temporary_dir)?;
 
-                trace!("finished writing WAL update log");
+                debug!("writing WAL update log to {:?}", temporary_disk_file.path());
+                bincode::serialize_into(temporary_disk_file.as_file(), &u)?;
+                temporary_disk_file.flush()?;
+                debug!("moving finished WAL update log to {:?}", &log_path);
+                // Since the temporary file should be on the same file system, persisting/moving it should be an atomic operation
+                temporary_disk_file.persist(&log_path)?;
+
+                progress_callback("finished writing WAL update log");
             } else {
                 trace!("error occured while applying updates: {:?}", &result);
                 // load corpus from disk again
@@ -1321,7 +1306,7 @@ impl Graph {
                         self.reset_cached_size();
                         // insert into components map
                         info!(
-                            "Converted component {} to implementation {}",
+                            "converted component {} to implementation {}",
                             c, opt_info.id,
                         );
                         self.components.insert(c.clone(), Some(new_gs.clone()));

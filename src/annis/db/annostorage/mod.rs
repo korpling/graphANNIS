@@ -43,6 +43,9 @@ where
     /// Get the annotation for a given `item` and the annotation `key`.
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
 
+    /// Returns `true` if the given `item` has an annotation for the given `key`.
+    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> bool;
+
     /// Get the matching annotation keys for each item in the iterator.
     ///
     /// This function allows to filter the received annotation keys by the specifying the namespace and name.
@@ -55,6 +58,9 @@ where
 
     /// Return the total number of annotations contained in this `AnnotationStorage`.
     fn number_of_annotations(&self) -> usize;
+
+    /// Return true if there are no annotations in this `AnnotationStorage`.
+    fn is_empty(&self) -> bool;
 
     /// Return the number of annotations contained in this `AnnotationStorage` filtered by `name` and optional namespace (`ns`).
     fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> usize;

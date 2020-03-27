@@ -386,6 +386,10 @@ where
         self.total_number_of_annos
     }
 
+    fn is_empty(&self) -> bool {
+        self.total_number_of_annos == 0
+    }
+
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
         let key_symbol = self.anno_keys.get_symbol(key)?;
 
@@ -398,6 +402,20 @@ where
             }
         }
         None
+    }
+
+    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> bool {
+        if let Some(key_symbol) = self.anno_keys.get_symbol(key) {
+            if let Some(all_annos) = self.by_container.get(item) {
+                if all_annos
+                    .binary_search_by_key(&key_symbol, |a| a.key)
+                    .is_ok()
+                {
+                    return true;
+                }
+            }
+        }
+        false
     }
 
     fn get_keys_for_iterator(

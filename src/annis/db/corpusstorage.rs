@@ -203,11 +203,9 @@ impl FromStr for FrequencyDefEntry {
     fn from_str(s: &str) -> std::result::Result<FrequencyDefEntry, Self::Err> {
         let splitted: Vec<&str> = s.splitn(2, ':').collect();
         if splitted.len() != 2 {
-            return Err(
-                "Frequency definition must consists of two parts: \
+            return Err("Frequency definition must consists of two parts: \
                  the referenced node and the annotation name or \"tok\" separated by \":\""
-                    .into(),
-            );
+                .into());
         }
         let node_ref = splitted[0];
         let anno_key = util::split_qname(splitted[1]);
@@ -706,6 +704,8 @@ impl CorpusStorage {
     /// - `format` - The format in which this corpus data is stored.
     /// - `corpus_name` - Optionally override the name of the new corpus for file formats that already provide a corpus name.
     /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
+    ///
+    /// Returns the name of the imported corpus.
     pub fn import_from_fs(
         &self,
         path: &Path,
@@ -824,7 +824,7 @@ impl CorpusStorage {
             let mut lock = db_entry.write().unwrap();
             let db: &mut Graph = get_write_or_error(&mut lock)?;
 
-            db.apply_update(update)?;
+            db.apply_update(update, |_| {})?;
         }
         // start background thread to persists the results
 

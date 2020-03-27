@@ -1,4 +1,5 @@
 use crate::annis::types::LineColumnRange;
+use serde::{de, ser};
 use std::error::Error as StdError;
 use std::fmt::Display;
 
@@ -31,7 +32,7 @@ pub enum Error {
     Strum(::strum::ParseError),
     Regex(::regex::Error),
     RandomGenerator(::rand::Error),
-    RocksDB(rocksdb::Error),
+    SSTable(sstable::error::Status),
 }
 
 impl std::convert::From<std::io::Error> for Error {
@@ -40,9 +41,39 @@ impl std::convert::From<std::io::Error> for Error {
     }
 }
 
+impl std::convert::From<tempfile::PersistError> for Error {
+    fn from(e: tempfile::PersistError) -> Error {
+        Error::IO(e.error)
+    }
+}
+
 impl std::convert::From<::bincode::Error> for Error {
     fn from(e: ::bincode::Error) -> Error {
         Error::Bincode(e)
+    }
+}
+
+impl std::convert::Into<::bincode::Error> for Error {
+    fn into(self) -> ::bincode::Error {
+        Box::new(::bincode::ErrorKind::Custom(format!("{}", &self)))
+    }
+}
+
+impl ser::Error for Error {
+    fn custom<T: Display>(msg: T) -> Self {
+        Error::Generic {
+            msg: msg.to_string(),
+            cause: None,
+        }
+    }
+}
+
+impl de::Error for Error {
+    fn custom<T: Display>(msg: T) -> Self {
+        Error::Generic {
+            msg: msg.to_string(),
+            cause: None,
+        }
     }
 }
 
@@ -82,9 +113,9 @@ impl std::convert::From<::rand::Error> for Error {
     }
 }
 
-impl std::convert::From<rocksdb::Error> for Error {
-    fn from(e: rocksdb::Error) -> Error {
-        Error::RocksDB(e)
+impl std::convert::From<sstable::error::Status> for Error {
+    fn from(e: sstable::error::Status) -> Error {
+        Error::SSTable(e)
     }
 }
 
@@ -139,7 +170,7 @@ impl Display for Error {
             Error::Strum(e) => e.fmt(f),
             Error::Regex(e) => e.fmt(f),
             Error::RandomGenerator(e) => e.fmt(f),
-            Error::RocksDB(e) => e.fmt(f),
+            Error::SSTable(e) => e.fmt(f),
         }
     }
 }
@@ -167,7 +198,7 @@ impl StdError for Error {
             Error::Strum(e) => Some(e),
             Error::Regex(e) => Some(e),
             Error::RandomGenerator(e) => Some(e),
-            Error::RocksDB(e) => Some(e),
+            Error::SSTable(e) => Some(e),
         }
     }
 }

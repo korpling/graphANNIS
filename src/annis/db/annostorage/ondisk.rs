@@ -1,115 +1,26 @@
+use super::symboltable::SymbolTable;
 use crate::annis::db::annostorage::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
 use crate::annis::errors::*;
-use crate::annis::types::{AnnoKey, Annotation, Edge, NodeID};
+use crate::annis::types::AnnoKey;
+use crate::annis::types::Annotation;
+use crate::annis::types::NodeID;
 use crate::annis::util;
+use crate::annis::util::disk_collections::{
+    DiskMap, EvictionStrategy, FixedSizeKeySerializer, KeySerializer,
+};
 use crate::annis::util::memory_estimation;
-
-use core::hash::Hash;
 use core::ops::Bound::*;
-use graphannis_malloc_size_of::MallocSizeOf;
 use rand::seq::IteratorRandom;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
-use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-mod rocksdb_iterator;
+pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v1";
 
-const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
 const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
-
-pub const SUBFOLDER_NAME: &str = "nodes_rocksdb_v1";
-
-const NODE_ID_SIZE: usize = std::mem::size_of::<NodeID>();
-
-const MAX_TRIES: usize = 5;
-
-pub trait KeyProvider {
-    fn into_key(self) -> Vec<u8>;
-
-    fn as_key(&self) -> Vec<u8>;
-
-    fn from_key(k: &[u8]) -> Self;
-
-    fn key_size() -> usize;
-
-    fn min_value() -> Self;
-
-    fn max_value() -> Self;
-}
-
-impl KeyProvider for NodeID {
-    fn into_key(self) -> Vec<u8> {
-        self.to_be_bytes().to_vec()
-    }
-    fn as_key(&self) -> Vec<u8> {
-        self.to_be_bytes().to_vec()
-    }
-
-    fn from_key(k: &[u8]) -> Self {
-        NodeID::from_be_bytes(
-            k[0..NODE_ID_SIZE]
-                .try_into()
-                .expect("Key data must was not large enough"),
-        )
-    }
-
-    fn key_size() -> usize {
-        NODE_ID_SIZE
-    }
-
-    fn min_value() -> Self {
-        NodeID::min_value()
-    }
-    fn max_value() -> Self {
-        NodeID::max_value()
-    }
-}
-
-impl KeyProvider for Edge {
-    fn into_key(self) -> Vec<u8> {
-        let mut result = Vec::with_capacity(NODE_ID_SIZE * 2);
-        result.append(&mut self.source.into_key());
-        result.append(&mut self.target.into_key());
-
-        result
-    }
-
-    fn as_key(&self) -> Vec<u8> {
-        let mut result = Vec::with_capacity(NODE_ID_SIZE * 2);
-        result.append(&mut self.source.into_key());
-        result.append(&mut self.target.into_key());
-
-        result
-    }
-
-    fn from_key(k: &[u8]) -> Self {
-        let source = NodeID::from_key(&k[0..NODE_ID_SIZE]);
-        let target = NodeID::from_key(&k[NODE_ID_SIZE..]);
-
-        Edge { source, target }
-    }
-
-    fn key_size() -> usize {
-        NODE_ID_SIZE * 2
-    }
-
-    fn min_value() -> Self {
-        Edge {
-            source: NodeID::min_value(),
-            target: NodeID::min_value(),
-        }
-    }
-    fn max_value() -> Self {
-        Edge {
-            source: NodeID::max_value(),
-            target: NodeID::max_value(),
-        }
-    }
-}
 
 /// An on-disk implementation of an annotation storage.
 ///
@@ -122,15 +33,28 @@ impl KeyProvider for Edge {
 /// and there is no way of delivering a correct answer.
 /// Retrying the same query again will also not succeed since temporary errors are already handled internally.
 #[derive(MallocSizeOf)]
-pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
+pub struct AnnoStorageImpl<T>
+where
+    T: FixedSizeKeySerializer
+        + Send
+        + Sync
+        + malloc_size_of::MallocSizeOf
+        + Clone
+        + serde::ser::Serialize
+        + serde::de::DeserializeOwned,
+{
     #[ignore_malloc_size_of = "is stored on disk"]
-    db: rocksdb::DB,
+    by_container: DiskMap<Vec<u8>, String>,
+    #[ignore_malloc_size_of = "is stored on disk"]
+    by_anno_qname: DiskMap<Vec<u8>, bool>,
     #[with_malloc_size_of_func = "memory_estimation::size_of_pathbuf"]
     location: PathBuf,
     /// A handle to a temporary directory. This must be part of the struct because the temporary directory will
     /// be deleted when this handle is dropped.
     #[with_malloc_size_of_func = "memory_estimation::size_of_option_tempdir"]
     temp_dir: Option<tempfile::TempDir>,
+
+    anno_key_symbols: SymbolTable<AnnoKey>,
 
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
@@ -139,160 +63,77 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
     largest_item: Option<T>,
-}
 
-fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
-    let mut result: Vec<u8> = Vec::default();
-    for v in val {
-        // append null-terminated string to result
-        for b in v.as_bytes() {
-            result.push(*b)
-        }
-        result.push(0);
-    }
-    result
-}
-
-/// Parses the raw data and split it at `\0` characters.
-///
-/// # Panics
-/// Panics if one of the sub-strings is not valid UTF-8.
-fn parse_str_vec_key(data: &[u8]) -> Vec<&str> {
-    data.split(|b| *b == 0)
-        .map(|part| std::str::from_utf8(part).expect(UTF_8_MSG))
-        .collect()
+    phantom: std::marker::PhantomData<T>,
 }
 
 /// Creates a key for the `by_container` tree.
 ///
 /// Structure:
 /// ```text
-/// [sizeof(K) Bits item ID][Namespace]\0[Name]\0
+/// [x Bits item ID][64 Bits symbol ID]
 /// ```
-fn create_by_container_key<K: KeyProvider>(item: &K, anno_key: &AnnoKey) -> Vec<u8> {
-    let mut result: Vec<u8> = item.as_key().iter().cloned().collect();
-    result.extend(create_str_vec_key(&[&anno_key.ns, &anno_key.name]));
+fn create_by_container_key<T: FixedSizeKeySerializer>(item: T, anno_key_symbol: usize) -> Vec<u8> {
+    let mut result: Vec<u8> = Vec::from(item.create_key());
+    result.extend_from_slice(&anno_key_symbol.create_key());
     result
-}
-
-/// Parse the raw data and extract the node ID and the annotation key.
-///
-/// # Panics
-/// Panics if the raw data is smaller than the length of item bit-representation.
-fn parse_by_container_key<K: KeyProvider>(data: &[u8]) -> (K, AnnoKey) {
-    let item = K::from_key(data);
-    let str_vec = parse_str_vec_key(&data[8..]);
-
-    let anno_key = AnnoKey {
-        ns: str_vec[0].to_string(),
-        name: str_vec[1].to_string(),
-    };
-    (item, anno_key)
 }
 
 /// Creates a key for the `by_anno_qname` tree.
 ///
-/// Since the same (name, ns, value) triple can be used by multiple items and we want to avoid
-/// arrays as values, the item ID is part of the key and makes it unique.
+/// Since the same (name, ns, value) triple can be used by multiple nodes and we want to avoid
+/// arrays as values, the node ID is part of the key and makes it unique.
 ///
 /// Structure:
 /// ```text
-/// [Namespace]\0[Name]\0[Value]\0[sizeof(K) Bits item ID]
+/// [64 Bits Annotation Key Symbol][Value]\0[x Bits item ID]
 /// ```
-fn create_by_anno_qname_key<K: KeyProvider>(item: &K, anno: &Annotation) -> Vec<u8> {
+fn create_by_anno_qname_key<T: FixedSizeKeySerializer>(
+    item: T,
+    anno_key_symbol: usize,
+    anno_value: &str,
+) -> Vec<u8> {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
-
-    let mut result: Vec<u8> = create_str_vec_key(&[&anno.key.ns, &anno.key.name, &anno.val]);
-    result.extend(&item.as_key());
+    let mut result: Vec<u8> = Vec::from(anno_key_symbol.create_key());
+    for b in anno_value.as_bytes() {
+        result.push(*b);
+    }
+    result.push(0);
+    let item_key: &[u8] = &item.create_key();
+    result.extend(item_key);
     result
-}
-
-/// Parse the raw data and extract the node ID and the annotation.
-///
-/// # Panics
-/// Panics if the raw data is smaller than the length of a node ID bit-representation.
-fn parse_by_anno_qname_key<K: KeyProvider>(data: &[u8]) -> (K, Annotation) {
-    let item_id = K::from_key(&data[(data.len() - K::key_size())..]);
-
-    let str_vec = parse_str_vec_key(&data[..(data.len() - 8)]);
-
-    let anno = Annotation {
-        key: AnnoKey {
-            ns: str_vec[0].to_string(),
-            name: str_vec[1].to_string(),
-        },
-        val: str_vec[2].to_string(),
-    };
-
-    (item_id, anno)
-}
-
-fn open_db<K: KeyProvider>(path: &Path) -> Result<rocksdb::DB> {
-    let mut db_opts = rocksdb::Options::default();
-    db_opts.create_missing_column_families(true);
-    db_opts.create_if_missing(true);
-    let mut block_opts = rocksdb::BlockBasedOptions::default();
-    block_opts.set_index_type(rocksdb::BlockBasedIndexType::HashSearch);
-    block_opts.set_bloom_filter(K::key_size() as i32, false);
-    db_opts.set_block_based_table_factory(&block_opts);
-
-    // use prefixes for the different column families
-    let mut opts_by_container = rocksdb::Options::default();
-    opts_by_container
-        .set_prefix_extractor(rocksdb::SliceTransform::create_fixed_prefix(K::key_size()));
-    let cf_by_container = rocksdb::ColumnFamilyDescriptor::new("by_container", opts_by_container);
-
-    let mut opts_by_anno_qname = rocksdb::Options::default();
-    opts_by_anno_qname.set_prefix_extractor(rocksdb::SliceTransform::create(
-        "qname",
-        |data| {
-            // Use the namespace/name as prefix.
-            // This means we have to split the first \0 and use the index
-            // of the next one as end position of the prefix.
-            let zero_pos = data
-                .iter()
-                .enumerate()
-                .filter(|(_, b)| **b == 0)
-                .skip(1)
-                .map(|(idx, _)| idx)
-                .next();
-            &data[0..zero_pos.unwrap_or(0)]
-        },
-        None,
-    ));
-    let cf_by_anno_qname =
-        rocksdb::ColumnFamilyDescriptor::new("by_anno_qname", opts_by_anno_qname);
-
-    let db =
-        rocksdb::DB::open_cf_descriptors(&db_opts, path, vec![cf_by_container, cf_by_anno_qname])?;
-
-    Ok(db)
 }
 
 impl<T> AnnoStorageImpl<T>
 where
-    T: Ord
-        + Hash
-        + MallocSizeOf
-        + Default
-        + Clone
-        + serde::Serialize
-        + serde::de::DeserializeOwned
+    T: FixedSizeKeySerializer
         + Send
         + Sync
-        + KeyProvider,
+        + malloc_size_of::MallocSizeOf
+        + Clone
+        + Default
+        + serde::ser::Serialize
+        + serde::de::DeserializeOwned,
     (T, Arc<AnnoKey>): Into<Match>,
 {
     pub fn new(path: Option<PathBuf>) -> Result<AnnoStorageImpl<T>> {
         if let Some(path) = path {
-            let db = open_db::<T>(&path)?;
+            let path_by_container = path.join("by_container.bin");
+            let path_by_anno_qname = path.join("by_anno_qname.bin");
+
             let mut result = AnnoStorageImpl {
-                db,
+                by_container: DiskMap::new(Some(&path_by_container), EvictionStrategy::default())?,
+                by_anno_qname: DiskMap::new(
+                    Some(&path_by_anno_qname),
+                    EvictionStrategy::default(),
+                )?,
+                anno_key_symbols: SymbolTable::default(),
                 anno_key_sizes: BTreeMap::new(),
                 largest_item: None,
                 histogram_bounds: BTreeMap::new(),
                 location: path.to_path_buf(),
                 temp_dir: None,
+                phantom: std::marker::PhantomData,
             };
 
             // load internal helper fields
@@ -302,30 +143,26 @@ where
             result.largest_item = bincode::deserialize_from(&mut reader)?;
             result.anno_key_sizes = bincode::deserialize_from(&mut reader)?;
             result.histogram_bounds = bincode::deserialize_from(&mut reader)?;
+            result.anno_key_symbols = bincode::deserialize_from(&mut reader)?;
+            result.anno_key_symbols.after_deserialization();
 
             Ok(result)
         } else {
             let tmp_dir = tempfile::Builder::new()
                 .prefix("graphannis-ondisk-nodeanno-")
                 .tempdir()?;
-            let db = open_db::<T>(tmp_dir.as_ref())?;
             Ok(AnnoStorageImpl {
-                db,
+                by_container: DiskMap::default(),
+                by_anno_qname: DiskMap::default(),
+                anno_key_symbols: SymbolTable::default(),
                 anno_key_sizes: BTreeMap::new(),
                 largest_item: None,
                 histogram_bounds: BTreeMap::new(),
                 location: tmp_dir.as_ref().to_path_buf(),
                 temp_dir: Some(tmp_dir),
+                phantom: std::marker::PhantomData,
             })
         }
-    }
-
-    fn get_by_container_cf(&self) -> Option<&rocksdb::ColumnFamily> {
-        self.db.cf_handle("by_container")
-    }
-
-    fn get_by_anno_qname_cf(&self) -> Option<&rocksdb::ColumnFamily> {
-        self.db.cf_handle("by_anno_qname")
     }
 
     fn matching_items<'a>(
@@ -333,7 +170,10 @@ where
         namespace: Option<&str>,
         name: &str,
         value: Option<&str>,
-    ) -> Box<dyn Iterator<Item = (T, Arc<AnnoKey>)> + 'a> {
+    ) -> Box<dyn Iterator<Item = (T, Arc<AnnoKey>)> + 'a>
+    where
+        T: FixedSizeKeySerializer + Send + Sync + malloc_size_of::MallocSizeOf + PartialOrd,
+    {
         let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
             vec![Arc::from(AnnoKey {
                 ns: ns.to_string(),
@@ -345,164 +185,154 @@ where
                 .map(|key| Arc::from(key))
                 .collect()
         };
+        let key_ranges: Vec<usize> = key_ranges
+            .into_iter()
+            .filter_map(|k| self.anno_key_symbols.get_symbol(&k))
+            .collect();
 
-        if let Some(cf) = self.get_by_anno_qname_cf() {
-            let value = value.map(|v| v.to_string());
+        let value = value.map(|v| v.to_string());
 
-            let it = key_ranges
-                .into_iter()
-                .flat_map(move |anno_key| {
-                    let mut last_err = None;
-                    for _ in 0..MAX_TRIES {
-                        // return the iterator for this annotation key
-                        match rocksdb_iterator::AnnotationValueIterator::new(
-                            &self.db,
-                            cf,
-                            anno_key.clone(),
-                            value.clone(),
-                        ) {
-                            Ok(result) => return Box::new(result),
-                            Err(e) => last_err = Some(e),
-                        }
-                        // If this is an intermediate error, wait some time before trying again
-                        std::thread::sleep(std::time::Duration::from_secs(1));
-                    }
-                    panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
-                })
-                .fuse();
+        let it = key_ranges
+            .into_iter()
+            .flat_map(move |anno_key_symbol| {
+                let lower_bound_value = if let Some(value) = &value { value } else { "" };
+                let lower_bound = create_by_anno_qname_key(
+                    NodeID::min_value(),
+                    anno_key_symbol,
+                    lower_bound_value,
+                );
 
-            Box::new(it)
-        } else {
-            Box::new(std::iter::empty())
-        }
+                let upper_bound_value = if let Some(value) = &value {
+                    Cow::Borrowed(value)
+                } else {
+                    Cow::Owned(std::char::MAX.to_string())
+                };
+
+                let upper_bound = create_by_anno_qname_key(
+                    NodeID::max_value(),
+                    anno_key_symbol,
+                    &upper_bound_value,
+                );
+                self.by_anno_qname.range(lower_bound..upper_bound)
+            })
+            .fuse()
+            .map(move |(data, _)| {
+                // get the item ID at the end
+                let item_id = T::parse_key(&data[data.len() - T::key_size()..]);
+                let anno_key_symbol = usize::parse_key(&data[0..std::mem::size_of::<usize>()]);
+                let key = self
+                    .anno_key_symbols
+                    .get_value(anno_key_symbol)
+                    .unwrap_or_default();
+                (item_id, Arc::from(key))
+            });
+
+        Box::new(it)
+    }
+
+    /// Parse the raw data and extract the item ID and the annotation key.
+    ///
+    /// # Panics
+    /// Panics if the raw data is smaller than the length of a item ID bit-representation.
+    fn parse_by_container_key(&self, data: Vec<u8>) -> (T, Arc<AnnoKey>) {
+        let item = T::parse_key(&data[0..T::key_size()]);
+        let anno_key_symbol = usize::parse_key(&data[T::key_size()..]);
+
+        (
+            item,
+            self.anno_key_symbols
+                .get_value(anno_key_symbol)
+                .unwrap_or_default(),
+        )
+    }
+
+    /// Parse the raw data and extract the node ID and the annotation.
+    ///
+    /// # Panics
+    /// Panics if the raw data is smaller than the length of a node ID bit-representation or if the strings are not valid
+    /// UTF-8.
+    fn parse_by_anno_qname_key(&self, mut data: Vec<u8>) -> (T, Arc<AnnoKey>, String) {
+        // get the item ID at the end
+        let item_id_raw = data.split_off(data.len() - T::key_size());
+        let item_id = T::parse_key(&item_id_raw);
+
+        // remove the trailing '\0' character
+        data.pop();
+
+        // split off the annotation value string
+        let anno_val_raw = data.split_off(std::mem::size_of::<usize>());
+        let anno_val = String::from_utf8(anno_val_raw).expect(UTF_8_MSG);
+
+        // parse the remaining annotation key symbol
+        let anno_key_symbol = usize::parse_key(&data);
+
+        (
+            item_id,
+            self.anno_key_symbols
+                .get_value(anno_key_symbol)
+                .unwrap_or_default(),
+            anno_val,
+        )
     }
 
     fn get_by_anno_qname_range<'a>(
         &'a self,
         anno_key: &AnnoKey,
-    ) -> Box<dyn Iterator<Item = (Box<[u8]>, Box<[u8]>)> + 'a> {
-        let prefix: Vec<u8> = create_str_vec_key(&[&anno_key.ns, &anno_key.name]);
+    ) -> Box<dyn Iterator<Item = (Vec<u8>, bool)> + 'a> {
+        if let Some(anno_key_symbol) = self.anno_key_symbols.get_symbol(anno_key) {
+            let lower_bound = create_by_anno_qname_key(NodeID::min_value(), anno_key_symbol, "");
 
-        if let Some(cf) = self.get_by_anno_qname_cf() {
-            Box::new(self.prefix_iterator(cf, &prefix))
+            let upper_bound = create_by_anno_qname_key(
+                NodeID::max_value(),
+                anno_key_symbol,
+                &std::char::MAX.to_string(),
+            );
+
+            Box::new(self.by_anno_qname.range(lower_bound..upper_bound))
         } else {
-            Box::new(std::iter::empty())
+            Box::from(std::iter::empty())
         }
-    }
-
-    /// Get a prefix iterator for a column family
-    ///
-    /// # Panics
-    /// This will try to get an iterator several times.
-    /// If a maximum number of tries is reached and all attempts failed, this will panic.
-    fn prefix_iterator<P: AsRef<[u8]>>(
-        &self,
-        cf: &rocksdb::ColumnFamily,
-        prefix: P,
-    ) -> rocksdb::DBIterator {
-        let mut last_err = None;
-        for _ in 0..MAX_TRIES {
-            // return the iterator for this annotation key
-            match self.db.prefix_iterator_cf(cf, &prefix) {
-                Ok(result) => return result,
-                Err(e) => last_err = Some(e),
-            }
-            // If this is an intermediate error, wait some time before trying again
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
-        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
-    }
-
-    /// Get an iterator for a column family.
-    ///
-    /// # Panics
-    /// This will try to get an iterator several times.
-    /// If a maximum number of tries is reached and all attempts failed, this will panic.
-    fn iterator_cf_from_start(&self, cf: &rocksdb::ColumnFamily) -> rocksdb::DBIterator {
-        let mut last_err = None;
-        for _ in 0..MAX_TRIES {
-            // return the iterator for this annotation key
-            match self.db.iterator_cf(cf, rocksdb::IteratorMode::Start) {
-                Ok(result) => return result,
-                Err(e) => last_err = Some(e),
-            }
-            // If this is an intermediate error, wait some time before trying again
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
-        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
-    }
-
-    /// Get the pinned entry for a key in a column family.
-    ///
-    /// # Panics
-    /// This will try to get an iterator several times.
-    /// If a maximum number of tries is reached and all attempts failed, this will panic.
-    fn get_pinned_cf<K: AsRef<[u8]>>(
-        &self,
-        cf: &rocksdb::ColumnFamily,
-        key: K,
-    ) -> Option<rocksdb::DBPinnableSlice> {
-        let mut last_err = None;
-        for _ in 0..MAX_TRIES {
-            // return the iterator for this annotation key
-            match self.db.get_pinned_cf(cf, &key) {
-                Ok(result) => return result,
-                Err(e) => last_err = Some(e),
-            }
-            // If this is an intermediate error, wait some time before trying again
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
-        panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
     }
 }
 
 impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
 where
-    T: Ord
-        + Hash
-        + MallocSizeOf
-        + Default
-        + Clone
-        + serde::Serialize
-        + serde::de::DeserializeOwned
+    T: FixedSizeKeySerializer
         + Send
         + Sync
-        + KeyProvider,
+        + malloc_size_of::MallocSizeOf
+        + PartialOrd
+        + Clone
+        + Default
+        + serde::ser::Serialize
+        + serde::de::DeserializeOwned,
     (T, Arc<AnnoKey>): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) -> Result<()> {
+        // make sure the symbol ID for this annotation key is created
+        let anno_key_symbol = self.anno_key_symbols.insert(anno.key.clone());
+
         // insert the value into main tree
-        let by_container = self
-            .get_by_container_cf()
-            .ok_or_else(|| Error::from("Column familiy \"by_container\" not found"))?;
-        let by_container_key = create_by_container_key(&item, &anno.key);
+        let by_container_key = create_by_container_key(item.clone(), anno_key_symbol);
 
-        let mut write_opts = rocksdb::WriteOptions::default();
-        write_opts.set_sync(false);
-        write_opts.disable_wal(true);
+        let already_existed = self.by_container.try_contains_key(&by_container_key)?;
+        self.by_container
+            .insert(by_container_key, anno.val.clone())?;
 
-        let already_existed = self
-            .db
-            .get_pinned_cf(&by_container, &by_container_key)?
-            .is_some();
-        self.db.put_cf_opt(
-            &by_container,
-            &by_container_key,
-            anno.val.as_bytes(),
-            &write_opts,
-        )?;
+        if self.by_container.number_of_disk_tables() > 7 {
+            self.by_container.compact()?;
+        }
 
-        // To save some space, insert an empty slice as a marker value
+        // To save some space, insert an empty array as a marker value
         // (all information is part of the key already)
-        let by_anno_qname = self
-            .get_by_anno_qname_cf()
-            .ok_or_else(|| Error::from("Column familiy \"by_container\" not found"))?;
-        self.db.put_cf_opt(
-            &by_anno_qname,
-            create_by_anno_qname_key(&item, &anno),
-            &[],
-            &write_opts,
+        self.by_anno_qname.insert(
+            create_by_anno_qname_key(item.clone(), anno_key_symbol, &anno.val),
+            true,
         )?;
+
+        if self.by_anno_qname.number_of_disk_tables() > 7 {
+            self.by_anno_qname.compact()?;
+        }
 
         if !already_existed {
             // a new annotation entry was inserted and did not replace an existing one
@@ -522,38 +352,37 @@ where
     }
 
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
-        let prefix: Vec<u8> = item.as_key();
-
         let mut result = Vec::default();
-        if let Some(by_container) = self.get_by_container_cf() {
-            for (key, val) in self.prefix_iterator(&by_container, prefix) {
-                let parsed_key: (T, AnnoKey) = parse_by_container_key(&key);
-                let anno = Annotation {
-                    key: parsed_key.1,
-                    val: String::from_utf8_lossy(&val).to_string(),
-                };
-                result.push(anno);
-            }
+        let start = create_by_container_key(item.clone(), usize::min_value());
+        let end = create_by_container_key(item.clone(), usize::max_value());
+        for (key, val) in self.by_container.range(start..=end) {
+            let parsed_key = self.parse_by_container_key(key);
+            let anno = Annotation {
+                key: parsed_key.1.as_ref().clone(),
+                val: val,
+            };
+            result.push(anno);
         }
+
         result
     }
 
     fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>> {
-        if let (Some(by_container), Some(by_anno_qname)) =
-            (self.get_by_container_cf(), self.get_by_anno_qname_cf())
-        {
-            // remove annotation from by_container
-            let by_container_key = create_by_container_key(item, key);
-            if let Some(raw_value) = self.db.get_pinned_cf(&by_container, &by_container_key)? {
-                self.db.delete_cf(&by_container, &by_container_key)?;
+        // remove annotation from by_container
+        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
+            let by_container_key = create_by_container_key(item.clone(), symbol_id);
+            if let Some(val) = self.by_container.remove(&by_container_key)? {
                 // remove annotation from by_anno_qname
                 let anno = Annotation {
                     key: key.clone(),
-                    val: String::from_utf8_lossy(&raw_value).to_string(),
+                    val,
                 };
 
-                self.db
-                    .delete_cf(&by_anno_qname, create_by_anno_qname_key(item, &anno))?;
+                self.by_anno_qname.remove(&create_by_anno_qname_key(
+                    item.clone(),
+                    symbol_id,
+                    &anno.val,
+                ))?;
                 // decrease the annotation count for this key
                 let new_key_count: usize =
                     if let Some(num_of_keys) = self.anno_key_sizes.get_mut(key) {
@@ -565,35 +394,20 @@ where
                 // if annotation count dropped to zero remove the key
                 if new_key_count == 0 {
                     self.anno_key_sizes.remove(key);
+                    if let Some(id) = self.anno_key_symbols.get_symbol(key) {
+                        self.anno_key_symbols.remove(id);
+                    }
                 }
 
-                Ok(Some(Cow::Owned(anno.val)))
-            } else {
-                Ok(None)
+                return Ok(Some(Cow::Owned(anno.val)));
             }
-        } else {
-            Ok(None)
         }
+        Ok(None)
     }
 
     fn clear(&mut self) -> Result<()> {
-        if let Some(by_container) = self.get_by_container_cf() {
-            for (key, _) in self
-                .db
-                .iterator_cf(&by_container, rocksdb::IteratorMode::Start)?
-            {
-                self.db.delete_cf(&by_container, key)?;
-            }
-        }
-
-        if let Some(by_anno_qname) = self.get_by_anno_qname_cf() {
-            for (key, _) in self
-                .db
-                .iterator_cf(&by_anno_qname, rocksdb::IteratorMode::Start)?
-            {
-                self.db.delete_cf(&by_anno_qname, key)?;
-            }
-        }
+        self.by_container.clear();
+        self.by_anno_qname.clear();
 
         self.largest_item = None;
         self.anno_key_sizes.clear();
@@ -621,31 +435,31 @@ where
     }
 
     fn number_of_annotations(&self) -> usize {
-        if let Some(by_container) = self.get_by_container_cf() {
-            let mut it_raw: rocksdb::DBRawIterator =
-                self.iterator_cf_from_start(by_container).into();
-            let mut result = 0;
-            while it_raw.valid() {
-                result += 1;
-                it_raw.next();
-            }
-            result
-        } else {
-            0
-        }
+        self.by_container.iter().count()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.by_container.is_empty()
     }
 
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
-        if let Some(by_container) = self.get_by_container_cf() {
-            let raw = self.get_pinned_cf(&by_container, create_by_container_key(item, key));
-            if let Some(raw) = raw {
-                let val: String = String::from_utf8_lossy(&raw).to_string();
-                Some(Cow::Owned(val))
-            } else {
-                None
+        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
+            let raw = self
+                .by_container
+                .get(&create_by_container_key(item.clone(), symbol_id));
+            if let Some(val) = raw {
+                return Some(Cow::Owned(val));
             }
+        }
+        None
+    }
+
+    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> bool {
+        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
+            self.by_container
+                .contains_key(&create_by_container_key(item.clone(), symbol_id))
         } else {
-            None
+            false
         }
     }
 
@@ -655,64 +469,65 @@ where
         name: Option<&str>,
         it: Box<dyn Iterator<Item = T>>,
     ) -> Vec<Match> {
-        if let Some(by_container) = self.get_by_container_cf() {
-            if let Some(name) = name {
-                if let Some(ns) = ns {
-                    // return the only possible annotation for each node
-                    let key = Arc::from(AnnoKey {
-                        ns: ns.to_string(),
-                        name: name.to_string(),
-                    });
-                    let mut matches: Vec<Match> = Vec::new();
-                    // createa a template key
-                    let mut container_key = create_by_container_key(&T::default(), &key);
+        if let Some(name) = name {
+            if let Some(ns) = ns {
+                // return the only possible annotation for each node
+                let key = Arc::from(AnnoKey {
+                    ns: ns.to_string(),
+                    name: name.to_string(),
+                });
+                let mut matches: Vec<Match> = Vec::new();
+                if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
+                    // create a template key
+                    let mut container_key = create_by_container_key(T::default(), symbol_id);
                     for item in it {
                         // Set the first bytes to the ID of the item.
                         // This saves the repeated expensive construction of the annotation key part.
-                        container_key[0..T::key_size()][0..T::key_size()]
-                            .copy_from_slice(&item.as_key());
-                        if self.get_pinned_cf(&by_container, &container_key).is_some() {
+                        container_key[0..T::key_size()].copy_from_slice(&item.create_key());
+                        if self.by_container.contains_key(&container_key) {
                             matches.push((item, key.clone()).into());
                         }
                     }
-                    matches
-                } else {
-                    let mut matching_qnames: Vec<(Vec<u8>, Arc<AnnoKey>)> = self
-                        .get_qnames(&name)
-                        .into_iter()
-                        .map(|key| (create_by_container_key(&T::default(), &key), Arc::from(key)))
-                        .collect();
-                    // return all annotations with the correct name for each node
-                    let mut matches: Vec<Match> = Vec::new();
-                    for item in it {
-                        for (container_key, anno_key) in matching_qnames.iter_mut() {
-                            // Set the first bytes to the ID of the item.
-                            // This saves the repeated expensive construction of the annotation key part.
-                            container_key[0..T::key_size()][0..T::key_size()]
-                                .copy_from_slice(&item.as_key());
-                            if self.get_pinned_cf(&by_container, container_key).is_some() {
-                                matches.push((item.clone(), anno_key.clone()).into());
-                            }
+                }
+                matches
+            } else {
+                let mut matching_qnames: Vec<(Vec<u8>, Arc<AnnoKey>)> = self
+                    .get_qnames(&name)
+                    .into_iter()
+                    .filter_map(|key| {
+                        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
+                            let serialized_key = create_by_container_key(T::default(), symbol_id);
+                            Some((serialized_key, Arc::from(key)))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                // return all annotations with the correct name for each node
+                let mut matches: Vec<Match> = Vec::new();
+                for item in it {
+                    for (container_key, anno_key) in matching_qnames.iter_mut() {
+                        // Set the first bytes to the ID of the item.
+                        // This saves the repeated expensive construction of the annotation key part.
+                        container_key[0..T::key_size()].copy_from_slice(&item.create_key());
+                        if self.by_container.contains_key(container_key) {
+                            matches.push((item.clone(), anno_key.clone()).into());
                         }
                     }
-                    matches
                 }
-            } else {
-                // get all annotation keys for this item
-                it.flat_map(|item| {
-                    self.prefix_iterator(&by_container, item.as_key())
-                        .map(|(data, _)| {
-                            let (node, matched_anno_key) = parse_by_container_key(&data);
-                            Match {
-                                node,
-                                anno_key: Arc::from(matched_anno_key),
-                            }
-                        })
-                })
-                .collect()
+                matches
             }
         } else {
-            vec![]
+            // get all annotation keys for this item
+            it.flat_map(|item| {
+                let start = create_by_container_key(item.clone(), usize::min_value());
+                let end = create_by_container_key(item, usize::max_value());
+
+                self.by_container
+                    .range(start..=end)
+                    .map(|(data, _)| self.parse_by_container_key(data).into())
+            })
+            .collect()
         }
     }
 
@@ -768,8 +583,8 @@ where
                 let value = value.to_string();
                 let it = self
                     .matching_items(namespace, name, None)
-                    .filter(move |(item, anno_key)| {
-                        if let Some(item_value) = self.get_value_for_item(item, anno_key) {
+                    .filter(move |(node, anno_key)| {
+                        if let Some(item_value) = self.get_value_for_item(node, anno_key) {
                             item_value != value
                         } else {
                             false
@@ -821,42 +636,44 @@ where
         ns: Option<&str>,
         name: Option<&str>,
     ) -> Vec<Arc<AnnoKey>> {
-        if let Some(by_container) = self.get_by_container_cf() {
-            if let Some(name) = name {
-                if let Some(ns) = ns {
-                    let key = Arc::from(AnnoKey {
-                        ns: ns.to_string(),
-                        name: name.to_string(),
-                    });
+        if let Some(name) = name {
+            if let Some(ns) = ns {
+                let key = Arc::from(AnnoKey {
+                    ns: ns.to_string(),
+                    name: name.to_string(),
+                });
+                if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
                     if self
-                        .get_pinned_cf(&by_container, create_by_container_key(item, &key))
-                        .is_some()
+                        .by_container
+                        .contains_key(&create_by_container_key(item.clone(), symbol_id))
                     {
                         return vec![key.clone()];
                     }
-                    vec![]
-                } else {
-                    // get all qualified names for the given annotation name
-                    let res: Vec<Arc<AnnoKey>> = self
-                        .get_qnames(&name)
-                        .into_iter()
-                        .filter(|key| {
-                            self.get_pinned_cf(&by_container, create_by_container_key(item, key))
-                                .is_some()
-                        })
-                        .map(|key| Arc::from(key))
-                        .collect();
-                    res
                 }
+                vec![]
             } else {
-                // no annotation name given, return all
-                self.get_annotations_for_item(item)
+                // get all qualified names for the given annotation name
+                let res: Vec<Arc<AnnoKey>> = self
+                    .get_qnames(&name)
                     .into_iter()
-                    .map(|anno| Arc::from(anno.key))
-                    .collect()
+                    .filter(|key| {
+                        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
+                            self.by_container
+                                .contains_key(&create_by_container_key(item.clone(), symbol_id))
+                        } else {
+                            false
+                        }
+                    })
+                    .map(|key| Arc::from(key))
+                    .collect();
+                res
             }
         } else {
-            vec![]
+            // no annotation name given, return all
+            self.get_annotations_for_item(item)
+                .into_iter()
+                .map(|anno| Arc::from(anno.key))
+                .collect()
         }
     }
 
@@ -976,8 +793,7 @@ where
         if most_frequent_first {
             let mut values_with_count: HashMap<String, usize> = HashMap::default();
             for (data, _) in self.get_by_anno_qname_range(key) {
-                let (_, anno): (NodeID, Annotation) = parse_by_anno_qname_key(&data);
-                let val = anno.val;
+                let (_, _, val) = self.parse_by_anno_qname_key(data);
 
                 let count = values_with_count.entry(val).or_insert(0);
                 *count += 1;
@@ -995,8 +811,8 @@ where
             let values_unique: HashSet<Cow<str>> = self
                 .get_by_anno_qname_range(key)
                 .map(|(data, _)| {
-                    let (_, anno): (NodeID, Annotation) = parse_by_anno_qname_key(&data);
-                    Cow::Owned(anno.val)
+                    let (_, _, val) = self.parse_by_anno_qname_key(data);
+                    Cow::Owned(val)
                 })
                 .collect();
             return values_unique.into_iter().collect();
@@ -1029,8 +845,8 @@ where
                 .into_iter()
                 .map(|data| {
                     let (data, _) = data;
-                    let (_, anno): (NodeID, Annotation) = parse_by_anno_qname_key(&data);
-                    anno.val
+                    let (_, _, val) = self.parse_by_anno_qname_key(data);
+                    val
                 })
                 .collect();
 
@@ -1072,45 +888,16 @@ where
 
     fn load_annotations_from(&mut self, location: &Path) -> Result<()> {
         let location = location.join(SUBFOLDER_NAME);
+
         if !self.location.eq(&location) {
-            // open a database for the given location and import their data
-            let other_db = open_db::<T>(&location)?;
-
-            self.clear()?;
-
-            let by_container = self
-                .db
-                .cf_handle("by_container")
-                .ok_or_else(|| Error::from("Column family does not exist"))?;
-            let other_by_container: &rocksdb::ColumnFamily = other_db
-                .cf_handle("by_container")
-                .ok_or_else(|| Error::from("Column family does not exist"))?;
-
-            for (key, val) in
-                other_db.iterator_cf(&other_by_container, rocksdb::IteratorMode::Start)?
-            {
-                self.db.put_cf(&by_container, key, val)?;
-            }
-
-            let by_anno_qname = self
-                .db
-                .cf_handle("by_anno_qname")
-                .ok_or_else(|| Error::from("Column family does not exist"))?;
-            let other_by_anno_qname = other_db
-                .cf_handle("by_anno_qname")
-                .ok_or_else(|| Error::from("Column family does not exist"))?;
-
-            let mut read_opts = rocksdb::ReadOptions::default();
-            read_opts.set_tailing(true);
-            read_opts.set_verify_checksums(false);
-
-            for (key, val) in other_db.iterator_cf_opt(
-                &other_by_anno_qname,
-                &read_opts,
-                rocksdb::IteratorMode::Start,
-            )? {
-                self.db.put_cf(&by_anno_qname, key, val)?;
-            }
+            self.by_container = DiskMap::new(
+                Some(&location.join("by_container.bin")),
+                EvictionStrategy::default(),
+            )?;
+            self.by_anno_qname = DiskMap::new(
+                Some(&location.join("by_anno_qname.bin")),
+                EvictionStrategy::default(),
+            )?;
         }
 
         // load internal helper fields
@@ -1119,6 +906,8 @@ where
         self.largest_item = bincode::deserialize_from(&mut reader)?;
         self.anno_key_sizes = bincode::deserialize_from(&mut reader)?;
         self.histogram_bounds = bincode::deserialize_from(&mut reader)?;
+        self.anno_key_symbols = bincode::deserialize_from(&mut reader)?;
+        self.anno_key_symbols.after_deserialization();
 
         Ok(())
     }
@@ -1126,49 +915,11 @@ where
     fn save_annotations_to(&self, location: &Path) -> Result<()> {
         let location = location.join(SUBFOLDER_NAME);
 
-        // save the rocksdb data
-        if self.location.eq(&location) {
-            self.db.flush()?;
-        } else {
-            // open a database for the given location and export to it
-            let other_db = open_db::<T>(&location)?;
-
-            let by_container = self
-                .db
-                .cf_handle("by_container")
-                .ok_or_else(|| Error::from("Column family does not exist"))?;
-            let other_by_container = other_db
-                .cf_handle("by_container")
-                .ok_or_else(|| Error::from("Column family does not exist"))?;
-
-            let mut read_opts = rocksdb::ReadOptions::default();
-            read_opts.set_tailing(true);
-            read_opts.set_verify_checksums(false);
-
-            for (key, val) in
-                self.db
-                    .iterator_cf_opt(&by_container, &read_opts, rocksdb::IteratorMode::Start)?
-            {
-                other_db.put_cf(&other_by_container, key, val)?;
-            }
-
-            let by_anno_qname = self
-                .db
-                .cf_handle("by_anno_qname")
-                .ok_or_else(|| Error::from("Column family does not exist"))?;
-            let other_by_anno_qname = other_db
-                .cf_handle("by_anno_qname")
-                .ok_or_else(|| Error::from("Column family does not exist"))?;
-
-            for (key, val) in
-                self.db
-                    .iterator_cf_opt(&by_anno_qname, &read_opts, rocksdb::IteratorMode::Start)?
-            {
-                other_db.put_cf(&other_by_anno_qname, key, val)?;
-            }
-
-            self.db.flush()?;
-        }
+        // write out the disk maps to a single sorted string table
+        self.by_container
+            .write_to(&location.join("by_container.bin"))?;
+        self.by_anno_qname
+            .write_to(&location.join("by_anno_qname.bin"))?;
 
         // save the other custom fields
         let f = std::fs::File::create(location.join("custom.bin"))?;
@@ -1176,6 +927,7 @@ where
         bincode::serialize_into(&mut writer, &self.largest_item)?;
         bincode::serialize_into(&mut writer, &self.anno_key_sizes)?;
         bincode::serialize_into(&mut writer, &self.histogram_bounds)?;
+        bincode::serialize_into(&mut writer, &self.anno_key_symbols)?;
 
         Ok(())
     }
@@ -1260,12 +1012,14 @@ mod tests {
 
         assert_eq!(3, a.number_of_annotations());
 
-        let all = a.get_annotations_for_item(&1);
+        let mut all = a.get_annotations_for_item(&1);
         assert_eq!(3, all.len());
 
+        all.sort_by(|a, b| a.key.partial_cmp(&b.key).unwrap());
+
         assert_eq!(test_anno1, all[0]);
-        assert_eq!(test_anno3, all[1]);
-        assert_eq!(test_anno2, all[2]);
+        assert_eq!(test_anno2, all[1]);
+        assert_eq!(test_anno3, all[2]);
     }
 
     #[test]

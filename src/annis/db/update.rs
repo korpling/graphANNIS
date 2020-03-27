@@ -1,7 +1,14 @@
 //! Types used to describe updates on graphs.
 
+use crate::annis::errors::*;
+use crate::annis::util::disk_collections::DiskMap;
+use serde::de::Error as DeserializeError;
+use serde::de::{MapAccess, Visitor};
+use serde::ser::Error as SerializeError;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 /// Describes a single update on the graph.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, MallocSizeOf)]
 pub enum UpdateEvent {
     /// Add a node with a name and type.
     AddNode {
@@ -63,72 +70,106 @@ pub enum UpdateEvent {
 }
 
 /// A list of changes to apply to an graph.
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Default)]
 #[repr(C)]
 pub struct GraphUpdate {
-    diffs: Vec<(u64, UpdateEvent)>,
-    last_consistent_change_id: u64,
+    diffs: DiskMap<u64, UpdateEvent>,
+    event_counter: u64,
 }
 
 impl GraphUpdate {
     /// Create a new empty list of updates.
     pub fn new() -> GraphUpdate {
         GraphUpdate {
-            diffs: Vec::default(),
-            last_consistent_change_id: 0,
+            diffs: DiskMap::default(),
+            event_counter: 0,
         }
     }
 
     /// Add the given event to the update list.
-    pub fn add_event(&mut self, event: UpdateEvent) {
-        let change_id = self.last_consistent_change_id + (self.diffs.len() as u64) + 1;
-        self.diffs.push((change_id, event));
+    pub fn add_event(&mut self, event: UpdateEvent) -> Result<()> {
+        self.event_counter += 1;
+        self.diffs.insert(self.event_counter, event)?;
+        Ok(())
     }
 
-    /// Check if the last item of the last has been marked as consistent.
-    pub fn is_consistent(&self) -> bool {
-        if let Some(last) = self.diffs.last() {
-            self.last_consistent_change_id == last.0
-        } else {
-            true
-        }
-    }
-
-    /// Get the ID of the last change that has been marked as consistent.
-    pub fn get_last_consistent_change_id(&self) -> u64 {
-        self.last_consistent_change_id
-    }
-
-    /// Mark the current state as consistent.
-    pub fn finish(&mut self) {
-        if let Some(last) = self.diffs.last() {
-            self.last_consistent_change_id = last.0;
-        }
-    }
-
-    /// Get all consistent changes
-    pub fn consistent_changes<'a>(
-        &'a self,
-    ) -> Box<dyn Iterator<Item = (u64, &'a UpdateEvent)> + 'a> {
-        let last_consistent_change_id = self.last_consistent_change_id;
-        let it = self.diffs.iter().filter_map(move |d| {
-            if d.0 <= last_consistent_change_id {
-                Some((d.0, &d.1))
-            } else {
-                None
-            }
-        });
-
-        Box::new(it)
-    }
-
-    /// Return the number of updates in the list.
-    pub fn len(&self) -> usize {
-        self.diffs.len()
+    /// Get all changes
+    pub fn iter<'a>(&'a self) -> Result<GraphUpdateIterator<'a>> {
+        let it = GraphUpdateIterator::new(self)?;
+        Ok(it)
     }
 
     /// Returns `true` if the update list is empty.
-    pub fn is_empty(&self) -> bool {
-        self.diffs.is_empty()
+    pub fn is_empty(&self) -> Result<bool> {
+        self.diffs.try_is_empty()
+    }
+}
+
+pub struct GraphUpdateIterator<'a> {
+    diff_iter: Box<dyn Iterator<Item = (u64, UpdateEvent)> + 'a>,
+    length: u64,
+}
+
+impl<'a> GraphUpdateIterator<'a> {
+    fn new(g: &'a GraphUpdate) -> Result<GraphUpdateIterator<'a>> {
+        Ok(GraphUpdateIterator {
+            length: g.event_counter,
+            diff_iter: g.diffs.try_iter()?,
+        })
+    }
+}
+
+impl<'a> std::iter::Iterator for GraphUpdateIterator<'a> {
+    type Item = (u64, UpdateEvent);
+
+    fn next(&mut self) -> Option<(u64, UpdateEvent)> {
+        self.diff_iter.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.length as usize, Some(self.length as usize))
+    }
+}
+
+impl Serialize for GraphUpdate {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let it = self.iter().map_err(S::Error::custom)?;
+        serializer.collect_map(it)
+    }
+}
+
+struct GraphUpdateVisitor {}
+
+impl<'de> Visitor<'de> for GraphUpdateVisitor {
+    type Value = GraphUpdate;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a list of graph updates")
+    }
+
+    fn visit_map<M>(self, mut access: M) -> std::result::Result<Self::Value, M::Error>
+    where
+        M: MapAccess<'de>,
+    {
+        let mut g = GraphUpdate::default();
+
+        while let Some((key, value)) = access.next_entry().map_err(M::Error::custom)? {
+            g.diffs.insert(key, value).map_err(M::Error::custom)?;
+            g.event_counter = key;
+        }
+
+        Ok(g)
+    }
+}
+
+impl<'de> Deserialize<'de> for GraphUpdate {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_map(GraphUpdateVisitor {})
     }
 }

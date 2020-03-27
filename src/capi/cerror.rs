@@ -6,11 +6,15 @@ use std;
 use std::error::Error as StdError;
 use std::ffi::CString;
 
+/// An representation of an internal error.
 pub struct Error {
+    /// The message for the user.
     pub msg: CString,
+    // The general kind or type of error.
     pub kind: CString,
 }
 
+/// A list of multiple errors.
 pub type ErrorList = Vec<Error>;
 
 struct CauseIterator<'a> {
@@ -47,7 +51,7 @@ fn error_kind(e: &errors::Error) -> &str {
         errors::Error::Strum(_) => "Strum",
         errors::Error::Regex(_) => "Regex",
         errors::Error::RandomGenerator(_) => "RandomGenerator",
-        errors::Error::RocksDB(_) => "RocksDB",
+        errors::Error::SSTable(_) => "SSTable",
     }
 }
 
@@ -103,16 +107,18 @@ impl From<std::io::Error> for Error {
         return err;
     }
 }
-
+/// Creates a new error from the internal type
 pub fn new(err: errors::Error) -> *mut ErrorList {
     Box::into_raw(Box::new(ErrorList::from(err)))
 }
 
+/// Returns the number of errors in the list.
 #[no_mangle]
 pub extern "C" fn annis_error_size(ptr: *const ErrorList) -> size_t {
     vec_size(ptr)
 }
 
+/// Get the message for the error at position `i` in the list.
 #[no_mangle]
 pub extern "C" fn annis_error_get_msg(ptr: *const ErrorList, i: size_t) -> *const c_char {
     let item = vec_get(ptr, i);
@@ -123,6 +129,7 @@ pub extern "C" fn annis_error_get_msg(ptr: *const ErrorList, i: size_t) -> *cons
     return err.msg.as_ptr();
 }
 
+/// Get the kind or type for the error at position `i` in the list.
 #[no_mangle]
 pub extern "C" fn annis_error_get_kind(ptr: *const ErrorList, i: size_t) -> *const c_char {
     let item = vec_get(ptr, i);

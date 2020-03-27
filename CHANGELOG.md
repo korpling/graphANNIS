@@ -5,24 +5,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.0] - 2020-03-05
+
 ### Removed
 
-- Removed the accidentally public `size_of_cached` function of `Graph` from the API.
-
+- Removed the unintentionally public `size_of_cached` function of `Graph` from the API.
 
 ### Changed
 
-- Backward incompatible: the `AnnotationStorage` and `WriteableGraphStorage` interfaces have been adjusted to return `Result` types
-  for mutable functions. This is necessary because on-disk annotation storage implementations might fail and we want to handle it when 
-  modifying the annotation storage.
-
+- Backward incompatible: the `AnnotationStorage` and `WriteableGraphStorage` interfaces have been adjusted to return `Result` types for mutable functions. 
+  This change is necessary because on-disk annotation storage implementations might fail, and we want to handle it when modifying the annotation storage.
+- Improved main memory usage when importing relANNIS files. 
+  The implementation now uses temporary disk-based maps instead of memory-intensive maps.
+  This change also affects the `GraphUpdate` class, which is now disk-based, too.
 
 ### Added
 
 - Added disk-based annotation storage for nodes as an alternative to the memory-only variant.
-  This is based on <https://rocksdb.org/>.
   On the console, use `use_disk <on|off>` to set if newly imported corpora prefer disk-based annotation storage.
   `disk_based` parameters are also added to the various "import relANNIS" API functions.
+
+### Fixed
+
+- Reconstruct coverage edges with the correct component, if the actual edges are omitted in rank.annis, 
+  but the ones without a parent node are still present. [#125](https://github.com/korpling/graphANNIS/issues/125)
 
 ## [0.25.1] - 2020-01-03
 

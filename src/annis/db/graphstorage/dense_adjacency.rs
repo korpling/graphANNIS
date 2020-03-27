@@ -4,7 +4,7 @@ use crate::annis::db::{AnnotationStorage, Graph};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
 use crate::annis::types::{Edge, NodeID};
-use num::ToPrimitive;
+use num_traits::ToPrimitive;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Deserialize;
 use std::ops::Bound;
