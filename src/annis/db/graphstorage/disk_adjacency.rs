@@ -9,6 +9,8 @@ use rustc_hash::FxHashSet;
 use std::collections::BTreeSet;
 use std::{ops::Bound, path::PathBuf};
 
+pub const SERIALIZATION_ID: &str = "DiskAdjacencyListV1";
+
 #[derive(MallocSizeOf)]
 pub struct DiskAdjacencyListStorage {
     #[ignore_malloc_size_of = "is stored on disk"]
@@ -33,6 +35,7 @@ fn get_fan_outs(edges: &DiskMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
 }
 
 impl DiskAdjacencyListStorage {
+
     pub fn new() -> Result<DiskAdjacencyListStorage> {
         Ok(DiskAdjacencyListStorage {
             edges: DiskMap::default(),
@@ -93,12 +96,12 @@ impl GraphStorage for DiskAdjacencyListStorage {
     }
 
     fn serialization_id(&self) -> String {
-        "DiskAdjacencyListV1".to_owned()
+        SERIALIZATION_ID.to_owned()
     }
 
     fn load_from(location: &Path) -> Result<Self>
     where
-        for<'de> Self: std::marker::Sized + Deserialize<'de>,
+        Self: std::marker::Sized,
     {
         // Read stats
         let stats_path = location.join("edge_stats.bin");

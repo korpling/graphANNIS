@@ -1286,7 +1286,7 @@ impl Graph {
 
                 // convert if necessary
                 if opt_info.id != gs.serialization_id() {
-                    let mut new_gs = registry::create_from_info(&opt_info);
+                    let mut new_gs = registry::create_from_info(&opt_info)?;
                     let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
                         new_gs_mut.copy(self, gs.as_ref())?;
                         true

@@ -1,5 +1,7 @@
 use super::adjacencylist::AdjacencyListStorage;
 use super::dense_adjacency::DenseAdjacencyListStorage;
+use super::disk_adjacency;
+use super::disk_adjacency::DiskAdjacencyListStorage;
 use super::linear::LinearGraphStorage;
 use super::prepost::PrePostOrderStorage;
 use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
@@ -12,7 +14,7 @@ use std::{path::Path, sync::Arc};
 
 pub struct GSInfo {
     pub id: String,
-    constructor: fn() -> Arc<dyn GraphStorage>,
+    constructor: fn() -> Result<Arc<dyn GraphStorage>>,
     deserialize_func: fn(&Path) -> Result<Arc<dyn GraphStorage>>,
 }
 
@@ -39,13 +41,23 @@ lazy_static! {
     };
 }
 
-pub fn create_writeable(graph: &Graph, orig : Option<&dyn GraphStorage>) -> Result<Arc<dyn GraphStorage>> {
-    // TODO: make this configurable when there are more writeable graph storage implementations
-    let mut result = AdjacencyListStorage::new();
-    if let Some(orig) = orig {
-        result.copy(graph, orig)?;
+pub fn create_writeable(
+    graph: &Graph,
+    orig: Option<&dyn GraphStorage>,
+) -> Result<Arc<dyn GraphStorage>> {
+    if graph.disk_based {
+        let mut result = DiskAdjacencyListStorage::new()?;
+        if let Some(orig) = orig {
+            result.copy(graph, orig)?;
+        }
+        Ok(Arc::from(result))
+    } else {
+        let mut result = AdjacencyListStorage::new();
+        if let Some(orig) = orig {
+            result.copy(graph, orig)?;
+        }
+        Ok(Arc::from(result))
     }
-    Ok(Arc::from(result))
 }
 
 pub fn get_optimal_impl_heuristic(db: &Graph, stats: &GraphStatistic) -> GSInfo {
@@ -71,14 +83,25 @@ pub fn get_optimal_impl_heuristic(db: &Graph, stats: &GraphStatistic) -> GSInfo 
 }
 
 fn get_adjacencylist_impl(db: &Graph, stats: &GraphStatistic) -> GSInfo {
-    // check if a large percentage of nodes are part of the graph storage
-    if let Some(largest_node_id) = db.node_annos.get_largest_item() {
-        if stats.max_fan_out <= 1 && (stats.nodes as f64 / largest_node_id as f64) >= 0.75 {
-            return create_info::<DenseAdjacencyListStorage>();
+    if db.disk_based {
+        GSInfo {
+            id: disk_adjacency::SERIALIZATION_ID.to_owned(),
+            constructor: || Ok(Arc::from(DiskAdjacencyListStorage::new()?)),
+            deserialize_func: |path| {
+                let result = DiskAdjacencyListStorage::load_from(path)?;
+                Ok(Arc::from(result))
+            },
         }
-    }
+    } else {
+        // check if a large percentage of nodes are part of the graph storage
+        if let Some(largest_node_id) = db.node_annos.get_largest_item() {
+            if stats.max_fan_out <= 1 && (stats.nodes as f64 / largest_node_id as f64) >= 0.75 {
+                return create_info::<DenseAdjacencyListStorage>();
+            }
+        }
 
-    create_info::<AdjacencyListStorage>()
+        create_info::<AdjacencyListStorage>()
+    }
 }
 
 fn get_prepostorder_by_size(stats: &GraphStatistic) -> GSInfo {
@@ -137,12 +160,12 @@ where
 
     GSInfo {
         id: instance.serialization_id(),
-        constructor: || Arc::new(GS::default()),
+        constructor: || Ok(Arc::new(GS::default())),
         deserialize_func: |location| Ok(Arc::new(GS::load_from(location)?)),
     }
 }
 
-pub fn create_from_info(info: &GSInfo) -> Arc<dyn GraphStorage> {
+pub fn create_from_info(info: &GSInfo) -> Result<Arc<dyn GraphStorage>> {
     (info.constructor)()
 }
 

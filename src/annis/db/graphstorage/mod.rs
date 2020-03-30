@@ -126,7 +126,7 @@ pub trait GraphStorage: EdgeContainer {
     /// Load the graph storage from a `location` on the disk. This location is a directory, which can contain files specific to this graph storage.
     fn load_from(location: &Path) -> Result<Self>
     where
-        for<'de> Self: std::marker::Sized + Deserialize<'de>;
+        Self: std::marker::Sized;
 
     /// Save the graph storage a `location` on the disk. This location must point to an existing directory.
     fn save_to(&self, location: &Path) -> Result<()>;
