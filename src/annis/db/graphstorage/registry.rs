@@ -8,7 +8,7 @@ use crate::annis::errors::*;
 use serde::Deserialize;
 use std;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::{path::{PathBuf, Path}, sync::Arc};
 
 pub struct GSInfo {
     pub id: String,
@@ -144,18 +144,25 @@ pub fn create_from_info(info: &GSInfo) -> Arc<dyn GraphStorage> {
 
 pub fn deserialize(
     impl_name: &str,
-    input: &mut dyn std::io::Read,
+    location: &Path,
 ) -> Result<Arc<dyn GraphStorage>> {
+    let data_path = PathBuf::from(location).join("component.bin");
+    let f_data = std::fs::File::open(data_path)?;
+    let mut input = std::io::BufReader::new(f_data);
+
     let info = REGISTRY.get(impl_name).ok_or_else(|| {
         format!(
             "Could not find implementation for graph storage with name '{}'",
             impl_name
         )
     })?;
-    (info.deserialize_func)(input)
+    (info.deserialize_func)(&mut input)
 }
 
-pub fn serialize(data: &Arc<dyn GraphStorage>, writer: &mut dyn std::io::Write) -> Result<String> {
-    data.serialize_gs(writer)?;
+pub fn serialize(data: &Arc<dyn GraphStorage>, location: &Path) -> Result<String> {
+    let data_path = PathBuf::from(location).join("component.bin");
+    let f_data = std::fs::File::create(&data_path)?;
+    let mut writer = std::io::BufWriter::new(f_data);
+    data.serialize_gs(&mut writer)?;
     Ok(data.serialization_id())
 }

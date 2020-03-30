@@ -215,11 +215,8 @@ fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<dyn G
     let mut impl_name = String::new();
     f_impl.read_to_string(&mut impl_name)?;
 
-    let data_path = PathBuf::from(&cpath).join("component.bin");
-    let f_data = std::fs::File::open(data_path)?;
-    let mut buf_reader = std::io::BufReader::new(f_data);
 
-    let gs = registry::deserialize(&impl_name, &mut buf_reader)?;
+    let gs = registry::deserialize(&impl_name, &cpath)?;
 
     Ok(gs)
 }
@@ -448,11 +445,8 @@ impl Graph {
             if let Some(ref data) = *e {
                 let dir = PathBuf::from(&location).join(component_to_relative_path(c));
                 std::fs::create_dir_all(&dir)?;
-
-                let data_path = PathBuf::from(&dir).join("component.bin");
-                let f_data = std::fs::File::create(&data_path)?;
-                let mut writer = std::io::BufWriter::new(f_data);
-                let impl_name = registry::serialize(&data, &mut writer)?;
+                
+                let impl_name = registry::serialize(&data, &dir)?;
 
                 let cfg_path = PathBuf::from(&dir).join("impl.cfg");
                 let mut f_cfg = std::fs::File::create(cfg_path)?;
