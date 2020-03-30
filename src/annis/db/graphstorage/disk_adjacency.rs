@@ -3,11 +3,11 @@ use crate::annis::db::annostorage::ondisk::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::types::Edge;
-use crate::annis::util::disk_collections::DiskMap;
+use crate::annis::util::disk_collections::{DiskMap, EvictionStrategy};
 
 use rustc_hash::FxHashSet;
 use std::collections::BTreeSet;
-use std::ops::Bound;
+use std::{ops::Bound, path::PathBuf};
 
 #[derive(MallocSizeOf)]
 pub struct DiskAdjacencyListStorage {
@@ -96,15 +96,43 @@ impl GraphStorage for DiskAdjacencyListStorage {
         "DiskAdjacencyListV1".to_owned()
     }
 
-    fn load_from(_location: &Path) -> Result<Self>
+    fn load_from(location: &Path) -> Result<Self>
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
-        unimplemented!()
+        // Read stats
+        let stats_path = location.join("edge_stats.bin");
+        let f_stats = std::fs::File::create(&stats_path)?;
+        let input = std::io::BufReader::new(f_stats);
+        let stats = bincode::deserialize_from(input)?;
+
+        let result = DiskAdjacencyListStorage {
+            edges: DiskMap::new(
+                Some(&location.join("edges.bin")),
+                EvictionStrategy::default(),
+            )?,
+            inverse_edges: DiskMap::new(
+                Some(&location.join("inverse_edges.bin")),
+                EvictionStrategy::default(),
+            )?,
+            annos: AnnoStorageImpl::new(Some(PathBuf::from(location)))?,
+            stats,
+        };
+        Ok(result)
     }
 
-    fn save_to(&self, _location: &Path) -> Result<()> {
-        unimplemented!()
+    fn save_to(&self, location: &Path) -> Result<()> {
+        self.edges.write_to(&location.join("edges.bin"))?;
+        self.inverse_edges
+            .write_to(&location.join("inverse_edges.bin"))?;
+        self.annos.save_annotations_to(location)?;
+        // Write stats with bincode
+        let stats_path = location.join("edge_stats.bin");
+        let f_stats = std::fs::File::create(&stats_path)?;
+        let mut writer = std::io::BufWriter::new(f_stats);
+        bincode::serialize_into(&mut writer, &self.stats)?;
+
+        Ok(())
     }
 
     fn find_connected<'a>(
