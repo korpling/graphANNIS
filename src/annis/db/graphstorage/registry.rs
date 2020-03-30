@@ -39,9 +39,9 @@ lazy_static! {
     };
 }
 
-pub fn create_writeable() -> AdjacencyListStorage {
+pub fn create_writeable() -> Result<AdjacencyListStorage> {
     // TODO: make this configurable when there are more writeable graph storage implementations
-    AdjacencyListStorage::new()
+    Ok(AdjacencyListStorage::new())
 }
 
 pub fn get_optimal_impl_heuristic(db: &Graph, stats: &GraphStatistic) -> GSInfo {

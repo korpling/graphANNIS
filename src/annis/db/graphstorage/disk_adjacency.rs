@@ -1,5 +1,5 @@
 use super::*;
-use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
+use crate::annis::db::annostorage::ondisk::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::types::Edge;
@@ -32,20 +32,15 @@ fn get_fan_outs(edges: &DiskMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
     fan_outs
 }
 
-impl Default for DiskAdjacencyListStorage {
-    fn default() -> Self {
-        DiskAdjacencyListStorage::new()
-    }
-}
 
 impl DiskAdjacencyListStorage {
-    pub fn new() -> DiskAdjacencyListStorage {
-        DiskAdjacencyListStorage {
+    pub fn new() -> Result<DiskAdjacencyListStorage> {
+        Ok(DiskAdjacencyListStorage {
             edges: DiskMap::default(),
             inverse_edges: DiskMap::default(),
-            annos: AnnoStorageImpl::new(),
+            annos: AnnoStorageImpl::new(None)?,
             stats: None,
-        }
+        })
     }
 
     pub fn clear(&mut self) -> Result<()> {
@@ -452,7 +447,7 @@ mod tests {
         +---+
         */
 
-        let mut gs = DiskAdjacencyListStorage::new();
+        let mut gs = DiskAdjacencyListStorage::new().unwrap();
         gs.add_edge(Edge {
             source: 1,
             target: 2,
@@ -509,7 +504,7 @@ mod tests {
                               +-----> | 4 |
                                       +---+
         */
-        let mut gs = DiskAdjacencyListStorage::new();
+        let mut gs = DiskAdjacencyListStorage::new().unwrap();
 
         gs.add_edge(Edge {
             source: 1,
@@ -576,7 +571,7 @@ mod tests {
 
     #[test]
     fn indirect_cycle_statistics() {
-        let mut gs = DiskAdjacencyListStorage::new();
+        let mut gs = DiskAdjacencyListStorage::new().unwrap();
 
         gs.add_edge(Edge {
             source: 1,
@@ -616,7 +611,7 @@ mod tests {
 
     #[test]
     fn multi_branch_cycle_statistics() {
-        let mut gs = DiskAdjacencyListStorage::new();
+        let mut gs = DiskAdjacencyListStorage::new().unwrap();
 
         gs.add_edge(Edge {
             source: 903,

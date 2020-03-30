@@ -1167,7 +1167,7 @@ impl Graph {
             let loaded_comp = if is_writable {
                 loaded_comp
             } else {
-                let mut gs_copy: AdjacencyListStorage = registry::create_writeable();
+                let mut gs_copy: AdjacencyListStorage = registry::create_writeable()?;
                 gs_copy.copy(&self, loaded_comp.as_ref())?;
                 Arc::from(gs_copy)
             };
@@ -1208,7 +1208,7 @@ impl Graph {
             // make sure the component is actually writable and loaded
             self.insert_or_copy_writeable(c)?;
         } else {
-            let w = registry::create_writeable();
+            let w = registry::create_writeable()?;
 
             self.components.insert(c.clone(), Some(Arc::from(w)));
         }
