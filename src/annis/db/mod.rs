@@ -1,4 +1,3 @@
-use crate::annis::db::graphstorage::adjacencylist::AdjacencyListStorage;
 use crate::annis::db::graphstorage::registry;
 use crate::annis::db::graphstorage::union::UnionEdgeContainer;
 use crate::annis::db::graphstorage::EdgeContainer;
@@ -1161,9 +1160,7 @@ impl Graph {
             let loaded_comp = if is_writable {
                 loaded_comp
             } else {
-                let mut gs_copy: AdjacencyListStorage = registry::create_writeable()?;
-                gs_copy.copy(&self, loaded_comp.as_ref())?;
-                Arc::from(gs_copy)
+                registry::create_writeable(self, Some(loaded_comp.as_ref()))?
             };
 
             // (re-)insert the component into map again
@@ -1202,9 +1199,9 @@ impl Graph {
             // make sure the component is actually writable and loaded
             self.insert_or_copy_writeable(c)?;
         } else {
-            let w = registry::create_writeable()?;
+            let w = registry::create_writeable(self, None)?;
 
-            self.components.insert(c.clone(), Some(Arc::from(w)));
+            self.components.insert(c.clone(), Some(w));
         }
 
         // get and return the reference to the entry

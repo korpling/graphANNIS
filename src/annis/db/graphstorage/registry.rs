@@ -39,9 +39,13 @@ lazy_static! {
     };
 }
 
-pub fn create_writeable() -> Result<AdjacencyListStorage> {
+pub fn create_writeable(graph: &Graph, orig : Option<&dyn GraphStorage>) -> Result<Arc<dyn GraphStorage>> {
     // TODO: make this configurable when there are more writeable graph storage implementations
-    Ok(AdjacencyListStorage::new())
+    let mut result = AdjacencyListStorage::new();
+    if let Some(orig) = orig {
+        result.copy(graph, orig)?;
+    }
+    Ok(Arc::from(result))
 }
 
 pub fn get_optimal_impl_heuristic(db: &Graph, stats: &GraphStatistic) -> GSInfo {
