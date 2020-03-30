@@ -8,8 +8,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeSet;
 use std::ops::Bound;
 
-use bincode;
-
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 pub struct AdjacencyListStorage {
     edges: FxHashMap<NodeID, Vec<NodeID>>,
@@ -101,18 +99,18 @@ impl GraphStorage for AdjacencyListStorage {
         "AdjacencyListV1".to_owned()
     }
 
-    fn serialize_gs(&self, writer: &mut dyn std::io::Write) -> Result<()> {
-        bincode::serialize_into(writer, self)?;
-        Ok(())
-    }
-
-    fn deserialize_gs(input: &mut dyn std::io::Read) -> Result<Self>
+    fn load_from(location: &Path) -> Result<Self>
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
-        let mut result: AdjacencyListStorage = bincode::deserialize_from(input)?;
+        let mut result: Self = super::default_deserialize_gs(location)?;
         result.annos.after_deserialization();
         Ok(result)
+    }
+
+    fn save_to(&self, location: &Path) -> Result<()> {
+        super::default_serialize_gs(self, location)?;
+        Ok(())
     }
 
     fn find_connected<'a>(

@@ -215,7 +215,6 @@ fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<dyn G
     let mut impl_name = String::new();
     f_impl.read_to_string(&mut impl_name)?;
 
-
     let gs = registry::deserialize(&impl_name, &cpath)?;
 
     Ok(gs)
@@ -445,8 +444,9 @@ impl Graph {
             if let Some(ref data) = *e {
                 let dir = PathBuf::from(&location).join(component_to_relative_path(c));
                 std::fs::create_dir_all(&dir)?;
-                
-                let impl_name = registry::serialize(&data, &dir)?;
+
+                let impl_name = data.serialization_id();
+                data.save_to(&dir)?;
 
                 let cfg_path = PathBuf::from(&dir).join("impl.cfg");
                 let mut f_cfg = std::fs::File::create(cfg_path)?;

@@ -7,7 +7,7 @@ use crate::annis::types::{Edge, NodeID};
 use num_traits::ToPrimitive;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Deserialize;
-use std::ops::Bound;
+use std::{ops::Bound, path::Path};
 
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 pub struct DenseAdjacencyListStorage {
@@ -196,19 +196,17 @@ impl GraphStorage for DenseAdjacencyListStorage {
         "DenseAdjacencyListV1".to_owned()
     }
 
-    /// Serialize this graph storage.
-    fn serialize_gs(&self, writer: &mut dyn std::io::Write) -> Result<()> {
-        bincode::serialize_into(writer, self)?;
-        Ok(())
-    }
-
-    /// De-serialize this graph storage.
-    fn deserialize_gs(input: &mut dyn std::io::Read) -> Result<Self>
+    fn load_from(location: &Path) -> Result<Self>
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
-        let mut result: DenseAdjacencyListStorage = bincode::deserialize_from(input)?;
+        let mut result: Self = super::default_deserialize_gs(location)?;
         result.annos.after_deserialization();
         Ok(result)
+    }
+
+    fn save_to(&self, location: &Path) -> Result<()> {
+        super::default_serialize_gs(self, location)?;
+        Ok(())
     }
 }

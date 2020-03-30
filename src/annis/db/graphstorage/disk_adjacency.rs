@@ -96,18 +96,15 @@ impl GraphStorage for DiskAdjacencyListStorage {
         "DiskAdjacencyListV1".to_owned()
     }
 
-    fn serialize_gs(&self, _writer: &mut dyn std::io::Write) -> Result<()> {
-        unimplemented!()
-    }
-
-    fn deserialize_gs(_input: &mut dyn std::io::Read) -> Result<Self>
+    fn load_from(_location: &Path) -> Result<Self>
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
         unimplemented!()
-        // let mut result: DiskAdjacencyListStorage = bincode::deserialize_from(input)?;
-        // result.annos.after_deserialization();
-        // Ok(result)
+    }
+
+    fn save_to(&self, _location: &Path) -> Result<()> {
+        unimplemented!()
     }
 
     fn find_connected<'a>(
