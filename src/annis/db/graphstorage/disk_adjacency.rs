@@ -32,7 +32,6 @@ fn get_fan_outs(edges: &DiskMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
     fan_outs
 }
 
-
 impl DiskAdjacencyListStorage {
     pub fn new() -> Result<DiskAdjacencyListStorage> {
         Ok(DiskAdjacencyListStorage {
@@ -208,10 +207,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         if edge.source != edge.target {
             // insert to both regular and inverse maps
 
-            let mut inverse_entry = self
-                .inverse_edges
-                .get(&edge.target)
-                .unwrap_or_default();
+            let mut inverse_entry = self.inverse_edges.get(&edge.target).unwrap_or_default();
             // no need to insert it: edge already exists
             if let Err(insertion_idx) = inverse_entry.binary_search(&edge.source) {
                 inverse_entry.insert(insertion_idx, edge.source);
