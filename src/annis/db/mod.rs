@@ -395,11 +395,11 @@ impl Graph {
                             name: String::from(""),
                         };
                         {
-                            let input_file = PathBuf::from(location)
+                            let cfg_file = PathBuf::from(location)
                                 .join(component_to_relative_path(&empty_name_component))
-                                .join("component.bin");
+                                .join("impl.cfg");
 
-                            if input_file.is_file() {
+                            if cfg_file.is_file() {
                                 self.components.insert(empty_name_component.clone(), None);
                                 debug!("Registered component {}", empty_name_component);
                             }
@@ -412,15 +412,11 @@ impl Graph {
                                 layer: layer.file_name().to_string_lossy().to_string(),
                                 name: name.file_name().to_string_lossy().to_string(),
                             };
-                            let data_file = PathBuf::from(location)
-                                .join(component_to_relative_path(&named_component))
-                                .join("component.bin");
-
                             let cfg_file = PathBuf::from(location)
                                 .join(component_to_relative_path(&named_component))
                                 .join("impl.cfg");
 
-                            if data_file.is_file() && cfg_file.is_file() {
+                            if cfg_file.is_file() {
                                 self.components.insert(named_component.clone(), None);
                                 debug!("Registered component {}", named_component);
                             }

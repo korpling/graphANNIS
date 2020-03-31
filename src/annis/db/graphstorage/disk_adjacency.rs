@@ -1,4 +1,5 @@
 use super::*;
+use crate::annis::db::annostorage;
 use crate::annis::db::annostorage::ondisk::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::dfs::CycleSafeDFS;
@@ -7,7 +8,7 @@ use crate::annis::util::disk_collections::{DiskMap, EvictionStrategy};
 
 use rustc_hash::FxHashSet;
 use std::collections::BTreeSet;
-use std::{ops::Bound, path::PathBuf};
+use std::ops::Bound;
 
 pub const SERIALIZATION_ID: &str = "DiskAdjacencyListV1";
 
@@ -35,7 +36,6 @@ fn get_fan_outs(edges: &DiskMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
 }
 
 impl DiskAdjacencyListStorage {
-
     pub fn new() -> Result<DiskAdjacencyListStorage> {
         Ok(DiskAdjacencyListStorage {
             edges: DiskMap::default(),
@@ -105,7 +105,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
     {
         // Read stats
         let stats_path = location.join("edge_stats.bin");
-        let f_stats = std::fs::File::create(&stats_path)?;
+        let f_stats = std::fs::File::open(&stats_path)?;
         let input = std::io::BufReader::new(f_stats);
         let stats = bincode::deserialize_from(input)?;
 
@@ -118,7 +118,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
                 Some(&location.join("inverse_edges.bin")),
                 EvictionStrategy::default(),
             )?,
-            annos: AnnoStorageImpl::new(Some(PathBuf::from(location)))?,
+            annos: AnnoStorageImpl::new(Some(location.join(annostorage::ondisk::SUBFOLDER_NAME)))?,
             stats,
         };
         Ok(result)
@@ -239,13 +239,14 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
             // no need to insert it: edge already exists
             if let Err(insertion_idx) = inverse_entry.binary_search(&edge.source) {
                 inverse_entry.insert(insertion_idx, edge.source);
+                self.inverse_edges.insert(edge.target, inverse_entry)?;
             }
 
             let mut regular_entry = self.edges.get(&edge.source).unwrap_or_default();
             if let Err(insertion_idx) = regular_entry.binary_search(&edge.target) {
                 regular_entry.insert(insertion_idx, edge.target);
+                self.edges.insert(edge.source, regular_entry)?;
             }
-            self.edges.insert(edge.source, regular_entry)?;
             self.stats = None;
         }
         Ok(())

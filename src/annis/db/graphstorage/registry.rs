@@ -23,6 +23,10 @@ lazy_static! {
         let mut m = HashMap::new();
 
         insert_info::<AdjacencyListStorage>(&mut m);
+        m.insert(
+            disk_adjacency::SERIALIZATION_ID.to_owned(),
+            create_info_diskadjacency(),
+        );
         insert_info::<DenseAdjacencyListStorage>(&mut m);
 
         insert_info::<PrePostOrderStorage<u64, u64>>(&mut m);
@@ -84,14 +88,7 @@ pub fn get_optimal_impl_heuristic(db: &Graph, stats: &GraphStatistic) -> GSInfo 
 
 fn get_adjacencylist_impl(db: &Graph, stats: &GraphStatistic) -> GSInfo {
     if db.disk_based {
-        GSInfo {
-            id: disk_adjacency::SERIALIZATION_ID.to_owned(),
-            constructor: || Ok(Arc::from(DiskAdjacencyListStorage::new()?)),
-            deserialize_func: |path| {
-                let result = DiskAdjacencyListStorage::load_from(path)?;
-                Ok(Arc::from(result))
-            },
-        }
+        create_info_diskadjacency()
     } else {
         // check if a large percentage of nodes are part of the graph storage
         if let Some(largest_node_id) = db.node_annos.get_largest_item() {
@@ -162,6 +159,17 @@ where
         id: instance.serialization_id(),
         constructor: || Ok(Arc::new(GS::default())),
         deserialize_func: |location| Ok(Arc::new(GS::load_from(location)?)),
+    }
+}
+
+fn create_info_diskadjacency() -> GSInfo {
+    GSInfo {
+        id: disk_adjacency::SERIALIZATION_ID.to_owned(),
+        constructor: || Ok(Arc::from(DiskAdjacencyListStorage::new()?)),
+        deserialize_func: |path| {
+            let result = DiskAdjacencyListStorage::load_from(path)?;
+            Ok(Arc::from(result))
+        },
     }
 }
 
