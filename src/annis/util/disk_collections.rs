@@ -48,6 +48,9 @@ where
 
     /// Marks if all items have been inserted in sorted order and if there has not been any delete operation yet.
     insertion_was_sorted: bool,
+    /// True if the current state is not different from when it was loaded from the a single disk-based table.
+    /// This is important, since e.g. the serialized table will never contain tombstone entries.
+    unchanged_from_disk: bool,
     last_inserted_key: Option<Vec<u8>>,
 
     serialization: bincode::Config,
@@ -83,6 +86,7 @@ where
             c0: BTreeMap::default(),
             disk_tables,
             insertion_was_sorted: true,
+            unchanged_from_disk: persisted_file.is_some(),
             last_inserted_key: None,
 
             serialization: serialization,
@@ -92,6 +96,8 @@ where
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Result<()> {
+        self.unchanged_from_disk = false;
+
         let binary_key = K::create_key(&key);
 
         let mut mem_ops =
@@ -201,6 +207,7 @@ where
             self.c0.insert(Vec::from(key), empty_value);
 
             self.insertion_was_sorted = false;
+            self.unchanged_from_disk = false;
 
             self.check_eviction_necessary(true)?;
         }
@@ -212,6 +219,7 @@ where
         self.disk_tables.clear();
         self.est_sum_memory = 0;
         self.insertion_was_sorted = true;
+        self.unchanged_from_disk = false;
         self.last_inserted_key = None;
     }
 
@@ -267,22 +275,41 @@ where
 
     pub fn try_contains_key(&self, key: &K) -> Result<bool> {
         let key = K::create_key(key);
-        // Check C0 first
-        if let Some(value) = self.c0.get(key.as_ref()) {
-            if value.is_some() {
-                return Ok(true);
-            } else {
-                // Value was explicitly deleted, do not query the disk tables
-                return Ok(false);
+
+        if self.unchanged_from_disk {
+            // Use a iterator on the single disk to check if there is an entry with this, without getting the value.
+            // Since we don't serialize tombstone entries when compacting or writing the disk table to an output file,
+            // when we are checking the key, we can safely assume the value is Some() and not None.
+            if self.disk_tables.len() == 1 {
+                let mut table_it = self.disk_tables[0].iter();
+                table_it.seek(&key);
+                if let Some(it_key) = table_it.current_key() {
+                    if it_key == key.as_ref() {
+                        return Ok(true);
+                    }
+                }
             }
-        }
-        // Iterate over all disk-tables to find the entry
-        for table in self.disk_tables.iter().rev() {
-            if table.get(key.as_ref())?.is_some() {
-                return Ok(true);
-            } else {
-                // Value was explicitly deleted, do not query the rest of the disk tables
-                return Ok(false);
+        } else {
+            // Check C0 first
+            if let Some(value) = self.c0.get(key.as_ref()) {
+                if value.is_some() {
+                    return Ok(true);
+                } else {
+                    // Value was explicitly deleted, do not query the disk tables
+                    return Ok(false);
+                }
+            }
+            // Iterate over all disk-tables to find the entry
+            for table in self.disk_tables.iter().rev() {
+                if let Some(value) = table.get(key.as_ref())? {
+                    let value: Option<V> = self.serialization.deserialize(&value)?;
+                    if value.is_some() {
+                        return Ok(true);
+                    } else {
+                        // Value was explicitly deleted, do not query the rest of the disk tables
+                        return Ok(false);
+                    }
+                }
             }
         }
 
@@ -437,6 +464,8 @@ where
         let table = Table::new(sstable::Options::default(), Box::new(out_file), size)?;
         self.disk_tables = vec![table];
         self.c0.clear();
+
+        self.unchanged_from_disk = true;
 
         debug!("Finished merging disk-based tables in DiskMap");
 
