@@ -57,6 +57,11 @@ pub trait EdgeContainer: Sync + Send + MallocSizeOf {
     /// Get all outgoing edges for a given `node`.
     fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a>;
 
+    /// Return true of the given node has any outgoing edges.
+    fn has_outgoing_edges(&self, node: NodeID) -> bool {
+        self.get_outgoing_edges(node).next().is_some()
+    }
+
     /// Get all incoming edges for a given `node`.
     fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a>;
 

@@ -578,10 +578,9 @@ fn add_automatic_cov_edge_for_node(
             };
 
             // only add edge of no other coverage edge exists
-            if load_rank_result
+            if !load_rank_result
                 .text_coverage_edges
-                .try_get(&edge)?
-                .is_none()
+                .try_contains_key(&edge)?
             {
                 let nodes_with_same_source = (
                     Included(Edge {

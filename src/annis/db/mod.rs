@@ -969,7 +969,7 @@ impl Graph {
             // also check if this is an actually token and not only a segmentation
             let mut is_token = true;
             for gs_coverage in all_cov_gs.iter() {
-                if gs_coverage.get_outgoing_edges(n).next().is_some() {
+                if gs_coverage.has_outgoing_edges(n) {
                     is_token = false;
                     break;
                 }
