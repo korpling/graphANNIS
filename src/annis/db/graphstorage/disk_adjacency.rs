@@ -72,10 +72,6 @@ impl EdgeContainer for DiskAdjacencyListStorage {
         )
     }
 
-    fn has_outgoing_edges(&self, node: NodeID) -> bool {
-        self.edges.contains_key(&node)
-    }
-
     fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
         let lower_bound = Edge {
             source: node,
