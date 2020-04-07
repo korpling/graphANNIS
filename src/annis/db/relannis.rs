@@ -735,7 +735,7 @@ where
     {
         let mut node_tab_csv = postgresql_import_reader(node_tab_path.as_path())?;
 
-        for result in node_tab_csv.records() {
+        for (line_nr, result) in node_tab_csv.records().enumerate() {
             let line = result?;
 
             let node_nr = line.get(0).ok_or("Missing column")?.parse::<NodeID>()?;
@@ -884,6 +884,14 @@ where
                     textpos_table.token_by_index.insert(index, node_nr)?;
                 } // end if node has segmentation info
             } // endif if check segmentations
+
+            if (line_nr + 1) % 100_000 == 0 {
+                progress_callback(&format!(
+                    "loaded {} lines from {}",
+                    line_nr + 1,
+                    node_tab_path.to_str().unwrap_or_default()
+                ));
+            }
         }
     } // end "scan all lines" visibility block
 
@@ -943,7 +951,7 @@ where
 
     let mut node_anno_tab_csv = postgresql_import_reader(node_anno_tab_path.as_path())?;
 
-    for result in node_anno_tab_csv.records() {
+    for (line_nr, result) in node_anno_tab_csv.records().enumerate() {
         let line = result?;
 
         let col_id = line.get(0).ok_or("Missing column")?;
@@ -989,6 +997,14 @@ where
                     })?;
                 }
             }
+        }
+
+        if (line_nr + 1) % 100_000 == 0 {
+            progress_callback(&format!(
+                "loaded {} lines from {}",
+                line_nr + 1,
+                node_anno_tab_path.to_str().unwrap_or_default()
+            ));
         }
     }
 

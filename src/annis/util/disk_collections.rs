@@ -16,6 +16,7 @@ pub use serializer::{FixedSizeKeySerializer, KeySerializer};
 
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
 const MAX_TRIES: usize = 5;
+const MAX_NUMBER_OF_TABLES: usize = 128;
 
 #[derive(Serialize, Deserialize)]
 struct Entry<K, V>
@@ -33,7 +34,7 @@ pub enum EvictionStrategy {
 
 impl Default for EvictionStrategy {
     fn default() -> Self {
-        EvictionStrategy::MaximumBytes(16 * 1024 * 1024)
+        EvictionStrategy::MaximumBytes(64 * 1024 * 1024)
     }
 }
 
@@ -127,7 +128,7 @@ where
         }
 
         self.check_eviction_necessary(true)?;
-
+        
         Ok(())
     }
 
@@ -185,6 +186,11 @@ where
         self.disk_tables.push(table);
 
         self.c0.clear();
+
+        if self.disk_tables.len() > MAX_NUMBER_OF_TABLES {
+            debug!("Compacting disk tables after eviction");
+            self.compact()?;
+        }
 
         debug!("Finished evicting DiskMap C0 ");
         Ok(())
