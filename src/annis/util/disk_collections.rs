@@ -106,8 +106,10 @@ where
         let binary_key_size = binary_key.size_of(&mut mem_ops);
 
         // Add memory size for inserted element
-        self.est_sum_memory +=
-            std::mem::size_of::<(Vec<u8>, V)>() + binary_key_size + value.size_of(&mut mem_ops);
+        if let EvictionStrategy::MaximumBytes(_) = self.eviction_strategy {
+            self.est_sum_memory +=
+                std::mem::size_of::<(Vec<u8>, V)>() + binary_key_size + value.size_of(&mut mem_ops);
+        }
 
         // Check if insertion is still sorted
         if self.insertion_was_sorted {
@@ -121,14 +123,16 @@ where
 
         let existing_c0_entry = self.c0.insert(Vec::from(binary_key), Some(value));
         if let Some(existing) = &existing_c0_entry {
-            // Subtract the memory size for the item that was removed
-            self.est_sum_memory -= std::mem::size_of::<(Vec<u8>, V)>()
-                + binary_key_size
-                + existing.size_of(&mut mem_ops);
+            if let EvictionStrategy::MaximumBytes(_) = self.eviction_strategy {
+                // Subtract the memory size for the item that was removed
+                self.est_sum_memory -= std::mem::size_of::<(Vec<u8>, V)>()
+                    + binary_key_size
+                    + existing.size_of(&mut mem_ops);
+            }
         }
 
         self.check_eviction_necessary(true)?;
-        
+
         Ok(())
     }
 
@@ -205,11 +209,15 @@ where
             let mut mem_ops =
                 MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
 
-            self.est_sum_memory -= existing.size_of(&mut mem_ops);
+            if let EvictionStrategy::MaximumBytes(_) = self.eviction_strategy {
+                self.est_sum_memory -= existing.size_of(&mut mem_ops);
+            }
 
             // Add tombstone entry
             let empty_value = None;
-            self.est_sum_memory += empty_value.size_of(&mut mem_ops);
+            if let EvictionStrategy::MaximumBytes(_) = self.eviction_strategy {
+                self.est_sum_memory += empty_value.size_of(&mut mem_ops);
+            }
             self.c0.insert(Vec::from(key), empty_value);
 
             self.insertion_was_sorted = false;
