@@ -1,5 +1,7 @@
 use super::adjacencylist::AdjacencyListStorage;
 use super::dense_adjacency::DenseAdjacencyListStorage;
+use super::disk_adjacency;
+use super::disk_adjacency::DiskAdjacencyListStorage;
 use super::linear::LinearGraphStorage;
 use super::prepost::PrePostOrderStorage;
 use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
@@ -8,12 +10,12 @@ use crate::annis::errors::*;
 use serde::Deserialize;
 use std;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 pub struct GSInfo {
     pub id: String,
-    constructor: fn() -> Arc<dyn GraphStorage>,
-    deserialize_func: fn(&mut dyn std::io::Read) -> Result<Arc<dyn GraphStorage>>,
+    constructor: fn() -> Result<Arc<dyn GraphStorage>>,
+    deserialize_func: fn(&Path) -> Result<Arc<dyn GraphStorage>>,
 }
 
 lazy_static! {
@@ -21,6 +23,10 @@ lazy_static! {
         let mut m = HashMap::new();
 
         insert_info::<AdjacencyListStorage>(&mut m);
+        m.insert(
+            disk_adjacency::SERIALIZATION_ID.to_owned(),
+            create_info_diskadjacency(),
+        );
         insert_info::<DenseAdjacencyListStorage>(&mut m);
 
         insert_info::<PrePostOrderStorage<u64, u64>>(&mut m);
@@ -39,9 +45,23 @@ lazy_static! {
     };
 }
 
-pub fn create_writeable() -> AdjacencyListStorage {
-    // TODO: make this configurable when there are more writeable graph storage implementations
-    AdjacencyListStorage::new()
+pub fn create_writeable(
+    graph: &Graph,
+    orig: Option<&dyn GraphStorage>,
+) -> Result<Arc<dyn GraphStorage>> {
+    if graph.disk_based {
+        let mut result = DiskAdjacencyListStorage::new()?;
+        if let Some(orig) = orig {
+            result.copy(graph, orig)?;
+        }
+        Ok(Arc::from(result))
+    } else {
+        let mut result = AdjacencyListStorage::new();
+        if let Some(orig) = orig {
+            result.copy(graph, orig)?;
+        }
+        Ok(Arc::from(result))
+    }
 }
 
 pub fn get_optimal_impl_heuristic(db: &Graph, stats: &GraphStatistic) -> GSInfo {
@@ -67,14 +87,18 @@ pub fn get_optimal_impl_heuristic(db: &Graph, stats: &GraphStatistic) -> GSInfo 
 }
 
 fn get_adjacencylist_impl(db: &Graph, stats: &GraphStatistic) -> GSInfo {
-    // check if a large percentage of nodes are part of the graph storage
-    if let Some(largest_node_id) = db.node_annos.get_largest_item() {
-        if stats.max_fan_out <= 1 && (stats.nodes as f64 / largest_node_id as f64) >= 0.75 {
-            return create_info::<DenseAdjacencyListStorage>();
+    if db.disk_based {
+        create_info_diskadjacency()
+    } else {
+        // check if a large percentage of nodes are part of the graph storage
+        if let Some(largest_node_id) = db.node_annos.get_largest_item() {
+            if stats.max_fan_out <= 1 && (stats.nodes as f64 / largest_node_id as f64) >= 0.75 {
+                return create_info::<DenseAdjacencyListStorage>();
+            }
         }
-    }
 
-    create_info::<AdjacencyListStorage>()
+        create_info::<AdjacencyListStorage>()
+    }
 }
 
 fn get_prepostorder_by_size(stats: &GraphStatistic) -> GSInfo {
@@ -133,29 +157,32 @@ where
 
     GSInfo {
         id: instance.serialization_id(),
-        constructor: || Arc::new(GS::default()),
-        deserialize_func: |input| Ok(Arc::new(GS::deserialize_gs(input)?)),
+        constructor: || Ok(Arc::new(GS::default())),
+        deserialize_func: |location| Ok(Arc::new(GS::load_from(location)?)),
     }
 }
 
-pub fn create_from_info(info: &GSInfo) -> Arc<dyn GraphStorage> {
+fn create_info_diskadjacency() -> GSInfo {
+    GSInfo {
+        id: disk_adjacency::SERIALIZATION_ID.to_owned(),
+        constructor: || Ok(Arc::from(DiskAdjacencyListStorage::new()?)),
+        deserialize_func: |path| {
+            let result = DiskAdjacencyListStorage::load_from(path)?;
+            Ok(Arc::from(result))
+        },
+    }
+}
+
+pub fn create_from_info(info: &GSInfo) -> Result<Arc<dyn GraphStorage>> {
     (info.constructor)()
 }
 
-pub fn deserialize(
-    impl_name: &str,
-    input: &mut dyn std::io::Read,
-) -> Result<Arc<dyn GraphStorage>> {
+pub fn deserialize(impl_name: &str, location: &Path) -> Result<Arc<dyn GraphStorage>> {
     let info = REGISTRY.get(impl_name).ok_or_else(|| {
         format!(
             "Could not find implementation for graph storage with name '{}'",
             impl_name
         )
     })?;
-    (info.deserialize_func)(input)
-}
-
-pub fn serialize(data: &Arc<dyn GraphStorage>, writer: &mut dyn std::io::Write) -> Result<String> {
-    data.serialize_gs(writer)?;
-    Ok(data.serialization_id())
+    (info.deserialize_func)(location)
 }

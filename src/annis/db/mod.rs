@@ -1,4 +1,3 @@
-use crate::annis::db::graphstorage::adjacencylist::AdjacencyListStorage;
 use crate::annis::db::graphstorage::registry;
 use crate::annis::db::graphstorage::union::UnionEdgeContainer;
 use crate::annis::db::graphstorage::EdgeContainer;
@@ -215,11 +214,7 @@ fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<dyn G
     let mut impl_name = String::new();
     f_impl.read_to_string(&mut impl_name)?;
 
-    let data_path = PathBuf::from(&cpath).join("component.bin");
-    let f_data = std::fs::File::open(data_path)?;
-    let mut buf_reader = std::io::BufReader::new(f_data);
-
-    let gs = registry::deserialize(&impl_name, &mut buf_reader)?;
+    let gs = registry::deserialize(&impl_name, &cpath)?;
 
     Ok(gs)
 }
@@ -400,11 +395,11 @@ impl Graph {
                             name: String::from(""),
                         };
                         {
-                            let input_file = PathBuf::from(location)
+                            let cfg_file = PathBuf::from(location)
                                 .join(component_to_relative_path(&empty_name_component))
-                                .join("component.bin");
+                                .join("impl.cfg");
 
-                            if input_file.is_file() {
+                            if cfg_file.is_file() {
                                 self.components.insert(empty_name_component.clone(), None);
                                 debug!("Registered component {}", empty_name_component);
                             }
@@ -417,15 +412,11 @@ impl Graph {
                                 layer: layer.file_name().to_string_lossy().to_string(),
                                 name: name.file_name().to_string_lossy().to_string(),
                             };
-                            let data_file = PathBuf::from(location)
-                                .join(component_to_relative_path(&named_component))
-                                .join("component.bin");
-
                             let cfg_file = PathBuf::from(location)
                                 .join(component_to_relative_path(&named_component))
                                 .join("impl.cfg");
 
-                            if data_file.is_file() && cfg_file.is_file() {
+                            if cfg_file.is_file() {
                                 self.components.insert(named_component.clone(), None);
                                 debug!("Registered component {}", named_component);
                             }
@@ -449,10 +440,8 @@ impl Graph {
                 let dir = PathBuf::from(&location).join(component_to_relative_path(c));
                 std::fs::create_dir_all(&dir)?;
 
-                let data_path = PathBuf::from(&dir).join("component.bin");
-                let f_data = std::fs::File::create(&data_path)?;
-                let mut writer = std::io::BufWriter::new(f_data);
-                let impl_name = registry::serialize(&data, &mut writer)?;
+                let impl_name = data.serialization_id();
+                data.save_to(&dir)?;
 
                 let cfg_path = PathBuf::from(&dir).join("impl.cfg");
                 let mut f_cfg = std::fs::File::create(cfg_path)?;
@@ -637,7 +626,7 @@ impl Graph {
                                 name: component_name.to_string(),
                             };
                             let gs = self.get_or_create_writable(&c)?;
-                            gs.add_edge(Edge { source, target });
+                            gs.add_edge(Edge { source, target })?;
 
                             if (c.ctype == ComponentType::Dominance
                                 || c.ctype == ComponentType::Coverage)
@@ -897,19 +886,19 @@ impl Graph {
                     gs_order.as_ref(),
                     &all_cov_gs,
                     &all_dom_gs,
-                );
+                )?;
                 self.calculate_token_alignment(
                     n,
                     ComponentType::RightToken,
                     gs_order.as_ref(),
                     &all_cov_gs,
                     &all_dom_gs,
-                );
+                )?;
             }
         }
 
         for (n, _) in invalid_nodes.iter() {
-            self.calculate_inherited_coverage_edges(n, &all_cov_components, &all_dom_gs);
+            self.calculate_inherited_coverage_edges(n, &all_cov_components, &all_dom_gs)?;
         }
 
         Ok(())
@@ -920,7 +909,7 @@ impl Graph {
         n: NodeID,
         all_cov_components: &[Component],
         all_dom_gs: &[Arc<dyn GraphStorage>],
-    ) -> FxHashSet<NodeID> {
+    ) -> Result<FxHashSet<NodeID>> {
         let mut covered_token = FxHashSet::default();
         for c in all_cov_components.iter() {
             if let Some(gs) = self.get_graphstorage_as_ref(c) {
@@ -939,7 +928,7 @@ impl Graph {
                             out,
                             all_cov_components,
                             all_dom_gs,
-                        ));
+                        )?);
                     }
                 }
             }
@@ -954,11 +943,11 @@ impl Graph {
                 gs_cov.add_edge(Edge {
                     source: n,
                     target: *t,
-                });
+                })?;
             }
         }
 
-        covered_token
+        Ok(covered_token)
     }
 
     fn calculate_token_alignment(
@@ -968,7 +957,7 @@ impl Graph {
         gs_order: &dyn GraphStorage,
         all_cov_gs: &[Arc<dyn GraphStorage>],
         all_dom_gs: &[Arc<dyn GraphStorage>],
-    ) -> Option<NodeID> {
+    ) -> Result<Option<NodeID>> {
         let alignment_component = Component {
             ctype: ctype.clone(),
             name: "".to_owned(),
@@ -980,23 +969,22 @@ impl Graph {
             // also check if this is an actually token and not only a segmentation
             let mut is_token = true;
             for gs_coverage in all_cov_gs.iter() {
-                if gs_coverage.get_outgoing_edges(n).next().is_some() {
+                if gs_coverage.has_outgoing_edges(n) {
                     is_token = false;
                     break;
                 }
             }
             if is_token {
-                return Some(n);
+                return Ok(Some(n));
             }
         }
 
         // if the node already has a left/right token, just return this value
-        let existing = self
-            .get_graphstorage_as_ref(&alignment_component)?
-            .get_outgoing_edges(n)
-            .next();
-        if let Some(existing) = existing {
-            return Some(existing);
+        if let Some(alignment_gs) = self.get_graphstorage_as_ref(&alignment_component) {
+            let existing = alignment_gs.get_outgoing_edges(n).next();
+            if let Some(existing) = existing {
+                return Ok(Some(existing));
+            }
         }
 
         // recursively get all candidate token by iterating over text-coverage edges
@@ -1004,14 +992,17 @@ impl Graph {
 
         for gs_for_component in all_dom_gs.iter().chain(all_cov_gs.iter()) {
             for target in gs_for_component.get_outgoing_edges(n) {
-                let candidate_for_target = self.calculate_token_alignment(
+                if let Some(candidate_for_target) = self.calculate_token_alignment(
                     target,
                     ctype.clone(),
                     gs_order,
                     all_cov_gs,
                     all_dom_gs,
-                )?;
-                candidates.insert(candidate_for_target);
+                )? {
+                    candidates.insert(candidate_for_target);
+                } else {
+                    return Ok(None);
+                }
             }
         }
 
@@ -1036,16 +1027,16 @@ impl Graph {
             candidates.first()
         };
         if let Some(t) = t {
-            let gs = self.get_or_create_writable(&alignment_component).ok()?;
+            let gs = self.get_or_create_writable(&alignment_component)?;
             let e = Edge {
                 source: n,
                 target: *t,
             };
-            gs.add_edge(e);
+            gs.add_edge(e)?;
 
-            Some(*t)
+            Ok(Some(*t))
         } else {
-            None
+            Ok(None)
         }
     }
 
@@ -1165,9 +1156,7 @@ impl Graph {
             let loaded_comp = if is_writable {
                 loaded_comp
             } else {
-                let mut gs_copy: AdjacencyListStorage = registry::create_writeable();
-                gs_copy.copy(&self, loaded_comp.as_ref())?;
-                Arc::from(gs_copy)
+                registry::create_writeable(self, Some(loaded_comp.as_ref()))?
             };
 
             // (re-)insert the component into map again
@@ -1206,9 +1195,9 @@ impl Graph {
             // make sure the component is actually writable and loaded
             self.insert_or_copy_writeable(c)?;
         } else {
-            let w = registry::create_writeable();
+            let w = registry::create_writeable(self, None)?;
 
-            self.components.insert(c.clone(), Some(Arc::from(w)));
+            self.components.insert(c.clone(), Some(w));
         }
 
         // get and return the reference to the entry
@@ -1293,7 +1282,7 @@ impl Graph {
 
                 // convert if necessary
                 if opt_info.id != gs.serialization_id() {
-                    let mut new_gs = registry::create_from_info(&opt_info);
+                    let mut new_gs = registry::create_from_info(&opt_info)?;
                     let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
                         new_gs_mut.copy(self, gs.as_ref())?;
                         true
@@ -1463,7 +1452,8 @@ mod tests {
         gs.add_edge(Edge {
             source: 0,
             target: 1,
-        });
+        })
+        .unwrap();
 
         gs.add_edge_annotation(
             Edge {

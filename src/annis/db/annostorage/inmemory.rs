@@ -584,8 +584,8 @@ where
             if let ValueSearch::NotSome(value) = value {
                 let value = value.to_string();
                 let it = matching_qname_annos
-                    .filter(move |(node, anno_key)| {
-                        if let Some(item_value) = self.get_value_for_item(node, anno_key) {
+                    .filter(move |(item, anno_key)| {
+                        if let Some(item_value) = self.get_value_for_item(item, anno_key) {
                             item_value != value
                         } else {
                             false

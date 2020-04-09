@@ -1,10 +1,9 @@
 use crate::annis::db::graphstorage::EdgeContainer;
-use bincode;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std;
 use std::clone::Clone;
-use std::ops::Bound::*;
+use std::{ops::Bound::*, path::Path};
 
 use super::{GraphStatistic, GraphStorage};
 use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
@@ -162,18 +161,18 @@ where
         )
     }
 
-    fn serialize_gs(&self, writer: &mut dyn std::io::Write) -> Result<()> {
-        bincode::serialize_into(writer, self)?;
-        Ok(())
-    }
-
-    fn deserialize_gs(input: &mut dyn std::io::Read) -> Result<Self>
+    fn load_from(location: &Path) -> Result<Self>
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
-        let mut result: PrePostOrderStorage<OrderT, LevelT> = bincode::deserialize_from(input)?;
+        let mut result: Self = super::default_deserialize_gs(location)?;
         result.annos.after_deserialization();
         Ok(result)
+    }
+
+    fn save_to(&self, location: &Path) -> Result<()> {
+        super::default_serialize_gs(self, location)?;
+        Ok(())
     }
 
     fn find_connected<'a>(

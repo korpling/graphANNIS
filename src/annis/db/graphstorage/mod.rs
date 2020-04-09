@@ -3,8 +3,8 @@ use crate::annis::db::Graph;
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Annotation, Edge, NodeID};
 use crate::malloc_size_of::MallocSizeOf;
-use serde::Deserialize;
-use std;
+use serde::{Deserialize, Serialize};
+use std::{self, path::Path};
 
 /// Some general statistical numbers specific to a graph component
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
@@ -57,6 +57,11 @@ pub trait EdgeContainer: Sync + Send + MallocSizeOf {
     /// Get all outgoing edges for a given `node`.
     fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a>;
 
+    /// Return true of the given node has any outgoing edges.
+    fn has_outgoing_edges(&self, node: NodeID) -> bool {
+        self.get_outgoing_edges(node).next().is_some()
+    }
+
     /// Get all incoming edges for a given `node`.
     fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a>;
 
@@ -64,7 +69,7 @@ pub trait EdgeContainer: Sync + Send + MallocSizeOf {
         None
     }
 
-    /// Provides an iterator over all nodes of this edge container that are the source an edge
+    /// Provides an iterator over all nodes of this edge container that are the source of an edge
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a>;
 }
 
@@ -123,19 +128,43 @@ pub trait GraphStorage: EdgeContainer {
     /// Return an identifier for this graph storage which is used to distinguish the different graph storages when (de-) serialized.
     fn serialization_id(&self) -> String;
 
-    /// Serialize this graph storage.
-    fn serialize_gs(&self, writer: &mut dyn std::io::Write) -> Result<()>;
-
-    /// De-serialize this graph storage.
-    fn deserialize_gs(input: &mut dyn std::io::Read) -> Result<Self>
+    /// Load the graph storage from a `location` on the disk. This location is a directory, which can contain files specific to this graph storage.
+    fn load_from(location: &Path) -> Result<Self>
     where
-        for<'de> Self: std::marker::Sized + Deserialize<'de>;
+        Self: std::marker::Sized;
+
+    /// Save the graph storage a `location` on the disk. This location must point to an existing directory.
+    fn save_to(&self, location: &Path) -> Result<()>;
+}
+
+pub fn default_serialize_gs<GS>(gs: &GS, location: &Path) -> Result<()>
+where
+    GS: Serialize,
+{
+    let data_path = location.join("component.bin");
+    let f_data = std::fs::File::create(&data_path)?;
+    let mut writer = std::io::BufWriter::new(f_data);
+    bincode::serialize_into(&mut writer, gs)?;
+    Ok(())
+}
+
+pub fn default_deserialize_gs<GS>(location: &Path) -> Result<GS>
+where
+    for<'de> GS: std::marker::Sized + Deserialize<'de>,
+{
+    let data_path = location.join("component.bin");
+    let f_data = std::fs::File::open(data_path)?;
+    let input = std::io::BufReader::new(f_data);
+
+    let result = bincode::deserialize_from(input)?;
+
+    Ok(result)
 }
 
 /// Trait for accessing graph storages which can be written to.
 pub trait WriteableGraphStorage: GraphStorage {
     /// Add an edge to this graph storage.
-    fn add_edge(&mut self, edge: Edge);
+    fn add_edge(&mut self, edge: Edge) -> Result<()>;
 
     /// Add an annotation to an edge in this graph storage.
     /// The edge has to exist.
@@ -157,6 +186,7 @@ pub trait WriteableGraphStorage: GraphStorage {
 
 pub mod adjacencylist;
 pub mod dense_adjacency;
+pub mod disk_adjacency;
 pub mod linear;
 pub mod prepost;
 pub mod registry;
