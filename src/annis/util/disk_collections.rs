@@ -34,7 +34,7 @@ pub enum EvictionStrategy {
 
 impl Default for EvictionStrategy {
     fn default() -> Self {
-        EvictionStrategy::MaximumBytes(64 * 1024 * 1024)
+        EvictionStrategy::MaximumBytes(16 * 1024 * 1024)
     }
 }
 
