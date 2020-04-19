@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
-    "graphannis",
+    "core",
+    "graphannis"
 ]
 

@@ -1,0 +1,12 @@
+[package]
+name = "graphannis-core"
+version = "0.26.0"
+authors = ["Thomas Krause <thomaskrause@posteo.de>"]
+
+license = "Apache-2.0"
+description = "This crate supports graph representation and generic query-functionality."
+repository= "https://github.com/korpling/graphANNIS"
+readme = "crate-info.md"
+edition = "2018"
+
+[lib]
