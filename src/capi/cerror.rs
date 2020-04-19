@@ -36,23 +36,23 @@ impl<'a> std::iter::Iterator for CauseIterator<'a> {
 }
 
 fn error_kind(e: &Box<dyn StdError>) -> &'static str {
-    if let Some(annis_err) = e.downcast_ref::<errors::Error>() {
+    if let Some(annis_err) = e.downcast_ref::<errors::AnnisError>() {
         match annis_err {
-            errors::Error::AQLSyntaxError { .. } => "AQLSyntaxError",
-            errors::Error::AQLSemanticError { .. } => "AQLSemanticError",
-            errors::Error::LoadingGraphFailed { .. } => "LoadingGraphFailed",
-            errors::Error::ImpossibleSearch(_) => "ImpossibleSearch",
-            errors::Error::NoSuchCorpus(_) => "NoSuchCorpus",
-            errors::Error::Generic { .. } => "Generic",
-            errors::Error::IO(_) => "IO",
-            errors::Error::Bincode(_) => "Bincode",
-            errors::Error::CSV(_) => "CSV",
-            errors::Error::ParseIntError(_) => "ParseIntError",
-            errors::Error::Fmt(_) => "Fmt",
-            errors::Error::Strum(_) => "Strum",
-            errors::Error::Regex(_) => "Regex",
-            errors::Error::RandomGenerator(_) => "RandomGenerator",
-            errors::Error::SSTable(_) => "SSTable",
+            errors::AnnisError::AQLSyntaxError { .. } => "AQLSyntaxError",
+            errors::AnnisError::AQLSemanticError { .. } => "AQLSemanticError",
+            errors::AnnisError::LoadingGraphFailed { .. } => "LoadingGraphFailed",
+            errors::AnnisError::ImpossibleSearch(_) => "ImpossibleSearch",
+            errors::AnnisError::NoSuchCorpus(_) => "NoSuchCorpus",
+            errors::AnnisError::Generic { .. } => "Generic",
+            errors::AnnisError::IO(_) => "IO",
+            errors::AnnisError::Bincode(_) => "Bincode",
+            errors::AnnisError::CSV(_) => "CSV",
+            errors::AnnisError::ParseIntError(_) => "ParseIntError",
+            errors::AnnisError::Fmt(_) => "Fmt",
+            errors::AnnisError::Strum(_) => "Strum",
+            errors::AnnisError::Regex(_) => "Regex",
+            errors::AnnisError::RandomGenerator(_) => "RandomGenerator",
+            errors::AnnisError::SSTable(_) => "SSTable",
         }
     } else {
         // Check for several known types

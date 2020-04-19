@@ -210,7 +210,7 @@ impl AnnisRunner {
             };
             if let Err(err) = result {
                 match err {
-                    Error::Generic { msg, .. } => println!("Error: {}", msg),
+                    AnnisError::Generic { msg, .. } => println!("Error: {}", msg),
                     _ => println!("Error: {:?}", err),
                 };
             }

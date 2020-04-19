@@ -581,7 +581,7 @@ impl<'a> NodeSearch<'a> {
                 }
             }
             Err(e) => {
-                return Err(Error::AQLSemanticError {
+                return Err(AnnisError::AQLSemanticError {
                     desc: format!("/{}/ -> {}", pattern, e),
                     location: location_in_query,
                 });
@@ -700,7 +700,7 @@ impl<'a> NodeSearch<'a> {
                             }
                         })),
                         Err(e) => {
-                            return Err(Error::AQLSemanticError {
+                            return Err(AnnisError::AQLSemanticError {
                                 desc: format!("/{}/ -> {}", val, e),
                                 location: location_in_query,
                             });
@@ -731,7 +731,7 @@ impl<'a> NodeSearch<'a> {
                             }
                         })),
                         Err(e) => {
-                            return Err(Error::AQLSemanticError {
+                            return Err(AnnisError::AQLSemanticError {
                                 desc: format!("/{}/ -> {}", val, e),
                                 location: location_in_query,
                             });
