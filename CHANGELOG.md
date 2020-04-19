@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Backward incompatible: Return opaque [anyhow](https://github.com/dtolnay/anyhow) `Error` type in all 
+  functions instead of our own enum.
+  The new `Error` type also implements `std::error::Error` and is equivalent to using `Box<dyn std:error::Error>`.
 - Upgraded parser generator lalrpop to version 0.18.x
+
 
 ### Added
 
