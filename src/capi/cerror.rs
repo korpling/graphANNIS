@@ -82,9 +82,8 @@ fn error_kind(e: &Box<dyn StdError>) -> &'static str {
     }
 }
 
-pub fn create_error_list(e: errors::Error) -> ErrorList {
+pub fn create_error_list(e: Box<dyn StdError>) -> ErrorList {
     let mut result = ErrorList::new();
-    let e: Box<dyn StdError> = Box::new(e);
     result.push(Error {
         msg: CString::new(e.to_string()).unwrap_or(CString::default()),
         kind: CString::new(error_kind(&e)).unwrap_or(CString::default()),
@@ -134,7 +133,7 @@ impl From<std::io::Error> for Error {
     }
 }
 /// Creates a new error from the internal type
-pub fn new(err: errors::Error) -> *mut ErrorList {
+pub fn new(err: Box<dyn StdError>) -> *mut ErrorList {
     Box::into_raw(Box::new(create_error_list(err)))
 }
 
