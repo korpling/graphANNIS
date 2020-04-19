@@ -82,22 +82,20 @@ fn error_kind(e: &Box<dyn StdError>) -> &'static str {
     }
 }
 
-impl From<errors::Error> for ErrorList {
-    fn from(e: errors::Error) -> ErrorList {
-        let mut result = ErrorList::new();
-        let e: Box<dyn StdError> = Box::new(e);
-        result.push(Error {
-            msg: CString::new(e.to_string()).unwrap_or(CString::default()),
-            kind: CString::new(error_kind(&e)).unwrap_or(CString::default()),
-        });
-        let cause_it = CauseIterator {
-            current: e.source(),
-        };
-        for e in cause_it {
-            result.push(e)
-        }
-        return result;
+pub fn create_error_list(e: errors::Error) -> ErrorList {
+    let mut result = ErrorList::new();
+    let e: Box<dyn StdError> = Box::new(e);
+    result.push(Error {
+        msg: CString::new(e.to_string()).unwrap_or(CString::default()),
+        kind: CString::new(error_kind(&e)).unwrap_or(CString::default()),
+    });
+    let cause_it = CauseIterator {
+        current: e.source(),
+    };
+    for e in cause_it {
+        result.push(e)
     }
+    result
 }
 
 impl From<log::SetLoggerError> for Error {
@@ -137,7 +135,7 @@ impl From<std::io::Error> for Error {
 }
 /// Creates a new error from the internal type
 pub fn new(err: errors::Error) -> *mut ErrorList {
-    Box::into_raw(Box::new(ErrorList::from(err)))
+    Box::into_raw(Box::new(create_error_list(err)))
 }
 
 /// Returns the number of errors in the list.
