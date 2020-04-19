@@ -1,5 +1,5 @@
 use crate::annis::types::LineColumnRange;
-use std::error::Error as StdError;
+use std::error::Error;
 use std::fmt::Display;
 
 pub type Result<T> = std::result::Result<T, anyhow::Error>;
@@ -49,14 +49,4 @@ impl Display for AnnisError {
     }
 }
 
-impl StdError for AnnisError {
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        match self {
-            AnnisError::AQLSyntaxError { .. }
-            | AnnisError::AQLSemanticError { .. }
-            | AnnisError::LoadingGraphFailed { .. }
-            | AnnisError::ImpossibleSearch(_)
-            | AnnisError::NoSuchCorpus(_) => None,
-        }
-    }
-}
+impl Error for AnnisError {}
