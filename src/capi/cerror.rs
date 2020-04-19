@@ -75,9 +75,9 @@ fn error_kind(e: &Box<dyn StdError>) -> &'static str {
         } else if e.is::<sstable::error::Status>() {
             "SSTable"
         } else if e.is::<log::SetLoggerError>() {
-            "SSTable"
-        } else {
             "SetLoggerError"
+        } else {
+            "Unknown"
         }
     }
 }
