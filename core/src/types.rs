@@ -8,8 +8,8 @@ use std::borrow::Cow;
 use std::convert::TryInto;
 use strum_macros::{EnumIter, EnumString};
 
-use crate::annis::util::disk_collections::{FixedSizeKeySerializer, KeySerializer};
-use crate::malloc_size_of::MallocSizeOf;
+use super::serializer::{FixedSizeKeySerializer, KeySerializer};
+use malloc_size_of::MallocSizeOf;
 
 /// Unique internal identifier for a single node.
 pub type NodeID = u64;

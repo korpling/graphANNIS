@@ -1,5 +1,5 @@
 [package]
-name = "graphannis-core"
+name = "graphannis_core"
 version = "0.26.0"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
@@ -10,3 +10,12 @@ readme = "crate-info.md"
 edition = "2018"
 
 [lib]
+
+[dependencies]
+graphannis-malloc_size_of = "1.0"
+graphannis-malloc_size_of_derive = "2.0"
+num-traits = "0.2"
+serde = {version="1.0", features=["rc"]}
+serde_derive = "1.0"
+strum = "0.18"
+strum_macros = "0.18"

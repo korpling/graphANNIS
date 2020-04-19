@@ -10,9 +10,7 @@ use std::iter::Peekable;
 use std::ops::{Bound, RangeBounds};
 use std::path::{Path, PathBuf};
 
-mod serializer;
-
-pub use serializer::{FixedSizeKeySerializer, KeySerializer};
+pub use ::graphannis_core::serializer::{FixedSizeKeySerializer, KeySerializer};
 
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
 const MAX_TRIES: usize = 5;

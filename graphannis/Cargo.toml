@@ -21,6 +21,7 @@ regex = "1"
 file_diff = "1"
 
 [dependencies]
+graphannis_core= {path = "../core/"}
 regex = "1"
 regex-syntax = "0.6"
 serde = {version="1.0", features=["rc"]}
@@ -31,8 +32,8 @@ csv = "1"
 sstable = "0.8.1"
 log = "0.4"
 lazy_static = "1.4"
-strum = "0.17"
-strum_macros = "0.17"
+strum = "0.18"
+strum_macros = "0.18"
 num-traits = "0.2"
 linked-hash-map = "0.5"
 tempfile = "3.1"
