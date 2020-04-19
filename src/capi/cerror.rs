@@ -57,21 +57,27 @@ fn error_kind(e: &Box<dyn StdError>) -> &'static str {
     } else {
         // Check for several known types
         if e.is::<std::io::Error>() {
-            "Input/Output"
+            "IO"
         } else if e.is::<bincode::Error>() {
-            "Serialization"
+            "Bincode"
         } else if e.is::<csv::Error>() {
-            "CSV Parsing/Generation"
+            "CSV"
+        } else if e.is::<::std::num::ParseIntError>() {
+            "ParseIntError"
         } else if e.is::<std::fmt::Error>() {
-            "String Formatting"
+            "Fmt"
+        } else if e.is::<::strum::ParseError>() {
+            "Strum"
         } else if e.is::<regex::Error>() {
-            "Regular Expression Evaluation"
+            "Regex"
         } else if e.is::<rand::Error>() {
-            "Random Generator"
+            "RandomGenerator"
         } else if e.is::<sstable::error::Status>() {
-            "Disk Sorted String Table"
+            "SSTable"
+        } else if e.is::<log::SetLoggerError>() {
+            "SSTable"
         } else {
-            "Unknown"
+            "SetLoggerError"
         }
     }
 }
