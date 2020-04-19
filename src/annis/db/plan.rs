@@ -61,8 +61,10 @@ impl<'a> ExecutionPlan<'a> {
 
                 plans.push(p);
             } else if let Err(e) = p {
-                if let AnnisError::AQLSemanticError { .. } = e {
-                    return Err(e);
+                if let Some(annis_err) = e.downcast_ref() {
+                    if let AnnisError::AQLSemanticError { .. } = annis_err {
+                        return Err(e);
+                    }
                 }
             }
         }
