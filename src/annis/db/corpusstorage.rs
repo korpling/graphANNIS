@@ -48,6 +48,8 @@ use rand::seq::SliceRandom;
 use std::ffi::CString;
 use sys_info;
 
+use anyhow::{Context, Error};
+
 #[cfg(test)]
 mod tests;
 
@@ -199,13 +201,14 @@ pub struct FrequencyDefEntry {
 }
 
 impl FromStr for FrequencyDefEntry {
-    type Err = AnnisError;
+    type Err = Error;
     fn from_str(s: &str) -> std::result::Result<FrequencyDefEntry, Self::Err> {
         let splitted: Vec<&str> = s.splitn(2, ':').collect();
         if splitted.len() != 2 {
-            return Err("Frequency definition must consists of two parts: \
+            bail!(
+                "Frequency definition must consists of two parts: \
                  the referenced node and the annotation name or \"tok\" separated by \":\""
-                .into());
+            );
         }
         let node_ref = splitted[0];
         let anno_key = util::split_qname(splitted[1]);
@@ -445,33 +448,24 @@ impl CorpusStorage {
 
     fn list_from_disk(&self) -> Result<Vec<String>> {
         let mut corpora: Vec<String> = Vec::new();
-        let directories = self.db_dir.read_dir().or_else(|e| {
-            Err(AnnisError::Generic {
-                msg: format!(
-                    "Listing directories from {} failed",
-                    self.db_dir.to_string_lossy()
-                ),
-                cause: Some(Box::new(e)),
-            })
+        let directories = self.db_dir.read_dir().with_context(|| {
+            format!(
+                "Listing directories from {} failed",
+                self.db_dir.to_string_lossy()
+            )
         })?;
         for c_dir in directories {
-            let c_dir = c_dir.or_else(|e| {
-                Err(AnnisError::Generic {
-                    msg: format!(
-                        "Could not get directory entry of folder {}",
-                        self.db_dir.to_string_lossy()
-                    ),
-                    cause: Some(Box::new(e)),
-                })
+            let c_dir = c_dir.with_context(|| {
+                format!(
+                    "Could not get directory entry of folder {}",
+                    self.db_dir.to_string_lossy()
+                )
             })?;
-            let ftype = c_dir.file_type().or_else(|e| {
-                Err(AnnisError::Generic {
-                    msg: format!(
-                        "Could not determine file type for {}",
-                        c_dir.path().to_string_lossy()
-                    ),
-                    cause: Some(Box::new(e)),
-                })
+            let ftype = c_dir.file_type().with_context(|| {
+                format!(
+                    "Could not determine file type for {}",
+                    c_dir.path().to_string_lossy()
+                )
             })?;
             if ftype.is_dir() {
                 let corpus_name = c_dir.file_name().to_string_lossy().to_string();
@@ -584,7 +578,7 @@ impl CorpusStorage {
         } else if create_if_missing {
             true
         } else {
-            return Err(AnnisError::NoSuchCorpus(corpus_name.to_string()));
+            return Err(AnnisError::NoSuchCorpus(corpus_name.to_string()).into());
         };
 
         // make sure the cache is not too large before adding the new corpus
@@ -595,12 +589,8 @@ impl CorpusStorage {
             let mut db = Graph::with_default_graphstorages(false)?;
 
             // save corpus to the path where it should be stored
-            db.persist_to(&db_path).or_else(|e| {
-                Err(AnnisError::Generic {
-                    msg: format!("Could not create corpus with name {}", corpus_name),
-                    cause: Some(Box::new(e)),
-                })
-            })?;
+            db.persist_to(&db_path)
+                .with_context(|| format!("Could not create corpus with name {}", corpus_name))?;
             db
         } else {
             let mut db = Graph::new(false)?;
@@ -796,12 +786,8 @@ impl CorpusStorage {
             let mut _lock = db_entry.write().unwrap();
 
             if db_path.is_dir() && db_path.exists() {
-                std::fs::remove_dir_all(db_path.clone()).or_else(|e| {
-                    Err(AnnisError::Generic {
-                        msg: "Error when removing existing files".to_string(),
-                        cause: Some(Box::new(e)),
-                    })
-                })?
+                std::fs::remove_dir_all(db_path.clone())
+                    .context("Error when removing existing files")?
             }
 
             Ok(true)
@@ -814,12 +800,9 @@ impl CorpusStorage {
     ///
     /// It is ensured that the update process is atomic and that the changes are persisted to disk if the result is `Ok`.
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<()> {
-        let db_entry = self.get_loaded_entry(corpus_name, true).or_else(|e| {
-            Err(AnnisError::Generic {
-                msg: format!("Could not get loaded entry for corpus {}", corpus_name),
-                cause: Some(Box::new(e)),
-            })
-        })?;
+        let db_entry = self
+            .get_loaded_entry(corpus_name, true)
+            .with_context(|| format!("Could not get loaded entry for corpus {}", corpus_name))?;
         {
             let mut lock = db_entry.write().unwrap();
             let db: &mut Graph = get_write_or_error(&mut lock)?;
@@ -1874,7 +1857,8 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Gr
     } else {
         Err(AnnisError::LoadingGraphFailed {
             name: "".to_string(),
-        })
+        }
+        .into())
     }
 }
 
@@ -1882,7 +1866,7 @@ fn get_write_or_error<'a>(lock: &'a mut RwLockWriteGuard<CacheEntry>) -> Result<
     if let CacheEntry::Loaded(ref mut db) = &mut **lock {
         Ok(db)
     } else {
-        Err("Could get loaded graph storage entry".into())
+        Err(anyhow!("Could get loaded graph storage entry"))
     }
 }
 
@@ -1963,12 +1947,7 @@ fn extract_subgraph_by_query(
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
 
-    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config).or_else(|e| {
-        Err(AnnisError::Generic {
-            msg: "".to_string(),
-            cause: Some(Box::new(e)),
-        })
-    })?;
+    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config)?;
 
     debug!("executing subgraph query\n{}", plan);
 
@@ -2055,12 +2034,8 @@ fn create_subgraph_edge(
 }
 
 fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
-    std::fs::create_dir_all(&db_dir).or_else(|e| {
-        Err(AnnisError::Generic {
-            msg: format!("Could not create directory {}", db_dir.to_string_lossy()),
-            cause: Some(Box::new(e)),
-        })
-    })?;
+    std::fs::create_dir_all(&db_dir)
+        .with_context(|| format!("Could not create directory {}", db_dir.to_string_lossy()))?;
     let lock_file_path = db_dir.join("db.lock");
     // check if we can get the file lock
     let lock_file = OpenOptions::new()
@@ -2068,23 +2043,17 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
         .write(true)
         .create(true)
         .open(lock_file_path.as_path())
-        .or_else(|e| {
-            Err(AnnisError::Generic {
-                msg: format!(
-                    "Could not open or create lockfile {}",
-                    lock_file_path.to_string_lossy()
-                ),
-                cause: Some(Box::new(e)),
-            })
+        .with_context(|| {
+            format!(
+                "Could not open or create lockfile {}",
+                lock_file_path.to_string_lossy()
+            )
         })?;
-    lock_file.try_lock_exclusive().or_else(|e| {
-        Err(AnnisError::Generic {
-            msg: format!(
-                "Could not acquire lock for directory {}",
-                db_dir.to_string_lossy()
-            ),
-            cause: Some(Box::new(e)),
-        })
+    lock_file.try_lock_exclusive().with_context(|| {
+        format!(
+            "Could not acquire lock for directory {}",
+            db_dir.to_string_lossy()
+        )
     })?;
 
     Ok(lock_file)

@@ -1,9 +1,8 @@
 use crate::annis::types::LineColumnRange;
-use serde::{de, ser};
 use std::error::Error as StdError;
 use std::fmt::Display;
 
-pub type Result<T> = std::result::Result<T, AnnisError>;
+pub type Result<T> = std::result::Result<T, anyhow::Error>;
 
 #[derive(Debug)]
 pub enum AnnisError {
@@ -20,10 +19,6 @@ pub enum AnnisError {
         name: String,
     },
     NoSuchCorpus(String),
-    Generic {
-        msg: String,
-        cause: Option<Box<dyn StdError + 'static + Send>>,
-    },
     IO(std::io::Error),
     Bincode(::bincode::Error),
     CSV(::csv::Error),
@@ -56,24 +51,6 @@ impl std::convert::From<::bincode::Error> for AnnisError {
 impl std::convert::Into<::bincode::Error> for AnnisError {
     fn into(self) -> ::bincode::Error {
         Box::new(::bincode::ErrorKind::Custom(format!("{}", &self)))
-    }
-}
-
-impl ser::Error for AnnisError {
-    fn custom<T: Display>(msg: T) -> Self {
-        AnnisError::Generic {
-            msg: msg.to_string(),
-            cause: None,
-        }
-    }
-}
-
-impl de::Error for AnnisError {
-    fn custom<T: Display>(msg: T) -> Self {
-        AnnisError::Generic {
-            msg: msg.to_string(),
-            cause: None,
-        }
     }
 }
 
@@ -119,24 +96,6 @@ impl std::convert::From<sstable::error::Status> for AnnisError {
     }
 }
 
-impl std::convert::From<&str> for AnnisError {
-    fn from(e: &str) -> AnnisError {
-        AnnisError::Generic {
-            msg: e.to_string(),
-            cause: None,
-        }
-    }
-}
-
-impl std::convert::From<String> for AnnisError {
-    fn from(e: String) -> AnnisError {
-        AnnisError::Generic {
-            msg: e,
-            cause: None,
-        }
-    }
-}
-
 impl Display for AnnisError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -161,7 +120,6 @@ impl Display for AnnisError {
                 write!(f, "Impossible search expression detected: {}", reason)
             }
             AnnisError::NoSuchCorpus(name) => write!(f, "Corpus {} not found", &name),
-            AnnisError::Generic { msg, .. } => write!(f, "{}", msg),
             AnnisError::IO(e) => e.fmt(f),
             AnnisError::Bincode(e) => e.fmt(f),
             AnnisError::CSV(e) => e.fmt(f),
@@ -183,13 +141,6 @@ impl StdError for AnnisError {
             | AnnisError::LoadingGraphFailed { .. }
             | AnnisError::ImpossibleSearch(_)
             | AnnisError::NoSuchCorpus(_) => None,
-            AnnisError::Generic { cause, .. } => {
-                if let Some(cause) = cause {
-                    Some(cause.as_ref())
-                } else {
-                    None
-                }
-            }
             AnnisError::Bincode(e) => Some(e),
             AnnisError::IO(e) => Some(e),
             AnnisError::CSV(e) => Some(e),

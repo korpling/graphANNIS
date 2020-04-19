@@ -7,6 +7,7 @@ use super::prepost::PrePostOrderStorage;
 use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
 use crate::annis::db::Graph;
 use crate::annis::errors::*;
+use anyhow::Context;
 use serde::Deserialize;
 use std;
 use std::collections::HashMap;
@@ -178,7 +179,7 @@ pub fn create_from_info(info: &GSInfo) -> Result<Arc<dyn GraphStorage>> {
 }
 
 pub fn deserialize(impl_name: &str, location: &Path) -> Result<Arc<dyn GraphStorage>> {
-    let info = REGISTRY.get(impl_name).ok_or_else(|| {
+    let info = REGISTRY.get(impl_name).with_context(|| {
         format!(
             "Could not find implementation for graph storage with name '{}'",
             impl_name

@@ -15,6 +15,7 @@ use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
 };
 use crate::annis::types::{Component, Edge, LineColumnRange, QueryAttributeDescription};
+use anyhow::Error;
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
 use rand::rngs::SmallRng;
@@ -274,7 +275,8 @@ impl<'a> Conjunction<'a> {
             Err(AnnisError::AQLSemanticError {
                 desc: format!("Operand '#{}' not found", var),
                 location,
-            })
+            }
+            .into())
         }
     }
 
@@ -324,7 +326,8 @@ impl<'a> Conjunction<'a> {
         Err(AnnisError::AQLSemanticError {
             desc: format!("Operand '#{}' not found", variable),
             location,
-        })
+        }
+        .into())
     }
 
     pub fn is_included_in_output(&self, variable: &str) -> bool {
@@ -353,7 +356,8 @@ impl<'a> Conjunction<'a> {
         Err(AnnisError::AQLSemanticError {
             desc: format!("Operand '#{}' not found", variable),
             location,
-        })
+        }
+        .into())
     }
 
     pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
@@ -394,16 +398,16 @@ impl<'a> Conjunction<'a> {
             self.make_exec_plan_with_order(db, config, best_operator_order.clone())?;
         let mut best_cost: usize = initial_plan
             .get_desc()
-            .ok_or("Plan description missing")?
+            .ok_or(anyhow!("Plan description missing"))?
             .cost
             .clone()
-            .ok_or("Plan cost missing")?
+            .ok_or(anyhow!("Plan cost missing"))?
             .intermediate_sum;
         trace!(
             "initial plan:\n{}",
             initial_plan
                 .get_desc()
-                .ok_or("Plan description missing")?
+                .ok_or(anyhow!("Plan description missing"))?
                 .debug_string("  ")
         );
 
@@ -436,16 +440,16 @@ impl<'a> Conjunction<'a> {
                 let alt_plan = self.make_exec_plan_with_order(db, config, op_order.clone())?;
                 let alt_cost = alt_plan
                     .get_desc()
-                    .ok_or("Plan description missing")?
+                    .ok_or(anyhow!("Plan description missing"))?
                     .cost
                     .clone()
-                    .ok_or("Plan cost missing")?
+                    .ok_or(anyhow!("Plan cost missing"))?
                     .intermediate_sum;
                 trace!(
                     "alternatives plan: \n{}",
                     initial_plan
                         .get_desc()
-                        .ok_or("Plan description missing")?
+                        .ok_or(anyhow!("Plan description missing"))?
                         .debug_string("  ")
                 );
 
@@ -535,7 +539,7 @@ impl<'a> Conjunction<'a> {
 
         // Remember node search errors, but do not bail out of this function before the component
         // semantics check has been performed.
-        let mut node_search_errors: Vec<AnnisError> = Vec::default();
+        let mut node_search_errors: Vec<Error> = Vec::default();
 
         // 1. add all nodes
 
@@ -609,7 +613,7 @@ impl<'a> Conjunction<'a> {
         for op_spec_entry in self.unary_operators.iter() {
             let child_exec: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
                 .remove(&op_spec_entry.idx)
-                .ok_or_else(|| format!("no execution node for component {}", op_spec_entry.idx))?;
+                .ok_or_else(|| anyhow!("no execution node for component {}", op_spec_entry.idx))?;
 
             let op: Box<dyn UnaryOperator> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
@@ -665,22 +669,22 @@ impl<'a> Conjunction<'a> {
 
             let component_left: usize = *(node2component
                 .get(&spec_idx_left)
-                .ok_or_else(|| format!("no component for node #{}", spec_idx_left + 1))?);
+                .ok_or_else(|| anyhow!("no component for node #{}", spec_idx_left + 1))?);
             let component_right: usize = *(node2component
                 .get(&spec_idx_right)
-                .ok_or_else(|| format!("no component for node #{}", spec_idx_right + 1))?);
+                .ok_or_else(|| anyhow!("no component for node #{}", spec_idx_right + 1))?);
 
             // get the original execution node
             let exec_left: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
                 .remove(&component_left)
-                .ok_or_else(|| format!("no execution node for component {}", component_left))?;
+                .ok_or_else(|| anyhow!("no execution node for component {}", component_left))?;
 
             let idx_left: usize = *(exec_left
                 .get_desc()
-                .ok_or("Plan description missing")?
+                .ok_or(anyhow!("Plan description missing"))?
                 .node_pos
                 .get(&spec_idx_left)
-                .ok_or("LHS operand not found")?);
+                .ok_or(anyhow!("LHS operand not found"))?);
 
             let new_exec: Box<dyn ExecutionNode<Item = Vec<Match>>> =
                 if component_left == component_right {
@@ -688,23 +692,23 @@ impl<'a> Conjunction<'a> {
                     // TODO: check if LHS or RHS is better suited as filter input iterator
                     let idx_right: usize = *(exec_left
                         .get_desc()
-                        .ok_or("Plan description missing")?
+                        .ok_or(anyhow!("Plan description missing"))?
                         .node_pos
                         .get(&spec_idx_right)
-                        .ok_or("RHS operand not found")?);
+                        .ok_or(anyhow!("RHS operand not found"))?);
 
                     let filter = Filter::new_binary(exec_left, idx_left, idx_right, op_entry);
                     Box::new(filter)
                 } else {
                     let exec_right = component2exec.remove(&component_right).ok_or_else(|| {
-                        format!("no execution node for component {}", component_right)
+                        anyhow!("no execution node for component {}", component_right)
                     })?;
                     let idx_right: usize = *(exec_right
                         .get_desc()
-                        .ok_or("Plan description missing")?
+                        .ok_or(anyhow!("Plan description missing"))?
                         .node_pos
                         .get(&spec_idx_right)
-                        .ok_or("RHS operand not found")?);
+                        .ok_or(anyhow!("RHS operand not found"))?);
 
                     create_join(
                         db, config, op_entry, exec_left, exec_right, idx_left, idx_right,
@@ -713,7 +717,7 @@ impl<'a> Conjunction<'a> {
 
             let new_component_nr = new_exec
                 .get_desc()
-                .ok_or("missing description for execution node")?
+                .ok_or(anyhow!("missing description for execution node"))?
                 .component_nr;
             update_components_for_nodes(&mut node2component, component_left, new_component_nr);
             update_components_for_nodes(&mut node2component, component_right, new_component_nr);
@@ -731,9 +735,12 @@ impl<'a> Conjunction<'a> {
             .map(|(_cid, exec)| exec)
             .next()
             .ok_or_else(|| {
-                AnnisError::ImpossibleSearch(String::from(
-                    "could not find execution node for query component",
-                ))
+                {
+                    AnnisError::ImpossibleSearch(String::from(
+                        "could not find execution node for query component",
+                    ))
+                }
+                .into()
             })
     }
 
@@ -783,7 +790,8 @@ impl<'a> Conjunction<'a> {
                             n_var
                         ),
                         location: location.cloned(),
-                    });
+                    }
+                    .into());
                 }
             }
         }

@@ -584,7 +584,8 @@ impl<'a> NodeSearch<'a> {
                 return Err(AnnisError::AQLSemanticError {
                     desc: format!("/{}/ -> {}", pattern, e),
                     location: location_in_query,
-                });
+                }
+                .into());
             }
         }
 
@@ -703,7 +704,8 @@ impl<'a> NodeSearch<'a> {
                             return Err(AnnisError::AQLSemanticError {
                                 desc: format!("/{}/ -> {}", val, e),
                                 location: location_in_query,
-                            });
+                            }
+                            .into());
                         }
                     };
                 } else {
@@ -734,7 +736,8 @@ impl<'a> NodeSearch<'a> {
                             return Err(AnnisError::AQLSemanticError {
                                 desc: format!("/{}/ -> {}", val, e),
                                 location: location_in_query,
-                            });
+                            }
+                            .into());
                         }
                     };
                 } else {

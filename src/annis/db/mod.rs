@@ -206,7 +206,7 @@ impl MallocSizeOf for Graph {
 }
 
 fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<dyn GraphStorage>> {
-    let cpath = component_path.ok_or("Can't load component with empty path")?;
+    let cpath = component_path.ok_or(anyhow!("Can't load component with empty path"))?;
 
     // load component into memory
     let impl_path = PathBuf::from(&cpath).join("impl.cfg");
@@ -1148,7 +1148,7 @@ impl Graph {
             // copy to writable implementation if needed
             let is_writable = {
                 Arc::get_mut(&mut loaded_comp)
-                    .ok_or_else(|| format!("Could not get mutable reference for component {}", c))?
+                    .ok_or_else(|| anyhow!("Could not get mutable reference for component {}", c))?
                     .as_writeable()
                     .is_some()
             };
@@ -1172,7 +1172,7 @@ impl Graph {
         let mut entry = self
             .components
             .remove(c)
-            .ok_or_else(|| format!("Component {} is missing", c.clone()))?;
+            .ok_or_else(|| anyhow!("Component {} is missing", c.clone()))?;
         if let Some(ref mut gs) = entry {
             if let Some(gs_mut) = Arc::get_mut(gs) {
                 // Since immutable graph storages can't change, only writable graph storage statistics need to be re-calculated
@@ -1180,7 +1180,7 @@ impl Graph {
                     writeable_gs.calculate_statistics();
                 }
             } else {
-                result = Err(format!("Component {} is currently used", c.clone()).into());
+                result = Err(anyhow!("Component {} is currently used", c.clone()));
             }
         }
         // re-insert component entry
@@ -1204,17 +1204,17 @@ impl Graph {
         let entry: &mut Arc<dyn GraphStorage> = self
             .components
             .get_mut(c)
-            .ok_or_else(|| format!("Could not get mutable reference for component {}", c))?
+            .ok_or_else(|| anyhow!("Could not get mutable reference for component {}", c))?
             .as_mut()
             .ok_or_else(|| {
-                format!(
+                anyhow!(
                     "Could not get mutable reference to optional value for component {}",
                     c
                 )
             })?;
         let gs_mut_ref: &mut dyn GraphStorage = Arc::get_mut(entry)
-            .ok_or_else(|| format!("Could not get mutable reference for component {}", c))?;
-        Ok(gs_mut_ref.as_writeable().ok_or("Invalid type")?)
+            .ok_or_else(|| anyhow!("Could not get mutable reference for component {}", c))?;
+        Ok(gs_mut_ref.as_writeable().ok_or(anyhow!("Invalid type"))?)
     }
 
     fn is_loaded(&self, c: &Component) -> bool {
