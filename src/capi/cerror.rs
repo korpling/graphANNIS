@@ -35,29 +35,51 @@ impl<'a> std::iter::Iterator for CauseIterator<'a> {
     }
 }
 
-fn error_kind(e: &errors::Error) -> &str {
-    match e {
-        errors::Error::AQLSyntaxError { .. } => "AQLSyntaxError",
-        errors::Error::AQLSemanticError { .. } => "AQLSemanticError",
-        errors::Error::LoadingGraphFailed { .. } => "LoadingGraphFailed",
-        errors::Error::ImpossibleSearch(_) => "ImpossibleSearch",
-        errors::Error::NoSuchCorpus(_) => "NoSuchCorpus",
-        errors::Error::Generic { .. } => "Generic",
-        errors::Error::IO(_) => "IO",
-        errors::Error::Bincode(_) => "Bincode",
-        errors::Error::CSV(_) => "CSV",
-        errors::Error::ParseIntError(_) => "ParseIntError",
-        errors::Error::Fmt(_) => "Fmt",
-        errors::Error::Strum(_) => "Strum",
-        errors::Error::Regex(_) => "Regex",
-        errors::Error::RandomGenerator(_) => "RandomGenerator",
-        errors::Error::SSTable(_) => "SSTable",
+fn error_kind(e: &Box<dyn StdError>) -> &'static str {
+    if let Some(annis_err) = e.downcast_ref::<errors::Error>() {
+        match annis_err {
+            errors::Error::AQLSyntaxError { .. } => "AQLSyntaxError",
+            errors::Error::AQLSemanticError { .. } => "AQLSemanticError",
+            errors::Error::LoadingGraphFailed { .. } => "LoadingGraphFailed",
+            errors::Error::ImpossibleSearch(_) => "ImpossibleSearch",
+            errors::Error::NoSuchCorpus(_) => "NoSuchCorpus",
+            errors::Error::Generic { .. } => "Generic",
+            errors::Error::IO(_) => "IO",
+            errors::Error::Bincode(_) => "Bincode",
+            errors::Error::CSV(_) => "CSV",
+            errors::Error::ParseIntError(_) => "ParseIntError",
+            errors::Error::Fmt(_) => "Fmt",
+            errors::Error::Strum(_) => "Strum",
+            errors::Error::Regex(_) => "Regex",
+            errors::Error::RandomGenerator(_) => "RandomGenerator",
+            errors::Error::SSTable(_) => "SSTable",
+        }
+    } else {
+        // Check for several known types
+        if e.is::<std::io::Error>() {
+            "Input/Output"
+        } else if e.is::<bincode::Error>() {
+            "Serialization"
+        } else if e.is::<csv::Error>() {
+            "CSV Parsing/Generation"
+        } else if e.is::<std::fmt::Error>() {
+            "String Formatting"
+        } else if e.is::<regex::Error>() {
+            "Regular Expression Evaluation"
+        } else if e.is::<rand::Error>() {
+            "Random Generator"
+        } else if e.is::<sstable::error::Status>() {
+            "Disk Sorted String Table"
+        } else {
+            "Unknown"
+        }
     }
 }
 
 impl From<errors::Error> for ErrorList {
     fn from(e: errors::Error) -> ErrorList {
         let mut result = ErrorList::new();
+        let e: Box<dyn StdError> = Box::new(e);
         result.push(Error {
             msg: CString::new(e.to_string()).unwrap_or(CString::default()),
             kind: CString::new(error_kind(&e)).unwrap_or(CString::default()),
