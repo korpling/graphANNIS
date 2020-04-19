@@ -199,7 +199,7 @@ pub struct FrequencyDefEntry {
 }
 
 impl FromStr for FrequencyDefEntry {
-    type Err = Error;
+    type Err = AnnisError;
     fn from_str(s: &str) -> std::result::Result<FrequencyDefEntry, Self::Err> {
         let splitted: Vec<&str> = s.splitn(2, ':').collect();
         if splitted.len() != 2 {
@@ -446,7 +446,7 @@ impl CorpusStorage {
     fn list_from_disk(&self) -> Result<Vec<String>> {
         let mut corpora: Vec<String> = Vec::new();
         let directories = self.db_dir.read_dir().or_else(|e| {
-            Err(Error::Generic {
+            Err(AnnisError::Generic {
                 msg: format!(
                     "Listing directories from {} failed",
                     self.db_dir.to_string_lossy()
@@ -456,7 +456,7 @@ impl CorpusStorage {
         })?;
         for c_dir in directories {
             let c_dir = c_dir.or_else(|e| {
-                Err(Error::Generic {
+                Err(AnnisError::Generic {
                     msg: format!(
                         "Could not get directory entry of folder {}",
                         self.db_dir.to_string_lossy()
@@ -465,7 +465,7 @@ impl CorpusStorage {
                 })
             })?;
             let ftype = c_dir.file_type().or_else(|e| {
-                Err(Error::Generic {
+                Err(AnnisError::Generic {
                     msg: format!(
                         "Could not determine file type for {}",
                         c_dir.path().to_string_lossy()
@@ -584,7 +584,7 @@ impl CorpusStorage {
         } else if create_if_missing {
             true
         } else {
-            return Err(Error::NoSuchCorpus(corpus_name.to_string()));
+            return Err(AnnisError::NoSuchCorpus(corpus_name.to_string()));
         };
 
         // make sure the cache is not too large before adding the new corpus
@@ -596,7 +596,7 @@ impl CorpusStorage {
 
             // save corpus to the path where it should be stored
             db.persist_to(&db_path).or_else(|e| {
-                Err(Error::Generic {
+                Err(AnnisError::Generic {
                     msg: format!("Could not create corpus with name {}", corpus_name),
                     cause: Some(Box::new(e)),
                 })
@@ -797,7 +797,7 @@ impl CorpusStorage {
 
             if db_path.is_dir() && db_path.exists() {
                 std::fs::remove_dir_all(db_path.clone()).or_else(|e| {
-                    Err(Error::Generic {
+                    Err(AnnisError::Generic {
                         msg: "Error when removing existing files".to_string(),
                         cause: Some(Box::new(e)),
                     })
@@ -815,7 +815,7 @@ impl CorpusStorage {
     /// It is ensured that the update process is atomic and that the changes are persisted to disk if the result is `Ok`.
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<()> {
         let db_entry = self.get_loaded_entry(corpus_name, true).or_else(|e| {
-            Err(Error::Generic {
+            Err(AnnisError::Generic {
                 msg: format!("Could not get loaded entry for corpus {}", corpus_name),
                 cause: Some(Box::new(e)),
             })
@@ -1872,7 +1872,7 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Gr
     if let CacheEntry::Loaded(ref db) = &**lock {
         Ok(db)
     } else {
-        Err(Error::LoadingGraphFailed {
+        Err(AnnisError::LoadingGraphFailed {
             name: "".to_string(),
         })
     }
@@ -1964,7 +1964,7 @@ fn extract_subgraph_by_query(
     let orig_db = get_read_or_error(&lock)?;
 
     let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config).or_else(|e| {
-        Err(Error::Generic {
+        Err(AnnisError::Generic {
             msg: "".to_string(),
             cause: Some(Box::new(e)),
         })
@@ -2056,7 +2056,7 @@ fn create_subgraph_edge(
 
 fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
     std::fs::create_dir_all(&db_dir).or_else(|e| {
-        Err(Error::Generic {
+        Err(AnnisError::Generic {
             msg: format!("Could not create directory {}", db_dir.to_string_lossy()),
             cause: Some(Box::new(e)),
         })
@@ -2069,7 +2069,7 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
         .create(true)
         .open(lock_file_path.as_path())
         .or_else(|e| {
-            Err(Error::Generic {
+            Err(AnnisError::Generic {
                 msg: format!(
                     "Could not open or create lockfile {}",
                     lock_file_path.to_string_lossy()
@@ -2078,7 +2078,7 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
             })
         })?;
     lock_file.try_lock_exclusive().or_else(|e| {
-        Err(Error::Generic {
+        Err(AnnisError::Generic {
             msg: format!(
                 "Could not acquire lock for directory {}",
                 db_dir.to_string_lossy()

@@ -271,7 +271,7 @@ impl<'a> Conjunction<'a> {
                 .push(UnaryOperatorSpecEntry { op, idx: *idx });
             Ok(())
         } else {
-            Err(Error::AQLSemanticError {
+            Err(AnnisError::AQLSemanticError {
                 desc: format!("Operand '#{}' not found", var),
                 location,
             })
@@ -321,7 +321,7 @@ impl<'a> Conjunction<'a> {
         if let Some(pos) = self.variables.get(variable) {
             return Ok(*pos);
         }
-        Err(Error::AQLSemanticError {
+        Err(AnnisError::AQLSemanticError {
             desc: format!("Operand '#{}' not found", variable),
             location,
         })
@@ -350,7 +350,7 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        Err(Error::AQLSemanticError {
+        Err(AnnisError::AQLSemanticError {
             desc: format!("Operand '#{}' not found", variable),
             location,
         })
@@ -535,7 +535,7 @@ impl<'a> Conjunction<'a> {
 
         // Remember node search errors, but do not bail out of this function before the component
         // semantics check has been performed.
-        let mut node_search_errors: Vec<Error> = Vec::default();
+        let mut node_search_errors: Vec<AnnisError> = Vec::default();
 
         // 1. add all nodes
 
@@ -613,7 +613,7 @@ impl<'a> Conjunction<'a> {
 
             let op: Box<dyn UnaryOperator> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                    Error::ImpossibleSearch(format!(
+                    AnnisError::ImpossibleSearch(format!(
                         "could not create operator {:?}",
                         op_spec_entry
                     ))
@@ -633,7 +633,7 @@ impl<'a> Conjunction<'a> {
 
             let mut op: Box<dyn BinaryOperator + 'a> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                    Error::ImpossibleSearch(format!(
+                    AnnisError::ImpossibleSearch(format!(
                         "could not create operator {:?}",
                         op_spec_entry
                     ))
@@ -731,7 +731,7 @@ impl<'a> Conjunction<'a> {
             .map(|(_cid, exec)| exec)
             .next()
             .ok_or_else(|| {
-                Error::ImpossibleSearch(String::from(
+                AnnisError::ImpossibleSearch(String::from(
                     "could not find execution node for query component",
                 ))
             })
@@ -777,7 +777,7 @@ impl<'a> Conjunction<'a> {
                     let n_var = &self.nodes[*node_nr].0;
                     let location = self.location_in_query.get(n_var);
 
-                    return Err(Error::AQLSemanticError {
+                    return Err(AnnisError::AQLSemanticError {
                         desc: format!(
                             "Variable \"{}\" not bound (use linguistic operators)",
                             n_var

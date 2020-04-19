@@ -61,7 +61,7 @@ impl<'a> ExecutionPlan<'a> {
 
                 plans.push(p);
             } else if let Err(e) = p {
-                if let Error::AQLSemanticError { .. } = e {
+                if let AnnisError::AQLSemanticError { .. } = e {
                     return Err(e);
                 }
             }

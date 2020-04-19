@@ -914,7 +914,7 @@ where
 
         let path = location.join("nodes_v1.bin");
         let f = std::fs::File::open(path.clone()).or_else(|e| {
-            Err(Error::Generic {
+            Err(AnnisError::Generic {
                 msg: format!(
                     "Could not load annotation storage from file {}",
                     path.to_string_lossy(),
