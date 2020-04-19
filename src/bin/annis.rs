@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate anyhow;
+
 use clap::{App, Arg};
 use graphannis::corpusstorage::CorpusInfo;
 use graphannis::corpusstorage::FrequencyDefEntry;
@@ -206,13 +209,10 @@ impl AnnisRunner {
                 "quirks_mode" => self.quirks_mode(&args),
                 "info" => self.info(),
                 "quit" | "exit" => return false,
-                _ => Err(format!("unknown command \"{}\"", cmd).into()),
+                _ => Err(anyhow!("unknown command \"{}\"", cmd).into()),
             };
             if let Err(err) = result {
-                match err {
-                    AnnisError::Generic { msg, .. } => println!("Error: {}", msg),
-                    _ => println!("Error: {:?}", err),
-                };
+                println!("Error: {:?}", err)
             }
         }
         // stay in loop
@@ -222,10 +222,7 @@ impl AnnisRunner {
     fn import_relannis(&mut self, args: &str) -> Result<()> {
         let args: Vec<&str> = args.split(' ').collect();
         if args.is_empty() {
-            return Err(
-                "You need to location of the relANNIS files and optionally a name as argument"
-                    .into(),
-            );
+            bail!("You need to location of the relANNIS files and optionally a name as argument");
         }
 
         let overwritten_corpus_name = if args.len() >= 2 {
@@ -240,7 +237,7 @@ impl AnnisRunner {
         let name: String = self
             .storage
             .as_ref()
-            .ok_or("No corpus storage location set")?
+            .ok_or(anyhow!("No corpus storage location set"))?
             .import_from_fs(
                 &PathBuf::from(path),
                 ImportFormat::RelANNIS,
@@ -259,7 +256,7 @@ impl AnnisRunner {
         let mut corpora = self
             .storage
             .as_ref()
-            .ok_or("No corpus storage location set")?
+            .ok_or(anyhow!("No corpus storage location set"))?
             .list()?;
         corpora.sort_unstable_by_key(|info| info.name.clone());
         for c in corpora {
@@ -281,13 +278,13 @@ impl AnnisRunner {
 
     fn delete(&mut self, args: &str) -> Result<()> {
         if args.is_empty() {
-            return Err("You need the name as an argument".into());
+            bail!("You need the name as an argument");
         }
         let name = args;
 
         self.storage
             .as_ref()
-            .ok_or("No corpus storage location set")?
+            .ok_or(anyhow!("No corpus storage location set"))?
             .delete(name)?;
         info!("Deleted corpus {}.", name);
 
@@ -301,7 +298,7 @@ impl AnnisRunner {
             let corpora = self
                 .storage
                 .as_ref()
-                .ok_or("No corpus storage location set")?
+                .ok_or(anyhow!("No corpus storage location set"))?
                 .list()?;
             let corpora = BTreeSet::from_iter(corpora.into_iter().map(|c| c.name));
             let selected = args.split_ascii_whitespace();
@@ -343,7 +340,7 @@ impl AnnisRunner {
                 let cinfo = self
                     .storage
                     .as_ref()
-                    .ok_or("No corpus storage location set")?
+                    .ok_or(anyhow!("No corpus storage location set"))?
                     .info(corpus)?;
                 println!("{}", cinfo);
             }
@@ -359,7 +356,7 @@ impl AnnisRunner {
                 let t_before = std::time::SystemTime::now();
                 self.storage
                     .as_ref()
-                    .ok_or("No corpus storage location set")?
+                    .ok_or(anyhow!("No corpus storage location set"))?
                     .preload(corpus)?;
                 let load_time = t_before.elapsed();
                 if let Ok(t) = load_time {
@@ -378,7 +375,7 @@ impl AnnisRunner {
                 let t_before = std::time::SystemTime::now();
                 self.storage
                     .as_ref()
-                    .ok_or("No corpus storage location set")?
+                    .ok_or(anyhow!("No corpus storage location set"))?
                     .update_statistics(corpus)?;
                 let load_time = t_before.elapsed();
                 if let Ok(t) = load_time {
@@ -398,7 +395,7 @@ impl AnnisRunner {
             let plan = self
                 .storage
                 .as_ref()
-                .ok_or("No corpus storage location set")?
+                .ok_or(anyhow!("No corpus storage location set"))?
                 .plan(&self.current_corpus, args, self.query_language)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
@@ -418,7 +415,7 @@ impl AnnisRunner {
             let c = self
                 .storage
                 .as_ref()
-                .ok_or("No corpus storage location set")?
+                .ok_or(anyhow!("No corpus storage location set"))?
                 .count(&self.current_corpus, args, self.query_language)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
@@ -437,7 +434,7 @@ impl AnnisRunner {
             let matches = self
                 .storage
                 .as_ref()
-                .ok_or("No corpus storage location set")?
+                .ok_or(anyhow!("No corpus storage location set"))?
                 .find(
                     &self.current_corpus[..],
                     args,
@@ -485,7 +482,7 @@ impl AnnisRunner {
             let frequency_table = self
                 .storage
                 .as_ref()
-                .ok_or("No corpus storage location set")?
+                .ok_or(anyhow!("No corpus storage location set"))?
                 .frequency(
                     &self.current_corpus,
                     splitted_arg[1],
@@ -521,7 +518,7 @@ impl AnnisRunner {
         let new_val = match args.trim().to_lowercase().as_str() {
             "on" | "true" => true,
             "off" | "false" => false,
-            _ => return Err(format!("unknown argument \"{}\"", args).into()),
+            _ => bail!("unknown argument \"{}\"", args),
         };
 
         if self.use_parallel_joins != new_val {
@@ -549,7 +546,7 @@ impl AnnisRunner {
         let new_val = match args.trim().to_lowercase().as_str() {
             "on" | "true" => true,
             "off" | "false" => false,
-            _ => return Err(format!("unknown argument \"{}\"", args).into()),
+            _ => return Err(anyhow!("unknown argument \"{}\"", args).into()),
         };
 
         self.use_disk = new_val;
@@ -560,7 +557,7 @@ impl AnnisRunner {
         let use_quirks = match args.trim().to_lowercase().as_str() {
             "on" | "true" => true,
             "off" | "false" => false,
-            _ => return Err(format!("unknown argument \"{}\"", args).into()),
+            _ => return Err(anyhow!("unknown argument \"{}\"", args).into()),
         };
 
         self.query_language = if use_quirks {

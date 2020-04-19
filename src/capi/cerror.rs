@@ -43,16 +43,6 @@ fn error_kind(e: &Box<dyn StdError>) -> &'static str {
             errors::AnnisError::LoadingGraphFailed { .. } => "LoadingGraphFailed",
             errors::AnnisError::ImpossibleSearch(_) => "ImpossibleSearch",
             errors::AnnisError::NoSuchCorpus(_) => "NoSuchCorpus",
-            errors::AnnisError::Generic { .. } => "Generic",
-            errors::AnnisError::IO(_) => "IO",
-            errors::AnnisError::Bincode(_) => "Bincode",
-            errors::AnnisError::CSV(_) => "CSV",
-            errors::AnnisError::ParseIntError(_) => "ParseIntError",
-            errors::AnnisError::Fmt(_) => "Fmt",
-            errors::AnnisError::Strum(_) => "Strum",
-            errors::AnnisError::Regex(_) => "Regex",
-            errors::AnnisError::RandomGenerator(_) => "RandomGenerator",
-            errors::AnnisError::SSTable(_) => "SSTable",
         }
     } else {
         // Check for several known types
