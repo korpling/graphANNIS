@@ -62,8 +62,6 @@ fn error_kind(e: &Box<dyn StdError>) -> &'static str {
             "Regex"
         } else if e.is::<rand::Error>() {
             "RandomGenerator"
-        } else if e.is::<sstable::error::Status>() {
-            "SSTable"
         } else if e.is::<log::SetLoggerError>() {
             "SetLoggerError"
         } else {

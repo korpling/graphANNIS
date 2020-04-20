@@ -1,5 +1,5 @@
-pub mod disk_collections;
-pub mod memory_estimation;
+pub use graphannis_core::util::disk_collections;
+pub use graphannis_core::util::memory_estimation;
 pub mod quicksort;
 
 use csv;

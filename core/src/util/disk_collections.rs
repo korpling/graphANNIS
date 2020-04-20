@@ -1,5 +1,5 @@
-use crate::annis::errors::*;
-use crate::annis::util::memory_estimation;
+use anyhow::Result;
+use super::memory_estimation;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
@@ -10,7 +10,7 @@ use std::iter::Peekable;
 use std::ops::{Bound, RangeBounds};
 use std::path::{Path, PathBuf};
 
-pub use ::graphannis_core::serializer::{FixedSizeKeySerializer, KeySerializer};
+pub use crate::serializer::{FixedSizeKeySerializer, KeySerializer};
 
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
 const MAX_TRIES: usize = 5;
