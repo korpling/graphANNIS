@@ -1,9 +1,7 @@
 use super::RangeSpec;
-use crate::annis::db::graphstorage::GraphStorage;
-use crate::annis::db::Match;
 use crate::annis::operator::EstimationType;
 use crate::annis::operator::{UnaryOperator, UnaryOperatorSpec};
-use crate::Graph;
+use crate::{graph::{GraphStorage, Match}, Graph};
 use graphannis_core::types::{Component, ComponentType, NodeID};
 use std::collections::HashSet;
 use std::sync::Arc;

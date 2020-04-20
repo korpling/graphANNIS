@@ -1,11 +1,13 @@
 use crate::annis::db::aql::operators::RangeSpec;
-use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
-use crate::annis::db::{Graph, Match, ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY};
+use crate::annis::db::{Graph, ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY};
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
 };
+use crate::{
+    annis::util,
+    graph::{GraphStorage, Match, GraphStatistic},
+};
 use graphannis_core::types::{Component, ComponentType, Edge, NodeID};
-use crate::annis::util;
 use regex;
 use std;
 use std::collections::{HashSet, VecDeque};

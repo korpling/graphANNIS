@@ -1,7 +1,7 @@
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
-use crate::annis::db::{AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, TOK, TOKEN_KEY};
-use crate::annis::operator::*;
-use graphannis_core::types::{Component, NodeID};
+use crate::annis::db::{AnnotationStorage, Graph, ANNIS_NS, TOK, TOKEN_KEY};
+use crate::{graph::Match, annis::operator::*};
+use graphannis_core::{annostorage::ValueSearch, types::{Component, NodeID}};
 use std;
 use std::borrow::Cow;
 use std::collections::HashSet;

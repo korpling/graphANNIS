@@ -1,7 +1,6 @@
 use super::{CostEstimate, Desc, ExecutionNode};
 use crate::annis::db::query::conjunction::{BinaryOperatorEntry, UnaryOperatorEntry};
-use crate::annis::db::Match;
-use crate::annis::operator::{BinaryOperator, EstimationType, UnaryOperator};
+use crate::{graph::Match, annis::operator::{BinaryOperator, EstimationType, UnaryOperator}};
 use std;
 
 pub struct Filter<'a> {

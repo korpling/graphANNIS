@@ -1,7 +1,7 @@
-use super::EdgeContainer;
 use graphannis_core::types::NodeID;
 
 use rustc_hash::FxHashSet;
+use crate::graph::EdgeContainer;
 
 #[derive(MallocSizeOf)]
 pub struct UnionEdgeContainer<'a> {

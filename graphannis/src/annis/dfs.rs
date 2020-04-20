@@ -1,6 +1,6 @@
-use crate::annis::db::graphstorage::EdgeContainer;
 use graphannis_core::types::NodeID;
 use rustc_hash::FxHashSet;
+use crate::graph::EdgeContainer;
 
 pub struct CycleSafeDFS<'a> {
     min_distance: usize,

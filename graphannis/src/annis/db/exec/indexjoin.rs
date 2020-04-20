@@ -1,8 +1,7 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::AnnotationStorage;
-use crate::annis::db::Match;
-use crate::annis::operator::{BinaryOperator, EstimationType};
+use crate::{graph::Match, annis::operator::{BinaryOperator, EstimationType}};
 use graphannis_core::types::NodeID;
 use std;
 use std::iter::Peekable;

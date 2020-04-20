@@ -1,15 +1,14 @@
-use crate::annis::db::graphstorage::EdgeContainer;
+
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std;
 use std::clone::Clone;
 use std::{ops::Bound::*, path::Path};
 
-use super::{GraphStatistic, GraphStorage};
 use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
-use crate::annis::db::{AnnotationStorage, Graph, Match, NODE_NAME_KEY};
+use crate::annis::db::{AnnotationStorage, Graph, NODE_NAME_KEY};
 use crate::annis::dfs::{CycleSafeDFS, DFSStep};
-use crate::annis::errors::*;
+use crate::{graph::{EdgeContainer, GraphStatistic, GraphStorage, Match}, annis::errors::*};
 use graphannis_core::types::{Edge, NodeID, NumValue};
 
 #[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize, MallocSizeOf)]
@@ -409,12 +408,12 @@ where
         false
     }
 
-    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) -> Result<()> {
+    fn copy(&mut self, node_annos: &dyn AnnotationStorage<NodeID>, orig: &dyn GraphStorage) -> Result<()> {
         self.clear()?;
 
         // find all roots of the component
         let mut roots: FxHashSet<NodeID> = FxHashSet::default();
-        let nodes: Box<dyn Iterator<Item = Match>> = db.node_annos.exact_anno_search(
+        let nodes: Box<dyn Iterator<Item = Match>> = node_annos.exact_anno_search(
             Some(&NODE_NAME_KEY.ns),
             &NODE_NAME_KEY.name,
             None.into(),
@@ -430,7 +429,7 @@ where
             }
         }
 
-        let nodes: Box<dyn Iterator<Item = Match>> = db.node_annos.exact_anno_search(
+        let nodes: Box<dyn Iterator<Item = Match>> = node_annos.exact_anno_search(
             Some(&NODE_NAME_KEY.ns),
             &NODE_NAME_KEY.name,
             None.into(),

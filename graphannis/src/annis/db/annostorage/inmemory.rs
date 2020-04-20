@@ -1,7 +1,7 @@
 use super::symboltable::SymbolTable;
 use crate::annis::db::AnnotationStorage;
-use crate::annis::db::Match;
-use crate::annis::db::ValueSearch;
+use crate::graph::Match;
+use graphannis_core::annostorage::ValueSearch;
 use crate::annis::errors::*;
 use crate::annis::util;
 use crate::malloc_size_of::MallocSizeOf;

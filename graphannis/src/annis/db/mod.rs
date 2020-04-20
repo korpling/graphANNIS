@@ -1,11 +1,9 @@
 use crate::annis::db::graphstorage::registry;
 use crate::annis::db::graphstorage::union::UnionEdgeContainer;
-use crate::annis::db::graphstorage::EdgeContainer;
-use crate::annis::db::graphstorage::{GraphStorage, WriteableGraphStorage};
 use crate::annis::db::update::{GraphUpdate, UpdateEvent};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
-use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use crate::{graph::{WriteableGraphStorage, GraphStorage, EdgeContainer}, malloc_size_of::{MallocSizeOf, MallocSizeOfOps}};
 use graphannis_core::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use graphannis_core::util::disk_collections::{DiskMap, EvictionStrategy};
 use rayon::prelude::*;
@@ -36,7 +34,7 @@ pub mod sort_matches;
 pub mod token_helper;
 pub mod update;
 
-pub use annostorage::AnnotationStorage;
+pub use graphannis_core::annostorage::AnnotationStorage;
 
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
@@ -58,108 +56,6 @@ lazy_static! {
         ns: ANNIS_NS.to_owned(),
         name: NODE_TYPE.to_owned(),
     });
-}
-
-/// A match is the result of a query on an annotation storage.
-#[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
-#[repr(C)]
-pub struct Match {
-    node: NodeID,
-    /// The qualified annotation name.
-    anno_key: Arc<AnnoKey>,
-}
-
-impl Match {
-    /// Get the node identifier this match refers to.
-    pub fn get_node(&self) -> NodeID {
-        self.node
-    }
-
-    /// Extract the annotation for this match . The annotation value
-    /// is retrieved from the `graph` given as argument.
-    pub fn extract_annotation(&self, graph: &Graph) -> Option<Annotation> {
-        let val = graph
-            .node_annos
-            .get_value_for_item(&self.node, &self.anno_key)?
-            .to_owned();
-        Some(Annotation {
-            key: self.anno_key.as_ref().clone(),
-            val: val.to_string(),
-        })
-    }
-
-    /// Returns true if this match is different to all the other matches given as argument.
-    ///
-    /// A single match is different if the node ID or the annotation key are different.
-    pub fn different_to_all(&self, other: &[Match]) -> bool {
-        for o in other.iter() {
-            if self.node == o.node && self.anno_key == o.anno_key {
-                return false;
-            }
-        }
-        true
-    }
-
-    /// Returns true if this match is different to the other match given as argument.
-    ///
-    /// A single match is different if the node ID or the annotation key are different.
-    pub fn different_to(&self, other: &Match) -> bool {
-        self.node != other.node || self.anno_key != other.anno_key
-    }
-}
-
-impl Into<Match> for (Edge, Arc<AnnoKey>) {
-    fn into(self) -> Match {
-        Match {
-            node: self.0.source,
-            anno_key: self.1,
-        }
-    }
-}
-
-impl Into<Match> for (NodeID, Arc<AnnoKey>) {
-    fn into(self) -> Match {
-        Match {
-            node: self.0,
-            anno_key: self.1,
-        }
-    }
-}
-
-#[derive(Clone)]
-pub enum ValueSearch<T> {
-    Any,
-    Some(T),
-    NotSome(T),
-}
-
-impl<T> From<Option<T>> for ValueSearch<T> {
-    fn from(orig: Option<T>) -> ValueSearch<T> {
-        match orig {
-            None => ValueSearch::Any,
-            Some(v) => ValueSearch::Some(v),
-        }
-    }
-}
-
-impl<T> ValueSearch<T> {
-    #[inline]
-    pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> ValueSearch<U> {
-        match self {
-            ValueSearch::Any => ValueSearch::Any,
-            ValueSearch::Some(v) => ValueSearch::Some(f(v)),
-            ValueSearch::NotSome(v) => ValueSearch::NotSome(f(v)),
-        }
-    }
-
-    #[inline]
-    pub fn as_ref(&self) -> ValueSearch<&T> {
-        match *self {
-            ValueSearch::Any => ValueSearch::Any,
-            ValueSearch::Some(ref v) => ValueSearch::Some(v),
-            ValueSearch::NotSome(ref v) => ValueSearch::NotSome(v),
-        }
-    }
 }
 
 /// A representation of a graph including node annotations and edges.

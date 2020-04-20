@@ -1,7 +1,6 @@
 use super::symboltable::SymbolTable;
-use crate::annis::db::annostorage::AnnotationStorage;
-use crate::annis::db::Match;
-use crate::annis::db::ValueSearch;
+use graphannis_core::annostorage::AnnotationStorage;
+use graphannis_core::annostorage::{Match, ValueSearch};
 use crate::annis::errors::*;
 use graphannis_core::types::{AnnoKey, Annotation, NodeID};
 use crate::annis::util;

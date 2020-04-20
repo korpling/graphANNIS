@@ -1,9 +1,9 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
+use crate::annis::db::{Graph, DEFAULT_ANNO_KEY};
 use crate::annis::operator::BinaryOperator;
 use crate::annis::operator::BinaryOperatorSpec;
-use crate::annis::operator::EstimationType;
+use crate::{graph::Match, annis::operator::EstimationType};
 use graphannis_core::types::Component;
 use std::collections::HashSet;
 

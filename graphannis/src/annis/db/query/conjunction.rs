@@ -6,10 +6,8 @@ use crate::annis::db::exec::nestedloop::NestedLoop;
 use crate::annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use crate::annis::db::exec::parallel;
 use crate::annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
-use crate::annis::db::graphstorage::GraphStatistic;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
-use crate::annis::db::Match;
 use crate::annis::errors::*;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,

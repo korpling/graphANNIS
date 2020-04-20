@@ -3,7 +3,6 @@ use crate::annis::db::aql;
 use crate::annis::db::aql::operators;
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
-use crate::annis::db::graphstorage::GraphStatistic;
 use crate::annis::db::plan::ExecutionPlan;
 use crate::annis::db::query;
 use crate::annis::db::query::conjunction::Conjunction;
@@ -13,7 +12,7 @@ use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{
-    AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, NODE_NAME_KEY, NODE_TYPE,
+    AnnotationStorage, Graph, ANNIS_NS, NODE_NAME_KEY, NODE_TYPE,
 };
 use crate::annis::errors::*;
 use crate::annis::types::CountExtra;
@@ -21,10 +20,10 @@ use crate::annis::types::{FrequencyTable, QueryAttributeDescription};
 use crate::annis::util;
 use crate::annis::util::quicksort;
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use crate::update::GraphUpdate;
+use crate::{graph::{GraphStatistic, Match}, update::GraphUpdate};
 use fs2::FileExt;
 use graphannis_core::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
-use graphannis_core::util::memory_estimation;
+use graphannis_core::{annostorage::ValueSearch, util::memory_estimation};
 use linked_hash_map::LinkedHashMap;
 use percent_encoding::{utf8_percent_encode, PATH_SEGMENT_ENCODE_SET, SIMPLE_ENCODE_SET};
 use std;

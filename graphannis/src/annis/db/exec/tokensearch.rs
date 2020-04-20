@@ -1,12 +1,11 @@
 use crate::annis::db::exec::Desc;
 use crate::annis::db::exec::ExecutionNode;
-use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::sort_matches;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, Match, NODE_TYPE_KEY};
-use crate::annis::errors::*;
+use crate::annis::db::{Graph, NODE_TYPE_KEY};
+use crate::{graph::{Match, GraphStorage}, annis::errors::*};
 use graphannis_core::types::{AnnoKey, Component, ComponentType, NodeID};
 
 use std::collections::HashSet;

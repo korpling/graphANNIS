@@ -1,9 +1,8 @@
-use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
+use crate::annis::db::{Graph, DEFAULT_ANNO_KEY};
 use crate::annis::operator::EstimationType;
-use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
+use crate::{graph::{GraphStorage, Match}, annis::operator::{BinaryOperator, BinaryOperatorSpec}};
 use graphannis_core::types::{Component, ComponentType};
 
 use std;

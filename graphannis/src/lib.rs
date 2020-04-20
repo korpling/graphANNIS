@@ -74,10 +74,10 @@ pub use crate::annis::db::Graph;
 
 /// Types that are used by the `Graph` API.
 pub mod graph {
-    pub use crate::annis::db::graphstorage::GraphStatistic;
-    pub use crate::annis::db::graphstorage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
-    pub use crate::annis::db::AnnotationStorage;
-    pub use crate::annis::db::Match;
+    pub use graphannis_core::graphstorage::GraphStatistic;
+    pub use graphannis_core::graphstorage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
+    pub use graphannis_core::annostorage::AnnotationStorage;
+    pub use graphannis_core::annostorage::Match;
     pub use graphannis_core::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 }
 

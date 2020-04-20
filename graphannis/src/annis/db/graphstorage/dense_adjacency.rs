@@ -1,5 +1,5 @@
 use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
-use crate::annis::db::graphstorage::{EdgeContainer, GraphStatistic, GraphStorage};
+use graphannis_core::graphstorage::{EdgeContainer, GraphStatistic, GraphStorage};
 use crate::annis::db::{AnnotationStorage, Graph};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;

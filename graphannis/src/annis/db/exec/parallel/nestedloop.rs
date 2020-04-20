@@ -1,7 +1,6 @@
 use super::super::{Desc, ExecutionNode};
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
-use crate::annis::db::Match;
-use crate::annis::operator::BinaryOperator;
+use crate::{graph::Match, annis::operator::BinaryOperator};
 use rayon::prelude::*;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
