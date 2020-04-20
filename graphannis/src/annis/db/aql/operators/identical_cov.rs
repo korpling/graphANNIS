@@ -1,12 +1,15 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, DEFAULT_ANNO_KEY};
 use crate::annis::operator::EstimationType;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
+    Graph,
 };
-use graphannis_core::types::{Component, ComponentType};
+use graphannis_core::{
+    graph::DEFAULT_ANNO_KEY,
+    types::{Component, ComponentType},
+};
 
 use std;
 use std::collections::HashSet;

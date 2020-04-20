@@ -11,20 +11,25 @@ use crate::annis::db::relannis;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{AnnotationStorage, Graph, ANNIS_NS, NODE_NAME_KEY, NODE_TYPE};
 use crate::annis::errors::*;
 use crate::annis::types::CountExtra;
 use crate::annis::types::{FrequencyTable, QueryAttributeDescription};
 use crate::annis::util;
 use crate::annis::util::quicksort;
-use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::{
-    graph::{GraphStatistic, Match},
-    update::GraphUpdate,
+    graph::Match,
+    malloc_size_of::{MallocSizeOf, MallocSizeOfOps},
 };
 use fs2::FileExt;
-use graphannis_core::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
-use graphannis_core::{annostorage::ValueSearch, util::memory_estimation};
+use graphannis_core::{
+    annostorage::ValueSearch,
+    graph::{
+        storage::GraphStatistic, update::GraphUpdate, Graph, ANNIS_NS, NODE_NAME, NODE_NAME_KEY,
+        NODE_TYPE,
+    },
+    types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID},
+    util::memory_estimation,
+};
 use linked_hash_map::LinkedHashMap;
 use percent_encoding::{utf8_percent_encode, PATH_SEGMENT_ENCODE_SET, SIMPLE_ENCODE_SET};
 use std;
@@ -47,6 +52,7 @@ use std::ffi::CString;
 use sys_info;
 
 use anyhow::{Context, Error};
+use db::AnnotationStorage;
 
 #[cfg(test)]
 mod tests;
@@ -485,7 +491,7 @@ impl CorpusStorage {
                 // check if all components are loaded
                 let heap_size = db.size_of(mem_ops);
                 let mut load_status = LoadStatus::FullyLoaded(heap_size);
-                let node_annos_load_size = Some(db.node_annos.size_of(mem_ops));
+                let node_annos_load_size = Some(db.get_node_annos().size_of(mem_ops));
 
                 let mut graphstorages = Vec::new();
                 for c in db.get_all_components(None, None) {
@@ -917,7 +923,7 @@ impl CorpusStorage {
         let mut lock = db_entry.write().unwrap();
         let db: &mut Graph = get_write_or_error(&mut lock)?;
 
-        db.node_annos.calculate_statistics();
+        db.get_node_annos_mut().calculate_statistics();
         for c in db.get_all_components(None, None) {
             db.calculate_component_statistics(&c)?;
         }
@@ -1031,8 +1037,9 @@ impl CorpusStorage {
             let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
                 if !m.is_empty() {
                     let m: &Match = &m[0];
-                    if let Some(node_name) =
-                        db.node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY)
+                    if let Some(node_name) = db
+                        .get_node_annos()
+                        .get_value_for_item(&m.node, &NODE_NAME_KEY)
                     {
                         let node_name: &str = &node_name;
                         // extract the document path from the node name
@@ -1077,13 +1084,13 @@ impl CorpusStorage {
         // toplevel corpus node.
         let mut relannis_version_33 = false;
         if quirks_mode {
-            let mut relannis_version_it = db.node_annos.exact_anno_search(
+            let mut relannis_version_it = db.get_node_annos().exact_anno_search(
                 Some(ANNIS_NS),
                 "relannis-version",
                 ValueSearch::Any,
             );
             if let Some(m) = relannis_version_it.next() {
-                if let Some(v) = db.node_annos.get_value_for_item(&m.node, &m.anno_key) {
+                if let Some(v) = db.get_node_annos().get_value_for_item(&m.node, &m.anno_key) {
                     if v == "3.3" {
                         relannis_version_33 = true;
                     }
@@ -1131,7 +1138,7 @@ impl CorpusStorage {
                         db::sort_matches::compare_matchgroup_by_text_pos(
                             m1,
                             m2,
-                            db.node_annos.as_ref(),
+                            db.get_node_annos(),
                             token_helper.as_ref(),
                             gs_order,
                             collation,
@@ -1142,7 +1149,7 @@ impl CorpusStorage {
                         db::sort_matches::compare_matchgroup_by_text_pos(
                             m1,
                             m2,
-                            db.node_annos.as_ref(),
+                            db.get_node_annos(),
                             token_helper.as_ref(),
                             gs_order,
                             collation,
@@ -1263,7 +1270,7 @@ impl CorpusStorage {
                     }
 
                     if let Some(name) = db
-                        .node_annos
+                        .get_node_annos()
                         .get_value_for_item(&singlematch.node, &NODE_NAME_KEY)
                     {
                         node_desc.push_str("salt:/");
@@ -1386,8 +1393,8 @@ impl CorpusStorage {
             };
 
             let m = NodeSearchSpec::ExactValue {
-                ns: Some(db::ANNIS_NS.to_string()),
-                name: db::NODE_NAME.to_string(),
+                ns: Some(ANNIS_NS.to_string()),
+                name: NODE_NAME.to_string(),
                 val: Some(source_node_id.to_string()),
                 is_meta: false,
             };
@@ -1511,8 +1518,8 @@ impl CorpusStorage {
                 let mut q = Conjunction::new();
                 let corpus_idx = q.add_node(
                     NodeSearchSpec::ExactValue {
-                        ns: Some(db::ANNIS_NS.to_string()),
-                        name: db::NODE_NAME.to_string(),
+                        ns: Some(ANNIS_NS.to_string()),
+                        name: NODE_NAME.to_string(),
                         val: Some(source_corpus_id.to_string()),
                         is_meta: false,
                     },
@@ -1534,8 +1541,8 @@ impl CorpusStorage {
                 let mut q = Conjunction::new();
                 let corpus_idx = q.add_node(
                     NodeSearchSpec::ExactValue {
-                        ns: Some(db::ANNIS_NS.to_string()),
-                        name: db::NODE_NAME.to_string(),
+                        ns: Some(ANNIS_NS.to_string()),
+                        name: NODE_NAME.to_string(),
                         val: Some(source_corpus_id.to_string()),
                         is_meta: false,
                     },
@@ -1632,7 +1639,7 @@ impl CorpusStorage {
                         ));
                     } else {
                         // add all matching annotation keys
-                        annokeys.push((node_ref, db.node_annos.get_qnames(&def.name)));
+                        annokeys.push((node_ref, db.get_node_annos().get_qnames(&def.name)));
                     }
                 }
             }
@@ -1647,7 +1654,7 @@ impl CorpusStorage {
                     if *node_ref < mgroup.len() {
                         let m: &Match = &mgroup[*node_ref];
                         for k in anno_keys.iter() {
-                            if let Some(val) = db.node_annos.get_value_for_item(&m.node, k) {
+                            if let Some(val) = db.get_node_annos().get_value_for_item(&m.node, k) {
                                 tuple_val = val.to_string();
                             }
                         }
@@ -1731,7 +1738,7 @@ impl CorpusStorage {
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
-                let node_annos: &dyn AnnotationStorage<NodeID> = db.node_annos.as_ref();
+                let node_annos: &dyn AnnotationStorage<NodeID> = db.get_node_annos();
                 for key in node_annos.annotation_keys() {
                     if list_values {
                         if only_most_frequent_values {
@@ -1981,8 +1988,8 @@ fn extract_subgraph_by_query(
 
 fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) -> Result<()> {
     // add all node labels with the same node ID
-    for a in orig_db.node_annos.get_annotations_for_item(&id) {
-        db.node_annos.insert(id, a)?;
+    for a in orig_db.get_node_annos().get_annotations_for_item(&id) {
+        db.get_node_annos_mut().insert(id, a)?;
     }
     Ok(())
 }
@@ -2002,7 +2009,7 @@ fn create_subgraph_edge(
             if let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {
                     if !db
-                        .node_annos
+                        .get_node_annos()
                         .get_all_keys_for_item(&target, None, None)
                         .is_empty()
                     {

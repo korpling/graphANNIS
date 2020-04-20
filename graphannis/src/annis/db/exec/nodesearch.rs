@@ -3,16 +3,13 @@ use super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::exec::tokensearch;
 use crate::annis::db::exec::tokensearch::AnyTokenSearch;
 use crate::annis::db::AnnotationStorage;
-use crate::annis::db::{Graph, NODE_TYPE_KEY, TOKEN_KEY};
 use crate::annis::errors::*;
 use crate::annis::operator::EdgeAnnoSearchSpec;
 use crate::annis::types::LineColumnRange;
-use crate::{
-    annis::util,
-    graph::{GraphStorage, Match},
-};
+use crate::{annis::util, graph::Match};
 use graphannis_core::{
     annostorage::ValueSearch,
+    graph::{storage::GraphStorage, Graph, NODE_TYPE_KEY, TOKEN_KEY},
     types::{Component, ComponentType, Edge, NodeID},
 };
 use itertools::Itertools;
@@ -328,7 +325,7 @@ impl<'a> NodeSearch<'a> {
             }
             NodeSearchSpec::AnyNode => {
                 let it = db
-                    .node_annos
+                    .get_node_annos()
                     .exact_anno_search(
                         Some(&NODE_TYPE_KEY.ns),
                         &NODE_TYPE_KEY.name,
@@ -346,7 +343,7 @@ impl<'a> NodeSearch<'a> {
                     }
                 });
 
-                let est_output = db.node_annos.guess_max_count(
+                let est_output = db.get_node_annos().guess_max_count(
                     Some(&NODE_TYPE_KEY.ns),
                     &NODE_TYPE_KEY.name,
                     "node",
@@ -385,7 +382,7 @@ impl<'a> NodeSearch<'a> {
         query_fragment: &str,
         node_nr: usize,
     ) -> Result<NodeSearch<'a>> {
-        let base_it = db.node_annos.exact_anno_search(
+        let base_it = db.get_node_annos().exact_anno_search(
             qname.0.as_ref().map(String::as_str),
             &qname.1,
             val.as_ref().map(String::as_str),
@@ -399,7 +396,7 @@ impl<'a> NodeSearch<'a> {
 
         let base_it: Box<dyn Iterator<Item = Match>> =
             if let Some(const_output) = const_output.clone() {
-                let is_unique = db.node_annos.get_qnames(&qname.1).len() <= 1;
+                let is_unique = db.get_node_annos().get_qnames(&qname.1).len() <= 1;
                 // Replace the result annotation with a constant value.
                 // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
                 if is_unique {
@@ -422,7 +419,7 @@ impl<'a> NodeSearch<'a> {
             };
 
         let est_output = match val {
-            ValueSearch::Some(ref val) => db.node_annos.guess_max_count(
+            ValueSearch::Some(ref val) => db.get_node_annos().guess_max_count(
                 qname.0.as_ref().map(String::as_str),
                 &qname.1,
                 &val,
@@ -430,10 +427,10 @@ impl<'a> NodeSearch<'a> {
             ),
             ValueSearch::NotSome(ref val) => {
                 let total = db
-                    .node_annos
+                    .get_node_annos()
                     .number_of_annotations_by_name(qname.0.as_ref().map(String::as_str), &qname.1);
                 total
-                    - db.node_annos.guess_max_count(
+                    - db.get_node_annos().guess_max_count(
                         qname.0.as_ref().map(String::as_str),
                         &qname.1,
                         &val,
@@ -441,7 +438,7 @@ impl<'a> NodeSearch<'a> {
                     )
             }
             ValueSearch::Any => db
-                .node_annos
+                .get_node_annos()
                 .number_of_annotations_by_name(qname.0.as_ref().map(String::as_str), &qname.1),
         };
 
@@ -501,7 +498,7 @@ impl<'a> NodeSearch<'a> {
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         // match_regex works only with values
-        let base_it = db.node_annos.regex_anno_search(
+        let base_it = db.get_node_annos().regex_anno_search(
             qname.0.as_ref().map(String::as_str),
             &qname.1,
             pattern,
@@ -516,7 +513,7 @@ impl<'a> NodeSearch<'a> {
 
         let base_it: Box<dyn Iterator<Item = Match>> =
             if let Some(const_output) = const_output.clone() {
-                let is_unique = db.node_annos.get_qnames(&qname.1).len() <= 1;
+                let is_unique = db.get_node_annos().get_qnames(&qname.1).len() <= 1;
                 // Replace the result annotation with a constant value.
                 // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
                 if is_unique {
@@ -540,16 +537,16 @@ impl<'a> NodeSearch<'a> {
 
         let est_output = if negated {
             let total = db
-                .node_annos
+                .get_node_annos()
                 .number_of_annotations_by_name(qname.0.as_ref().map(String::as_str), &qname.1);
             total
-                - db.node_annos.guess_max_count_regex(
+                - db.get_node_annos().guess_max_count_regex(
                     qname.0.as_ref().map(String::as_str),
                     &qname.1,
                     pattern,
                 )
         } else {
-            db.node_annos.guess_max_count_regex(
+            db.get_node_annos().guess_max_count_regex(
                 qname.0.as_ref().map(String::as_str),
                 &qname.1,
                 pattern,
@@ -617,7 +614,7 @@ impl<'a> NodeSearch<'a> {
     ) -> Result<NodeSearch<'a>> {
         let it_base: Box<dyn Iterator<Item = Match>> = match val {
             ValueSearch::Any => {
-                let it = db.node_annos.exact_anno_search(
+                let it = db.get_node_annos().exact_anno_search(
                     Some(&TOKEN_KEY.ns),
                     &TOKEN_KEY.name,
                     None.into(),
@@ -626,14 +623,14 @@ impl<'a> NodeSearch<'a> {
             }
             ValueSearch::Some(ref val) => {
                 let it = if match_regex {
-                    db.node_annos.regex_anno_search(
+                    db.get_node_annos().regex_anno_search(
                         Some(&TOKEN_KEY.ns),
                         &TOKEN_KEY.name,
                         val,
                         false,
                     )
                 } else {
-                    db.node_annos.exact_anno_search(
+                    db.get_node_annos().exact_anno_search(
                         Some(&TOKEN_KEY.ns),
                         &TOKEN_KEY.name,
                         ValueSearch::Some(&val),
@@ -643,10 +640,14 @@ impl<'a> NodeSearch<'a> {
             }
             ValueSearch::NotSome(ref val) => {
                 let it = if match_regex {
-                    db.node_annos
-                        .regex_anno_search(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name, val, true)
+                    db.get_node_annos().regex_anno_search(
+                        Some(&TOKEN_KEY.ns),
+                        &TOKEN_KEY.name,
+                        val,
+                        true,
+                    )
                 } else {
-                    db.node_annos.exact_anno_search(
+                    db.get_node_annos().exact_anno_search(
                         Some(&TOKEN_KEY.ns),
                         &TOKEN_KEY.name,
                         ValueSearch::NotSome(val),
@@ -791,28 +792,42 @@ impl<'a> NodeSearch<'a> {
         let est_output = match val {
             ValueSearch::Some(ref val) => {
                 if match_regex {
-                    db.node_annos
-                        .guess_max_count_regex(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name, val)
+                    db.get_node_annos().guess_max_count_regex(
+                        Some(&TOKEN_KEY.ns),
+                        &TOKEN_KEY.name,
+                        val,
+                    )
                 } else {
-                    db.node_annos
-                        .guess_max_count(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name, val, val)
+                    db.get_node_annos().guess_max_count(
+                        Some(&TOKEN_KEY.ns),
+                        &TOKEN_KEY.name,
+                        val,
+                        val,
+                    )
                 }
             }
             ValueSearch::NotSome(val) => {
                 let total_count = db
-                    .node_annos
+                    .get_node_annos()
                     .number_of_annotations_by_name(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name);
                 let positive_count = if match_regex {
-                    db.node_annos
-                        .guess_max_count_regex(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name, &val)
+                    db.get_node_annos().guess_max_count_regex(
+                        Some(&TOKEN_KEY.ns),
+                        &TOKEN_KEY.name,
+                        &val,
+                    )
                 } else {
-                    db.node_annos
-                        .guess_max_count(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name, &val, &val)
+                    db.get_node_annos().guess_max_count(
+                        Some(&TOKEN_KEY.ns),
+                        &TOKEN_KEY.name,
+                        &val,
+                        &val,
+                    )
                 };
                 total_count - positive_count
             }
             ValueSearch::Any => db
-                .node_annos
+                .get_node_annos()
                 .number_of_annotations_by_name(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name),
         };
         // always assume at least one output item otherwise very small selectivity can fool the planner
@@ -869,7 +884,7 @@ impl<'a> NodeSearch<'a> {
         filters.push(filter_func);
 
         let est_output = db
-            .node_annos
+            .get_node_annos()
             .number_of_annotations_by_name(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name);
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
@@ -934,7 +949,7 @@ impl<'a> NodeSearch<'a> {
             .flat_map(move |node: NodeID| {
                 // fetch annotation candidates for the node based on the original description
                 let node_search_desc = node_search_desc_1.clone();
-                db.node_annos
+                db.get_node_annos()
                     .get_all_keys_for_item(
                         &node,
                         node_search_desc.qname.0.as_ref().map(String::as_str),
@@ -949,7 +964,7 @@ impl<'a> NodeSearch<'a> {
             .filter_map(move |m: Match| -> Option<Vec<Match>> {
                 // only include the nodes that fullfill all original node search predicates
                 for cond in &node_search_desc_2.cond {
-                    if !cond(&m, db.node_annos.as_ref()) {
+                    if !cond(&m, db.get_node_annos()) {
                         return None;
                     }
                 }

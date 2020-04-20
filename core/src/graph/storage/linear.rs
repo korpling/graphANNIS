@@ -1,11 +1,11 @@
-use crate::annis::db::{AnnotationStorage, NODE_NAME_KEY};
-use crate::annis::dfs::{CycleSafeDFS, DFSStep};
-use crate::{annis::errors::*, graph::Match};
-use graphannis_core::graphstorage::{EdgeContainer, GraphStatistic, GraphStorage};
-use graphannis_core::{
-    annostorage::inmemory::AnnoStorageImpl,
+use super::{EdgeContainer, GraphStatistic, GraphStorage};
+use crate::{
+    annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage, Match},
+    dfs::{CycleSafeDFS, DFSStep},
+    graph::NODE_NAME_KEY,
     types::{Edge, NodeID, NumValue},
 };
+use anyhow::Result;
 use rustc_hash::FxHashMap;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};

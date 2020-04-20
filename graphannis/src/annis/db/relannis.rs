@@ -1,12 +1,14 @@
 use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
-use crate::annis::db::{Graph, ANNIS_NS, TOK};
 use crate::annis::errors::*;
 use crate::annis::util::create_str_vec_key;
 use crate::update::{GraphUpdate, UpdateEvent};
 use csv;
-use graphannis_core::serializer::KeySerializer;
-use graphannis_core::types::{AnnoKey, Component, ComponentType, Edge, NodeID};
-use graphannis_core::util::disk_collections::DiskMap;
+use graphannis_core::{
+    graph::{Graph, ANNIS_NS, TOK},
+    serializer::KeySerializer,
+    types::{AnnoKey, Component, ComponentType, Edge, NodeID},
+    util::disk_collections::DiskMap,
+};
 use percent_encoding::utf8_percent_encode;
 use std;
 use std::borrow::Cow;
@@ -235,7 +237,7 @@ where
         db.apply_update(&mut updates, &progress_callback)?;
 
         progress_callback("calculating node statistics");
-        db.node_annos.calculate_statistics();
+        db.get_node_annos_mut().calculate_statistics();
 
         for c in db.get_all_components(None, None) {
             progress_callback(&format!("calculating statistics for component {}", c));

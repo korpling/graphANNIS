@@ -1,7 +1,7 @@
 //! Types used to describe updates on graphs.
 
-use crate::annis::errors::*;
-use graphannis_core::util::disk_collections::DiskMap;
+use crate::util::disk_collections::DiskMap;
+use anyhow::Result;
 use serde::de::Error as DeserializeError;
 use serde::de::{MapAccess, Visitor};
 use serde::ser::Error as SerializeError;

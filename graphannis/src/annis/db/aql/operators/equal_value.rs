@@ -1,8 +1,9 @@
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
-use crate::annis::db::{AnnotationStorage, Graph, ANNIS_NS, TOK, TOKEN_KEY};
+use crate::annis::db::AnnotationStorage;
 use crate::{annis::operator::*, graph::Match};
 use graphannis_core::{
     annostorage::ValueSearch,
+    graph::{Graph, ANNIS_NS, TOK, TOKEN_KEY},
     types::{Component, NodeID},
 };
 use std;
@@ -23,7 +24,7 @@ impl BinaryOperatorSpec for EqualValueSpec {
 
     fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         Some(Box::new(EqualValue {
-            node_annos: db.node_annos.as_ref(),
+            node_annos: db.get_node_annos(),
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
             negated: self.negated,
@@ -160,7 +161,7 @@ impl<'a> BinaryOperator for EqualValue<'a> {
 
     fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
         Some(Box::from(EqualValue {
-            node_annos: graph.node_annos.as_ref(),
+            node_annos: graph.get_node_annos(),
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
             negated: self.negated,

@@ -1,10 +1,9 @@
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::AnnotationStorage;
-use crate::{
-    annis::db::{ANNIS_NS, NODE_NAME},
-    graph::{GraphStorage, Match},
+use crate::{annis::db::AnnotationStorage, graph::Match};
+use graphannis_core::{
+    graph::{storage::GraphStorage, ANNIS_NS, NODE_NAME},
+    types::{AnnoKey, NodeID},
 };
-use graphannis_core::types::{AnnoKey, NodeID};
 use std;
 use std::borrow::Cow;
 use std::cmp::Ordering;

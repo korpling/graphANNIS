@@ -7,17 +7,19 @@ use crate::annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use crate::annis::db::exec::parallel;
 use crate::annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::AnnotationStorage;
-use crate::annis::db::Graph;
 use crate::annis::errors::*;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
 };
 use crate::{
     annis::types::{LineColumnRange, QueryAttributeDescription},
-    graph::{GraphStatistic, Match},
+    graph::Match,
 };
 use anyhow::Error;
-use graphannis_core::types::{Component, Edge};
+use graphannis_core::{
+    graph::{storage::GraphStatistic, Graph},
+    types::{Component, Edge},
+};
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
 use rand::rngs::SmallRng;
@@ -123,7 +125,7 @@ fn create_join<'b>(
                 idx_left,
                 op_entry,
                 exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                db.node_annos.as_ref(),
+                db.get_node_annos(),
                 exec_right.get_desc(),
             );
             return Box::new(join);
@@ -133,7 +135,7 @@ fn create_join<'b>(
                 idx_left,
                 op_entry,
                 exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                db.node_annos.as_ref(),
+                db.get_node_annos(),
                 exec_right.get_desc(),
             );
             return Box::new(join);
@@ -152,7 +154,7 @@ fn create_join<'b>(
                         global_reflexivity: op_entry.global_reflexivity,
                     },
                     exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.node_annos.as_ref(),
+                    db.get_node_annos(),
                     exec_left.get_desc(),
                 );
                 return Box::new(join);
@@ -167,7 +169,7 @@ fn create_join<'b>(
                         global_reflexivity: op_entry.global_reflexivity,
                     },
                     exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.node_annos.as_ref(),
+                    db.get_node_annos(),
                     exec_left.get_desc(),
                 );
                 return Box::new(join);

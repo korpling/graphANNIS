@@ -1,4 +1,4 @@
-use crate::update::{GraphUpdate, UpdateEvent};
+use graphannis_core::graph::update::{GraphUpdate, UpdateEvent};
 
 /// Create update events for the following corpus structure:
 ///

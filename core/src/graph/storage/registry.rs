@@ -3,13 +3,10 @@ use super::dense_adjacency::DenseAdjacencyListStorage;
 use super::disk_adjacency;
 use super::disk_adjacency::DiskAdjacencyListStorage;
 use super::linear::LinearGraphStorage;
-use super::prepost::PrePostOrderStorage;
-use crate::annis::db::Graph;
-use crate::{
-    annis::errors::*,
-    graph::{GraphStatistic, GraphStorage},
-};
+use super::{prepost::PrePostOrderStorage, GraphStatistic, GraphStorage};
+use crate::graph::Graph;
 use anyhow::Context;
+use anyhow::Result;
 use serde::Deserialize;
 use std;
 use std::collections::HashMap;

@@ -3,14 +3,13 @@ use crate::annis::db::exec::ExecutionNode;
 use crate::annis::db::sort_matches;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
-use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, NODE_TYPE_KEY};
-use crate::{
-    annis::errors::*,
-    graph::{GraphStorage, Match},
+use crate::{annis::db::token_helper::TokenHelper, graph::Match};
+use graphannis_core::{
+    graph::{storage::GraphStorage, Graph, NODE_TYPE_KEY},
+    types::{AnnoKey, Component, ComponentType, NodeID},
 };
-use graphannis_core::types::{AnnoKey, Component, ComponentType, NodeID};
 
+use anyhow::Result;
 use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
@@ -63,7 +62,7 @@ impl<'a> AnyTokenSearch<'a> {
             let mut root_nodes: Vec<Match> = Vec::new();
             for tok_candidate in
                 self.db
-                    .node_annos
+                    .get_node_annos()
                     .exact_anno_search(Some("annis"), "tok", None.into())
             {
                 let n = tok_candidate.node;
@@ -85,7 +84,7 @@ impl<'a> AnyTokenSearch<'a> {
                 sort_matches::compare_match_by_text_pos(
                     b,
                     a,
-                    self.db.node_annos.as_ref(),
+                    self.db.get_node_annos(),
                     self.token_helper.as_ref(),
                     self.order_gs,
                     CollationType::Default,

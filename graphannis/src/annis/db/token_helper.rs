@@ -1,8 +1,8 @@
-use crate::{
-    annis::db::{AnnotationStorage, Graph, TOKEN_KEY},
-    graph::GraphStorage,
+use crate::{annis::db::AnnotationStorage, graph::GraphStorage, Graph};
+use graphannis_core::{
+    graph::TOKEN_KEY,
+    types::{Component, ComponentType, NodeID},
 };
-use graphannis_core::types::{Component, ComponentType, NodeID};
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -61,7 +61,7 @@ impl<'a> TokenHelper<'a> {
             .collect();
 
         Some(TokenHelper {
-            node_annos: graph.node_annos.as_ref(),
+            node_annos: graph.get_node_annos(),
             left_edges: graph.get_graphstorage(&COMPONENT_LEFT)?,
             right_edges: graph.get_graphstorage(&COMPONENT_RIGHT)?,
             cov_edges,

@@ -1,41 +1,29 @@
-use super::*;
-use crate::annis::db::AnnotationStorage;
 use crate::{
-    annis::dfs::CycleSafeDFS,
-    graph::{
-        AnnoKey, Annotation, EdgeContainer, GraphStatistic, GraphStorage, NodeID,
-        WriteableGraphStorage,
-    },
+    annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage},
+    dfs::CycleSafeDFS,
+    types::{AnnoKey, Annotation, Edge, NodeID},
 };
+
+use super::{EdgeContainer, GraphStatistic, GraphStorage, WriteableGraphStorage};
 use anyhow::Result;
-use graphannis_core::types::Edge;
-use graphannis_core::{
-    annostorage::ondisk::AnnoStorageImpl,
-    util::disk_collections::{DiskMap, EvictionStrategy},
-};
-
-use itertools::Itertools;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
+use serde::Deserialize;
 use std::collections::BTreeSet;
-use std::ops::Bound;
+use std::{ops::Bound, path::Path};
 
-pub const SERIALIZATION_ID: &str = "DiskAdjacencyListV1";
-
-#[derive(MallocSizeOf)]
-pub struct DiskAdjacencyListStorage {
-    #[ignore_malloc_size_of = "is stored on disk"]
-    edges: DiskMap<Edge, bool>,
-    #[ignore_malloc_size_of = "is stored on disk"]
-    inverse_edges: DiskMap<Edge, bool>,
+#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
+pub struct AdjacencyListStorage {
+    edges: FxHashMap<NodeID, Vec<NodeID>>,
+    inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,
     annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
 }
 
-fn get_fan_outs(edges: &DiskMap<Edge, bool>) -> Vec<usize> {
+fn get_fan_outs(edges: &FxHashMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
     let mut fan_outs: Vec<usize> = Vec::new();
     if !edges.is_empty() {
-        for (_, targets) in &edges.iter().group_by(|(e, _)| e.source) {
-            fan_outs.push(targets.count());
+        for outgoing in edges.values() {
+            fan_outs.push(outgoing.len());
         }
     }
     // order the fan-outs
@@ -44,14 +32,20 @@ fn get_fan_outs(edges: &DiskMap<Edge, bool>) -> Vec<usize> {
     fan_outs
 }
 
-impl DiskAdjacencyListStorage {
-    pub fn new() -> Result<DiskAdjacencyListStorage> {
-        Ok(DiskAdjacencyListStorage {
-            edges: DiskMap::default(),
-            inverse_edges: DiskMap::default(),
-            annos: AnnoStorageImpl::new(None)?,
+impl Default for AdjacencyListStorage {
+    fn default() -> Self {
+        AdjacencyListStorage::new()
+    }
+}
+
+impl AdjacencyListStorage {
+    pub fn new() -> AdjacencyListStorage {
+        AdjacencyListStorage {
+            edges: FxHashMap::default(),
+            inverse_edges: FxHashMap::default(),
+            annos: AnnoStorageImpl::new(),
             stats: None,
-        })
+        }
     }
 
     pub fn clear(&mut self) -> Result<()> {
@@ -63,41 +57,34 @@ impl DiskAdjacencyListStorage {
     }
 }
 
-impl EdgeContainer for DiskAdjacencyListStorage {
+impl EdgeContainer for AdjacencyListStorage {
     fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        let lower_bound = Edge {
-            source: node,
-            target: NodeID::min_value(),
-        };
-        let upper_bound = Edge {
-            source: node,
-            target: NodeID::max_value(),
-        };
-        Box::new(
-            self.edges
-                .range(lower_bound..upper_bound)
-                .map(|(e, _)| e.target),
-        )
+        if let Some(outgoing) = self.edges.get(&node) {
+            return match outgoing.len() {
+                0 => Box::new(std::iter::empty()),
+                1 => Box::new(std::iter::once(outgoing[0])),
+                _ => Box::new(outgoing.iter().cloned()),
+            };
+        }
+        Box::new(std::iter::empty())
     }
 
     fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        let lower_bound = Edge {
-            source: node,
-            target: NodeID::min_value(),
-        };
-        let upper_bound = Edge {
-            source: node,
-            target: NodeID::max_value(),
-        };
-        Box::new(
-            self.inverse_edges
-                .range(lower_bound..upper_bound)
-                .map(|(e, _)| e.target),
-        )
+        if let Some(ingoing) = self.inverse_edges.get(&node) {
+            return match ingoing.len() {
+                0 => Box::new(std::iter::empty()),
+                1 => Box::new(std::iter::once(ingoing[0])),
+                _ => Box::new(ingoing.iter().cloned()),
+            };
+        }
+        Box::new(std::iter::empty())
     }
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        let it = self.edges.iter().map(|(e, _)| e.source).unique();
-
+        let it = self
+            .edges
+            .iter()
+            .filter(|(_, outgoing)| !outgoing.is_empty())
+            .map(|(key, _)| *key);
         Box::new(it)
     }
 
@@ -106,53 +93,26 @@ impl EdgeContainer for DiskAdjacencyListStorage {
     }
 }
 
-impl GraphStorage for DiskAdjacencyListStorage {
+impl GraphStorage for AdjacencyListStorage {
     fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge> {
         &self.annos
     }
 
     fn serialization_id(&self) -> String {
-        SERIALIZATION_ID.to_owned()
+        "AdjacencyListV1".to_owned()
     }
 
     fn load_from(location: &Path) -> Result<Self>
     where
-        Self: std::marker::Sized,
+        for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
-        // Read stats
-        let stats_path = location.join("edge_stats.bin");
-        let f_stats = std::fs::File::open(&stats_path)?;
-        let input = std::io::BufReader::new(f_stats);
-        let stats = bincode::deserialize_from(input)?;
-
-        let result = DiskAdjacencyListStorage {
-            edges: DiskMap::new(
-                Some(&location.join("edges.bin")),
-                EvictionStrategy::default(),
-            )?,
-            inverse_edges: DiskMap::new(
-                Some(&location.join("inverse_edges.bin")),
-                EvictionStrategy::default(),
-            )?,
-            annos: AnnoStorageImpl::new(Some(
-                location.join(graphannis_core::annostorage::ondisk::SUBFOLDER_NAME),
-            ))?,
-            stats,
-        };
+        let mut result: Self = super::default_deserialize_gs(location)?;
+        result.annos.after_deserialization();
         Ok(result)
     }
 
     fn save_to(&self, location: &Path) -> Result<()> {
-        self.edges.write_to(&location.join("edges.bin"))?;
-        self.inverse_edges
-            .write_to(&location.join("inverse_edges.bin"))?;
-        self.annos.save_annotations_to(location)?;
-        // Write stats with bincode
-        let stats_path = location.join("edge_stats.bin");
-        let f_stats = std::fs::File::create(&stats_path)?;
-        let mut writer = std::io::BufWriter::new(f_stats);
-        bincode::serialize_into(&mut writer, &self.stats)?;
-
+        super::default_serialize_gs(self, location)?;
         Ok(())
     }
 
@@ -252,28 +212,50 @@ impl GraphStorage for DiskAdjacencyListStorage {
     }
 }
 
-impl WriteableGraphStorage for DiskAdjacencyListStorage {
+impl WriteableGraphStorage for AdjacencyListStorage {
     fn add_edge(&mut self, edge: Edge) -> Result<()> {
         if edge.source != edge.target {
             // insert to both regular and inverse maps
-            self.inverse_edges.insert(edge.inverse(), true)?;
-            self.edges.insert(edge, true)?;
+
+            let inverse_entry = self
+                .inverse_edges
+                .entry(edge.target)
+                .or_insert_with(Vec::default);
+            // no need to insert it: edge already exists
+            if let Err(insertion_idx) = inverse_entry.binary_search(&edge.source) {
+                inverse_entry.insert(insertion_idx, edge.source);
+            }
+
+            let regular_entry = self.edges.entry(edge.source).or_insert_with(Vec::default);
+            if let Err(insertion_idx) = regular_entry.binary_search(&edge.target) {
+                regular_entry.insert(insertion_idx, edge.target);
+            }
             self.stats = None;
         }
         Ok(())
     }
 
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) -> Result<()> {
-        if self.edges.get(&edge).is_some() {
-            self.annos.insert(edge, anno)?;
+        if let Some(outgoing) = self.edges.get(&edge.source) {
+            if outgoing.contains(&edge.target) {
+                self.annos.insert(edge, anno)?;
+            }
         }
         Ok(())
     }
 
     fn delete_edge(&mut self, edge: &Edge) -> Result<()> {
-        self.edges.remove(edge)?;
-        self.inverse_edges.remove(&edge.inverse())?;
+        if let Some(outgoing) = self.edges.get_mut(&edge.source) {
+            if let Ok(idx) = outgoing.binary_search(&edge.target) {
+                outgoing.remove(idx);
+            }
+        }
 
+        if let Some(ingoing) = self.inverse_edges.get_mut(&edge.target) {
+            if let Ok(idx) = ingoing.binary_search(&edge.source) {
+                ingoing.remove(idx);
+            }
+        }
         let annos = self.annos.get_annotations_for_item(edge);
         for a in annos {
             self.annos.remove_annotation_for_item(edge, &a.key)?;
@@ -289,18 +271,21 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         // find all both ingoing and outgoing edges
         let mut to_delete = std::collections::LinkedList::<Edge>::new();
 
-        for target in self.get_outgoing_edges(node) {
-            to_delete.push_back(Edge {
-                source: node,
-                target: target,
-            });
+        if let Some(outgoing) = self.edges.get(&node) {
+            for target in outgoing.iter() {
+                to_delete.push_back(Edge {
+                    source: node,
+                    target: *target,
+                })
+            }
         }
-
-        for source in self.get_ingoing_edges(node) {
-            to_delete.push_back(Edge {
-                source: source,
-                target: node,
-            });
+        if let Some(ingoing) = self.inverse_edges.get(&node) {
+            for source in ingoing.iter() {
+                to_delete.push_back(Edge {
+                    source: *source,
+                    target: node,
+                })
+            }
         }
 
         for e in to_delete {
@@ -331,16 +316,18 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         let mut roots: BTreeSet<NodeID> = BTreeSet::new();
         {
             let mut all_nodes: BTreeSet<NodeID> = BTreeSet::new();
-            for (e, _) in self.edges.iter() {
-                roots.insert(e.source);
-                all_nodes.insert(e.source);
-                all_nodes.insert(e.target);
+            for (source, outgoing) in &self.edges {
+                roots.insert(*source);
+                all_nodes.insert(*source);
+                for target in outgoing {
+                    all_nodes.insert(*target);
 
-                if stats.rooted_tree {
-                    if has_incoming_edge.contains(&e.target) {
-                        stats.rooted_tree = false;
-                    } else {
-                        has_incoming_edge.insert(e.target);
+                    if stats.rooted_tree {
+                        if has_incoming_edge.contains(target) {
+                            stats.rooted_tree = false;
+                        } else {
+                            has_incoming_edge.insert(*target);
+                        }
                     }
                 }
             }
@@ -348,8 +335,10 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         }
 
         if !self.edges.is_empty() {
-            for (e, _) in self.edges.iter() {
-                roots.remove(&e.target);
+            for outgoing in self.edges.values() {
+                for target in outgoing {
+                    roots.remove(&target);
+                }
             }
         }
 
@@ -456,7 +445,7 @@ mod tests {
         +---+
         */
 
-        let mut gs = DiskAdjacencyListStorage::new().unwrap();
+        let mut gs = AdjacencyListStorage::new();
         gs.add_edge(Edge {
             source: 1,
             target: 2,
@@ -513,7 +502,7 @@ mod tests {
                               +-----> | 4 |
                                       +---+
         */
-        let mut gs = DiskAdjacencyListStorage::new().unwrap();
+        let mut gs = AdjacencyListStorage::new();
 
         gs.add_edge(Edge {
             source: 1,
@@ -580,7 +569,7 @@ mod tests {
 
     #[test]
     fn indirect_cycle_statistics() {
-        let mut gs = DiskAdjacencyListStorage::new().unwrap();
+        let mut gs = AdjacencyListStorage::new();
 
         gs.add_edge(Edge {
             source: 1,
@@ -620,7 +609,7 @@ mod tests {
 
     #[test]
     fn multi_branch_cycle_statistics() {
-        let mut gs = DiskAdjacencyListStorage::new().unwrap();
+        let mut gs = AdjacencyListStorage::new();
 
         gs.add_edge(Edge {
             source: 903,

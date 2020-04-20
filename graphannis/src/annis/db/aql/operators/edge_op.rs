@@ -1,10 +1,12 @@
 use crate::annis::db::aql::operators::RangeSpec;
-use crate::annis::db::{Graph, ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY};
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
 };
 use crate::graph::{GraphStatistic, GraphStorage, Match};
-use graphannis_core::types::{Component, ComponentType, Edge, NodeID};
+use graphannis_core::{
+    graph::{Graph, ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
+    types::{Component, ComponentType, Edge, NodeID},
+};
 use regex;
 use std;
 use std::collections::{HashSet, VecDeque};
@@ -36,7 +38,7 @@ impl BaseEdgeOp {
         Some(BaseEdgeOp {
             gs,
             spec,
-            max_nodes_estimate: db.node_annos.guess_max_count(
+            max_nodes_estimate: db.get_node_annos().guess_max_count(
                 Some(&NODE_TYPE_KEY.ns),
                 &NODE_TYPE_KEY.name,
                 "node",

@@ -1,6 +1,16 @@
-use super::annostorage::AnnotationStorage;
+pub mod adjacencylist;
+pub mod dense_adjacency;
+pub mod disk_adjacency;
+pub mod linear;
+pub mod prepost;
+pub mod registry;
+pub mod union;
+
 use crate::malloc_size_of::MallocSizeOf;
-use crate::types::{AnnoKey, Annotation, Edge, NodeID};
+use crate::{
+    annostorage::AnnotationStorage,
+    types::{AnnoKey, Annotation, Edge, NodeID},
+};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{self, path::Path};

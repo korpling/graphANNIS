@@ -1,12 +1,14 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{Graph, DEFAULT_ANNO_KEY};
 use crate::annis::operator::EstimationType;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
 };
-use graphannis_core::types::{Component, ComponentType, NodeID};
+use graphannis_core::{
+    graph::{Graph, DEFAULT_ANNO_KEY},
+    types::{Component, ComponentType, NodeID},
+};
 use rustc_hash::FxHashSet;
 
 use std;

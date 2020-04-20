@@ -1,5 +1,4 @@
-use crate::graph::EdgeContainer;
-use graphannis_core::types::NodeID;
+use crate::{graph::storage::EdgeContainer, types::NodeID};
 use rustc_hash::FxHashSet;
 
 pub struct CycleSafeDFS<'a> {

@@ -1,6 +1,5 @@
-use graphannis_core::types::NodeID;
-
-use crate::graph::EdgeContainer;
+use super::EdgeContainer;
+use crate::types::NodeID;
 use rustc_hash::FxHashSet;
 
 #[derive(MallocSizeOf)]

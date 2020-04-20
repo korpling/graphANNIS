@@ -68,16 +68,16 @@ pub mod corpusstorage {
     pub use crate::annis::types::{CountExtra, FrequencyTable, QueryAttributeDescription};
 }
 
-pub use crate::annis::db::update;
+pub use graphannis_core::graph::update;
 
-pub use crate::annis::db::Graph;
+pub use graphannis_core::graph::Graph;
 
 /// Types that are used by the `Graph` API.
 pub mod graph {
     pub use graphannis_core::annostorage::AnnotationStorage;
     pub use graphannis_core::annostorage::Match;
-    pub use graphannis_core::graphstorage::GraphStatistic;
-    pub use graphannis_core::graphstorage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
+    pub use graphannis_core::graph::storage::GraphStatistic;
+    pub use graphannis_core::graph::storage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
     pub use graphannis_core::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 }
 

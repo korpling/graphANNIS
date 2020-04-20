@@ -1,19 +1,16 @@
+use super::{EdgeContainer, GraphStatistic, GraphStorage};
+use crate::{
+    annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage, Match},
+    dfs::{CycleSafeDFS, DFSStep},
+    graph::NODE_NAME_KEY,
+    types::{Edge, NodeID, NumValue},
+};
+use anyhow::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std;
 use std::clone::Clone;
 use std::{ops::Bound::*, path::Path};
-
-use crate::annis::db::{AnnotationStorage, NODE_NAME_KEY};
-use crate::annis::dfs::{CycleSafeDFS, DFSStep};
-use crate::{
-    annis::errors::*,
-    graph::{EdgeContainer, GraphStatistic, GraphStorage, Match},
-};
-use graphannis_core::{
-    annostorage::inmemory::AnnoStorageImpl,
-    types::{Edge, NodeID, NumValue},
-};
 
 #[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize, MallocSizeOf)]
 pub struct PrePost<OrderT, LevelT> {
