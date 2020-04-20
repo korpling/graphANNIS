@@ -206,10 +206,10 @@ fn calculate_node_positions(
                         pos.start + "meta::".len() - 1,
                         &offsets,
                     ));
-                    return Err(Error::AQLSyntaxError {
+                    return Err(AnnisError::AQLSyntaxError {
                         desc: "Legacy metadata search is no longer allowed. Use the @* operator and normal attribute search instead.".into(),
                         location: Some(LineColumnRange {start, end}),
-                    });
+                    }.into());
                 }
             }
         };
@@ -415,7 +415,7 @@ pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a
                     desc.push_str(&expected.join(","));
                 }
             }
-            Err(Error::AQLSyntaxError { desc, location })
+            Err(AnnisError::AQLSyntaxError { desc, location }.into())
         }
     }
 }

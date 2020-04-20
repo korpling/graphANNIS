@@ -250,7 +250,7 @@ where
         return Ok((load_node_and_corpus_result.toplevel_corpus_name, db));
     }
 
-    Err(format!("Directory {} not found", path.to_string_lossy()).into())
+    Err(anyhow!("Directory {} not found", path.to_string_lossy()))
 }
 
 fn load_node_and_corpus_tables<F>(
@@ -374,10 +374,19 @@ where
     for result in corpus_tab_csv.records() {
         let line = result?;
 
-        let id = line.get(0).ok_or("Missing column")?.parse::<u32>()?;
-        let name = get_field_str(&line, 1).ok_or("Missing column")?;
-        let pre_order = line.get(4).ok_or("Missing column")?.parse::<u32>()?;
-        let post_order = line.get(5).ok_or("Missing column")?.parse::<u32>()?;
+        let id = line
+            .get(0)
+            .ok_or(anyhow!("Missing column"))?
+            .parse::<u32>()?;
+        let name = get_field_str(&line, 1).ok_or(anyhow!("Missing column"))?;
+        let pre_order = line
+            .get(4)
+            .ok_or(anyhow!("Missing column"))?
+            .parse::<u32>()?;
+        let post_order = line
+            .get(5)
+            .ok_or(anyhow!("Missing column"))?
+            .parse::<u32>()?;
 
         corpus_by_id.insert(
             id,
@@ -394,12 +403,12 @@ where
     let toplevel_corpus_id = corpus_by_preorder
         .iter()
         .next()
-        .ok_or("Toplevel corpus not found")?
+        .ok_or(anyhow!("Toplevel corpus not found"))?
         .1;
     Ok(ParsedCorpusTable {
         toplevel_corpus_name: corpus_by_id
             .get(toplevel_corpus_id)
-            .ok_or("Toplevel corpus name not found")?
+            .ok_or(anyhow!("Toplevel corpus name not found"))?
             .name
             .clone(),
         corpus_by_preorder,
@@ -436,12 +445,17 @@ where
 
         let id = line
             .get(if is_annis_33 { 1 } else { 0 })
-            .ok_or("Missing column")?
+            .ok_or(anyhow!("Missing column"))?
             .parse::<u32>()?;
-        let name = get_field_str(&line, if is_annis_33 { 2 } else { 1 }).ok_or("Missing column")?;
+        let name = get_field_str(&line, if is_annis_33 { 2 } else { 1 })
+            .ok_or(anyhow!("Missing column"))?;
 
         let corpus_ref = if is_annis_33 {
-            Some(line.get(0).ok_or("Missing column")?.parse::<u32>()?)
+            Some(
+                line.get(0)
+                    .ok_or(anyhow!("Missing column"))?
+                    .parse::<u32>()?,
+            )
         } else {
             None
         };
@@ -483,11 +497,11 @@ where
                     UpdateEvent::AddEdge {
                         source_node: id_to_node_name
                             .try_get(&last_token)?
-                            .ok_or_else(|| format!("Can't get node name for last token with ID {} in \"calculate_automatic_token_order\" function.", last_token))?
+                            .ok_or_else(|| anyhow!("Can't get node name for last token with ID {} in \"calculate_automatic_token_order\" function.", last_token))?
                             .clone(),
                         target_node: id_to_node_name
                             .try_get(&current_token)?
-                            .ok_or_else(|| format!("Can't get node name for current token with ID {} in \"calculate_automatic_token_order\" function.", current_token))?
+                            .ok_or_else(|| anyhow!("Can't get node name for current token with ID {} in \"calculate_automatic_token_order\" function.", current_token))?
                             .clone(),
                         layer: ANNIS_NS.to_owned(),
                         component_type: ComponentType::Ordering.to_string(),
@@ -517,22 +531,25 @@ fn add_automatic_cov_edge_for_node(
     let left_aligned_tok = load_node_and_corpus_result
         .textpos_table
         .token_by_left_textpos
-        .try_get(&left_pos)?
-        .ok_or_else(|| format!("Can't get left-aligned token for node {}", n,));
+        .try_get(&left_pos)?;
     let right_aligned_tok = load_node_and_corpus_result
         .textpos_table
         .token_by_right_textpos
-        .try_get(&right_pos)?
-        .ok_or_else(|| format!("Can't get right-aligned token for node {}", n,));
+        .try_get(&right_pos)?;
 
     // If only one of the aligned token is missing, use it for both sides, this is consistent with
     // the relANNIS import of ANNIS3
-    let left_aligned_tok = if let Ok(left_aligned_tok) = left_aligned_tok {
+    let left_aligned_tok = if let Some(left_aligned_tok) = left_aligned_tok {
         left_aligned_tok
     } else {
-        right_aligned_tok.clone()?
+        right_aligned_tok.ok_or_else(|| {
+            anyhow!(
+                "Can't get both left- and right-aligned token for node {}",
+                n
+            )
+        })?
     };
-    let right_aligned_tok = if let Ok(right_aligned_tok) = right_aligned_tok {
+    let right_aligned_tok = if let Some(right_aligned_tok) = right_aligned_tok {
         right_aligned_tok
     } else {
         left_aligned_tok
@@ -543,7 +560,7 @@ fn add_automatic_cov_edge_for_node(
         .token_to_index
         .try_get(&left_aligned_tok)?
         .ok_or_else(|| {
-            format!(
+            anyhow!(
                 "Can't get position of left-aligned token {}",
                 left_aligned_tok
             )
@@ -553,7 +570,7 @@ fn add_automatic_cov_edge_for_node(
         .token_to_index
         .try_get(&right_aligned_tok)?
         .ok_or_else(|| {
-            format!(
+            anyhow!(
                 "Can't get position of right-aligned token {}",
                 right_aligned_tok
             )
@@ -570,7 +587,7 @@ fn add_automatic_cov_edge_for_node(
             .textpos_table
             .token_by_index
             .try_get(&tok_idx)?
-            .ok_or_else(|| format!("Can't get token ID for position {:?}", tok_idx))?;
+            .ok_or_else(|| anyhow!("Can't get token ID for position {:?}", tok_idx))?;
         if n != tok_id {
             let edge = Edge {
                 source: n,
@@ -615,12 +632,12 @@ fn add_automatic_cov_edge_for_node(
                     source_node: load_node_and_corpus_result
                         .id_to_node_name
                         .try_get(&n)?
-                        .ok_or("Missing node name")?
+                        .ok_or(anyhow!("Missing node name"))?
                         .clone(),
                     target_node: load_node_and_corpus_result
                         .id_to_node_name
                         .try_get(&tok_id)?
-                        .ok_or("Missing node name")?
+                        .ok_or(anyhow!("Missing node name"))?
                         .clone(),
                     layer: component_layer,
                     component_type: ComponentType::Coverage.to_string(),
@@ -666,7 +683,7 @@ where
                 .textpos_table
                 .node_to_right
                 .try_get(&n)?
-                .ok_or_else(|| format!("Can't get right position of node {}", n))?;
+                .ok_or_else(|| anyhow!("Can't get right position of node {}", n))?;
             let right_pos = TextProperty {
                 segmentation: String::from(""),
                 corpus_id: textprop.corpus_id,
@@ -738,13 +755,22 @@ where
         for (line_nr, result) in node_tab_csv.records().enumerate() {
             let line = result?;
 
-            let node_nr = line.get(0).ok_or("Missing column")?.parse::<NodeID>()?;
+            let node_nr = line
+                .get(0)
+                .ok_or(anyhow!("Missing column"))?
+                .parse::<NodeID>()?;
             let has_segmentations = is_annis_33 || line.len() > 10;
-            let token_index_raw = line.get(7).ok_or("Missing column")?;
-            let text_id = line.get(1).ok_or("Missing column")?.parse::<u32>()?;
-            let corpus_id = line.get(2).ok_or("Missing column")?.parse::<u32>()?;
-            let layer = get_field_str(&line, 3).ok_or("Missing column")?;
-            let node_name = get_field_str(&line, 4).ok_or("Missing column")?;
+            let token_index_raw = line.get(7).ok_or(anyhow!("Missing column"))?;
+            let text_id = line
+                .get(1)
+                .ok_or(anyhow!("Missing column"))?
+                .parse::<u32>()?;
+            let corpus_id = line
+                .get(2)
+                .ok_or(anyhow!("Missing column"))?
+                .parse::<u32>()?;
+            let layer = get_field_str(&line, 3).ok_or(anyhow!("Missing column"))?;
+            let node_name = get_field_str(&line, 4).ok_or(anyhow!("Missing column"))?;
 
             nodes_by_text.insert(
                 NodeByTextEntry {
@@ -799,7 +825,7 @@ where
 
             let left_val = line
                 .get(left_column)
-                .ok_or("Missing column")?
+                .ok_or(anyhow!("Missing column"))?
                 .parse::<u32>()?;
             let left = TextProperty {
                 segmentation: String::from(""),
@@ -809,7 +835,7 @@ where
             };
             let right_val = line
                 .get(right_column)
-                .ok_or("Missing column")?
+                .ok_or(anyhow!("Missing column"))?
                 .parse::<u32>()?;
             let right = TextProperty {
                 segmentation: String::from(""),
@@ -822,9 +848,9 @@ where
 
             if token_index_raw != "NULL" {
                 let span = if has_segmentations {
-                    get_field_str(&line, 12).ok_or("Missing column")?
+                    get_field_str(&line, 12).ok_or(anyhow!("Missing column"))?
                 } else {
-                    get_field_str(&line, 9).ok_or("Missing column")?
+                    get_field_str(&line, 9).ok_or(anyhow!("Missing column"))?
                 };
 
                 updates.add_event(UpdateEvent::AddNodeLabel {
@@ -850,16 +876,20 @@ where
                     .insert(right, node_nr)?;
             } else if has_segmentations {
                 let segmentation_name = if is_annis_33 {
-                    get_field_str(&line, 11).ok_or("Missing column")?
+                    get_field_str(&line, 11).ok_or(anyhow!("Missing column"))?
                 } else {
-                    get_field_str(&line, 8).ok_or("Missing column")?
+                    get_field_str(&line, 8).ok_or(anyhow!("Missing column"))?
                 };
 
                 if segmentation_name != "NULL" {
                     let seg_index = if is_annis_33 {
-                        line.get(10).ok_or("Missing column")?.parse::<u32>()?
+                        line.get(10)
+                            .ok_or(anyhow!("Missing column"))?
+                            .parse::<u32>()?
                     } else {
-                        line.get(9).ok_or("Missing column")?.parse::<u32>()?
+                        line.get(9)
+                            .ok_or(anyhow!("Missing column"))?
+                            .parse::<u32>()?
                     };
 
                     if is_annis_33 {
@@ -868,7 +898,8 @@ where
                             node_name: node_path,
                             anno_ns: ANNIS_NS.to_owned(),
                             anno_name: TOK.to_owned(),
-                            anno_value: get_field_str(&line, 12).ok_or("Missing column")?,
+                            anno_value: get_field_str(&line, 12)
+                                .ok_or(anyhow!("Missing column"))?,
                         })?;
                     } else {
                         // we need to get the span information from the node_annotation file later
@@ -954,14 +985,14 @@ where
     for (line_nr, result) in node_anno_tab_csv.records().enumerate() {
         let line = result?;
 
-        let col_id = line.get(0).ok_or("Missing column")?;
+        let col_id = line.get(0).ok_or(anyhow!("Missing column"))?;
         let node_id: NodeID = col_id.parse()?;
         let node_name = id_to_node_name
             .try_get(&node_id)?
-            .ok_or("Missing node name")?;
-        let col_ns = get_field_str(&line, 1).ok_or("Missing column")?;
-        let col_name = get_field_str(&line, 2).ok_or("Missing column")?;
-        let col_val = get_field_str(&line, 3).ok_or("Missing column")?;
+            .ok_or(anyhow!("Missing node name"))?;
+        let col_ns = get_field_str(&line, 1).ok_or(anyhow!("Missing column"))?;
+        let col_name = get_field_str(&line, 2).ok_or(anyhow!("Missing column"))?;
+        let col_val = get_field_str(&line, 3).ok_or(anyhow!("Missing column"))?;
         // we have to make some sanity checks
         if col_ns != "annis" || col_name != "tok" {
             let anno_val: String = if col_val == "NULL" {
@@ -986,8 +1017,8 @@ where
 
             // add all missing span values from the annotation, but don't add NULL values
             if let Some(seg) = missing_seg_span.try_get(&node_id)? {
-                if seg == get_field_str(&line, 2).ok_or("Missing column")?
-                    && get_field_str(&line, 3).ok_or("Missing column")? != "NULL"
+                if seg == get_field_str(&line, 2).ok_or(anyhow!("Missing column"))?
+                    && get_field_str(&line, 3).ok_or(anyhow!("Missing column"))? != "NULL"
                 {
                     updates.add_event(UpdateEvent::AddNodeLabel {
                         node_name: node_name.clone(),
@@ -1037,11 +1068,11 @@ where
     for result in component_tab_csv.records() {
         let line = result?;
 
-        let cid: u32 = line.get(0).ok_or("Missing column")?.parse()?;
-        let col_type = get_field_str(&line, 1).ok_or("Missing column")?;
+        let cid: u32 = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
+        let col_type = get_field_str(&line, 1).ok_or(anyhow!("Missing column"))?;
         if col_type != "NULL" {
-            let layer = get_field_str(&line, 2).ok_or("Missing column")?;
-            let name = get_field_str(&line, 3).ok_or("Missing column")?;
+            let layer = get_field_str(&line, 2).ok_or(anyhow!("Missing column"))?;
+            let name = get_field_str(&line, 3).ok_or(anyhow!("Missing column"))?;
             let name = if name == "NULL" {
                 String::from("")
             } else {
@@ -1130,8 +1161,11 @@ where
     let mut pre_to_node_id: BTreeMap<u32, NodeID> = BTreeMap::new();
     for result in rank_tab_csv.records() {
         let line = result?;
-        let pre: u32 = line.get(0).ok_or("Missing column")?.parse()?;
-        let node_id: NodeID = line.get(pos_node_ref).ok_or("Missing column")?.parse()?;
+        let pre: u32 = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
+        let node_id: NodeID = line
+            .get(pos_node_ref)
+            .ok_or(anyhow!("Missing column"))?
+            .parse()?;
         pre_to_node_id.insert(pre, node_id);
     }
 
@@ -1143,12 +1177,15 @@ where
 
         let component_ref: u32 = line
             .get(pos_component_ref)
-            .ok_or("Missing column")?
+            .ok_or(anyhow!("Missing column"))?
             .parse()?;
 
-        let target: NodeID = line.get(pos_node_ref).ok_or("Missing column")?.parse()?;
+        let target: NodeID = line
+            .get(pos_node_ref)
+            .ok_or(anyhow!("Missing column"))?
+            .parse()?;
 
-        let parent_as_str = line.get(pos_parent).ok_or("Missing column")?;
+        let parent_as_str = line.get(pos_parent).ok_or(anyhow!("Missing column"))?;
         if parent_as_str == "NULL" {
             if let Some(c) = component_by_id.get(&component_ref) {
                 if c.ctype == ComponentType::Coverage {
@@ -1165,18 +1202,18 @@ where
                     updates.add_event(UpdateEvent::AddEdge {
                         source_node: id_to_node_name
                             .try_get(&source)?
-                            .ok_or("Missing node name")?
+                            .ok_or(anyhow!("Missing node name"))?
                             .to_owned(),
                         target_node: id_to_node_name
                             .try_get(&target)?
-                            .ok_or("Missing node name")?
+                            .ok_or(anyhow!("Missing node name"))?
                             .to_owned(),
                         layer: c.layer.clone(),
                         component_type: c.ctype.to_string(),
                         component_name: c.name.clone(),
                     })?;
 
-                    let pre: u32 = line.get(0).ok_or("Missing column")?.parse()?;
+                    let pre: u32 = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
 
                     let e = Edge {
                         source: *source,
@@ -1237,22 +1274,22 @@ where
     for result in edge_anno_tab_csv.records() {
         let line = result?;
 
-        let pre: u32 = line.get(0).ok_or("Missing column")?.parse()?;
+        let pre: u32 = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
         if let Some(c) = rank_result.components_by_pre.try_get(&pre)? {
             if let Some(e) = rank_result.edges_by_pre.try_get(&pre)? {
-                let ns = get_field_str(&line, 1).ok_or("Missing column")?;
+                let ns = get_field_str(&line, 1).ok_or(anyhow!("Missing column"))?;
                 let ns = if ns == "NULL" { String::default() } else { ns };
-                let name = get_field_str(&line, 2).ok_or("Missing column")?;
-                let val = get_field_str(&line, 3).ok_or("Missing column")?;
+                let name = get_field_str(&line, 2).ok_or(anyhow!("Missing column"))?;
+                let val = get_field_str(&line, 3).ok_or(anyhow!("Missing column"))?;
 
                 updates.add_event(UpdateEvent::AddEdgeLabel {
                     source_node: id_to_node_name
                         .try_get(&e.source)?
-                        .ok_or("Missing node name")?
+                        .ok_or(anyhow!("Missing node name"))?
                         .to_owned(),
                     target_node: id_to_node_name
                         .try_get(&e.target)?
-                        .ok_or("Missing node name")?
+                        .ok_or(anyhow!("Missing node name"))?
                         .to_owned(),
                     layer: c.layer.clone(),
                     component_type: c.ctype.to_string(),
@@ -1295,11 +1332,11 @@ where
     for result in corpus_anno_tab_csv.records() {
         let line = result?;
 
-        let id = line.get(0).ok_or("Missing column")?.parse()?;
-        let ns = get_field_str(&line, 1).ok_or("Missing column")?;
+        let id = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
+        let ns = get_field_str(&line, 1).ok_or(anyhow!("Missing column"))?;
         let ns = if ns == "NULL" { String::default() } else { ns };
-        let name = get_field_str(&line, 2).ok_or("Missing column")?;
-        let val = get_field_str(&line, 3).ok_or("Missing column")?;
+        let name = get_field_str(&line, 2).ok_or(anyhow!("Missing column"))?;
+        let val = get_field_str(&line, 3).ok_or(anyhow!("Missing column"))?;
 
         let anno_key = AnnoKey { ns, name };
 
@@ -1313,7 +1350,7 @@ fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
     let corpus = corpus_table
         .corpus_by_id
         .get(&cid)
-        .ok_or_else(|| format!("Corpus with ID {} not found", cid))?;
+        .ok_or_else(|| anyhow!("Corpus with ID {} not found", cid))?;
     let pre = corpus.pre;
     let post = corpus.post;
 
@@ -1334,7 +1371,7 @@ fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
     let corpus = corpus_table
         .corpus_by_id
         .get(&cid)
-        .ok_or_else(|| format!("Corpus with ID {} not found", cid))?;
+        .ok_or_else(|| anyhow!("Corpus with ID {} not found", cid))?;
     let corpus_name = utf8_percent_encode(&corpus.name, SALT_URI_ENCODE_SET).to_string();
     Ok(format!("{}/{}", parent_path, &corpus_name))
 }
@@ -1396,7 +1433,7 @@ fn add_subcorpora(
             let corpus = corpus_table
                 .corpus_by_id
                 .get(corpus_id)
-                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_id))?;
+                .ok_or_else(|| anyhow!("Can't get name for corpus with ID {}", corpus_id))?;
 
             let corpus_name = &corpus.name;
 
@@ -1484,7 +1521,7 @@ fn add_subcorpora(
                     source_node: node_node_result
                         .id_to_node_name
                         .try_get(&n)?
-                        .ok_or("Missing node name")?
+                        .ok_or(anyhow!("Missing node name"))?
                         .clone(),
                     target_node: text_full_name.clone(),
                     layer: ANNIS_NS.to_owned(),
@@ -1503,6 +1540,9 @@ fn component_type_from_short_name(short_type: &str) -> Result<ComponentType> {
         "d" => Ok(ComponentType::Dominance),
         "p" => Ok(ComponentType::Pointing),
         "o" => Ok(ComponentType::Ordering),
-        _ => Err(format!("Invalid component type short name '{}'", short_type).into()),
+        _ => Err(anyhow!(
+            "Invalid component type short name '{}'",
+            short_type
+        )),
     }
 }

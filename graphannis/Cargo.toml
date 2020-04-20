@@ -46,6 +46,7 @@ lalrpop-util = "0.18"
 boolean_expression = "0.3"
 percent-encoding = "1.0"
 libc = {version="0.2"}
+anyhow = "1"
 
 graphannis-malloc_size_of = "1.0"
 graphannis-malloc_size_of_derive = "2.0"

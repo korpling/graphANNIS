@@ -35,41 +35,56 @@ impl<'a> std::iter::Iterator for CauseIterator<'a> {
     }
 }
 
-fn error_kind(e: &errors::Error) -> &str {
-    match e {
-        errors::Error::AQLSyntaxError { .. } => "AQLSyntaxError",
-        errors::Error::AQLSemanticError { .. } => "AQLSemanticError",
-        errors::Error::LoadingGraphFailed { .. } => "LoadingGraphFailed",
-        errors::Error::ImpossibleSearch(_) => "ImpossibleSearch",
-        errors::Error::NoSuchCorpus(_) => "NoSuchCorpus",
-        errors::Error::Generic { .. } => "Generic",
-        errors::Error::IO(_) => "IO",
-        errors::Error::Bincode(_) => "Bincode",
-        errors::Error::CSV(_) => "CSV",
-        errors::Error::ParseIntError(_) => "ParseIntError",
-        errors::Error::Fmt(_) => "Fmt",
-        errors::Error::Strum(_) => "Strum",
-        errors::Error::Regex(_) => "Regex",
-        errors::Error::RandomGenerator(_) => "RandomGenerator",
-        errors::Error::SSTable(_) => "SSTable",
+fn error_kind(e: &Box<dyn StdError>) -> &'static str {
+    if let Some(annis_err) = e.downcast_ref::<errors::AnnisError>() {
+        match annis_err {
+            errors::AnnisError::AQLSyntaxError { .. } => "AQLSyntaxError",
+            errors::AnnisError::AQLSemanticError { .. } => "AQLSemanticError",
+            errors::AnnisError::LoadingGraphFailed { .. } => "LoadingGraphFailed",
+            errors::AnnisError::ImpossibleSearch(_) => "ImpossibleSearch",
+            errors::AnnisError::NoSuchCorpus(_) => "NoSuchCorpus",
+        }
+    } else {
+        // Check for several known types
+        if e.is::<std::io::Error>() {
+            "IO"
+        } else if e.is::<bincode::Error>() {
+            "Bincode"
+        } else if e.is::<csv::Error>() {
+            "CSV"
+        } else if e.is::<::std::num::ParseIntError>() {
+            "ParseIntError"
+        } else if e.is::<std::fmt::Error>() {
+            "Fmt"
+        } else if e.is::<::strum::ParseError>() {
+            "Strum"
+        } else if e.is::<regex::Error>() {
+            "Regex"
+        } else if e.is::<rand::Error>() {
+            "RandomGenerator"
+        } else if e.is::<sstable::error::Status>() {
+            "SSTable"
+        } else if e.is::<log::SetLoggerError>() {
+            "SetLoggerError"
+        } else {
+            "Unknown"
+        }
     }
 }
 
-impl From<errors::Error> for ErrorList {
-    fn from(e: errors::Error) -> ErrorList {
-        let mut result = ErrorList::new();
-        result.push(Error {
-            msg: CString::new(e.to_string()).unwrap_or(CString::default()),
-            kind: CString::new(error_kind(&e)).unwrap_or(CString::default()),
-        });
-        let cause_it = CauseIterator {
-            current: e.source(),
-        };
-        for e in cause_it {
-            result.push(e)
-        }
-        return result;
+pub fn create_error_list(e: Box<dyn StdError>) -> ErrorList {
+    let mut result = ErrorList::new();
+    result.push(Error {
+        msg: CString::new(e.to_string()).unwrap_or(CString::default()),
+        kind: CString::new(error_kind(&e)).unwrap_or(CString::default()),
+    });
+    let cause_it = CauseIterator {
+        current: e.source(),
+    };
+    for e in cause_it {
+        result.push(e)
     }
+    result
 }
 
 impl From<log::SetLoggerError> for Error {
@@ -108,8 +123,8 @@ impl From<std::io::Error> for Error {
     }
 }
 /// Creates a new error from the internal type
-pub fn new(err: errors::Error) -> *mut ErrorList {
-    Box::into_raw(Box::new(ErrorList::from(err)))
+pub fn new(err: Box<dyn StdError>) -> *mut ErrorList {
+    Box::into_raw(Box::new(create_error_list(err)))
 }
 
 /// Returns the number of errors in the list.

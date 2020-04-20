@@ -8,6 +8,7 @@ use crate::annis::types::{AnnoKey, Annotation};
 use crate::annis::util;
 use crate::annis::util::memory_estimation;
 use crate::malloc_size_of::MallocSizeOf;
+use anyhow::Context;
 use bincode;
 use core::ops::Bound::*;
 use itertools::Itertools;
@@ -913,14 +914,11 @@ where
         self.clear_internal();
 
         let path = location.join("nodes_v1.bin");
-        let f = std::fs::File::open(path.clone()).or_else(|e| {
-            Err(Error::Generic {
-                msg: format!(
-                    "Could not load annotation storage from file {}",
-                    path.to_string_lossy(),
-                ),
-                cause: Some(Box::new(e)),
-            })
+        let f = std::fs::File::open(path.clone()).with_context(|| {
+            format!(
+                "Could not load annotation storage from file {}",
+                path.to_string_lossy(),
+            )
         })?;
         let mut reader = std::io::BufReader::new(f);
         *self = bincode::deserialize_from(&mut reader)?;
