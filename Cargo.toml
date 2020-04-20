@@ -2,6 +2,10 @@
 
 members = [
     "core",
-    "graphannis"
+    "graphannis",
+    "cli"
 ]
+
+[profile.release]
+incremental = true
 

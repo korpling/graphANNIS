@@ -7,7 +7,6 @@ license = "Apache-2.0"
 description = "This is a new backend implementation of the ANNIS linguistic search and visualization system."
 repository= "https://github.com/korpling/graphANNIS"
 readme = "crate-info.md"
-autobins=true
 build = "build.rs"
 edition = "2018"
 
@@ -21,7 +20,7 @@ regex = "1"
 file_diff = "1"
 
 [dependencies]
-graphannis_core= {path = "../core/"}
+graphannis-core= {path = "../core/"}
 regex = "1"
 regex-syntax = "0.6"
 serde = {version="1.0", features=["rc"]}
@@ -50,13 +49,7 @@ anyhow = "1"
 graphannis-malloc_size_of = "1.0"
 graphannis-malloc_size_of_derive = "2.0"
 
-rustyline = {version="6.1", optional=true }
-rustyline-derive = {version="=0.3.0", optional=true }
 simplelog = {version="0.7", optional=true}
-clap = {version="2", optional=true, default-features=false}
-criterion = {version="0.3", optional=true, default-features=false}
-prettytable-rs = {version="0.8", optional=true, default-features=false}
-
 
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = { version = "0.2.2" }
@@ -67,20 +60,8 @@ env_logger = "0.7"
 fake = "2.2"
 
 [features]
-cli = ["rustyline", "rustyline-derive", "simplelog", "clap", "prettytable-rs"]
 c-api = ["simplelog"]
-
-[profile.release]
-incremental = true
 
 [[bench]]
 name = "graphannis"
 harness = false
-
-[[bin]]
-name="annis"
-required-features=["cli"]
-
-[[bin]]
-name="bench_annisqueries"
-required-features=["criterion", "simplelog", "clap"]

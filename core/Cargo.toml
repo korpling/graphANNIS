@@ -1,5 +1,5 @@
 [package]
-name = "graphannis_core"
+name = "graphannis-core"
 version = "0.26.0"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
