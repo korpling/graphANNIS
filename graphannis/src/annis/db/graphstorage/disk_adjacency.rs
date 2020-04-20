@@ -1,6 +1,4 @@
 use super::*;
-use crate::annis::db::annostorage;
-use crate::annis::db::annostorage::ondisk::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::{
     annis::dfs::CycleSafeDFS,
@@ -11,7 +9,10 @@ use crate::{
 };
 use anyhow::Result;
 use graphannis_core::types::Edge;
-use graphannis_core::util::disk_collections::{DiskMap, EvictionStrategy};
+use graphannis_core::{
+    annostorage::ondisk::AnnoStorageImpl,
+    util::disk_collections::{DiskMap, EvictionStrategy},
+};
 
 use itertools::Itertools;
 use rustc_hash::FxHashSet;
@@ -133,7 +134,9 @@ impl GraphStorage for DiskAdjacencyListStorage {
                 Some(&location.join("inverse_edges.bin")),
                 EvictionStrategy::default(),
             )?,
-            annos: AnnoStorageImpl::new(Some(location.join(annostorage::ondisk::SUBFOLDER_NAME)))?,
+            annos: AnnoStorageImpl::new(Some(
+                location.join(graphannis_core::annostorage::ondisk::SUBFOLDER_NAME),
+            ))?,
             stats,
         };
         Ok(result)

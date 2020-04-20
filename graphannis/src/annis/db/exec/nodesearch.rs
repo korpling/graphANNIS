@@ -563,7 +563,7 @@ impl<'a> NodeSearch<'a> {
 
         let mut filters: Vec<MatchFilterFunc> = Vec::new();
 
-        let full_match_pattern = util::regex_full_match(&pattern);
+        let full_match_pattern = graphannis_core::util::regex_full_match(&pattern);
         let re = regex::Regex::new(&full_match_pattern);
         match re {
             Ok(re) => {
@@ -695,7 +695,7 @@ impl<'a> NodeSearch<'a> {
         match val {
             ValueSearch::Some(ref val) => {
                 if match_regex {
-                    let full_match_pattern = util::regex_full_match(val);
+                    let full_match_pattern = graphannis_core::util::regex_full_match(val);
                     let re = regex::Regex::new(&full_match_pattern);
                     match re {
                         Ok(re) => filters.push(Box::new(move |m, node_annos| {
@@ -727,7 +727,7 @@ impl<'a> NodeSearch<'a> {
             }
             ValueSearch::NotSome(ref val) => {
                 if match_regex {
-                    let full_match_pattern = util::regex_full_match(val);
+                    let full_match_pattern = graphannis_core::util::regex_full_match(val);
                     let re = regex::Regex::new(&full_match_pattern);
                     match re {
                         Ok(re) => filters.push(Box::new(move |m, node_annos| {

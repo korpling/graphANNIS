@@ -1,4 +1,3 @@
-use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::{
     annis::dfs::CycleSafeDFS,
@@ -7,7 +6,7 @@ use crate::{
         WriteableGraphStorage,
     },
 };
-use graphannis_core::types::Edge;
+use graphannis_core::{annostorage::inmemory::AnnoStorageImpl, types::Edge};
 
 use anyhow::Result;
 use rustc_hash::{FxHashMap, FxHashSet};

@@ -23,7 +23,6 @@ use std::sync::{Arc, Mutex};
 use strum::IntoEnumIterator;
 use tempfile;
 
-pub mod annostorage;
 pub mod aql;
 pub mod corpusstorage;
 #[cfg(test)]
@@ -135,9 +134,13 @@ impl Graph {
     /// Create a new and empty instance without any location on the disk.
     fn new(disk_based: bool) -> Result<Graph> {
         let node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
-            Box::new(annostorage::ondisk::AnnoStorageImpl::new(None)?)
+            Box::new(graphannis_core::annostorage::ondisk::AnnoStorageImpl::new(
+                None,
+            )?)
         } else {
-            Box::new(annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
+            Box::new(graphannis_core::annostorage::inmemory::AnnoStorageImpl::<
+                NodeID,
+            >::new())
         };
 
         Ok(Graph {
@@ -198,7 +201,7 @@ impl Graph {
     /// This removes all node annotations, edges and knowledge about components.
     fn clear(&mut self) {
         self.reset_cached_size();
-        self.node_annos = Box::new(annostorage::inmemory::AnnoStorageImpl::new());
+        self.node_annos = Box::new(graphannis_core::annostorage::inmemory::AnnoStorageImpl::new());
         self.components.clear();
     }
 
@@ -224,18 +227,19 @@ impl Graph {
             location.join("current")
         };
 
-        let ondisk_subdirectory = dir2load.join(annostorage::ondisk::SUBFOLDER_NAME);
+        let ondisk_subdirectory =
+            dir2load.join(graphannis_core::annostorage::ondisk::SUBFOLDER_NAME);
         if ondisk_subdirectory.exists() && ondisk_subdirectory.is_dir() {
             self.disk_based = true;
             // directly load the on disk storage from the given folder to avoid having a temporary directory
-            let node_annos_tmp =
-                annostorage::ondisk::AnnoStorageImpl::new(Some(ondisk_subdirectory))?;
+            let node_annos_tmp = graphannis_core::annostorage::ondisk::AnnoStorageImpl::new(Some(
+                ondisk_subdirectory,
+            ))?;
             self.node_annos = Box::new(node_annos_tmp);
         } else {
             // assume a main memory implementation
             self.disk_based = false;
-            let mut node_annos_tmp: annostorage::inmemory::AnnoStorageImpl<NodeID> =
-                annostorage::inmemory::AnnoStorageImpl::new();
+            let mut node_annos_tmp = graphannis_core::annostorage::inmemory::AnnoStorageImpl::new();
             node_annos_tmp.load_annotations_from(&dir2load)?;
             self.node_annos = Box::new(node_annos_tmp);
         }

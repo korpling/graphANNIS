@@ -3,10 +3,7 @@ use crate::annis::db::{Graph, ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY};
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
 };
-use crate::{
-    annis::util,
-    graph::{GraphStatistic, GraphStorage, Match},
-};
+use crate::graph::{GraphStatistic, GraphStorage, Match};
 use graphannis_core::types::{Component, ComponentType, Edge, NodeID};
 use regex;
 use std;
@@ -122,7 +119,7 @@ fn check_edge_annotation(
             false
         }
         Some(EdgeAnnoSearchSpec::RegexValue { ns, name, val }) => {
-            let full_match_pattern = util::regex_full_match(&val);
+            let full_match_pattern = graphannis_core::util::regex_full_match(&val);
             let re = regex::Regex::new(&full_match_pattern);
             if let Ok(re) = re {
                 for a in gs
@@ -149,7 +146,7 @@ fn check_edge_annotation(
             false
         }
         Some(EdgeAnnoSearchSpec::NotRegexValue { ns, name, val }) => {
-            let full_match_pattern = util::regex_full_match(&val);
+            let full_match_pattern = graphannis_core::util::regex_full_match(&val);
             let re = regex::Regex::new(&full_match_pattern);
             if let Ok(re) = re {
                 for a in gs

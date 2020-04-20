@@ -25,6 +25,11 @@ bincode = "1.2"
 log = "0.4"
 tempfile = "3.1"
 rustc-hash = "1.0"
+regex = "1"
+regex-syntax = "0.6"
+rand = {version = "0.7", features=["small_rng"]}
+itertools = "0.8"
 
 [dev-dependencies]
 fake = "2.2"
+env_logger = "0.7"

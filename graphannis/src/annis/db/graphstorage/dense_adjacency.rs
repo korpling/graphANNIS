@@ -1,9 +1,11 @@
-use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
 use graphannis_core::graphstorage::{EdgeContainer, GraphStatistic, GraphStorage};
-use graphannis_core::types::{Edge, NodeID};
+use graphannis_core::{
+    annostorage::inmemory::AnnoStorageImpl,
+    types::{Edge, NodeID},
+};
 use num_traits::ToPrimitive;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Deserialize;
