@@ -78,7 +78,7 @@ pub mod graph {
     pub use crate::annis::db::graphstorage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
     pub use crate::annis::db::AnnotationStorage;
     pub use crate::annis::db::Match;
-    pub use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
+    pub use graphannis_core::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 }
 
 /// Contains the graphANNIS-specific error types.

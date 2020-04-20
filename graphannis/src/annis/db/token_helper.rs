@@ -1,6 +1,6 @@
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::{AnnotationStorage, Graph, TOKEN_KEY};
-use crate::annis::types::{Component, ComponentType, NodeID};
+use graphannis_core::types::{Component, ComponentType, NodeID};
 
 use std::collections::HashSet;
 use std::sync::Arc;

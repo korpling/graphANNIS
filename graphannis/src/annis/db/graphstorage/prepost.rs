@@ -10,7 +10,7 @@ use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::{AnnotationStorage, Graph, Match, NODE_NAME_KEY};
 use crate::annis::dfs::{CycleSafeDFS, DFSStep};
 use crate::annis::errors::*;
-use crate::annis::types::{Edge, NodeID, NumValue};
+use graphannis_core::types::{Edge, NodeID, NumValue};
 
 #[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize, MallocSizeOf)]
 pub struct PrePost<OrderT, LevelT> {

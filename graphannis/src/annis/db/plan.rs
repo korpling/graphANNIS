@@ -3,7 +3,7 @@ use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::query::Config;
 use crate::annis::db::{Graph, Match};
 use crate::annis::errors::*;
-use crate::annis::types::{AnnoKey, NodeID};
+use graphannis_core::types::{AnnoKey, NodeID};
 use std;
 use std::collections::HashMap;
 use std::collections::HashSet;

@@ -16,17 +16,15 @@ use crate::annis::db::{
     AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, NODE_NAME_KEY, NODE_TYPE,
 };
 use crate::annis::errors::*;
-use crate::annis::types::AnnoKey;
-use crate::annis::types::{
-    Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, NodeID,
-    QueryAttributeDescription,
-};
+use crate::annis::types::CountExtra;
+use crate::annis::types::{FrequencyTable, QueryAttributeDescription};
 use crate::annis::util;
-use crate::annis::util::memory_estimation;
 use crate::annis::util::quicksort;
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::update::GraphUpdate;
 use fs2::FileExt;
+use graphannis_core::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
+use graphannis_core::util::memory_estimation;
 use linked_hash_map::LinkedHashMap;
 use percent_encoding::{utf8_percent_encode, PATH_SEGMENT_ENCODE_SET, SIMPLE_ENCODE_SET};
 use std;

@@ -3,8 +3,8 @@ use crate::annis::db::annostorage;
 use crate::annis::db::annostorage::ondisk::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::dfs::CycleSafeDFS;
-use crate::annis::types::Edge;
-use crate::annis::util::disk_collections::{DiskMap, EvictionStrategy};
+use graphannis_core::types::Edge;
+use graphannis_core::util::disk_collections::{DiskMap, EvictionStrategy};
 
 use itertools::Itertools;
 use rustc_hash::FxHashSet;

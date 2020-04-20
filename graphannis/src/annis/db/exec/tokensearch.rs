@@ -7,7 +7,7 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{Graph, Match, NODE_TYPE_KEY};
 use crate::annis::errors::*;
-use crate::annis::types::{AnnoKey, Component, ComponentType, NodeID};
+use graphannis_core::types::{AnnoKey, Component, ComponentType, NodeID};
 
 use std::collections::HashSet;
 use std::fmt;

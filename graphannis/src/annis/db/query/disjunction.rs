@@ -1,6 +1,6 @@
 use super::conjunction::Conjunction;
 use crate::annis::db::Graph;
-use crate::annis::types::Component;
+use graphannis_core::types::Component;
 use std::collections::HashSet;
 
 pub struct Disjunction<'a> {

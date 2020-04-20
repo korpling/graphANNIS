@@ -4,7 +4,7 @@ mod symboltable;
 
 use crate::annis::db::{Match, ValueSearch};
 use crate::annis::errors::*;
-use crate::annis::types::{AnnoKey, Annotation};
+use graphannis_core::types::{AnnoKey, Annotation};
 use std::borrow::Cow;
 use std::path::Path;
 use std::sync::Arc;

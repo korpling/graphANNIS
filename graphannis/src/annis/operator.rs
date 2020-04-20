@@ -1,6 +1,6 @@
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::{Graph, Match};
-use crate::annis::types::{Component, Edge};
+use graphannis_core::types::{Component, Edge};
 use std;
 use std::collections::HashSet;
 

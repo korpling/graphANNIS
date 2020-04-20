@@ -2,7 +2,7 @@ use super::*;
 use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::dfs::CycleSafeDFS;
-use crate::annis::types::Edge;
+use graphannis_core::types::Edge;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeSet;

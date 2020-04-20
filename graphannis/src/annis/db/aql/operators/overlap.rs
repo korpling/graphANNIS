@@ -4,7 +4,7 @@ use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{Graph, Match, DEFAULT_ANNO_KEY};
 use crate::annis::operator::EstimationType;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
-use crate::annis::types::{Component, ComponentType, NodeID};
+use graphannis_core::types::{Component, ComponentType, NodeID};
 use rustc_hash::FxHashSet;
 
 use std;

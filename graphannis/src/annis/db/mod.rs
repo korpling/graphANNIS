@@ -5,9 +5,9 @@ use crate::annis::db::graphstorage::{GraphStorage, WriteableGraphStorage};
 use crate::annis::db::update::{GraphUpdate, UpdateEvent};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
-use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
-use crate::annis::util::disk_collections::{DiskMap, EvictionStrategy};
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use graphannis_core::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
+use graphannis_core::util::disk_collections::{DiskMap, EvictionStrategy};
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 use std;
@@ -1429,7 +1429,7 @@ impl Graph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::annis::types::{AnnoKey, Annotation, ComponentType, Edge};
+    use graphannis_core::types::{AnnoKey, Annotation, ComponentType, Edge};
 
     #[test]
     fn create_writeable_gs() {

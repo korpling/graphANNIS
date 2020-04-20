@@ -14,8 +14,9 @@ use crate::annis::errors::*;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
 };
-use crate::annis::types::{Component, Edge, LineColumnRange, QueryAttributeDescription};
+use crate::annis::types::{LineColumnRange, QueryAttributeDescription};
 use anyhow::Error;
+use graphannis_core::types::{Component, Edge};
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
 use rand::rngs::SmallRng;

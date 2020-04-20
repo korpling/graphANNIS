@@ -3,7 +3,7 @@ use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::{ANNIS_NS, NODE_NAME};
-use crate::annis::types::{AnnoKey, NodeID};
+use graphannis_core::types::{AnnoKey, NodeID};
 use std;
 use std::borrow::Cow;
 use std::cmp::Ordering;

@@ -3,7 +3,7 @@ use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::operator::{BinaryOperator, EstimationType};
-use crate::annis::types::NodeID;
+use graphannis_core::types::NodeID;
 use std;
 use std::iter::Peekable;
 use std::sync::Arc;

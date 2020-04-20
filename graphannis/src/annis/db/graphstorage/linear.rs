@@ -4,7 +4,7 @@ use crate::annis::db::graphstorage::EdgeContainer;
 use crate::annis::db::{AnnotationStorage, Graph, Match, NODE_NAME_KEY};
 use crate::annis::dfs::{CycleSafeDFS, DFSStep};
 use crate::annis::errors::*;
-use crate::annis::types::{Edge, NodeID, NumValue};
+use graphannis_core::types::{Edge, NodeID, NumValue};
 use rustc_hash::FxHashMap;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};

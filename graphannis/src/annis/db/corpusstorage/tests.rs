@@ -2,7 +2,7 @@ extern crate log;
 extern crate tempfile;
 
 use crate::annis::db::example_generator;
-use crate::annis::types::{ComponentType, NodeID};
+use graphannis_core::types::{ComponentType, NodeID};
 use crate::corpusstorage::QueryLanguage;
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::CorpusStorage;

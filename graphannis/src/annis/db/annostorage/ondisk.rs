@@ -3,15 +3,12 @@ use crate::annis::db::annostorage::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
 use crate::annis::errors::*;
-use crate::annis::types::AnnoKey;
-use crate::annis::types::Annotation;
-use crate::annis::types::NodeID;
+use graphannis_core::types::{AnnoKey, Annotation, NodeID};
 use crate::annis::util;
-use crate::annis::util::disk_collections::{
-    DiskMap, EvictionStrategy, FixedSizeKeySerializer, KeySerializer,
-};
-use crate::annis::util::memory_estimation;
 use core::ops::Bound::*;
+use graphannis_core::serializer::{FixedSizeKeySerializer, KeySerializer};
+use graphannis_core::util::disk_collections::{DiskMap, EvictionStrategy};
+use graphannis_core::util::memory_estimation;
 use rand::seq::IteratorRandom;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};

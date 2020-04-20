@@ -2,8 +2,7 @@ use self::nodesearch::NodeSearch;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::operator::{BinaryOperator, EstimationType};
-use crate::annis::types::AnnoKey;
-use crate::annis::types::NodeID;
+use graphannis_core::types::{AnnoKey, NodeID};
 
 use std;
 use std::collections::BTreeMap;

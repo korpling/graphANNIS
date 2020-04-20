@@ -3,7 +3,7 @@ use crate::annis::db::graphstorage::{EdgeContainer, GraphStatistic, GraphStorage
 use crate::annis::db::{AnnotationStorage, Graph};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
-use crate::annis::types::{Edge, NodeID};
+use graphannis_core::types::{Edge, NodeID};
 use num_traits::ToPrimitive;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Deserialize;

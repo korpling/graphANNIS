@@ -1,5 +1,5 @@
-use crate::annis::util::memory_estimation::shallow_size_of_fxhashmap;
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use graphannis_core::util::memory_estimation::shallow_size_of_fxhashmap;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std;

@@ -4,7 +4,7 @@ use crate::annis::db::{Graph, Match, ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY};
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
 };
-use crate::annis::types::{Component, ComponentType, Edge, NodeID};
+use graphannis_core::types::{Component, ComponentType, Edge, NodeID};
 use crate::annis::util;
 use regex;
 use std;

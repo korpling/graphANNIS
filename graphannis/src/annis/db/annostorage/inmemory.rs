@@ -3,14 +3,13 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
 use crate::annis::errors::*;
-use crate::annis::types::Edge;
-use crate::annis::types::{AnnoKey, Annotation};
 use crate::annis::util;
-use crate::annis::util::memory_estimation;
 use crate::malloc_size_of::MallocSizeOf;
 use anyhow::Context;
 use bincode;
 use core::ops::Bound::*;
+use graphannis_core::types::{AnnoKey, Annotation, Edge};
+use graphannis_core::util::memory_estimation;
 use itertools::Itertools;
 use rand;
 use regex;
@@ -949,7 +948,7 @@ impl AnnoStorageImpl<Edge> {
 mod tests {
     use super::*;
 
-    use crate::annis::types::NodeID;
+    use graphannis_core::types::NodeID;
 
     #[test]
     fn insert_same_anno() {
