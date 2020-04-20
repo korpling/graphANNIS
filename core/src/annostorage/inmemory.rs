@@ -1,9 +1,11 @@
+use super::{AnnotationStorage, Match};
 use crate::annostorage::symboltable::SymbolTable;
 use crate::annostorage::ValueSearch;
 use crate::malloc_size_of::MallocSizeOf;
 use crate::types::{AnnoKey, Annotation, Edge};
 use crate::util::{self, memory_estimation};
 use anyhow::Context;
+use anyhow::Result;
 use bincode;
 use core::ops::Bound::*;
 use itertools::Itertools;
@@ -18,8 +20,6 @@ use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 use std::path::Path;
 use std::sync::Arc;
-use super::{AnnotationStorage, Match};
-use anyhow::Result;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf, Copy)]
 struct SparseAnnotation {
