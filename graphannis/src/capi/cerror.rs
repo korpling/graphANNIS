@@ -48,16 +48,12 @@ fn error_kind(e: &Box<dyn StdError>) -> &'static str {
         // Check for several known types
         if e.is::<std::io::Error>() {
             "IO"
-        } else if e.is::<bincode::Error>() {
-            "Bincode"
         } else if e.is::<csv::Error>() {
             "CSV"
         } else if e.is::<::std::num::ParseIntError>() {
             "ParseIntError"
         } else if e.is::<std::fmt::Error>() {
             "Fmt"
-        } else if e.is::<::strum::ParseError>() {
-            "Strum"
         } else if e.is::<regex::Error>() {
             "Regex"
         } else if e.is::<rand::Error>() {

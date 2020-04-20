@@ -13,21 +13,6 @@ extern crate log;
 #[macro_use]
 extern crate percent_encoding;
 
-extern crate boolean_expression;
-extern crate linked_hash_map;
-extern crate rand;
-extern crate regex;
-extern crate regex_syntax;
-extern crate rustc_hash;
-extern crate tempfile;
-
-extern crate bincode;
-extern crate serde;
-
-extern crate csv;
-
-extern crate strum;
-
 #[macro_use]
 extern crate serde_derive;
 
@@ -37,14 +22,9 @@ extern crate lazy_static;
 #[macro_use]
 extern crate anyhow;
 
-extern crate fs2;
-extern crate itertools;
 #[macro_use]
 extern crate lalrpop_util;
-extern crate rayon;
-extern crate sys_info;
 
-extern crate libc;
 #[cfg(feature = "c-api")]
 extern crate simplelog;
 #[cfg(feature = "c-api")]
