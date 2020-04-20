@@ -2,7 +2,14 @@ use super::*;
 use crate::annis::db::annostorage;
 use crate::annis::db::annostorage::ondisk::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
-use crate::{graph::{NodeID, GraphStatistic, GraphStorage, EdgeContainer, WriteableGraphStorage, Annotation, AnnoKey}, annis::dfs::CycleSafeDFS};
+use crate::{
+    annis::dfs::CycleSafeDFS,
+    graph::{
+        AnnoKey, Annotation, EdgeContainer, GraphStatistic, GraphStorage, NodeID,
+        WriteableGraphStorage,
+    },
+};
+use anyhow::Result;
 use graphannis_core::types::Edge;
 use graphannis_core::util::disk_collections::{DiskMap, EvictionStrategy};
 
@@ -208,7 +215,11 @@ impl GraphStorage for DiskAdjacencyListStorage {
         it.next().is_some()
     }
 
-    fn copy(&mut self, _node_annos: &dyn AnnotationStorage<NodeID>, orig: &dyn GraphStorage) -> Result<()> {
+    fn copy(
+        &mut self,
+        _node_annos: &dyn AnnotationStorage<NodeID>,
+        orig: &dyn GraphStorage,
+    ) -> Result<()> {
         self.clear()?;
 
         for source in orig.source_nodes() {

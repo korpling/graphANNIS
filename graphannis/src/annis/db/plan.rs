@@ -1,8 +1,8 @@
 use crate::annis::db::exec::{Desc, EmptyResultSet, ExecutionNode};
 use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::query::Config;
-use crate::annis::db::{Graph};
-use crate::{graph::Match, annis::errors::*};
+use crate::annis::db::Graph;
+use crate::{annis::errors::*, graph::Match};
 use graphannis_core::types::{AnnoKey, NodeID};
 use std;
 use std::collections::HashMap;

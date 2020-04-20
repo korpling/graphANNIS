@@ -1,6 +1,6 @@
 use super::{Desc, ExecutionNode};
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
-use crate::{graph::Match, annis::operator::BinaryOperator};
+use crate::{annis::operator::BinaryOperator, graph::Match};
 use std::iter::Peekable;
 
 pub struct NestedLoop<'a> {

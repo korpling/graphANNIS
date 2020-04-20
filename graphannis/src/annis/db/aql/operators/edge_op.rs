@@ -5,7 +5,7 @@ use crate::annis::operator::{
 };
 use crate::{
     annis::util,
-    graph::{GraphStorage, Match, GraphStatistic},
+    graph::{GraphStatistic, GraphStorage, Match},
 };
 use graphannis_core::types::{Component, ComponentType, Edge, NodeID};
 use regex;

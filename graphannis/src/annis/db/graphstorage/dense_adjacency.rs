@@ -1,8 +1,8 @@
 use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
-use graphannis_core::graphstorage::{EdgeContainer, GraphStatistic, GraphStorage};
-use crate::annis::db::{AnnotationStorage, Graph};
+use crate::annis::db::AnnotationStorage;
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
+use graphannis_core::graphstorage::{EdgeContainer, GraphStatistic, GraphStorage};
 use graphannis_core::types::{Edge, NodeID};
 use num_traits::ToPrimitive;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -141,16 +141,16 @@ impl GraphStorage for DenseAdjacencyListStorage {
         &self.annos
     }
 
-    fn copy(&mut self, db: &Graph, orig: &dyn GraphStorage) -> Result<()> {
+    fn copy(
+        &mut self,
+        node_annos: &dyn AnnotationStorage<NodeID>,
+        orig: &dyn GraphStorage,
+    ) -> Result<()> {
         self.annos.clear()?;
         self.edges.clear();
         self.inverse_edges.clear();
 
-        if let Some(largest_idx) = db
-            .node_annos
-            .get_largest_item()
-            .and_then(|idx| idx.to_usize())
-        {
+        if let Some(largest_idx) = node_annos.get_largest_item().and_then(|idx| idx.to_usize()) {
             debug!("Resizing dense adjacency list to size {}", largest_idx + 1);
             self.edges.resize(largest_idx + 1, None);
 

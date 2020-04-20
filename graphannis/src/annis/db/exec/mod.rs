@@ -1,6 +1,9 @@
 use self::nodesearch::NodeSearch;
 use crate::annis::db::AnnotationStorage;
-use crate::{graph::Match, annis::operator::{BinaryOperator, EstimationType}};
+use crate::{
+    annis::operator::{BinaryOperator, EstimationType},
+    graph::Match,
+};
 use graphannis_core::types::{AnnoKey, NodeID};
 
 use std;

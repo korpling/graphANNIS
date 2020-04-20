@@ -1,4 +1,3 @@
-
 /// A struct that contains the extended results of the count query.
 #[derive(Debug, Default, Clone)]
 #[repr(C)]
@@ -15,7 +14,6 @@ pub struct CountExtra {
 /// attribute values and a number of matches having this combination of attribute values.
 pub type FrequencyTable<T> = Vec<(Vec<T>, usize)>;
 
-
 /// Description of an attribute of a query.
 pub struct QueryAttributeDescription {
     /// ID of the alternative this attribute is part of.
@@ -27,7 +25,6 @@ pub struct QueryAttributeDescription {
     // Optional annotation name represented by this attribute.
     pub anno_name: Option<String>,
 }
-
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct LineColumn {

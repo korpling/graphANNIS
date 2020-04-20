@@ -5,7 +5,10 @@ use super::disk_adjacency::DiskAdjacencyListStorage;
 use super::linear::LinearGraphStorage;
 use super::prepost::PrePostOrderStorage;
 use crate::annis::db::Graph;
-use crate::{graph::{GraphStatistic, GraphStorage}, annis::errors::*};
+use crate::{
+    annis::errors::*,
+    graph::{GraphStatistic, GraphStorage},
+};
 use anyhow::Context;
 use serde::Deserialize;
 use std;
@@ -52,13 +55,13 @@ pub fn create_writeable(
     if graph.disk_based {
         let mut result = DiskAdjacencyListStorage::new()?;
         if let Some(orig) = orig {
-            result.copy(graph, orig)?;
+            result.copy(graph.get_node_annos(), orig)?;
         }
         Ok(Arc::from(result))
     } else {
         let mut result = AdjacencyListStorage::new();
         if let Some(orig) = orig {
-            result.copy(graph, orig)?;
+            result.copy(graph.get_node_annos(), orig)?;
         }
         Ok(Arc::from(result))
     }

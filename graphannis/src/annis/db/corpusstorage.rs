@@ -11,16 +11,17 @@ use crate::annis::db::relannis;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{
-    AnnotationStorage, Graph, ANNIS_NS, NODE_NAME_KEY, NODE_TYPE,
-};
+use crate::annis::db::{AnnotationStorage, Graph, ANNIS_NS, NODE_NAME_KEY, NODE_TYPE};
 use crate::annis::errors::*;
 use crate::annis::types::CountExtra;
 use crate::annis::types::{FrequencyTable, QueryAttributeDescription};
 use crate::annis::util;
 use crate::annis::util::quicksort;
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use crate::{graph::{GraphStatistic, Match}, update::GraphUpdate};
+use crate::{
+    graph::{GraphStatistic, Match},
+    update::GraphUpdate,
+};
 use fs2::FileExt;
 use graphannis_core::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use graphannis_core::{annostorage::ValueSearch, util::memory_estimation};
@@ -1244,18 +1245,18 @@ impl CorpusStorage {
 
                 if include_in_output {
                     let mut node_desc = String::new();
-
-                    if singlematch.anno_key.ns != ANNIS_NS || singlematch.anno_key.name != NODE_TYPE
+                    let singlematch_anno_key = &singlematch.anno_key;
+                    if singlematch_anno_key.ns != ANNIS_NS || singlematch_anno_key.name != NODE_TYPE
                     {
-                        if !singlematch.anno_key.ns.is_empty() {
+                        if !singlematch_anno_key.ns.is_empty() {
                             let encoded_anno_ns: Cow<str> =
-                                utf8_percent_encode(&singlematch.anno_key.ns, SALT_URI_ENCODE_SET)
+                                utf8_percent_encode(&singlematch_anno_key.ns, SALT_URI_ENCODE_SET)
                                     .into();
                             node_desc.push_str(&encoded_anno_ns);
                             node_desc.push_str("::");
                         }
                         let encoded_anno_name: Cow<str> =
-                            utf8_percent_encode(&singlematch.anno_key.name, SALT_URI_ENCODE_SET)
+                            utf8_percent_encode(&singlematch_anno_key.name, SALT_URI_ENCODE_SET)
                                 .into();
                         node_desc.push_str(&encoded_anno_name);
                         node_desc.push_str("::");

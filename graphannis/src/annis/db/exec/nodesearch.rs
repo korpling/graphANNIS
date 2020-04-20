@@ -6,9 +6,15 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::db::{Graph, NODE_TYPE_KEY, TOKEN_KEY};
 use crate::annis::errors::*;
 use crate::annis::operator::EdgeAnnoSearchSpec;
-use graphannis_core::types::{Component, ComponentType, Edge, NodeID};
 use crate::annis::types::LineColumnRange;
-use crate::{graph::Match, annis::util};
+use crate::{
+    annis::util,
+    graph::{GraphStorage, Match},
+};
+use graphannis_core::{
+    annostorage::ValueSearch,
+    types::{Component, ComponentType, Edge, NodeID},
+};
 use itertools::Itertools;
 use regex;
 use std;

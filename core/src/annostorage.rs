@@ -1,3 +1,5 @@
+pub mod symboltable;
+
 use crate::types::{AnnoKey, Annotation, Edge, NodeID};
 use anyhow::Result;
 use std::borrow::Cow;
@@ -10,17 +12,13 @@ use crate::malloc_size_of::MallocSizeOf;
 #[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub struct Match {
-    node: NodeID,
+    /// The node identifier this match refers to.
+    pub node: NodeID,
     /// The qualified annotation name.
-    anno_key: Arc<AnnoKey>,
+    pub anno_key: Arc<AnnoKey>,
 }
 
 impl Match {
-    /// Get the node identifier this match refers to.
-    pub fn get_node(&self) -> NodeID {
-        self.node
-    }
-
     /// Extract the annotation for this match . The annotation value
     /// is retrieved from the `node_annos` given as argument.
     pub fn extract_annotation(

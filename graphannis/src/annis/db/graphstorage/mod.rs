@@ -1,6 +1,6 @@
-
-use std::path::Path;
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 pub mod adjacencylist;
 pub mod dense_adjacency;

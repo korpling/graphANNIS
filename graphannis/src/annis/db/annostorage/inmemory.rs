@@ -1,13 +1,13 @@
-use super::symboltable::SymbolTable;
 use crate::annis::db::AnnotationStorage;
-use crate::graph::Match;
-use graphannis_core::annostorage::ValueSearch;
 use crate::annis::errors::*;
 use crate::annis::util;
+use crate::graph::Match;
 use crate::malloc_size_of::MallocSizeOf;
 use anyhow::Context;
 use bincode;
 use core::ops::Bound::*;
+use graphannis_core::annostorage::symboltable::SymbolTable;
+use graphannis_core::annostorage::ValueSearch;
 use graphannis_core::types::{AnnoKey, Annotation, Edge};
 use graphannis_core::util::memory_estimation;
 use itertools::Itertools;

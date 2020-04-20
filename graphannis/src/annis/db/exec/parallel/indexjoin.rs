@@ -1,7 +1,10 @@
 use super::super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::AnnotationStorage;
-use crate::{graph::Match, annis::operator::{BinaryOperator, EstimationType}};
+use crate::{
+    annis::operator::{BinaryOperator, EstimationType},
+    graph::Match,
+};
 use graphannis_core::types::NodeID;
 use rayon::prelude::*;
 use std::iter::Peekable;
@@ -139,7 +142,7 @@ impl<'a> IndexJoin<'a> {
                 if filter_result {
                     // replace the annotation with a constant value if needed
                     if let Some(ref const_anno) = node_search_desc.const_output {
-                        m_rhs.anno_key = const_anno.clone();
+                        m_rhs = (m_rhs.node, const_anno.clone()).into();
                     }
 
                     // check if lhs and rhs are equal and if this is allowed in this query

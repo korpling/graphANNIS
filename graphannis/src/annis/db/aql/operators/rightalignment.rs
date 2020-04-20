@@ -3,7 +3,7 @@ use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{Graph, DEFAULT_ANNO_KEY};
 use crate::annis::operator::BinaryOperator;
 use crate::annis::operator::BinaryOperatorSpec;
-use crate::{graph::Match, annis::operator::EstimationType};
+use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::types::Component;
 use std::collections::HashSet;
 

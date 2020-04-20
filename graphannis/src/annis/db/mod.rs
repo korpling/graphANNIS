@@ -3,7 +3,10 @@ use crate::annis::db::graphstorage::union::UnionEdgeContainer;
 use crate::annis::db::update::{GraphUpdate, UpdateEvent};
 use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
-use crate::{graph::{WriteableGraphStorage, GraphStorage, EdgeContainer}, malloc_size_of::{MallocSizeOf, MallocSizeOfOps}};
+use crate::{
+    graph::{EdgeContainer, GraphStorage, WriteableGraphStorage},
+    malloc_size_of::{MallocSizeOf, MallocSizeOfOps},
+};
 use graphannis_core::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use graphannis_core::util::disk_collections::{DiskMap, EvictionStrategy};
 use rayon::prelude::*;
@@ -1180,7 +1183,7 @@ impl Graph {
                 if opt_info.id != gs.serialization_id() {
                     let mut new_gs = registry::create_from_info(&opt_info)?;
                     let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
-                        new_gs_mut.copy(self, gs.as_ref())?;
+                        new_gs_mut.copy(self.get_node_annos(), gs.as_ref())?;
                         true
                     } else {
                         false

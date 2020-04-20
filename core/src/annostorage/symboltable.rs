@@ -1,5 +1,5 @@
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use graphannis_core::util::memory_estimation::shallow_size_of_fxhashmap;
+use crate::util::memory_estimation::shallow_size_of_fxhashmap;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std;
@@ -119,7 +119,6 @@ where
         self.by_value.get(val).cloned()
     }
 
-    #[cfg(test)]
     pub fn len(&self) -> usize {
         self.by_id.len()
     }

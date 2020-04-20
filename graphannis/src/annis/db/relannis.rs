@@ -1,11 +1,11 @@
 use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::db::{Graph, ANNIS_NS, TOK};
 use crate::annis::errors::*;
-use graphannis_core::types::{AnnoKey, Component, ComponentType, Edge, NodeID};
 use crate::annis::util::create_str_vec_key;
 use crate::update::{GraphUpdate, UpdateEvent};
 use csv;
 use graphannis_core::serializer::KeySerializer;
+use graphannis_core::types::{AnnoKey, Component, ComponentType, Edge, NodeID};
 use graphannis_core::util::disk_collections::DiskMap;
 use percent_encoding::utf8_percent_encode;
 use std;

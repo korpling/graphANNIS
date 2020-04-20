@@ -5,7 +5,10 @@ use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{Graph, NODE_TYPE_KEY};
-use crate::{graph::{Match, GraphStorage}, annis::errors::*};
+use crate::{
+    annis::errors::*,
+    graph::{GraphStorage, Match},
+};
 use graphannis_core::types::{AnnoKey, Component, ComponentType, NodeID};
 
 use std::collections::HashSet;

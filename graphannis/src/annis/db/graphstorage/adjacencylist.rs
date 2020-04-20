@@ -1,12 +1,19 @@
 use crate::annis::db::annostorage::inmemory::AnnoStorageImpl;
 use crate::annis::db::AnnotationStorage;
-use crate::{graph::{GraphStatistic, NodeID, EdgeContainer, GraphStorage, WriteableGraphStorage, Annotation, AnnoKey}, annis::dfs::CycleSafeDFS};
+use crate::{
+    annis::dfs::CycleSafeDFS,
+    graph::{
+        AnnoKey, Annotation, EdgeContainer, GraphStatistic, GraphStorage, NodeID,
+        WriteableGraphStorage,
+    },
+};
 use graphannis_core::types::Edge;
 
+use anyhow::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::collections::BTreeSet;
-use std::{path::Path, ops::Bound};
 use serde::Deserialize;
+use std::collections::BTreeSet;
+use std::{ops::Bound, path::Path};
 
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 pub struct AdjacencyListStorage {
@@ -175,7 +182,11 @@ impl GraphStorage for AdjacencyListStorage {
         it.next().is_some()
     }
 
-    fn copy(&mut self, _node_annos: &AnnotationStorage<NodeID>, orig: &dyn GraphStorage) -> Result<()> {
+    fn copy(
+        &mut self,
+        _node_annos: &dyn AnnotationStorage<NodeID>,
+        orig: &dyn GraphStorage,
+    ) -> Result<()> {
         self.clear()?;
 
         for source in orig.source_nodes() {

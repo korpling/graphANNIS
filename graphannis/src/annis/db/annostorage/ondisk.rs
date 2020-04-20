@@ -1,11 +1,11 @@
-use super::symboltable::SymbolTable;
-use graphannis_core::annostorage::AnnotationStorage;
-use graphannis_core::annostorage::{Match, ValueSearch};
 use crate::annis::errors::*;
-use graphannis_core::types::{AnnoKey, Annotation, NodeID};
 use crate::annis::util;
 use core::ops::Bound::*;
+use graphannis_core::annostorage::symboltable::SymbolTable;
+use graphannis_core::annostorage::AnnotationStorage;
+use graphannis_core::annostorage::{Match, ValueSearch};
 use graphannis_core::serializer::{FixedSizeKeySerializer, KeySerializer};
+use graphannis_core::types::{AnnoKey, Annotation, NodeID};
 use graphannis_core::util::disk_collections::{DiskMap, EvictionStrategy};
 use graphannis_core::util::memory_estimation;
 use rand::seq::IteratorRandom;

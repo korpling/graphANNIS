@@ -44,7 +44,7 @@ pub extern "C" fn annis_graph_nodes_by_type(
     let it = db
         .get_node_annos()
         .exact_anno_search(Some("annis"), "node_type", Some(node_type.as_ref()).into())
-        .map(|m: Match| m.get_node());
+        .map(|m: Match| m.node);
     return Box::into_raw(Box::new(Box::new(it)));
 }
 

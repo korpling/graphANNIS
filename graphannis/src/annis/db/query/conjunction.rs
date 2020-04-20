@@ -12,7 +12,10 @@ use crate::annis::errors::*;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
 };
-use crate::annis::types::{LineColumnRange, QueryAttributeDescription};
+use crate::{
+    annis::types::{LineColumnRange, QueryAttributeDescription},
+    graph::{GraphStatistic, Match},
+};
 use anyhow::Error;
 use graphannis_core::types::{Component, Edge};
 use rand::distributions::Distribution;
