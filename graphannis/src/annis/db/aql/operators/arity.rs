@@ -1,11 +1,11 @@
 use super::RangeSpec;
 use crate::annis::operator::EstimationType;
-use crate::annis::operator::{UnaryOperator, UnaryOperatorSpec};
+use crate::annis::{db::aql::model::AQLComponentType, operator::{UnaryOperator, UnaryOperatorSpec}};
 use crate::{
     graph::{GraphStorage, Match},
     Graph,
 };
-use graphannis_core::types::{AQLComponentType, Component, NodeID};
+use graphannis_core::types::{Component, NodeID};
 use std::collections::HashSet;
 use std::sync::Arc;
 

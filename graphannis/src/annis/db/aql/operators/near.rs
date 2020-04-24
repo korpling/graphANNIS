@@ -1,4 +1,4 @@
-use crate::annis::db::aql::operators::RangeSpec;
+use crate::annis::db::aql::{model::AQLComponentType, operators::RangeSpec};
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::EstimationType;
@@ -9,7 +9,7 @@ use crate::{
 };
 use graphannis_core::{
     graph::DEFAULT_ANNO_KEY,
-    types::{AQLComponentType, Component},
+    types::{Component},
 };
 
 use rustc_hash::FxHashSet;

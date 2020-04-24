@@ -2,7 +2,7 @@ use super::MatchFilterFunc;
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::exec::tokensearch;
 use crate::annis::db::exec::tokensearch::AnyTokenSearch;
-use crate::annis::db::AnnotationStorage;
+use crate::annis::db::{aql::model::AQLComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::EdgeAnnoSearchSpec;
 use crate::annis::types::LineColumnRange;
@@ -11,7 +11,7 @@ use crate::{annis::util, graph::Match};
 use graphannis_core::{
     annostorage::ValueSearch,
     graph::{storage::GraphStorage, NODE_TYPE_KEY, TOKEN_KEY},
-    types::{AQLComponentType, Component, Edge, NodeID},
+    types::{Component, Edge, NodeID},
 };
 use itertools::Itertools;
 use regex;

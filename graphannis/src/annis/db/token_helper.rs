@@ -1,7 +1,7 @@
-use crate::{annis::db::AnnotationStorage, graph::GraphStorage, Graph};
+use crate::{annis::db::AnnotationStorage, graph::GraphStorage, AQLComponentType, Graph};
 use graphannis_core::{
     graph::TOKEN_KEY,
-    types::{AQLComponentType, Component, NodeID},
+    types::{Component, NodeID},
 };
 
 use std::collections::HashSet;

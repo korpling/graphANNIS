@@ -1,7 +1,7 @@
 pub mod storage;
 pub mod update;
 
-use crate::types::{AQLComponentType, AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
+use crate::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use crate::{
     annostorage::AnnotationStorage,
     graph::storage::{registry, GraphStorage, WriteableGraphStorage},
@@ -15,13 +15,11 @@ use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 use std::string::ToString;
 use std::{
     borrow::Cow,
     sync::{Arc, Mutex},
 };
-use strum::IntoEnumIterator;
 use tempfile;
 use update::{GraphUpdate, UpdateEvent};
 
@@ -149,32 +147,9 @@ impl<CT: ComponentType> Graph<CT> {
     /// (Coverage, Order, LeftToken, RightToken, PartOf).
     pub fn with_default_graphstorages(disk_based: bool) -> Result<Self> {
         let mut db = Graph::new(disk_based)?;
-        db.get_or_create_writable(&Component {
-            ctype: AQLComponentType::Coverage.into(),
-            layer: ANNIS_NS.to_owned(),
-            name: "".to_owned(),
-        })?;
-        db.get_or_create_writable(&Component {
-            ctype: AQLComponentType::Ordering.into(),
-            layer: ANNIS_NS.to_owned(),
-            name: "".to_owned(),
-        })?;
-        db.get_or_create_writable(&Component {
-            ctype: AQLComponentType::LeftToken.into(),
-            layer: ANNIS_NS.to_owned(),
-            name: "".to_owned(),
-        })?;
-        db.get_or_create_writable(&Component {
-            ctype: AQLComponentType::RightToken.into(),
-            layer: ANNIS_NS.to_owned(),
-            name: "".to_owned(),
-        })?;
-        db.get_or_create_writable(&Component {
-            ctype: AQLComponentType::PartOf.into(),
-            layer: ANNIS_NS.to_owned(),
-            name: "".to_owned(),
-        })?;
-
+        for c in CT::default_components() {
+            db.get_or_create_writable(&c)?;
+        }
         Ok(db)
     }
 
@@ -268,7 +243,7 @@ impl<CT: ComponentType> Graph<CT> {
         self.components.clear();
 
         // for all component types
-        for c in AQLComponentType::iter() {
+        for c in CT::all_component_types().into_iter() {
             let cpath = PathBuf::from(location).join("gs").join(c.to_string());
 
             if cpath.is_dir() {
@@ -484,9 +459,9 @@ impl<CT: ComponentType> Graph<CT> {
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     // only add edge if both nodes already exist
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = AQLComponentType::from_str(&component_type) {
+                        if let Ok(ctype) = CT::from_str(&component_type) {
                             let c = Component {
-                                ctype: ctype.clone().into(),
+                                ctype: ctype.into(),
                                 layer: layer.to_string(),
                                 name: component_name.to_string(),
                             };
@@ -507,9 +482,9 @@ impl<CT: ComponentType> Graph<CT> {
                     let target = self
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = AQLComponentType::from_str(&component_type) {
+                        if let Ok(ctype) = CT::from_str(&component_type) {
                             let c = Component {
-                                ctype: ctype.clone().into(),
+                                ctype: ctype.into(),
                                 layer: layer.to_string(),
                                 name: component_name.to_string(),
                             };
@@ -534,7 +509,7 @@ impl<CT: ComponentType> Graph<CT> {
                     let target = self
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = AQLComponentType::from_str(&component_type) {
+                        if let Ok(ctype) = CT::from_str(&component_type) {
                             let c = Component {
                                 ctype: ctype.into(),
                                 layer: layer.to_string(),
@@ -570,7 +545,7 @@ impl<CT: ComponentType> Graph<CT> {
                     let target = self
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = AQLComponentType::from_str(&component_type) {
+                        if let Ok(ctype) = CT::from_str(&component_type) {
                             let c = Component {
                                 ctype: ctype.into(),
                                 layer: layer.to_string(),
@@ -930,7 +905,7 @@ impl<CT: ComponentType> Graph<CT> {
     /// If you want to retrieve all components, use `None` as value for both arguments.
     pub fn get_all_components(
         &self,
-        ctype: Option<AQLComponentType>,
+        ctype: Option<CT>,
         name: Option<&str>,
     ) -> Vec<Component> {
         if let (Some(ctype), Some(name)) = (&ctype, name) {
@@ -1012,11 +987,11 @@ impl<CT: ComponentType> Graph<CT> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{AQLComponentType, AnnoKey, Annotation, Edge};
+    use crate::types::{DefaultComponentType, AnnoKey, Annotation, Edge};
 
     #[test]
     fn create_writeable_gs() {
-        let mut db = Graph::<AQLComponentType>::new(false).unwrap();
+        let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
 
         let anno_key = AnnoKey {
             ns: "test".to_owned(),
@@ -1026,7 +1001,7 @@ mod tests {
 
         let gs: &mut dyn WriteableGraphStorage = db
             .get_or_create_writable(&Component {
-                ctype: AQLComponentType::Pointing.into(),
+                ctype: DefaultComponentType::Edge.into(),
                 layer: String::from("test"),
                 name: String::from("dep"),
             })

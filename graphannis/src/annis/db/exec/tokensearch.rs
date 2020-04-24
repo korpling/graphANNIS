@@ -3,11 +3,10 @@ use crate::annis::db::exec::ExecutionNode;
 use crate::annis::db::sort_matches;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
-use crate::Graph;
-use crate::{annis::db::token_helper::TokenHelper, graph::Match};
+use crate::{annis::db::token_helper::TokenHelper, graph::Match, AQLComponentType, Graph};
 use graphannis_core::{
     graph::{storage::GraphStorage, NODE_TYPE_KEY},
-    types::{AQLComponentType, AnnoKey, Component, NodeID},
+    types::{AnnoKey, Component, NodeID},
 };
 
 use anyhow::Result;

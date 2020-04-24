@@ -27,7 +27,7 @@ use graphannis_core::{
     graph::{
         storage::GraphStatistic, update::GraphUpdate, ANNIS_NS, NODE_NAME, NODE_NAME_KEY, NODE_TYPE,
     },
-    types::{AQLComponentType, AnnoKey, Annotation, Component, Edge, NodeID},
+    types::{AnnoKey, Annotation, Component, Edge, NodeID},
     util::memory_estimation,
 };
 use linked_hash_map::LinkedHashMap;
@@ -53,6 +53,7 @@ use sys_info;
 
 use anyhow::{Context, Error};
 use db::AnnotationStorage;
+use aql::model::AQLComponentType;
 
 #[cfg(test)]
 mod tests;

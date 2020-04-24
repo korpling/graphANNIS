@@ -5,9 +5,9 @@ use crate::corpusstorage::{
     CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, ImportFormat,
     QueryAttributeDescription, QueryLanguage, ResultOrder,
 };
-use crate::graph::{AQLComponentType, Component};
+use crate::graph::{Component};
 use crate::update::GraphUpdate;
-use crate::{CorpusStorage, Graph};
+use crate::{CorpusStorage, Graph, annis::db::aql::model::AQLComponentType};
 use libc;
 use std;
 use std::ffi::CString;

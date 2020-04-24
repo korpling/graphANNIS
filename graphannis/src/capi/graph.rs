@@ -1,6 +1,9 @@
 use crate::capi::data::IterPtr;
-use crate::graph::{AQLComponentType, Annotation, Component, Edge, GraphStorage, Match, NodeID};
 use crate::Graph;
+use crate::{
+    graph::{Annotation, Component, Edge, GraphStorage, Match, NodeID},
+    AQLComponentType,
+};
 use libc;
 use std;
 use std::ffi::CString;

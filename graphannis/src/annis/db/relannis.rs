@@ -7,7 +7,7 @@ use csv;
 use graphannis_core::{
     graph::{ANNIS_NS, TOK},
     serializer::KeySerializer,
-    types::{AQLComponentType, AnnoKey, Component, Edge, NodeID},
+    types::{AnnoKey, Component, Edge, NodeID},
     util::disk_collections::DiskMap,
 };
 use percent_encoding::utf8_percent_encode;
@@ -19,6 +19,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
+use super::aql::model::AQLComponentType;
 
 #[derive(
     Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, Serialize, Deserialize, MallocSizeOf,

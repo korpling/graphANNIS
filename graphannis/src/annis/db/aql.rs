@@ -1,5 +1,6 @@
 mod ast;
 pub mod operators;
+pub mod model;
 use boolean_expression::Expr;
 lalrpop_mod!(
     #[allow(clippy::all)]

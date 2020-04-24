@@ -1,4 +1,4 @@
-use crate::annis::db::aql::operators::RangeSpec;
+use crate::annis::db::aql::{model::AQLComponentType, operators::RangeSpec};
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
 };
@@ -6,7 +6,7 @@ use crate::graph::{GraphStatistic, GraphStorage, Match};
 use crate::Graph;
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
-    types::{AQLComponentType, Component, Edge, NodeID},
+    types::{Component, Edge, NodeID},
 };
 use regex;
 use std;

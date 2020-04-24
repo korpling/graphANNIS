@@ -1,11 +1,11 @@
 extern crate log;
 extern crate tempfile;
 
-use crate::annis::db::example_generator;
+use crate::annis::db::{aql::model::AQLComponentType, example_generator};
 use crate::corpusstorage::QueryLanguage;
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::CorpusStorage;
-use graphannis_core::types::{AQLComponentType, NodeID};
+use graphannis_core::types::NodeID;
 
 #[test]
 fn delete() {
