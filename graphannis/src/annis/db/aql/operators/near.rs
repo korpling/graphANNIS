@@ -7,10 +7,7 @@ use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
 };
-use graphannis_core::{
-    graph::DEFAULT_ANNO_KEY,
-    types::{Component},
-};
+use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
 
 use rustc_hash::FxHashSet;
 use std;

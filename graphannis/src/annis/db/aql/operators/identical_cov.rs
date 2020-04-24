@@ -3,9 +3,8 @@ use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::EstimationType;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
-    AQLComponentType,
     graph::{GraphStorage, Match},
-    Graph,
+    AQLComponentType, Graph,
 };
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
 

@@ -48,11 +48,10 @@ pub mod corpusstorage {
     pub use crate::annis::types::{CountExtra, FrequencyTable, QueryAttributeDescription};
 }
 
-pub use graphannis_core::graph::update;
 use annis::db::aql::model::AQLComponentType;
+pub use graphannis_core::graph::update;
 
 pub type Graph = graphannis_core::graph::Graph<AQLComponentType>;
-
 
 /// Types that are used by the `Graph` API.
 pub mod graph {
@@ -60,9 +59,7 @@ pub mod graph {
     pub use graphannis_core::annostorage::Match;
     pub use graphannis_core::graph::storage::GraphStatistic;
     pub use graphannis_core::graph::storage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
-    pub use graphannis_core::types::{
-        AnnoKey, Annotation, Component, Edge, NodeID,
-    };
+    pub use graphannis_core::types::{AnnoKey, Annotation, Component, Edge, NodeID};
 }
 
 /// Contains the graphANNIS-specific error types.

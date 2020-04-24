@@ -7,10 +7,13 @@ use crate::annis::errors::*;
 use crate::annis::operator::EdgeAnnoSearchSpec;
 use crate::annis::types::LineColumnRange;
 use crate::Graph;
-use crate::{annis::util, graph::Match};
+use crate::{
+    annis::{db::aql::model::TOKEN_KEY, util},
+    graph::Match,
+};
 use graphannis_core::{
     annostorage::ValueSearch,
-    graph::{storage::GraphStorage, NODE_TYPE_KEY, TOKEN_KEY},
+    graph::{storage::GraphStorage, NODE_TYPE_KEY},
     types::{Component, Edge, NodeID},
 };
 use itertools::Itertools;

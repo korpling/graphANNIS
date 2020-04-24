@@ -25,7 +25,6 @@ use update::{GraphUpdate, UpdateEvent};
 
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
-pub const TOK: &str = "tok";
 pub const NODE_TYPE: &str = "node_type";
 
 lazy_static! {
@@ -33,10 +32,6 @@ lazy_static! {
     pub static ref NODE_NAME_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
         ns: ANNIS_NS.to_owned(),
         name: NODE_NAME.to_owned(),
-    });
-    pub static ref TOKEN_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
-            ns: ANNIS_NS.to_owned(),
-            name: TOK.to_owned(),
     });
     /// Return an annotation key which is used for the special `annis::node_type` annotation which every node must have to mark its existance.
     pub static ref NODE_TYPE_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
@@ -143,8 +138,7 @@ impl<CT: ComponentType> Graph<CT> {
         })
     }
 
-    /// Create a new instance without any location on the disk but with the default graph storage components
-    /// (Coverage, Order, LeftToken, RightToken, PartOf).
+    /// Create a new instance without any location on the disk but with the default graph storage components.
     pub fn with_default_graphstorages(disk_based: bool) -> Result<Self> {
         let mut db = Graph::new(disk_based)?;
         for c in CT::default_components() {
@@ -903,11 +897,7 @@ impl<CT: ComponentType> Graph<CT> {
     /// Returns all components of the graph given an optional type (`ctype`) and `name`.
     /// This allows to filter which components to receive.
     /// If you want to retrieve all components, use `None` as value for both arguments.
-    pub fn get_all_components(
-        &self,
-        ctype: Option<CT>,
-        name: Option<&str>,
-    ) -> Vec<Component> {
+    pub fn get_all_components(&self, ctype: Option<CT>, name: Option<&str>) -> Vec<Component> {
         if let (Some(ctype), Some(name)) = (&ctype, name) {
             let ctype: u16 = ctype.clone().into();
             // lookup component from sorted map
@@ -987,7 +977,7 @@ impl<CT: ComponentType> Graph<CT> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{DefaultComponentType, AnnoKey, Annotation, Edge};
+    use crate::types::{AnnoKey, Annotation, DefaultComponentType, Edge};
 
     #[test]
     fn create_writeable_gs() {

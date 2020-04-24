@@ -52,8 +52,8 @@ use std::ffi::CString;
 use sys_info;
 
 use anyhow::{Context, Error};
-use db::AnnotationStorage;
 use aql::model::AQLComponentType;
+use db::AnnotationStorage;
 
 #[cfg(test)]
 mod tests;

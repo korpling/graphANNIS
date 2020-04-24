@@ -1,7 +1,7 @@
 use crate::graph::{Component, Edge, EdgeContainer, GraphStorage, NodeID};
 use graphannis_core::{
     dfs::CycleSafeDFS,
-    graph::{storage::union::UnionEdgeContainer, ANNIS_NS, TOKEN_KEY},
+    graph::{storage::union::UnionEdgeContainer, ANNIS_NS},
     types::ComponentType,
     util::disk_collections::{DiskMap, EvictionStrategy},
 };
@@ -16,6 +16,16 @@ use strum_macros::{EnumIter, EnumString};
 use crate::{update::UpdateEvent, Graph};
 use anyhow::Result;
 use rustc_hash::FxHashSet;
+
+use crate::graph::AnnoKey;
+
+pub const TOK: &str = "tok";
+lazy_static! {
+    pub static ref TOKEN_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
+        ns: ANNIS_NS.to_owned(),
+        name: TOK.to_owned(),
+    });
+}
 
 /// Specifies the type of component. Types determine certain semantics about the edges of this graph components.
 #[derive(

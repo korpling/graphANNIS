@@ -1,6 +1,9 @@
 use super::RangeSpec;
 use crate::annis::operator::EstimationType;
-use crate::annis::{db::aql::model::AQLComponentType, operator::{UnaryOperator, UnaryOperatorSpec}};
+use crate::annis::{
+    db::aql::model::AQLComponentType,
+    operator::{UnaryOperator, UnaryOperatorSpec},
+};
 use crate::{
     graph::{GraphStorage, Match},
     Graph,

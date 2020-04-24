@@ -3,14 +3,11 @@ use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::EstimationType;
 use crate::Graph;
 use crate::{
-    AQLComponentType,
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
+    AQLComponentType,
 };
-use graphannis_core::{
-    graph::DEFAULT_ANNO_KEY,
-    types::{Component},
-};
+use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
 
 use std;
 use std::collections::{HashSet, VecDeque};

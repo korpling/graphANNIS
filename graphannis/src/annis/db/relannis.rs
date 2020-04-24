@@ -1,11 +1,12 @@
+use super::aql::model::AQLComponentType;
 use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::errors::*;
 use crate::annis::util::create_str_vec_key;
 use crate::update::{GraphUpdate, UpdateEvent};
-use crate::Graph;
+use crate::{annis::db::aql::model::TOK, Graph};
 use csv;
 use graphannis_core::{
-    graph::{ANNIS_NS, TOK},
+    graph::ANNIS_NS,
     serializer::KeySerializer,
     types::{AnnoKey, Component, Edge, NodeID},
     util::disk_collections::DiskMap,
@@ -19,7 +20,6 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
-use super::aql::model::AQLComponentType;
 
 #[derive(
     Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, Serialize, Deserialize, MallocSizeOf,
