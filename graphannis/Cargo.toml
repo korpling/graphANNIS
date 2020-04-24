@@ -54,6 +54,7 @@ criterion = "0.3"
 
 [features]
 c-api = ["simplelog"]
+default = ["c-api"]
 
 [[bench]]
 name = "graphannis"
