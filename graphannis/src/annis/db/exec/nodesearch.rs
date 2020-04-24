@@ -2,11 +2,11 @@ use super::MatchFilterFunc;
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::exec::tokensearch;
 use crate::annis::db::exec::tokensearch::AnyTokenSearch;
-use crate::annis::db::{aql::model::AQLComponentType, AnnotationStorage};
+use crate::annis::db::{aql::model::AnnisComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::EdgeAnnoSearchSpec;
 use crate::annis::types::LineColumnRange;
-use crate::Graph;
+use crate::AnnotationGraph;
 use crate::{
     annis::{db::aql::model::TOKEN_KEY, util},
     graph::Match,
@@ -91,7 +91,7 @@ impl NodeSearchSpec {
         }
     }
 
-    pub fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
+    pub fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
         if let NodeSearchSpec::AnyToken = self {
             return tokensearch::AnyTokenSearch::necessary_components(db);
         }
@@ -192,7 +192,7 @@ impl<'a> NodeSearch<'a> {
     pub fn from_spec(
         spec: NodeSearchSpec,
         node_nr: usize,
-        db: &'a Graph,
+        db: &'a AnnotationGraph,
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         let query_fragment = format!("{}", spec);
@@ -379,7 +379,7 @@ impl<'a> NodeSearch<'a> {
     }
 
     fn new_annosearch_exact(
-        db: &'a Graph,
+        db: &'a AnnotationGraph,
         qname: (Option<String>, String),
         val: ValueSearch<String>,
         is_meta: bool,
@@ -493,7 +493,7 @@ impl<'a> NodeSearch<'a> {
     }
 
     fn new_annosearch_regex(
-        db: &'a Graph,
+        db: &'a AnnotationGraph,
         qname: (Option<String>, String),
         pattern: &str,
         negated: bool,
@@ -608,7 +608,7 @@ impl<'a> NodeSearch<'a> {
     }
 
     fn new_tokensearch(
-        db: &'a Graph,
+        db: &'a AnnotationGraph,
         val: ValueSearch<String>,
         leafs_only: bool,
         match_regex: bool,
@@ -663,7 +663,7 @@ impl<'a> NodeSearch<'a> {
 
         let it_base = if leafs_only {
             let cov_gs: Vec<Arc<dyn GraphStorage>> = db
-                .get_all_components(Some(AQLComponentType::Coverage), None)
+                .get_all_components(Some(AnnisComponentType::Coverage), None)
                 .into_iter()
                 .filter_map(|c| db.get_graphstorage(&c))
                 .filter(|gs| {
@@ -767,7 +767,7 @@ impl<'a> NodeSearch<'a> {
 
         if leafs_only {
             let cov_gs: Vec<Arc<dyn GraphStorage>> = db
-                .get_all_components(Some(AQLComponentType::Coverage), None)
+                .get_all_components(Some(AnnisComponentType::Coverage), None)
                 .into_iter()
                 .filter_map(|c| db.get_graphstorage(&c))
                 .filter(|gs| {
@@ -856,7 +856,7 @@ impl<'a> NodeSearch<'a> {
     }
 
     fn new_anytoken_search(
-        db: &'a Graph,
+        db: &'a AnnotationGraph,
         query_fragment: &str,
         node_nr: usize,
     ) -> Result<NodeSearch<'a>> {
@@ -865,7 +865,7 @@ impl<'a> NodeSearch<'a> {
         let mut filters: Vec<MatchFilterFunc> = Vec::new();
 
         let cov_gs: Vec<Arc<dyn GraphStorage>> = db
-            .get_all_components(Some(AQLComponentType::Coverage), None)
+            .get_all_components(Some(AnnisComponentType::Coverage), None)
             .into_iter()
             .filter_map(|c| db.get_graphstorage(&c))
             .filter(|gs| {
@@ -912,10 +912,10 @@ impl<'a> NodeSearch<'a> {
     }
 
     pub fn new_partofcomponentsearch(
-        db: &'a Graph,
+        db: &'a AnnotationGraph,
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
-        components: HashSet<Component<AQLComponentType>>,
+        components: HashSet<Component<AnnisComponentType>>,
         edge_anno_spec: Option<EdgeAnnoSearchSpec>,
     ) -> Result<NodeSearch<'a>> {
         let node_search_desc_1 = node_search_desc.clone();
@@ -924,7 +924,7 @@ impl<'a> NodeSearch<'a> {
         let it = components
             .into_iter()
             .flat_map(
-                move |c: Component<AQLComponentType>| -> Box<dyn Iterator<Item = NodeID>> {
+                move |c: Component<AnnisComponentType>| -> Box<dyn Iterator<Item = NodeID>> {
                     if let Some(gs) = db.get_graphstorage_as_ref(&c) {
                         if let Some(EdgeAnnoSearchSpec::ExactValue {
                             ref ns,

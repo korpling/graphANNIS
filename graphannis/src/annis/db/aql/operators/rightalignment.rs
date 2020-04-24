@@ -2,11 +2,8 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::BinaryOperator;
 use crate::annis::operator::BinaryOperatorSpec;
-use crate::Graph;
-use crate::{
-    annis::operator::EstimationType,
-    graph::{Component, Match},
-};
+use crate::AnnotationGraph;
+use crate::{annis::operator::EstimationType, graph::Match, model::AnnisComponent};
 use graphannis_core::graph::DEFAULT_ANNO_KEY;
 use std::collections::HashSet;
 
@@ -19,13 +16,13 @@ pub struct RightAlignment<'a> {
 }
 
 impl BinaryOperatorSpec for RightAlignmentSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<AnnisComponent> {
         let mut v = HashSet::default();
         v.extend(token_helper::necessary_components(db));
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = RightAlignment::new(db);
         if let Some(op) = optional_op {
             Some(Box::new(op))
@@ -36,7 +33,7 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
 }
 
 impl<'a> RightAlignment<'a> {
-    pub fn new(graph: &'a Graph) -> Option<RightAlignment<'a>> {
+    pub fn new(graph: &'a AnnotationGraph) -> Option<RightAlignment<'a>> {
         let tok_helper = TokenHelper::new(graph)?;
 
         Some(RightAlignment { tok_helper })
@@ -87,7 +84,10 @@ impl<'a> BinaryOperator for RightAlignment<'a> {
         false
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Option<Box<dyn BinaryOperator + 'b>> {
         let tok_helper = TokenHelper::new(graph)?;
 
         Some(Box::new(RightAlignment { tok_helper }))

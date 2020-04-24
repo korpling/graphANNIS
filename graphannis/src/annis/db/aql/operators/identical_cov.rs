@@ -4,7 +4,8 @@ use crate::annis::operator::EstimationType;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
-    AQLComponentType, Graph,
+    AnnotationGraph,
+    model::AnnisComponentType,
 };
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
@@ -26,16 +27,16 @@ pub struct IdenticalCoverage<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_LEFT: Component<AQLComponentType> = {
+    static ref COMPONENT_LEFT: Component<AnnisComponentType> = {
         Component::new(
-            AQLComponentType::LeftToken,
+            AnnisComponentType::LeftToken,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
     };
-    static ref COMPONENT_ORDER: Component<AQLComponentType> = {
+    static ref COMPONENT_ORDER: Component<AnnisComponentType> = {
         Component::new(
-            AQLComponentType::Ordering,
+            AnnisComponentType::Ordering,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
@@ -43,7 +44,7 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for IdenticalCoverageSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
         let mut v = HashSet::new();
         v.insert(COMPONENT_LEFT.clone());
         v.insert(COMPONENT_ORDER.clone());
@@ -51,7 +52,7 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = IdenticalCoverage::new(db);
         if let Some(op) = optional_op {
             Some(Box::new(op))
@@ -62,7 +63,7 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
 }
 
 impl<'a> IdenticalCoverage<'a> {
-    pub fn new(db: &'a Graph) -> Option<IdenticalCoverage<'a>> {
+    pub fn new(db: &'a AnnotationGraph) -> Option<IdenticalCoverage<'a>> {
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
 
@@ -132,7 +133,7 @@ impl<'a> BinaryOperator for IdenticalCoverage<'a> {
         false
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'b>> {
         Some(Box::new(IdenticalCoverage {
             gs_left: self.gs_left.clone(),
             gs_order: self.gs_order.clone(),

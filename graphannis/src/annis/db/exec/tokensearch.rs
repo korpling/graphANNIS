@@ -3,7 +3,10 @@ use crate::annis::db::exec::ExecutionNode;
 use crate::annis::db::sort_matches;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
-use crate::{annis::db::token_helper::TokenHelper, graph::Match, AQLComponentType, Graph};
+use crate::{
+    annis::db::aql::model::AnnisComponentType, annis::db::token_helper::TokenHelper, graph::Match,
+    AnnotationGraph,
+};
 use graphannis_core::{
     graph::{storage::GraphStorage, ANNIS_NS, NODE_TYPE_KEY},
     types::{AnnoKey, Component, NodeID},
@@ -18,16 +21,16 @@ use std::sync::Arc;
 pub struct AnyTokenSearch<'a> {
     desc: Option<Desc>,
     node_type_key: Arc<AnnoKey>,
-    db: &'a Graph,
+    db: &'a AnnotationGraph,
     token_helper: Option<TokenHelper<'a>>,
     order_gs: Option<&'a dyn GraphStorage>,
     root_iterators: Option<Vec<Box<dyn Iterator<Item = NodeID> + 'a>>>,
 }
 
 lazy_static! {
-    static ref COMPONENT_ORDER: Component<AQLComponentType> = {
+    static ref COMPONENT_ORDER: Component<AnnisComponentType> = {
         Component::new(
-            AQLComponentType::Ordering,
+            AnnisComponentType::Ordering,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
@@ -35,7 +38,7 @@ lazy_static! {
 }
 
 impl<'a> AnyTokenSearch<'a> {
-    pub fn new(db: &'a Graph) -> Result<AnyTokenSearch<'a>> {
+    pub fn new(db: &'a AnnotationGraph) -> Result<AnyTokenSearch<'a>> {
         let order_gs = db.get_graphstorage_as_ref(&COMPONENT_ORDER);
 
         Ok(AnyTokenSearch {
@@ -48,7 +51,7 @@ impl<'a> AnyTokenSearch<'a> {
         })
     }
 
-    pub fn necessary_components(db: &Graph) -> HashSet<Component<AQLComponentType>> {
+    pub fn necessary_components(db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
         let mut components = token_helper::necessary_components(db);
         components.insert(COMPONENT_ORDER.clone());
         components
@@ -158,7 +161,7 @@ mod tests {
 
     #[test]
     fn find_with_only_one_token() {
-        let mut g = Graph::new(false).unwrap();
+        let mut g = AnnotationGraph::new(false).unwrap();
 
         let mut update = GraphUpdate::new();
         update

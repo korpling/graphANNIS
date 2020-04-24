@@ -6,12 +6,12 @@ use crate::annis::db::exec::nestedloop::NestedLoop;
 use crate::annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use crate::annis::db::exec::parallel;
 use crate::annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
-use crate::annis::db::{aql::model::AQLComponentType, AnnotationStorage};
+use crate::annis::db::{aql::model::AnnisComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
 };
-use crate::Graph;
+use crate::AnnotationGraph;
 use crate::{
     annis::types::{LineColumnRange, QueryAttributeDescription},
     graph::Match,
@@ -110,7 +110,7 @@ fn should_switch_operand_order(
 }
 
 fn create_join<'b>(
-    db: &'b Graph,
+    db: &'b AnnotationGraph,
     config: &Config,
     op_entry: BinaryOperatorEntry<'b>,
     exec_left: Box<dyn ExecutionNode<Item = Vec<Match>> + 'b>,
@@ -365,7 +365,7 @@ impl<'a> Conjunction<'a> {
         .into())
     }
 
-    pub fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
+    pub fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
         let mut result = HashSet::default();
 
         for op_entry in &self.unary_operators {
@@ -384,7 +384,7 @@ impl<'a> Conjunction<'a> {
         result
     }
 
-    fn optimize_join_order_heuristics(&self, db: &'a Graph, config: &Config) -> Result<Vec<usize>> {
+    fn optimize_join_order_heuristics(&self, db: &'a AnnotationGraph, config: &Config) -> Result<Vec<usize>> {
         // check if there is something to optimize
         if self.binary_operators.is_empty() {
             return Ok(vec![]);
@@ -480,7 +480,7 @@ impl<'a> Conjunction<'a> {
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
         op_spec_entries: Box<dyn Iterator<Item = &'a BinaryOperatorSpecEntry> + 'a>,
-        db: &'a Graph,
+        db: &'a AnnotationGraph,
     ) -> Option<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> {
         let desc = desc?;
         // check if we can replace this node search with a generic "all nodes from either of these components" search
@@ -536,7 +536,7 @@ impl<'a> Conjunction<'a> {
 
     fn make_exec_plan_with_order(
         &'a self,
-        db: &'a Graph,
+        db: &'a AnnotationGraph,
         config: &Config,
         operator_order: Vec<usize>,
     ) -> Result<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> {
@@ -806,7 +806,7 @@ impl<'a> Conjunction<'a> {
 
     pub fn make_exec_node(
         &'a self,
-        db: &'a Graph,
+        db: &'a AnnotationGraph,
         config: &Config,
     ) -> Result<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> {
         self.check_components_connected()?;

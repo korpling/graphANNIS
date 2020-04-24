@@ -2,11 +2,11 @@ use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::EstimationType;
-use crate::Graph;
+use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
-    graph::{Component, GraphStorage, Match},
-    AQLComponentType,
+    graph::{GraphStorage, Match},
+    model::{AnnisComponent, AnnisComponentType},
 };
 use graphannis_core::graph::{ANNIS_NS, DEFAULT_ANNO_KEY};
 
@@ -29,16 +29,16 @@ pub struct Precedence<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_LEFT: Component = {
-        Component::new(
-            AQLComponentType::LeftToken,
+    static ref COMPONENT_LEFT: AnnisComponent = {
+        AnnisComponent::new(
+            AnnisComponentType::LeftToken,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
     };
-    static ref COMPONENT_RIGHT: Component = {
-        Component::new(
-            AQLComponentType::RightToken,
+    static ref COMPONENT_RIGHT: AnnisComponent = {
+        AnnisComponent::new(
+            AnnisComponentType::RightToken,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
@@ -46,9 +46,9 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for PrecedenceSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
-        let component_order = Component::new(
-            AQLComponentType::Ordering,
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<AnnisComponent> {
+        let component_order = AnnisComponent::new(
+            AnnisComponentType::Ordering,
             ANNIS_NS.to_owned(),
             self.segmentation
                 .clone()
@@ -63,7 +63,7 @@ impl BinaryOperatorSpec for PrecedenceSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = Precedence::new(db, self.clone());
         if let Some(op) = optional_op {
             Some(Box::new(op))
@@ -84,9 +84,9 @@ impl std::fmt::Display for PrecedenceSpec {
 }
 
 impl<'a> Precedence<'a> {
-    pub fn new(graph: &'a Graph, spec: PrecedenceSpec) -> Option<Precedence<'a>> {
-        let component_order = Component::new(
-            AQLComponentType::Ordering,
+    pub fn new(graph: &'a AnnotationGraph, spec: PrecedenceSpec) -> Option<Precedence<'a>> {
+        let component_order = AnnisComponent::new(
+            AnnisComponentType::Ordering,
             ANNIS_NS.to_owned(),
             spec.segmentation
                 .clone()
@@ -188,7 +188,7 @@ impl<'a> BinaryOperator for Precedence<'a> {
         EstimationType::SELECTIVITY(0.1)
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'b>> {
         // Check if order graph storages has the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         if !self.gs_order.inverse_has_same_cost() {
@@ -275,7 +275,7 @@ impl<'a> BinaryOperator for InversePrecedence<'a> {
         )
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'b>> {
         let prec = Precedence {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),

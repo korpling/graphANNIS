@@ -1,11 +1,11 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::EstimationType;
-use crate::Graph;
+use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
-    AQLComponentType,
+    model::AnnisComponentType,
 };
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
@@ -25,9 +25,9 @@ pub struct Inclusion<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_ORDER: Component<AQLComponentType> = {
+    static ref COMPONENT_ORDER: Component<AnnisComponentType> = {
         Component::new(
-            AQLComponentType::Ordering,
+            AnnisComponentType::Ordering,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
@@ -35,14 +35,14 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for InclusionSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
         let mut v = HashSet::default();
         v.insert(COMPONENT_ORDER.clone());
         v.extend(token_helper::necessary_components(db));
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = Inclusion::new(db);
         if let Some(op) = optional_op {
             Some(Box::new(op))
@@ -53,7 +53,7 @@ impl BinaryOperatorSpec for InclusionSpec {
 }
 
 impl<'a> Inclusion<'a> {
-    pub fn new(db: &'a Graph) -> Option<Inclusion<'a>> {
+    pub fn new(db: &'a AnnotationGraph) -> Option<Inclusion<'a>> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
 
         let tok_helper = TokenHelper::new(db)?;

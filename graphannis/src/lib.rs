@@ -27,6 +27,8 @@ extern crate lalrpop_util;
 
 #[cfg(feature = "c-api")]
 extern crate simplelog;
+
+/// This module contains functions and structs that are exported as the C interface to graphANNIS.
 #[cfg(feature = "c-api")]
 pub mod capi;
 
@@ -48,20 +50,26 @@ pub mod corpusstorage {
     pub use crate::annis::types::{CountExtra, FrequencyTable, QueryAttributeDescription};
 }
 
-use annis::db::aql::model::AQLComponentType;
 pub use graphannis_core::graph::update;
 
-pub type Graph = graphannis_core::graph::Graph<AQLComponentType>;
+pub use graphannis_core::graph::Graph;
+
+/// A specialization of the [`Graph`](struct.Graph.html), using components needed to represent and query corpus annotation graphs.
+pub type AnnotationGraph = graphannis_core::graph::Graph<annis::db::aql::model::AnnisComponentType>;
 
 /// Types that are used by the `Graph` API.
 pub mod graph {
-    use crate::annis::db::aql::model::AQLComponentType;
     pub use graphannis_core::annostorage::AnnotationStorage;
     pub use graphannis_core::annostorage::Match;
     pub use graphannis_core::graph::storage::GraphStatistic;
     pub use graphannis_core::graph::storage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
-    pub use graphannis_core::types::{AnnoKey, Annotation, Edge, NodeID};
-    pub type Component = graphannis_core::types::Component<AQLComponentType>;
+    pub use graphannis_core::types::{AnnoKey, Annotation, Component, Edge, NodeID};
+}
+
+/// Types that define the annotation graph model.
+pub mod model {
+    pub use crate::annis::db::aql::model::AnnisComponentType;
+    pub type AnnisComponent = graphannis_core::types::Component<crate::model::AnnisComponentType>;
 }
 
 /// Contains the graphANNIS-specific error types.

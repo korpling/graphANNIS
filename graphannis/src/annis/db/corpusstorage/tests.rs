@@ -1,7 +1,7 @@
 extern crate log;
 extern crate tempfile;
 
-use crate::annis::db::{aql::model::AQLComponentType, example_generator};
+use crate::annis::db::{aql::model::AnnisComponentType, example_generator};
 use crate::corpusstorage::QueryLanguage;
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::CorpusStorage;
@@ -179,7 +179,7 @@ fn subgraph_with_segmentation() {
         )
         .unwrap();
 
-    let cov_components = graph.get_all_components(Some(AQLComponentType::Coverage), None);
+    let cov_components = graph.get_all_components(Some(AnnisComponentType::Coverage), None);
     assert_eq!(1, cov_components.len());
 
     let gs_cov = graph.get_graphstorage(&cov_components[0]).unwrap();

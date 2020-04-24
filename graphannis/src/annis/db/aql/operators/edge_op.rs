@@ -1,9 +1,9 @@
-use crate::annis::db::aql::{model::AQLComponentType, operators::RangeSpec};
+use crate::annis::db::aql::{model::AnnisComponentType, operators::RangeSpec};
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
 };
 use crate::graph::{GraphStatistic, GraphStorage, Match};
-use crate::Graph;
+use crate::AnnotationGraph;
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
     types::{Component, Edge, NodeID},
@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 struct BaseEdgeOpSpec {
-    pub components: Vec<Component<AQLComponentType>>,
+    pub components: Vec<Component<AnnisComponentType>>,
     pub dist: RangeSpec,
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
     pub is_reflexive: bool,
@@ -31,7 +31,7 @@ struct BaseEdgeOp {
 }
 
 impl BaseEdgeOp {
-    pub fn new(db: &Graph, spec: BaseEdgeOpSpec) -> Option<BaseEdgeOp> {
+    pub fn new(db: &AnnotationGraph, spec: BaseEdgeOpSpec) -> Option<BaseEdgeOp> {
         let mut gs: Vec<Arc<dyn GraphStorage>> = Vec::new();
         for c in &spec.components {
             gs.push(db.get_graphstorage(c)?);
@@ -51,11 +51,11 @@ impl BaseEdgeOp {
 }
 
 impl BinaryOperatorSpec for BaseEdgeOpSpec {
-    fn necessary_components(&self, _db: &Graph) -> HashSet<Component<AQLComponentType>> {
+    fn necessary_components(&self, _db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
         HashSet::from_iter(self.components.clone())
     }
 
-    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = BaseEdgeOp::new(db, self.clone());
         if let Some(op) = optional_op {
             Some(Box::new(op))
@@ -336,7 +336,7 @@ impl BinaryOperator for BaseEdgeOp {
         self.spec.is_reflexive
     }
 
-    fn get_inverse_operator<'a>(&self, _graph: &'a Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator>> {
         // Check if all graph storages have the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         for g in &self.gs {
@@ -498,14 +498,14 @@ pub struct DominanceSpec {
 }
 
 impl BinaryOperatorSpec for DominanceSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
         HashSet::from_iter(
-            db.get_all_components(Some(AQLComponentType::Dominance), Some(&self.name)),
+            db.get_all_components(Some(AnnisComponentType::Dominance), Some(&self.name)),
         )
     }
 
-    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
-        let components = db.get_all_components(Some(AQLComponentType::Dominance), Some(&self.name));
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+        let components = db.get_all_components(Some(AnnisComponentType::Dominance), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from(">")
         } else {
@@ -530,14 +530,14 @@ pub struct PointingSpec {
 }
 
 impl BinaryOperatorSpec for PointingSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
         HashSet::from_iter(
-            db.get_all_components(Some(AQLComponentType::Pointing), Some(&self.name)),
+            db.get_all_components(Some(AnnisComponentType::Pointing), Some(&self.name)),
         )
     }
 
-    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
-        let components = db.get_all_components(Some(AQLComponentType::Pointing), Some(&self.name));
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+        let components = db.get_all_components(Some(AnnisComponentType::Pointing), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from("->")
         } else {
@@ -561,19 +561,19 @@ pub struct PartOfSubCorpusSpec {
 }
 
 impl BinaryOperatorSpec for PartOfSubCorpusSpec {
-    fn necessary_components(&self, _db: &Graph) -> HashSet<Component<AQLComponentType>> {
+    fn necessary_components(&self, _db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
         let mut components = HashSet::default();
         components.insert(Component::new(
-            AQLComponentType::PartOf,
+            AnnisComponentType::PartOf,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         ));
         components
     }
 
-    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let components = vec![Component::new(
-            AQLComponentType::PartOf,
+            AnnisComponentType::PartOf,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )];

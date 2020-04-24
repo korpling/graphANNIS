@@ -1,12 +1,12 @@
 use super::RangeSpec;
 use crate::annis::operator::EstimationType;
 use crate::annis::{
-    db::aql::model::AQLComponentType,
+    db::aql::model::AnnisComponentType,
     operator::{UnaryOperator, UnaryOperatorSpec},
 };
 use crate::{
     graph::{GraphStorage, Match},
-    Graph,
+    AnnotationGraph,
 };
 use graphannis_core::types::{Component, NodeID};
 use std::collections::HashSet;
@@ -21,23 +21,23 @@ pub struct AritySpec {
 }
 
 impl UnaryOperatorSpec for AritySpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
         let mut result = HashSet::default();
-        result.extend(db.get_all_components(Some(AQLComponentType::Dominance), None));
-        result.extend(db.get_all_components(Some(AQLComponentType::Pointing), None));
+        result.extend(db.get_all_components(Some(AnnisComponentType::Dominance), None));
+        result.extend(db.get_all_components(Some(AnnisComponentType::Pointing), None));
         result
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<dyn UnaryOperator>> {
+    fn create_operator(&self, db: &AnnotationGraph) -> Option<Box<dyn UnaryOperator>> {
         // collect all relevant graph storages
         let mut graphstorages = Vec::default();
 
-        for component in db.get_all_components(Some(AQLComponentType::Dominance), None) {
+        for component in db.get_all_components(Some(AnnisComponentType::Dominance), None) {
             if let Some(gs) = db.get_graphstorage(&component) {
                 graphstorages.push(gs);
             }
         }
-        for component in db.get_all_components(Some(AQLComponentType::Pointing), None) {
+        for component in db.get_all_components(Some(AnnisComponentType::Pointing), None) {
             if let Some(gs) = db.get_graphstorage(&component) {
                 graphstorages.push(gs);
             }

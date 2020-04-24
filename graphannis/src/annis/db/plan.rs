@@ -1,7 +1,7 @@
 use crate::annis::db::exec::{Desc, EmptyResultSet, ExecutionNode};
 use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::query::Config;
-use crate::Graph;
+use crate::AnnotationGraph;
 use crate::{annis::errors::*, graph::Match};
 use graphannis_core::types::{AnnoKey, NodeID};
 use std;
@@ -22,7 +22,7 @@ pub struct ExecutionPlan<'a> {
 impl<'a> ExecutionPlan<'a> {
     pub fn from_disjunction(
         query: &'a Disjunction<'a>,
-        db: &'a Graph,
+        db: &'a AnnotationGraph,
         config: &Config,
     ) -> Result<ExecutionPlan<'a>> {
         let mut plans: Vec<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();

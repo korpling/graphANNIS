@@ -1,11 +1,11 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::EstimationType;
-use crate::Graph;
+use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
-    graph::{Component, GraphStorage, Match},
-    AQLComponentType,
+    graph::{GraphStorage, Match},
+    model::{AnnisComponent, AnnisComponentType},
 };
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
@@ -31,9 +31,9 @@ pub struct Overlap<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_ORDER: Component = {
-        Component::new(
-            AQLComponentType::Ordering,
+    static ref COMPONENT_ORDER: AnnisComponent = {
+        AnnisComponent::new(
+            AnnisComponentType::Ordering,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
@@ -41,14 +41,14 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for OverlapSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<AnnisComponent> {
         let mut v = HashSet::default();
         v.insert(COMPONENT_ORDER.clone());
         v.extend(token_helper::necessary_components(db));
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = Overlap::new(db, self.reflexive);
         if let Some(op) = optional_op {
             Some(Box::new(op))
@@ -59,7 +59,7 @@ impl BinaryOperatorSpec for OverlapSpec {
 }
 
 impl<'a> Overlap<'a> {
-    pub fn new(graph: &'a Graph, reflexive: bool) -> Option<Overlap<'a>> {
+    pub fn new(graph: &'a AnnotationGraph, reflexive: bool) -> Option<Overlap<'a>> {
         let gs_order = graph.get_graphstorage(&COMPONENT_ORDER)?;
         let tok_helper = TokenHelper::new(graph)?;
 
@@ -150,7 +150,10 @@ impl<'a> BinaryOperator for Overlap<'a> {
         self.reflexive
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Option<Box<dyn BinaryOperator + 'b>> {
         Some(Box::new(Overlap {
             gs_order: self.gs_order.clone(),
             tok_helper: TokenHelper::new(graph)?,

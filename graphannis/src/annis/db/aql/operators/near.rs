@@ -1,8 +1,8 @@
-use crate::annis::db::aql::{model::AQLComponentType, operators::RangeSpec};
+use crate::annis::db::aql::{model::AnnisComponentType, operators::RangeSpec};
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::EstimationType;
-use crate::Graph;
+use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
@@ -31,9 +31,9 @@ struct Near<'a> {
 }
 
 impl BinaryOperatorSpec for NearSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
         let component_order = Component::new(
-            AQLComponentType::Ordering,
+            AnnisComponentType::Ordering,
             ANNIS_NS.to_owned(),
             self.segmentation
                 .clone()
@@ -46,7 +46,7 @@ impl BinaryOperatorSpec for NearSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let optional_op = Near::new(db, self.clone());
         if let Some(op) = optional_op {
             Some(Box::new(op))
@@ -67,9 +67,9 @@ impl std::fmt::Display for NearSpec {
 }
 
 impl<'a> Near<'a> {
-    pub fn new(graph: &'a Graph, spec: NearSpec) -> Option<Near<'a>> {
+    pub fn new(graph: &'a AnnotationGraph, spec: NearSpec) -> Option<Near<'a>> {
         let component_order = Component::new(
-            AQLComponentType::Ordering,
+            AnnisComponentType::Ordering,
             ANNIS_NS.to_owned(),
             spec.segmentation
                 .clone()
@@ -206,7 +206,7 @@ impl<'a> BinaryOperator for Near<'a> {
         EstimationType::SELECTIVITY(0.1)
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'b>> {
         Some(Box::new(Near {
             gs_order: self.gs_order.clone(),
             tok_helper: TokenHelper::new(graph)?,

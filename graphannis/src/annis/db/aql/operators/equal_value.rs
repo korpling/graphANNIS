@@ -1,9 +1,9 @@
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::AnnotationStorage;
-use crate::Graph;
+use crate::AnnotationGraph;
 use crate::{
     annis::{
-        db::aql::model::{AQLComponentType, TOK, TOKEN_KEY},
+        db::aql::model::{AnnisComponentType, TOK, TOKEN_KEY},
         operator::*,
     },
     graph::Match,
@@ -25,11 +25,11 @@ pub struct EqualValueSpec {
 }
 
 impl BinaryOperatorSpec for EqualValueSpec {
-    fn necessary_components(&self, _db: &Graph) -> HashSet<Component<AQLComponentType>> {
+    fn necessary_components(&self, _db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
         HashSet::default()
     }
 
-    fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
         Some(Box::new(EqualValue {
             node_annos: db.get_node_annos(),
             spec_left: self.spec_left.clone(),
@@ -166,7 +166,7 @@ impl<'a> BinaryOperator for EqualValue<'a> {
         EstimationType::SELECTIVITY(0.5)
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b Graph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'b>> {
         Some(Box::from(EqualValue {
             node_annos: graph.get_node_annos(),
             spec_left: self.spec_left.clone(),

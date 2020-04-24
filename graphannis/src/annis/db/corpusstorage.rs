@@ -19,7 +19,7 @@ use crate::annis::util::quicksort;
 use crate::{
     graph::Match,
     malloc_size_of::{MallocSizeOf, MallocSizeOfOps},
-    Graph,
+    AnnotationGraph,
 };
 use fs2::FileExt;
 use graphannis_core::{
@@ -52,14 +52,14 @@ use std::ffi::CString;
 use sys_info;
 
 use anyhow::{Context, Error};
-use aql::model::AQLComponentType;
+use aql::model::AnnisComponentType;
 use db::AnnotationStorage;
 
 #[cfg(test)]
 mod tests;
 
 enum CacheEntry {
-    Loaded(Graph),
+    Loaded(AnnotationGraph),
     NotLoaded,
 }
 
@@ -78,7 +78,7 @@ pub enum LoadStatus {
 /// Information about a single graph storage of the corpus.
 pub struct GraphStorageInfo {
     /// The component this graph storage belongs to.
-    pub component: Component<AQLComponentType>,
+    pub component: Component<AnnisComponentType>,
     /// Indicates if the graph storage is loaded or not.
     pub load_status: LoadStatus,
     /// Number of edge annotations in this graph storage.
@@ -591,14 +591,14 @@ impl CorpusStorage {
 
         let db = if create_corpus {
             // create the default graph storages that are assumed to exist in every corpus
-            let mut db = Graph::with_default_graphstorages(false)?;
+            let mut db = AnnotationGraph::with_default_graphstorages(false)?;
 
             // save corpus to the path where it should be stored
             db.persist_to(&db_path)
                 .with_context(|| format!("Could not create corpus with name {}", corpus_name))?;
             db
         } else {
-            let mut db = Graph::new(false)?;
+            let mut db = AnnotationGraph::new(false)?;
             db.load_from(&db_path, false)?;
             db
         };
@@ -640,7 +640,7 @@ impl CorpusStorage {
     fn get_loaded_entry_with_components(
         &self,
         corpus_name: &str,
-        components: Vec<Component<AQLComponentType>>,
+        components: Vec<Component<AnnisComponentType>>,
     ) -> Result<Arc<RwLock<CacheEntry>>> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let missing_components = {
@@ -810,7 +810,7 @@ impl CorpusStorage {
             .with_context(|| format!("Could not get loaded entry for corpus {}", corpus_name))?;
         {
             let mut lock = db_entry.write().unwrap();
-            let db: &mut Graph = get_write_or_error(&mut lock)?;
+            let db: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
 
             db.apply_update(update, |_| {})?;
         }
@@ -826,7 +826,7 @@ impl CorpusStorage {
             trace!("Starting background thread to sync WAL updates");
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
-                let db: &Graph = db;
+                let db: &AnnotationGraph = db;
                 if let Err(e) = db.background_sync_wal_updates() {
                     error!("Can't sync changes in background thread: {:?}", e);
                 } else {
@@ -850,7 +850,7 @@ impl CorpusStorage {
         additional_components_callback: F,
     ) -> Result<PreparationResult<'a>>
     where
-        F: FnOnce(&Graph) -> Vec<Component<AQLComponentType>>,
+        F: FnOnce(&AnnotationGraph) -> Vec<Component<AnnisComponentType>>,
     {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
 
@@ -921,7 +921,7 @@ impl CorpusStorage {
     pub fn update_statistics(&self, corpus_name: &str) -> Result<()> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let mut lock = db_entry.write().unwrap();
-        let db: &mut Graph = get_write_or_error(&mut lock)?;
+        let db: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
 
         db.get_node_annos_mut().calculate_statistics();
         for c in db.get_all_components(None, None) {
@@ -1029,7 +1029,7 @@ impl CorpusStorage {
 
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read().unwrap();
-            let db: &Graph = get_read_or_error(&lock)?;
+            let db: &AnnotationGraph = get_read_or_error(&lock)?;
             let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
             let mut known_documents = HashSet::new();
@@ -1063,7 +1063,7 @@ impl CorpusStorage {
 
     fn create_find_iterator_for_query<'b>(
         &'b self,
-        db: &'b Graph,
+        db: &'b AnnotationGraph,
         query: &'b Disjunction,
         offset: usize,
         limit: Option<usize>,
@@ -1121,7 +1121,7 @@ impl CorpusStorage {
             } else {
                 let token_helper = TokenHelper::new(db);
                 let component_order = Component::new(
-                    AQLComponentType::Ordering,
+                    AnnisComponentType::Ordering,
                     ANNIS_NS.to_owned(),
                     "".to_owned(),
                 );
@@ -1190,7 +1190,7 @@ impl CorpusStorage {
     ) -> Result<(Vec<String>, usize)> {
         let prep = self.prepare_query(corpus_name, query, query_language, |db| {
             let mut additional_components = vec![Component::new(
-                AQLComponentType::Ordering,
+                AnnisComponentType::Ordering,
                 ANNIS_NS.to_owned(),
                 "".to_owned(),
             )];
@@ -1376,7 +1376,7 @@ impl CorpusStorage {
         ctx_left: usize,
         ctx_right: usize,
         segmentation: Option<String>,
-    ) -> Result<Graph> {
+    ) -> Result<AnnotationGraph> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
 
         let mut query = Disjunction {
@@ -1475,8 +1475,8 @@ impl CorpusStorage {
         corpus_name: &str,
         query: &str,
         query_language: QueryLanguage,
-        component_type_filter: Option<AQLComponentType>,
-    ) -> Result<Graph> {
+        component_type_filter: Option<AnnisComponentType>,
+    ) -> Result<AnnotationGraph> {
         let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         let mut max_alt_size = 0;
@@ -1499,7 +1499,7 @@ impl CorpusStorage {
     ///
     /// - `corpus_name` - The name of the corpus for which the subgraph should be generated from.
     /// - `corpus_ids` - A set of sub-corpus/document identifiers describing the subgraph.
-    pub fn subcorpus_graph(&self, corpus_name: &str, corpus_ids: Vec<String>) -> Result<Graph> {
+    pub fn subcorpus_graph(&self, corpus_name: &str, corpus_ids: Vec<String>) -> Result<AnnotationGraph> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
 
         let mut query = Disjunction {
@@ -1573,14 +1573,14 @@ impl CorpusStorage {
     }
 
     /// Return the copy of the graph of the corpus structure given by `corpus_name`.
-    pub fn corpus_graph(&self, corpus_name: &str) -> Result<Graph> {
+    pub fn corpus_graph(&self, corpus_name: &str) -> Result<AnnotationGraph> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
 
         let subcorpus_components = {
             // make sure all subcorpus partitions are loaded
             let lock = db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            db.get_all_components(Some(AQLComponentType::PartOf), None)
+            db.get_all_components(Some(AnnisComponentType::PartOf), None)
         };
         let db_entry = self.get_loaded_entry_with_components(corpus_name, subcorpus_components)?;
 
@@ -1596,7 +1596,7 @@ impl CorpusStorage {
             &query.into_disjunction(),
             &[0],
             &self.query_config,
-            Some(AQLComponentType::PartOf),
+            Some(AnnisComponentType::PartOf),
         )
     }
 
@@ -1622,7 +1622,7 @@ impl CorpusStorage {
 
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read().unwrap();
-            let db: &Graph = get_read_or_error(&lock)?;
+            let db: &AnnotationGraph = get_read_or_error(&lock)?;
 
             // get the matching annotation keys for each definition entry
             let mut annokeys: Vec<(usize, Vec<AnnoKey>)> = Vec::default();
@@ -1712,9 +1712,9 @@ impl CorpusStorage {
     pub fn list_components(
         &self,
         corpus_name: &str,
-        ctype: Option<AQLComponentType>,
+        ctype: Option<AnnisComponentType>,
         name: Option<&str>,
-    ) -> Vec<Component<AQLComponentType>> {
+    ) -> Vec<Component<AnnisComponentType>> {
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
@@ -1780,7 +1780,7 @@ impl CorpusStorage {
     pub fn list_edge_annotations(
         &self,
         corpus_name: &str,
-        component: &Component<AQLComponentType>,
+        component: &Component<AnnisComponentType>,
         list_values: bool,
         only_most_frequent_values: bool,
     ) -> Vec<Annotation> {
@@ -1856,7 +1856,7 @@ impl Drop for CorpusStorage {
     }
 }
 
-fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Graph> {
+fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a AnnotationGraph> {
     if let CacheEntry::Loaded(ref db) = &**lock {
         Ok(db)
     } else {
@@ -1867,7 +1867,7 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Gr
     }
 }
 
-fn get_write_or_error<'a>(lock: &'a mut RwLockWriteGuard<CacheEntry>) -> Result<&'a mut Graph> {
+fn get_write_or_error<'a>(lock: &'a mut RwLockWriteGuard<CacheEntry>) -> Result<&'a mut AnnotationGraph> {
     if let CacheEntry::Loaded(ref mut db) = &mut **lock {
         Ok(db)
     } else {
@@ -1946,8 +1946,8 @@ fn extract_subgraph_by_query(
     query: &Disjunction,
     match_idx: &[usize],
     query_config: &query::Config,
-    component_type_filter: Option<AQLComponentType>,
-) -> Result<Graph> {
+    component_type_filter: Option<AnnisComponentType>,
+) -> Result<AnnotationGraph> {
     // acquire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
@@ -1960,7 +1960,7 @@ fn extract_subgraph_by_query(
     // match vector differ.
     let mut match_result: BTreeSet<Match> = BTreeSet::new();
 
-    let mut result = Graph::new(false)?;
+    let mut result = AnnotationGraph::new(false)?;
 
     // create the subgraph description
     for r in plan {
@@ -1986,7 +1986,7 @@ fn extract_subgraph_by_query(
     Ok(result)
 }
 
-fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) -> Result<()> {
+fn create_subgraph_node(id: NodeID, db: &mut AnnotationGraph, orig_db: &AnnotationGraph) -> Result<()> {
     // add all node labels with the same node ID
     for a in orig_db.get_node_annos().get_annotations_for_item(&id) {
         db.get_node_annos_mut().insert(id, a)?;
@@ -1995,17 +1995,17 @@ fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) -> Result<(
 }
 fn create_subgraph_edge(
     source_id: NodeID,
-    db: &mut Graph,
-    orig_db: &Graph,
-    components: &[Component<AQLComponentType>],
+    db: &mut AnnotationGraph,
+    orig_db: &AnnotationGraph,
+    components: &[Component<AnnisComponentType>],
 ) -> Result<()> {
     // find outgoing edges
     for c in components {
         // don't include index components
         let ctype = c.get_type();
-        if !((ctype == AQLComponentType::Coverage && c.layer == "annis" && c.name != "")
-            || ctype == AQLComponentType::RightToken
-            || ctype == AQLComponentType::LeftToken)
+        if !((ctype == AnnisComponentType::Coverage && c.layer == "annis" && c.name != "")
+            || ctype == AnnisComponentType::RightToken
+            || ctype == AnnisComponentType::LeftToken)
         {
             if let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {

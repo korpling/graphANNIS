@@ -1,7 +1,7 @@
 use crate::{
-    annis::db::{aql::model::TOKEN_KEY, AnnotationStorage},
+    annis::db::{aql::model::{TOKEN_KEY, AnnisComponentType}, AnnotationStorage},
     graph::GraphStorage,
-    AQLComponentType, Graph,
+    AnnotationGraph,
 };
 use graphannis_core::{
     graph::ANNIS_NS,
@@ -20,29 +20,29 @@ pub struct TokenHelper<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_LEFT: Component<AQLComponentType> = {
+    static ref COMPONENT_LEFT: Component<AnnisComponentType> = {
         Component::new(
-            AQLComponentType::LeftToken,
+            AnnisComponentType::LeftToken,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
     };
-    static ref COMPONENT_RIGHT: Component<AQLComponentType> = {
+    static ref COMPONENT_RIGHT: Component<AnnisComponentType> = {
         Component::new(
-            AQLComponentType::RightToken.into(),
+            AnnisComponentType::RightToken.into(),
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
     };
 }
 
-pub fn necessary_components(db: &Graph) -> HashSet<Component<AQLComponentType>> {
+pub fn necessary_components(db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
     let mut result = HashSet::default();
     result.insert(COMPONENT_LEFT.clone());
     result.insert(COMPONENT_RIGHT.clone());
     // we need all coverage components
     result.extend(
-        db.get_all_components(Some(AQLComponentType::Coverage), None)
+        db.get_all_components(Some(AnnisComponentType::Coverage), None)
             .into_iter(),
     );
 
@@ -50,9 +50,9 @@ pub fn necessary_components(db: &Graph) -> HashSet<Component<AQLComponentType>> 
 }
 
 impl<'a> TokenHelper<'a> {
-    pub fn new(graph: &'a Graph) -> Option<TokenHelper<'a>> {
+    pub fn new(graph: &'a AnnotationGraph) -> Option<TokenHelper<'a>> {
         let cov_edges: Vec<Arc<dyn GraphStorage>> = graph
-            .get_all_components(Some(AQLComponentType::Coverage), None)
+            .get_all_components(Some(AnnisComponentType::Coverage), None)
             .into_iter()
             .filter_map(|c| graph.get_graphstorage(&c))
             .filter(|gs| {

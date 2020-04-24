@@ -43,8 +43,6 @@ lazy_static! {
 /// A representation of a graph including node annotations and edges.
 /// Edges are partioned into components and each component is implemented by specialized graph storage implementation.
 ///
-/// Use the [CorpusStorage](struct.CorpusStorage.html) struct to create and manage instances of a `Graph`.
-///
 /// Graphs can have an optional location on the disk.
 /// In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
 ///
