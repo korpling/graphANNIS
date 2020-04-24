@@ -866,8 +866,7 @@ impl CorpusStorage {
 
             let necessary_components = q.necessary_components(db);
 
-            let mut missing: HashSet<_> =
-                HashSet::from_iter(necessary_components.iter().cloned());
+            let mut missing: HashSet<_> = HashSet::from_iter(necessary_components.iter().cloned());
 
             let additional_components = additional_components_callback(db);
 

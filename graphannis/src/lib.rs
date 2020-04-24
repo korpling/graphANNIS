@@ -55,12 +55,12 @@ pub type Graph = graphannis_core::graph::Graph<AQLComponentType>;
 
 /// Types that are used by the `Graph` API.
 pub mod graph {
+    use crate::annis::db::aql::model::AQLComponentType;
     pub use graphannis_core::annostorage::AnnotationStorage;
     pub use graphannis_core::annostorage::Match;
     pub use graphannis_core::graph::storage::GraphStatistic;
     pub use graphannis_core::graph::storage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
     pub use graphannis_core::types::{AnnoKey, Annotation, Edge, NodeID};
-    use crate::annis::db::aql::model::AQLComponentType;
     pub type Component = graphannis_core::types::Component<AQLComponentType>;
 }
 

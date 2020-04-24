@@ -1,8 +1,8 @@
+use super::db::aql::model::AQLComponentType;
 use crate::{annis::db::AnnotationStorage, graph::Match, Graph};
 use graphannis_core::types::{Component, Edge};
 use std;
 use std::collections::HashSet;
-use super::db::aql::model::AQLComponentType;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum EdgeAnnoSearchSpec {

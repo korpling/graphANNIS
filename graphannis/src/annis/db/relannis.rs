@@ -1084,10 +1084,7 @@ where
                 name
             };
             let ctype = component_type_from_short_name(&col_type)?;
-            component_by_id.insert(
-                cid,
-                Component::new(ctype, layer, name),
-            );
+            component_by_id.insert(cid, Component::new(ctype, layer, name));
         }
     }
     Ok(component_by_id)

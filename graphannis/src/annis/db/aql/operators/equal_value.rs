@@ -3,7 +3,7 @@ use crate::annis::db::AnnotationStorage;
 use crate::Graph;
 use crate::{
     annis::{
-        db::aql::model::{TOK, TOKEN_KEY, AQLComponentType},
+        db::aql::model::{AQLComponentType, TOK, TOKEN_KEY},
         operator::*,
     },
     graph::Match,

@@ -1,5 +1,8 @@
 use crate::Graph;
-use crate::{annis::{db::aql::model::AQLComponentType, operator::*}, graph::Match};
+use crate::{
+    annis::{db::aql::model::AQLComponentType, operator::*},
+    graph::Match,
+};
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
 use std;
 use std::collections::HashSet;

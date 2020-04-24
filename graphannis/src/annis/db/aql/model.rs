@@ -523,7 +523,11 @@ impl ComponentType for AQLComponentType {
 
         // Re-index the inherited coverage component.
         // To make this operation fast, we need to optimize the order component first
-        let order_component = Component::new(AQLComponentType::Ordering, ANNIS_NS.to_owned(), "".to_owned());
+        let order_component = Component::new(
+            AQLComponentType::Ordering,
+            ANNIS_NS.to_owned(),
+            "".to_owned(),
+        );
         let order_stats_exist = graph
             .get_graphstorage(&order_component)
             .map(|gs_order| gs_order.get_statistics().is_some())
