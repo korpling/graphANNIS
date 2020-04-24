@@ -1,5 +1,5 @@
 use crate::capi::data::IterPtr;
-use crate::graph::{Annotation, Component, ComponentType, Edge, GraphStorage, Match, NodeID};
+use crate::graph::{Annotation, Component, AQLComponentType, Edge, GraphStorage, Match, NodeID};
 use crate::Graph;
 use libc;
 use std;
@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 /// Get the type of the given component.
 #[no_mangle]
-pub extern "C" fn annis_component_type(c: *const Component) -> ComponentType {
+pub extern "C" fn annis_component_type(c: *const Component) -> AQLComponentType {
     let c: &Component = cast_const!(c);
     return c.ctype.clone();
 }
@@ -73,7 +73,7 @@ pub extern "C" fn annis_graph_all_components(g: *const Graph) -> *mut Vec<Compon
 #[no_mangle]
 pub extern "C" fn annis_graph_all_components_by_type(
     g: *const Graph,
-    ctype: ComponentType,
+    ctype: AQLComponentType,
 ) -> *mut Vec<Component> {
     let db: &Graph = cast_const!(g);
 

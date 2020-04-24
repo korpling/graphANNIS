@@ -1,7 +1,7 @@
 pub mod storage;
 pub mod update;
 
-use crate::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
+use crate::types::{AnnoKey, Annotation, Component, AQLComponentType, Edge, NodeID};
 use crate::{
     annostorage::AnnotationStorage,
     dfs::CycleSafeDFS,
@@ -148,27 +148,27 @@ impl Graph {
     pub fn with_default_graphstorages(disk_based: bool) -> Result<Graph> {
         let mut db = Graph::new(disk_based)?;
         db.get_or_create_writable(&Component {
-            ctype: ComponentType::Coverage,
+            ctype: AQLComponentType::Coverage,
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
         })?;
         db.get_or_create_writable(&Component {
-            ctype: ComponentType::Ordering,
+            ctype: AQLComponentType::Ordering,
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
         })?;
         db.get_or_create_writable(&Component {
-            ctype: ComponentType::LeftToken,
+            ctype: AQLComponentType::LeftToken,
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
         })?;
         db.get_or_create_writable(&Component {
-            ctype: ComponentType::RightToken,
+            ctype: AQLComponentType::RightToken,
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
         })?;
         db.get_or_create_writable(&Component {
-            ctype: ComponentType::PartOf,
+            ctype: AQLComponentType::PartOf,
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
         })?;
@@ -266,7 +266,7 @@ impl Graph {
         self.components.clear();
 
         // for all component types
-        for c in ComponentType::iter() {
+        for c in AQLComponentType::iter() {
             let cpath = PathBuf::from(location).join("gs").join(c.to_string());
 
             if cpath.is_dir() {
@@ -381,9 +381,9 @@ impl Graph {
 
         let mut text_coverage_components = FxHashSet::default();
         text_coverage_components
-            .extend(self.get_all_components(Some(ComponentType::Dominance), Some("")));
+            .extend(self.get_all_components(Some(AQLComponentType::Dominance), Some("")));
         text_coverage_components
-            .extend(self.get_all_components(Some(ComponentType::Coverage), None));
+            .extend(self.get_all_components(Some(AQLComponentType::Coverage), None));
 
         // Cache the expensive mapping of node names to IDs
         let mut node_ids: DiskMap<String, Option<NodeID>> =
@@ -505,7 +505,7 @@ impl Graph {
                     let target = self.get_cached_node_id_from_name(target_node, &mut node_ids)?;
                     // only add edge if both nodes already exist
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = ComponentType::from_str(&component_type) {
+                        if let Ok(ctype) = AQLComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
                                 layer: layer.to_string(),
@@ -514,8 +514,8 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             gs.add_edge(Edge { source, target })?;
 
-                            if (c.ctype == ComponentType::Dominance
-                                || c.ctype == ComponentType::Coverage)
+                            if (c.ctype == AQLComponentType::Dominance
+                                || c.ctype == AQLComponentType::Coverage)
                                 && c.name.is_empty()
                             {
                                 // might be a new text coverage component
@@ -523,11 +523,11 @@ impl Graph {
                             }
 
                             if calculate_invalid_nodes {
-                                if c.ctype == ComponentType::Coverage
-                                    || c.ctype == ComponentType::Dominance
-                                    || c.ctype == ComponentType::Ordering
-                                    || c.ctype == ComponentType::LeftToken
-                                    || c.ctype == ComponentType::RightToken
+                                if c.ctype == AQLComponentType::Coverage
+                                    || c.ctype == AQLComponentType::Dominance
+                                    || c.ctype == AQLComponentType::Ordering
+                                    || c.ctype == AQLComponentType::LeftToken
+                                    || c.ctype == AQLComponentType::RightToken
                                 {
                                     self.calculate_invalidated_nodes_by_coverage(
                                         source,
@@ -536,7 +536,7 @@ impl Graph {
                                     )?;
                                 }
 
-                                if c.ctype == ComponentType::Ordering {
+                                if c.ctype == AQLComponentType::Ordering {
                                     self.calculate_invalidated_nodes_by_coverage(
                                         target,
                                         &text_coverage_components,
@@ -557,7 +557,7 @@ impl Graph {
                     let source = self.get_cached_node_id_from_name(source_node, &mut node_ids)?;
                     let target = self.get_cached_node_id_from_name(target_node, &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = ComponentType::from_str(&component_type) {
+                        if let Ok(ctype) = AQLComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
                                 layer: layer.to_string(),
@@ -565,11 +565,11 @@ impl Graph {
                             };
 
                             if calculate_invalid_nodes {
-                                if c.ctype == ComponentType::Coverage
-                                    || c.ctype == ComponentType::Dominance
-                                    || c.ctype == ComponentType::Ordering
-                                    || c.ctype == ComponentType::LeftToken
-                                    || c.ctype == ComponentType::RightToken
+                                if c.ctype == AQLComponentType::Coverage
+                                    || c.ctype == AQLComponentType::Dominance
+                                    || c.ctype == AQLComponentType::Ordering
+                                    || c.ctype == AQLComponentType::LeftToken
+                                    || c.ctype == AQLComponentType::RightToken
                                 {
                                     self.calculate_invalidated_nodes_by_coverage(
                                         source,
@@ -578,7 +578,7 @@ impl Graph {
                                     )?;
                                 }
 
-                                if c.ctype == ComponentType::Ordering {
+                                if c.ctype == AQLComponentType::Ordering {
                                     self.calculate_invalidated_nodes_by_coverage(
                                         target,
                                         &text_coverage_components,
@@ -605,7 +605,7 @@ impl Graph {
                     let source = self.get_cached_node_id_from_name(source_node, &mut node_ids)?;
                     let target = self.get_cached_node_id_from_name(target_node, &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = ComponentType::from_str(&component_type) {
+                        if let Ok(ctype) = AQLComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
                                 layer: layer.to_string(),
@@ -639,7 +639,7 @@ impl Graph {
                     let source = self.get_cached_node_id_from_name(source_node, &mut node_ids)?;
                     let target = self.get_cached_node_id_from_name(target_node, &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = ComponentType::from_str(&component_type) {
+                        if let Ok(ctype) = AQLComponentType::from_str(&component_type) {
                             let c = Component {
                                 ctype,
                                 layer: layer.to_string(),
@@ -670,7 +670,7 @@ impl Graph {
         // Re-index the inherited coverage component.
         // To make this operation fast, we need to optimize the order component first
         let order_component = Component {
-            ctype: ComponentType::Ordering,
+            ctype: AQLComponentType::Ordering,
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
         };
@@ -722,7 +722,7 @@ impl Graph {
         {
             // remove existing left/right token edges for the invalidated nodes
             let gs_left = self.get_or_create_writable(&Component {
-                ctype: ComponentType::LeftToken,
+                ctype: AQLComponentType::LeftToken,
                 name: "".to_owned(),
                 layer: ANNIS_NS.to_owned(),
             })?;
@@ -732,7 +732,7 @@ impl Graph {
             }
 
             let gs_right = self.get_or_create_writable(&Component {
-                ctype: ComponentType::RightToken,
+                ctype: AQLComponentType::RightToken,
                 name: "".to_owned(),
                 layer: ANNIS_NS.to_owned(),
             })?;
@@ -742,7 +742,7 @@ impl Graph {
             }
 
             let gs_cov = self.get_or_create_writable(&Component {
-                ctype: ComponentType::Coverage,
+                ctype: AQLComponentType::Coverage,
                 name: "inherited-coverage".to_owned(),
                 layer: ANNIS_NS.to_owned(),
             })?;
@@ -751,9 +751,9 @@ impl Graph {
             }
         }
 
-        let all_cov_components = self.get_all_components(Some(ComponentType::Coverage), None);
+        let all_cov_components = self.get_all_components(Some(AQLComponentType::Coverage), None);
         let all_dom_gs: Vec<Arc<dyn GraphStorage>> = self
-            .get_all_components(Some(ComponentType::Dominance), Some(""))
+            .get_all_components(Some(AQLComponentType::Dominance), Some(""))
             .into_iter()
             .filter_map(|c| self.get_graphstorage(&c))
             .collect();
@@ -768,14 +768,14 @@ impl Graph {
             for (n, _) in invalid_nodes.iter() {
                 self.calculate_token_alignment(
                     n,
-                    ComponentType::LeftToken,
+                    AQLComponentType::LeftToken,
                     gs_order.as_ref(),
                     &all_cov_gs,
                     &all_dom_gs,
                 )?;
                 self.calculate_token_alignment(
                     n,
-                    ComponentType::RightToken,
+                    AQLComponentType::RightToken,
                     gs_order.as_ref(),
                     &all_cov_gs,
                     &all_dom_gs,
@@ -821,7 +821,7 @@ impl Graph {
         }
 
         if let Ok(gs_cov) = self.get_or_create_writable(&Component {
-            ctype: ComponentType::Coverage,
+            ctype: AQLComponentType::Coverage,
             name: "inherited-coverage".to_owned(),
             layer: ANNIS_NS.to_owned(),
         }) {
@@ -839,7 +839,7 @@ impl Graph {
     fn calculate_token_alignment(
         &mut self,
         n: NodeID,
-        ctype: ComponentType,
+        ctype: AQLComponentType,
         gs_order: &dyn GraphStorage,
         all_cov_gs: &[Arc<dyn GraphStorage>],
         all_dom_gs: &[Arc<dyn GraphStorage>],
@@ -907,7 +907,7 @@ impl Graph {
         });
 
         // add edge to left/right most candidate token
-        let t = if ctype == ComponentType::RightToken {
+        let t = if ctype == AQLComponentType::RightToken {
             candidates.last()
         } else {
             candidates.first()
@@ -1252,7 +1252,7 @@ impl Graph {
     /// If you want to retrieve all components, use `None` as value for both arguments.
     pub fn get_all_components(
         &self,
-        ctype: Option<ComponentType>,
+        ctype: Option<AQLComponentType>,
         name: Option<&str>,
     ) -> Vec<Component> {
         if let (Some(ctype), Some(name)) = (&ctype, name) {
@@ -1331,7 +1331,7 @@ impl Graph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{AnnoKey, Annotation, ComponentType, Edge};
+    use crate::types::{AnnoKey, Annotation, AQLComponentType, Edge};
 
     #[test]
     fn create_writeable_gs() {
@@ -1345,7 +1345,7 @@ mod tests {
 
         let gs: &mut dyn WriteableGraphStorage = db
             .get_or_create_writable(&Component {
-                ctype: ComponentType::Pointing,
+                ctype: AQLComponentType::Pointing,
                 layer: String::from("test"),
                 name: String::from("dep"),
             })

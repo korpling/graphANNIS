@@ -6,7 +6,7 @@ use crate::annis::db::token_helper;
 use crate::{annis::db::token_helper::TokenHelper, graph::Match};
 use graphannis_core::{
     graph::{storage::GraphStorage, Graph, NODE_TYPE_KEY},
-    types::{AnnoKey, Component, ComponentType, NodeID},
+    types::{AnnoKey, Component, AQLComponentType, NodeID},
 };
 
 use anyhow::Result;
@@ -27,7 +27,7 @@ pub struct AnyTokenSearch<'a> {
 lazy_static! {
     static ref COMPONENT_ORDER: Component = {
         Component {
-            ctype: ComponentType::Ordering,
+            ctype: AQLComponentType::Ordering,
             layer: String::from("annis"),
             name: String::from(""),
         }

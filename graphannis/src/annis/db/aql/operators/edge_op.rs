@@ -5,7 +5,7 @@ use crate::annis::operator::{
 use crate::graph::{GraphStatistic, GraphStorage, Match};
 use graphannis_core::{
     graph::{Graph, ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
-    types::{Component, ComponentType, Edge, NodeID},
+    types::{Component, AQLComponentType, Edge, NodeID},
 };
 use regex;
 use std;
@@ -498,11 +498,11 @@ pub struct DominanceSpec {
 
 impl BinaryOperatorSpec for DominanceSpec {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
-        HashSet::from_iter(db.get_all_components(Some(ComponentType::Dominance), Some(&self.name)))
+        HashSet::from_iter(db.get_all_components(Some(AQLComponentType::Dominance), Some(&self.name)))
     }
 
     fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
-        let components = db.get_all_components(Some(ComponentType::Dominance), Some(&self.name));
+        let components = db.get_all_components(Some(AQLComponentType::Dominance), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from(">")
         } else {
@@ -528,11 +528,11 @@ pub struct PointingSpec {
 
 impl BinaryOperatorSpec for PointingSpec {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
-        HashSet::from_iter(db.get_all_components(Some(ComponentType::Pointing), Some(&self.name)))
+        HashSet::from_iter(db.get_all_components(Some(AQLComponentType::Pointing), Some(&self.name)))
     }
 
     fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
-        let components = db.get_all_components(Some(ComponentType::Pointing), Some(&self.name));
+        let components = db.get_all_components(Some(AQLComponentType::Pointing), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from("->")
         } else {
@@ -559,7 +559,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
     fn necessary_components(&self, _db: &Graph) -> HashSet<Component> {
         let mut components = HashSet::default();
         components.insert(Component {
-            ctype: ComponentType::PartOf,
+            ctype: AQLComponentType::PartOf,
             layer: String::from(ANNIS_NS),
             name: String::from(""),
         });
@@ -568,7 +568,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
 
     fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let components = vec![Component {
-            ctype: ComponentType::PartOf,
+            ctype: AQLComponentType::PartOf,
             layer: String::from(ANNIS_NS),
             name: String::from(""),
         }];

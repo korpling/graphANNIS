@@ -5,7 +5,7 @@ use crate::{
     graph::{GraphStorage, Match},
     Graph,
 };
-use graphannis_core::types::{Component, ComponentType, NodeID};
+use graphannis_core::types::{Component, AQLComponentType, NodeID};
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -20,8 +20,8 @@ pub struct AritySpec {
 impl UnaryOperatorSpec for AritySpec {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
         let mut result = HashSet::default();
-        result.extend(db.get_all_components(Some(ComponentType::Dominance), None));
-        result.extend(db.get_all_components(Some(ComponentType::Pointing), None));
+        result.extend(db.get_all_components(Some(AQLComponentType::Dominance), None));
+        result.extend(db.get_all_components(Some(AQLComponentType::Pointing), None));
         result
     }
 
@@ -29,12 +29,12 @@ impl UnaryOperatorSpec for AritySpec {
         // collect all relevant graph storages
         let mut graphstorages = Vec::default();
 
-        for component in db.get_all_components(Some(ComponentType::Dominance), None) {
+        for component in db.get_all_components(Some(AQLComponentType::Dominance), None) {
             if let Some(gs) = db.get_graphstorage(&component) {
                 graphstorages.push(gs);
             }
         }
-        for component in db.get_all_components(Some(ComponentType::Pointing), None) {
+        for component in db.get_all_components(Some(AQLComponentType::Pointing), None) {
             if let Some(gs) = db.get_graphstorage(&component) {
                 graphstorages.push(gs);
             }

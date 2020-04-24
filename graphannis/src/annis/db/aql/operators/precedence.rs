@@ -8,7 +8,7 @@ use crate::{
 };
 use graphannis_core::{
     graph::{Graph, DEFAULT_ANNO_KEY},
-    types::{Component, ComponentType},
+    types::{Component, AQLComponentType},
 };
 
 use std;
@@ -32,14 +32,14 @@ pub struct Precedence<'a> {
 lazy_static! {
     static ref COMPONENT_LEFT: Component = {
         Component {
-            ctype: ComponentType::LeftToken,
+            ctype: AQLComponentType::LeftToken,
             layer: String::from("annis"),
             name: String::from(""),
         }
     };
     static ref COMPONENT_RIGHT: Component = {
         Component {
-            ctype: ComponentType::RightToken,
+            ctype: AQLComponentType::RightToken,
             layer: String::from("annis"),
             name: String::from(""),
         }
@@ -49,7 +49,7 @@ lazy_static! {
 impl BinaryOperatorSpec for PrecedenceSpec {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
         let component_order = Component {
-            ctype: ComponentType::Ordering,
+            ctype: AQLComponentType::Ordering,
             layer: String::from("annis"),
             name: self
                 .segmentation
@@ -88,7 +88,7 @@ impl std::fmt::Display for PrecedenceSpec {
 impl<'a> Precedence<'a> {
     pub fn new(graph: &'a Graph, spec: PrecedenceSpec) -> Option<Precedence<'a>> {
         let component_order = Component {
-            ctype: ComponentType::Ordering,
+            ctype: AQLComponentType::Ordering,
             layer: String::from("annis"),
             name: spec
                 .segmentation

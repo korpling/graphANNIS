@@ -7,7 +7,7 @@ use crate::{
 };
 use graphannis_core::{
     graph::{Graph, DEFAULT_ANNO_KEY},
-    types::{Component, ComponentType},
+    types::{Component, AQLComponentType},
 };
 
 use std;
@@ -25,7 +25,7 @@ pub struct Inclusion<'a> {
 lazy_static! {
     static ref COMPONENT_ORDER: Component = {
         Component {
-            ctype: ComponentType::Ordering,
+            ctype: AQLComponentType::Ordering,
             layer: String::from("annis"),
             name: String::from(""),
         }

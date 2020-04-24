@@ -27,7 +27,7 @@ use graphannis_core::{
         storage::GraphStatistic, update::GraphUpdate, Graph, ANNIS_NS, NODE_NAME, NODE_NAME_KEY,
         NODE_TYPE,
     },
-    types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID},
+    types::{AnnoKey, Annotation, Component, AQLComponentType, Edge, NodeID},
     util::memory_estimation,
 };
 use linked_hash_map::LinkedHashMap;
@@ -1121,7 +1121,7 @@ impl CorpusStorage {
             } else {
                 let token_helper = TokenHelper::new(db);
                 let component_order = Component {
-                    ctype: ComponentType::Ordering,
+                    ctype: AQLComponentType::Ordering,
                     layer: String::from("annis"),
                     name: String::from(""),
                 };
@@ -1190,7 +1190,7 @@ impl CorpusStorage {
     ) -> Result<(Vec<String>, usize)> {
         let prep = self.prepare_query(corpus_name, query, query_language, |db| {
             let mut additional_components = vec![Component {
-                ctype: ComponentType::Ordering,
+                ctype: AQLComponentType::Ordering,
                 layer: String::from("annis"),
                 name: String::from(""),
             }];
@@ -1475,7 +1475,7 @@ impl CorpusStorage {
         corpus_name: &str,
         query: &str,
         query_language: QueryLanguage,
-        component_type_filter: Option<ComponentType>,
+        component_type_filter: Option<AQLComponentType>,
     ) -> Result<Graph> {
         let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
@@ -1580,7 +1580,7 @@ impl CorpusStorage {
             // make sure all subcorpus partitions are loaded
             let lock = db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            db.get_all_components(Some(ComponentType::PartOf), None)
+            db.get_all_components(Some(AQLComponentType::PartOf), None)
         };
         let db_entry = self.get_loaded_entry_with_components(corpus_name, subcorpus_components)?;
 
@@ -1596,7 +1596,7 @@ impl CorpusStorage {
             &query.into_disjunction(),
             &[0],
             &self.query_config,
-            Some(ComponentType::PartOf),
+            Some(AQLComponentType::PartOf),
         )
     }
 
@@ -1712,7 +1712,7 @@ impl CorpusStorage {
     pub fn list_components(
         &self,
         corpus_name: &str,
-        ctype: Option<ComponentType>,
+        ctype: Option<AQLComponentType>,
         name: Option<&str>,
     ) -> Vec<Component> {
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
@@ -1946,7 +1946,7 @@ fn extract_subgraph_by_query(
     query: &Disjunction,
     match_idx: &[usize],
     query_config: &query::Config,
-    component_type_filter: Option<ComponentType>,
+    component_type_filter: Option<AQLComponentType>,
 ) -> Result<Graph> {
     // acquire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
@@ -2002,9 +2002,9 @@ fn create_subgraph_edge(
     // find outgoing edges
     for c in components {
         // don't include index components
-        if !((c.ctype == ComponentType::Coverage && c.layer == "annis" && c.name != "")
-            || c.ctype == ComponentType::RightToken
-            || c.ctype == ComponentType::LeftToken)
+        if !((c.ctype == AQLComponentType::Coverage && c.layer == "annis" && c.name != "")
+            || c.ctype == AQLComponentType::RightToken
+            || c.ctype == AQLComponentType::LeftToken)
         {
             if let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {

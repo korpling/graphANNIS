@@ -6,7 +6,7 @@ use csv;
 use graphannis_core::{
     graph::{Graph, ANNIS_NS, TOK},
     serializer::KeySerializer,
-    types::{AnnoKey, Component, ComponentType, Edge, NodeID},
+    types::{AnnoKey, Component, AQLComponentType, Edge, NodeID},
     util::disk_collections::DiskMap,
 };
 use percent_encoding::utf8_percent_encode;
@@ -507,7 +507,7 @@ where
                             .ok_or_else(|| anyhow!("Can't get node name for current token with ID {} in \"calculate_automatic_token_order\" function.", current_token))?
                             .clone(),
                         layer: ANNIS_NS.to_owned(),
-                        component_type: ComponentType::Ordering.to_string(),
+                        component_type: AQLComponentType::Ordering.to_string(),
                         component_name: current_textprop.segmentation.clone(),
                     },
                 )?;
@@ -643,7 +643,7 @@ fn add_automatic_cov_edge_for_node(
                         .ok_or(anyhow!("Missing node name"))?
                         .clone(),
                     layer: component_layer,
-                    component_type: ComponentType::Coverage.to_string(),
+                    component_type: AQLComponentType::Coverage.to_string(),
                     component_name: component_name,
                 })?;
             }
@@ -1191,7 +1191,7 @@ where
         let parent_as_str = line.get(pos_parent).ok_or(anyhow!("Missing column"))?;
         if parent_as_str == "NULL" {
             if let Some(c) = component_by_id.get(&component_ref) {
-                if c.ctype == ComponentType::Coverage {
+                if c.ctype == AQLComponentType::Coverage {
                     load_rank_result
                         .component_for_parentless_target_node
                         .insert(target, c.clone())?;
@@ -1223,7 +1223,7 @@ where
                         target,
                     };
 
-                    if c.ctype == ComponentType::Coverage {
+                    if c.ctype == AQLComponentType::Coverage {
                         load_rank_result
                             .text_coverage_edges
                             .insert(e.clone(), true)?;
@@ -1479,7 +1479,7 @@ fn add_subcorpora(
                 source_node: subcorpus_full_name.clone(),
                 target_node: corpus_table.toplevel_corpus_name.to_owned(),
                 layer: ANNIS_NS.to_owned(),
-                component_type: ComponentType::PartOf.to_string(),
+                component_type: AQLComponentType::PartOf.to_string(),
                 component_name: String::default(),
             })?;
         } // end if not toplevel corpus
@@ -1503,7 +1503,7 @@ fn add_subcorpora(
                 source_node: text_full_name.clone(),
                 target_node: subcorpus_full_name,
                 layer: ANNIS_NS.to_owned(),
-                component_type: ComponentType::PartOf.to_string(),
+                component_type: AQLComponentType::PartOf.to_string(),
                 component_name: String::default(),
             })?;
 
@@ -1528,7 +1528,7 @@ fn add_subcorpora(
                         .clone(),
                     target_node: text_full_name.clone(),
                     layer: ANNIS_NS.to_owned(),
-                    component_type: ComponentType::PartOf.to_string(),
+                    component_type: AQLComponentType::PartOf.to_string(),
                     component_name: String::default(),
                 })?;
             }
@@ -1537,12 +1537,12 @@ fn add_subcorpora(
     Ok(())
 }
 
-fn component_type_from_short_name(short_type: &str) -> Result<ComponentType> {
+fn component_type_from_short_name(short_type: &str) -> Result<AQLComponentType> {
     match short_type {
-        "c" => Ok(ComponentType::Coverage),
-        "d" => Ok(ComponentType::Dominance),
-        "p" => Ok(ComponentType::Pointing),
-        "o" => Ok(ComponentType::Ordering),
+        "c" => Ok(AQLComponentType::Coverage),
+        "d" => Ok(AQLComponentType::Dominance),
+        "p" => Ok(AQLComponentType::Pointing),
+        "o" => Ok(AQLComponentType::Ordering),
         _ => Err(anyhow!(
             "Invalid component type short name '{}'",
             short_type

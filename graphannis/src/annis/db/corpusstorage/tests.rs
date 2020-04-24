@@ -5,7 +5,7 @@ use crate::annis::db::example_generator;
 use crate::corpusstorage::QueryLanguage;
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::CorpusStorage;
-use graphannis_core::types::{ComponentType, NodeID};
+use graphannis_core::types::{AQLComponentType, NodeID};
 
 #[test]
 fn delete() {
@@ -179,7 +179,7 @@ fn subgraph_with_segmentation() {
         )
         .unwrap();
 
-    let cov_components = graph.get_all_components(Some(ComponentType::Coverage), None);
+    let cov_components = graph.get_all_components(Some(AQLComponentType::Coverage), None);
     assert_eq!(1, cov_components.len());
 
     let gs_cov = graph.get_graphstorage(&cov_components[0]).unwrap();

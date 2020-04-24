@@ -10,7 +10,7 @@ use crate::{annis::util, graph::Match};
 use graphannis_core::{
     annostorage::ValueSearch,
     graph::{storage::GraphStorage, Graph, NODE_TYPE_KEY, TOKEN_KEY},
-    types::{Component, ComponentType, Edge, NodeID},
+    types::{Component, AQLComponentType, Edge, NodeID},
 };
 use itertools::Itertools;
 use regex;
@@ -659,7 +659,7 @@ impl<'a> NodeSearch<'a> {
 
         let it_base = if leafs_only {
             let cov_gs: Vec<Arc<dyn GraphStorage>> = db
-                .get_all_components(Some(ComponentType::Coverage), None)
+                .get_all_components(Some(AQLComponentType::Coverage), None)
                 .into_iter()
                 .filter_map(|c| db.get_graphstorage(&c))
                 .filter(|gs| {
@@ -763,7 +763,7 @@ impl<'a> NodeSearch<'a> {
 
         if leafs_only {
             let cov_gs: Vec<Arc<dyn GraphStorage>> = db
-                .get_all_components(Some(ComponentType::Coverage), None)
+                .get_all_components(Some(AQLComponentType::Coverage), None)
                 .into_iter()
                 .filter_map(|c| db.get_graphstorage(&c))
                 .filter(|gs| {
@@ -861,7 +861,7 @@ impl<'a> NodeSearch<'a> {
         let mut filters: Vec<MatchFilterFunc> = Vec::new();
 
         let cov_gs: Vec<Arc<dyn GraphStorage>> = db
-            .get_all_components(Some(ComponentType::Coverage), None)
+            .get_all_components(Some(AQLComponentType::Coverage), None)
             .into_iter()
             .filter_map(|c| db.get_graphstorage(&c))
             .filter(|gs| {

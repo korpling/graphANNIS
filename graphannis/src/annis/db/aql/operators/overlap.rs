@@ -7,7 +7,7 @@ use crate::{
 };
 use graphannis_core::{
     graph::{Graph, DEFAULT_ANNO_KEY},
-    types::{Component, ComponentType, NodeID},
+    types::{Component, AQLComponentType, NodeID},
 };
 use rustc_hash::FxHashSet;
 
@@ -31,7 +31,7 @@ pub struct Overlap<'a> {
 lazy_static! {
     static ref COMPONENT_ORDER: Component = {
         Component {
-            ctype: ComponentType::Ordering,
+            ctype: AQLComponentType::Ordering,
             layer: String::from("annis"),
             name: String::from(""),
         }

@@ -8,7 +8,7 @@ use crate::{
 };
 use graphannis_core::{
     graph::{Graph, DEFAULT_ANNO_KEY},
-    types::{Component, ComponentType},
+    types::{Component, AQLComponentType},
 };
 
 use rustc_hash::FxHashSet;
@@ -32,7 +32,7 @@ struct Near<'a> {
 impl BinaryOperatorSpec for NearSpec {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
         let component_order = Component {
-            ctype: ComponentType::Ordering,
+            ctype: AQLComponentType::Ordering,
             layer: String::from("annis"),
             name: self
                 .segmentation
@@ -69,7 +69,7 @@ impl std::fmt::Display for NearSpec {
 impl<'a> Near<'a> {
     pub fn new(graph: &'a Graph, spec: NearSpec) -> Option<Near<'a>> {
         let component_order = Component {
-            ctype: ComponentType::Ordering,
+            ctype: AQLComponentType::Ordering,
             layer: String::from("annis"),
             name: spec
                 .segmentation

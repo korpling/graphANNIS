@@ -1,7 +1,7 @@
 use crate::{annis::db::AnnotationStorage, graph::GraphStorage, Graph};
 use graphannis_core::{
     graph::TOKEN_KEY,
-    types::{Component, ComponentType, NodeID},
+    types::{Component, AQLComponentType, NodeID},
 };
 
 use std::collections::HashSet;
@@ -18,14 +18,14 @@ pub struct TokenHelper<'a> {
 lazy_static! {
     static ref COMPONENT_LEFT: Component = {
         Component {
-            ctype: ComponentType::LeftToken,
+            ctype: AQLComponentType::LeftToken,
             layer: String::from("annis"),
             name: String::from(""),
         }
     };
     static ref COMPONENT_RIGHT: Component = {
         Component {
-            ctype: ComponentType::RightToken,
+            ctype: AQLComponentType::RightToken,
             layer: String::from("annis"),
             name: String::from(""),
         }
@@ -38,7 +38,7 @@ pub fn necessary_components(db: &Graph) -> HashSet<Component> {
     result.insert(COMPONENT_RIGHT.clone());
     // we need all coverage components
     result.extend(
-        db.get_all_components(Some(ComponentType::Coverage), None)
+        db.get_all_components(Some(AQLComponentType::Coverage), None)
             .into_iter(),
     );
 
@@ -48,7 +48,7 @@ pub fn necessary_components(db: &Graph) -> HashSet<Component> {
 impl<'a> TokenHelper<'a> {
     pub fn new(graph: &'a Graph) -> Option<TokenHelper<'a>> {
         let cov_edges: Vec<Arc<dyn GraphStorage>> = graph
-            .get_all_components(Some(ComponentType::Coverage), None)
+            .get_all_components(Some(AQLComponentType::Coverage), None)
             .into_iter()
             .filter_map(|c| graph.get_graphstorage(&c))
             .filter(|gs| {

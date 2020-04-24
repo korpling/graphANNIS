@@ -120,7 +120,7 @@ impl FixedSizeKeySerializer for Edge {
     MallocSizeOf,
 )]
 #[repr(C)]
-pub enum ComponentType {
+pub enum AQLComponentType {
     /// Edges between a span node and its tokens. Implies text coverage.
     Coverage,
     /// Edges between a structural node and any other structural node, span or token. Implies text coverage.
@@ -137,7 +137,7 @@ pub enum ComponentType {
     PartOf,
 }
 
-impl fmt::Display for ComponentType {
+impl fmt::Display for AQLComponentType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self, f)
     }
@@ -149,7 +149,7 @@ impl fmt::Display for ComponentType {
 )]
 pub struct Component {
     /// Type of the component
-    pub ctype: ComponentType,
+    pub ctype: AQLComponentType,
     /// Name of the component
     pub name: String,
     /// A layer name which allows to group different components into the same layer. Can be empty.

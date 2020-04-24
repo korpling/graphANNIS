@@ -5,7 +5,7 @@ use crate::corpusstorage::{
     CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, ImportFormat,
     QueryAttributeDescription, QueryLanguage, ResultOrder,
 };
-use crate::graph::{Component, ComponentType};
+use crate::graph::{Component, AQLComponentType};
 use crate::update::GraphUpdate;
 use crate::{CorpusStorage, Graph};
 use libc;
@@ -345,7 +345,7 @@ pub extern "C" fn annis_cs_subgraph_for_query_with_ctype(
     corpus_name: *const libc::c_char,
     query: *const libc::c_char,
     query_language: QueryLanguage,
-    component_type_filter: ComponentType,
+    component_type_filter: AQLComponentType,
     err: *mut *mut ErrorList,
 ) -> *mut Graph {
     let cs: &CorpusStorage = cast_const!(ptr);
@@ -481,7 +481,7 @@ pub extern "C" fn annis_cs_list_node_annotations(
 pub extern "C" fn annis_cs_list_edge_annotations(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
-    component_type: ComponentType,
+    component_type: AQLComponentType,
     component_name: *const libc::c_char,
     component_layer: *const libc::c_char,
     list_values: bool,
@@ -620,7 +620,7 @@ pub extern "C" fn annis_cs_import_from_fs(
 pub extern "C" fn annis_cs_list_components_by_type(
     ptr: *mut CorpusStorage,
     corpus_name: *const libc::c_char,
-    ctype: ComponentType,
+    ctype: AQLComponentType,
 ) -> *mut Vec<Component> {
     let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);

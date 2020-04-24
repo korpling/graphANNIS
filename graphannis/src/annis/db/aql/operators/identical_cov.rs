@@ -8,7 +8,7 @@ use crate::{
 };
 use graphannis_core::{
     graph::DEFAULT_ANNO_KEY,
-    types::{Component, ComponentType},
+    types::{Component, AQLComponentType},
 };
 
 use std;
@@ -28,14 +28,14 @@ pub struct IdenticalCoverage<'a> {
 lazy_static! {
     static ref COMPONENT_LEFT: Component = {
         Component {
-            ctype: ComponentType::LeftToken,
+            ctype: AQLComponentType::LeftToken,
             layer: String::from("annis"),
             name: String::from(""),
         }
     };
     static ref COMPONENT_ORDER: Component = {
         Component {
-            ctype: ComponentType::Ordering,
+            ctype: AQLComponentType::Ordering,
             layer: String::from("annis"),
             name: String::from(""),
         }
