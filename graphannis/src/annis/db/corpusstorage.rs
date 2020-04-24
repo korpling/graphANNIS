@@ -19,13 +19,13 @@ use crate::annis::util::quicksort;
 use crate::{
     graph::Match,
     malloc_size_of::{MallocSizeOf, MallocSizeOfOps},
+    Graph,
 };
 use fs2::FileExt;
 use graphannis_core::{
     annostorage::ValueSearch,
     graph::{
-        storage::GraphStatistic, update::GraphUpdate, Graph, ANNIS_NS, NODE_NAME, NODE_NAME_KEY,
-        NODE_TYPE,
+        storage::GraphStatistic, update::GraphUpdate, ANNIS_NS, NODE_NAME, NODE_NAME_KEY, NODE_TYPE,
     },
     types::{AQLComponentType, AnnoKey, Annotation, Component, Edge, NodeID},
     util::memory_estimation,

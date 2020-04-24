@@ -2,9 +2,10 @@ use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::errors::*;
 use crate::annis::util::create_str_vec_key;
 use crate::update::{GraphUpdate, UpdateEvent};
+use crate::Graph;
 use csv;
 use graphannis_core::{
-    graph::{Graph, ANNIS_NS, TOK},
+    graph::{ANNIS_NS, TOK},
     serializer::KeySerializer,
     types::{AQLComponentType, AnnoKey, Component, Edge, NodeID},
     util::disk_collections::DiskMap,

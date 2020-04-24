@@ -1,8 +1,6 @@
+use crate::Graph;
 use crate::{annis::operator::*, graph::Match};
-use graphannis_core::{
-    graph::{Graph, DEFAULT_ANNO_KEY},
-    types::Component,
-};
+use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
 use std;
 use std::collections::HashSet;
 

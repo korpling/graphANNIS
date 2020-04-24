@@ -490,7 +490,7 @@ pub extern "C" fn annis_cs_list_edge_annotations(
     let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
     let component = Component {
-        ctype: component_type,
+        ctype: component_type.into(),
         name: String::from(cstr!(component_name)),
         layer: String::from(cstr!(component_layer)),
     };

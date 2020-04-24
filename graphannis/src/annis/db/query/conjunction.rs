@@ -11,13 +11,14 @@ use crate::annis::errors::*;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
 };
+use crate::Graph;
 use crate::{
     annis::types::{LineColumnRange, QueryAttributeDescription},
     graph::Match,
 };
 use anyhow::Error;
 use graphannis_core::{
-    graph::{storage::GraphStatistic, Graph},
+    graph::storage::GraphStatistic,
     types::{Component, Edge},
 };
 use rand::distributions::Distribution;

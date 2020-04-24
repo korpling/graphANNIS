@@ -3,8 +3,9 @@ use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
 };
 use crate::graph::{GraphStatistic, GraphStorage, Match};
+use crate::Graph;
 use graphannis_core::{
-    graph::{Graph, ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
+    graph::{ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
     types::{AQLComponentType, Component, Edge, NodeID},
 };
 use regex;

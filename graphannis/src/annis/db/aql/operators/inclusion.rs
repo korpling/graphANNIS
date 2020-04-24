@@ -1,12 +1,13 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::EstimationType;
+use crate::Graph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
 };
 use graphannis_core::{
-    graph::{Graph, DEFAULT_ANNO_KEY},
+    graph::DEFAULT_ANNO_KEY,
     types::{AQLComponentType, Component},
 };
 

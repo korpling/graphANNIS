@@ -4,7 +4,7 @@ use super::disk_adjacency;
 use super::disk_adjacency::DiskAdjacencyListStorage;
 use super::linear::LinearGraphStorage;
 use super::{prepost::PrePostOrderStorage, GraphStatistic, GraphStorage};
-use crate::graph::Graph;
+use crate::{graph::Graph, types::ComponentType};
 use anyhow::Context;
 use anyhow::Result;
 use serde::Deserialize;
@@ -45,8 +45,8 @@ lazy_static! {
     };
 }
 
-pub fn create_writeable(
-    graph: &Graph,
+pub fn create_writeable<CT: ComponentType>(
+    graph: &Graph<CT>,
     orig: Option<&dyn GraphStorage>,
 ) -> Result<Arc<dyn GraphStorage>> {
     if graph.disk_based {
@@ -64,7 +64,10 @@ pub fn create_writeable(
     }
 }
 
-pub fn get_optimal_impl_heuristic(db: &Graph, stats: &GraphStatistic) -> GSInfo {
+pub fn get_optimal_impl_heuristic<CT: ComponentType>(
+    db: &Graph<CT>,
+    stats: &GraphStatistic,
+) -> GSInfo {
     if stats.max_depth <= 1 {
         // if we don't have any deep graph structures an adjencency list is always fasted (and has no overhead)
         return get_adjacencylist_impl(db, stats);
@@ -86,7 +89,7 @@ pub fn get_optimal_impl_heuristic(db: &Graph, stats: &GraphStatistic) -> GSInfo 
     get_adjacencylist_impl(db, stats)
 }
 
-fn get_adjacencylist_impl(db: &Graph, stats: &GraphStatistic) -> GSInfo {
+fn get_adjacencylist_impl<CT: ComponentType>(db: &Graph<CT>, stats: &GraphStatistic) -> GSInfo {
     if db.disk_based {
         create_info_diskadjacency()
     } else {

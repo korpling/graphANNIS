@@ -9,6 +9,7 @@ use std::{convert::TryInto, str::FromStr};
 use strum_macros::{EnumIter, EnumString};
 
 use super::serializer::{FixedSizeKeySerializer, KeySerializer};
+use crate::graph::{update::GraphUpdate, Graph};
 use malloc_size_of::MallocSizeOf;
 
 /// Unique internal identifier for a single node.
@@ -104,7 +105,11 @@ impl FixedSizeKeySerializer for Edge {
     }
 }
 
-pub trait ComponentType: Into<u16> + From<u16> + FromStr + ToString {}
+pub trait ComponentType: Into<u16> + From<u16> + FromStr + ToString + Send + Sync {
+    type GraphIndex;
+    fn register_graph_update_to_index(_update: &GraphUpdate, _index: &mut Self::GraphIndex) {}
+    fn update_graph_index(_index: Self::GraphIndex, _graph: &mut Graph<Self>) {}
+}
 
 /// Specifies the type of component. Types determine certain semantics about the edges of this graph components.
 #[derive(
@@ -160,7 +165,12 @@ impl From<u16> for AQLComponentType {
     }
 }
 
-impl ComponentType for AQLComponentType {}
+#[derive(Default)]
+pub struct AQLGraphIndex {}
+
+impl ComponentType for AQLComponentType {
+    type GraphIndex = AQLGraphIndex;
+}
 
 impl fmt::Display for AQLComponentType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

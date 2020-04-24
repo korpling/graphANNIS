@@ -48,9 +48,12 @@ pub mod corpusstorage {
     pub use crate::annis::types::{CountExtra, FrequencyTable, QueryAttributeDescription};
 }
 
+use graph::AQLComponentType;
 pub use graphannis_core::graph::update;
 
-pub use graphannis_core::graph::Graph;
+pub type AQLGraph = graphannis_core::graph::Graph<AQLComponentType>;
+
+pub use AQLGraph as Graph;
 
 /// Types that are used by the `Graph` API.
 pub mod graph {

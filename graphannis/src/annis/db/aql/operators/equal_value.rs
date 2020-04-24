@@ -1,9 +1,10 @@
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::AnnotationStorage;
+use crate::Graph;
 use crate::{annis::operator::*, graph::Match};
 use graphannis_core::{
     annostorage::ValueSearch,
-    graph::{Graph, ANNIS_NS, TOK, TOKEN_KEY},
+    graph::{ANNIS_NS, TOK, TOKEN_KEY},
     types::{Component, NodeID},
 };
 use std;

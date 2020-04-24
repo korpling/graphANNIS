@@ -1,7 +1,7 @@
 pub mod storage;
 pub mod update;
 
-use crate::types::{AQLComponentType, AnnoKey, Annotation, Component, Edge, NodeID};
+use crate::types::{AQLComponentType, AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use crate::{
     annostorage::AnnotationStorage,
     dfs::CycleSafeDFS,
@@ -57,7 +57,7 @@ lazy_static! {
 /// Graphs can have an optional location on the disk.
 /// In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
 ///
-pub struct Graph {
+pub struct Graph<CT: ComponentType> {
     node_annos: Box<dyn AnnotationStorage<NodeID>>,
 
     location: Option<PathBuf>,
@@ -70,9 +70,11 @@ pub struct Graph {
     cached_size: Mutex<Option<usize>>,
 
     disk_based: bool,
+
+    phantom: std::marker::PhantomData<CT>,
 }
 
-impl MallocSizeOf for Graph {
+impl<CT: ComponentType> MallocSizeOf for Graph<CT> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut size = self.node_annos.size_of(ops);
 
@@ -119,9 +121,9 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
     p
 }
 
-impl Graph {
+impl<CT: ComponentType> Graph<CT> {
     /// Create a new and empty instance without any location on the disk.
-    pub fn new(disk_based: bool) -> Result<Graph> {
+    pub fn new(disk_based: bool) -> Result<Self> {
         let node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
             Box::new(crate::annostorage::ondisk::AnnoStorageImpl::new(None)?)
         } else {
@@ -140,12 +142,14 @@ impl Graph {
             cached_size: Mutex::new(None),
 
             disk_based,
+
+            phantom: std::marker::PhantomData::<CT>::default(),
         })
     }
 
     /// Create a new instance without any location on the disk but with the default graph storage components
     /// (Coverage, Order, LeftToken, RightToken, PartOf).
-    pub fn with_default_graphstorages(disk_based: bool) -> Result<Graph> {
+    pub fn with_default_graphstorages(disk_based: bool) -> Result<Self> {
         let mut db = Graph::new(disk_based)?;
         db.get_or_create_writable(&Component {
             ctype: AQLComponentType::Coverage.into(),
@@ -1338,7 +1342,7 @@ mod tests {
 
     #[test]
     fn create_writeable_gs() {
-        let mut db = Graph::new(false).unwrap();
+        let mut db = Graph::<AQLComponentType>::new(false).unwrap();
 
         let anno_key = AnnoKey {
             ns: "test".to_owned(),
