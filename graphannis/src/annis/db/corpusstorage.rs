@@ -1121,7 +1121,7 @@ impl CorpusStorage {
             } else {
                 let token_helper = TokenHelper::new(db);
                 let component_order = Component {
-                    ctype: AQLComponentType::Ordering,
+                    ctype: AQLComponentType::Ordering.into(),
                     layer: String::from("annis"),
                     name: String::from(""),
                 };
@@ -1190,7 +1190,7 @@ impl CorpusStorage {
     ) -> Result<(Vec<String>, usize)> {
         let prep = self.prepare_query(corpus_name, query, query_language, |db| {
             let mut additional_components = vec![Component {
-                ctype: AQLComponentType::Ordering,
+                ctype: AQLComponentType::Ordering.into(),
                 layer: String::from("annis"),
                 name: String::from(""),
             }];
@@ -2002,9 +2002,10 @@ fn create_subgraph_edge(
     // find outgoing edges
     for c in components {
         // don't include index components
-        if !((c.ctype == AQLComponentType::Coverage && c.layer == "annis" && c.name != "")
-            || c.ctype == AQLComponentType::RightToken
-            || c.ctype == AQLComponentType::LeftToken)
+        let ctype : AQLComponentType = c.ctype.into();
+        if !((ctype == AQLComponentType::Coverage && c.layer == "annis" && c.name != "")
+            || ctype == AQLComponentType::RightToken
+            || ctype == AQLComponentType::LeftToken)
         {
             if let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {

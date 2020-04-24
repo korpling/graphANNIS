@@ -28,14 +28,14 @@ pub struct IdenticalCoverage<'a> {
 lazy_static! {
     static ref COMPONENT_LEFT: Component = {
         Component {
-            ctype: AQLComponentType::LeftToken,
+            ctype: AQLComponentType::LeftToken.into(),
             layer: String::from("annis"),
             name: String::from(""),
         }
     };
     static ref COMPONENT_ORDER: Component = {
         Component {
-            ctype: AQLComponentType::Ordering,
+            ctype: AQLComponentType::Ordering.into(),
             layer: String::from("annis"),
             name: String::from(""),
         }

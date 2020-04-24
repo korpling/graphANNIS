@@ -6,7 +6,7 @@ use csv;
 use graphannis_core::{
     graph::{Graph, ANNIS_NS, TOK},
     serializer::KeySerializer,
-    types::{AnnoKey, Component, AQLComponentType, Edge, NodeID},
+    types::{AQLComponentType, AnnoKey, Component, Edge, NodeID},
     util::disk_collections::DiskMap,
 };
 use percent_encoding::utf8_percent_encode;
@@ -1082,7 +1082,14 @@ where
                 name
             };
             let ctype = component_type_from_short_name(&col_type)?;
-            component_by_id.insert(cid, Component { ctype, layer, name });
+            component_by_id.insert(
+                cid,
+                Component {
+                    ctype: ctype.into(),
+                    layer,
+                    name,
+                },
+            );
         }
     }
     Ok(component_by_id)
@@ -1191,7 +1198,7 @@ where
         let parent_as_str = line.get(pos_parent).ok_or(anyhow!("Missing column"))?;
         if parent_as_str == "NULL" {
             if let Some(c) = component_by_id.get(&component_ref) {
-                if c.ctype == AQLComponentType::Coverage {
+                if c.ctype == AQLComponentType::Coverage.into() {
                     load_rank_result
                         .component_for_parentless_target_node
                         .insert(target, c.clone())?;
@@ -1223,7 +1230,7 @@ where
                         target,
                     };
 
-                    if c.ctype == AQLComponentType::Coverage {
+                    if c.ctype == AQLComponentType::Coverage.into() {
                         load_rank_result
                             .text_coverage_edges
                             .insert(e.clone(), true)?;

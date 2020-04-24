@@ -559,7 +559,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
     fn necessary_components(&self, _db: &Graph) -> HashSet<Component> {
         let mut components = HashSet::default();
         components.insert(Component {
-            ctype: AQLComponentType::PartOf,
+            ctype: AQLComponentType::PartOf.into(),
             layer: String::from(ANNIS_NS),
             name: String::from(""),
         });
@@ -568,7 +568,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
 
     fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let components = vec![Component {
-            ctype: AQLComponentType::PartOf,
+            ctype: AQLComponentType::PartOf.into(),
             layer: String::from(ANNIS_NS),
             name: String::from(""),
         }];

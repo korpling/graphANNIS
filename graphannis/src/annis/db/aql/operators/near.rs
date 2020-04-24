@@ -32,7 +32,7 @@ struct Near<'a> {
 impl BinaryOperatorSpec for NearSpec {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
         let component_order = Component {
-            ctype: AQLComponentType::Ordering,
+            ctype: AQLComponentType::Ordering.into(),
             layer: String::from("annis"),
             name: self
                 .segmentation
@@ -69,7 +69,7 @@ impl std::fmt::Display for NearSpec {
 impl<'a> Near<'a> {
     pub fn new(graph: &'a Graph, spec: NearSpec) -> Option<Near<'a>> {
         let component_order = Component {
-            ctype: AQLComponentType::Ordering,
+            ctype: AQLComponentType::Ordering.into(),
             layer: String::from("annis"),
             name: spec
                 .segmentation

@@ -104,6 +104,8 @@ impl FixedSizeKeySerializer for Edge {
     }
 }
 
+pub trait ComponentType: Into<u16> + From<u16> {}
+
 /// Specifies the type of component. Types determine certain semantics about the edges of this graph components.
 #[derive(
     Serialize,
@@ -137,6 +139,27 @@ pub enum AQLComponentType {
     PartOf,
 }
 
+impl Into<u16> for AQLComponentType {
+    fn into(self) -> u16 {
+        self as u16
+    }
+}
+
+impl From<u16> for AQLComponentType {
+    fn from(idx: u16) -> AQLComponentType {
+        match idx {
+            0 => AQLComponentType::Coverage,
+            2 => AQLComponentType::Dominance,
+            3 => AQLComponentType::Pointing,
+            4 => AQLComponentType::Ordering,
+            5 => AQLComponentType::LeftToken,
+            6 => AQLComponentType::RightToken,
+            7 => AQLComponentType::PartOf,
+            _ => AQLComponentType::Pointing,
+        }
+    }
+}
+
 impl fmt::Display for AQLComponentType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self, f)
@@ -149,7 +172,7 @@ impl fmt::Display for AQLComponentType {
 )]
 pub struct Component {
     /// Type of the component
-    pub ctype: AQLComponentType,
+    pub ctype: u16,
     /// Name of the component
     pub name: String,
     /// A layer name which allows to group different components into the same layer. Can be empty.

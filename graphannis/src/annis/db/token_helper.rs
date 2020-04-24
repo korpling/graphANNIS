@@ -18,14 +18,14 @@ pub struct TokenHelper<'a> {
 lazy_static! {
     static ref COMPONENT_LEFT: Component = {
         Component {
-            ctype: AQLComponentType::LeftToken,
+            ctype: AQLComponentType::LeftToken.into(),
             layer: String::from("annis"),
             name: String::from(""),
         }
     };
     static ref COMPONENT_RIGHT: Component = {
         Component {
-            ctype: AQLComponentType::RightToken,
+            ctype: AQLComponentType::RightToken.into(),
             layer: String::from("annis"),
             name: String::from(""),
         }

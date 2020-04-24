@@ -31,7 +31,7 @@ pub struct Overlap<'a> {
 lazy_static! {
     static ref COMPONENT_ORDER: Component = {
         Component {
-            ctype: AQLComponentType::Ordering,
+            ctype: AQLComponentType::Ordering.into(),
             layer: String::from("annis"),
             name: String::from(""),
         }

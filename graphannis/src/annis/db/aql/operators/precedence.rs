@@ -32,14 +32,14 @@ pub struct Precedence<'a> {
 lazy_static! {
     static ref COMPONENT_LEFT: Component = {
         Component {
-            ctype: AQLComponentType::LeftToken,
+            ctype: AQLComponentType::LeftToken.into(),
             layer: String::from("annis"),
             name: String::from(""),
         }
     };
     static ref COMPONENT_RIGHT: Component = {
         Component {
-            ctype: AQLComponentType::RightToken,
+            ctype: AQLComponentType::RightToken.into(),
             layer: String::from("annis"),
             name: String::from(""),
         }
@@ -49,7 +49,7 @@ lazy_static! {
 impl BinaryOperatorSpec for PrecedenceSpec {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
         let component_order = Component {
-            ctype: AQLComponentType::Ordering,
+            ctype: AQLComponentType::Ordering.into(),
             layer: String::from("annis"),
             name: self
                 .segmentation
@@ -88,7 +88,7 @@ impl std::fmt::Display for PrecedenceSpec {
 impl<'a> Precedence<'a> {
     pub fn new(graph: &'a Graph, spec: PrecedenceSpec) -> Option<Precedence<'a>> {
         let component_order = Component {
-            ctype: AQLComponentType::Ordering,
+            ctype: AQLComponentType::Ordering.into(),
             layer: String::from("annis"),
             name: spec
                 .segmentation
