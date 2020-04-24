@@ -6,7 +6,7 @@ use crate::annis::db::token_helper;
 use crate::{annis::db::token_helper::TokenHelper, graph::Match};
 use graphannis_core::{
     graph::{storage::GraphStorage, Graph, NODE_TYPE_KEY},
-    types::{AnnoKey, Component, AQLComponentType, NodeID},
+    types::{AQLComponentType, AnnoKey, Component, NodeID},
 };
 
 use anyhow::Result;

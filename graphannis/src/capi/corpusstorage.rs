@@ -5,7 +5,7 @@ use crate::corpusstorage::{
     CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, ImportFormat,
     QueryAttributeDescription, QueryLanguage, ResultOrder,
 };
-use crate::graph::{Component, AQLComponentType};
+use crate::graph::{AQLComponentType, Component};
 use crate::update::GraphUpdate;
 use crate::{CorpusStorage, Graph};
 use libc;

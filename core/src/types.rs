@@ -5,7 +5,7 @@ use std::ops::AddAssign;
 use std::string::String;
 
 use std::borrow::Cow;
-use std::{str::FromStr, convert::TryInto};
+use std::{convert::TryInto, str::FromStr};
 use strum_macros::{EnumIter, EnumString};
 
 use super::serializer::{FixedSizeKeySerializer, KeySerializer};

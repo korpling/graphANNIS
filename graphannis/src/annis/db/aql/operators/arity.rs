@@ -5,7 +5,7 @@ use crate::{
     graph::{GraphStorage, Match},
     Graph,
 };
-use graphannis_core::types::{Component, AQLComponentType, NodeID};
+use graphannis_core::types::{AQLComponentType, Component, NodeID};
 use std::collections::HashSet;
 use std::sync::Arc;
 

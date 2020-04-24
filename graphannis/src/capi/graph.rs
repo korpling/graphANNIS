@@ -1,5 +1,5 @@
 use crate::capi::data::IterPtr;
-use crate::graph::{Annotation, Component, AQLComponentType, Edge, GraphStorage, Match, NodeID};
+use crate::graph::{AQLComponentType, Annotation, Component, Edge, GraphStorage, Match, NodeID};
 use crate::Graph;
 use libc;
 use std;

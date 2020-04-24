@@ -27,7 +27,7 @@ use graphannis_core::{
         storage::GraphStatistic, update::GraphUpdate, Graph, ANNIS_NS, NODE_NAME, NODE_NAME_KEY,
         NODE_TYPE,
     },
-    types::{AnnoKey, Annotation, Component, AQLComponentType, Edge, NodeID},
+    types::{AQLComponentType, AnnoKey, Annotation, Component, Edge, NodeID},
     util::memory_estimation,
 };
 use linked_hash_map::LinkedHashMap;
@@ -2002,7 +2002,7 @@ fn create_subgraph_edge(
     // find outgoing edges
     for c in components {
         // don't include index components
-        let ctype : AQLComponentType = c.ctype.into();
+        let ctype: AQLComponentType = c.ctype.into();
         if !((ctype == AQLComponentType::Coverage && c.layer == "annis" && c.name != "")
             || ctype == AQLComponentType::RightToken
             || ctype == AQLComponentType::LeftToken)

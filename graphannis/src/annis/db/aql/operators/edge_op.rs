@@ -5,7 +5,7 @@ use crate::annis::operator::{
 use crate::graph::{GraphStatistic, GraphStorage, Match};
 use graphannis_core::{
     graph::{Graph, ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
-    types::{Component, AQLComponentType, Edge, NodeID},
+    types::{AQLComponentType, Component, Edge, NodeID},
 };
 use regex;
 use std;
@@ -498,7 +498,9 @@ pub struct DominanceSpec {
 
 impl BinaryOperatorSpec for DominanceSpec {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
-        HashSet::from_iter(db.get_all_components(Some(AQLComponentType::Dominance), Some(&self.name)))
+        HashSet::from_iter(
+            db.get_all_components(Some(AQLComponentType::Dominance), Some(&self.name)),
+        )
     }
 
     fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
@@ -528,7 +530,9 @@ pub struct PointingSpec {
 
 impl BinaryOperatorSpec for PointingSpec {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
-        HashSet::from_iter(db.get_all_components(Some(AQLComponentType::Pointing), Some(&self.name)))
+        HashSet::from_iter(
+            db.get_all_components(Some(AQLComponentType::Pointing), Some(&self.name)),
+        )
     }
 
     fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {

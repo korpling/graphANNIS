@@ -7,7 +7,7 @@ use crate::{
 };
 use graphannis_core::{
     graph::{Graph, DEFAULT_ANNO_KEY},
-    types::{Component, AQLComponentType},
+    types::{AQLComponentType, Component},
 };
 
 use std;

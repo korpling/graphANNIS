@@ -10,7 +10,7 @@ use crate::{annis::util, graph::Match};
 use graphannis_core::{
     annostorage::ValueSearch,
     graph::{storage::GraphStorage, Graph, NODE_TYPE_KEY, TOKEN_KEY},
-    types::{Component, AQLComponentType, Edge, NodeID},
+    types::{AQLComponentType, Component, Edge, NodeID},
 };
 use itertools::Itertools;
 use regex;
