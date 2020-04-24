@@ -5,7 +5,7 @@ use std::ops::AddAssign;
 use std::string::String;
 
 use std::borrow::Cow;
-use std::convert::TryInto;
+use std::{str::FromStr, convert::TryInto};
 use strum_macros::{EnumIter, EnumString};
 
 use super::serializer::{FixedSizeKeySerializer, KeySerializer};
@@ -104,7 +104,7 @@ impl FixedSizeKeySerializer for Edge {
     }
 }
 
-pub trait ComponentType: Into<u16> + From<u16> {}
+pub trait ComponentType: Into<u16> + From<u16> + FromStr + ToString {}
 
 /// Specifies the type of component. Types determine certain semantics about the edges of this graph components.
 #[derive(
@@ -159,6 +159,8 @@ impl From<u16> for AQLComponentType {
         }
     }
 }
+
+impl ComponentType for AQLComponentType {}
 
 impl fmt::Display for AQLComponentType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
