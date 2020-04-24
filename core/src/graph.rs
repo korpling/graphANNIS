@@ -33,7 +33,7 @@ lazy_static! {
         ns: ANNIS_NS.to_owned(),
         name: NODE_NAME.to_owned(),
     });
-    /// Return an annotation key which is used for the special `annis::node_type` annotation which every node must have to mark its existance.
+    /// Return an annotation key which is used for the special `annis::node_type` annotation which every node must have to mark its existence.
     pub static ref NODE_TYPE_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
         ns: ANNIS_NS.to_owned(),
         name: NODE_TYPE.to_owned(),
