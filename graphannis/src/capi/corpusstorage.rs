@@ -489,11 +489,11 @@ pub extern "C" fn annis_cs_list_edge_annotations(
 ) -> *mut Matrix<CString> {
     let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
-    let component = Component {
-        ctype: component_type.into(),
-        name: String::from(cstr!(component_name)),
-        layer: String::from(cstr!(component_layer)),
-    };
+    let component = Component::new(
+        component_type,
+        String::from(cstr!(component_layer)),
+        String::from(cstr!(component_name)),
+    );
 
     let orig_vec =
         cs.list_edge_annotations(&corpus, &component, list_values, only_most_frequent_values);

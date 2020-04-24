@@ -53,7 +53,7 @@ pub struct Graph<CT: ComponentType> {
 
     location: Option<PathBuf>,
 
-    components: BTreeMap<Component, Option<Arc<dyn GraphStorage>>>,
+    components: BTreeMap<Component<CT>, Option<Arc<dyn GraphStorage>>>,
     current_change_id: u64,
 
     background_persistance: Arc<Mutex<()>>,
@@ -61,8 +61,6 @@ pub struct Graph<CT: ComponentType> {
     cached_size: Mutex<Option<usize>>,
 
     disk_based: bool,
-
-    phantom: std::marker::PhantomData<CT>,
 }
 
 impl<CT: ComponentType> MallocSizeOf for Graph<CT> {
@@ -120,8 +118,6 @@ impl<CT: ComponentType> Graph<CT> {
             cached_size: Mutex::new(None),
 
             disk_based,
-
-            phantom: std::marker::PhantomData::<CT>::default(),
         })
     }
 
@@ -220,11 +216,10 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    fn component_to_relative_path(&self, c: &Component) -> PathBuf {
+    fn component_to_relative_path(&self, c: &Component<CT>) -> PathBuf {
         let mut p = PathBuf::new();
         p.push("gs");
-        let ctype: CT = c.ctype.into();
-        p.push(ctype.to_string());
+        p.push(c.get_type().to_string());
         p.push(if c.layer.is_empty() {
             "default_layer"
         } else {
@@ -247,11 +242,11 @@ impl<CT: ComponentType> Graph<CT> {
                     let layer = layer?;
                     if layer.path().is_dir() {
                         // try to load the component with the empty name
-                        let empty_name_component = Component {
-                            ctype: c.clone().into(),
-                            layer: layer.file_name().to_string_lossy().to_string(),
-                            name: String::from(""),
-                        };
+                        let empty_name_component = Component::new(
+                            c.clone(),
+                            layer.file_name().to_string_lossy().to_string(),
+                            String::from(""),
+                        );
                         {
                             let cfg_file = PathBuf::from(location)
                                 .join(self.component_to_relative_path(&empty_name_component))
@@ -265,11 +260,11 @@ impl<CT: ComponentType> Graph<CT> {
                         // also load all named components
                         for name in layer.path().read_dir()? {
                             let name = name?;
-                            let named_component = Component {
-                                ctype: c.clone().into(),
-                                layer: layer.file_name().to_string_lossy().to_string(),
-                                name: name.file_name().to_string_lossy().to_string(),
-                            };
+                            let named_component = Component::new(
+                                c.clone(),
+                                layer.file_name().to_string_lossy().to_string(),
+                                name.file_name().to_string_lossy().to_string(),
+                            );
                             let cfg_file = PathBuf::from(location)
                                 .join(self.component_to_relative_path(&named_component))
                                 .join("impl.cfg");
@@ -455,11 +450,11 @@ impl<CT: ComponentType> Graph<CT> {
                     // only add edge if both nodes already exist
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(&component_type) {
-                            let c = Component {
-                                ctype: ctype.into(),
-                                layer: layer.to_string(),
-                                name: component_name.to_string(),
-                            };
+                            let c = Component::new(
+                                ctype,
+                                layer.to_string(),
+                                component_name.to_string(),
+                            );
                             let gs = self.get_or_create_writable(&c)?;
                             gs.add_edge(Edge { source, target })?;
                         }
@@ -478,11 +473,11 @@ impl<CT: ComponentType> Graph<CT> {
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(&component_type) {
-                            let c = Component {
-                                ctype: ctype.into(),
-                                layer: layer.to_string(),
-                                name: component_name.to_string(),
-                            };
+                            let c = Component::new(
+                                ctype,
+                                layer.to_string(),
+                                component_name.to_string(),
+                            );
 
                             let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target })?;
@@ -505,11 +500,11 @@ impl<CT: ComponentType> Graph<CT> {
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(&component_type) {
-                            let c = Component {
-                                ctype: ctype.into(),
-                                layer: layer.to_string(),
-                                name: component_name.to_string(),
-                            };
+                            let c = Component::new(
+                                ctype,
+                                layer.to_string(),
+                                component_name.to_string(),
+                            );
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
@@ -541,11 +536,11 @@ impl<CT: ComponentType> Graph<CT> {
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(&component_type) {
-                            let c = Component {
-                                ctype: ctype.into(),
-                                layer: layer.to_string(),
-                                name: component_name.to_string(),
-                            };
+                            let c = Component::new(
+                                ctype,
+                                layer.to_string(),
+                                component_name.to_string(),
+                            );
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
@@ -653,7 +648,7 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    fn component_path(&self, c: &Component) -> Option<PathBuf> {
+    fn component_path(&self, c: &Component<CT>) -> Option<PathBuf> {
         match self.location {
             Some(ref loc) => {
                 let mut p = PathBuf::from(loc);
@@ -666,7 +661,7 @@ impl<CT: ComponentType> Graph<CT> {
         }
     }
 
-    fn insert_or_copy_writeable(&mut self, c: &Component) -> Result<()> {
+    fn insert_or_copy_writeable(&mut self, c: &Component<CT>) -> Result<()> {
         self.reset_cached_size();
 
         // move the old entry into the ownership of this function
@@ -700,7 +695,7 @@ impl<CT: ComponentType> Graph<CT> {
     }
 
     /// Makes sure the statistics for the given component are up-to-date.
-    pub fn calculate_component_statistics(&mut self, c: &Component) -> Result<()> {
+    pub fn calculate_component_statistics(&mut self, c: &Component<CT>) -> Result<()> {
         self.reset_cached_size();
 
         let mut result: Result<()> = Ok(());
@@ -728,7 +723,7 @@ impl<CT: ComponentType> Graph<CT> {
     /// If the existing component is non-writable, a writable copy of it is created and returned.
     pub fn get_or_create_writable(
         &mut self,
-        c: &Component,
+        c: &Component<CT>,
     ) -> Result<&mut dyn WriteableGraphStorage> {
         self.reset_cached_size();
 
@@ -759,7 +754,7 @@ impl<CT: ComponentType> Graph<CT> {
     }
 
     /// Returns `true` if the graph storage for this specific component is loaded and ready to use.
-    pub fn is_loaded(&self, c: &Component) -> bool {
+    pub fn is_loaded(&self, c: &Component<CT>) -> bool {
         let entry: Option<&Option<Arc<dyn GraphStorage>>> = self.components.get(c);
         if let Some(gs_opt) = entry {
             if gs_opt.is_some() {
@@ -771,7 +766,7 @@ impl<CT: ComponentType> Graph<CT> {
 
     /// Ensure that the graph storages for all component are loaded and ready to use.
     pub fn ensure_loaded_all(&mut self) -> Result<()> {
-        let mut components_to_load: Vec<Component> = Vec::with_capacity(self.components.len());
+        let mut components_to_load: Vec<_> = Vec::with_capacity(self.components.len());
 
         // colllect all missing components
         for (c, gs) in &self.components {
@@ -783,7 +778,7 @@ impl<CT: ComponentType> Graph<CT> {
         self.reset_cached_size();
 
         // load missing components in parallel
-        let loaded_components: Vec<(Component, Result<Arc<dyn GraphStorage>>)> = components_to_load
+        let loaded_components: Vec<(_, Result<Arc<dyn GraphStorage>>)> = components_to_load
             .into_par_iter()
             .map(|c| {
                 info!("Loading component {} from disk", c);
@@ -802,7 +797,7 @@ impl<CT: ComponentType> Graph<CT> {
     }
 
     /// Ensure that the graph storage for a specific component is loaded and ready to use.
-    pub fn ensure_loaded(&mut self, c: &Component) -> Result<()> {
+    pub fn ensure_loaded(&mut self, c: &Component<CT>) -> Result<()> {
         // get and return the reference to the entry if loaded
         let entry: Option<Option<Arc<dyn GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
@@ -819,7 +814,7 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    pub fn optimize_impl(&mut self, c: &Component) -> Result<()> {
+    pub fn optimize_impl(&mut self, c: &Component<CT>) -> Result<()> {
         if let Some(gs) = self.get_graphstorage(c) {
             if let Some(stats) = gs.get_statistics() {
                 let opt_info = registry::get_optimal_impl_heuristic(self, stats);
@@ -862,7 +857,7 @@ impl<CT: ComponentType> Graph<CT> {
     }
 
     /// Get a read-only graph storage copy for the given component `c`.
-    pub fn get_graphstorage(&self, c: &Component) -> Option<Arc<dyn GraphStorage>> {
+    pub fn get_graphstorage(&self, c: &Component<CT>) -> Option<Arc<dyn GraphStorage>> {
         // get and return the reference to the entry if loaded
         let entry: Option<&Option<Arc<dyn GraphStorage>>> = self.components.get(c);
         if let Some(gs_opt) = entry {
@@ -874,7 +869,10 @@ impl<CT: ComponentType> Graph<CT> {
     }
 
     /// Get a read-only graph storage reference for the given component `c`.
-    pub fn get_graphstorage_as_ref<'a>(&'a self, c: &Component) -> Option<&'a dyn GraphStorage> {
+    pub fn get_graphstorage_as_ref<'a>(
+        &'a self,
+        c: &Component<CT>,
+    ) -> Option<&'a dyn GraphStorage> {
         // get and return the reference to the entry if loaded
         let entry: Option<&Option<Arc<dyn GraphStorage>>> = self.components.get(c);
         if let Some(gs_opt) = entry {
@@ -898,36 +896,26 @@ impl<CT: ComponentType> Graph<CT> {
     /// Returns all components of the graph given an optional type (`ctype`) and `name`.
     /// This allows to filter which components to receive.
     /// If you want to retrieve all components, use `None` as value for both arguments.
-    pub fn get_all_components(&self, ctype: Option<CT>, name: Option<&str>) -> Vec<Component> {
+    pub fn get_all_components(&self, ctype: Option<CT>, name: Option<&str>) -> Vec<Component<CT>> {
         if let (Some(ctype), Some(name)) = (&ctype, name) {
-            let ctype: u16 = ctype.clone().into();
             // lookup component from sorted map
-            let mut result: Vec<Component> = Vec::new();
-            let ckey = Component {
-                ctype,
-                name: String::from(name),
-                layer: String::default(),
-            };
+            let mut result: Vec<_> = Vec::new();
+            let ckey = Component::new(ctype.clone(), String::default(), String::from(name));
 
             for (c, _) in self.components.range(ckey..) {
-                if c.name != name || c.ctype != ctype {
+                if c.name != name || &c.get_type() != ctype {
                     break;
                 }
                 result.push(c.clone());
             }
             result
         } else if let Some(ctype) = &ctype {
-            let ctype: u16 = ctype.clone().into();
             // lookup component from sorted map
-            let mut result: Vec<Component> = Vec::new();
-            let ckey = Component {
-                ctype,
-                name: String::default(),
-                layer: String::default(),
-            };
+            let mut result: Vec<_> = Vec::new();
+            let ckey = Component::new(ctype.clone(), String::default(), String::default());
 
             for (c, _) in self.components.range(ckey..) {
-                if c.ctype != ctype {
+                if &c.get_type() != ctype {
                     break;
                 }
                 result.push(c.clone());
@@ -939,10 +927,9 @@ impl<CT: ComponentType> Graph<CT> {
                 self.components
                     .keys()
                     .cloned()
-                    .filter(move |c: &Component| {
+                    .filter(move |c: &Component<CT>| {
                         if let Some(ctype) = ctype.clone() {
-                            let ctype: u16 = ctype.into();
-                            if ctype != c.ctype {
+                            if ctype != c.get_type() {
                                 return false;
                             }
                         }
@@ -990,13 +977,12 @@ mod tests {
         };
         let anno_val = "testValue".to_owned();
 
-        let gs: &mut dyn WriteableGraphStorage = db
-            .get_or_create_writable(&Component {
-                ctype: DefaultComponentType::Edge.into(),
-                layer: String::from("test"),
-                name: String::from("dep"),
-            })
-            .unwrap();
+        let component = Component::new(
+            DefaultComponentType::Edge,
+            String::from("test"),
+            String::from("dep"),
+        );
+        let gs: &mut dyn WriteableGraphStorage = db.get_or_create_writable(&component).unwrap();
 
         gs.add_edge(Edge {
             source: 0,

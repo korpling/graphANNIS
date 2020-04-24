@@ -3,7 +3,10 @@ use crate::{
     graph::GraphStorage,
     AQLComponentType, Graph,
 };
-use graphannis_core::types::{Component, NodeID};
+use graphannis_core::{
+    graph::ANNIS_NS,
+    types::{Component, NodeID},
+};
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -17,23 +20,23 @@ pub struct TokenHelper<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_LEFT: Component = {
-        Component {
-            ctype: AQLComponentType::LeftToken.into(),
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
+    static ref COMPONENT_LEFT: Component<AQLComponentType> = {
+        Component::new(
+            AQLComponentType::LeftToken,
+            ANNIS_NS.to_owned(),
+            "".to_owned(),
+        )
     };
-    static ref COMPONENT_RIGHT: Component = {
-        Component {
-            ctype: AQLComponentType::RightToken.into(),
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
+    static ref COMPONENT_RIGHT: Component<AQLComponentType> = {
+        Component::new(
+            AQLComponentType::RightToken.into(),
+            ANNIS_NS.to_owned(),
+            "".to_owned(),
+        )
     };
 }
 
-pub fn necessary_components(db: &Graph) -> HashSet<Component> {
+pub fn necessary_components(db: &Graph) -> HashSet<Component<AQLComponentType>> {
     let mut result = HashSet::default();
     result.insert(COMPONENT_LEFT.clone());
     result.insert(COMPONENT_RIGHT.clone());

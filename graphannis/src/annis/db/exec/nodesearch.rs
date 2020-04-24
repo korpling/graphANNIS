@@ -91,7 +91,7 @@ impl NodeSearchSpec {
         }
     }
 
-    pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+    pub fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
         if let NodeSearchSpec::AnyToken = self {
             return tokensearch::AnyTokenSearch::necessary_components(db);
         }
@@ -915,7 +915,7 @@ impl<'a> NodeSearch<'a> {
         db: &'a Graph,
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
-        components: HashSet<Component>,
+        components: HashSet<Component<AQLComponentType>>,
         edge_anno_spec: Option<EdgeAnnoSearchSpec>,
     ) -> Result<NodeSearch<'a>> {
         let node_search_desc_1 = node_search_desc.clone();
@@ -923,33 +923,35 @@ impl<'a> NodeSearch<'a> {
 
         let it = components
             .into_iter()
-            .flat_map(move |c: Component| -> Box<dyn Iterator<Item = NodeID>> {
-                if let Some(gs) = db.get_graphstorage_as_ref(&c) {
-                    if let Some(EdgeAnnoSearchSpec::ExactValue {
-                        ref ns,
-                        ref name,
-                        ref val,
-                    }) = edge_anno_spec
-                    {
-                        // for each component get the source nodes with this edge annotation
-                        let anno_storage: &dyn AnnotationStorage<Edge> = gs.get_anno_storage();
+            .flat_map(
+                move |c: Component<AQLComponentType>| -> Box<dyn Iterator<Item = NodeID>> {
+                    if let Some(gs) = db.get_graphstorage_as_ref(&c) {
+                        if let Some(EdgeAnnoSearchSpec::ExactValue {
+                            ref ns,
+                            ref name,
+                            ref val,
+                        }) = edge_anno_spec
+                        {
+                            // for each component get the source nodes with this edge annotation
+                            let anno_storage: &dyn AnnotationStorage<Edge> = gs.get_anno_storage();
 
-                        let it = anno_storage
-                            .exact_anno_search(
-                                ns.as_ref().map(String::as_str),
-                                name,
-                                val.as_ref().map(String::as_str).into(),
-                            )
-                            .map(|m: Match| m.node);
-                        Box::new(it)
+                            let it = anno_storage
+                                .exact_anno_search(
+                                    ns.as_ref().map(String::as_str),
+                                    name,
+                                    val.as_ref().map(String::as_str).into(),
+                                )
+                                .map(|m: Match| m.node);
+                            Box::new(it)
+                        } else {
+                            // for each component get the all its source nodes
+                            gs.source_nodes()
+                        }
                     } else {
-                        // for each component get the all its source nodes
-                        gs.source_nodes()
+                        Box::new(std::iter::empty())
                     }
-                } else {
-                    Box::new(std::iter::empty())
-                }
-            })
+                },
+            )
             .flat_map(move |node: NodeID| {
                 // fetch annotation candidates for the node based on the original description
                 let node_search_desc = node_search_desc_1.clone();

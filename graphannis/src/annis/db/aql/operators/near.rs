@@ -7,7 +7,10 @@ use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
 };
-use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
+use graphannis_core::{
+    graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
+    types::Component,
+};
 
 use rustc_hash::FxHashSet;
 use std;
@@ -28,15 +31,14 @@ struct Near<'a> {
 }
 
 impl BinaryOperatorSpec for NearSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
-        let component_order = Component {
-            ctype: AQLComponentType::Ordering.into(),
-            layer: String::from("annis"),
-            name: self
-                .segmentation
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
+        let component_order = Component::new(
+            AQLComponentType::Ordering,
+            ANNIS_NS.to_owned(),
+            self.segmentation
                 .clone()
                 .unwrap_or_else(|| String::from("")),
-        };
+        );
 
         let mut v = HashSet::default();
         v.insert(component_order.clone());
@@ -66,14 +68,13 @@ impl std::fmt::Display for NearSpec {
 
 impl<'a> Near<'a> {
     pub fn new(graph: &'a Graph, spec: NearSpec) -> Option<Near<'a>> {
-        let component_order = Component {
-            ctype: AQLComponentType::Ordering.into(),
-            layer: String::from("annis"),
-            name: spec
-                .segmentation
+        let component_order = Component::new(
+            AQLComponentType::Ordering,
+            ANNIS_NS.to_owned(),
+            spec.segmentation
                 .clone()
                 .unwrap_or_else(|| String::from("")),
-        };
+        );
 
         let gs_order = graph.get_graphstorage(&component_order)?;
 

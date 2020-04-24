@@ -12,6 +12,7 @@ use strum_macros::{EnumIter, EnumString};
 use super::serializer::{FixedSizeKeySerializer, KeySerializer};
 use crate::graph::{update::UpdateEvent, Graph};
 use anyhow::Result;
+use fmt::Debug;
 use malloc_size_of::MallocSizeOf;
 
 /// Unique internal identifier for a single node.
@@ -107,7 +108,9 @@ impl FixedSizeKeySerializer for Edge {
     }
 }
 
-pub trait ComponentType: Into<u16> + From<u16> + FromStr + ToString + Send + Sync + Clone {
+pub trait ComponentType:
+    Into<u16> + From<u16> + FromStr + ToString + Send + Sync + Clone + Debug + Ord
+{
     type UpdateGraphIndex;
     fn init_graph_update_index(_graph: &Graph<Self>) -> Result<Self::UpdateGraphIndex>;
 
@@ -134,13 +137,13 @@ pub trait ComponentType: Into<u16> + From<u16> + FromStr + ToString + Send + Syn
 
     fn all_component_types() -> Vec<Self>;
 
-    fn default_components() -> Vec<Component> {
+    fn default_components() -> Vec<Component<Self>> {
         Vec::default()
     }
 }
 
 /// A simplified implementation of a `ComponentType` that only has one type of edges.
-#[derive(Clone, EnumString, EnumIter, Debug)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Ord, EnumString, EnumIter, Debug)]
 pub enum DefaultComponentType {
     Edge,
 }
@@ -179,18 +182,42 @@ impl ComponentType for DefaultComponentType {
 #[derive(
     Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, MallocSizeOf,
 )]
-pub struct Component {
+pub struct Component<CT: ComponentType> {
     /// Type of the component
-    pub ctype: u16,
+    ctype: u16,
     /// Name of the component
     pub name: String,
     /// A layer name which allows to group different components into the same layer. Can be empty.
     pub layer: String,
+
+    phantom: std::marker::PhantomData<CT>,
 }
 
-impl std::fmt::Display for Component {
+impl<CT: ComponentType> Component<CT> {
+    pub fn new(ctype: CT, layer: String, name: String) -> Component<CT> {
+        Component {
+            ctype: ctype.into(),
+            name,
+            layer,
+            phantom: std::marker::PhantomData::<CT>::default(),
+        }
+    }
+
+    /// Get type of the component
+    pub fn get_type(&self) -> CT {
+        self.ctype.into()
+    }
+
+    /// Set type of the component
+    pub fn set_type(&mut self, ctype: CT) {
+        self.ctype = ctype.into();
+    }
+}
+
+impl<CT: ComponentType> std::fmt::Display for Component<CT> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{:?}/{}/{}", self.ctype, self.layer, self.name)
+        let ctype: CT = self.ctype.into();
+        write!(f, "{:?}/{}/{}", ctype, self.layer, self.name)
     }
 }
 

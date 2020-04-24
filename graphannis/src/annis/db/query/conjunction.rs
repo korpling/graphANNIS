@@ -6,7 +6,7 @@ use crate::annis::db::exec::nestedloop::NestedLoop;
 use crate::annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use crate::annis::db::exec::parallel;
 use crate::annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
-use crate::annis::db::AnnotationStorage;
+use crate::annis::db::{aql::model::AQLComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
@@ -365,7 +365,7 @@ impl<'a> Conjunction<'a> {
         .into())
     }
 
-    pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+    pub fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
         let mut result = HashSet::default();
 
         for op_entry in &self.unary_operators {

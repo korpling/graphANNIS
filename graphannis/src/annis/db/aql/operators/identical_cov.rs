@@ -6,7 +6,10 @@ use crate::{
     graph::{GraphStorage, Match},
     AQLComponentType, Graph,
 };
-use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
+use graphannis_core::{
+    graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
+    types::Component,
+};
 
 use std;
 use std::collections::HashSet;
@@ -23,24 +26,24 @@ pub struct IdenticalCoverage<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_LEFT: Component = {
-        Component {
-            ctype: AQLComponentType::LeftToken.into(),
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
+    static ref COMPONENT_LEFT: Component<AQLComponentType> = {
+        Component::new(
+            AQLComponentType::LeftToken,
+            ANNIS_NS.to_owned(),
+            "".to_owned(),
+        )
     };
-    static ref COMPONENT_ORDER: Component = {
-        Component {
-            ctype: AQLComponentType::Ordering.into(),
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
+    static ref COMPONENT_ORDER: Component<AQLComponentType> = {
+        Component::new(
+            AQLComponentType::Ordering,
+            ANNIS_NS.to_owned(),
+            "".to_owned(),
+        )
     };
 }
 
 impl BinaryOperatorSpec for IdenticalCoverageSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
         let mut v = HashSet::new();
         v.insert(COMPONENT_LEFT.clone());
         v.insert(COMPONENT_ORDER.clone());

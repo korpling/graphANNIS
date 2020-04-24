@@ -7,7 +7,10 @@ use crate::{
     graph::{GraphStorage, Match},
     AQLComponentType,
 };
-use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
+use graphannis_core::{
+    graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
+    types::Component,
+};
 
 use std;
 use std::collections::{HashSet, VecDeque};
@@ -22,17 +25,17 @@ pub struct Inclusion<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_ORDER: Component = {
-        Component {
-            ctype: AQLComponentType::Ordering.into(),
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
+    static ref COMPONENT_ORDER: Component<AQLComponentType> = {
+        Component::new(
+            AQLComponentType::Ordering,
+            ANNIS_NS.to_owned(),
+            "".to_owned(),
+        )
     };
 }
 
 impl BinaryOperatorSpec for InclusionSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
         let mut v = HashSet::default();
         v.insert(COMPONENT_ORDER.clone());
         v.extend(token_helper::necessary_components(db));

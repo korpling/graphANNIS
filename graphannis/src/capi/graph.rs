@@ -13,7 +13,7 @@ use std::sync::Arc;
 #[no_mangle]
 pub extern "C" fn annis_component_type(c: *const Component) -> AQLComponentType {
     let c: &Component = cast_const!(c);
-    return c.ctype.into();
+    return c.get_type();
 }
 
 /// Get the layer of the given component.

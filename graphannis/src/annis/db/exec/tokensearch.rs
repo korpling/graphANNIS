@@ -5,7 +5,7 @@ use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::{annis::db::token_helper::TokenHelper, graph::Match, AQLComponentType, Graph};
 use graphannis_core::{
-    graph::{storage::GraphStorage, NODE_TYPE_KEY},
+    graph::{storage::GraphStorage, ANNIS_NS, NODE_TYPE_KEY},
     types::{AnnoKey, Component, NodeID},
 };
 
@@ -25,12 +25,12 @@ pub struct AnyTokenSearch<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_ORDER: Component = {
-        Component {
-            ctype: AQLComponentType::Ordering.into(),
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
+    static ref COMPONENT_ORDER: Component<AQLComponentType> = {
+        Component::new(
+            AQLComponentType::Ordering,
+            ANNIS_NS.to_owned(),
+            "".to_owned(),
+        )
     };
 }
 
@@ -48,7 +48,7 @@ impl<'a> AnyTokenSearch<'a> {
         })
     }
 
-    pub fn necessary_components(db: &Graph) -> HashSet<Component> {
+    pub fn necessary_components(db: &Graph) -> HashSet<Component<AQLComponentType>> {
         let mut components = token_helper::necessary_components(db);
         components.insert(COMPONENT_ORDER.clone());
         components

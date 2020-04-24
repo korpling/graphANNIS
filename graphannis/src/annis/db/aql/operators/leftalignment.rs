@@ -1,5 +1,5 @@
 use crate::annis::db::token_helper;
-use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::db::{aql::model::AQLComponentType, token_helper::TokenHelper};
 use crate::annis::operator::BinaryOperator;
 use crate::annis::operator::BinaryOperatorSpec;
 use crate::Graph;
@@ -16,7 +16,7 @@ pub struct LeftAlignment<'a> {
 }
 
 impl BinaryOperatorSpec for LeftAlignmentSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
         let mut v = HashSet::default();
         v.extend(token_helper::necessary_components(db));
         v

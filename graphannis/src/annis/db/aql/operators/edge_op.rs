@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 struct BaseEdgeOpSpec {
-    pub components: Vec<Component>,
+    pub components: Vec<Component<AQLComponentType>>,
     pub dist: RangeSpec,
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
     pub is_reflexive: bool,
@@ -51,7 +51,7 @@ impl BaseEdgeOp {
 }
 
 impl BinaryOperatorSpec for BaseEdgeOpSpec {
-    fn necessary_components(&self, _db: &Graph) -> HashSet<Component> {
+    fn necessary_components(&self, _db: &Graph) -> HashSet<Component<AQLComponentType>> {
         HashSet::from_iter(self.components.clone())
     }
 
@@ -498,7 +498,7 @@ pub struct DominanceSpec {
 }
 
 impl BinaryOperatorSpec for DominanceSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
         HashSet::from_iter(
             db.get_all_components(Some(AQLComponentType::Dominance), Some(&self.name)),
         )
@@ -530,7 +530,7 @@ pub struct PointingSpec {
 }
 
 impl BinaryOperatorSpec for PointingSpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
         HashSet::from_iter(
             db.get_all_components(Some(AQLComponentType::Pointing), Some(&self.name)),
         )
@@ -561,22 +561,22 @@ pub struct PartOfSubCorpusSpec {
 }
 
 impl BinaryOperatorSpec for PartOfSubCorpusSpec {
-    fn necessary_components(&self, _db: &Graph) -> HashSet<Component> {
+    fn necessary_components(&self, _db: &Graph) -> HashSet<Component<AQLComponentType>> {
         let mut components = HashSet::default();
-        components.insert(Component {
-            ctype: AQLComponentType::PartOf.into(),
-            layer: String::from(ANNIS_NS),
-            name: String::from(""),
-        });
+        components.insert(Component::new(
+            AQLComponentType::PartOf,
+            ANNIS_NS.to_owned(),
+            "".to_owned(),
+        ));
         components
     }
 
     fn create_operator<'a>(&self, db: &'a Graph) -> Option<Box<dyn BinaryOperator + 'a>> {
-        let components = vec![Component {
-            ctype: AQLComponentType::PartOf.into(),
-            layer: String::from(ANNIS_NS),
-            name: String::from(""),
-        }];
+        let components = vec![Component::new(
+            AQLComponentType::PartOf,
+            ANNIS_NS.to_owned(),
+            "".to_owned(),
+        )];
         let base = BaseEdgeOpSpec {
             op_str: Some(String::from("@")),
             components,

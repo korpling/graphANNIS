@@ -59,7 +59,9 @@ pub mod graph {
     pub use graphannis_core::annostorage::Match;
     pub use graphannis_core::graph::storage::GraphStatistic;
     pub use graphannis_core::graph::storage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
-    pub use graphannis_core::types::{AnnoKey, Annotation, Component, Edge, NodeID};
+    pub use graphannis_core::types::{AnnoKey, Annotation, Edge, NodeID};
+    use crate::annis::db::aql::model::AQLComponentType;
+    pub type Component = graphannis_core::types::Component<AQLComponentType>;
 }
 
 /// Contains the graphANNIS-specific error types.

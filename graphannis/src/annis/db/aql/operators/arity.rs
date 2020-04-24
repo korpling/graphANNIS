@@ -21,7 +21,7 @@ pub struct AritySpec {
 }
 
 impl UnaryOperatorSpec for AritySpec {
-    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
         let mut result = HashSet::default();
         result.extend(db.get_all_components(Some(AQLComponentType::Dominance), None));
         result.extend(db.get_all_components(Some(AQLComponentType::Pointing), None));

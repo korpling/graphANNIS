@@ -3,7 +3,7 @@ use crate::annis::db::AnnotationStorage;
 use crate::Graph;
 use crate::{
     annis::{
-        db::aql::model::{TOK, TOKEN_KEY},
+        db::aql::model::{TOK, TOKEN_KEY, AQLComponentType},
         operator::*,
     },
     graph::Match,
@@ -25,7 +25,7 @@ pub struct EqualValueSpec {
 }
 
 impl BinaryOperatorSpec for EqualValueSpec {
-    fn necessary_components(&self, _db: &Graph) -> HashSet<Component> {
+    fn necessary_components(&self, _db: &Graph) -> HashSet<Component<AQLComponentType>> {
         HashSet::default()
     }
 

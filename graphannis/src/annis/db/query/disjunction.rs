@@ -1,5 +1,5 @@
 use super::conjunction::Conjunction;
-use crate::Graph;
+use crate::{annis::db::aql::model::AQLComponentType, Graph};
 use graphannis_core::types::Component;
 use std::collections::HashSet;
 
@@ -12,7 +12,7 @@ impl<'a> Disjunction<'a> {
         Disjunction { alternatives }
     }
 
-    pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+    pub fn necessary_components(&self, db: &Graph) -> HashSet<Component<AQLComponentType>> {
         let mut result = HashSet::default();
 
         for alt in &self.alternatives {

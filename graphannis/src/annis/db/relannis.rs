@@ -166,12 +166,12 @@ struct TextPosTable {
 }
 
 struct LoadRankResult {
-    components_by_pre: DiskMap<u32, Component>,
+    components_by_pre: DiskMap<u32, Component<AQLComponentType>>,
     edges_by_pre: DiskMap<u32, Edge>,
     text_coverage_edges: DiskMap<Edge, bool>,
     /// Some rank entries have NULL as parent: we don't add an edge but remember the component name
     /// for re-creating omitted coverage edges with the correct name.
-    component_for_parentless_target_node: DiskMap<NodeID, Component>,
+    component_for_parentless_target_node: DiskMap<NodeID, Component<AQLComponentType>>,
 }
 
 struct LoadNodeAndCorpusResult {
@@ -1051,7 +1051,7 @@ fn load_component_tab<F>(
     path: &PathBuf,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<BTreeMap<u32, Component>>
+) -> Result<BTreeMap<u32, Component<AQLComponentType>>>
 where
     F: Fn(&str) -> (),
 {
@@ -1067,7 +1067,7 @@ where
         component_tab_path.to_str().unwrap_or_default()
     ));
 
-    let mut component_by_id: BTreeMap<u32, Component> = BTreeMap::new();
+    let mut component_by_id: BTreeMap<u32, Component<AQLComponentType>> = BTreeMap::new();
 
     let mut component_tab_csv = postgresql_import_reader(component_tab_path.as_path())?;
     for result in component_tab_csv.records() {
@@ -1086,11 +1086,7 @@ where
             let ctype = component_type_from_short_name(&col_type)?;
             component_by_id.insert(
                 cid,
-                Component {
-                    ctype: ctype.into(),
-                    layer,
-                    name,
-                },
+                Component::new(ctype, layer, name),
             );
         }
     }
@@ -1136,7 +1132,7 @@ where
 fn load_rank_tab<F>(
     path: &PathBuf,
     updates: &mut GraphUpdate,
-    component_by_id: &BTreeMap<u32, Component>,
+    component_by_id: &BTreeMap<u32, Component<AQLComponentType>>,
     id_to_node_name: &DiskMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
@@ -1200,7 +1196,7 @@ where
         let parent_as_str = line.get(pos_parent).ok_or(anyhow!("Missing column"))?;
         if parent_as_str == "NULL" {
             if let Some(c) = component_by_id.get(&component_ref) {
-                if c.ctype == AQLComponentType::Coverage.into() {
+                if c.get_type() == AQLComponentType::Coverage {
                     load_rank_result
                         .component_for_parentless_target_node
                         .insert(target, c.clone())?;
@@ -1221,7 +1217,7 @@ where
                             .ok_or(anyhow!("Missing node name"))?
                             .to_owned(),
                         layer: c.layer.clone(),
-                        component_type: c.ctype.to_string(),
+                        component_type: c.get_type().to_string(),
                         component_name: c.name.clone(),
                     })?;
 
@@ -1232,7 +1228,7 @@ where
                         target,
                     };
 
-                    if c.ctype == AQLComponentType::Coverage.into() {
+                    if c.get_type() == AQLComponentType::Coverage {
                         load_rank_result
                             .text_coverage_edges
                             .insert(e.clone(), true)?;
@@ -1304,7 +1300,7 @@ where
                         .ok_or(anyhow!("Missing node name"))?
                         .to_owned(),
                     layer: c.layer.clone(),
-                    component_type: c.ctype.to_string(),
+                    component_type: c.get_type().to_string(),
                     component_name: c.name.clone(),
                     anno_ns: ns,
                     anno_name: name,

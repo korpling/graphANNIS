@@ -78,7 +78,7 @@ pub enum LoadStatus {
 /// Information about a single graph storage of the corpus.
 pub struct GraphStorageInfo {
     /// The component this graph storage belongs to.
-    pub component: Component,
+    pub component: Component<AQLComponentType>,
     /// Indicates if the graph storage is loaded or not.
     pub load_status: LoadStatus,
     /// Number of edge annotations in this graph storage.
@@ -640,14 +640,14 @@ impl CorpusStorage {
     fn get_loaded_entry_with_components(
         &self,
         corpus_name: &str,
-        components: Vec<Component>,
+        components: Vec<Component<AQLComponentType>>,
     ) -> Result<Arc<RwLock<CacheEntry>>> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let missing_components = {
             let lock = db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
 
-            let mut missing: HashSet<Component> = HashSet::new();
+            let mut missing: HashSet<_> = HashSet::new();
             for c in components {
                 if !db.is_loaded(&c) {
                     missing.insert(c);
@@ -673,7 +673,7 @@ impl CorpusStorage {
             let lock = db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
 
-            let mut missing: HashSet<Component> = HashSet::new();
+            let mut missing: HashSet<_> = HashSet::new();
             for c in db.get_all_components(None, None) {
                 if !db.is_loaded(&c) {
                     missing.insert(c);
@@ -850,7 +850,7 @@ impl CorpusStorage {
         additional_components_callback: F,
     ) -> Result<PreparationResult<'a>>
     where
-        F: FnOnce(&Graph) -> Vec<Component>,
+        F: FnOnce(&Graph) -> Vec<Component<AQLComponentType>>,
     {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
 
@@ -866,7 +866,7 @@ impl CorpusStorage {
 
             let necessary_components = q.necessary_components(db);
 
-            let mut missing: HashSet<Component> =
+            let mut missing: HashSet<_> =
                 HashSet::from_iter(necessary_components.iter().cloned());
 
             let additional_components = additional_components_callback(db);
@@ -880,7 +880,7 @@ impl CorpusStorage {
                     missing.remove(c);
                 }
             }
-            let missing: Vec<Component> = missing.into_iter().collect();
+            let missing: Vec<_> = missing.into_iter().collect();
             (q, missing)
         };
 
@@ -1121,11 +1121,11 @@ impl CorpusStorage {
                 tmp_results.shuffle(&mut rng);
             } else {
                 let token_helper = TokenHelper::new(db);
-                let component_order = Component {
-                    ctype: AQLComponentType::Ordering.into(),
-                    layer: String::from("annis"),
-                    name: String::from(""),
-                };
+                let component_order = Component::new(
+                    AQLComponentType::Ordering,
+                    ANNIS_NS.to_owned(),
+                    "".to_owned(),
+                );
 
                 let collation = if quirks_mode && !relannis_version_33 {
                     CollationType::Locale
@@ -1190,11 +1190,11 @@ impl CorpusStorage {
         order: ResultOrder,
     ) -> Result<(Vec<String>, usize)> {
         let prep = self.prepare_query(corpus_name, query, query_language, |db| {
-            let mut additional_components = vec![Component {
-                ctype: AQLComponentType::Ordering.into(),
-                layer: String::from("annis"),
-                name: String::from(""),
-            }];
+            let mut additional_components = vec![Component::new(
+                AQLComponentType::Ordering,
+                ANNIS_NS.to_owned(),
+                "".to_owned(),
+            )];
             if order == ResultOrder::Normal || order == ResultOrder::Inverted {
                 for c in token_helper::necessary_components(db) {
                     additional_components.push(c);
@@ -1715,7 +1715,7 @@ impl CorpusStorage {
         corpus_name: &str,
         ctype: Option<AQLComponentType>,
         name: Option<&str>,
-    ) -> Vec<Component> {
+    ) -> Vec<Component<AQLComponentType>> {
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
@@ -1781,7 +1781,7 @@ impl CorpusStorage {
     pub fn list_edge_annotations(
         &self,
         corpus_name: &str,
-        component: &Component,
+        component: &Component<AQLComponentType>,
         list_values: bool,
         only_most_frequent_values: bool,
     ) -> Vec<Annotation> {
@@ -1998,12 +1998,12 @@ fn create_subgraph_edge(
     source_id: NodeID,
     db: &mut Graph,
     orig_db: &Graph,
-    components: &[Component],
+    components: &[Component<AQLComponentType>],
 ) -> Result<()> {
     // find outgoing edges
     for c in components {
         // don't include index components
-        let ctype: AQLComponentType = c.ctype.into();
+        let ctype = c.get_type();
         if !((ctype == AQLComponentType::Coverage && c.layer == "annis" && c.name != "")
             || ctype == AQLComponentType::RightToken
             || ctype == AQLComponentType::LeftToken)

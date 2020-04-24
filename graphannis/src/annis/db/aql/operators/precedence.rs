@@ -5,10 +5,10 @@ use crate::annis::operator::EstimationType;
 use crate::Graph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
-    graph::{GraphStorage, Match},
+    graph::{Component, GraphStorage, Match},
     AQLComponentType,
 };
-use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
+use graphannis_core::graph::{ANNIS_NS, DEFAULT_ANNO_KEY};
 
 use std;
 use std::collections::{HashSet, VecDeque};
@@ -30,31 +30,30 @@ pub struct Precedence<'a> {
 
 lazy_static! {
     static ref COMPONENT_LEFT: Component = {
-        Component {
-            ctype: AQLComponentType::LeftToken.into(),
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
+        Component::new(
+            AQLComponentType::LeftToken,
+            ANNIS_NS.to_owned(),
+            "".to_owned(),
+        )
     };
     static ref COMPONENT_RIGHT: Component = {
-        Component {
-            ctype: AQLComponentType::RightToken.into(),
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
+        Component::new(
+            AQLComponentType::RightToken,
+            ANNIS_NS.to_owned(),
+            "".to_owned(),
+        )
     };
 }
 
 impl BinaryOperatorSpec for PrecedenceSpec {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
-        let component_order = Component {
-            ctype: AQLComponentType::Ordering.into(),
-            layer: String::from("annis"),
-            name: self
-                .segmentation
+        let component_order = Component::new(
+            AQLComponentType::Ordering,
+            ANNIS_NS.to_owned(),
+            self.segmentation
                 .clone()
                 .unwrap_or_else(|| String::from("")),
-        };
+        );
 
         let mut v = HashSet::default();
         v.insert(component_order.clone());
@@ -86,14 +85,13 @@ impl std::fmt::Display for PrecedenceSpec {
 
 impl<'a> Precedence<'a> {
     pub fn new(graph: &'a Graph, spec: PrecedenceSpec) -> Option<Precedence<'a>> {
-        let component_order = Component {
-            ctype: AQLComponentType::Ordering.into(),
-            layer: String::from("annis"),
-            name: spec
-                .segmentation
+        let component_order = Component::new(
+            AQLComponentType::Ordering,
+            ANNIS_NS.to_owned(),
+            spec.segmentation
                 .clone()
                 .unwrap_or_else(|| String::from("")),
-        };
+        );
 
         let gs_order = graph.get_graphstorage(&component_order)?;
         let gs_left = graph.get_graphstorage(&COMPONENT_LEFT)?;

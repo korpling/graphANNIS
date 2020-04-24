@@ -137,31 +137,31 @@ impl AQLUpdateGraphIndex {
     ) -> Result<()> {
         {
             // remove existing left/right token edges for the invalidated nodes
-            let gs_left = graph.get_or_create_writable(&Component {
-                ctype: AQLComponentType::LeftToken.into(),
-                name: "".to_owned(),
-                layer: ANNIS_NS.to_owned(),
-            })?;
+            let gs_left = graph.get_or_create_writable(&Component::new(
+                AQLComponentType::LeftToken,
+                ANNIS_NS.to_owned(),
+                "".to_owned(),
+            ))?;
 
             for (n, _) in self.invalid_nodes.iter() {
                 gs_left.delete_node(n)?;
             }
 
-            let gs_right = graph.get_or_create_writable(&Component {
-                ctype: AQLComponentType::RightToken.into(),
-                name: "".to_owned(),
-                layer: ANNIS_NS.to_owned(),
-            })?;
+            let gs_right = graph.get_or_create_writable(&Component::new(
+                AQLComponentType::RightToken,
+                ANNIS_NS.to_owned(),
+                "".to_owned(),
+            ))?;
 
             for (n, _) in self.invalid_nodes.iter() {
                 gs_right.delete_node(n)?;
             }
 
-            let gs_cov = graph.get_or_create_writable(&Component {
-                ctype: AQLComponentType::Coverage.into(),
-                name: "inherited-coverage".to_owned(),
-                layer: ANNIS_NS.to_owned(),
-            })?;
+            let gs_cov = graph.get_or_create_writable(&Component::new(
+                AQLComponentType::Coverage,
+                ANNIS_NS.to_owned(),
+                "inherited-coverage".to_owned(),
+            ))?;
             for (n, _) in self.invalid_nodes.iter() {
                 gs_cov.delete_node(n)?;
             }
@@ -244,11 +244,11 @@ impl AQLUpdateGraphIndex {
             }
         }
 
-        if let Ok(gs_cov) = graph.get_or_create_writable(&Component {
-            ctype: AQLComponentType::Coverage.into(),
-            name: "inherited-coverage".to_owned(),
-            layer: ANNIS_NS.to_owned(),
-        }) {
+        if let Ok(gs_cov) = graph.get_or_create_writable(&Component::new(
+            AQLComponentType::Coverage,
+            ANNIS_NS.to_owned(),
+            "inherited-coverage".to_owned(),
+        )) {
             for t in covered_token.iter() {
                 gs_cov.add_edge(Edge {
                     source: n,
@@ -269,11 +269,7 @@ impl AQLUpdateGraphIndex {
         all_cov_gs: &[Arc<dyn GraphStorage>],
         all_dom_gs: &[Arc<dyn GraphStorage>],
     ) -> Result<Option<NodeID>> {
-        let alignment_component = Component {
-            ctype: ctype.clone().into(),
-            name: "".to_owned(),
-            layer: ANNIS_NS.to_owned(),
-        };
+        let alignment_component = Component::new(ctype.clone(), ANNIS_NS.to_owned(), "".to_owned());
 
         // if this is a token, return the token itself
         if graph
@@ -366,31 +362,27 @@ impl ComponentType for AQLComponentType {
 
     fn default_components() -> Vec<Component> {
         vec![
-            Component {
-                ctype: AQLComponentType::Coverage.into(),
-                layer: ANNIS_NS.to_owned(),
-                name: "".to_owned(),
-            },
-            Component {
-                ctype: AQLComponentType::Ordering.into(),
-                layer: ANNIS_NS.to_owned(),
-                name: "".to_owned(),
-            },
-            Component {
-                ctype: AQLComponentType::LeftToken.into(),
-                layer: ANNIS_NS.to_owned(),
-                name: "".to_owned(),
-            },
-            Component {
-                ctype: AQLComponentType::RightToken.into(),
-                layer: ANNIS_NS.to_owned(),
-                name: "".to_owned(),
-            },
-            Component {
-                ctype: AQLComponentType::PartOf.into(),
-                layer: ANNIS_NS.to_owned(),
-                name: "".to_owned(),
-            },
+            Component::new(
+                AQLComponentType::Coverage,
+                ANNIS_NS.to_owned(),
+                "".to_owned(),
+            ),
+            Component::new(
+                AQLComponentType::Ordering,
+                ANNIS_NS.to_owned(),
+                "".to_owned(),
+            ),
+            Component::new(
+                AQLComponentType::LeftToken,
+                ANNIS_NS.to_owned(),
+                "".to_owned(),
+            ),
+            Component::new(
+                AQLComponentType::RightToken,
+                ANNIS_NS.to_owned(),
+                "".to_owned(),
+            ),
+            Component::new(AQLComponentType::PartOf, ANNIS_NS.to_owned(), "".to_owned()),
         ]
     }
 
@@ -493,11 +485,7 @@ impl ComponentType for AQLComponentType {
                         && component_name.is_empty()
                     {
                         // might be a new text coverage component
-                        let c = Component {
-                            ctype: ctype.clone().into(),
-                            layer: layer,
-                            name: component_name,
-                        };
+                        let c = Component::new(ctype.clone(), layer, component_name);
                         index.text_coverage_components.insert(c.clone());
                     }
 
@@ -535,11 +523,7 @@ impl ComponentType for AQLComponentType {
 
         // Re-index the inherited coverage component.
         // To make this operation fast, we need to optimize the order component first
-        let order_component = Component {
-            ctype: AQLComponentType::Ordering.into(),
-            layer: ANNIS_NS.to_owned(),
-            name: "".to_owned(),
-        };
+        let order_component = Component::new(AQLComponentType::Ordering, ANNIS_NS.to_owned(), "".to_owned());
         let order_stats_exist = graph
             .get_graphstorage(&order_component)
             .map(|gs_order| gs_order.get_statistics().is_some())

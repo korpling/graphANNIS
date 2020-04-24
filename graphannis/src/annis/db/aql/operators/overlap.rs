@@ -4,12 +4,12 @@ use crate::annis::operator::EstimationType;
 use crate::Graph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
-    graph::{GraphStorage, Match},
+    graph::{Component, GraphStorage, Match},
     AQLComponentType,
 };
 use graphannis_core::{
-    graph::DEFAULT_ANNO_KEY,
-    types::{Component, NodeID},
+    graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
+    types::NodeID,
 };
 use rustc_hash::FxHashSet;
 
@@ -32,11 +32,11 @@ pub struct Overlap<'a> {
 
 lazy_static! {
     static ref COMPONENT_ORDER: Component = {
-        Component {
-            ctype: AQLComponentType::Ordering.into(),
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
+        Component::new(
+            AQLComponentType::Ordering,
+            ANNIS_NS.to_owned(),
+            "".to_owned(),
+        )
     };
 }
 
