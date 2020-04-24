@@ -99,19 +99,6 @@ fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<dyn G
     Ok(gs)
 }
 
-fn component_to_relative_path(c: &Component) -> PathBuf {
-    let mut p = PathBuf::new();
-    p.push("gs");
-    p.push(c.ctype.to_string());
-    p.push(if c.layer.is_empty() {
-        "default_layer"
-    } else {
-        &c.layer
-    });
-    p.push(&c.name);
-    p
-}
-
 impl<CT: ComponentType> Graph<CT> {
     /// Create a new and empty instance without any location on the disk.
     pub fn new(disk_based: bool) -> Result<Self> {
@@ -233,6 +220,20 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
+    fn component_to_relative_path(&self, c: &Component) -> PathBuf {
+        let mut p = PathBuf::new();
+        p.push("gs");
+        let ctype: CT = c.ctype.into();
+        p.push(ctype.to_string());
+        p.push(if c.layer.is_empty() {
+            "default_layer"
+        } else {
+            &c.layer
+        });
+        p.push(&c.name);
+        p
+    }
+
     fn find_components_from_disk(&mut self, location: &Path) -> Result<()> {
         self.components.clear();
 
@@ -253,7 +254,7 @@ impl<CT: ComponentType> Graph<CT> {
                         };
                         {
                             let cfg_file = PathBuf::from(location)
-                                .join(component_to_relative_path(&empty_name_component))
+                                .join(self.component_to_relative_path(&empty_name_component))
                                 .join("impl.cfg");
 
                             if cfg_file.is_file() {
@@ -270,7 +271,7 @@ impl<CT: ComponentType> Graph<CT> {
                                 name: name.file_name().to_string_lossy().to_string(),
                             };
                             let cfg_file = PathBuf::from(location)
-                                .join(component_to_relative_path(&named_component))
+                                .join(self.component_to_relative_path(&named_component))
                                 .join("impl.cfg");
 
                             if cfg_file.is_file() {
@@ -294,7 +295,7 @@ impl<CT: ComponentType> Graph<CT> {
 
         for (c, e) in &self.components {
             if let Some(ref data) = *e {
-                let dir = PathBuf::from(&location).join(component_to_relative_path(c));
+                let dir = PathBuf::from(&location).join(self.component_to_relative_path(c));
                 std::fs::create_dir_all(&dir)?;
 
                 let impl_name = data.serialization_id();
@@ -658,7 +659,7 @@ impl<CT: ComponentType> Graph<CT> {
                 let mut p = PathBuf::from(loc);
                 // don't use the backup-folder per default
                 p.push("current");
-                p.push(component_to_relative_path(c));
+                p.push(self.component_to_relative_path(c));
                 Some(p)
             }
             None => None,
