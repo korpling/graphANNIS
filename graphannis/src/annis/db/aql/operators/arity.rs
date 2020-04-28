@@ -21,7 +21,10 @@ pub struct AritySpec {
 }
 
 impl UnaryOperatorSpec for AritySpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    fn necessary_components(
+        &self,
+        db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         let mut result = HashSet::default();
         result.extend(db.get_all_components(Some(AnnotationComponentType::Dominance), None));
         result.extend(db.get_all_components(Some(AnnotationComponentType::Pointing), None));

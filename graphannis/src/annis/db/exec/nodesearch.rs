@@ -91,7 +91,10 @@ impl NodeSearchSpec {
         }
     }
 
-    pub fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    pub fn necessary_components(
+        &self,
+        db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         if let NodeSearchSpec::AnyToken = self {
             return tokensearch::AnyTokenSearch::necessary_components(db);
         }

@@ -1,5 +1,8 @@
 use crate::{
-    annis::db::{aql::model::{TOKEN_KEY, AnnotationComponentType}, AnnotationStorage},
+    annis::db::{
+        aql::model::{AnnotationComponentType, TOKEN_KEY},
+        AnnotationStorage,
+    },
     graph::GraphStorage,
     AnnotationGraph,
 };

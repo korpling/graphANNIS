@@ -188,7 +188,10 @@ impl<'a> BinaryOperator for Precedence<'a> {
         EstimationType::SELECTIVITY(0.1)
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Option<Box<dyn BinaryOperator + 'b>> {
         // Check if order graph storages has the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         if !self.gs_order.inverse_has_same_cost() {
@@ -275,7 +278,10 @@ impl<'a> BinaryOperator for InversePrecedence<'a> {
         )
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Option<Box<dyn BinaryOperator + 'b>> {
         let prec = Precedence {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),

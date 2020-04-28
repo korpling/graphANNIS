@@ -51,7 +51,10 @@ impl BaseEdgeOp {
 }
 
 impl BinaryOperatorSpec for BaseEdgeOpSpec {
-    fn necessary_components(&self, _db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    fn necessary_components(
+        &self,
+        _db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         HashSet::from_iter(self.components.clone())
     }
 
@@ -336,7 +339,10 @@ impl BinaryOperator for BaseEdgeOp {
         self.spec.is_reflexive
     }
 
-    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator>> {
+    fn get_inverse_operator<'a>(
+        &self,
+        _graph: &'a AnnotationGraph,
+    ) -> Option<Box<dyn BinaryOperator>> {
         // Check if all graph storages have the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         for g in &self.gs {
@@ -498,14 +504,18 @@ pub struct DominanceSpec {
 }
 
 impl BinaryOperatorSpec for DominanceSpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    fn necessary_components(
+        &self,
+        db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         HashSet::from_iter(
             db.get_all_components(Some(AnnotationComponentType::Dominance), Some(&self.name)),
         )
     }
 
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
-        let components = db.get_all_components(Some(AnnotationComponentType::Dominance), Some(&self.name));
+        let components =
+            db.get_all_components(Some(AnnotationComponentType::Dominance), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from(">")
         } else {
@@ -530,14 +540,18 @@ pub struct PointingSpec {
 }
 
 impl BinaryOperatorSpec for PointingSpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    fn necessary_components(
+        &self,
+        db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         HashSet::from_iter(
             db.get_all_components(Some(AnnotationComponentType::Pointing), Some(&self.name)),
         )
     }
 
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
-        let components = db.get_all_components(Some(AnnotationComponentType::Pointing), Some(&self.name));
+        let components =
+            db.get_all_components(Some(AnnotationComponentType::Pointing), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from("->")
         } else {
@@ -561,7 +575,10 @@ pub struct PartOfSubCorpusSpec {
 }
 
 impl BinaryOperatorSpec for PartOfSubCorpusSpec {
-    fn necessary_components(&self, _db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    fn necessary_components(
+        &self,
+        _db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         let mut components = HashSet::default();
         components.insert(Component::new(
             AnnotationComponentType::PartOf,

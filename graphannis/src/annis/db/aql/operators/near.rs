@@ -31,7 +31,10 @@ struct Near<'a> {
 }
 
 impl BinaryOperatorSpec for NearSpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    fn necessary_components(
+        &self,
+        db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         let component_order = Component::new(
             AnnotationComponentType::Ordering,
             ANNIS_NS.to_owned(),
@@ -206,7 +209,10 @@ impl<'a> BinaryOperator for Near<'a> {
         EstimationType::SELECTIVITY(0.1)
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Option<Box<dyn BinaryOperator + 'b>> {
         Some(Box::new(Near {
             gs_order: self.gs_order.clone(),
             tok_helper: TokenHelper::new(graph)?,

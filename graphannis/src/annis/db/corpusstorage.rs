@@ -1499,7 +1499,11 @@ impl CorpusStorage {
     ///
     /// - `corpus_name` - The name of the corpus for which the subgraph should be generated from.
     /// - `corpus_ids` - A set of sub-corpus/document identifiers describing the subgraph.
-    pub fn subcorpus_graph(&self, corpus_name: &str, corpus_ids: Vec<String>) -> Result<AnnotationGraph> {
+    pub fn subcorpus_graph(
+        &self,
+        corpus_name: &str,
+        corpus_ids: Vec<String>,
+    ) -> Result<AnnotationGraph> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
 
         let mut query = Disjunction {
@@ -1867,7 +1871,9 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a An
     }
 }
 
-fn get_write_or_error<'a>(lock: &'a mut RwLockWriteGuard<CacheEntry>) -> Result<&'a mut AnnotationGraph> {
+fn get_write_or_error<'a>(
+    lock: &'a mut RwLockWriteGuard<CacheEntry>,
+) -> Result<&'a mut AnnotationGraph> {
     if let CacheEntry::Loaded(ref mut db) = &mut **lock {
         Ok(db)
     } else {
@@ -1986,7 +1992,11 @@ fn extract_subgraph_by_query(
     Ok(result)
 }
 
-fn create_subgraph_node(id: NodeID, db: &mut AnnotationGraph, orig_db: &AnnotationGraph) -> Result<()> {
+fn create_subgraph_node(
+    id: NodeID,
+    db: &mut AnnotationGraph,
+    orig_db: &AnnotationGraph,
+) -> Result<()> {
     // add all node labels with the same node ID
     for a in orig_db.get_node_annos().get_annotations_for_item(&id) {
         db.get_node_annos_mut().insert(id, a)?;

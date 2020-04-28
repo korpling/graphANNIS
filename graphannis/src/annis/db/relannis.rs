@@ -196,7 +196,11 @@ struct LoadNodeResult {
 /// Load a c corpus in the legacy relANNIS format from the specified `path`.
 ///
 /// Returns a tuple consisting of the corpus name and the extracted annotation graph.
-pub fn load<F>(path: &Path, disk_based: bool, progress_callback: F) -> Result<(String, AnnotationGraph)>
+pub fn load<F>(
+    path: &Path,
+    disk_based: bool,
+    progress_callback: F,
+) -> Result<(String, AnnotationGraph)>
 where
     F: Fn(&str) -> (),
 {

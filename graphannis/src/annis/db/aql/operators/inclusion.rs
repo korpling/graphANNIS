@@ -35,7 +35,10 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for InclusionSpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    fn necessary_components(
+        &self,
+        db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         let mut v = HashSet::default();
         v.insert(COMPONENT_ORDER.clone());
         v.extend(token_helper::necessary_components(db));

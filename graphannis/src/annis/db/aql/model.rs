@@ -17,7 +17,7 @@ use crate::{update::UpdateEvent, AnnotationGraph};
 use anyhow::Result;
 use rustc_hash::FxHashSet;
 
-use crate::{model::AnnotationComponent, graph::AnnoKey};
+use crate::{graph::AnnoKey, model::AnnotationComponent};
 
 pub const TOK: &str = "tok";
 lazy_static! {
@@ -167,7 +167,8 @@ impl AQLUpdateGraphIndex {
             }
         }
 
-        let all_cov_components = graph.get_all_components(Some(AnnotationComponentType::Coverage), None);
+        let all_cov_components =
+            graph.get_all_components(Some(AnnotationComponentType::Coverage), None);
         let all_dom_gs: Vec<Arc<dyn GraphStorage>> = graph
             .get_all_components(Some(AnnotationComponentType::Dominance), Some(""))
             .into_iter()

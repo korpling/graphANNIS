@@ -12,7 +12,10 @@ impl<'a> Disjunction<'a> {
         Disjunction { alternatives }
     }
 
-    pub fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    pub fn necessary_components(
+        &self,
+        db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         let mut result = HashSet::default();
 
         for alt in &self.alternatives {

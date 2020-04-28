@@ -16,7 +16,10 @@ pub struct LeftAlignment<'a> {
 }
 
 impl BinaryOperatorSpec for LeftAlignmentSpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    fn necessary_components(
+        &self,
+        db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         let mut v = HashSet::default();
         v.extend(token_helper::necessary_components(db));
         v
@@ -84,7 +87,10 @@ impl<'a> BinaryOperator for LeftAlignment<'a> {
         false
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Option<Box<dyn BinaryOperator + 'b>> {
         let tok_helper = TokenHelper::new(graph)?;
 
         Some(Box::new(LeftAlignment { tok_helper }))

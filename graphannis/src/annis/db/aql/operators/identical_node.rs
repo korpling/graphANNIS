@@ -11,11 +11,17 @@ use std::collections::HashSet;
 pub struct IdenticalNodeSpec;
 
 impl BinaryOperatorSpec for IdenticalNodeSpec {
-    fn necessary_components(&self, _db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    fn necessary_components(
+        &self,
+        _db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         HashSet::default()
     }
 
-    fn create_operator<'a>(&self, _db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(
+        &self,
+        _db: &'a AnnotationGraph,
+    ) -> Option<Box<dyn BinaryOperator + 'a>> {
         Some(Box::new(IdenticalNode {}))
     }
 }
@@ -45,7 +51,10 @@ impl BinaryOperator for IdenticalNode {
         EstimationType::MIN
     }
 
-    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn get_inverse_operator<'a>(
+        &self,
+        _graph: &'a AnnotationGraph,
+    ) -> Option<Box<dyn BinaryOperator + 'a>> {
         Some(Box::new(self.clone()))
     }
 }

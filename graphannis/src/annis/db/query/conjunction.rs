@@ -365,7 +365,10 @@ impl<'a> Conjunction<'a> {
         .into())
     }
 
-    pub fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    pub fn necessary_components(
+        &self,
+        db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         let mut result = HashSet::default();
 
         for op_entry in &self.unary_operators {
@@ -384,7 +387,11 @@ impl<'a> Conjunction<'a> {
         result
     }
 
-    fn optimize_join_order_heuristics(&self, db: &'a AnnotationGraph, config: &Config) -> Result<Vec<usize>> {
+    fn optimize_join_order_heuristics(
+        &self,
+        db: &'a AnnotationGraph,
+        config: &Config,
+    ) -> Result<Vec<usize>> {
         // check if there is something to optimize
         if self.binary_operators.is_empty() {
             return Ok(vec![]);

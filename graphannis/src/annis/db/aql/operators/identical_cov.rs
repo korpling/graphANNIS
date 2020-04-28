@@ -4,8 +4,8 @@ use crate::annis::operator::EstimationType;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
-    AnnotationGraph,
     model::AnnotationComponentType,
+    AnnotationGraph,
 };
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
@@ -44,7 +44,10 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for IdenticalCoverageSpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    fn necessary_components(
+        &self,
+        db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         let mut v = HashSet::new();
         v.insert(COMPONENT_LEFT.clone());
         v.insert(COMPONENT_ORDER.clone());
@@ -133,7 +136,10 @@ impl<'a> BinaryOperator for IdenticalCoverage<'a> {
         false
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Option<Box<dyn BinaryOperator + 'b>> {
         Some(Box::new(IdenticalCoverage {
             gs_left: self.gs_left.clone(),
             gs_order: self.gs_order.clone(),

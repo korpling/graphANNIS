@@ -149,7 +149,10 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
         true
     }
 
-    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn get_inverse_operator<'a>(
+        &self,
+        _graph: &'a AnnotationGraph,
+    ) -> Option<Box<dyn BinaryOperator + 'a>> {
         None
     }
 
@@ -163,7 +166,10 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
 }
 
 pub trait BinaryOperatorSpec: std::fmt::Debug {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>>;
+    fn necessary_components(
+        &self,
+        db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>>;
 
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>>;
 
@@ -177,7 +183,10 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
 }
 
 pub trait UnaryOperatorSpec: std::fmt::Debug {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>>;
+    fn necessary_components(
+        &self,
+        db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>>;
 
     fn create_operator(&self, db: &AnnotationGraph) -> Option<Box<dyn UnaryOperator>>;
 }

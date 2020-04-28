@@ -25,7 +25,10 @@ pub struct EqualValueSpec {
 }
 
 impl BinaryOperatorSpec for EqualValueSpec {
-    fn necessary_components(&self, _db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
+    fn necessary_components(
+        &self,
+        _db: &AnnotationGraph,
+    ) -> HashSet<Component<AnnotationComponentType>> {
         HashSet::default()
     }
 
@@ -166,7 +169,10 @@ impl<'a> BinaryOperator for EqualValue<'a> {
         EstimationType::SELECTIVITY(0.5)
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Option<Box<dyn BinaryOperator + 'b>> {
         Some(Box::from(EqualValue {
             node_annos: graph.get_node_annos(),
             spec_left: self.spec_left.clone(),
