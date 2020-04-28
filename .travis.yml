@@ -40,7 +40,7 @@ before_script:
   - misc/download-mdbook.sh 0.3.5
   # Build in release mode if search tests are executed
   - if [[ "$TEST_SUITE" = "--ignored" ]]; then export BUILD_FLAGS="--release" ; fi
-  - echo "Building with flags \"$BUILD_FLAGS\""
+  - echo "Building with flags $BUILD_FLAGS"
 
 
 script:
