@@ -1,6 +1,6 @@
 use crate::AnnotationGraph;
 use crate::{
-    annis::{db::aql::model::AnnisComponentType, operator::*},
+    annis::{db::aql::model::AnnotationComponentType, operator::*},
     graph::Match,
 };
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
@@ -11,7 +11,7 @@ use std::collections::HashSet;
 pub struct IdenticalNodeSpec;
 
 impl BinaryOperatorSpec for IdenticalNodeSpec {
-    fn necessary_components(&self, _db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
+    fn necessary_components(&self, _db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
         HashSet::default()
     }
 

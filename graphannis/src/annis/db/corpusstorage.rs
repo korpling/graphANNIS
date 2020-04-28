@@ -52,7 +52,7 @@ use std::ffi::CString;
 use sys_info;
 
 use anyhow::{Context, Error};
-use aql::model::AnnisComponentType;
+use aql::model::AnnotationComponentType;
 use db::AnnotationStorage;
 
 #[cfg(test)]
@@ -78,7 +78,7 @@ pub enum LoadStatus {
 /// Information about a single graph storage of the corpus.
 pub struct GraphStorageInfo {
     /// The component this graph storage belongs to.
-    pub component: Component<AnnisComponentType>,
+    pub component: Component<AnnotationComponentType>,
     /// Indicates if the graph storage is loaded or not.
     pub load_status: LoadStatus,
     /// Number of edge annotations in this graph storage.
@@ -583,7 +583,7 @@ impl CorpusStorage {
         } else if create_if_missing {
             true
         } else {
-            return Err(AnnisError::NoSuchCorpus(corpus_name.to_string()).into());
+            return Err(GraphAnnisError::NoSuchCorpus(corpus_name.to_string()).into());
         };
 
         // make sure the cache is not too large before adding the new corpus
@@ -640,7 +640,7 @@ impl CorpusStorage {
     fn get_loaded_entry_with_components(
         &self,
         corpus_name: &str,
-        components: Vec<Component<AnnisComponentType>>,
+        components: Vec<Component<AnnotationComponentType>>,
     ) -> Result<Arc<RwLock<CacheEntry>>> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let missing_components = {
@@ -850,7 +850,7 @@ impl CorpusStorage {
         additional_components_callback: F,
     ) -> Result<PreparationResult<'a>>
     where
-        F: FnOnce(&AnnotationGraph) -> Vec<Component<AnnisComponentType>>,
+        F: FnOnce(&AnnotationGraph) -> Vec<Component<AnnotationComponentType>>,
     {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
 
@@ -1121,7 +1121,7 @@ impl CorpusStorage {
             } else {
                 let token_helper = TokenHelper::new(db);
                 let component_order = Component::new(
-                    AnnisComponentType::Ordering,
+                    AnnotationComponentType::Ordering,
                     ANNIS_NS.to_owned(),
                     "".to_owned(),
                 );
@@ -1190,7 +1190,7 @@ impl CorpusStorage {
     ) -> Result<(Vec<String>, usize)> {
         let prep = self.prepare_query(corpus_name, query, query_language, |db| {
             let mut additional_components = vec![Component::new(
-                AnnisComponentType::Ordering,
+                AnnotationComponentType::Ordering,
                 ANNIS_NS.to_owned(),
                 "".to_owned(),
             )];
@@ -1475,7 +1475,7 @@ impl CorpusStorage {
         corpus_name: &str,
         query: &str,
         query_language: QueryLanguage,
-        component_type_filter: Option<AnnisComponentType>,
+        component_type_filter: Option<AnnotationComponentType>,
     ) -> Result<AnnotationGraph> {
         let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
@@ -1580,7 +1580,7 @@ impl CorpusStorage {
             // make sure all subcorpus partitions are loaded
             let lock = db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            db.get_all_components(Some(AnnisComponentType::PartOf), None)
+            db.get_all_components(Some(AnnotationComponentType::PartOf), None)
         };
         let db_entry = self.get_loaded_entry_with_components(corpus_name, subcorpus_components)?;
 
@@ -1596,7 +1596,7 @@ impl CorpusStorage {
             &query.into_disjunction(),
             &[0],
             &self.query_config,
-            Some(AnnisComponentType::PartOf),
+            Some(AnnotationComponentType::PartOf),
         )
     }
 
@@ -1712,9 +1712,9 @@ impl CorpusStorage {
     pub fn list_components(
         &self,
         corpus_name: &str,
-        ctype: Option<AnnisComponentType>,
+        ctype: Option<AnnotationComponentType>,
         name: Option<&str>,
-    ) -> Vec<Component<AnnisComponentType>> {
+    ) -> Vec<Component<AnnotationComponentType>> {
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
@@ -1780,7 +1780,7 @@ impl CorpusStorage {
     pub fn list_edge_annotations(
         &self,
         corpus_name: &str,
-        component: &Component<AnnisComponentType>,
+        component: &Component<AnnotationComponentType>,
         list_values: bool,
         only_most_frequent_values: bool,
     ) -> Vec<Annotation> {
@@ -1860,7 +1860,7 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a An
     if let CacheEntry::Loaded(ref db) = &**lock {
         Ok(db)
     } else {
-        Err(AnnisError::LoadingGraphFailed {
+        Err(GraphAnnisError::LoadingGraphFailed {
             name: "".to_string(),
         }
         .into())
@@ -1946,7 +1946,7 @@ fn extract_subgraph_by_query(
     query: &Disjunction,
     match_idx: &[usize],
     query_config: &query::Config,
-    component_type_filter: Option<AnnisComponentType>,
+    component_type_filter: Option<AnnotationComponentType>,
 ) -> Result<AnnotationGraph> {
     // acquire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
@@ -1997,15 +1997,15 @@ fn create_subgraph_edge(
     source_id: NodeID,
     db: &mut AnnotationGraph,
     orig_db: &AnnotationGraph,
-    components: &[Component<AnnisComponentType>],
+    components: &[Component<AnnotationComponentType>],
 ) -> Result<()> {
     // find outgoing edges
     for c in components {
         // don't include index components
         let ctype = c.get_type();
-        if !((ctype == AnnisComponentType::Coverage && c.layer == "annis" && c.name != "")
-            || ctype == AnnisComponentType::RightToken
-            || ctype == AnnisComponentType::LeftToken)
+        if !((ctype == AnnotationComponentType::Coverage && c.layer == "annis" && c.name != "")
+            || ctype == AnnotationComponentType::RightToken
+            || ctype == AnnotationComponentType::LeftToken)
         {
             if let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {

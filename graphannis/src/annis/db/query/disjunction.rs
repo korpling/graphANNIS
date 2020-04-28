@@ -1,5 +1,5 @@
 use super::conjunction::Conjunction;
-use crate::{annis::db::aql::model::AnnisComponentType, AnnotationGraph};
+use crate::{annis::db::aql::model::AnnotationComponentType, AnnotationGraph};
 use graphannis_core::types::Component;
 use std::collections::HashSet;
 
@@ -12,7 +12,7 @@ impl<'a> Disjunction<'a> {
         Disjunction { alternatives }
     }
 
-    pub fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
+    pub fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
         let mut result = HashSet::default();
 
         for alt in &self.alternatives {

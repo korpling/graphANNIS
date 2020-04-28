@@ -3,7 +3,7 @@ use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::BinaryOperator;
 use crate::annis::operator::BinaryOperatorSpec;
 use crate::AnnotationGraph;
-use crate::{annis::operator::EstimationType, graph::Match, model::AnnisComponent};
+use crate::{annis::operator::EstimationType, graph::Match, model::AnnotationComponent};
 use graphannis_core::graph::DEFAULT_ANNO_KEY;
 use std::collections::HashSet;
 
@@ -16,7 +16,7 @@ pub struct RightAlignment<'a> {
 }
 
 impl BinaryOperatorSpec for RightAlignmentSpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<AnnisComponent> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<AnnotationComponent> {
         let mut v = HashSet::default();
         v.extend(token_helper::necessary_components(db));
         v

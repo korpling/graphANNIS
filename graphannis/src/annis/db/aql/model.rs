@@ -17,7 +17,7 @@ use crate::{update::UpdateEvent, AnnotationGraph};
 use anyhow::Result;
 use rustc_hash::FxHashSet;
 
-use crate::{model::AnnisComponent, graph::AnnoKey};
+use crate::{model::AnnotationComponent, graph::AnnoKey};
 
 pub const TOK: &str = "tok";
 lazy_static! {
@@ -43,7 +43,7 @@ lazy_static! {
     MallocSizeOf,
 )]
 #[repr(C)]
-pub enum AnnisComponentType {
+pub enum AnnotationComponentType {
     /// Edges between a span node and its tokens. Implies text coverage.
     Coverage,
     /// Edges between a structural node and any other structural node, span or token. Implies text coverage.
@@ -60,23 +60,23 @@ pub enum AnnisComponentType {
     PartOf,
 }
 
-impl Into<u16> for AnnisComponentType {
+impl Into<u16> for AnnotationComponentType {
     fn into(self) -> u16 {
         self as u16
     }
 }
 
-impl From<u16> for AnnisComponentType {
-    fn from(idx: u16) -> AnnisComponentType {
+impl From<u16> for AnnotationComponentType {
+    fn from(idx: u16) -> AnnotationComponentType {
         match idx {
-            0 => AnnisComponentType::Coverage,
-            2 => AnnisComponentType::Dominance,
-            3 => AnnisComponentType::Pointing,
-            4 => AnnisComponentType::Ordering,
-            5 => AnnisComponentType::LeftToken,
-            6 => AnnisComponentType::RightToken,
-            7 => AnnisComponentType::PartOf,
-            _ => AnnisComponentType::Pointing,
+            0 => AnnotationComponentType::Coverage,
+            2 => AnnotationComponentType::Dominance,
+            3 => AnnotationComponentType::Pointing,
+            4 => AnnotationComponentType::Ordering,
+            5 => AnnotationComponentType::LeftToken,
+            6 => AnnotationComponentType::RightToken,
+            7 => AnnotationComponentType::PartOf,
+            _ => AnnotationComponentType::Pointing,
         }
     }
 }
@@ -85,7 +85,7 @@ pub struct AQLUpdateGraphIndex {
     node_ids: DiskMap<String, NodeID>,
     calculate_invalid_nodes: bool,
     invalid_nodes: DiskMap<NodeID, bool>,
-    text_coverage_components: FxHashSet<AnnisComponent>,
+    text_coverage_components: FxHashSet<AnnotationComponent>,
 }
 
 impl AQLUpdateGraphIndex {
@@ -137,8 +137,8 @@ impl AQLUpdateGraphIndex {
     ) -> Result<()> {
         {
             // remove existing left/right token edges for the invalidated nodes
-            let gs_left = graph.get_or_create_writable(&AnnisComponent::new(
-                AnnisComponentType::LeftToken,
+            let gs_left = graph.get_or_create_writable(&AnnotationComponent::new(
+                AnnotationComponentType::LeftToken,
                 ANNIS_NS.to_owned(),
                 "".to_owned(),
             ))?;
@@ -147,8 +147,8 @@ impl AQLUpdateGraphIndex {
                 gs_left.delete_node(n)?;
             }
 
-            let gs_right = graph.get_or_create_writable(&AnnisComponent::new(
-                AnnisComponentType::RightToken,
+            let gs_right = graph.get_or_create_writable(&AnnotationComponent::new(
+                AnnotationComponentType::RightToken,
                 ANNIS_NS.to_owned(),
                 "".to_owned(),
             ))?;
@@ -157,8 +157,8 @@ impl AQLUpdateGraphIndex {
                 gs_right.delete_node(n)?;
             }
 
-            let gs_cov = graph.get_or_create_writable(&AnnisComponent::new(
-                AnnisComponentType::Coverage,
+            let gs_cov = graph.get_or_create_writable(&AnnotationComponent::new(
+                AnnotationComponentType::Coverage,
                 ANNIS_NS.to_owned(),
                 "inherited-coverage".to_owned(),
             ))?;
@@ -167,9 +167,9 @@ impl AQLUpdateGraphIndex {
             }
         }
 
-        let all_cov_components = graph.get_all_components(Some(AnnisComponentType::Coverage), None);
+        let all_cov_components = graph.get_all_components(Some(AnnotationComponentType::Coverage), None);
         let all_dom_gs: Vec<Arc<dyn GraphStorage>> = graph
-            .get_all_components(Some(AnnisComponentType::Dominance), Some(""))
+            .get_all_components(Some(AnnotationComponentType::Dominance), Some(""))
             .into_iter()
             .filter_map(|c| graph.get_graphstorage(&c))
             .collect();
@@ -185,7 +185,7 @@ impl AQLUpdateGraphIndex {
                 self.calculate_token_alignment(
                     graph,
                     n,
-                    AnnisComponentType::LeftToken,
+                    AnnotationComponentType::LeftToken,
                     gs_order.as_ref(),
                     &all_cov_gs,
                     &all_dom_gs,
@@ -193,7 +193,7 @@ impl AQLUpdateGraphIndex {
                 self.calculate_token_alignment(
                     graph,
                     n,
-                    AnnisComponentType::RightToken,
+                    AnnotationComponentType::RightToken,
                     gs_order.as_ref(),
                     &all_cov_gs,
                     &all_dom_gs,
@@ -212,7 +212,7 @@ impl AQLUpdateGraphIndex {
         &self,
         graph: &mut AnnotationGraph,
         n: NodeID,
-        all_cov_components: &[AnnisComponent],
+        all_cov_components: &[AnnotationComponent],
         all_dom_gs: &[Arc<dyn GraphStorage>],
     ) -> Result<FxHashSet<NodeID>> {
         let mut covered_token = FxHashSet::default();
@@ -244,8 +244,8 @@ impl AQLUpdateGraphIndex {
             }
         }
 
-        if let Ok(gs_cov) = graph.get_or_create_writable(&AnnisComponent::new(
-            AnnisComponentType::Coverage,
+        if let Ok(gs_cov) = graph.get_or_create_writable(&AnnotationComponent::new(
+            AnnotationComponentType::Coverage,
             ANNIS_NS.to_owned(),
             "inherited-coverage".to_owned(),
         )) {
@@ -264,13 +264,13 @@ impl AQLUpdateGraphIndex {
         &self,
         graph: &mut AnnotationGraph,
         n: NodeID,
-        ctype: AnnisComponentType,
+        ctype: AnnotationComponentType,
         gs_order: &dyn GraphStorage,
         all_cov_gs: &[Arc<dyn GraphStorage>],
         all_dom_gs: &[Arc<dyn GraphStorage>],
     ) -> Result<Option<NodeID>> {
         let alignment_component =
-            AnnisComponent::new(ctype.clone(), ANNIS_NS.to_owned(), "".to_owned());
+            AnnotationComponent::new(ctype.clone(), ANNIS_NS.to_owned(), "".to_owned());
 
         // if this is a token, return the token itself
         if graph
@@ -334,7 +334,7 @@ impl AQLUpdateGraphIndex {
         });
 
         // add edge to left/right most candidate token
-        let t = if ctype == AnnisComponentType::RightToken {
+        let t = if ctype == AnnotationComponentType::RightToken {
             candidates.last()
         } else {
             candidates.first()
@@ -354,37 +354,37 @@ impl AQLUpdateGraphIndex {
     }
 }
 
-impl ComponentType for AnnisComponentType {
+impl ComponentType for AnnotationComponentType {
     type UpdateGraphIndex = AQLUpdateGraphIndex;
 
     fn all_component_types() -> Vec<Self> {
-        AnnisComponentType::iter().collect()
+        AnnotationComponentType::iter().collect()
     }
 
-    fn default_components() -> Vec<AnnisComponent> {
+    fn default_components() -> Vec<AnnotationComponent> {
         vec![
-            AnnisComponent::new(
-                AnnisComponentType::Coverage,
+            AnnotationComponent::new(
+                AnnotationComponentType::Coverage,
                 ANNIS_NS.to_owned(),
                 "".to_owned(),
             ),
-            AnnisComponent::new(
-                AnnisComponentType::Ordering,
+            AnnotationComponent::new(
+                AnnotationComponentType::Ordering,
                 ANNIS_NS.to_owned(),
                 "".to_owned(),
             ),
-            AnnisComponent::new(
-                AnnisComponentType::LeftToken,
+            AnnotationComponent::new(
+                AnnotationComponentType::LeftToken,
                 ANNIS_NS.to_owned(),
                 "".to_owned(),
             ),
-            AnnisComponent::new(
-                AnnisComponentType::RightToken,
+            AnnotationComponent::new(
+                AnnotationComponentType::RightToken,
                 ANNIS_NS.to_owned(),
                 "".to_owned(),
             ),
-            AnnisComponent::new(
-                AnnisComponentType::PartOf,
+            AnnotationComponent::new(
+                AnnotationComponentType::PartOf,
                 ANNIS_NS.to_owned(),
                 "".to_owned(),
             ),
@@ -404,9 +404,9 @@ impl ComponentType for AnnisComponentType {
 
         let mut text_coverage_components = FxHashSet::default();
         text_coverage_components
-            .extend(graph.get_all_components(Some(AnnisComponentType::Dominance), Some("")));
+            .extend(graph.get_all_components(Some(AnnotationComponentType::Dominance), Some("")));
         text_coverage_components
-            .extend(graph.get_all_components(Some(AnnisComponentType::Coverage), None));
+            .extend(graph.get_all_components(Some(AnnotationComponentType::Coverage), None));
         Ok(AQLUpdateGraphIndex {
             node_ids,
             calculate_invalid_nodes,
@@ -437,19 +437,19 @@ impl ComponentType for AnnisComponentType {
                 ..
             } => {
                 if index.calculate_invalid_nodes {
-                    if let Ok(ctype) = AnnisComponentType::from_str(&component_type) {
-                        if ctype == AnnisComponentType::Coverage
-                            || ctype == AnnisComponentType::Dominance
-                            || ctype == AnnisComponentType::Ordering
-                            || ctype == AnnisComponentType::LeftToken
-                            || ctype == AnnisComponentType::RightToken
+                    if let Ok(ctype) = AnnotationComponentType::from_str(&component_type) {
+                        if ctype == AnnotationComponentType::Coverage
+                            || ctype == AnnotationComponentType::Dominance
+                            || ctype == AnnotationComponentType::Ordering
+                            || ctype == AnnotationComponentType::LeftToken
+                            || ctype == AnnotationComponentType::RightToken
                         {
                             let source = index
                                 .get_cached_node_id_from_name(Cow::Borrowed(source_node), graph)?;
                             index.calculate_invalidated_nodes_by_coverage(graph, source)?;
                         }
 
-                        if ctype == AnnisComponentType::Ordering {
+                        if ctype == AnnotationComponentType::Ordering {
                             let target = index
                                 .get_cached_node_id_from_name(Cow::Borrowed(target_node), graph)?;
                             index.calculate_invalidated_nodes_by_coverage(graph, target)?;
@@ -485,22 +485,22 @@ impl ComponentType for AnnisComponentType {
                 target_node,
                 ..
             } => {
-                if let Ok(ctype) = AnnisComponentType::from_str(&component_type) {
-                    if (ctype == AnnisComponentType::Dominance
-                        || ctype == AnnisComponentType::Coverage)
+                if let Ok(ctype) = AnnotationComponentType::from_str(&component_type) {
+                    if (ctype == AnnotationComponentType::Dominance
+                        || ctype == AnnotationComponentType::Coverage)
                         && component_name.is_empty()
                     {
                         // might be a new text coverage component
-                        let c = AnnisComponent::new(ctype.clone(), layer, component_name);
+                        let c = AnnotationComponent::new(ctype.clone(), layer, component_name);
                         index.text_coverage_components.insert(c.clone());
                     }
 
                     if index.calculate_invalid_nodes {
-                        if ctype == AnnisComponentType::Coverage
-                            || ctype == AnnisComponentType::Dominance
-                            || ctype == AnnisComponentType::Ordering
-                            || ctype == AnnisComponentType::LeftToken
-                            || ctype == AnnisComponentType::RightToken
+                        if ctype == AnnotationComponentType::Coverage
+                            || ctype == AnnotationComponentType::Dominance
+                            || ctype == AnnotationComponentType::Ordering
+                            || ctype == AnnotationComponentType::LeftToken
+                            || ctype == AnnotationComponentType::RightToken
                         {
                             let source = index
                                 .get_cached_node_id_from_name(Cow::Owned(source_node), graph)?;
@@ -508,7 +508,7 @@ impl ComponentType for AnnisComponentType {
                             index.calculate_invalidated_nodes_by_coverage(graph, source)?;
                         }
 
-                        if ctype == AnnisComponentType::Ordering {
+                        if ctype == AnnotationComponentType::Ordering {
                             let target = index
                                 .get_cached_node_id_from_name(Cow::Owned(target_node), graph)?;
                             index.calculate_invalidated_nodes_by_coverage(graph, target)?;
@@ -529,8 +529,8 @@ impl ComponentType for AnnisComponentType {
 
         // Re-index the inherited coverage component.
         // To make this operation fast, we need to optimize the order component first
-        let order_component = AnnisComponent::new(
-            AnnisComponentType::Ordering,
+        let order_component = AnnotationComponent::new(
+            AnnotationComponentType::Ordering,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         );
@@ -550,7 +550,7 @@ impl ComponentType for AnnisComponentType {
     }
 }
 
-impl fmt::Display for AnnisComponentType {
+impl fmt::Display for AnnotationComponentType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self, f)
     }

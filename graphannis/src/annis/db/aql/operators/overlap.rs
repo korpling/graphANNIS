@@ -5,7 +5,7 @@ use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
-    model::{AnnisComponent, AnnisComponentType},
+    model::{AnnotationComponent, AnnotationComponentType},
 };
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
@@ -31,9 +31,9 @@ pub struct Overlap<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_ORDER: AnnisComponent = {
-        AnnisComponent::new(
-            AnnisComponentType::Ordering,
+    static ref COMPONENT_ORDER: AnnotationComponent = {
+        AnnotationComponent::new(
+            AnnotationComponentType::Ordering,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
@@ -41,7 +41,7 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for OverlapSpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<AnnisComponent> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<AnnotationComponent> {
         let mut v = HashSet::default();
         v.insert(COMPONENT_ORDER.clone());
         v.extend(token_helper::necessary_components(db));

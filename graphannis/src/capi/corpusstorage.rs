@@ -6,7 +6,7 @@ use crate::corpusstorage::{
     QueryAttributeDescription, QueryLanguage, ResultOrder,
 };
 use crate::update::GraphUpdate;
-use crate::{annis::db::aql::model::AnnisComponentType, CorpusStorage, AnnotationGraph, model::AnnisComponent};
+use crate::{annis::db::aql::model::AnnotationComponentType, CorpusStorage, AnnotationGraph, model::AnnotationComponent};
 use libc;
 use std;
 use std::ffi::CString;
@@ -344,7 +344,7 @@ pub extern "C" fn annis_cs_subgraph_for_query_with_ctype(
     corpus_name: *const libc::c_char,
     query: *const libc::c_char,
     query_language: QueryLanguage,
-    component_type_filter: AnnisComponentType,
+    component_type_filter: AnnotationComponentType,
     err: *mut *mut ErrorList,
 ) -> *mut AnnotationGraph {
     let cs: &CorpusStorage = cast_const!(ptr);
@@ -480,7 +480,7 @@ pub extern "C" fn annis_cs_list_node_annotations(
 pub extern "C" fn annis_cs_list_edge_annotations(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
-    component_type: AnnisComponentType,
+    component_type: AnnotationComponentType,
     component_name: *const libc::c_char,
     component_layer: *const libc::c_char,
     list_values: bool,
@@ -488,7 +488,7 @@ pub extern "C" fn annis_cs_list_edge_annotations(
 ) -> *mut Matrix<CString> {
     let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
-    let component = AnnisComponent::new(
+    let component = AnnotationComponent::new(
         component_type,
         String::from(cstr!(component_layer)),
         String::from(cstr!(component_name)),
@@ -619,8 +619,8 @@ pub extern "C" fn annis_cs_import_from_fs(
 pub extern "C" fn annis_cs_list_components_by_type(
     ptr: *mut CorpusStorage,
     corpus_name: *const libc::c_char,
-    ctype: AnnisComponentType,
-) -> *mut Vec<AnnisComponent> {
+    ctype: AnnotationComponentType,
+) -> *mut Vec<AnnotationComponent> {
     let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
 

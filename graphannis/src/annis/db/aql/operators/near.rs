@@ -1,4 +1,4 @@
-use crate::annis::db::aql::{model::AnnisComponentType, operators::RangeSpec};
+use crate::annis::db::aql::{model::AnnotationComponentType, operators::RangeSpec};
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::EstimationType;
@@ -31,9 +31,9 @@ struct Near<'a> {
 }
 
 impl BinaryOperatorSpec for NearSpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
         let component_order = Component::new(
-            AnnisComponentType::Ordering,
+            AnnotationComponentType::Ordering,
             ANNIS_NS.to_owned(),
             self.segmentation
                 .clone()
@@ -69,7 +69,7 @@ impl std::fmt::Display for NearSpec {
 impl<'a> Near<'a> {
     pub fn new(graph: &'a AnnotationGraph, spec: NearSpec) -> Option<Near<'a>> {
         let component_order = Component::new(
-            AnnisComponentType::Ordering,
+            AnnotationComponentType::Ordering,
             ANNIS_NS.to_owned(),
             spec.segmentation
                 .clone()

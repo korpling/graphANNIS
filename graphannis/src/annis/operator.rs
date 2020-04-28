@@ -1,4 +1,4 @@
-use super::db::aql::model::AnnisComponentType;
+use super::db::aql::model::AnnotationComponentType;
 use crate::{annis::db::AnnotationStorage, graph::Match, AnnotationGraph};
 use graphannis_core::types::{Component, Edge};
 use std;
@@ -163,7 +163,7 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
 }
 
 pub trait BinaryOperatorSpec: std::fmt::Debug {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>>;
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>>;
 
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>>;
 
@@ -177,7 +177,7 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
 }
 
 pub trait UnaryOperatorSpec: std::fmt::Debug {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>>;
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>>;
 
     fn create_operator(&self, db: &AnnotationGraph) -> Option<Box<dyn UnaryOperator>>;
 }

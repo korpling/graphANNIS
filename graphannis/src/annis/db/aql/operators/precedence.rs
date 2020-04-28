@@ -6,7 +6,7 @@ use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
-    model::{AnnisComponent, AnnisComponentType},
+    model::{AnnotationComponent, AnnotationComponentType},
 };
 use graphannis_core::graph::{ANNIS_NS, DEFAULT_ANNO_KEY};
 
@@ -29,16 +29,16 @@ pub struct Precedence<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_LEFT: AnnisComponent = {
-        AnnisComponent::new(
-            AnnisComponentType::LeftToken,
+    static ref COMPONENT_LEFT: AnnotationComponent = {
+        AnnotationComponent::new(
+            AnnotationComponentType::LeftToken,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
     };
-    static ref COMPONENT_RIGHT: AnnisComponent = {
-        AnnisComponent::new(
-            AnnisComponentType::RightToken,
+    static ref COMPONENT_RIGHT: AnnotationComponent = {
+        AnnotationComponent::new(
+            AnnotationComponentType::RightToken,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
@@ -46,9 +46,9 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for PrecedenceSpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<AnnisComponent> {
-        let component_order = AnnisComponent::new(
-            AnnisComponentType::Ordering,
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<AnnotationComponent> {
+        let component_order = AnnotationComponent::new(
+            AnnotationComponentType::Ordering,
             ANNIS_NS.to_owned(),
             self.segmentation
                 .clone()
@@ -85,8 +85,8 @@ impl std::fmt::Display for PrecedenceSpec {
 
 impl<'a> Precedence<'a> {
     pub fn new(graph: &'a AnnotationGraph, spec: PrecedenceSpec) -> Option<Precedence<'a>> {
-        let component_order = AnnisComponent::new(
-            AnnisComponentType::Ordering,
+        let component_order = AnnotationComponent::new(
+            AnnotationComponentType::Ordering,
             ANNIS_NS.to_owned(),
             spec.segmentation
                 .clone()

@@ -6,7 +6,7 @@ use crate::annis::db::exec::nestedloop::NestedLoop;
 use crate::annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use crate::annis::db::exec::parallel;
 use crate::annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
-use crate::annis::db::{aql::model::AnnisComponentType, AnnotationStorage};
+use crate::annis::db::{aql::model::AnnotationComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
@@ -277,7 +277,7 @@ impl<'a> Conjunction<'a> {
                 .push(UnaryOperatorSpecEntry { op, idx: *idx });
             Ok(())
         } else {
-            Err(AnnisError::AQLSemanticError {
+            Err(GraphAnnisError::AQLSemanticError {
                 desc: format!("Operand '#{}' not found", var),
                 location,
             }
@@ -328,7 +328,7 @@ impl<'a> Conjunction<'a> {
         if let Some(pos) = self.variables.get(variable) {
             return Ok(*pos);
         }
-        Err(AnnisError::AQLSemanticError {
+        Err(GraphAnnisError::AQLSemanticError {
             desc: format!("Operand '#{}' not found", variable),
             location,
         }
@@ -358,14 +358,14 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        Err(AnnisError::AQLSemanticError {
+        Err(GraphAnnisError::AQLSemanticError {
             desc: format!("Operand '#{}' not found", variable),
             location,
         }
         .into())
     }
 
-    pub fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
+    pub fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
         let mut result = HashSet::default();
 
         for op_entry in &self.unary_operators {
@@ -622,7 +622,7 @@ impl<'a> Conjunction<'a> {
 
             let op: Box<dyn UnaryOperator> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                    AnnisError::ImpossibleSearch(format!(
+                    GraphAnnisError::ImpossibleSearch(format!(
                         "could not create operator {:?}",
                         op_spec_entry
                     ))
@@ -642,7 +642,7 @@ impl<'a> Conjunction<'a> {
 
             let mut op: Box<dyn BinaryOperator + 'a> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                    AnnisError::ImpossibleSearch(format!(
+                    GraphAnnisError::ImpossibleSearch(format!(
                         "could not create operator {:?}",
                         op_spec_entry
                     ))
@@ -741,7 +741,7 @@ impl<'a> Conjunction<'a> {
             .next()
             .ok_or_else(|| {
                 {
-                    AnnisError::ImpossibleSearch(String::from(
+                    GraphAnnisError::ImpossibleSearch(String::from(
                         "could not find execution node for query component",
                     ))
                 }
@@ -789,7 +789,7 @@ impl<'a> Conjunction<'a> {
                     let n_var = &self.nodes[*node_nr].0;
                     let location = self.location_in_query.get(n_var);
 
-                    return Err(AnnisError::AQLSemanticError {
+                    return Err(GraphAnnisError::AQLSemanticError {
                         desc: format!(
                             "Variable \"{}\" not bound (use linguistic operators)",
                             n_var

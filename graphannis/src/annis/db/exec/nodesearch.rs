@@ -2,7 +2,7 @@ use super::MatchFilterFunc;
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::exec::tokensearch;
 use crate::annis::db::exec::tokensearch::AnyTokenSearch;
-use crate::annis::db::{aql::model::AnnisComponentType, AnnotationStorage};
+use crate::annis::db::{aql::model::AnnotationComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::EdgeAnnoSearchSpec;
 use crate::annis::types::LineColumnRange;
@@ -91,7 +91,7 @@ impl NodeSearchSpec {
         }
     }
 
-    pub fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
+    pub fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
         if let NodeSearchSpec::AnyToken = self {
             return tokensearch::AnyTokenSearch::necessary_components(db);
         }
@@ -587,7 +587,7 @@ impl<'a> NodeSearch<'a> {
                 }
             }
             Err(e) => {
-                return Err(AnnisError::AQLSemanticError {
+                return Err(GraphAnnisError::AQLSemanticError {
                     desc: format!("/{}/ -> {}", pattern, e),
                     location: location_in_query,
                 }
@@ -663,7 +663,7 @@ impl<'a> NodeSearch<'a> {
 
         let it_base = if leafs_only {
             let cov_gs: Vec<Arc<dyn GraphStorage>> = db
-                .get_all_components(Some(AnnisComponentType::Coverage), None)
+                .get_all_components(Some(AnnotationComponentType::Coverage), None)
                 .into_iter()
                 .filter_map(|c| db.get_graphstorage(&c))
                 .filter(|gs| {
@@ -711,7 +711,7 @@ impl<'a> NodeSearch<'a> {
                             }
                         })),
                         Err(e) => {
-                            return Err(AnnisError::AQLSemanticError {
+                            return Err(GraphAnnisError::AQLSemanticError {
                                 desc: format!("/{}/ -> {}", val, e),
                                 location: location_in_query,
                             }
@@ -743,7 +743,7 @@ impl<'a> NodeSearch<'a> {
                             }
                         })),
                         Err(e) => {
-                            return Err(AnnisError::AQLSemanticError {
+                            return Err(GraphAnnisError::AQLSemanticError {
                                 desc: format!("/{}/ -> {}", val, e),
                                 location: location_in_query,
                             }
@@ -767,7 +767,7 @@ impl<'a> NodeSearch<'a> {
 
         if leafs_only {
             let cov_gs: Vec<Arc<dyn GraphStorage>> = db
-                .get_all_components(Some(AnnisComponentType::Coverage), None)
+                .get_all_components(Some(AnnotationComponentType::Coverage), None)
                 .into_iter()
                 .filter_map(|c| db.get_graphstorage(&c))
                 .filter(|gs| {
@@ -865,7 +865,7 @@ impl<'a> NodeSearch<'a> {
         let mut filters: Vec<MatchFilterFunc> = Vec::new();
 
         let cov_gs: Vec<Arc<dyn GraphStorage>> = db
-            .get_all_components(Some(AnnisComponentType::Coverage), None)
+            .get_all_components(Some(AnnotationComponentType::Coverage), None)
             .into_iter()
             .filter_map(|c| db.get_graphstorage(&c))
             .filter(|gs| {
@@ -915,7 +915,7 @@ impl<'a> NodeSearch<'a> {
         db: &'a AnnotationGraph,
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
-        components: HashSet<Component<AnnisComponentType>>,
+        components: HashSet<Component<AnnotationComponentType>>,
         edge_anno_spec: Option<EdgeAnnoSearchSpec>,
     ) -> Result<NodeSearch<'a>> {
         let node_search_desc_1 = node_search_desc.clone();
@@ -924,7 +924,7 @@ impl<'a> NodeSearch<'a> {
         let it = components
             .into_iter()
             .flat_map(
-                move |c: Component<AnnisComponentType>| -> Box<dyn Iterator<Item = NodeID>> {
+                move |c: Component<AnnotationComponentType>| -> Box<dyn Iterator<Item = NodeID>> {
                     if let Some(gs) = db.get_graphstorage_as_ref(&c) {
                         if let Some(EdgeAnnoSearchSpec::ExactValue {
                             ref ns,

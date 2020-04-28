@@ -1,4 +1,4 @@
-use super::aql::model::AnnisComponentType;
+use super::aql::model::AnnotationComponentType;
 use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::errors::*;
 use crate::annis::util::create_str_vec_key;
@@ -166,12 +166,12 @@ struct TextPosTable {
 }
 
 struct LoadRankResult {
-    components_by_pre: DiskMap<u32, Component<AnnisComponentType>>,
+    components_by_pre: DiskMap<u32, Component<AnnotationComponentType>>,
     edges_by_pre: DiskMap<u32, Edge>,
     text_coverage_edges: DiskMap<Edge, bool>,
     /// Some rank entries have NULL as parent: we don't add an edge but remember the component name
     /// for re-creating omitted coverage edges with the correct name.
-    component_for_parentless_target_node: DiskMap<NodeID, Component<AnnisComponentType>>,
+    component_for_parentless_target_node: DiskMap<NodeID, Component<AnnotationComponentType>>,
 }
 
 struct LoadNodeAndCorpusResult {
@@ -509,7 +509,7 @@ where
                             .ok_or_else(|| anyhow!("Can't get node name for current token with ID {} in \"calculate_automatic_token_order\" function.", current_token))?
                             .clone(),
                         layer: ANNIS_NS.to_owned(),
-                        component_type: AnnisComponentType::Ordering.to_string(),
+                        component_type: AnnotationComponentType::Ordering.to_string(),
                         component_name: current_textprop.segmentation.clone(),
                     },
                 )?;
@@ -645,7 +645,7 @@ fn add_automatic_cov_edge_for_node(
                         .ok_or(anyhow!("Missing node name"))?
                         .clone(),
                     layer: component_layer,
-                    component_type: AnnisComponentType::Coverage.to_string(),
+                    component_type: AnnotationComponentType::Coverage.to_string(),
                     component_name: component_name,
                 })?;
             }
@@ -1051,7 +1051,7 @@ fn load_component_tab<F>(
     path: &PathBuf,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<BTreeMap<u32, Component<AnnisComponentType>>>
+) -> Result<BTreeMap<u32, Component<AnnotationComponentType>>>
 where
     F: Fn(&str) -> (),
 {
@@ -1067,7 +1067,7 @@ where
         component_tab_path.to_str().unwrap_or_default()
     ));
 
-    let mut component_by_id: BTreeMap<u32, Component<AnnisComponentType>> = BTreeMap::new();
+    let mut component_by_id: BTreeMap<u32, Component<AnnotationComponentType>> = BTreeMap::new();
 
     let mut component_tab_csv = postgresql_import_reader(component_tab_path.as_path())?;
     for result in component_tab_csv.records() {
@@ -1129,7 +1129,7 @@ where
 fn load_rank_tab<F>(
     path: &PathBuf,
     updates: &mut GraphUpdate,
-    component_by_id: &BTreeMap<u32, Component<AnnisComponentType>>,
+    component_by_id: &BTreeMap<u32, Component<AnnotationComponentType>>,
     id_to_node_name: &DiskMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
@@ -1193,7 +1193,7 @@ where
         let parent_as_str = line.get(pos_parent).ok_or(anyhow!("Missing column"))?;
         if parent_as_str == "NULL" {
             if let Some(c) = component_by_id.get(&component_ref) {
-                if c.get_type() == AnnisComponentType::Coverage {
+                if c.get_type() == AnnotationComponentType::Coverage {
                     load_rank_result
                         .component_for_parentless_target_node
                         .insert(target, c.clone())?;
@@ -1225,7 +1225,7 @@ where
                         target,
                     };
 
-                    if c.get_type() == AnnisComponentType::Coverage {
+                    if c.get_type() == AnnotationComponentType::Coverage {
                         load_rank_result
                             .text_coverage_edges
                             .insert(e.clone(), true)?;
@@ -1481,7 +1481,7 @@ fn add_subcorpora(
                 source_node: subcorpus_full_name.clone(),
                 target_node: corpus_table.toplevel_corpus_name.to_owned(),
                 layer: ANNIS_NS.to_owned(),
-                component_type: AnnisComponentType::PartOf.to_string(),
+                component_type: AnnotationComponentType::PartOf.to_string(),
                 component_name: String::default(),
             })?;
         } // end if not toplevel corpus
@@ -1505,7 +1505,7 @@ fn add_subcorpora(
                 source_node: text_full_name.clone(),
                 target_node: subcorpus_full_name,
                 layer: ANNIS_NS.to_owned(),
-                component_type: AnnisComponentType::PartOf.to_string(),
+                component_type: AnnotationComponentType::PartOf.to_string(),
                 component_name: String::default(),
             })?;
 
@@ -1530,7 +1530,7 @@ fn add_subcorpora(
                         .clone(),
                     target_node: text_full_name.clone(),
                     layer: ANNIS_NS.to_owned(),
-                    component_type: AnnisComponentType::PartOf.to_string(),
+                    component_type: AnnotationComponentType::PartOf.to_string(),
                     component_name: String::default(),
                 })?;
             }
@@ -1539,12 +1539,12 @@ fn add_subcorpora(
     Ok(())
 }
 
-fn component_type_from_short_name(short_type: &str) -> Result<AnnisComponentType> {
+fn component_type_from_short_name(short_type: &str) -> Result<AnnotationComponentType> {
     match short_type {
-        "c" => Ok(AnnisComponentType::Coverage),
-        "d" => Ok(AnnisComponentType::Dominance),
-        "p" => Ok(AnnisComponentType::Pointing),
-        "o" => Ok(AnnisComponentType::Ordering),
+        "c" => Ok(AnnotationComponentType::Coverage),
+        "d" => Ok(AnnotationComponentType::Dominance),
+        "p" => Ok(AnnotationComponentType::Pointing),
+        "o" => Ok(AnnotationComponentType::Ordering),
         _ => Err(anyhow!(
             "Invalid component type short name '{}'",
             short_type

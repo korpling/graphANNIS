@@ -1,6 +1,6 @@
 use super::Matrix;
 use crate::corpusstorage::{FrequencyTable, QueryAttributeDescription};
-use crate::{model::AnnisComponent, graph::{Annotation, Edge, NodeID}};
+use crate::{model::AnnotationComponent, graph::{Annotation, Edge, NodeID}};
 use libc::{c_char, c_void, size_t};
 use std;
 use std::ffi::CString;
@@ -148,16 +148,16 @@ pub extern "C" fn annis_vec_edge_get(ptr: *const Vec<Edge>, i: size_t) -> *const
 
 /// Returns the number of elements of the component vector.
 #[no_mangle]
-pub extern "C" fn annis_vec_component_size(ptr: *const Vec<AnnisComponent>) -> size_t {
+pub extern "C" fn annis_vec_component_size(ptr: *const Vec<AnnotationComponent>) -> size_t {
     vec_size(ptr)
 }
 
 /// Get a read-only reference to the component at position `i` of the vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_component_get(
-    ptr: *const Vec<AnnisComponent>,
+    ptr: *const Vec<AnnotationComponent>,
     i: size_t,
-) -> *const AnnisComponent {
+) -> *const AnnotationComponent {
     vec_get(ptr, i)
 }
 

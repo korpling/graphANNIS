@@ -36,13 +36,13 @@ impl<'a> std::iter::Iterator for CauseIterator<'a> {
 }
 
 fn error_kind(e: &Box<dyn StdError>) -> &'static str {
-    if let Some(annis_err) = e.downcast_ref::<errors::AnnisError>() {
+    if let Some(annis_err) = e.downcast_ref::<errors::GraphAnnisError>() {
         match annis_err {
-            errors::AnnisError::AQLSyntaxError { .. } => "AQLSyntaxError",
-            errors::AnnisError::AQLSemanticError { .. } => "AQLSemanticError",
-            errors::AnnisError::LoadingGraphFailed { .. } => "LoadingGraphFailed",
-            errors::AnnisError::ImpossibleSearch(_) => "ImpossibleSearch",
-            errors::AnnisError::NoSuchCorpus(_) => "NoSuchCorpus",
+            errors::GraphAnnisError::AQLSyntaxError { .. } => "AQLSyntaxError",
+            errors::GraphAnnisError::AQLSemanticError { .. } => "AQLSemanticError",
+            errors::GraphAnnisError::LoadingGraphFailed { .. } => "LoadingGraphFailed",
+            errors::GraphAnnisError::ImpossibleSearch(_) => "ImpossibleSearch",
+            errors::GraphAnnisError::NoSuchCorpus(_) => "NoSuchCorpus",
         }
     } else {
         // Check for several known types

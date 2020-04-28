@@ -1,7 +1,7 @@
 use super::RangeSpec;
 use crate::annis::operator::EstimationType;
 use crate::annis::{
-    db::aql::model::AnnisComponentType,
+    db::aql::model::AnnotationComponentType,
     operator::{UnaryOperator, UnaryOperatorSpec},
 };
 use crate::{
@@ -21,10 +21,10 @@ pub struct AritySpec {
 }
 
 impl UnaryOperatorSpec for AritySpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
         let mut result = HashSet::default();
-        result.extend(db.get_all_components(Some(AnnisComponentType::Dominance), None));
-        result.extend(db.get_all_components(Some(AnnisComponentType::Pointing), None));
+        result.extend(db.get_all_components(Some(AnnotationComponentType::Dominance), None));
+        result.extend(db.get_all_components(Some(AnnotationComponentType::Pointing), None));
         result
     }
 
@@ -32,12 +32,12 @@ impl UnaryOperatorSpec for AritySpec {
         // collect all relevant graph storages
         let mut graphstorages = Vec::default();
 
-        for component in db.get_all_components(Some(AnnisComponentType::Dominance), None) {
+        for component in db.get_all_components(Some(AnnotationComponentType::Dominance), None) {
             if let Some(gs) = db.get_graphstorage(&component) {
                 graphstorages.push(gs);
             }
         }
-        for component in db.get_all_components(Some(AnnisComponentType::Pointing), None) {
+        for component in db.get_all_components(Some(AnnotationComponentType::Pointing), None) {
             if let Some(gs) = db.get_graphstorage(&component) {
                 graphstorages.push(gs);
             }

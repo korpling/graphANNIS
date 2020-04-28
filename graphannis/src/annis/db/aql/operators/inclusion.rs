@@ -5,7 +5,7 @@ use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
-    model::AnnisComponentType,
+    model::AnnotationComponentType,
 };
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
@@ -25,9 +25,9 @@ pub struct Inclusion<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_ORDER: Component<AnnisComponentType> = {
+    static ref COMPONENT_ORDER: Component<AnnotationComponentType> = {
         Component::new(
-            AnnisComponentType::Ordering,
+            AnnotationComponentType::Ordering,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
@@ -35,7 +35,7 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for InclusionSpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
         let mut v = HashSet::default();
         v.insert(COMPONENT_ORDER.clone());
         v.extend(token_helper::necessary_components(db));

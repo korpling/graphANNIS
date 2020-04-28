@@ -55,7 +55,7 @@ pub use graphannis_core::graph::update;
 pub use graphannis_core::graph::Graph;
 
 /// A specialization of the [`Graph`](struct.Graph.html), using components needed to represent and query corpus annotation graphs.
-pub type AnnotationGraph = graphannis_core::graph::Graph<annis::db::aql::model::AnnisComponentType>;
+pub type AnnotationGraph = graphannis_core::graph::Graph<annis::db::aql::model::AnnotationComponentType>;
 
 /// Types that are used by the `Graph` API.
 pub mod graph {
@@ -68,8 +68,8 @@ pub mod graph {
 
 /// Types that define the annotation graph model.
 pub mod model {
-    pub use crate::annis::db::aql::model::AnnisComponentType;
-    pub type AnnisComponent = graphannis_core::types::Component<crate::model::AnnisComponentType>;
+    pub use crate::annis::db::aql::model::AnnotationComponentType;
+    pub type AnnotationComponent = graphannis_core::types::Component<crate::model::AnnotationComponentType>;
 }
 
 /// Contains the graphANNIS-specific error types.

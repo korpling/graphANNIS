@@ -4,7 +4,7 @@ use crate::annis::db::sort_matches;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::{
-    annis::db::aql::model::AnnisComponentType, annis::db::token_helper::TokenHelper, graph::Match,
+    annis::db::aql::model::AnnotationComponentType, annis::db::token_helper::TokenHelper, graph::Match,
     AnnotationGraph,
 };
 use graphannis_core::{
@@ -28,9 +28,9 @@ pub struct AnyTokenSearch<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_ORDER: Component<AnnisComponentType> = {
+    static ref COMPONENT_ORDER: Component<AnnotationComponentType> = {
         Component::new(
-            AnnisComponentType::Ordering,
+            AnnotationComponentType::Ordering,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
@@ -51,7 +51,7 @@ impl<'a> AnyTokenSearch<'a> {
         })
     }
 
-    pub fn necessary_components(db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
+    pub fn necessary_components(db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
         let mut components = token_helper::necessary_components(db);
         components.insert(COMPONENT_ORDER.clone());
         components

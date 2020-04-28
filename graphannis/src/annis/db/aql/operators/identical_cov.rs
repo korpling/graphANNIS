@@ -5,7 +5,7 @@ use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
     AnnotationGraph,
-    model::AnnisComponentType,
+    model::AnnotationComponentType,
 };
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
@@ -27,16 +27,16 @@ pub struct IdenticalCoverage<'a> {
 }
 
 lazy_static! {
-    static ref COMPONENT_LEFT: Component<AnnisComponentType> = {
+    static ref COMPONENT_LEFT: Component<AnnotationComponentType> = {
         Component::new(
-            AnnisComponentType::LeftToken,
+            AnnotationComponentType::LeftToken,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
     };
-    static ref COMPONENT_ORDER: Component<AnnisComponentType> = {
+    static ref COMPONENT_ORDER: Component<AnnotationComponentType> = {
         Component::new(
-            AnnisComponentType::Ordering,
+            AnnotationComponentType::Ordering,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
@@ -44,7 +44,7 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for IdenticalCoverageSpec {
-    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnisComponentType>> {
+    fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
         let mut v = HashSet::new();
         v.insert(COMPONENT_LEFT.clone());
         v.insert(COMPONENT_ORDER.clone());
