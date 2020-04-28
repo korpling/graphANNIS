@@ -59,6 +59,10 @@ script:
 before_deploy:
   # recreate release binary after testing
   - cargo build --release --all-features --lib
+  # rename the binary file
+  -  if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mv target/release/libgraphannis_capi.so target/release/libgraphannis.so ; fi
+  -  if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mv target/release/libgraphannis_capi.dylib target/release/libgraphannis.dylib ; fi
+  -  if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then mv target/release/graphannis_capi.dll target/release/graphannis.dll ; fi
   # determine which binary to deploy
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dylib ; fi
