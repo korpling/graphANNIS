@@ -2,25 +2,25 @@ use graphannis::update::{GraphUpdate, UpdateEvent};
 use graphannis::CorpusStorage;
 use std::path::PathBuf;
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cs = CorpusStorage::with_auto_cache_size(&PathBuf::from("data"), true).unwrap();
     let mut g = GraphUpdate::new();
     // create the corpus and document node
     g.add_event(UpdateEvent::AddNode {
         node_name: "tutorial".to_string(),
         node_type: "corpus".to_string(),
-    });
+    })?;
     g.add_event(UpdateEvent::AddNode {
         node_name: "tutorial/doc1".to_string(),
         node_type: "corpus".to_string(),
-    });
+    })?;
     g.add_event(UpdateEvent::AddEdge {
         source_node: "tutorial/doc1".to_string(),
         target_node: "tutorial".to_string(),
         layer: "annis".to_string(),
         component_type: "PartOf".to_string(),
         component_name: "".to_string(),
-    });
+    })?;
     // add the corpus structure to the existing nodes
     g.add_event(UpdateEvent::AddEdge {
         source_node: "tutorial/doc1#t1".to_string(),
@@ -28,49 +28,49 @@ fn main() {
         layer: "annis".to_string(),
         component_type: "PartOf".to_string(),
         component_name: "".to_string(),
-    });
+    })?;
     g.add_event(UpdateEvent::AddEdge {
         source_node: "tutorial/doc1#t2".to_string(),
         target_node: "tutorial/doc1".to_string(),
         layer: "annis".to_string(),
         component_type: "PartOf".to_string(),
         component_name: "".to_string(),
-    });
+    })?;
     g.add_event(UpdateEvent::AddEdge {
         source_node: "tutorial/doc1#t3".to_string(),
         target_node: "tutorial/doc1".to_string(),
         layer: "annis".to_string(),
         component_type: "PartOf".to_string(),
         component_name: "".to_string(),
-    });
+    })?;
     g.add_event(UpdateEvent::AddEdge {
         source_node: "tutorial/doc1#t4".to_string(),
         target_node: "tutorial/doc1".to_string(),
         layer: "annis".to_string(),
         component_type: "PartOf".to_string(),
         component_name: "".to_string(),
-    });
+    })?;
     g.add_event(UpdateEvent::AddEdge {
         source_node: "tutorial/doc1#t5".to_string(),
         target_node: "tutorial/doc1".to_string(),
         layer: "annis".to_string(),
         component_type: "PartOf".to_string(),
         component_name: "".to_string(),
-    });
+    })?;
     g.add_event(UpdateEvent::AddEdge {
         source_node: "tutorial/doc1#t6".to_string(),
         target_node: "tutorial/doc1".to_string(),
         layer: "annis".to_string(),
         component_type: "PartOf".to_string(),
         component_name: "".to_string(),
-    });
+    })?;
     g.add_event(UpdateEvent::AddEdge {
         source_node: "tutorial/doc1#t7".to_string(),
         target_node: "tutorial/doc1".to_string(),
         layer: "annis".to_string(),
         component_type: "PartOf".to_string(),
         component_name: "".to_string(),
-    });
+    })?;
     // apply the changes
     cs.apply_update("tutorial", &mut g).unwrap();
 
@@ -97,4 +97,6 @@ fn main() {
             .unwrap();
         println!("{}", matched_node_name);
     }
+
+    Ok(())
 }

@@ -22,7 +22,7 @@ You can install Rust from https://www.rust-lang.org/tools/install.
 After you have installed Rust, you can can build the complete project with
 
 ```
-cargo build --release --all-features
+cargo build --release
 ```
 
 ## Documentation
