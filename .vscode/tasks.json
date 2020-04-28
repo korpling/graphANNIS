@@ -109,10 +109,10 @@
                 "--lockfile",
                 "${workspaceFolder}/Cargo.lock",
                 "-o",
-                "graphannis/include/graphannis-capi.h"
+                "include/graphannis-capi.h"
             ],
             "options": {
-                "cwd": "${workspaceFolder}/graphannis"
+                "cwd": "${workspaceFolder}/graphannis/"
             },
             "group": "build",
             "problemMatcher": []

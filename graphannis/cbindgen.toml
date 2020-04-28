@@ -18,10 +18,9 @@ include_guard="graphannis_capi_h"
 include_version=true
 
 [parse]
-parse_deps = false
-include = ["graphannis"]
+parse_deps = true
+include = ["graphannis-core", "graphannis"]
 
 [export]
 prefix = "Annis"
-exclude = ["MAX_BUFFER_SIZE", "malloc_usable_size", "Expr"]
-
+exclude = ["MAX_BUFFER_SIZE", "malloc_usable_size", "Expr", "TOK"]

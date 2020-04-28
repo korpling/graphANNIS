@@ -15,7 +15,7 @@ limitations under the License.s
 #ifndef graphannis_capi_h
 #define graphannis_capi_h
 
-/* Generated with cbindgen:0.9.1 */
+/* Generated with cbindgen:0.13.2 */
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -23,7 +23,7 @@ limitations under the License.s
 #include <stdlib.h>
 
 /**
- * Specifies the type of component. Types determine certain semantics about the edges of this graph components.
+ * Specifies the type of component of the annotation graph. The types of this enum carray certain semantics about the edges of the graph components their are used in.
  */
 typedef enum {
   /**
@@ -54,7 +54,7 @@ typedef enum {
    * Implies that the source node belongs to the parent corpus/subcorpus/document/datasource node.
    */
   PartOf,
-} AnnisComponentType;
+} AnnisAnnotationComponentType;
 
 /**
  * An enum of all supported input formats of graphANNIS.
@@ -123,7 +123,7 @@ typedef struct AnnisAnnotation AnnisAnnotation;
 /**
  * Identifies an edge component of the graph.
  */
-typedef struct AnnisComponent AnnisComponent;
+typedef struct AnnisComponent_AnnotationComponentType AnnisComponent_AnnotationComponentType;
 
 /**
  * A thread-safe API for managing corpora stored in a common location on the file system.
@@ -148,21 +148,19 @@ typedef struct AnnisFrequencyTable_CString AnnisFrequencyTable_CString;
  * A representation of a graph including node annotations and edges.
  * Edges are partioned into components and each component is implemented by specialized graph storage implementation.
  *
- * Use the [CorpusStorage](struct.CorpusStorage.html) struct to create and manage instances of a `Graph`.
- *
  * Graphs can have an optional location on the disk.
  * In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
  *
  */
-typedef struct AnnisGraph AnnisGraph;
+typedef struct AnnisGraph_AnnotationComponentType AnnisGraph_AnnotationComponentType;
 
 typedef struct AnnisIterPtr_NodeID AnnisIterPtr_NodeID;
 
 typedef struct AnnisVec_Annotation AnnisVec_Annotation;
 
-typedef struct AnnisVec_CString AnnisVec_CString;
+typedef struct AnnisVec_AnnotationComponent AnnisVec_AnnotationComponent;
 
-typedef struct AnnisVec_Component AnnisVec_Component;
+typedef struct AnnisVec_CString AnnisVec_CString;
 
 typedef struct AnnisVec_Edge AnnisVec_Edge;
 
@@ -171,6 +169,8 @@ typedef struct AnnisVec_Error AnnisVec_Error;
 typedef struct AnnisVec_QueryAttributeDescription AnnisVec_QueryAttributeDescription;
 
 typedef struct AnnisVec_Vec_CString AnnisVec_Vec_CString;
+
+typedef AnnisComponent_AnnotationComponentType AnnisAnnotationComponent;
 
 /**
  * A list of changes to apply to an graph.
@@ -184,6 +184,11 @@ typedef struct {
  * A list of multiple errors.
  */
 typedef AnnisVec_Error AnnisErrorList;
+
+/**
+ * A specialization of the [`Graph`](struct.Graph.html), using components needed to represent and query corpus annotation graphs.
+ */
+typedef AnnisGraph_AnnotationComponentType AnnisAnnotationGraph;
 
 /**
  * A struct that contains the extended results of the count query.
@@ -237,19 +242,19 @@ char *annis_annotation_val(const AnnisAnnotation *ptr);
  *
  * The returned string must be deallocated by the caller using annis_str_free()!
  */
-char *annis_component_layer(const AnnisComponent *c);
+char *annis_component_layer(const AnnisAnnotationComponent *c);
 
 /**
  * Get the name of the given component.
  *
  * The returned string must be deallocated by the caller using annis_str_free()!
  */
-char *annis_component_name(const AnnisComponent *c);
+char *annis_component_name(const AnnisAnnotationComponent *c);
 
 /**
  * Get the type of the given component.
  */
-AnnisComponentType annis_component_type(const AnnisComponent *c);
+AnnisAnnotationComponentType annis_component_type(const AnnisAnnotationComponent *c);
 
 /**
  * Apply a sequence of updates (`update` parameter) to this graph for a corpus given by the `corpus_name` parameter.
@@ -270,9 +275,9 @@ void annis_cs_apply_update(AnnisCorpusStorage *ptr,
  * - `ptr` - The corpus storage object.
  * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
  */
-AnnisGraph *annis_cs_corpus_graph(const AnnisCorpusStorage *ptr,
-                                  const char *corpus_name,
-                                  AnnisErrorList **err);
+AnnisAnnotationGraph *annis_cs_corpus_graph(const AnnisCorpusStorage *ptr,
+                                            const char *corpus_name,
+                                            AnnisErrorList **err);
 
 /**
  * Count the number of results for a `query`.
@@ -399,9 +404,9 @@ AnnisVec_CString *annis_cs_list(const AnnisCorpusStorage *ptr, AnnisErrorList **
  * - `ptr` - The corpus storage object.
  * - `ctype` -Filter by the component type.
  */
-AnnisVec_Component *annis_cs_list_components_by_type(AnnisCorpusStorage *ptr,
-                                                     const char *corpus_name,
-                                                     AnnisComponentType ctype);
+AnnisVec_AnnotationComponent *annis_cs_list_components_by_type(AnnisCorpusStorage *ptr,
+                                                               const char *corpus_name,
+                                                               AnnisAnnotationComponentType ctype);
 
 /**
  * Returns a list of all edge annotations of a corpus given by `corpus_name` and the component.
@@ -416,7 +421,7 @@ AnnisVec_Component *annis_cs_list_components_by_type(AnnisCorpusStorage *ptr,
  */
 AnnisMatrix_CString *annis_cs_list_edge_annotations(const AnnisCorpusStorage *ptr,
                                                     const char *corpus_name,
-                                                    AnnisComponentType component_type,
+                                                    AnnisAnnotationComponentType component_type,
                                                     const char *component_name,
                                                     const char *component_layer,
                                                     bool list_values,
@@ -456,10 +461,10 @@ AnnisVec_QueryAttributeDescription *annis_cs_node_descriptions(const AnnisCorpus
  * - `corpus_ids` - A set of sub-corpus/document identifiers describing the subgraph.
  * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
  */
-AnnisGraph *annis_cs_subcorpus_graph(const AnnisCorpusStorage *ptr,
-                                     const char *corpus_name,
-                                     const AnnisVec_CString *corpus_ids,
-                                     AnnisErrorList **err);
+AnnisAnnotationGraph *annis_cs_subcorpus_graph(const AnnisCorpusStorage *ptr,
+                                               const char *corpus_name,
+                                               const AnnisVec_CString *corpus_ids,
+                                               AnnisErrorList **err);
 
 /**
  * Return the copy of a subgraph which includes the given list of node annotation identifiers,
@@ -473,13 +478,13 @@ AnnisGraph *annis_cs_subcorpus_graph(const AnnisCorpusStorage *ptr,
  * - `segmentation` - The name of the segmentation which should be used to as base for the context. Use `None` to define the context in the default token layer.
  * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
  */
-AnnisGraph *annis_cs_subgraph(const AnnisCorpusStorage *ptr,
-                              const char *corpus_name,
-                              const AnnisVec_CString *node_ids,
-                              size_t ctx_left,
-                              size_t ctx_right,
-                              const char *segmentation,
-                              AnnisErrorList **err);
+AnnisAnnotationGraph *annis_cs_subgraph(const AnnisCorpusStorage *ptr,
+                                        const char *corpus_name,
+                                        const AnnisVec_CString *node_ids,
+                                        size_t ctx_left,
+                                        size_t ctx_right,
+                                        const char *segmentation,
+                                        AnnisErrorList **err);
 
 /**
  * Return the copy of a subgraph which includes all nodes matched by the given `query`.
@@ -490,11 +495,11 @@ AnnisGraph *annis_cs_subgraph(const AnnisCorpusStorage *ptr,
  * - `query_language` - The query language of the query (e.g. AQL).
  * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
  */
-AnnisGraph *annis_cs_subgraph_for_query(const AnnisCorpusStorage *ptr,
-                                        const char *corpus_name,
-                                        const char *query,
-                                        AnnisQueryLanguage query_language,
-                                        AnnisErrorList **err);
+AnnisAnnotationGraph *annis_cs_subgraph_for_query(const AnnisCorpusStorage *ptr,
+                                                  const char *corpus_name,
+                                                  const char *query,
+                                                  AnnisQueryLanguage query_language,
+                                                  AnnisErrorList **err);
 
 /**
  * Return the copy of a subgraph which includes all nodes matched by the given `query` and an additional filter.
@@ -506,12 +511,12 @@ AnnisGraph *annis_cs_subgraph_for_query(const AnnisCorpusStorage *ptr,
  * - `component_type_filter` - Only include edges of that belong to a component of the given type.
  * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
  */
-AnnisGraph *annis_cs_subgraph_for_query_with_ctype(const AnnisCorpusStorage *ptr,
-                                                   const char *corpus_name,
-                                                   const char *query,
-                                                   AnnisQueryLanguage query_language,
-                                                   AnnisComponentType component_type_filter,
-                                                   AnnisErrorList **err);
+AnnisAnnotationGraph *annis_cs_subgraph_for_query_with_ctype(const AnnisCorpusStorage *ptr,
+                                                             const char *corpus_name,
+                                                             const char *query,
+                                                             AnnisQueryLanguage query_language,
+                                                             AnnisAnnotationComponentType component_type_filter,
+                                                             AnnisErrorList **err);
 
 /**
  * Unloads a corpus from the cache.
@@ -605,38 +610,39 @@ size_t annis_freqtable_str_nrows(const AnnisFrequencyTable_CString *ptr);
 /**
  * Return a vector of all components for the graph `g`.
  */
-AnnisVec_Component *annis_graph_all_components(const AnnisGraph *g);
+AnnisVec_AnnotationComponent *annis_graph_all_components(const AnnisAnnotationGraph *g);
 
 /**
  * Return a vector of all components for the graph `g` and the given component type.
  */
-AnnisVec_Component *annis_graph_all_components_by_type(const AnnisGraph *g,
-                                                       AnnisComponentType ctype);
+AnnisVec_AnnotationComponent *annis_graph_all_components_by_type(const AnnisAnnotationGraph *g,
+                                                                 AnnisAnnotationComponentType ctype);
 
 /**
  * Return a vector of annnotations for the given `edge` in the `component` of graph `g.
  */
-AnnisVec_Annotation *annis_graph_annotations_for_edge(const AnnisGraph *g,
+AnnisVec_Annotation *annis_graph_annotations_for_edge(const AnnisAnnotationGraph *g,
                                                       AnnisEdge edge,
-                                                      const AnnisComponent *component);
+                                                      const AnnisAnnotationComponent *component);
 
 /**
  * Return a vector of all annotations for the given `node` in the graph `g`.
  */
-AnnisVec_Annotation *annis_graph_annotations_for_node(const AnnisGraph *g, AnnisNodeID node);
+AnnisVec_Annotation *annis_graph_annotations_for_node(const AnnisAnnotationGraph *g,
+                                                      AnnisNodeID node);
 
 /**
  * Return an iterator over all nodes of the graph `g` and the given `node_type` (e.g. "node" or "corpus").
  */
-AnnisIterPtr_NodeID *annis_graph_nodes_by_type(const AnnisGraph *g,
+AnnisIterPtr_NodeID *annis_graph_nodes_by_type(const AnnisAnnotationGraph *g,
                                                const char *node_type);
 
 /**
  * Return a vector of all outgoing edges for the graph `g`, the `source` node and the given `component`.
  */
-AnnisVec_Edge *annis_graph_outgoing_edges(const AnnisGraph *g,
+AnnisVec_Edge *annis_graph_outgoing_edges(const AnnisAnnotationGraph *g,
                                           AnnisNodeID source,
-                                          const AnnisComponent *component);
+                                          const AnnisAnnotationComponent *component);
 
 /**
  * Add "add edge" action to the graph update object.
@@ -833,12 +839,13 @@ size_t annis_vec_annotation_size(const AnnisVec_Annotation *ptr);
 /**
  * Get a read-only reference to the component at position `i` of the vector.
  */
-const AnnisComponent *annis_vec_component_get(const AnnisVec_Component *ptr, size_t i);
+const AnnisAnnotationComponent *annis_vec_component_get(const AnnisVec_AnnotationComponent *ptr,
+                                                        size_t i);
 
 /**
  * Returns the number of elements of the component vector.
  */
-size_t annis_vec_component_size(const AnnisVec_Component *ptr);
+size_t annis_vec_component_size(const AnnisVec_AnnotationComponent *ptr);
 
 /**
  * Get a read-only reference to the edge at position `i` of the vector.
