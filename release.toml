@@ -2,5 +2,3 @@ sign-commit = true
 dev-version-ext = "dev"
 no-dev-version = true
 pre-release-hook = ["cargo", "test"]
-# Only tag the graphannis crate, not the other ones
-disable-tag = true
