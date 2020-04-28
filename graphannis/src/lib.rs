@@ -28,10 +28,6 @@ extern crate lalrpop_util;
 #[cfg(feature = "c-api")]
 extern crate simplelog;
 
-/// This module contains functions and structs that are exported as the C interface to graphANNIS.
-#[cfg(feature = "c-api")]
-pub mod capi;
-
 // Make sure the allocator is always the one from the system, otherwise we can't make sure our memory estimations work
 use std::alloc::System;
 #[global_allocator]

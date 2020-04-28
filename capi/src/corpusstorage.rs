@@ -1,12 +1,15 @@
 use super::cerror;
 use super::cerror::ErrorList;
 use super::Matrix;
-use crate::corpusstorage::{
-    CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, ImportFormat,
-    QueryAttributeDescription, QueryLanguage, ResultOrder,
+use graphannis::{
+    corpusstorage::{
+        CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, ImportFormat,
+        QueryAttributeDescription, QueryLanguage, ResultOrder,
+    },
+    model::{AnnotationComponent, AnnotationComponentType},
+    update::GraphUpdate,
+    AnnotationGraph, CorpusStorage,
 };
-use crate::update::GraphUpdate;
-use crate::{annis::db::aql::model::AnnotationComponentType, CorpusStorage, AnnotationGraph, model::AnnotationComponent};
 use libc;
 use std;
 use std::ffi::CString;

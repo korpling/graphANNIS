@@ -1,8 +1,8 @@
 use super::cerror;
 use super::cerror::ErrorList;
-use crate::update::*;
 use libc;
 use std;
+use graphannis::update::{GraphUpdate, UpdateEvent};
 
 /// Create a new graph (empty) update instance
 #[no_mangle]

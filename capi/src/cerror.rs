@@ -1,5 +1,5 @@
 use super::data::{vec_get, vec_size};
-use crate::errors;
+use graphannis::errors;
 use libc::{c_char, size_t};
 use log;
 use std;
@@ -48,16 +48,6 @@ fn error_kind(e: &Box<dyn StdError>) -> &'static str {
         // Check for several known types
         if e.is::<std::io::Error>() {
             "IO"
-        } else if e.is::<csv::Error>() {
-            "CSV"
-        } else if e.is::<::std::num::ParseIntError>() {
-            "ParseIntError"
-        } else if e.is::<std::fmt::Error>() {
-            "Fmt"
-        } else if e.is::<regex::Error>() {
-            "Regex"
-        } else if e.is::<rand::Error>() {
-            "RandomGenerator"
         } else if e.is::<log::SetLoggerError>() {
             "SetLoggerError"
         } else {

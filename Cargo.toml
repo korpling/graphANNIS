@@ -1,8 +1,2 @@
 [workspace]
-
-members = [
-    "core",
-    "graphannis",
-    "cli"
-]
-
+members = ["core", "graphannis", "cli", "capi"]

@@ -1,8 +1,8 @@
-use crate::capi::data::IterPtr;
-use crate::AnnotationGraph;
-use crate::{
+use crate::data::IterPtr;
+use graphannis::{
     graph::{Annotation, Edge, GraphStorage, Match, NodeID},
     model::{AnnotationComponent, AnnotationComponentType},
+    AnnotationGraph,
 };
 use libc;
 use std;

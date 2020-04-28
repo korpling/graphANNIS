@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 #[allow(unused_macros)]
 macro_rules! cast_mut {
     ($x:expr) => {{

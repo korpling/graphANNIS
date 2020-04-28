@@ -1,6 +1,9 @@
 use super::Matrix;
-use crate::corpusstorage::{FrequencyTable, QueryAttributeDescription};
-use crate::{model::AnnotationComponent, graph::{Annotation, Edge, NodeID}};
+use graphannis::{
+    corpusstorage::{FrequencyTable, QueryAttributeDescription},
+    graph::{Annotation, Edge, NodeID},
+    model::AnnotationComponent,
+};
 use libc::{c_char, c_void, size_t};
 use std;
 use std::ffi::CString;
