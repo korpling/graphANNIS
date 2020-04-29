@@ -11,9 +11,6 @@ extern crate graphannis_malloc_size_of_derive as malloc_size_of_derive;
 extern crate log;
 
 #[macro_use]
-extern crate percent_encoding;
-
-#[macro_use]
 extern crate serde_derive;
 
 #[macro_use]
