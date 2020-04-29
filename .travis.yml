@@ -49,8 +49,8 @@ script:
   - cargo build $BUILD_FLAGS --tests --all-features
   # Download and import test corpora if necessary
   - (test -z "$TEST_SUITE" -o \( -d relannis/GUM/ -a -d relannis/pcc2.1/ \) || "./misc/download-test-corpora.sh")
-  - (test -z "$TEST_SUITE" -o -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
-  - (test -z "$TEST_SUITE" -o -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
+  - (test -z "$TEST_SUITE" -o -d data/GUM || "./target/release/annis data --cmd 'import relannis/GUM'")
+  - (test -z "$TEST_SUITE" -o -d data/pcc2.1 || "./target/release/annis data --cmd 'import relannis/pcc2.1'")
   - cargo test --all-features $BUILD_FLAGS -- $TEST_SUITE
   # generate the documentation (for testing if it works and later deploy)
   - mdbook build --dest-dir book/${SHORT_VERSION} docs/
