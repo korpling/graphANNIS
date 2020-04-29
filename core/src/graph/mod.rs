@@ -1,4 +1,5 @@
 pub mod storage;
+pub mod serialization;
 pub mod update;
 
 use crate::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
