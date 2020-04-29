@@ -29,7 +29,7 @@ csv = "1"
 log = "0.4"
 lazy_static = "1.4"
 linked-hash-map = "0.5"
-itertools = "0.8"
+itertools = "0.9"
 rustc-hash = "1.0"
 rayon = { version = "1.3", default-features = false }
 sys-info = ">= 0.5.8, < 0.5.9"
