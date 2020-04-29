@@ -31,7 +31,7 @@ use graphannis_core::{
     util::memory_estimation,
 };
 use linked_hash_map::LinkedHashMap;
-use percent_encoding::{utf8_percent_encode, PATH_SEGMENT_ENCODE_SET, SIMPLE_ENCODE_SET};
+use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
 use std;
 use std::borrow::Cow;
 use std::collections::{BTreeSet, HashSet};
@@ -259,10 +259,19 @@ pub enum CacheStrategy {
     PercentOfFreeMemory(f64),
 }
 
-define_encode_set! {
-     /// This encode set is used encoding the Salt identifiers in the output of the `find(...)` function.
-     pub SALT_URI_ENCODE_SET = [SIMPLE_ENCODE_SET] | {' ', ':', '%'}
-}
+pub const SALT_URI_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b':').add(b'%');
+pub const PATH_SEGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
+    .add(b' ')
+    .add(b'"')
+    .add(b'#')
+    .add(b'<')
+    .add(b'>')
+    .add(b'`')
+    .add(b'?')
+    .add(b'{')
+    .add(b'}')
+    .add(b'%')
+    .add(b'/');
 
 /// A thread-safe API for managing corpora stored in a common location on the file system.
 ///
