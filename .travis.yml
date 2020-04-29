@@ -45,8 +45,8 @@ before_script:
 
 script:
   - cargo fmt -- --check
-  # Build the library, all tests and the annis CLI binary
-  - cargo build $BUILD_FLAGS --tests --all-features
+  # Build all sub-crates with all features
+  - cargo build $BUILD_FLAGS --all-features
   # Download and import test corpora if necessary
   - (test -z "$TEST_SUITE" -o \( -d relannis/GUM/ -a -d relannis/pcc2.1/ \) || "./misc/download-test-corpora.sh")
   - (test -z "$TEST_SUITE" -o -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
