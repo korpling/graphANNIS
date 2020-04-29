@@ -32,7 +32,7 @@ cargo build --release
 
 ## 3rd party dependencies
 
-This software depends on several 3rd party libraries. These are documented in the BOM.txt file in this folder.
+This software depends on several 3rd party libraries. These are documented in the "third-party-licenses.html" file in this folder.
 
 ## Language bindings
 
