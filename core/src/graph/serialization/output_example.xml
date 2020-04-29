@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <graphml>
-    <key id="annis::node_name" for="node" attr.name="annis::node_name" attr.type="string"/>
-    <key id="annis::node_type" for="node" attr.name="annis::node_type" attr.type="string"/>
+    <key id="k0" for="node" attr.name="annis::node_name" attr.type="string"/>
+    <key id="k1" for="node" attr.name="annis::node_type" attr.type="string"/>
     <graph edgedefault="directed">
         <node id="0">
-            <data key="annis::node_name">n0</data>
-            <data key="annis::node_type">node</data>
+            <data key="k0">n0</data>
+            <data key="k1">node</data>
+        </node>
+        <node id="1">
+            <data key="k0">n1</data>
+            <data key="k1">node</data>
         </node>
     </graph>
 </graphml>
