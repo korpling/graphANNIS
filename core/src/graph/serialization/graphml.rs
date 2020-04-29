@@ -10,17 +10,10 @@ use quick_xml::{
     Writer,
 };
 
-pub fn export<CT: ComponentType, W: std::io::Write>(graph: &Graph<CT>, output: W) -> Result<()> {
-    let mut writer = Writer::new_with_indent(output, b' ', 4);
-
-    // Add XML declaration
-    let xml_decl = BytesDecl::new(b"1.0", Some(b"UTF-8"), None);
-    writer.write_event(Event::Decl(xml_decl))?;
-
-    // Always write the root element
-    writer.write_event(Event::Start(BytesStart::borrowed_name(b"graphml")))?;
-
-    // Define all valid annotation ns/name pairs
+fn export_annotation_keys<CT: ComponentType, W: std::io::Write>(
+    graph: &Graph<CT>,
+    writer: &mut Writer<W>,
+) -> Result<()> {
     for key in graph.get_node_annos().annotation_keys() {
         let mut key_start = BytesStart::borrowed_name("key".as_bytes());
         let qname = join_qname(&key.ns, &key.name);
@@ -31,13 +24,13 @@ pub fn export<CT: ComponentType, W: std::io::Write>(graph: &Graph<CT>, output: W
 
         writer.write_event(Event::Empty(key_start))?;
     }
+    Ok(())
+}
 
-    // We are writing a single graph
-    let mut graph_start = BytesStart::borrowed_name("graph".as_bytes());
-    graph_start.push_attribute(("edgedefault", "directed"));
-    writer.write_event(Event::Start(graph_start))?;
-
-    // Write out all nodes
+fn export_nodes<CT: ComponentType, W: std::io::Write>(
+    graph: &Graph<CT>,
+    writer: &mut Writer<W>,
+) -> Result<()> {
     for m in graph
         .get_node_annos()
         .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Any)
@@ -60,6 +53,29 @@ pub fn export<CT: ComponentType, W: std::io::Write>(graph: &Graph<CT>, output: W
 
         writer.write_event(Event::End(BytesEnd::borrowed(b"node")))?;
     }
+    Ok(())
+}
+
+pub fn export<CT: ComponentType, W: std::io::Write>(graph: &Graph<CT>, output: W) -> Result<()> {
+    let mut writer = Writer::new_with_indent(output, b' ', 4);
+
+    // Add XML declaration
+    let xml_decl = BytesDecl::new(b"1.0", Some(b"UTF-8"), None);
+    writer.write_event(Event::Decl(xml_decl))?;
+
+    // Always write the root element
+    writer.write_event(Event::Start(BytesStart::borrowed_name(b"graphml")))?;
+
+    // Define all valid annotation ns/name pairs
+    export_annotation_keys(graph, &mut writer)?;
+
+    // We are writing a single graph
+    let mut graph_start = BytesStart::borrowed_name("graph".as_bytes());
+    graph_start.push_attribute(("edgedefault", "directed"));
+    writer.write_event(Event::Start(graph_start))?;
+
+    // Write out all nodes
+    export_nodes(graph, &mut writer)?;
     writer.write_event(Event::End(BytesEnd::borrowed(b"graph")))?;
     writer.write_event(Event::End(BytesEnd::borrowed(b"graphml")))?;
 
