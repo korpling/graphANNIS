@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <graphml>
+    <key id="c" for="edge" attr.name="annis::component" attr.type="string"/>
     <key id="k0" for="node" attr.name="annis::node_name" attr.type="string"/>
     <key id="k1" for="node" attr.name="annis::node_type" attr.type="string"/>
     <graph edgedefault="directed">
@@ -11,6 +12,8 @@
             <data key="k0">second_node</data>
             <data key="k1">node</data>
         </node>
-        <edge id="e0" source="n0" target="n1"/>
+        <edge id="e0" source="n0" target="n1">
+            <data key="c">Edge/some_ns/test_component</data>
+        </edge>
     </graph>
 </graphml>
