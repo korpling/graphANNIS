@@ -246,6 +246,14 @@ pub enum ImportFormat {
     RelANNIS,
 }
 
+/// An enum of all supported output formats of graphANNIS.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub enum ExportFormat {
+    /// [GraphML](http://graphml.graphdrawing.org/) based export-format, suitable to be imported into other graph databases.
+    GraphML,
+}
+
 /// Different strategies how it is decided when corpora need to be removed from the cache.
 pub enum CacheStrategy {
     /// Fixed maximum size of the cache in bytes.
@@ -781,6 +789,28 @@ impl CorpusStorage {
         check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![&corpus_name]);
 
         Ok(corpus_name)
+    }
+
+    pub fn export_to_fs(&self, corpus_name: &str, path: &Path, format: ExportFormat) -> Result<()> {
+        let entry = self.get_loaded_entry(corpus_name, false)?;
+
+        // Ensure all components are loaded
+        {
+            let mut lock = entry.write().unwrap();
+            let graph: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
+            graph.ensure_loaded_all()?;
+        }
+        // Perform the export on a read-only reference
+        let lock = entry.read().unwrap();
+        let graph: &AnnotationGraph = get_read_or_error(&lock)?;
+        match format {
+            ExportFormat::GraphML => {
+                let output_file = File::create(path)?;
+                graphannis_core::graph::serialization::graphml::export(graph, &output_file)?;
+            }
+        }
+
+        Ok(())
     }
 
     /// Delete a corpus from this corpus storage.

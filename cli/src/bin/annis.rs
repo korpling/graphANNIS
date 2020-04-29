@@ -4,10 +4,10 @@ extern crate anyhow;
 use clap::{App, Arg};
 use graphannis::corpusstorage::CorpusInfo;
 use graphannis::corpusstorage::FrequencyDefEntry;
-use graphannis::corpusstorage::ImportFormat;
 use graphannis::corpusstorage::LoadStatus;
 use graphannis::corpusstorage::QueryLanguage;
 use graphannis::corpusstorage::ResultOrder;
+use graphannis::corpusstorage::{ExportFormat, ImportFormat};
 use graphannis::errors::*;
 use graphannis::CorpusStorage;
 use log::info;
@@ -34,6 +34,7 @@ impl ConsoleHelper {
     pub fn new(corpora: Vec<CorpusInfo>) -> ConsoleHelper {
         let mut known_commands = BTreeSet::new();
         known_commands.insert("import".to_string());
+        known_commands.insert("export".to_string());
         known_commands.insert("list".to_string());
         known_commands.insert("delete".to_string());
         known_commands.insert("corpus".to_string());
@@ -193,6 +194,7 @@ impl AnnisRunner {
             };
             let result = match cmd {
                 "import" => self.import_relannis(&args),
+                "export" => self.export_graphml(&args),
                 "list" => self.list(),
                 "delete" => self.delete(&args),
                 "corpus" => self.corpus(&args),
@@ -247,6 +249,30 @@ impl AnnisRunner {
         let load_time = t_before.elapsed();
         if let Ok(t) = load_time {
             info! {"imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+        }
+
+        Ok(())
+    }
+
+    fn export_graphml(&mut self, args: &str) -> Result<()> {
+        let args: Vec<&str> = args.split(' ').collect();
+        if args.is_empty() {
+            bail!("You need give the location of the output XML file as argument");
+        } else if self.current_corpus.len() != 1 {
+            bail!("You need to select a *single* corpus first with the \"corpus\" command");
+        }
+
+        let path = PathBuf::from(args[0]);
+        let corpus = &self.current_corpus[0];
+
+        let t_before = std::time::SystemTime::now();
+        self.storage
+            .as_ref()
+            .ok_or(anyhow!("No corpus storage location set"))?
+            .export_to_fs(corpus, &path, ExportFormat::GraphML)?;
+        let load_time = t_before.elapsed();
+        if let Ok(t) = load_time {
+            info! {"exported corpus {} in {} ms", corpus, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
         }
 
         Ok(())
