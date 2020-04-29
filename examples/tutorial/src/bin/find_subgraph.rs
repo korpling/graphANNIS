@@ -1,5 +1,4 @@
 use graphannis::corpusstorage::{QueryLanguage, ResultOrder};
-use graphannis::graph::AnnotationStorage;
 use graphannis::util;
 use graphannis::CorpusStorage;
 use std::path::PathBuf;

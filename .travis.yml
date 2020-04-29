@@ -45,20 +45,24 @@ before_script:
 
 script:
   - cargo fmt -- --check
-  # Build the library, all tests and the annis CLI binary
-  - cargo build $BUILD_FLAGS --tests --lib --bin annis --features="cli c-api"
+  # Build all sub-crates with all features
+  - cargo build $BUILD_FLAGS --all-features
   # Download and import test corpora if necessary
   - (test -z "$TEST_SUITE" -o \( -d relannis/GUM/ -a -d relannis/pcc2.1/ \) || "./misc/download-test-corpora.sh")
   - (test -z "$TEST_SUITE" -o -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
   - (test -z "$TEST_SUITE" -o -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
-  - cargo test --features="cli c-api" $BUILD_FLAGS -- $TEST_SUITE
+  - cargo test --all-features $BUILD_FLAGS -- $TEST_SUITE
   # generate the documentation (for testing if it works and later deploy)
   - mdbook build --dest-dir book/${SHORT_VERSION} docs/
   
 
 before_deploy:
   # recreate release binary after testing
-  - cargo build --release --features "c-api" --lib
+  - cargo build --release --all-features --lib
+  # rename the binary file
+  -  if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mv target/release/libgraphannis_capi.so target/release/libgraphannis.so ; fi
+  -  if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mv target/release/libgraphannis_capi.dylib target/release/libgraphannis.dylib ; fi
+  -  if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then mv target/release/graphannis_capi.dll target/release/graphannis.dll ; fi
   # determine which binary to deploy
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dylib ; fi
