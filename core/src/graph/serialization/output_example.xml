@@ -3,13 +3,14 @@
     <key id="k0" for="node" attr.name="annis::node_name" attr.type="string"/>
     <key id="k1" for="node" attr.name="annis::node_type" attr.type="string"/>
     <graph edgedefault="directed">
-        <node id="0">
-            <data key="k0">n0</data>
+        <node id="n0">
+            <data key="k0">first_node</data>
             <data key="k1">node</data>
         </node>
-        <node id="1">
-            <data key="k0">n1</data>
+        <node id="n1">
+            <data key="k0">second_node</data>
             <data key="k1">node</data>
         </node>
+        <edge id="e0" source="n0" target="n1"/>
     </graph>
 </graphml>
