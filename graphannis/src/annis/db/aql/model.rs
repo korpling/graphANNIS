@@ -17,7 +17,11 @@ use crate::{update::UpdateEvent, AnnotationGraph};
 use anyhow::Result;
 use rustc_hash::FxHashSet;
 
-use crate::{graph::AnnoKey, model::AnnotationComponent};
+use crate::{
+    graph::{AnnoKey, Component},
+    model::AnnotationComponent,
+    Graph,
+};
 
 pub const TOK: &str = "tok";
 lazy_static! {
@@ -392,7 +396,7 @@ impl ComponentType for AnnotationComponentType {
         ]
     }
 
-    fn init_graph_update_index(graph: &AnnotationGraph) -> Result<Self::UpdateGraphIndex> {
+    fn init_update_graph_index(graph: &AnnotationGraph) -> Result<Self::UpdateGraphIndex> {
         // Cache the expensive mapping of node names to IDs
         let node_ids = DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000))?;
 
@@ -548,6 +552,26 @@ impl ComponentType for AnnotationComponentType {
         }
 
         Ok(())
+    }
+
+    fn update_graph_index_components(_graph: &Graph<Self>) -> Vec<Component<Self>> {
+        vec![
+            AnnotationComponent::new(
+                AnnotationComponentType::LeftToken,
+                ANNIS_NS.to_owned(),
+                "".to_owned(),
+            ),
+            AnnotationComponent::new(
+                AnnotationComponentType::RightToken,
+                ANNIS_NS.to_owned(),
+                "".to_owned(),
+            ),
+            AnnotationComponent::new(
+                AnnotationComponentType::Coverage,
+                ANNIS_NS.to_owned(),
+                "inherited-coverage".to_owned(),
+            ),
+        ]
     }
 }
 
