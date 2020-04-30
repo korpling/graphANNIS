@@ -112,7 +112,7 @@ pub trait ComponentType:
     Into<u16> + From<u16> + FromStr + ToString + Send + Sync + Clone + Debug + Ord
 {
     type UpdateGraphIndex;
-    fn init_graph_update_index(_graph: &Graph<Self>) -> Result<Self::UpdateGraphIndex>;
+    fn init_update_graph_index(_graph: &Graph<Self>) -> Result<Self::UpdateGraphIndex>;
 
     fn before_update_event(
         _update: &UpdateEvent,
@@ -138,6 +138,10 @@ pub trait ComponentType:
     fn all_component_types() -> Vec<Self>;
 
     fn default_components() -> Vec<Component<Self>> {
+        Vec::default()
+    }
+
+    fn update_graph_index_components(_graph: &Graph<Self>) -> Vec<Component<Self>> {
         Vec::default()
     }
 }
@@ -170,7 +174,7 @@ pub struct DefaultGraphIndex;
 
 impl ComponentType for DefaultComponentType {
     type UpdateGraphIndex = DefaultGraphIndex;
-    fn init_graph_update_index(_graph: &Graph<Self>) -> Result<Self::UpdateGraphIndex> {
+    fn init_update_graph_index(_graph: &Graph<Self>) -> Result<Self::UpdateGraphIndex> {
         Ok(DefaultGraphIndex {})
     }
     fn all_component_types() -> Vec<Self> {

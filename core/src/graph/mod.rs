@@ -1,5 +1,5 @@
-pub mod storage;
 pub mod serialization;
+pub mod storage;
 pub mod update;
 
 use crate::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
@@ -339,7 +339,7 @@ impl<CT: ComponentType> Graph<CT> {
 
         let all_components = self.get_all_components(None, None);
 
-        let mut update_graph_index = ComponentType::init_graph_update_index(self)?;
+        let mut update_graph_index = ComponentType::init_update_graph_index(self)?;
         // Cache the expensive mapping of node names to IDs
         let mut node_ids: DiskMap<String, Option<NodeID>> =
             DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000))?;
