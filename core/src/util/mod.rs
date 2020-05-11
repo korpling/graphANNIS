@@ -18,6 +18,15 @@ pub fn join_qname(ns: &str, name: &str) -> String {
     result
 }
 
+pub fn split_qname(qname: &str) -> (Option<&str>, &str) {
+    let sep_pos = qname.find("::.+");
+    if let Some(sep_pos) = sep_pos {
+        (Some(&qname[..sep_pos]), &qname[sep_pos + 1..])
+    } else {
+        (None, qname)
+    }
+}
+
 pub fn regex_full_match(pattern: &str) -> String {
     let mut full_match_pattern = String::new();
     full_match_pattern.push_str(r"\A(");
