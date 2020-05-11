@@ -1,15 +1,18 @@
 use crate::{
     annostorage::ValueSearch,
-    graph::{Graph, ANNIS_NS, NODE_TYPE},
+    graph::{update::GraphUpdate, Graph, ANNIS_NS, NODE_TYPE},
     types::{AnnoKey, Annotation, Component, ComponentType, Edge},
-    util::join_qname,
+    util::{join_qname, split_qname},
 };
 use anyhow::Result;
 use quick_xml::{
     events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event},
-    Writer,
+    Reader, Writer,
 };
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    io::{BufReader, BufWriter, Write},
+};
 
 fn write_annotation_keys<CT: ComponentType, W: std::io::Write>(
     graph: &Graph<CT>,
@@ -189,6 +192,8 @@ fn write_edges<CT: ComponentType, W: std::io::Write>(
 }
 
 pub fn export<CT: ComponentType, W: std::io::Write>(graph: &Graph<CT>, output: W) -> Result<()> {
+    // Always buffer the output
+    let output = BufWriter::new(output);
     let mut writer = Writer::new_with_indent(output, b' ', 4);
 
     // Add XML declaration
@@ -215,7 +220,107 @@ pub fn export<CT: ComponentType, W: std::io::Write>(graph: &Graph<CT>, output: W
     writer.write_event(Event::End(BytesEnd::borrowed(b"graph")))?;
     writer.write_event(Event::End(BytesEnd::borrowed(b"graphml")))?;
 
+    // Make sure to flush the buffered writer
+    writer.into_inner().flush()?;
+
     Ok(())
+}
+
+fn read_keys<R: std::io::BufRead>(input: &mut R) -> Result<BTreeMap<String, AnnoKey>> {
+    let mut result = BTreeMap::new();
+
+    let mut reader = Reader::from_reader(input);
+    let mut buf = Vec::new();
+
+    let mut depth = 0;
+
+    loop {
+        match reader.read_event(&mut buf)? {
+            Event::Start(ref e) => {
+                depth += 1;
+                if depth == 2 && e.name() == b"key" {
+                    // resolve the ID to the fully qualified annotation name
+                    let mut id: Option<String> = None;
+                    let mut anno_key: Option<AnnoKey> = None;
+
+                    for att in e.attributes() {
+                        let att = att?;
+
+                        let att_value = String::from_utf8_lossy(&att.value);
+
+                        match att.key {
+                            b"id" => {
+                                id = Some(att_value.to_string());
+                            }
+                            b"attr.name" => {
+                                let (ns, name) = split_qname(att_value.as_ref());
+                                anno_key = Some(AnnoKey {
+                                    ns: ns.unwrap_or("").to_string(),
+                                    name: name.to_string(),
+                                });
+                            }
+                            _ => {}
+                        }
+                    }
+
+                    if let (Some(id), Some(anno_key)) = (id, anno_key) {
+                        result.insert(id.to_string(), anno_key);
+                    }
+                }
+            }
+            Event::End(_) => {
+                depth -= 1;
+            }
+            Event::Eof => {
+                break;
+            }
+            _ => {}
+        }
+    }
+    Ok(result)
+}
+
+fn read_nodes<R: std::io::BufRead>(
+    input: &mut R,
+    updates: &mut GraphUpdate,
+    keys: &BTreeMap<String, AnnoKey>,
+) -> Result<()> {
+    todo!("collect all nodes")
+}
+
+fn read_edges<R: std::io::BufRead>(
+    input: &mut R,
+    updates: &mut GraphUpdate,
+    keys: &BTreeMap<String, AnnoKey>,
+) -> Result<()> {
+    todo!("collect all edges")
+}
+
+pub fn import<CT: ComponentType, R: std::io::Read>(
+    input: R,
+    disk_based: bool,
+) -> Result<Graph<CT>> {
+    // Always buffer the read operations
+    let mut input = BufReader::new(input);
+
+    // 1. pass: collect each keys
+    let keys = read_keys(&mut input)?;
+
+    let mut g = Graph::new(disk_based)?;
+    let mut updates = GraphUpdate::default();
+
+    // 2. pass: read in all nodes
+    read_nodes(&mut input, &mut updates, &keys)?;
+
+    // 3. pass: read in all edges
+    read_edges(&mut input, &mut updates, &keys)?;
+
+    // Apply all updates
+    g.apply_update(&mut updates, |msg| {
+        info!("{}", msg);
+    })?;
+
+    Ok(g)
 }
 
 #[cfg(test)]
@@ -255,8 +360,18 @@ mod tests {
         // export to GraphML, read generated XML and compare it
         let mut xml_data: Vec<u8> = Vec::default();
         export(&g, &mut xml_data).unwrap();
-        let expected = include_str!("output_example.xml");
+        let expected = include_str!("graphml_example.xml");
         let actual = String::from_utf8(xml_data).unwrap();
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn import_graphml() {
+        let input_xml = include_str!("graphml_example.xml");
+        let g: Graph<DefaultComponentType> = import(input_xml.as_bytes(), false).unwrap();
+        // Check that all nodes, edges and annotations have been created
+
+        let _first_node_id = g.get_node_id_from_name("first_node").unwrap();
+        let _second_node_id = g.get_node_id_from_name("second_node").unwrap();
     }
 }

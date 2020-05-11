@@ -14,7 +14,6 @@ use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::*;
 use crate::annis::types::CountExtra;
 use crate::annis::types::{FrequencyTable, QueryAttributeDescription};
-use crate::annis::util;
 use crate::annis::util::quicksort;
 use crate::{
     graph::Match,
@@ -216,7 +215,7 @@ impl FromStr for FrequencyDefEntry {
             );
         }
         let node_ref = splitted[0];
-        let anno_key = util::split_qname(splitted[1]);
+        let anno_key = graphannis_core::util::split_qname(splitted[1]);
 
         Ok(FrequencyDefEntry {
             ns: anno_key.0.map(String::from),

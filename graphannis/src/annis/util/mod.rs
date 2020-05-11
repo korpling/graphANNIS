@@ -14,15 +14,6 @@ pub fn contains_regex_metacharacters(pattern: &str) -> bool {
     false
 }
 
-pub fn split_qname(qname: &str) -> (Option<&str>, &str) {
-    let sep_pos = qname.find("::.+");
-    if let Some(sep_pos) = sep_pos {
-        (Some(&qname[..sep_pos]), &qname[sep_pos + 1..])
-    } else {
-        (None, qname)
-    }
-}
-
 /// Creates a byte array key from a vector of strings.
 ///
 /// The strings are terminated with `\0`.
