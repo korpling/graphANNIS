@@ -72,7 +72,7 @@ impl Completer for ConsoleHelper {
         ctx: &rustyline::Context,
     ) -> std::result::Result<(usize, Vec<rustyline::completion::Pair>), ReadlineError> {
         // check for more specialized completers
-        if line.starts_with("import ") {
+        if line.starts_with("import ") || line.starts_with("export ") {
             return self.filename_completer.complete(line, pos, ctx);
         } else if line.starts_with("corpus ") || line.starts_with("delete ") {
             // auto-complete the corpus names
@@ -193,7 +193,7 @@ impl AnnisRunner {
                 String::from("")
             };
             let result = match cmd {
-                "import" => self.import_relannis(&args),
+                "import" => self.import(&args),
                 "export" => self.export_graphml(&args),
                 "list" => self.list(),
                 "delete" => self.delete(&args),
@@ -221,10 +221,10 @@ impl AnnisRunner {
         return true;
     }
 
-    fn import_relannis(&mut self, args: &str) -> Result<()> {
+    fn import(&mut self, args: &str) -> Result<()> {
         let args: Vec<&str> = args.split(' ').collect();
         if args.is_empty() {
-            bail!("You need to location of the relANNIS files and optionally a name as argument");
+            bail!("You need to location of the files to import and optionally a name as argument");
         }
 
         let overwritten_corpus_name = if args.len() >= 2 {
@@ -233,19 +233,24 @@ impl AnnisRunner {
             None
         };
 
-        let path = args[0];
+        // Determine most likely input format based on the extension of the file
+        let path = PathBuf::from(args[0]);
+        let mut format = ImportFormat::RelANNIS;
+        if path.is_file() {
+            if let Some(file_ext) = path.extension() {
+                let file_ext = file_ext.to_string_lossy().to_lowercase();
+                if file_ext == "graphml" || file_ext == "xml" {
+                    format = ImportFormat::GraphML
+                }
+            }
+        }
 
         let t_before = std::time::SystemTime::now();
         let name: String = self
             .storage
             .as_ref()
             .ok_or(anyhow!("No corpus storage location set"))?
-            .import_from_fs(
-                &PathBuf::from(path),
-                ImportFormat::RelANNIS,
-                overwritten_corpus_name,
-                self.use_disk,
-            )?;
+            .import_from_fs(&path, format, overwritten_corpus_name, self.use_disk)?;
         let load_time = t_before.elapsed();
         if let Ok(t) = load_time {
             info! {"imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};

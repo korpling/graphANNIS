@@ -243,6 +243,9 @@ pub enum QueryLanguage {
 pub enum ImportFormat {
     /// Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/4.0/developer-guide/annisimportformat.html)
     RelANNIS,
+    /// [GraphML](http://graphml.graphdrawing.org/) based export-format, suitable to be imported from other graph databases.
+    /// This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/docs/labs/apoc/current/import/graphml/).
+    GraphML,
 }
 
 /// An enum of all supported output formats of graphANNIS.
@@ -250,6 +253,7 @@ pub enum ImportFormat {
 #[derive(Clone, Copy)]
 pub enum ExportFormat {
     /// [GraphML](http://graphml.graphdrawing.org/) based export-format, suitable to be imported into other graph databases.
+    /// This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/docs/labs/apoc/current/import/graphml/).
     GraphML,
 }
 
@@ -730,6 +734,24 @@ impl CorpusStorage {
                 // loading the file from relANNIS consumes memory, update the corpus cache regulary to allow it to adapat
                 self.check_cache_size_and_remove(vec![]);
             })?,
+            ImportFormat::GraphML => {
+                let orig_corpus_name = if let Some(file_name) = path.file_stem() {
+                    file_name.to_string_lossy().to_string()
+                } else {
+                    "UnknownCorpus".to_string()
+                };
+                let input_file = File::open(path)?;
+                let g = graphannis_core::graph::serialization::graphml::import(
+                    input_file,
+                    disk_based,
+                    |status| {
+                        info!("{}", status);
+                        // loading the file from relANNIS consumes memory, update the corpus cache regulary to allow it to adapat
+                        self.check_cache_size_and_remove(vec![]);
+                    },
+                )?;
+                (orig_corpus_name, g)
+            }
         };
 
         let r = graph.ensure_loaded_all();
@@ -805,7 +827,13 @@ impl CorpusStorage {
         match format {
             ExportFormat::GraphML => {
                 let output_file = File::create(path)?;
-                graphannis_core::graph::serialization::graphml::export(graph, &output_file)?;
+                graphannis_core::graph::serialization::graphml::export(
+                    graph,
+                    &output_file,
+                    |status| {
+                        info!("{}", status);
+                    },
+                )?;
             }
         }
 

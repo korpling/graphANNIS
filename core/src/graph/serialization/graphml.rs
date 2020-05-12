@@ -192,7 +192,14 @@ fn write_edges<CT: ComponentType, W: std::io::Write>(
     Ok(())
 }
 
-pub fn export<CT: ComponentType, W: std::io::Write>(graph: &Graph<CT>, output: W) -> Result<()> {
+pub fn export<CT: ComponentType, W: std::io::Write, F>(
+    graph: &Graph<CT>,
+    output: W,
+    progress_callback: F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
     // Always buffer the output
     let output = BufWriter::new(output);
     let mut writer = Writer::new_with_indent(output, b' ', 4);
@@ -205,6 +212,7 @@ pub fn export<CT: ComponentType, W: std::io::Write>(graph: &Graph<CT>, output: W
     writer.write_event(Event::Start(BytesStart::borrowed_name(b"graphml")))?;
 
     // Define all valid annotation ns/name pairs
+    progress_callback("exporting all available annotation keys");
     let key_id_mapping = write_annotation_keys(graph, &mut writer)?;
 
     // We are writing a single graph
@@ -213,9 +221,11 @@ pub fn export<CT: ComponentType, W: std::io::Write>(graph: &Graph<CT>, output: W
     writer.write_event(Event::Start(graph_start))?;
 
     // Write out all nodes
+    progress_callback("exporting nodes");
     write_nodes(graph, &mut writer, &key_id_mapping)?;
 
     // Write out all edges
+    progress_callback("exporting edges");
     write_edges(graph, &mut writer, &key_id_mapping)?;
 
     writer.write_event(Event::End(BytesEnd::borrowed(b"graph")))?;
@@ -511,11 +521,19 @@ fn read_edges<CT: ComponentType, R: std::io::BufRead>(
     Ok(())
 }
 
-pub fn import<CT: ComponentType, R: Read + Seek>(input: R, disk_based: bool) -> Result<Graph<CT>> {
+pub fn import<CT: ComponentType, R: Read + Seek, F>(
+    input: R,
+    disk_based: bool,
+    progress_callback: F,
+) -> Result<Graph<CT>>
+where
+    F: Fn(&str) -> (),
+{
     // Always buffer the read operations
     let mut input = BufReader::new(input);
 
     // 1. pass: collect each keys
+    progress_callback("collecting all importable annotation keys");
     let keys = read_keys(&mut input)?;
 
     let mut g = Graph::new(disk_based)?;
@@ -523,16 +541,16 @@ pub fn import<CT: ComponentType, R: Read + Seek>(input: R, disk_based: bool) -> 
 
     // 2. pass: read in all nodes
     input.seek(SeekFrom::Start(0))?;
+    progress_callback("reading all nodes");
     read_nodes(&mut input, &mut updates, &keys)?;
 
     // 3. pass: read in all edges
     input.seek(SeekFrom::Start(0))?;
+    progress_callback("reading all edges");
     read_edges::<CT, BufReader<R>>(&mut input, &mut updates, &keys)?;
 
     // Apply all updates
-    g.apply_update(&mut updates, |msg| {
-        info!("{}", msg);
-    })?;
+    g.apply_update(&mut updates, progress_callback)?;
 
     Ok(g)
 }
@@ -578,7 +596,7 @@ mod tests {
 
         // export to GraphML, read generated XML and compare it
         let mut xml_data: Vec<u8> = Vec::default();
-        export(&g, &mut xml_data).unwrap();
+        export(&g, &mut xml_data, |_| {}).unwrap();
         let expected = include_str!("graphml_example.xml");
         let actual = String::from_utf8(xml_data).unwrap();
         assert_eq!(expected, actual);
@@ -588,7 +606,7 @@ mod tests {
     fn import_graphml() {
         let input_xml =
             std::io::Cursor::new(include_str!("graphml_example.xml").as_bytes().to_owned());
-        let g: Graph<DefaultComponentType> = import(input_xml, false).unwrap();
+        let g: Graph<DefaultComponentType> = import(input_xml, false, |_| {}).unwrap();
 
         // Check that all nodes, edges and annotations have been created
         let first_node_id = g.get_node_id_from_name("first_node").unwrap();
