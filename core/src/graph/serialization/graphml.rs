@@ -18,19 +18,6 @@ fn write_annotation_keys<CT: ComponentType, W: std::io::Write>(
     graph: &Graph<CT>,
     writer: &mut Writer<W>,
 ) -> Result<BTreeMap<AnnoKey, String>> {
-    // Create the special annis::component key with ID "c"
-    {
-        let qname = join_qname(ANNIS_NS, "component");
-
-        let mut key_start = BytesStart::borrowed_name("key".as_bytes());
-        key_start.push_attribute(("id", "c"));
-        key_start.push_attribute(("for", "edge"));
-        key_start.push_attribute(("attr.name", qname.as_str()));
-        key_start.push_attribute(("attr.type", "string"));
-
-        writer.write_event(Event::Empty(key_start))?;
-    }
-
     let mut key_id_mapping = BTreeMap::new();
     let mut id_counter = 0;
 
@@ -175,18 +162,10 @@ fn write_edges<CT: ComponentType, W: std::io::Write>(
                             edge_start.push_attribute(("id", edge_id.as_str()));
                             edge_start.push_attribute(("source", source_id.as_ref()));
                             edge_start.push_attribute(("target", target_id.as_ref()));
+                            // Use the "label" attribute as component type. This is consistent with how Neo4j interprets this non-standard attribute
+                            edge_start.push_attribute(("label", c.to_string().as_ref()));
 
                             writer.write_event(Event::Start(edge_start))?;
-
-                            // Always write the special "annis::component" annotation which contains the component the edge is part of
-                            let mut component_data_start = BytesStart::borrowed_name(b"data");
-                            component_data_start.push_attribute(("key", "c"));
-                            writer.write_event(Event::Start(component_data_start))?;
-                            // Add the annotation value as internal text node
-                            writer.write_event(Event::Text(BytesText::from_plain(
-                                c.to_string().as_ref(),
-                            )))?;
-                            writer.write_event(Event::End(BytesEnd::borrowed(b"data")))?;
 
                             // Write all annotations of the edge as "data" element
                             for anno in gs.get_anno_storage().get_annotations_for_item(&edge) {
