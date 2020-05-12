@@ -11,7 +11,7 @@ use strum_macros::{EnumIter, EnumString};
 
 use super::serializer::{FixedSizeKeySerializer, KeySerializer};
 use crate::graph::{update::UpdateEvent, Graph};
-use anyhow::Result;
+use anyhow::{Error, Result};
 use fmt::Debug;
 use malloc_size_of::MallocSizeOf;
 
@@ -222,6 +222,32 @@ impl<CT: ComponentType> std::fmt::Display for Component<CT> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let ctype: CT = self.ctype.into();
         write!(f, "{:?}/{}/{}", ctype, self.layer, self.name)
+    }
+}
+
+impl<CT: ComponentType> std::str::FromStr for Component<CT> {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let splitted: Vec<_> = s.splitn(3, '/').collect();
+        if splitted.len() == 3 {
+            if let Ok(ctype) = CT::from_str(splitted[0]) {
+                let result = Component {
+                    ctype: ctype.into(),
+                    layer: splitted[1].to_string(),
+                    name: splitted[2].to_string(),
+                    phantom: std::marker::PhantomData::<CT>::default(),
+                };
+                Ok(result)
+            } else {
+                Err(anyhow!("Invalid component type {}", splitted[0]))
+            }
+        } else {
+            Err(anyhow!(
+                "Invalid format for component description, expected ctype/layer/name, but got {}",
+                s
+            ))
+        }
     }
 }
 

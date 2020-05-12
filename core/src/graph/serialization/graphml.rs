@@ -13,9 +13,9 @@ use quick_xml::{
     Reader, Writer,
 };
 use std::{
-    borrow::Cow,
     collections::{BTreeMap, BTreeSet, HashMap},
     io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write},
+    str::FromStr,
 };
 
 fn write_annotation_keys<CT: ComponentType, W: std::io::Write>(
@@ -380,12 +380,128 @@ fn read_nodes<R: std::io::BufRead>(
     Ok(())
 }
 
-fn read_edges<R: std::io::BufRead>(
+fn read_edges<CT: ComponentType, R: std::io::BufRead>(
     input: &mut R,
     updates: &mut GraphUpdate,
     keys: &BTreeMap<String, AnnoKey>,
 ) -> Result<()> {
-    todo!("collect all edges")
+    let mut reader = Reader::from_reader(input);
+    reader.expand_empty_elements(true);
+
+    let mut buf = Vec::new();
+
+    let mut level = 0;
+    let mut in_graph = false;
+    let mut current_source_id: Option<String> = None;
+    let mut current_target_id: Option<String> = None;
+    let mut current_data_key: Option<String> = None;
+    let mut current_component: Option<String> = None;
+
+    let mut data: HashMap<AnnoKey, String> = HashMap::new();
+
+    loop {
+        match reader.read_event(&mut buf)? {
+            Event::Start(ref e) => {
+                level += 1;
+
+                match e.name() {
+                    b"graph" => {
+                        if level == 2 {
+                            in_graph = true;
+                        }
+                    }
+                    b"edge" => {
+                        if in_graph && level == 3 {
+                            // Get the source and target node IDs
+                            for att in e.attributes() {
+                                let att = att?;
+                                if att.key == b"source" {
+                                    current_source_id =
+                                        Some(String::from_utf8_lossy(&att.value).to_string());
+                                } else if att.key == b"target" {
+                                    current_target_id =
+                                        Some(String::from_utf8_lossy(&att.value).to_string());
+                                } else if att.key == b"label" {
+                                    current_component =
+                                        Some(String::from_utf8_lossy(&att.value).to_string());
+                                }
+                            }
+                        }
+                    }
+                    b"data" => {
+                        for att in e.attributes() {
+                            let att = att?;
+                            if att.key == b"key" {
+                                current_data_key =
+                                    Some(String::from_utf8_lossy(&att.value).to_string());
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            Event::Text(t) => {
+                if let Some(current_data_key) = &current_data_key {
+                    if let Some(anno_key) = keys.get(current_data_key) {
+                        // Copy all data attributes into our own map
+                        data.insert(anno_key.clone(), t.unescape_and_decode(&reader)?);
+                    }
+                }
+            }
+            Event::End(ref e) => {
+                match e.name() {
+                    b"graph" => {
+                        in_graph = false;
+                    }
+                    b"edge" => {
+                        if let (Some(source), Some(target), Some(component)) =
+                            (current_source_id, current_target_id, current_component)
+                        {
+                            // Insert graph update for this edge
+                            if let Ok(component) = Component::<CT>::from_str(&component) {
+                                updates.add_event(UpdateEvent::AddEdge {
+                                    source_node: source.clone(),
+                                    target_node: target.clone(),
+                                    layer: component.layer.clone(),
+                                    component_type: component.get_type().to_string(),
+                                    component_name: component.name.clone(),
+                                })?;
+
+                                // Add all remaining data entries as annotations
+                                for (key, value) in data.drain() {
+                                    updates.add_event(UpdateEvent::AddEdgeLabel {
+                                        source_node: source.clone(),
+                                        target_node: target.clone(),
+                                        layer: component.layer.clone(),
+                                        component_type: component.get_type().to_string(),
+                                        component_name: component.name.clone(),
+                                        anno_ns: key.ns,
+                                        anno_name: key.name,
+                                        anno_value: value,
+                                    })?;
+                                }
+                            }
+                        }
+
+                        current_source_id = None;
+                        current_target_id = None;
+                        current_component = None;
+                    }
+                    b"data" => {
+                        current_data_key = None;
+                    }
+                    _ => {}
+                }
+
+                level -= 1;
+            }
+            Event::Eof => {
+                break;
+            }
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 pub fn import<CT: ComponentType, R: Read + Seek>(input: R, disk_based: bool) -> Result<Graph<CT>> {
@@ -404,7 +520,7 @@ pub fn import<CT: ComponentType, R: Read + Seek>(input: R, disk_based: bool) -> 
 
     // 3. pass: read in all edges
     input.seek(SeekFrom::Start(0))?;
-    read_edges(&mut input, &mut updates, &keys)?;
+    read_edges::<CT, BufReader<R>>(&mut input, &mut updates, &keys)?;
 
     // Apply all updates
     g.apply_update(&mut updates, |msg| {
@@ -418,6 +534,7 @@ pub fn import<CT: ComponentType, R: Read + Seek>(input: R, disk_based: bool) -> 
 mod tests {
     use super::*;
     use crate::{graph::GraphUpdate, types::DefaultComponentType};
+    use std::borrow::Cow;
     #[test]
     fn export_graphml() {
         // Create a sample graph using the simple type
@@ -465,9 +582,37 @@ mod tests {
         let input_xml =
             std::io::Cursor::new(include_str!("graphml_example.xml").as_bytes().to_owned());
         let g: Graph<DefaultComponentType> = import(input_xml, false).unwrap();
-        // Check that all nodes, edges and annotations have been created
 
-        let _first_node_id = g.get_node_id_from_name("first_node").unwrap();
-        let _second_node_id = g.get_node_id_from_name("second_node").unwrap();
+        // Check that all nodes, edges and annotations have been created
+        let first_node_id = g.get_node_id_from_name("first_node").unwrap();
+        let second_node_id = g.get_node_id_from_name("second_node").unwrap();
+
+        let first_node_annos = g.get_node_annos().get_annotations_for_item(&first_node_id);
+        assert_eq!(3, first_node_annos.len());
+        assert_eq!(
+            Some(Cow::Borrowed("something")),
+            g.get_node_annos().get_value_for_item(
+                &first_node_id,
+                &AnnoKey {
+                    ns: "default_ns".to_string(),
+                    name: "an_annotation".to_string(),
+                }
+            )
+        );
+
+        assert_eq!(
+            2,
+            g.get_node_annos()
+                .get_annotations_for_item(&second_node_id)
+                .len()
+        );
+
+        let component = g.get_all_components(Some(DefaultComponentType::Edge), None);
+        assert_eq!(1, component.len());
+        assert_eq!("some_ns", component[0].layer);
+        assert_eq!("test_component", component[0].name);
+
+        let test_gs = g.get_graphstorage_as_ref(&component[0]).unwrap();
+        assert_eq!(Some(1), test_gs.distance(first_node_id, second_node_id));
     }
 }
