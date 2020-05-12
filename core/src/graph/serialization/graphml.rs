@@ -1,6 +1,6 @@
 use crate::{
     annostorage::ValueSearch,
-    graph::{update::GraphUpdate, Graph, ANNIS_NS, NODE_TYPE},
+    graph::{update::GraphUpdate, Graph, ANNIS_NS, NODE_NAME, NODE_NAME_KEY, NODE_TYPE},
     types::{AnnoKey, Annotation, Component, ComponentType, Edge},
     util::{join_qname, split_qname},
 };
@@ -36,21 +36,23 @@ fn write_annotation_keys<CT: ComponentType, W: std::io::Write>(
 
     // Create node annotation keys
     for key in graph.get_node_annos().annotation_keys() {
-        if !key_id_mapping.contains_key(&key) {
-            let new_id = format!("k{}", id_counter);
-            id_counter += 1;
+        if key.ns != ANNIS_NS || key.name != NODE_NAME {
+            if !key_id_mapping.contains_key(&key) {
+                let new_id = format!("k{}", id_counter);
+                id_counter += 1;
 
-            let qname = join_qname(&key.ns, &key.name);
+                let qname = join_qname(&key.ns, &key.name);
 
-            let mut key_start = BytesStart::borrowed_name("key".as_bytes());
-            key_start.push_attribute(("id", new_id.as_str()));
-            key_start.push_attribute(("for", "node"));
-            key_start.push_attribute(("attr.name", qname.as_str()));
-            key_start.push_attribute(("attr.type", "string"));
+                let mut key_start = BytesStart::borrowed_name("key".as_bytes());
+                key_start.push_attribute(("id", new_id.as_str()));
+                key_start.push_attribute(("for", "node"));
+                key_start.push_attribute(("attr.name", qname.as_str()));
+                key_start.push_attribute(("attr.type", "string"));
 
-            writer.write_event(Event::Empty(key_start))?;
+                writer.write_event(Event::Empty(key_start))?;
 
-            key_id_mapping.insert(key, new_id);
+                key_id_mapping.insert(key, new_id);
+            }
         }
     }
 
@@ -121,21 +123,25 @@ fn write_nodes<CT: ComponentType, W: std::io::Write>(
     {
         let mut node_start = BytesStart::borrowed_name("node".as_bytes());
 
-        let mut id = m.node.to_string();
-        id.insert(0, 'n');
-
-        node_start.push_attribute(("id", id.as_str()));
-        let node_annotations = graph.get_node_annos().get_annotations_for_item(&m.node);
-        if node_annotations.is_empty() {
-            // Write an empty XML element without child nodes
-            writer.write_event(Event::Empty(node_start))?;
-        } else {
-            writer.write_event(Event::Start(node_start))?;
-            // Write all annotations of the node as "data" element
-            for anno in node_annotations {
-                write_data(anno, writer, key_id_mapping)?;
+        if let Some(id) = graph
+            .get_node_annos()
+            .get_value_for_item(&m.node, &NODE_NAME_KEY)
+        {
+            node_start.push_attribute(("id", id.as_ref()));
+            let node_annotations = graph.get_node_annos().get_annotations_for_item(&m.node);
+            if node_annotations.is_empty() {
+                // Write an empty XML element without child nodes
+                writer.write_event(Event::Empty(node_start))?;
+            } else {
+                writer.write_event(Event::Start(node_start))?;
+                // Write all annotations of the node as "data" element
+                for anno in node_annotations {
+                    if anno.key.ns != ANNIS_NS || anno.key.name != NODE_NAME {
+                        write_data(anno, writer, key_id_mapping)?;
+                    }
+                }
+                writer.write_event(Event::End(BytesEnd::borrowed(b"node")))?;
             }
-            writer.write_event(Event::End(BytesEnd::borrowed(b"node")))?;
         }
     }
     Ok(())
@@ -150,40 +156,45 @@ fn write_edges<CT: ComponentType, W: std::io::Write>(
     for c in graph.get_all_components(None, None) {
         if let Some(gs) = graph.get_graphstorage(&c) {
             for source in gs.source_nodes() {
-                let mut source_id = source.to_string();
-                source_id.insert(0, 'n');
+                if let Some(source_id) = graph
+                    .get_node_annos()
+                    .get_value_for_item(&source, &NODE_NAME_KEY)
+                {
+                    for target in gs.get_outgoing_edges(source) {
+                        if let Some(target_id) = graph
+                            .get_node_annos()
+                            .get_value_for_item(&target, &NODE_NAME_KEY)
+                        {
+                            let edge = Edge { source, target };
 
-                for target in gs.get_outgoing_edges(source) {
-                    let mut target_id = target.to_string();
-                    target_id.insert(0, 'n');
+                            let mut edge_id = edge_counter.to_string();
+                            edge_counter += 1;
+                            edge_id.insert(0, 'e');
 
-                    let edge = Edge { source, target };
+                            let mut edge_start = BytesStart::borrowed_name(b"edge");
+                            edge_start.push_attribute(("id", edge_id.as_str()));
+                            edge_start.push_attribute(("source", source_id.as_ref()));
+                            edge_start.push_attribute(("target", target_id.as_ref()));
 
-                    let mut edge_id = edge_counter.to_string();
-                    edge_counter += 1;
-                    edge_id.insert(0, 'e');
+                            writer.write_event(Event::Start(edge_start))?;
 
-                    let mut edge_start = BytesStart::borrowed_name(b"edge");
-                    edge_start.push_attribute(("id", edge_id.as_str()));
-                    edge_start.push_attribute(("source", source_id.as_str()));
-                    edge_start.push_attribute(("target", target_id.as_str()));
+                            // Always write the special "annis::component" annotation which contains the component the edge is part of
+                            let mut component_data_start = BytesStart::borrowed_name(b"data");
+                            component_data_start.push_attribute(("key", "c"));
+                            writer.write_event(Event::Start(component_data_start))?;
+                            // Add the annotation value as internal text node
+                            writer.write_event(Event::Text(BytesText::from_plain(
+                                c.to_string().as_ref(),
+                            )))?;
+                            writer.write_event(Event::End(BytesEnd::borrowed(b"data")))?;
 
-                    writer.write_event(Event::Start(edge_start))?;
-
-                    // Always write the special "annis::component" annotation which contains the component the edge is part of
-                    let mut component_data_start = BytesStart::borrowed_name(b"data");
-                    component_data_start.push_attribute(("key", "c"));
-                    writer.write_event(Event::Start(component_data_start))?;
-                    // Add the annotation value as internal text node
-                    writer
-                        .write_event(Event::Text(BytesText::from_plain(c.to_string().as_ref())))?;
-                    writer.write_event(Event::End(BytesEnd::borrowed(b"data")))?;
-
-                    // Write all annotations of the edge as "data" element
-                    for anno in gs.get_anno_storage().get_annotations_for_item(&edge) {
-                        write_data(anno, writer, key_id_mapping)?;
+                            // Write all annotations of the edge as "data" element
+                            for anno in gs.get_anno_storage().get_annotations_for_item(&edge) {
+                                write_data(anno, writer, key_id_mapping)?;
+                            }
+                            writer.write_event(Event::End(BytesEnd::borrowed(b"edge")))?;
+                        }
                     }
-                    writer.write_event(Event::End(BytesEnd::borrowed(b"edge")))?;
                 }
             }
         }
