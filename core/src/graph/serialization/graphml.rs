@@ -334,6 +334,13 @@ mod tests {
             node_type: "node".to_string(),
         })
         .unwrap();
+        u.add_event(UpdateEvent::AddNodeLabel {
+            node_name: "first_node".to_string(),
+            anno_ns: "default_ns".to_string(),
+            anno_name: "an_annotation".to_string(),
+            anno_value: "something".to_string(),
+        })
+        .unwrap();
 
         u.add_event(UpdateEvent::AddEdge {
             source_node: "first_node".to_string(),
