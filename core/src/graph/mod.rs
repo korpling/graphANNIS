@@ -563,7 +563,7 @@ impl<CT: ComponentType> Graph<CT> {
             }
         } // end for each consistent update entry
 
-        progress_callback("Extending graph with model-specific index");
+        progress_callback("extending graph with model-specific index");
         ComponentType::apply_update_graph_index(update_graph_index, self)?;
 
         Ok(())
