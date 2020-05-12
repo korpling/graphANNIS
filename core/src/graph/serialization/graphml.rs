@@ -1,6 +1,9 @@
 use crate::{
     annostorage::ValueSearch,
-    graph::{update::GraphUpdate, Graph, ANNIS_NS, NODE_NAME, NODE_NAME_KEY, NODE_TYPE},
+    graph::{
+        update::{GraphUpdate, UpdateEvent},
+        Graph, ANNIS_NS, NODE_NAME, NODE_NAME_KEY, NODE_TYPE, NODE_TYPE_KEY,
+    },
     types::{AnnoKey, Annotation, Component, ComponentType, Edge},
     util::{join_qname, split_qname},
 };
@@ -10,8 +13,9 @@ use quick_xml::{
     Reader, Writer,
 };
 use std::{
-    collections::{BTreeMap, BTreeSet},
-    io::{BufReader, BufWriter, Write},
+    borrow::Cow,
+    collections::{BTreeMap, BTreeSet, HashMap},
+    io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write},
 };
 
 fn write_annotation_keys<CT: ComponentType, W: std::io::Write>(
@@ -220,15 +224,16 @@ fn read_keys<R: std::io::BufRead>(input: &mut R) -> Result<BTreeMap<String, Anno
     let mut result = BTreeMap::new();
 
     let mut reader = Reader::from_reader(input);
+    reader.expand_empty_elements(true);
     let mut buf = Vec::new();
 
-    let mut depth = 0;
+    let mut level = 0;
 
     loop {
         match reader.read_event(&mut buf)? {
             Event::Start(ref e) => {
-                depth += 1;
-                if depth == 2 && e.name() == b"key" {
+                level += 1;
+                if level == 2 && e.name() == b"key" {
                     // resolve the ID to the fully qualified annotation name
                     let mut id: Option<String> = None;
                     let mut anno_key: Option<AnnoKey> = None;
@@ -259,7 +264,7 @@ fn read_keys<R: std::io::BufRead>(input: &mut R) -> Result<BTreeMap<String, Anno
                 }
             }
             Event::End(_) => {
-                depth -= 1;
+                level -= 1;
             }
             Event::Eof => {
                 break;
@@ -275,7 +280,104 @@ fn read_nodes<R: std::io::BufRead>(
     updates: &mut GraphUpdate,
     keys: &BTreeMap<String, AnnoKey>,
 ) -> Result<()> {
-    todo!("collect all nodes")
+    let mut reader = Reader::from_reader(input);
+    reader.expand_empty_elements(true);
+
+    let mut buf = Vec::new();
+
+    let mut level = 0;
+    let mut in_graph = false;
+    let mut current_node_id: Option<String> = None;
+    let mut current_data_key: Option<String> = None;
+
+    let mut data: HashMap<AnnoKey, String> = HashMap::new();
+
+    loop {
+        match reader.read_event(&mut buf)? {
+            Event::Start(ref e) => {
+                level += 1;
+
+                match e.name() {
+                    b"graph" => {
+                        if level == 2 {
+                            in_graph = true;
+                        }
+                    }
+                    b"node" => {
+                        if in_graph && level == 3 {
+                            // Get the ID of this node
+                            for att in e.attributes() {
+                                let att = att?;
+                                if att.key == b"id" {
+                                    current_node_id =
+                                        Some(String::from_utf8_lossy(&att.value).to_string());
+                                }
+                            }
+                        }
+                    }
+                    b"data" => {
+                        for att in e.attributes() {
+                            let att = att?;
+                            if att.key == b"key" {
+                                current_data_key =
+                                    Some(String::from_utf8_lossy(&att.value).to_string());
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            Event::Text(t) => {
+                if let Some(current_data_key) = &current_data_key {
+                    if let Some(anno_key) = keys.get(current_data_key) {
+                        // Copy all data attributes into our own map
+                        data.insert(anno_key.clone(), t.unescape_and_decode(&reader)?);
+                    }
+                }
+            }
+            Event::End(ref e) => {
+                match e.name() {
+                    b"graph" => {
+                        in_graph = false;
+                    }
+                    b"node" => {
+                        if let Some(node_name) = current_node_id {
+                            // Insert graph update for node
+                            let node_type = data
+                                .remove(&NODE_TYPE_KEY)
+                                .unwrap_or_else(|| "node".to_string());
+                            updates.add_event(UpdateEvent::AddNode {
+                                node_name: node_name.clone(),
+                                node_type,
+                            })?;
+                            // Add all remaining data entries as annotations
+                            for (key, value) in data.drain() {
+                                updates.add_event(UpdateEvent::AddNodeLabel {
+                                    node_name: node_name.clone(),
+                                    anno_ns: key.ns,
+                                    anno_name: key.name,
+                                    anno_value: value,
+                                })?;
+                            }
+                        }
+
+                        current_node_id = None;
+                    }
+                    b"data" => {
+                        current_data_key = None;
+                    }
+                    _ => {}
+                }
+
+                level -= 1;
+            }
+            Event::Eof => {
+                break;
+            }
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 fn read_edges<R: std::io::BufRead>(
@@ -286,10 +388,7 @@ fn read_edges<R: std::io::BufRead>(
     todo!("collect all edges")
 }
 
-pub fn import<CT: ComponentType, R: std::io::Read>(
-    input: R,
-    disk_based: bool,
-) -> Result<Graph<CT>> {
+pub fn import<CT: ComponentType, R: Read + Seek>(input: R, disk_based: bool) -> Result<Graph<CT>> {
     // Always buffer the read operations
     let mut input = BufReader::new(input);
 
@@ -300,9 +399,11 @@ pub fn import<CT: ComponentType, R: std::io::Read>(
     let mut updates = GraphUpdate::default();
 
     // 2. pass: read in all nodes
+    input.seek(SeekFrom::Start(0))?;
     read_nodes(&mut input, &mut updates, &keys)?;
 
     // 3. pass: read in all edges
+    input.seek(SeekFrom::Start(0))?;
     read_edges(&mut input, &mut updates, &keys)?;
 
     // Apply all updates
@@ -316,10 +417,7 @@ pub fn import<CT: ComponentType, R: std::io::Read>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        graph::{GraphUpdate, UpdateEvent},
-        types::DefaultComponentType,
-    };
+    use crate::{graph::GraphUpdate, types::DefaultComponentType};
     #[test]
     fn export_graphml() {
         // Create a sample graph using the simple type
@@ -364,8 +462,9 @@ mod tests {
 
     #[test]
     fn import_graphml() {
-        let input_xml = include_str!("graphml_example.xml");
-        let g: Graph<DefaultComponentType> = import(input_xml.as_bytes(), false).unwrap();
+        let input_xml =
+            std::io::Cursor::new(include_str!("graphml_example.xml").as_bytes().to_owned());
+        let g: Graph<DefaultComponentType> = import(input_xml, false).unwrap();
         // Check that all nodes, edges and annotations have been created
 
         let _first_node_id = g.get_node_id_from_name("first_node").unwrap();
