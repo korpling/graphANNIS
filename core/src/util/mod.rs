@@ -19,9 +19,9 @@ pub fn join_qname(ns: &str, name: &str) -> String {
 }
 
 pub fn split_qname(qname: &str) -> (Option<&str>, &str) {
-    let sep_pos = qname.find("::.+");
+    let sep_pos = qname.find("::");
     if let Some(sep_pos) = sep_pos {
-        (Some(&qname[..sep_pos]), &qname[sep_pos + 1..])
+        (Some(&qname[..sep_pos]), &qname[sep_pos + 2..])
     } else {
         (None, qname)
     }
