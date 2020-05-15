@@ -604,8 +604,11 @@ mod tests {
 
     #[test]
     fn import_graphml() {
-        let input_xml =
-            std::io::Cursor::new(include_str!("graphml_example.graphml").as_bytes().to_owned());
+        let input_xml = std::io::Cursor::new(
+            include_str!("graphml_example.graphml")
+                .as_bytes()
+                .to_owned(),
+        );
         let g: Graph<DefaultComponentType> = import(input_xml, false, |_| {}).unwrap();
 
         // Check that all nodes, edges and annotations have been created
