@@ -26,7 +26,7 @@ fn create_search_tests() -> Option<()> {
     let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
         path
     } else {
-        String::from("data")
+        String::from("../data")
     });
     println!("cargo:rerun-if-changed={}", db_dir.to_string_lossy());
 
