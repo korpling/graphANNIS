@@ -69,7 +69,7 @@ impl EdgeContainer for DenseAdjacencyListStorage {
             .edges
             .iter()
             .enumerate()
-            .filter(|(_, outgoing)| outgoing.is_none())
+            .filter(|(_, outgoing)| outgoing.is_some())
             .filter_map(|(key, _)| key.to_u64());
         Box::new(it)
     }
