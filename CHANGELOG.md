@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Disk-based implementation of an adjacency list is used when a corpus is configured to be prefer disk over memory.
 
+### Fixed
+
+- The dense adjacency list implementation did not implement the `source_nodes` function properly
+
 ## [0.26.0] - 2020-03-05
 
 ### Removed
