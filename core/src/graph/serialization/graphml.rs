@@ -597,7 +597,7 @@ mod tests {
         // export to GraphML, read generated XML and compare it
         let mut xml_data: Vec<u8> = Vec::default();
         export(&g, &mut xml_data, |_| {}).unwrap();
-        let expected = include_str!("graphml_example.xml");
+        let expected = include_str!("graphml_example.graphml");
         let actual = String::from_utf8(xml_data).unwrap();
         assert_eq!(expected, actual);
     }
@@ -605,7 +605,7 @@ mod tests {
     #[test]
     fn import_graphml() {
         let input_xml =
-            std::io::Cursor::new(include_str!("graphml_example.xml").as_bytes().to_owned());
+            std::io::Cursor::new(include_str!("graphml_example.graphml").as_bytes().to_owned());
         let g: Graph<DefaultComponentType> = import(input_xml, false, |_| {}).unwrap();
 
         // Check that all nodes, edges and annotations have been created
