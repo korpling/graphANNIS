@@ -27,7 +27,7 @@ with CorpusStorageManager() as cs:
 ```
 This will print an empty list, because no corpora have been created yet.
 Per default, the `CorpusStorageManager` uses the sub-directory `data` of the current working directory to store the corpora.
-You can change the location with the `db_dir` parameter
+You can change the location with the `db_dir` parameter:
 ```python
 from graphannis.cs import CorpusStorageManager
 with CorpusStorageManager(db_dir='/tmp/graphannis-data') as cs:
@@ -42,7 +42,7 @@ Linguistic annotations as represented in graphANNIS as directed graphs (see the 
 You can add nodes and edges via the `apply_update(...)` function.
 It takes the corpus name and a list of graph updates as argument.
 These graph update lists are represented by the class `graphannis.graph.GraphUpdate`.
-E.g the following code creates a graph update for the tokenized sentence "That is a Category 3 storm."
+E.g the following code creates a graph update for the tokenized sentence “That is a Category 3 storm.”
 Normally, you would not add all events manually in the source code, which gets a bit verbose, but have input data that you map to update events.
 
 ```python
@@ -181,5 +181,5 @@ Output:
 ['salt:/tutorial/doc1#t1', 'salt:/tutorial/doc1#t6', 'salt:/tutorial/doc1#t4', 'salt:/tutorial/doc1#t2', 'salt:/tutorial/doc1#t7', 'salt:/tutorial/doc1#t5', 'salt:/tutorial/doc1#t3']
 ```
 
-[^aql]: You can get an overview of AQL [here](http://corpus-tools.org/annis/aql.html) or detailled information in the
+[^aql]: You can get an overview of AQL [here](http://corpus-tools.org/annis/aql.html) or detailed information in the
 [User Guide](http://korpling.github.io/ANNIS/3.6/user-guide/aql.html).
