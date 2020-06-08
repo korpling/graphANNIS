@@ -241,6 +241,8 @@ impl AnnisRunner {
                 let file_ext = file_ext.to_string_lossy().to_lowercase();
                 if file_ext == "graphml" || file_ext == "xml" {
                     format = ImportFormat::GraphML
+                } else if file_ext == "br" {
+                    format = ImportFormat::GraphMLCompressed
                 }
             }
         }
@@ -268,13 +270,19 @@ impl AnnisRunner {
         }
 
         let path = PathBuf::from(args[0]);
+        let mut format = ExportFormat::GraphML;
+        if let Some(file_ext) = path.extension() {
+            if file_ext.to_string_lossy() == "br" {
+                format = ExportFormat::GraphMLCompressed;
+            }
+        }
         let corpus = &self.current_corpus[0];
 
         let t_before = std::time::SystemTime::now();
         self.storage
             .as_ref()
             .ok_or(anyhow!("No corpus storage location set"))?
-            .export_to_fs(corpus, &path, ExportFormat::GraphML)?;
+            .export_to_fs(corpus, &path, format)?;
         let load_time = t_before.elapsed();
         if let Ok(t) = load_time {
             info! {"exported corpus {} in {} ms", corpus, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
