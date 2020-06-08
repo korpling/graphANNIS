@@ -470,16 +470,22 @@ where
     // Always buffer the read operations
     let mut input = BufReader::new(input);
     let mut g = Graph::new(disk_based)?;
-    let mut node_updates = GraphUpdate::default();
+    let mut updates = GraphUpdate::default();
     let mut edge_updates = GraphUpdate::default();
 
     // read in all nodes and edges, collecting annotation keys on the fly
     progress_callback("reading GraphML");
-    read_graphml::<CT, BufReader<R>>(&mut input, &mut node_updates, &mut edge_updates)?;
+    read_graphml::<CT, BufReader<R>>(&mut input, &mut updates, &mut edge_updates)?;
 
-    // Apply node updates first: edges would not be added if the nodes they are referring do not exist
-    g.apply_update(&mut node_updates, &progress_callback)?;
-    g.apply_update(&mut edge_updates, progress_callback)?;
+    // Append all edges updates after the node updates:
+    // edges would not be added if the nodes they are referring do not exist
+    progress_callback("merging generated events");
+    for (_, event) in edge_updates.iter()? {
+        updates.add_event(event)?;
+    }
+
+    progress_callback("applying imported changes");
+    g.apply_update(&mut updates, &progress_callback)?;
 
     Ok(g)
 }
