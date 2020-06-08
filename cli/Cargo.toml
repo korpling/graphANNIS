@@ -10,7 +10,7 @@ autobins = true
 edition = "2018"
 
 [dependencies]
-graphannis= {path = "../graphannis/", version="0.26"}
+graphannis= {path = "../graphannis/", version= "^0.27"}
 rustyline = "6.1"
 rustyline-derive = "0.3"
 simplelog = "0.7"
