@@ -537,20 +537,22 @@ where
     let keys = read_keys(&mut input)?;
 
     let mut g = Graph::new(disk_based)?;
-    let mut updates = GraphUpdate::default();
+    let mut node_updates = GraphUpdate::default();
+    let mut edge_updates = GraphUpdate::default();
 
     // 2. pass: read in all nodes
     input.seek(SeekFrom::Start(0))?;
     progress_callback("reading all nodes");
-    read_nodes(&mut input, &mut updates, &keys)?;
+    read_nodes(&mut input, &mut node_updates, &keys)?;
 
     // 3. pass: read in all edges
     input.seek(SeekFrom::Start(0))?;
     progress_callback("reading all edges");
-    read_edges::<CT, BufReader<R>>(&mut input, &mut updates, &keys)?;
+    read_edges::<CT, BufReader<R>>(&mut input, &mut edge_updates, &keys)?;
 
-    // Apply all updates
-    g.apply_update(&mut updates, progress_callback)?;
+    // Apply node updates first: edges would not be added if the nodes they are referring do not exist
+    g.apply_update(&mut node_updates, &progress_callback)?;
+    g.apply_update(&mut edge_updates, progress_callback)?;
 
     Ok(g)
 }
