@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Disk-based implementation of an adjacency list is used when a corpus is configured to be prefer disk over memory.
-- Ability to export and import GraphML files. This follows the [Neo4j dialect of GraphML](https://neo4j.com/docs/labs/apoc/current/import/graphml/)
+- Ability to export and import GraphML files. This follows the [Neo4j dialect of GraphML](https://neo4j.com/docs/labs/apoc/current/import/graphml/).
+  It is also possible to compress the GraphML files with Brotli.
 
 ### Fixed
 
