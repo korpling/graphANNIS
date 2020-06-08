@@ -64,6 +64,15 @@ typedef enum {
    * Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/4.0/developer-guide/annisimportformat.html)
    */
   RelANNIS,
+  /**
+   * [GraphML](http://graphml.graphdrawing.org/) based export-format, suitable to be imported from other graph databases.
+   * This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/docs/labs/apoc/current/import/graphml/).
+   */
+  GraphML,
+  /**
+   * Like `GraphML`, but compressed with the [Brotli](https://github.com/google/brotli) compression format.
+   */
+  GraphMLCompressed,
 } AnnisImportFormat;
 
 /**
