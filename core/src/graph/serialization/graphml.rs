@@ -292,9 +292,10 @@ fn read_keys<R: std::io::BufRead>(input: &mut R) -> Result<BTreeMap<String, Anno
     Ok(result)
 }
 
-fn read_nodes<R: std::io::BufRead>(
+fn read_graphml<CT: ComponentType, R: std::io::BufRead>(
     input: &mut R,
-    updates: &mut GraphUpdate,
+    node_updates: &mut GraphUpdate,
+    edge_updates: &mut GraphUpdate,
     keys: &BTreeMap<String, AnnoKey>,
 ) -> Result<()> {
     let mut reader = Reader::from_reader(input);
@@ -306,6 +307,9 @@ fn read_nodes<R: std::io::BufRead>(
     let mut in_graph = false;
     let mut current_node_id: Option<String> = None;
     let mut current_data_key: Option<String> = None;
+    let mut current_source_id: Option<String> = None;
+    let mut current_target_id: Option<String> = None;
+    let mut current_component: Option<String> = None;
 
     let mut data: HashMap<AnnoKey, String> = HashMap::new();
 
@@ -330,101 +334,6 @@ fn read_nodes<R: std::io::BufRead>(
                                         Some(String::from_utf8_lossy(&att.value).to_string());
                                 }
                             }
-                        }
-                    }
-                    b"data" => {
-                        for att in e.attributes() {
-                            let att = att?;
-                            if att.key == b"key" {
-                                current_data_key =
-                                    Some(String::from_utf8_lossy(&att.value).to_string());
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            Event::Text(t) => {
-                if let Some(current_data_key) = &current_data_key {
-                    if let Some(anno_key) = keys.get(current_data_key) {
-                        // Copy all data attributes into our own map
-                        data.insert(anno_key.clone(), t.unescape_and_decode(&reader)?);
-                    }
-                }
-            }
-            Event::End(ref e) => {
-                match e.name() {
-                    b"graph" => {
-                        in_graph = false;
-                    }
-                    b"node" => {
-                        if let Some(node_name) = current_node_id {
-                            // Insert graph update for node
-                            let node_type = data
-                                .remove(&NODE_TYPE_KEY)
-                                .unwrap_or_else(|| "node".to_string());
-                            updates.add_event(UpdateEvent::AddNode {
-                                node_name: node_name.clone(),
-                                node_type,
-                            })?;
-                            // Add all remaining data entries as annotations
-                            for (key, value) in data.drain() {
-                                updates.add_event(UpdateEvent::AddNodeLabel {
-                                    node_name: node_name.clone(),
-                                    anno_ns: key.ns,
-                                    anno_name: key.name,
-                                    anno_value: value,
-                                })?;
-                            }
-                        }
-
-                        current_node_id = None;
-                    }
-                    b"data" => {
-                        current_data_key = None;
-                    }
-                    _ => {}
-                }
-
-                level -= 1;
-            }
-            Event::Eof => {
-                break;
-            }
-            _ => {}
-        }
-    }
-    Ok(())
-}
-
-fn read_edges<CT: ComponentType, R: std::io::BufRead>(
-    input: &mut R,
-    updates: &mut GraphUpdate,
-    keys: &BTreeMap<String, AnnoKey>,
-) -> Result<()> {
-    let mut reader = Reader::from_reader(input);
-    reader.expand_empty_elements(true);
-
-    let mut buf = Vec::new();
-
-    let mut level = 0;
-    let mut in_graph = false;
-    let mut current_source_id: Option<String> = None;
-    let mut current_target_id: Option<String> = None;
-    let mut current_data_key: Option<String> = None;
-    let mut current_component: Option<String> = None;
-
-    let mut data: HashMap<AnnoKey, String> = HashMap::new();
-
-    loop {
-        match reader.read_event(&mut buf)? {
-            Event::Start(ref e) => {
-                level += 1;
-
-                match e.name() {
-                    b"graph" => {
-                        if level == 2 {
-                            in_graph = true;
                         }
                     }
                     b"edge" => {
@@ -470,13 +379,36 @@ fn read_edges<CT: ComponentType, R: std::io::BufRead>(
                     b"graph" => {
                         in_graph = false;
                     }
+                    b"node" => {
+                        if let Some(node_name) = current_node_id {
+                            // Insert graph update for node
+                            let node_type = data
+                                .remove(&NODE_TYPE_KEY)
+                                .unwrap_or_else(|| "node".to_string());
+                            node_updates.add_event(UpdateEvent::AddNode {
+                                node_name: node_name.clone(),
+                                node_type,
+                            })?;
+                            // Add all remaining data entries as annotations
+                            for (key, value) in data.drain() {
+                                node_updates.add_event(UpdateEvent::AddNodeLabel {
+                                    node_name: node_name.clone(),
+                                    anno_ns: key.ns,
+                                    anno_name: key.name,
+                                    anno_value: value,
+                                })?;
+                            }
+                        }
+
+                        current_node_id = None;
+                    }
                     b"edge" => {
                         if let (Some(source), Some(target), Some(component)) =
                             (current_source_id, current_target_id, current_component)
                         {
                             // Insert graph update for this edge
                             if let Ok(component) = Component::<CT>::from_str(&component) {
-                                updates.add_event(UpdateEvent::AddEdge {
+                                edge_updates.add_event(UpdateEvent::AddEdge {
                                     source_node: source.clone(),
                                     target_node: target.clone(),
                                     layer: component.layer.clone(),
@@ -486,7 +418,7 @@ fn read_edges<CT: ComponentType, R: std::io::BufRead>(
 
                                 // Add all remaining data entries as annotations
                                 for (key, value) in data.drain() {
-                                    updates.add_event(UpdateEvent::AddEdgeLabel {
+                                    edge_updates.add_event(UpdateEvent::AddEdgeLabel {
                                         source_node: source.clone(),
                                         target_node: target.clone(),
                                         layer: component.layer.clone(),
@@ -540,15 +472,10 @@ where
     let mut node_updates = GraphUpdate::default();
     let mut edge_updates = GraphUpdate::default();
 
-    // 2. pass: read in all nodes
+    // 2. pass: read in all nodes and edges
     input.seek(SeekFrom::Start(0))?;
     progress_callback("reading all nodes");
-    read_nodes(&mut input, &mut node_updates, &keys)?;
-
-    // 3. pass: read in all edges
-    input.seek(SeekFrom::Start(0))?;
-    progress_callback("reading all edges");
-    read_edges::<CT, BufReader<R>>(&mut input, &mut edge_updates, &keys)?;
+    read_graphml::<CT, BufReader<R>>(&mut input, &mut node_updates, &mut edge_updates, &keys)?;
 
     // Apply node updates first: edges would not be added if the nodes they are referring do not exist
     g.apply_update(&mut node_updates, &progress_callback)?;
