@@ -1,8 +1,15 @@
-use clap::{App, Arg};
+use actix_web::{get, web, App, HttpServer, Responder};
+use clap::Arg;
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 
-fn main() {
-    let matches = App::new("graphANNIS web service")
+#[get("/{id}/{name}/index.html")]
+async fn index(info: web::Path<(u32, String)>) -> impl Responder {
+    format!("Hello {}! id:{}", info.1, info.0)
+}
+
+#[actix_rt::main]
+async fn main() -> std::io::Result<()> {
+    let matches = clap::App::new("graphANNIS web service")
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .about("Web service line interface to graphANNIS.")
@@ -36,5 +43,8 @@ fn main() {
         }
     }
 
-    println!("graphANNIS says good-bye!");
+    HttpServer::new(|| App::new().service(index))
+        .bind("127.0.0.1:5711")?
+        .run()
+        .await
 }
