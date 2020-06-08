@@ -83,7 +83,7 @@ Since they imply text-coverage, these components should be non-cyclic.
 
 For relations that are not implying text-coverage, edges of type `Pointing` can be used.
 These have the same semantics as the `SPointingRelation` of Salt and can have additional labels for expressing edge annotations.
-The type of a pointing relation in AQLs corresponds to the name of the edge component in graphANNIS.
+The type of pointing relation in AQL corresponds to the name of the edge component in graphANNIS.
 
 
 [^cormen]: T. H. Cormen, C. E. Leiserson, R. L. Rivest, and C. Stein, Introduction to Algorithms, 3rd ed. The MIT Press, 2009.

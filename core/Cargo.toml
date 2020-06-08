@@ -1,0 +1,42 @@
+[package]
+name = "graphannis-core"
+version = "0.27.0"
+authors = ["Thomas Krause <thomaskrause@posteo.de>"]
+
+license = "Apache-2.0"
+description = "This crate supports graph representation and generic query-functionality."
+repository= "https://github.com/korpling/graphANNIS"
+readme = "crate-info.md"
+edition = "2018"
+
+[lib]
+
+[dependencies]
+graphannis-malloc_size_of = "1.0"
+graphannis-malloc_size_of_derive = "2.0"
+num-traits = "0.2"
+serde = {version="1.0", features=["rc"]}
+serde_derive = "1.0"
+strum = "0.18"
+strum_macros = "0.18"
+anyhow="1"
+sstable = "0.8.1"
+bincode = "1.2"
+log = "0.4"
+tempfile = "3.1"
+rustc-hash = "1.0"
+regex = "1"
+regex-syntax = "0.6"
+rand = {version = "0.7", features=["small_rng"]}
+itertools = "0.9"
+lazy_static = "1.4"
+rayon = {version="1.3",  default-features=false}
+quick-xml = "0.18"
+percent-encoding = "2.1"
+
+[target.'cfg(windows)'.dependencies]
+kernel32-sys = { version = "0.2.2" }
+
+[dev-dependencies]
+fake = "2.2"
+env_logger = "0.7"

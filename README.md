@@ -22,17 +22,17 @@ You can install Rust from https://www.rust-lang.org/tools/install.
 After you have installed Rust, you can can build the complete project with
 
 ```
-cargo build --release --all-features
+cargo build --release
 ```
 
 ## Documentation
 
-- [Developer Guide](https://korpling.github.io/graphANNIS/docs/v0.26) (including descriptions of the data model and tutorials for the API)
+- [Developer Guide](https://korpling.github.io/graphANNIS/docs/v0.27) (including descriptions of the data model and tutorials for the API)
 - [API documentation](https://docs.rs/graphannis/)
 
 ## 3rd party dependencies
 
-This software depends on several 3rd party libraries. These are documented in the BOM.txt file in this folder.
+This software depends on several 3rd party libraries. These are documented in the "third-party-licenses.html" file in this folder.
 
 ## Language bindings
 

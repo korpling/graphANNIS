@@ -5,6 +5,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.0] - 2020-06-08
+
+### Changed
+
+- Backward incompatible: Return opaque [anyhow](https://github.com/dtolnay/anyhow) `Error` type in all 
+  functions instead of our own enum.
+  The new `Error` type also implements `std::error::Error` and is equivalent to using `Box<dyn std:error::Error>`.
+- Upgraded parser generator lalrpop to version 0.18.x
+
+
+### Added
+
+- Disk-based implementation of an adjacency list is used when a corpus is configured to be prefer disk over memory.
+- Ability to export and import GraphML files. This follows the [Neo4j dialect of GraphML](https://neo4j.com/docs/labs/apoc/current/import/graphml/).
+  It is also possible to compress the GraphML files with Brotli.
+
+### Fixed
+
+- The dense adjacency list implementation did not implement the `source_nodes` function properly
+
 ## [0.26.0] - 2020-03-05
 
 ### Removed

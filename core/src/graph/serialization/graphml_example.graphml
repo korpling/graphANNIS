@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml>
+    <key id="k0" for="node" attr.name="default_ns::an_annotation" attr.type="string"/>
+    <key id="k1" for="node" attr.name="annis::node_type" attr.type="string"/>
+    <graph edgedefault="directed">
+        <node id="first_node">
+            <data key="k1">node</data>
+            <data key="k0">something</data>
+        </node>
+        <node id="second_node">
+            <data key="k1">node</data>
+        </node>
+        <edge id="e0" source="first_node" target="second_node" label="Edge/some_ns/test_component">
+        </edge>
+    </graph>
+</graphml>
