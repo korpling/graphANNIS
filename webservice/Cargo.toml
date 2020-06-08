@@ -6,7 +6,6 @@ license = "Apache-2.0"
 description = "This is a web service to the new backend implementation of the ANNIS linguistic search and visualization system."
 repository = "https://github.com/korpling/graphANNIS"
 readme = "crate-info.md"
-autobins = true
 edition = "2018"
 
 [dependencies]
@@ -18,5 +17,3 @@ log = "0.4"
 actix-web = "2"
 actix-rt = "1"
 
-[[bin]]
-name="annis-service"
