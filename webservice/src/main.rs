@@ -2,8 +2,11 @@ use actix_web::{App, HttpServer};
 use clap::Arg;
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 
-
 mod search;
+
+struct AppState {
+    cs: graphannis::CorpusStorage,
+}
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
@@ -41,7 +44,13 @@ async fn main() -> std::io::Result<()> {
         }
     }
 
-    HttpServer::new(|| App::new().service(search::count))
+    // Create a graphANNIS corpus storage as shared state
+    let data_dir = std::path::PathBuf::from("data/");
+    let cs = graphannis::CorpusStorage::with_auto_cache_size(&data_dir, true).unwrap();
+    let app_state = actix_web::web::Data::new(AppState { cs });
+
+    // Run server
+    HttpServer::new(move || App::new().app_data(app_state.clone()).service(search::count))
         .bind("127.0.0.1:5711")?
         .run()
         .await
