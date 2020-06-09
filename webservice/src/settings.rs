@@ -13,6 +13,11 @@ pub struct Bind {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct Auth {
+    pub jwt_secret: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct LocalUser {
     pub password: String,
     #[serde(default)]
@@ -23,6 +28,7 @@ pub struct LocalUser {
 
 #[derive(Debug, Deserialize)]
 pub struct Settings {
+    pub auth: Auth,
     pub logging: Logging,
     pub bind: Bind,
     pub users: HashMap<String, LocalUser>,

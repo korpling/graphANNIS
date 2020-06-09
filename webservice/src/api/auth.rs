@@ -22,11 +22,12 @@ async fn login(
     if let Some(user) = state.settings.users.get(provided_user) {
         // Add Salt to password, calculate hash and compare against our settings
         let provided_password = &login_data.password;
-        let verified = bcrypt::verify(&provided_password, &user.password)
-            .map_err(|e| ErrorInternalServerError(e))?;
+        let verified =
+            bcrypt::verify(&provided_password, &user.password).map_err(ErrorInternalServerError)?;
         if verified {
             // Create the JWT token
-            let key: Hmac<Sha256> = Hmac::new_varkey(b"some-secret").unwrap();
+            let key: Hmac<Sha256> = Hmac::new_varkey(state.settings.auth.jwt_secret.as_bytes())
+                .map_err(ErrorInternalServerError)?;
             let mut claims: BTreeMap<_, &str> = BTreeMap::new();
             claims.insert("sub", provided_user);
             // Add the corpus groups and adminstrator status as claims
@@ -38,7 +39,7 @@ async fn login(
             // Create the actual token
             let token_str = claims
                 .sign_with_key(&key)
-                .map_err(|e| ErrorInternalServerError(e))?;
+                .map_err(ErrorInternalServerError)?;
             return Ok(HttpResponse::Ok().body(token_str));
         }
     }
