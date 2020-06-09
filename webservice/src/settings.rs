@@ -15,6 +15,10 @@ pub struct Bind {
 #[derive(Debug, Deserialize)]
 pub struct LocalUser {
     pub password: String,
+    #[serde(default)]
+    pub corpus_groups: Vec<String>,
+    #[serde(default)]
+    pub admin: bool,
 }
 
 #[derive(Debug, Deserialize)]
