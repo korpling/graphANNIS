@@ -15,6 +15,7 @@ pub struct Bind {
 #[derive(Debug, Deserialize)]
 pub struct Auth {
     pub jwt_secret: String,
+    pub redirect_token_parameter: String,
 }
 
 #[derive(Debug, Deserialize)]

@@ -1,15 +1,19 @@
 use crate::AppState;
-use actix_web::{error::ErrorInternalServerError, post, web, Error, HttpResponse};
+use actix_web::{
+    error::ErrorInternalServerError, http, http::header, post, web, Error, HttpResponse,
+};
 use hmac::{Hmac, Mac};
 use jwt::SignWithKey;
 use serde::Deserialize;
 use sha2::Sha256;
 use std::collections::BTreeMap;
+use std::convert::TryFrom;
 
 #[derive(Serialize, Deserialize)]
 pub struct LoginData {
     pub username_or_email: String,
     pub password: String,
+    pub redirect_to: Option<String>,
 }
 
 #[post("/login")]
@@ -40,7 +44,34 @@ async fn login(
             let token_str = claims
                 .sign_with_key(&key)
                 .map_err(ErrorInternalServerError)?;
-            return Ok(HttpResponse::Ok().body(token_str));
+            if let Some(redirect_to) = &login_data.redirect_to {
+                let token_parameter_name = &state.settings.auth.redirect_token_parameter;
+                let redirect_to = redirect_to
+                    .parse::<http::Uri>()
+                    .map_err(ErrorInternalServerError)?;
+                // Regenerate the redirect URI, but rewrite the query component to include our token
+                let mut redirect_to = redirect_to.into_parts();
+                let original_path = redirect_to
+                    .path_and_query
+                    .map(|p| p.path().to_owned())
+                    .unwrap_or_default();
+                let path_and_query =
+                    format!("{}?{}={}", original_path, token_parameter_name, token_str);
+                redirect_to.path_and_query = Some(
+                    http::uri::PathAndQuery::try_from(path_and_query.as_str())
+                        .map_err(ErrorInternalServerError)?,
+                );
+                return Ok(HttpResponse::TemporaryRedirect()
+                    .header(
+                        header::LOCATION,
+                        http::Uri::from_parts(redirect_to)
+                            .map_err(ErrorInternalServerError)?
+                            .to_string(),
+                    )
+                    .finish());
+            } else {
+                return Ok(HttpResponse::Ok().body(token_str));
+            }
         }
     }
     Ok(HttpResponse::Unauthorized().finish())

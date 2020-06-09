@@ -4,6 +4,7 @@ host = "localhost"
 
 [auth]
 jwt_secret = ""
+redirect_token_parameter = "auth_token"
 
 [logging]
 debug = false
