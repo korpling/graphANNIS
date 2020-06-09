@@ -1,5 +1,5 @@
 use config::ConfigError;
-use std::ops::Deref;
+use std::{collections::HashMap, ops::Deref};
 
 #[derive(Debug, Deserialize)]
 pub struct Logging {
@@ -13,9 +13,15 @@ pub struct Bind {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct LocalUser {
+    pub password: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Settings {
     pub logging: Logging,
     pub bind: Bind,
+    pub users: HashMap<String, LocalUser>,
 }
 
 impl Settings {

@@ -9,7 +9,7 @@ use clap::Arg;
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::io::{Error, ErrorKind, Result};
 
-mod search;
+mod api;
 mod settings;
 
 struct AppState {
@@ -84,7 +84,8 @@ async fn main() -> Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
-            .service(search::count)
+            .service(api::search::count)
+            .service(api::auth::login)
     })
     .bind(bind_address)?
     .run()

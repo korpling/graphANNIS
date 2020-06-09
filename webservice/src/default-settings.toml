@@ -4,3 +4,5 @@ host = "localhost"
 
 [logging]
 debug = false
+
+[users]
