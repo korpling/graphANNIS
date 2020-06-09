@@ -1,19 +1,22 @@
 #[macro_use]
 extern crate log;
 
+#[macro_use]
+extern crate serde_derive;
+
 use actix_web::{App, HttpServer};
 use clap::Arg;
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::io::{Error, ErrorKind, Result};
 
 mod search;
+mod settings;
 
 struct AppState {
     cs: graphannis::CorpusStorage,
 }
 
-#[actix_rt::main]
-async fn main() -> Result<()> {
+fn init_app() -> anyhow::Result<AppState> {
     // Parse CLI arguments
     let matches = clap::App::new("graphANNIS web service")
         .version(env!("CARGO_PKG_VERSION"))
@@ -24,30 +27,14 @@ async fn main() -> Result<()> {
                 .short("c")
                 .long("config")
                 .help("Configuration file location")
-                .takes_value(true)
-                .default_value("graphannis-webservice.toml"),
+                .takes_value(true),
         )
         .get_matches();
 
     // Load configuration file(s)
-    let mut config = config::Config::default();
-    if let Some(config_file_list) = matches.args.get("config") {
-        for config_file in &config_file_list.vals {
-            config
-                .merge(config::File::new(
-                    config_file.to_string_lossy().as_ref(),
-                    config::FileFormat::Toml,
-                ))
-                .map_err(|e| {
-                    Error::new(
-                        ErrorKind::Other,
-                        format!("Could not add configuration file: {:?}", e),
-                    )
-                })?;
-        }
-    }
+    let settings = settings::Settings::with_file(matches.value_of_lossy("config"))?;
 
-    let log_filter = if config.get_bool("logging.debug").unwrap_or(false) {
+    let log_filter = if settings.logging.debug {
         LevelFilter::Debug
     } else {
         LevelFilter::Info
@@ -72,13 +59,20 @@ async fn main() -> Result<()> {
 
     // Create a graphANNIS corpus storage as shared state
     let data_dir = std::path::PathBuf::from("data/");
-    let cs = graphannis::CorpusStorage::with_auto_cache_size(&data_dir, true).map_err(|e| {
+    let cs = graphannis::CorpusStorage::with_auto_cache_size(&data_dir, true)?;
+    Ok(AppState { cs })
+}
+
+#[actix_rt::main]
+async fn main() -> Result<()> {
+    // Initialize application and its state
+    let app_state = init_app().map_err(|e| {
         Error::new(
             ErrorKind::Other,
-            format!("Could not open corpus storage: {:?}", e),
+            format!("Could not initialize graphANNIS service: {:?}", e),
         )
     })?;
-    let app_state = actix_web::web::Data::new(AppState { cs });
+    let app_state = actix_web::web::Data::new(app_state);
 
     // Run server
     HttpServer::new(move || {
