@@ -1,2 +1,6 @@
+[bind]
+port = 5711
+host = "localhost"
+
 [logging]
 debug = false

@@ -14,6 +14,7 @@ mod settings;
 
 struct AppState {
     cs: graphannis::CorpusStorage,
+    settings: settings::Settings,
 }
 
 fn init_app() -> anyhow::Result<AppState> {
@@ -60,7 +61,7 @@ fn init_app() -> anyhow::Result<AppState> {
     // Create a graphANNIS corpus storage as shared state
     let data_dir = std::path::PathBuf::from("data/");
     let cs = graphannis::CorpusStorage::with_auto_cache_size(&data_dir, true)?;
-    Ok(AppState { cs })
+    Ok(AppState { cs, settings })
 }
 
 #[actix_rt::main]
@@ -72,6 +73,11 @@ async fn main() -> Result<()> {
             format!("Could not initialize graphANNIS service: {:?}", e),
         )
     })?;
+
+    let bind_address = format!(
+        "{}:{}",
+        &app_state.settings.bind.host, &app_state.settings.bind.port
+    );
     let app_state = actix_web::web::Data::new(app_state);
 
     // Run server
@@ -80,7 +86,7 @@ async fn main() -> Result<()> {
             .app_data(app_state.clone())
             .service(search::count)
     })
-    .bind("127.0.0.1:5711")?
+    .bind(bind_address)?
     .run()
     .await
 }

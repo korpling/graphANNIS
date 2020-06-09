@@ -7,8 +7,15 @@ pub struct Logging {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct Bind {
+    pub port: i16,
+    pub host: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Settings {
     pub logging: Logging,
+    pub bind: Bind,
 }
 
 impl Settings {
