@@ -1,7 +1,5 @@
 use crate::AppState;
-use actix_web::{
-    error::ErrorInternalServerError, http, http::header, post, web, Error, HttpResponse,
-};
+use actix_web::{error::ErrorInternalServerError, http, http::header, web, Error, HttpResponse};
 use hmac::{Hmac, Mac};
 use jwt::SignWithKey;
 use serde::Deserialize;
@@ -16,8 +14,7 @@ pub struct LoginData {
     pub redirect_to: Option<String>,
 }
 
-#[post("/login")]
-async fn login(
+pub async fn login(
     login_data: web::Json<LoginData>,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {

@@ -3,7 +3,7 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 
-use actix_web::{App, HttpServer};
+use actix_web::{web, App, HttpServer};
 use clap::Arg;
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::io::{Error, ErrorKind, Result};
@@ -11,7 +11,7 @@ use std::io::{Error, ErrorKind, Result};
 mod api;
 mod settings;
 
-struct AppState {
+pub struct AppState {
     cs: graphannis::CorpusStorage,
     settings: settings::Settings,
 }
@@ -77,14 +77,14 @@ async fn main() -> Result<()> {
         "{}:{}",
         &app_state.settings.bind.host, &app_state.settings.bind.port
     );
-    let app_state = actix_web::web::Data::new(app_state);
+    let app_state = web::Data::new(app_state);
 
     // Run server
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
-            .service(api::search::count)
-            .service(api::auth::login)
+            .route("/search/count", web::get().to(api::search::count))
+            .route("/login", web::post().to(api::auth::login))
     })
     .bind(bind_address)?
     .run()
