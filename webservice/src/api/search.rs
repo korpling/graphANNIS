@@ -1,6 +1,7 @@
 use crate::AppState;
 use actix_web::web;
 use serde::Deserialize;
+use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 #[derive(Deserialize)]
 pub struct QueryParameters {
@@ -9,7 +10,11 @@ pub struct QueryParameters {
     corpora: String,
 }
 
-pub async fn count(info: web::Query<QueryParameters>, state: web::Data<AppState>) -> String {
+pub async fn count(
+    info: web::Query<QueryParameters>,
+    state: web::Data<AppState>,
+    credentials: BearerAuth,
+) -> String {
     let corpora = vec![info.corpora.clone()];
     let count = state
         .cs

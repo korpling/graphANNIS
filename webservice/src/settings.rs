@@ -13,6 +13,12 @@ pub struct Bind {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct Database {
+    pub graphannis: String,
+    pub sqlite: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Auth {
     pub jwt_secret: String,
     pub redirect_token_parameter: String,
@@ -31,6 +37,7 @@ pub struct LocalUser {
 #[derive(Debug, Deserialize)]
 pub struct Settings {
     pub auth: Auth,
+    pub database: Database,
     pub logging: Logging,
     pub bind: Bind,
     pub users: HashMap<String, LocalUser>,

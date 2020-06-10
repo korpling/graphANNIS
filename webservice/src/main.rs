@@ -2,12 +2,16 @@
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate diesel;
 
+use actix::prelude::*;
 use actix_web::{dev::ServiceRequest, web, App, HttpServer};
 use actix_web_httpauth::{
     extractors::bearer, extractors::AuthenticationError, middleware::HttpAuthentication,
 };
 use clap::Arg;
+use diesel::prelude::*;
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::io::{Error, ErrorKind, Result};
 
@@ -15,9 +19,15 @@ mod api;
 mod errors;
 mod settings;
 
+struct DbExecutor(SqliteConnection);
+impl Actor for DbExecutor {
+    type Context = SyncContext<Self>;
+}
+
 pub struct AppState {
     cs: graphannis::CorpusStorage,
     settings: settings::Settings,
+    sqlite: Addr<DbExecutor>,
 }
 
 fn init_app() -> anyhow::Result<AppState> {
@@ -62,9 +72,20 @@ fn init_app() -> anyhow::Result<AppState> {
     info!("Logging with level {}", log_filter);
 
     // Create a graphANNIS corpus storage as shared state
-    let data_dir = std::path::PathBuf::from("data/");
+    let data_dir = std::path::PathBuf::from(&settings.database.graphannis);
     let cs = graphannis::CorpusStorage::with_auto_cache_size(&data_dir, true)?;
-    Ok(AppState { cs, settings })
+
+    // Add a connection pool to the SQLite database
+    let sqlite_url = settings.database.sqlite.clone();
+    let sqlite = SyncArbiter::start(3, move || {
+        DbExecutor(SqliteConnection::establish(&sqlite_url).unwrap())
+    });
+
+    Ok(AppState {
+        cs,
+        settings,
+        sqlite,
+    })
 }
 
 async fn validator(

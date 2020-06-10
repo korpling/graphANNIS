@@ -2,6 +2,10 @@
 port = 5711
 host = "localhost"
 
+[database]
+graphannis = "data/"
+sqlite = "service.sqlite"
+
 [auth]
 jwt_secret = ""
 redirect_token_parameter = "auth_token"

@@ -20,6 +20,13 @@ struct Claims {
     admin: bool,
 }
 
+pub fn corpus_access_allowed(corpora : &[&str], token: &str, state: web::Data<AppState>) -> Result<bool, ServiceError> {
+    let key: Hmac<Sha256> = Hmac::new_varkey(state.settings.auth.jwt_secret.as_bytes())?;
+
+    let claims = VerifyWithKey::verify_with_key(token, &key)?;
+    Ok(claims)
+}
+
 pub fn validate_token(token: &str, state: web::Data<AppState>) -> Result<bool, ServiceError> {
     let key: Hmac<Sha256> = Hmac::new_varkey(state.settings.auth.jwt_secret.as_bytes())?;
 
