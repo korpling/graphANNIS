@@ -3,12 +3,16 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 
-use actix_web::{web, App, HttpServer};
+use actix_web::{dev::ServiceRequest, web, App, HttpServer};
+use actix_web_httpauth::{
+    extractors::bearer, extractors::AuthenticationError, middleware::HttpAuthentication,
+};
 use clap::Arg;
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::io::{Error, ErrorKind, Result};
 
 mod api;
+mod errors;
 mod settings;
 
 pub struct AppState {
@@ -63,6 +67,29 @@ fn init_app() -> anyhow::Result<AppState> {
     Ok(AppState { cs, settings })
 }
 
+async fn validator(
+    req: ServiceRequest,
+    credentials: bearer::BearerAuth,
+) -> std::result::Result<ServiceRequest, actix_web::error::Error> {
+    let bearer_config = req
+        .app_data::<bearer::Config>()
+        .map(|data| data.get_ref().clone())
+        .unwrap_or_else(Default::default);
+    let state = req
+        .app_data::<AppState>()
+        .ok_or_else(|| actix_web::error::Error::from(()))?;
+    match api::auth::validate_token(credentials.token(), state) {
+        Ok(res) => {
+            if res == true {
+                Ok(req)
+            } else {
+                Err(AuthenticationError::from(bearer_config).into())
+            }
+        }
+        Err(_) => Err(AuthenticationError::from(bearer_config).into()),
+    }
+}
+
 #[actix_rt::main]
 async fn main() -> Result<()> {
     // Initialize application and its state
@@ -81,10 +108,16 @@ async fn main() -> Result<()> {
 
     // Run server
     HttpServer::new(move || {
+        let auth = HttpAuthentication::bearer(validator);
+
         App::new()
             .app_data(app_state.clone())
-            .route("/search/count", web::get().to(api::search::count))
-            .route("/login", web::post().to(api::auth::login))
+            .route("/local-login", web::post().to(api::auth::local_login))
+            .service(
+                web::resource("/search/count")
+                    .route(web::get().to(api::search::count))
+                    .wrap(auth),
+            )
     })
     .bind(bind_address)?
     .run()

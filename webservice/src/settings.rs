@@ -16,6 +16,7 @@ pub struct Bind {
 pub struct Auth {
     pub jwt_secret: String,
     pub redirect_token_parameter: String,
+    pub expiration_minutes: i64,
 }
 
 #[derive(Debug, Deserialize)]
