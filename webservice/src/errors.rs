@@ -6,6 +6,9 @@ use std::fmt::Display;
 pub enum ServiceError {
     BadRequest(String),
     InvalidJWTToken(String),
+    NonAuthorizedCorpus,
+    DatabaseError,
+    InternalServerError,
 }
 
 impl Display for ServiceError {
@@ -13,6 +16,9 @@ impl Display for ServiceError {
         match self {
             ServiceError::BadRequest(msg) => write!(f, "Bad Request: {}", msg)?,
             ServiceError::InvalidJWTToken(msg) => write!(f, "Invalid JWT Token: {}", msg)?,
+            ServiceError::NonAuthorizedCorpus => write!(f, "Not authorized to access corpus")?,
+            ServiceError::DatabaseError => write!(f, "Error accessing database")?,
+            ServiceError::InternalServerError => write!(f, "Internal Server Error")?,
         }
         Ok(())
     }
@@ -25,6 +31,13 @@ impl ResponseError for ServiceError {
             ServiceError::InvalidJWTToken(ref message) => {
                 HttpResponse::Unauthorized().json(message)
             }
+            ServiceError::NonAuthorizedCorpus => {
+                HttpResponse::Unauthorized().json("Not authorized to access the given corpus")
+            }
+            ServiceError::DatabaseError => {
+                HttpResponse::BadGateway().json("Error accessing database")
+            }
+            ServiceError::InternalServerError => HttpResponse::InternalServerError().finish(),
         }
     }
 }
@@ -38,5 +51,11 @@ impl From<InvalidKeyLength> for ServiceError {
 impl From<jwt::Error> for ServiceError {
     fn from(orig: jwt::Error) -> Self {
         ServiceError::InvalidJWTToken(format!("{}", orig))
+    }
+}
+
+impl From<diesel::result::Error> for ServiceError {
+    fn from(_orig: diesel::result::Error) -> Self {
+        ServiceError::DatabaseError
     }
 }

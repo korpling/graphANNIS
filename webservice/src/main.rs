@@ -5,29 +5,29 @@ extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
 
-use actix::prelude::*;
 use actix_web::{dev::ServiceRequest, web, App, HttpServer};
 use actix_web_httpauth::{
     extractors::bearer, extractors::AuthenticationError, middleware::HttpAuthentication,
 };
 use clap::Arg;
 use diesel::prelude::*;
+use diesel::r2d2::{self, ConnectionManager};
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::io::{Error, ErrorKind, Result};
 
+type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
+
+mod actions;
 mod api;
 mod errors;
+mod models;
+mod schema;
 mod settings;
-
-struct DbExecutor(SqliteConnection);
-impl Actor for DbExecutor {
-    type Context = SyncContext<Self>;
-}
 
 pub struct AppState {
     cs: graphannis::CorpusStorage,
     settings: settings::Settings,
-    sqlite: Addr<DbExecutor>,
+    sqlite_pool: DbPool,
 }
 
 fn init_app() -> anyhow::Result<AppState> {
@@ -76,15 +76,15 @@ fn init_app() -> anyhow::Result<AppState> {
     let cs = graphannis::CorpusStorage::with_auto_cache_size(&data_dir, true)?;
 
     // Add a connection pool to the SQLite database
-    let sqlite_url = settings.database.sqlite.clone();
-    let sqlite = SyncArbiter::start(3, move || {
-        DbExecutor(SqliteConnection::establish(&sqlite_url).unwrap())
-    });
+    let sqlite_manager = ConnectionManager::<SqliteConnection>::new(&settings.database.sqlite);
+    let sqlite_pool = r2d2::Pool::builder()
+        .build(sqlite_manager)
+        .expect("Failed to create pool.");
 
     Ok(AppState {
         cs,
         settings,
-        sqlite,
+        sqlite_pool,
     })
 }
 

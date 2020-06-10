@@ -12,19 +12,12 @@ pub struct LoginData {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    sub: String,
+pub struct Claims {
+    pub sub: String,
     /// Expiration date as unix timestamp in seconds since epoch and UTC
-    exp: Option<i64>,
-    corpus_groups: Vec<String>,
-    admin: bool,
-}
-
-pub fn corpus_access_allowed(corpora : &[&str], token: &str, state: web::Data<AppState>) -> Result<bool, ServiceError> {
-    let key: Hmac<Sha256> = Hmac::new_varkey(state.settings.auth.jwt_secret.as_bytes())?;
-
-    let claims = VerifyWithKey::verify_with_key(token, &key)?;
-    Ok(claims)
+    pub exp: Option<i64>,
+    pub corpus_groups: Vec<String>,
+    pub admin: bool,
 }
 
 pub fn validate_token(token: &str, state: web::Data<AppState>) -> Result<bool, ServiceError> {
