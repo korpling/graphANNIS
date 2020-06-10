@@ -5,7 +5,7 @@ use jwt::VerifyWithKey;
 use sha2::Sha256;
 
 pub fn corpus_access_allowed(
-    requested_corpora: Vec<String>,
+    requested_corpora: &Vec<String>,
     token: &str,
     jwt_secret: &str,
     conn: &SqliteConnection,

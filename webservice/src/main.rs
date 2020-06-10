@@ -137,6 +137,11 @@ async fn main() -> Result<()> {
             .service(
                 web::resource("/search/count")
                     .route(web::get().to(api::search::count))
+                    .wrap(auth.clone()),
+            )
+            .service(
+                web::resource("/search/find")
+                    .route(web::get().to(api::search::find))
                     .wrap(auth),
             )
     })
