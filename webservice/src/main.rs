@@ -105,7 +105,7 @@ async fn main() -> Result<()> {
             .route("/local-login", web::post().to(api::auth::local_login))
             .route("/search/count", web::get().to(api::search::count))
             .route("/search/find", web::get().to(api::search::find))
-            .route("/search/subgraph", web::get().to(api::search::subgraph))
+            .route("/corpora/{corpus}/subgraph", web::get().to(api::search::subgraph))
     })
     .bind(bind_address)?
     .run()

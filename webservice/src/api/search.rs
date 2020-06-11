@@ -108,7 +108,6 @@ pub async fn count(
 
 #[derive(Deserialize)]
 pub struct SubgraphQueryParameters {
-    corpus: String,
     node_ids: String,
     #[serde(default)]
     segmentation: Option<String>,
@@ -119,19 +118,20 @@ pub struct SubgraphQueryParameters {
 }
 
 pub async fn subgraph(
+    corpus: web::Path<String>,
     params: web::Query<SubgraphQueryParameters>,
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
     claims: ClaimsAuth,
 ) -> Result<HttpResponse, ServiceError> {
-    if corpus_access_allowed(vec![params.corpus.clone()], claims, db_pool).await? {
+    if corpus_access_allowed(vec![corpus.clone()], claims, db_pool).await? {
         let node_ids: Vec<String> = params
             .node_ids
             .split(",")
             .map(|c| c.trim().to_string())
             .collect();
         let graph = cs.subgraph(
-            &params.corpus,
+            &corpus,
             node_ids,
             params.left,
             params.right,
