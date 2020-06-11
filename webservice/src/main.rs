@@ -5,10 +5,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
 
-use actix_web::{dev::ServiceRequest, web, App, HttpServer};
-use actix_web_httpauth::{
-    extractors::bearer, extractors::AuthenticationError, middleware::HttpAuthentication,
-};
+use actix_web::{middleware::Logger, web, App, HttpServer};
 use clap::Arg;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
@@ -20,17 +17,12 @@ type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
 mod actions;
 mod api;
 mod errors;
+mod extractors;
 mod models;
 mod schema;
 mod settings;
 
-pub struct AppState {
-    cs: graphannis::CorpusStorage,
-    settings: settings::Settings,
-    sqlite_pool: DbPool,
-}
-
-fn init_app() -> anyhow::Result<AppState> {
+fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, DbPool)> {
     // Parse CLI arguments
     let matches = clap::App::new("graphANNIS web service")
         .version(env!("CARGO_PKG_VERSION"))
@@ -76,74 +68,39 @@ fn init_app() -> anyhow::Result<AppState> {
     let cs = graphannis::CorpusStorage::with_auto_cache_size(&data_dir, true)?;
 
     // Add a connection pool to the SQLite database
-    let sqlite_manager = ConnectionManager::<SqliteConnection>::new(&settings.database.sqlite);
-    let sqlite_pool = r2d2::Pool::builder()
-        .build(sqlite_manager)
+    let manager = ConnectionManager::<SqliteConnection>::new(&settings.database.sqlite);
+    let db_pool = r2d2::Pool::builder()
+        .build(manager)
         .expect("Failed to create pool.");
 
-    Ok(AppState {
-        cs,
-        settings,
-        sqlite_pool,
-    })
-}
-
-async fn validator(
-    req: ServiceRequest,
-    credentials: bearer::BearerAuth,
-) -> std::result::Result<ServiceRequest, actix_web::error::Error> {
-    let bearer_config = req
-        .app_data::<bearer::Config>()
-        .map(|data| data.get_ref().clone())
-        .unwrap_or_else(Default::default);
-    let state = req
-        .app_data::<AppState>()
-        .ok_or_else(|| actix_web::error::Error::from(()))?;
-    match api::auth::validate_token(credentials.token(), state) {
-        Ok(res) => {
-            if res == true {
-                Ok(req)
-            } else {
-                Err(AuthenticationError::from(bearer_config).into())
-            }
-        }
-        Err(_) => Err(AuthenticationError::from(bearer_config).into()),
-    }
+    Ok((cs, settings, db_pool))
 }
 
 #[actix_rt::main]
 async fn main() -> Result<()> {
     // Initialize application and its state
-    let app_state = init_app().map_err(|e| {
+    let (cs, settings, db_pool) = init_app().map_err(|e| {
         Error::new(
             ErrorKind::Other,
             format!("Could not initialize graphANNIS service: {:?}", e),
         )
     })?;
 
-    let bind_address = format!(
-        "{}:{}",
-        &app_state.settings.bind.host, &app_state.settings.bind.port
-    );
-    let app_state = web::Data::new(app_state);
+    let bind_address = format!("{}:{}", &settings.bind.host, &settings.bind.port);
+    let cs = web::Data::new(cs);
+    let settings = web::Data::new(settings);
+    let db_pool = web::Data::new(db_pool);
 
     // Run server
     HttpServer::new(move || {
-        let auth = HttpAuthentication::bearer(validator);
-
         App::new()
-            .app_data(app_state.clone())
+            .app_data(cs.clone())
+            .app_data(settings.clone())
+            .app_data(db_pool.clone())
+            .wrap(Logger::default())
             .route("/local-login", web::post().to(api::auth::local_login))
-            .service(
-                web::resource("/search/count")
-                    .route(web::get().to(api::search::count))
-                    .wrap(auth.clone()),
-            )
-            .service(
-                web::resource("/search/find")
-                    .route(web::get().to(api::search::find))
-                    .wrap(auth),
-            )
+            .route("/search/count", web::get().to(api::search::count))
+            .route("/search/find", web::get().to(api::search::find))
     })
     .bind(bind_address)?
     .run()

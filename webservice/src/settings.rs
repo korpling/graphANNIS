@@ -1,31 +1,31 @@
 use config::ConfigError;
 use std::{collections::HashMap, ops::Deref};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct Logging {
     pub debug: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct Bind {
     pub port: i16,
     pub host: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct Database {
     pub graphannis: String,
     pub sqlite: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct Auth {
     pub jwt_secret: String,
     pub redirect_token_parameter: String,
     pub expiration_minutes: i64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct LocalUser {
     pub password: String,
     #[serde(default)]
@@ -34,7 +34,7 @@ pub struct LocalUser {
     pub admin: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct Settings {
     pub auth: Auth,
     pub database: Database,

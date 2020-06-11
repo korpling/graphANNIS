@@ -1,30 +1,27 @@
-use crate::{actions, errors::ServiceError, AppState};
+use crate::{actions, errors::ServiceError, extractors::ClaimsAuth, DbPool};
 use actix_web::web::{self, HttpResponse};
-use actix_web_httpauth::extractors::bearer::BearerAuth;
-use graphannis::corpusstorage::{QueryLanguage, ResultOrder};
+use graphannis::{
+    corpusstorage::{QueryLanguage, ResultOrder},
+    CorpusStorage,
+};
 use serde::Deserialize;
 
 async fn corpus_access_allowed(
     requested_corpora: Vec<String>,
-    credentials: BearerAuth,
-    state: &web::Data<AppState>,
+    claims: ClaimsAuth,
+    sqlite_pool: web::Data<DbPool>,
 ) -> Result<bool, ServiceError> {
-    let conn = state
-        .sqlite_pool
-        .get()
-        .map_err(|_| ServiceError::DatabaseError)?;
-    let jwt_secret = state.settings.auth.jwt_secret.clone();
-    let access_allowed: bool = web::block(move || {
-        actions::corpus_access_allowed(&requested_corpora, credentials.token(), &jwt_secret, &conn)
-    })
-    .await
-    .map_err(|_| ServiceError::InternalServerError)?;
+    let conn = sqlite_pool.get().map_err(|_| ServiceError::DatabaseError)?;
+    let access_allowed: bool =
+        web::block(move || actions::corpus_access_allowed(&requested_corpora, &claims.0, &conn))
+            .await
+            .map_err(|_| ServiceError::InternalServerError)?;
     Ok(access_allowed)
 }
 
 fn parse_query_language(query_language: &Option<String>) -> QueryLanguage {
     if let Some(query_language) = query_language {
-        if query_language.to_lowercase() == "aqlquirksv3" {
+        if query_language.to_uppercase() == "AQL_QUIRKS_V3" {
             return QueryLanguage::AQLQuirksV3;
         }
     }
@@ -51,8 +48,9 @@ pub struct FindQueryParameters {
 
 pub async fn find(
     info: web::Query<FindQueryParameters>,
-    state: web::Data<AppState>,
-    credentials: BearerAuth,
+    cs: web::Data<CorpusStorage>,
+    db_pool: web::Data<DbPool>,
+    claims: ClaimsAuth,
 ) -> Result<HttpResponse, ServiceError> {
     let order = if let Some(order) = &info.order {
         match order.to_lowercase().as_str() {
@@ -66,9 +64,8 @@ pub async fn find(
         ResultOrder::Normal
     };
     let corpora = parse_corpora(&info.corpora);
-    if corpus_access_allowed(corpora.clone(), credentials, &state).await? {
-        let matches = state
-            .cs
+    if corpus_access_allowed(corpora.clone(), claims, db_pool).await? {
+        let matches = cs
             .find(
                 &corpora,
                 &info.q,
@@ -94,13 +91,13 @@ pub struct CountQueryParameters {
 
 pub async fn count(
     info: web::Query<CountQueryParameters>,
-    state: web::Data<AppState>,
-    credentials: BearerAuth,
+    cs: web::Data<CorpusStorage>,
+    db_pool: web::Data<DbPool>,
+    claims: ClaimsAuth,
 ) -> Result<HttpResponse, ServiceError> {
     let corpora = parse_corpora(&info.corpora);
-    if corpus_access_allowed(corpora.clone(), credentials, &state).await? {
-        let count = state
-            .cs
+    if corpus_access_allowed(corpora.clone(), claims, db_pool).await? {
+        let count = cs
             .count(
                 &corpora,
                 &info.q,
