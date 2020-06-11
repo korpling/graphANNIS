@@ -9,6 +9,11 @@ pub fn corpus_access_allowed(
 ) -> Result<bool, ServiceError> {
     use crate::schema::corpus_groups::dsl::*;
 
+    if claims.admin {
+        // Adminstrators are always allowed to access all corpora
+        return Ok(true);
+    }
+
     let mut allowed_corpus_groups: HashSet<String> = claims.corpus_groups.iter().cloned().collect();
     // Always allow the "anonymous" corpus group
     allowed_corpus_groups.insert("anonymous".to_string());
