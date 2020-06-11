@@ -26,7 +26,7 @@ pub struct QueryAttributeDescription {
     pub anno_name: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct LineColumn {
     pub line: usize,
     pub column: usize,
@@ -38,7 +38,7 @@ impl std::fmt::Display for LineColumn {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct LineColumnRange {
     pub start: LineColumn,
     pub end: Option<LineColumn>,

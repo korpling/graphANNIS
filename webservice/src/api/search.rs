@@ -47,12 +47,12 @@ pub struct FindQueryParameters {
 }
 
 pub async fn find(
-    info: web::Query<FindQueryParameters>,
+    params: web::Query<FindQueryParameters>,
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
     claims: ClaimsAuth,
 ) -> Result<HttpResponse, ServiceError> {
-    let order = if let Some(order) = &info.order {
+    let order = if let Some(order) = &params.order {
         match order.to_lowercase().as_str() {
             "ascending" => ResultOrder::Normal,
             "random" => ResultOrder::Randomized,
@@ -63,18 +63,16 @@ pub async fn find(
     } else {
         ResultOrder::Normal
     };
-    let corpora = parse_corpora(&info.corpora);
+    let corpora = parse_corpora(&params.corpora);
     if corpus_access_allowed(corpora.clone(), claims, db_pool).await? {
-        let matches = cs
-            .find(
-                &corpora,
-                &info.q,
-                parse_query_language(&info.query_language),
-                info.offset.unwrap_or_default(),
-                info.limit,
-                order,
-            )
-            .unwrap();
+        let matches = cs.find(
+            &corpora,
+            &params.q,
+            parse_query_language(&params.query_language),
+            params.offset.unwrap_or_default(),
+            params.limit,
+            order,
+        )?;
         Ok(HttpResponse::Ok().body(matches.join("\n")))
     } else {
         Err(ServiceError::NonAuthorizedCorpus)
@@ -90,21 +88,61 @@ pub struct CountQueryParameters {
 }
 
 pub async fn count(
-    info: web::Query<CountQueryParameters>,
+    params: web::Query<CountQueryParameters>,
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
     claims: ClaimsAuth,
 ) -> Result<HttpResponse, ServiceError> {
-    let corpora = parse_corpora(&info.corpora);
+    let corpora = parse_corpora(&params.corpora);
     if corpus_access_allowed(corpora.clone(), claims, db_pool).await? {
-        let count = cs
-            .count(
-                &corpora,
-                &info.q,
-                parse_query_language(&info.query_language),
-            )
-            .unwrap();
+        let count = cs.count(
+            &corpora,
+            &params.q,
+            parse_query_language(&params.query_language),
+        )?;
         Ok(HttpResponse::Ok().body(format!("{}", count)))
+    } else {
+        Err(ServiceError::NonAuthorizedCorpus)
+    }
+}
+
+#[derive(Deserialize)]
+pub struct SubgraphQueryParameters {
+    corpus: String,
+    node_ids: String,
+    #[serde(default)]
+    segmentation: Option<String>,
+    #[serde(default)]
+    left: usize,
+    #[serde(default)]
+    right: usize,
+}
+
+pub async fn subgraph(
+    params: web::Query<SubgraphQueryParameters>,
+    cs: web::Data<CorpusStorage>,
+    db_pool: web::Data<DbPool>,
+    claims: ClaimsAuth,
+) -> Result<HttpResponse, ServiceError> {
+    if corpus_access_allowed(vec![params.corpus.clone()], claims, db_pool).await? {
+        let node_ids: Vec<String> = params
+            .node_ids
+            .split(",")
+            .map(|c| c.trim().to_string())
+            .collect();
+        let graph = cs.subgraph(
+            &params.corpus,
+            node_ids,
+            params.left,
+            params.right,
+            params.segmentation.clone(),
+        )?;
+
+        // Export subgraph to GraphML
+        let mut output = Vec::new();
+        graphannis_core::graph::serialization::graphml::export(&graph, &mut output, |_| {})?;
+
+        Ok(HttpResponse::Ok().body(output))
     } else {
         Err(ServiceError::NonAuthorizedCorpus)
     }

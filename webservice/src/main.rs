@@ -5,7 +5,10 @@ extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
 
-use actix_web::{middleware::Logger, web, App, HttpServer};
+use actix_web::{
+    middleware::{Compress, Logger},
+    web, App, HttpServer,
+};
 use clap::Arg;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
@@ -98,9 +101,11 @@ async fn main() -> Result<()> {
             .app_data(settings.clone())
             .app_data(db_pool.clone())
             .wrap(Logger::default())
+            .wrap(Compress::default())
             .route("/local-login", web::post().to(api::auth::local_login))
             .route("/search/count", web::get().to(api::search::count))
             .route("/search/find", web::get().to(api::search::find))
+            .route("/search/subgraph", web::get().to(api::search::subgraph))
     })
     .bind(bind_address)?
     .run()

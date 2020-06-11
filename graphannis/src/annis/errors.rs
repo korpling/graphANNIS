@@ -4,7 +4,7 @@ use std::fmt::Display;
 
 pub type Result<T> = std::result::Result<T, anyhow::Error>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub enum GraphAnnisError {
     AQLSyntaxError {
         desc: String,

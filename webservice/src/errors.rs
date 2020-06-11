@@ -1,4 +1,5 @@
 use actix_web::{error::ResponseError, HttpResponse};
+use graphannis::errors::GraphAnnisError;
 use hmac::crypto_mac::InvalidKeyLength;
 use std::fmt::Display;
 
@@ -9,6 +10,7 @@ pub enum ServiceError {
     NonAuthorizedCorpus,
     DatabaseError,
     InternalServerError,
+    GraphAnnisError(GraphAnnisError),
 }
 
 impl Display for ServiceError {
@@ -19,10 +21,14 @@ impl Display for ServiceError {
             ServiceError::NonAuthorizedCorpus => write!(f, "Not authorized to access corpus")?,
             ServiceError::DatabaseError => write!(f, "Error accessing database")?,
             ServiceError::InternalServerError => write!(f, "Internal Server Error")?,
+            ServiceError::GraphAnnisError(err) => write!(f, "{}", err)?,
         }
         Ok(())
     }
 }
+
+#[derive(Serialize)]
+pub struct AQLErrorBody {}
 
 impl ResponseError for ServiceError {
     fn error_response(&self) -> HttpResponse {
@@ -38,6 +44,7 @@ impl ResponseError for ServiceError {
                 HttpResponse::BadGateway().json("Error accessing database")
             }
             ServiceError::InternalServerError => HttpResponse::InternalServerError().finish(),
+            ServiceError::GraphAnnisError(err) => HttpResponse::BadRequest().json(err),
         }
     }
 }
@@ -57,5 +64,15 @@ impl From<jwt::Error> for ServiceError {
 impl From<diesel::result::Error> for ServiceError {
     fn from(_orig: diesel::result::Error) -> Self {
         ServiceError::DatabaseError
+    }
+}
+
+impl From<anyhow::Error> for ServiceError {
+    fn from(orig: anyhow::Error) -> Self {
+        if let Some(graphannis_err) = orig.downcast_ref::<GraphAnnisError>() {
+            ServiceError::GraphAnnisError(graphannis_err.clone())
+        } else {
+            ServiceError::InternalServerError
+        }
     }
 }
