@@ -231,7 +231,7 @@ impl FromStr for FrequencyDefEntry {
 /// Currently, only the ANNIS Query Language (AQL) and its variants are supported, but this enum allows us to add a support for older query language versions
 /// or completely new query languages.
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum QueryLanguage {
     AQL,
     /// Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3

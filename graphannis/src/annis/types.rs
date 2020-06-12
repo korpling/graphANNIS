@@ -1,3 +1,5 @@
+use crate::corpusstorage::QueryLanguage;
+
 /// A struct that contains the extended results of the count query.
 #[derive(Debug, Default, Clone)]
 #[repr(C)]
@@ -65,21 +67,24 @@ impl std::fmt::Display for LineColumnRange {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CorpusConfiguration {
     #[serde(default)]
-    context: ContextConfiguration,
-    view: ViewConfiguration,
+    pub context: ContextConfiguration,
+    #[serde(default)]
+    pub view: ViewConfiguration,
+    #[serde(default)]
+    pub example_queries: Vec<ExampleQuery>,
 }
 
 /// Configuration for configuring context in subgraph queries.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ContextConfiguration {
     /// The default context size.
-    default: usize,
+    pub default: usize,
     /// Available context sizes to choose from.
-    sizes: Vec<usize>,
+    pub sizes: Vec<usize>,
     /// If set, a maximum context size which should be enforced by the query system.
-    max: Option<usize>,
+    pub max: Option<usize>,
     /// Default segmentation to use for defining the context, `None` if tokens should be used.
-    segmentation: Option<String>,
+    pub segmentation: Option<String>,
 }
 
 impl Default for ContextConfiguration {
@@ -97,11 +102,11 @@ impl Default for ContextConfiguration {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ViewConfiguration {
     /// Default segmentation to use for the displaying the text, `None` if tokens should be used.
-    base_text_segmentation: Option<String>,
+    pub base_text_segmentation: Option<String>,
     /// Default number of results to show at once for paginated queries.
-    page_size: usize,
+    pub page_size: usize,
     /// Default available settings for how many results should be part of a paginated result
-    available_page_sizes: Vec<usize>,
+    pub available_page_sizes: Vec<usize>,
 }
 
 impl Default for ViewConfiguration {
@@ -112,4 +117,11 @@ impl Default for ViewConfiguration {
             available_page_sizes: vec![1, 2, 5, 10, 20, 25],
         }
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ExampleQuery {
+    pub query: String,
+    pub description: String,
+    pub query_language: Option<QueryLanguage>,
 }
