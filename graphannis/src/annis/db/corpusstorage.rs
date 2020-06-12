@@ -13,7 +13,7 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::*;
 use crate::annis::types::CountExtra;
-use crate::annis::types::{FrequencyTable, QueryAttributeDescription};
+use crate::annis::types::{CorpusConfiguration, FrequencyTable, QueryAttributeDescription};
 use crate::annis::util::quicksort;
 use crate::{
     graph::Match,
@@ -733,7 +733,7 @@ impl CorpusStorage {
         corpus_name: Option<String>,
         disk_based: bool,
     ) -> Result<String> {
-        let (orig_name, mut graph) = match format {
+        let (orig_name, mut graph, config) = match format {
             ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
                 info!("{}", status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
@@ -755,7 +755,7 @@ impl CorpusStorage {
                         self.check_cache_size_and_remove(vec![]);
                     },
                 )?;
-                (orig_corpus_name, g)
+                (orig_corpus_name, g, CorpusConfiguration::default())
             }
             ImportFormat::GraphMLCompressed => {
                 let orig_corpus_name = if let Some(file_name) = path.file_stem() {
@@ -779,7 +779,7 @@ impl CorpusStorage {
                         self.check_cache_size_and_remove(vec![]);
                     },
                 )?;
-                (orig_corpus_name, g)
+                (orig_corpus_name, g, CorpusConfiguration::default())
             }
         };
 
@@ -833,6 +833,15 @@ impl CorpusStorage {
 
         info!("copying linked files for corpus {}", corpus_name);
         self.copy_imported_files(&db_path, &mut graph)?;
+
+        // Use the imported/generated/default corpus configuration and store it in our graph directory
+        let corpus_config_path = db_path.join("corpus-config.toml");
+        info!(
+            "saving corpus configuration file for corpus {} to {}",
+            corpus_name,
+            &corpus_config_path.to_string_lossy()
+        );
+        std::fs::write(corpus_config_path, toml::to_string(&config)?)?;
 
         // make it known to the cache
         cache.insert(
