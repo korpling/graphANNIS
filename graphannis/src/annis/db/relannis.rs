@@ -368,7 +368,7 @@ fn add_external_data_files(
                 updates.add_event(UpdateEvent::AddNodeLabel {
                     node_name: node_name.clone(),
                     anno_ns: ANNIS_NS.to_string(),
-                    anno_name: "linked-file".to_string(),
+                    anno_name: "file".to_string(),
                     anno_value: file.path().to_string_lossy().to_string(),
                 })?;
                 updates.add_event(UpdateEvent::AddEdge {
