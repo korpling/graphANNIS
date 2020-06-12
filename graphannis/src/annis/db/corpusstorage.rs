@@ -133,6 +133,10 @@ pub struct CorpusInfo {
     pub node_annos_load_size: Option<usize>,
     /// A list of descriptions for the graph storages of this corpus.
     pub graphstorages: Vec<GraphStorageInfo>,
+    /// The current configuration of this corpus.
+    /// This information is stored in the "corpus-config.toml` file in the data directory
+    /// and loaded on demand.
+    pub config: CorpusConfiguration,
 }
 
 impl fmt::Display for CorpusInfo {
@@ -512,6 +516,15 @@ impl CorpusStorage {
     ) -> Result<CorpusInfo> {
         let cache_entry = self.get_entry(corpus_name)?;
         let lock = cache_entry.read().unwrap();
+
+        // Read configuration file or create a default one
+        let corpus_config_path = self.db_dir.join(corpus_name).join("corpus-config.toml");
+        let config: CorpusConfiguration = if corpus_config_path.is_file() {
+            toml::from_str(&std::fs::read_to_string(corpus_config_path)?)?
+        } else {
+            CorpusConfiguration::default()
+        };
+
         let corpus_info: CorpusInfo = match &*lock {
             CacheEntry::Loaded(ref db) => {
                 // check if all components are loaded
@@ -546,6 +559,7 @@ impl CorpusStorage {
                     load_status,
                     graphstorages,
                     node_annos_load_size,
+                    config,
                 }
             }
             &CacheEntry::NotLoaded => CorpusInfo {
@@ -553,6 +567,7 @@ impl CorpusStorage {
                 load_status: LoadStatus::NotLoaded,
                 graphstorages: vec![],
                 node_annos_load_size: None,
+                config,
             },
         };
         Ok(corpus_info)
