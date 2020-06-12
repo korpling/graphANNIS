@@ -65,16 +65,16 @@ impl std::fmt::Display for LineColumnRange {
 ///
 /// This allows to add certain meta-information for corpus search systems in a human-writable configuration file.
 /// It should be added as linked file with the name "corpus-config.toml" to the top-level corpus.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct CorpusConfiguration {
     #[serde(default)]
     pub context: ContextConfiguration,
     #[serde(default)]
     pub view: ViewConfiguration,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub example_queries: Vec<ExampleQuery>,
-    #[serde(default)]
-    pub visualizer_rules: Vec<VisualizerRule>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub visualizer: Vec<VisualizerRule>,
 }
 
 /// Configuration for configuring context in subgraph queries.
@@ -127,7 +127,7 @@ impl Default for ViewConfiguration {
 pub struct ExampleQuery {
     pub query: String,
     pub description: String,
-    pub query_language: Option<QueryLanguage>,
+    pub query_language: QueryLanguage,
 }
 
 /// A rule when to trigger a visualizer for a specific result.
@@ -136,16 +136,43 @@ pub struct VisualizerRule {
     /// Which type of elements trigger this visualizer. If not given, all element types can trigger it.
     pub element: Option<VisualizerRuleElement>,
     /// In which layer the element needs to be part of to trigger this visualizer.
-    // Only relevant for edges, since only they are part of layers.
+    /// Only relevant for edges, since only they are part of layers.
     /// If not given, elements of all layers trigger this visualization.
     pub layer: Option<String>,
+    /// The abstract type of visualization, e.g. "tree", "discourse", "grid", ...
+    pub vis_type: String,
     /// A text displayed to the user describing this visualization
     pub display_name: String,
-    /// Defines the order of the this visualizer in the overall list of visualizers. Visualizers with a lower number are shown before entries with a higher number.
-    pub order: i32,
-    /// Additional configuration given as generic map of key values to the visualizer.
+    /// The default display state of the visualizer before any user interaction.
     #[serde(default)]
+    pub visibility: VisualizerVisibility,
+    /// Additional configuration given as generic map of key values to the visualizer.
+    #[serde(
+        default,
+        serialize_with = "toml::ser::tables_last",
+        skip_serializing_if = "BTreeMap::is_empty"
+    )]
     pub mappings: BTreeMap<String, String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum VisualizerVisibility {
+    #[serde(rename = "hidden")]
+    Hidden,
+    #[serde(rename = "visible")]
+    Visible,
+    #[serde(rename = "permanent")]
+    Permanent,
+    #[serde(rename = "preloaded")]
+    Preloaded,
+    #[serde(rename = "removed")]
+    Removed,
+}
+
+impl Default for VisualizerVisibility {
+    fn default() -> Self {
+        VisualizerVisibility::Hidden
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

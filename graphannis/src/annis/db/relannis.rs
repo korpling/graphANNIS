@@ -3,7 +3,13 @@ use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::errors::*;
 use crate::annis::util::create_str_vec_key;
 use crate::update::{GraphUpdate, UpdateEvent};
-use crate::{annis::db::aql::model::TOK, AnnotationGraph};
+use crate::{
+    annis::{
+        db::aql::model::TOK,
+        types::{CorpusConfiguration, VisualizerRule, VisualizerRuleElement, VisualizerVisibility},
+    },
+    AnnotationGraph,
+};
 use csv;
 use graphannis_core::{
     graph::ANNIS_NS,
@@ -200,7 +206,7 @@ pub fn load<F>(
     path: &Path,
     disk_based: bool,
     progress_callback: F,
-) -> Result<(String, AnnotationGraph)>
+) -> Result<(String, AnnotationGraph, CorpusConfiguration)>
 where
     F: Fn(&str) -> (),
 {
@@ -220,6 +226,7 @@ where
         };
 
         let mut db = AnnotationGraph::with_default_graphstorages(disk_based)?;
+        let mut config = CorpusConfiguration::default();
         let mut updates = GraphUpdate::new();
         let load_node_and_corpus_result =
             load_node_and_corpus_tables(&path, &mut updates, is_annis_33, &progress_callback)?;
@@ -240,6 +247,8 @@ where
             )?;
         }
 
+        load_resolver_vis_map(&path, &mut config, is_annis_33, &progress_callback)?;
+
         db.apply_update(&mut updates, &progress_callback)?;
 
         progress_callback("calculating node statistics");
@@ -256,7 +265,7 @@ where
             path.to_string_lossy()
         ));
 
-        return Ok((load_node_and_corpus_result.toplevel_corpus_name, db));
+        return Ok((load_node_and_corpus_result.toplevel_corpus_name, db, config));
     }
 
     Err(anyhow!("Directory {} not found", path.to_string_lossy()))
@@ -334,6 +343,96 @@ where
     )?;
 
     Ok(load_rank_result)
+}
+
+fn load_resolver_vis_map<F>(
+    path: &Path,
+    config: &mut CorpusConfiguration,
+    is_annis_33: bool,
+    progress_callback: &F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
+    let mut resolver_tab_path = PathBuf::from(path);
+    resolver_tab_path.push(if is_annis_33 {
+        "resolver_vis_map.annis"
+    } else {
+        "resolver_vis_map.tab"
+    });
+
+    progress_callback(&format!(
+        "loading {}",
+        resolver_tab_path.to_str().unwrap_or_default()
+    ));
+
+    let mut resolver_tab_csv = postgresql_import_reader(resolver_tab_path.as_path())?;
+
+    let mut rules_by_order: Vec<(i64, VisualizerRule)> = Vec::new();
+
+    for result in resolver_tab_csv.records() {
+        let line = result?;
+
+        let layer = get_field_str(&line, 2).filter(|l| l != "NULL");
+        let element = get_field_str(&line, 3).map_or(None, |e| match e.as_str() {
+            "node" => Some(VisualizerRuleElement::Node),
+            "edge" => Some(VisualizerRuleElement::Edge),
+            _ => None,
+        });
+        let vis_type =
+            get_field_str(&line, 4).ok_or(anyhow!("Missing vis_type column in resolver table"))?;
+        let display_name = get_field_str(&line, 5)
+            .ok_or(anyhow!("Missing display_name column in resolver table"))?;
+
+        let visibility = get_field_str(&line, 6)
+            .ok_or(anyhow!("Missing visibility column in resolver table"))?;
+        let visibility = match visibility.as_str() {
+            "hidden" => VisualizerVisibility::Hidden,
+            "visible" => VisualizerVisibility::Visible,
+            "permanent" => VisualizerVisibility::Permanent,
+            "preloaded" => VisualizerVisibility::Preloaded,
+            "removed" => VisualizerVisibility::Removed,
+            _ => VisualizerVisibility::default(),
+        };
+        let order =
+            get_field_str(&line, 7).ok_or(anyhow!("Missing order column in resolver table"))?;
+        let order = i64::from_str_radix(&order, 10).unwrap_or_default();
+
+        let mappings: BTreeMap<String, String> =
+            if let Some(mappings_field) = get_field_str(&line, 8) {
+                mappings_field
+                    .split(";")
+                    .filter_map(|key_value| {
+                        let splitted: Vec<_> = key_value.splitn(2, ":").collect();
+                        if splitted.len() == 2 {
+                            Some((splitted[0].to_string(), splitted[1].to_string()))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+            } else {
+                BTreeMap::new()
+            };
+        let rule = VisualizerRule {
+            layer,
+            element,
+            vis_type: vis_type.to_string(),
+            display_name: display_name.to_string(),
+            visibility,
+            mappings,
+        };
+
+        // Insert at sorted position by the order
+        match rules_by_order.binary_search_by_key(&order, |(o, _)| *o) {
+            Ok(idx) => rules_by_order.insert(idx + 1, (order, rule)),
+            Err(idx) => rules_by_order.insert(idx, (order, rule)),
+        }
+    }
+
+    config.visualizer = rules_by_order.into_iter().map(|(_, r)| r).collect();
+
+    Ok(())
 }
 
 fn add_external_data_files(
