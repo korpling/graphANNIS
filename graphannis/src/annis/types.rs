@@ -57,3 +57,59 @@ impl std::fmt::Display for LineColumnRange {
         }
     }
 }
+
+/// Configuration for a corpus as defined by the corpus authors.
+///
+/// This allows to add certain meta-information for corpus search systems in a human-writable configuration file.
+/// It should be added as linked file with the name "corpus-config.toml" to the top-level corpus.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CorpusConfiguration {
+    #[serde(default)]
+    context: ContextConfiguration,
+    view: ViewConfiguration,
+}
+
+/// Configuration for configuring context in subgraph queries.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ContextConfiguration {
+    /// The default context size.
+    default: usize,
+    /// Available context sizes to choose from.
+    sizes: Vec<usize>,
+    /// If set, a maximum context size which should be enforced by the query system.
+    max: Option<usize>,
+    /// Default segmentation to use for defining the context, `None` if tokens should be used.
+    segmentation: Option<String>,
+}
+
+impl Default for ContextConfiguration {
+    fn default() -> Self {
+        ContextConfiguration {
+            default: 5,
+            segmentation: None,
+            max: None,
+            sizes: vec![1, 2, 5, 10],
+        }
+    }
+}
+
+/// Configuration how the results of a query should be shown
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ViewConfiguration {
+    /// Default segmentation to use for the displaying the text, `None` if tokens should be used.
+    base_text_segmentation: Option<String>,
+    /// Default number of results to show at once for paginated queries.
+    page_size: usize,
+    /// Default available settings for how many results should be part of a paginated result
+    available_page_sizes: Vec<usize>,
+}
+
+impl Default for ViewConfiguration {
+    fn default() -> Self {
+        ViewConfiguration {
+            base_text_segmentation: None,
+            page_size: 10,
+            available_page_sizes: vec![1, 2, 5, 10, 20, 25],
+        }
+    }
+}
