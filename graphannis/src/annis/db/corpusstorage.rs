@@ -831,6 +831,9 @@ impl CorpusStorage {
             );
         }
 
+        info!("copying linked files for corpus {}", corpus_name);
+        self.copy_imported_files(&db_path, &mut graph)?;
+
         // make it known to the cache
         cache.insert(
             corpus_name.clone(),
@@ -839,6 +842,46 @@ impl CorpusStorage {
         check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![&corpus_name]);
 
         Ok(corpus_name)
+    }
+
+    fn copy_imported_files(&self, db_path: &Path, graph: &mut AnnotationGraph) -> Result<()> {
+        let linked_file_key = AnnoKey {
+            ns: ANNIS_NS.to_string(),
+            name: "file".to_string(),
+        };
+        // Find all nodes of the type "file"
+        let node_annos: &mut dyn AnnotationStorage<NodeID> = graph.get_node_annos_mut();
+        let file_nodes: Vec<NodeID> = node_annos
+            .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
+            .map(|m| m.node)
+            .collect();
+        for node in file_nodes {
+            // Get the linked file for this node
+            if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key) {
+                let original_path = PathBuf::from(original_path.as_ref());
+                if original_path.is_file() {
+                    if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY) {
+                        // Create a new file name based on the node name and copy the file
+                        let new_path = db_path.join("files").join(node_name.as_ref());
+                        if let Some(parent) = new_path.parent() {
+                            std::fs::create_dir_all(parent)?;
+                        }
+                        std::fs::copy(&original_path, &new_path)?;
+                        // Update the annotation to link to the new file with a relative path.
+                        // Use the corpus directory as base path for this relative path.
+                        let relative_path = new_path.strip_prefix(&db_path)?;
+                        node_annos.insert(
+                            node,
+                            Annotation {
+                                key: linked_file_key.clone(),
+                                val: relative_path.to_string_lossy().to_string(),
+                            },
+                        )?;
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     pub fn export_to_fs(&self, corpus_name: &str, path: &Path, format: ExportFormat) -> Result<()> {

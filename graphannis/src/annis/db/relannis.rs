@@ -343,8 +343,7 @@ fn add_external_data_files(
     updates: &mut GraphUpdate,
 ) -> Result<()> {
     // Get a reference to the ExtData folder
-    let mut ext_data = PathBuf::from(import_path);
-    ext_data.push("ExtData");
+    let mut ext_data = import_path.join("ExtData");
     // Toplevel corpus files are located directly in the ExtData folder,
     // files assigned to documents are in a sub-folder with the document name.
     if let Some(document) = document {
