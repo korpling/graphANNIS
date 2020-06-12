@@ -209,7 +209,7 @@ impl AnnisRunner {
                 "use_parallel" => self.use_parallel(&args),
                 "use_disk" => self.use_disk(&args),
                 "quirks_mode" => self.quirks_mode(&args),
-                "info" => self.info(),
+                "info" => self.info(&args),
                 "quit" | "exit" => return false,
                 _ => Err(anyhow!("unknown command \"{}\"", cmd).into()),
             };
@@ -371,7 +371,7 @@ impl AnnisRunner {
         Ok(())
     }
 
-    fn info(&self) -> Result<()> {
+    fn info(&self, args: &str) -> Result<()> {
         if self.current_corpus.is_empty() {
             println!("You need to select a corpus for the \"info\" command");
         } else {
@@ -381,7 +381,11 @@ impl AnnisRunner {
                     .as_ref()
                     .ok_or(anyhow!("No corpus storage location set"))?
                     .info(corpus)?;
-                println!("{}", cinfo);
+                if args == "config" {
+                    println!("{}", toml::to_string(&cinfo.config)?);
+                } else {
+                    println!("{}", cinfo);
+                }
             }
         }
         Ok(())

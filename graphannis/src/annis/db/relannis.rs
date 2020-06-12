@@ -253,6 +253,7 @@ where
 
         load_resolver_vis_map(&path, &mut config, is_annis_33, &progress_callback)?;
         load_example_queries(&path, &mut config, is_annis_33, &progress_callback)?;
+        load_corpus_properties(&path, &mut config, &progress_callback)?;
 
         db.apply_update(&mut updates, &progress_callback)?;
 
@@ -485,6 +486,92 @@ where
             });
         }
     }
+    Ok(())
+}
+
+fn load_corpus_properties<F>(
+    path: &Path,
+    config: &mut CorpusConfiguration,
+    progress_callback: &F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
+    let corpus_config_path = path.join("ExtData").join("corpus.properties");
+
+    if !corpus_config_path.is_file() {
+        // This is an optional file, don't fail if it does not exist
+        return Ok(());
+    }
+
+    progress_callback(&format!(
+        "loading {}",
+        corpus_config_path.to_str().unwrap_or_default()
+    ));
+
+    // property files are small, we can read them all at once
+    let content = std::fs::read_to_string(corpus_config_path)?;
+    // read all lines
+    for line in content.lines() {
+        // split into key and value
+        let splitted: Vec<_> = line.splitn(2, "=").collect();
+        if splitted.len() == 2 {
+            let key = splitted[0];
+            let value = splitted[1];
+
+            match key {
+                "max-context" => {
+                    if let Ok(value) = usize::from_str_radix(value, 10) {
+                        config.context.max = Some(value);
+                    }
+                }
+                "default-context" => {
+                    if let Ok(value) = usize::from_str_radix(value, 10) {
+                        config.context.default = value;
+                    }
+                }
+                "results-per-page" => {
+                    if let Ok(value) = usize::from_str_radix(value, 10) {
+                        config.view.page_size = value;
+                    }
+                }
+                "default-context-segmentation" => {
+                    if !value.is_empty() {
+                        config.context.segmentation = Some(value.to_string());
+                    }
+                }
+                "default-base-text-segmentation" => {
+                    if !value.is_empty() {
+                        config.view.base_text_segmentation = Some(value.to_string());
+                    }
+                }
+                _ => {}
+            };
+        }
+    }
+
+    // The context step is dependent on the max-context configuration.
+    // Use a second pass to make sure it already has been set.
+    for line in content.lines() {
+        // split into key and value
+        let splitted: Vec<_> = line.splitn(2, "=").collect();
+        if splitted.len() == 2 {
+            let key = splitted[0];
+            let value = splitted[1];
+
+            match key {
+                "context-steps" => {
+                    if let Ok(value) = usize::from_str_radix(value, 10) {
+                        config.context.sizes = (value..=config.context.max.unwrap_or(value))
+                            .step_by(value)
+                            .collect();
+                    }
+                }
+                _ => {}
+            };
+        }
+    }
+
     Ok(())
 }
 

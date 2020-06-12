@@ -19,6 +19,7 @@ criterion = "0.3"
 prettytable-rs = "0.8"
 anyhow = "1"
 log = "0.4"
+toml = "0.5"
 
 [[bin]]
 name="annis"

@@ -108,8 +108,6 @@ pub struct ViewConfiguration {
     pub base_text_segmentation: Option<String>,
     /// Default number of results to show at once for paginated queries.
     pub page_size: usize,
-    /// Default available settings for how many results should be part of a paginated result
-    pub available_page_sizes: Vec<usize>,
 }
 
 impl Default for ViewConfiguration {
@@ -117,7 +115,6 @@ impl Default for ViewConfiguration {
         ViewConfiguration {
             base_text_segmentation: None,
             page_size: 10,
-            available_page_sizes: vec![1, 2, 5, 10, 20, 25],
         }
     }
 }

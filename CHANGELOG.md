@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Addded
 
-- Copy and link files from the ExtData folder when importing relANNIS
+- Copy and link files from the ExtData folder when importing relANNIS.
+- Map `resolver_vis_map.annis`, `example_queries.annis` and `corpus.properties` from relANNIS files 
+  to a new unified corpus configuration stored as [TOML]() file.
 
 ## [0.27.0] - 2020-06-08
 
