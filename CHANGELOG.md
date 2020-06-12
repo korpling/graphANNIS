@@ -5,11 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.27.0] - 2020-06-08
-
 ### Addded
 
 - Copy and link files from the ExtData folder when importing relANNIS
+
+## [0.27.0] - 2020-06-08
 
 ### Changed
 
