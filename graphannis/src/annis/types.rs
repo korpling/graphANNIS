@@ -1,4 +1,5 @@
 use crate::corpusstorage::QueryLanguage;
+use std::collections::BTreeMap;
 
 /// A struct that contains the extended results of the count query.
 #[derive(Debug, Default, Clone)]
@@ -72,6 +73,8 @@ pub struct CorpusConfiguration {
     pub view: ViewConfiguration,
     #[serde(default)]
     pub example_queries: Vec<ExampleQuery>,
+    #[serde(default)]
+    pub visualizer_rules: Vec<VisualizerRule>,
 }
 
 /// Configuration for configuring context in subgraph queries.
@@ -119,9 +122,36 @@ impl Default for ViewConfiguration {
     }
 }
 
+/// An example query for the corpus with a description.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ExampleQuery {
     pub query: String,
     pub description: String,
     pub query_language: Option<QueryLanguage>,
+}
+
+/// A rule when to trigger a visualizer for a specific result.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct VisualizerRule {
+    /// Which type of elements trigger this visualizer. If not given, all element types can trigger it.
+    pub element: Option<VisualizerRuleElement>,
+    /// In which layer the element needs to be part of to trigger this visualizer.
+    // Only relevant for edges, since only they are part of layers.
+    /// If not given, elements of all layers trigger this visualization.
+    pub layer: Option<String>,
+    /// A text displayed to the user describing this visualization
+    pub display_name: String,
+    /// Defines the order of the this visualizer in the overall list of visualizers. Visualizers with a lower number are shown before entries with a higher number.
+    pub order: i32,
+    /// Additional configuration given as generic map of key values to the visualizer.
+    #[serde(default)]
+    pub mappings: BTreeMap<String, String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum VisualizerRuleElement {
+    #[serde(rename = "node")]
+    Node,
+    #[serde(rename = "edge")]
+    Edge,
 }
