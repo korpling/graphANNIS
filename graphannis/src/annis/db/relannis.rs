@@ -291,6 +291,7 @@ where
         &texts,
         &corpus_id_to_annos,
         is_annis_33,
+        path,
     )?;
 
     Ok(LoadNodeAndCorpusResult {
@@ -333,6 +334,55 @@ where
     )?;
 
     Ok(load_rank_result)
+}
+
+fn add_external_data_files(
+    import_path: &Path,
+    parent_node_full_name: &str,
+    document: Option<&str>,
+    updates: &mut GraphUpdate,
+) -> Result<()> {
+    // Get a reference to the ExtData folder
+    let mut ext_data = PathBuf::from(import_path);
+    ext_data.push("ExtData");
+    // Toplevel corpus files are located directly in the ExtData folder,
+    // files assigned to documents are in a sub-folder with the document name.
+    if let Some(document) = document {
+        ext_data.push(document);
+    }
+    if ext_data.is_dir() {
+        // List all files in the target folder
+        for file in std::fs::read_dir(&ext_data)? {
+            let file = file?;
+            if file.file_type()?.is_file() {
+                // Add a node for the linked file that is part of the (sub-) corpus
+                let node_name = format!(
+                    "{}/{}",
+                    parent_node_full_name,
+                    file.file_name().to_string_lossy()
+                );
+                updates.add_event(UpdateEvent::AddNode {
+                    node_type: "file".to_string(),
+                    node_name: node_name.clone(),
+                })?;
+                updates.add_event(UpdateEvent::AddNodeLabel {
+                    node_name: node_name.clone(),
+                    anno_ns: ANNIS_NS.to_string(),
+                    anno_name: "linked-file".to_string(),
+                    anno_value: file.path().to_string_lossy().to_string(),
+                })?;
+                updates.add_event(UpdateEvent::AddEdge {
+                    source_node: node_name.clone(),
+                    target_node: parent_node_full_name.to_owned(),
+                    layer: ANNIS_NS.to_owned(),
+                    component_type: AnnotationComponentType::PartOf.to_string(),
+                    component_name: String::default(),
+                })?;
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File>, csv::Error> {
@@ -1392,6 +1442,7 @@ fn add_subcorpora(
     texts: &HashMap<TextKey, Text>,
     corpus_id_to_annos: &BTreeMap<(u32, AnnoKey), String>,
     is_annis_33: bool,
+    path: &Path,
 ) -> Result<()> {
     // add the toplevel corpus as node
     {
@@ -1433,6 +1484,7 @@ fn add_subcorpora(
                     break;
                 }
             }
+            add_external_data_files(path, &corpus_table.toplevel_corpus_name, None, updates)?;
         }
     }
 
@@ -1488,6 +1540,8 @@ fn add_subcorpora(
                 component_type: AnnotationComponentType::PartOf.to_string(),
                 component_name: String::default(),
             })?;
+
+            add_external_data_files(path, &subcorpus_full_name, Some(corpus_name), updates)?;
         } // end if not toplevel corpus
     } // end for each document/sub-corpus
 
