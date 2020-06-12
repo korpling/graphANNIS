@@ -6,8 +6,12 @@ use crate::update::{GraphUpdate, UpdateEvent};
 use crate::{
     annis::{
         db::aql::model::TOK,
-        types::{CorpusConfiguration, VisualizerRule, VisualizerRuleElement, VisualizerVisibility},
+        types::{
+            CorpusConfiguration, ExampleQuery, VisualizerRule, VisualizerRuleElement,
+            VisualizerVisibility,
+        },
     },
+    corpusstorage::QueryLanguage,
     AnnotationGraph,
 };
 use csv;
@@ -248,6 +252,7 @@ where
         }
 
         load_resolver_vis_map(&path, &mut config, is_annis_33, &progress_callback)?;
+        load_example_queries(&path, &mut config, is_annis_33, &progress_callback)?;
 
         db.apply_update(&mut updates, &progress_callback)?;
 
@@ -361,6 +366,11 @@ where
         "resolver_vis_map.tab"
     });
 
+    if !resolver_tab_path.is_file() {
+        // This is an optional file, don't fail if it does not exist
+        return Ok(());
+    }
+
     progress_callback(&format!(
         "loading {}",
         resolver_tab_path.to_str().unwrap_or_default()
@@ -432,6 +442,49 @@ where
 
     config.visualizer = rules_by_order.into_iter().map(|(_, r)| r).collect();
 
+    Ok(())
+}
+
+fn load_example_queries<F>(
+    path: &Path,
+    config: &mut CorpusConfiguration,
+    is_annis_33: bool,
+    progress_callback: &F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
+    let mut example_queries_path = PathBuf::from(path);
+    example_queries_path.push(if is_annis_33 {
+        "example_queries.annis"
+    } else {
+        "example_queries.tab"
+    });
+
+    if !example_queries_path.is_file() {
+        // This is an optional file, don't fail if it does not exist
+        return Ok(());
+    }
+
+    progress_callback(&format!(
+        "loading {}",
+        example_queries_path.to_str().unwrap_or_default()
+    ));
+
+    let mut example_queries_csv = postgresql_import_reader(example_queries_path.as_path())?;
+
+    for result in example_queries_csv.records() {
+        let line = result?;
+
+        if let (Some(query), Some(description)) = (get_field_str(&line, 0), get_field_str(&line, 1))
+        {
+            config.example_queries.push(ExampleQuery {
+                query: query.to_string(),
+                description: description.to_string(),
+                query_language: QueryLanguage::AQL,
+            });
+        }
+    }
     Ok(())
 }
 
