@@ -126,6 +126,10 @@ async fn main() -> Result<()> {
                 "/corpora/{corpus}/subgraph",
                 web::get().to(api::corpora::subgraph),
             )
+            .route(
+                "/corpora/{corpus}/files/{filename:.*}",
+                web::get().to(api::corpora::files),
+            )
     })
     .bind(bind_address)?
     .run()

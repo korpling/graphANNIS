@@ -11,6 +11,7 @@ pub enum ServiceError {
     DatabaseError,
     InternalServerError,
     GraphAnnisError(GraphAnnisError),
+    NotFound,
 }
 
 impl Display for ServiceError {
@@ -18,10 +19,15 @@ impl Display for ServiceError {
         match self {
             ServiceError::BadRequest(msg) => write!(f, "Bad Request: {}", msg)?,
             ServiceError::InvalidJWTToken(msg) => write!(f, "Invalid JWT Token: {}", msg)?,
-            ServiceError::NonAuthorizedCorpus(corpora) => write!(f, "Not authorized to access the corpus/corpora {}", corpora.join(", "))?,
+            ServiceError::NonAuthorizedCorpus(corpora) => write!(
+                f,
+                "Not authorized to access the corpus/corpora {}",
+                corpora.join(", ")
+            )?,
             ServiceError::DatabaseError => write!(f, "Error accessing database")?,
             ServiceError::InternalServerError => write!(f, "Internal Server Error")?,
             ServiceError::GraphAnnisError(err) => write!(f, "{}", err)?,
+            ServiceError::NotFound => write!(f, "Not found",)?,
         }
         Ok(())
     }
@@ -37,14 +43,16 @@ impl ResponseError for ServiceError {
             ServiceError::InvalidJWTToken(ref message) => {
                 HttpResponse::Unauthorized().json(message)
             }
-            ServiceError::NonAuthorizedCorpus(corpora) => {
-                HttpResponse::Forbidden().json(format!("Not authorized to access the corpus/corpora {}", corpora.join(", ")))
-            }
+            ServiceError::NonAuthorizedCorpus(corpora) => HttpResponse::Forbidden().json(format!(
+                "Not authorized to access the corpus/corpora {}",
+                corpora.join(", ")
+            )),
             ServiceError::DatabaseError => {
                 HttpResponse::BadGateway().json("Error accessing database")
             }
             ServiceError::InternalServerError => HttpResponse::InternalServerError().finish(),
             ServiceError::GraphAnnisError(err) => HttpResponse::BadRequest().json(err),
+            ServiceError::NotFound => HttpResponse::NotFound().finish(),
         }
     }
 }
@@ -73,6 +81,15 @@ impl From<anyhow::Error> for ServiceError {
             ServiceError::GraphAnnisError(graphannis_err.clone())
         } else {
             ServiceError::InternalServerError
+        }
+    }
+}
+
+impl From<std::io::Error> for ServiceError {
+    fn from(e: std::io::Error) -> Self {
+        match e.kind() {
+            std::io::ErrorKind::NotFound => ServiceError::NotFound,
+            _ => ServiceError::InternalServerError,
         }
     }
 }

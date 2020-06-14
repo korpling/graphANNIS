@@ -1,7 +1,11 @@
 use super::{check_corpora_authorized, check_is_admin};
-use crate::{actions, errors::ServiceError, extractors::ClaimsFromAuth, DbPool};
+use crate::{
+    actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool,
+};
+use actix_files::NamedFile;
 use actix_web::web::{self, HttpResponse};
 use graphannis::{graph::Component, model::AnnotationComponentType, CorpusStorage};
+use std::path::PathBuf;
 
 pub async fn list(
     cs: web::Data<CorpusStorage>,
@@ -186,4 +190,23 @@ pub async fn edge_annotations(
     );
 
     Ok(HttpResponse::Ok().json(annos))
+}
+
+pub async fn files(
+    path: web::Path<(String, String)>,
+    claims: ClaimsFromAuth,
+    db_pool: web::Data<DbPool>,
+    settings: web::Data<Settings>,
+) -> Result<NamedFile, ServiceError> {
+    let corpus = path.0.clone();
+    let file_path = path.1.clone();
+    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+
+    // Resolve against data folder
+    let path = PathBuf::from(settings.database.graphannis.as_str())
+        .join(corpus)
+        .join("files")
+        .join(file_path);
+
+    Ok(NamedFile::open(path)?)
 }
