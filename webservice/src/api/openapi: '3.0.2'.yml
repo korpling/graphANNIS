@@ -3,6 +3,48 @@ info:
   title: graphANNIS
   version: "1.0"
 paths:
+  /corpora:
+    get:
+      tags:
+        - corpora
+      summary: Get a list of all corpora the user is authorized to use.
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              example: >
+                [
+                  "GUM",
+                  "BeMaTaC_L1_2013-02.1",
+                  "pcc2"
+                ]
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CorpusName"
+  /corpora/{corpus}/configuration:
+    get:
+      tags:
+        - corpora
+      summary: Get the corpus configuration object.
+      description: The corpus configuration is created by the corpus authors to configure how the corpus should be displayed in query engines and visualizers.
+      parameters:
+        - name: corpus
+          in: path
+          description: The name of the corpus to get the configuration for.
+          required: true
+          schema:
+            $ref: "#/components/schemas/CorpusName"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorpusConfiguration"
+        "401":
+          description: "Forbidden"
   /local-login:
     post:
       summary: Create JWT token for credentials of a locally configured account.
@@ -14,23 +56,111 @@ paths:
         content:
           application/json:
             schema:
-                type: object
-                required:
-                  - user_id 
-                  - password 
-                properties:
-                  user_id:
-                    type: string
-                  password:
-                    type: string
+              type: object
+              required:
+                - user_id
+                - password
+              properties:
+                user_id:
+                  type: string
+                password:
+                  type: string
       responses:
         "200":
-          description: A valid JSON Web Token (JWT), valid until its expiration time is reached.
+          description: Returns a JSON Web Token (JWT), valid until its expiration time is reached.
           content:
             text/plain:
-              schema: 
+              schema:
                 type: string
                 description: JSON Web Token (JWT)
-        
+                example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZXhwIjoiMTU5MjE0NzE5NiIsImNvcnB1c19ncm91cHMiOlsiYWNhZGVtaWMiLCJpbnRlcm5hbCJdLCJhZG1pbiI6ZmFsc2V9._eVf-gPknBlqobOOB83p2bFjf0ws9-mkqb1UkM4rMRg"
+
         "401":
           description: Unauthorized
+components:
+  schemas:
+    CorpusName:
+      type: string
+      example: GUM
+      description: An identifier for corpora. Should never contain "," because this might be needed as separator.
+    CorpusConfiguration:
+      type: object
+      properties:
+        context:
+          type: object
+          description: Configuration for configuring context in subgraph queries.
+          properties:
+            default:
+              type: integer
+              description: The default context size.
+            sizes:
+              type: array
+              description: Available context sizes to choose from.
+              example: [1, 2, 5, 10]
+            max:
+              type: integer
+              description: If set, a maximum context size which should be enforced by the query system.
+              example: 25
+            segmentation:
+              type: string
+              description: Default segmentation to use for defining the context, Set to null or omit it if tokens should be used.
+        view:
+          type: object
+          description: Configuration how the results of a query should be shown
+          properties:
+            base_text_segmentation:
+              type: string
+              description: Default segmentation to use for the displaying the text, Set to null or omit it if tokens should be used.
+            page_size:
+              type: integer
+              description: Default number of results to show at once for paginated queries.
+              example: 10
+        example_queries:
+          type: array
+          description: An array of example queries for the corpus with a description.
+          items:
+            $ref: "#/components/schemas/ExampleQuery"
+        visualizers:
+          type: array
+          description: An array of rules which visualizers to show for the search results.
+          items: 
+            $ref: "#/components/schemas/VisualizerRule"
+    ExampleQuery:
+      type: object
+      properties:
+        query:
+          type: string
+        description:
+          type: string
+        query_language:
+          example: AQL
+          type: string
+          enum: [AQL, AQLQuirksV3]
+    VisualizerRule:
+      type: object
+      description:  A rule when to trigger a visualizer for a specific result.
+      properties:
+        element:
+          description: On which element type to trigger the visualizer on
+          example: Node
+          type: string
+          enum: [node, edge]
+        layer:
+          description: >
+            In which layer the element needs to be part of to trigger this visualizer. 
+            Only relevant for edges, since only they are part of layers.
+            If not given, elements of all layers trigger this visualization.
+          type: string
+        vis_type:
+          description: The abstract type of visualization, e.g. "tree", "discourse", "grid", ...
+          type: string
+        display_name:
+          description: A text displayed to the user describing this visualization
+          type: string
+        visibility:
+          description: The default display state of the visualizer before any user interaction.
+          type: string
+          enum: [hidden, visible, permanent, preloaded, removed]
+        mappings:
+          description: Additional configuration given as generic map of key values to the visualizer.
+          type: object
