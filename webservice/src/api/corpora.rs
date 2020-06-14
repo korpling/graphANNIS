@@ -1,7 +1,7 @@
 use super::{check_corpora_authorized, check_is_admin};
 use crate::{actions, errors::ServiceError, extractors::ClaimsFromAuth, DbPool};
 use actix_web::web::{self, HttpResponse};
-use graphannis::CorpusStorage;
+use graphannis::{graph::Component, model::AnnotationComponentType, CorpusStorage};
 
 pub async fn list(
     cs: web::Data<CorpusStorage>,
@@ -29,7 +29,6 @@ pub async fn list(
 
     Ok(HttpResponse::Ok().json(allowed_corpora))
 }
-
 
 #[derive(Deserialize)]
 pub struct SubgraphQueryParameters {
@@ -69,7 +68,6 @@ pub async fn subgraph(
     Ok(HttpResponse::Ok().body(output))
 }
 
-
 pub async fn configuration(
     corpus: web::Path<String>,
     cs: web::Data<CorpusStorage>,
@@ -79,7 +77,113 @@ pub async fn configuration(
     check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
 
     let corpus_info = cs.info(corpus.as_str())?;
-    
+
     Ok(HttpResponse::Ok().json(corpus_info.config))
 }
 
+#[derive(Deserialize, Clone)]
+pub struct ListComponentsParameters {
+    #[serde(rename = "type")]
+    ctype: Option<AnnotationComponentType>,
+    name: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct ListComponentsResult {
+    /// Type of the component
+    #[serde(rename = "type")]
+    ctype: AnnotationComponentType,
+    /// Name of the component
+    name: String,
+    /// A layer name which allows to group different components into the same layer. Can be empty.
+    layer: String,
+}
+
+pub async fn list_components(
+    corpus: web::Path<String>,
+    params: web::Query<ListComponentsParameters>,
+    cs: web::Data<CorpusStorage>,
+    claims: ClaimsFromAuth,
+    db_pool: web::Data<DbPool>,
+) -> Result<HttpResponse, ServiceError> {
+    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+
+    let components: Vec<_> = cs
+        .list_components(
+            corpus.as_str(),
+            params.clone().ctype,
+            params.name.as_deref(),
+        )
+        .into_iter()
+        .map(|c| ListComponentsResult {
+            ctype: c.get_type(),
+            name: c.name,
+            layer: c.layer,
+        })
+        .collect();
+
+    Ok(HttpResponse::Ok().json(components))
+}
+
+#[derive(Deserialize)]
+pub struct NodeAnnotationParameters {
+    #[serde(default)]
+    list_values: bool,
+    #[serde(default)]
+    only_most_frequent_values: bool,
+}
+
+pub async fn node_annotations(
+    corpus: web::Path<String>,
+    params: web::Query<NodeAnnotationParameters>,
+    cs: web::Data<CorpusStorage>,
+    claims: ClaimsFromAuth,
+    db_pool: web::Data<DbPool>,
+) -> Result<HttpResponse, ServiceError> {
+    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+
+    let annos = cs.list_node_annotations(
+        corpus.as_str(),
+        params.list_values,
+        params.only_most_frequent_values,
+    );
+
+    Ok(HttpResponse::Ok().json(annos))
+}
+
+#[derive(Deserialize)]
+pub struct EdgeAnnotationParameters {
+    #[serde(rename = "type")]
+    ctype: AnnotationComponentType,
+    name: String,
+    layer: String,
+    #[serde(default)]
+    list_values: bool,
+    #[serde(default)]
+    only_most_frequent_values: bool,
+}
+
+pub async fn edge_annotations(
+    corpus: web::Path<String>,
+    params: web::Query<EdgeAnnotationParameters>,
+    cs: web::Data<CorpusStorage>,
+    claims: ClaimsFromAuth,
+    db_pool: web::Data<DbPool>,
+) -> Result<HttpResponse, ServiceError> {
+    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+
+    let component = Component::<AnnotationComponentType>::new(
+        params.ctype.to_owned(),
+        params.layer.to_string(),
+        params.name.to_string(),
+    );
+
+    let annos = cs.list_edge_annotations(
+        corpus.as_str(),
+        &component,
+        params.list_values,
+        params.only_most_frequent_values,
+    );
+
+    Ok(HttpResponse::Ok().json(annos))
+}
