@@ -13,7 +13,7 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::*;
 use crate::annis::types::CountExtra;
-use crate::annis::types::{FrequencyTable, QueryAttributeDescription};
+use crate::annis::types::{CorpusConfiguration, FrequencyTable, QueryAttributeDescription};
 use crate::annis::util::quicksort;
 use crate::{
     graph::Match,
@@ -133,6 +133,10 @@ pub struct CorpusInfo {
     pub node_annos_load_size: Option<usize>,
     /// A list of descriptions for the graph storages of this corpus.
     pub graphstorages: Vec<GraphStorageInfo>,
+    /// The current configuration of this corpus.
+    /// This information is stored in the "corpus-config.toml` file in the data directory
+    /// and loaded on demand.
+    pub config: CorpusConfiguration,
 }
 
 impl fmt::Display for CorpusInfo {
@@ -231,7 +235,7 @@ impl FromStr for FrequencyDefEntry {
 /// Currently, only the ANNIS Query Language (AQL) and its variants are supported, but this enum allows us to add a support for older query language versions
 /// or completely new query languages.
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum QueryLanguage {
     AQL,
     /// Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3
@@ -512,6 +516,15 @@ impl CorpusStorage {
     ) -> Result<CorpusInfo> {
         let cache_entry = self.get_entry(corpus_name)?;
         let lock = cache_entry.read().unwrap();
+
+        // Read configuration file or create a default one
+        let corpus_config_path = self.db_dir.join(corpus_name).join("corpus-config.toml");
+        let config: CorpusConfiguration = if corpus_config_path.is_file() {
+            toml::from_str(&std::fs::read_to_string(corpus_config_path)?)?
+        } else {
+            CorpusConfiguration::default()
+        };
+
         let corpus_info: CorpusInfo = match &*lock {
             CacheEntry::Loaded(ref db) => {
                 // check if all components are loaded
@@ -546,6 +559,7 @@ impl CorpusStorage {
                     load_status,
                     graphstorages,
                     node_annos_load_size,
+                    config,
                 }
             }
             &CacheEntry::NotLoaded => CorpusInfo {
@@ -553,6 +567,7 @@ impl CorpusStorage {
                 load_status: LoadStatus::NotLoaded,
                 graphstorages: vec![],
                 node_annos_load_size: None,
+                config,
             },
         };
         Ok(corpus_info)
@@ -733,7 +748,7 @@ impl CorpusStorage {
         corpus_name: Option<String>,
         disk_based: bool,
     ) -> Result<String> {
-        let (orig_name, mut graph) = match format {
+        let (orig_name, mut graph, config) = match format {
             ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
                 info!("{}", status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
@@ -755,7 +770,7 @@ impl CorpusStorage {
                         self.check_cache_size_and_remove(vec![]);
                     },
                 )?;
-                (orig_corpus_name, g)
+                (orig_corpus_name, g, CorpusConfiguration::default())
             }
             ImportFormat::GraphMLCompressed => {
                 let orig_corpus_name = if let Some(file_name) = path.file_stem() {
@@ -779,7 +794,7 @@ impl CorpusStorage {
                         self.check_cache_size_and_remove(vec![]);
                     },
                 )?;
-                (orig_corpus_name, g)
+                (orig_corpus_name, g, CorpusConfiguration::default())
             }
         };
 
@@ -831,6 +846,18 @@ impl CorpusStorage {
             );
         }
 
+        info!("copying linked files for corpus {}", corpus_name);
+        self.copy_imported_files(&db_path, &mut graph)?;
+
+        // Use the imported/generated/default corpus configuration and store it in our graph directory
+        let corpus_config_path = db_path.join("corpus-config.toml");
+        info!(
+            "saving corpus configuration file for corpus {} to {}",
+            corpus_name,
+            &corpus_config_path.to_string_lossy()
+        );
+        std::fs::write(corpus_config_path, toml::to_string(&config)?)?;
+
         // make it known to the cache
         cache.insert(
             corpus_name.clone(),
@@ -839,6 +866,46 @@ impl CorpusStorage {
         check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![&corpus_name]);
 
         Ok(corpus_name)
+    }
+
+    fn copy_imported_files(&self, db_path: &Path, graph: &mut AnnotationGraph) -> Result<()> {
+        let linked_file_key = AnnoKey {
+            ns: ANNIS_NS.to_string(),
+            name: "file".to_string(),
+        };
+        // Find all nodes of the type "file"
+        let node_annos: &mut dyn AnnotationStorage<NodeID> = graph.get_node_annos_mut();
+        let file_nodes: Vec<NodeID> = node_annos
+            .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
+            .map(|m| m.node)
+            .collect();
+        for node in file_nodes {
+            // Get the linked file for this node
+            if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key) {
+                let original_path = PathBuf::from(original_path.as_ref());
+                if original_path.is_file() {
+                    if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY) {
+                        // Create a new file name based on the node name and copy the file
+                        let new_path = db_path.join("files").join(node_name.as_ref());
+                        if let Some(parent) = new_path.parent() {
+                            std::fs::create_dir_all(parent)?;
+                        }
+                        std::fs::copy(&original_path, &new_path)?;
+                        // Update the annotation to link to the new file with a relative path.
+                        // Use the corpus directory as base path for this relative path.
+                        let relative_path = new_path.strip_prefix(&db_path)?;
+                        node_annos.insert(
+                            node,
+                            Annotation {
+                                key: linked_file_key.clone(),
+                                val: relative_path.to_string_lossy().to_string(),
+                            },
+                        )?;
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     pub fn export_to_fs(&self, corpus_name: &str, path: &Path, format: ExportFormat) -> Result<()> {

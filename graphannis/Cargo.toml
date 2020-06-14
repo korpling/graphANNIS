@@ -44,6 +44,7 @@ graphannis-malloc_size_of_derive = "2.0"
 strum = "0.18"
 strum_macros = "0.18"
 brotli = "3.3"
+toml = "0.5"
 
 [dev-dependencies]
 tempfile = "3"

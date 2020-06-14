@@ -1,3 +1,6 @@
+use crate::corpusstorage::QueryLanguage;
+use std::collections::BTreeMap;
+
 /// A struct that contains the extended results of the count query.
 #[derive(Debug, Default, Clone)]
 #[repr(C)]
@@ -56,4 +59,123 @@ impl std::fmt::Display for LineColumnRange {
             write!(f, "{}", self.start)
         }
     }
+}
+
+/// Configuration for a corpus as defined by the corpus authors.
+///
+/// This allows to add certain meta-information for corpus search systems in a human-writable configuration file.
+/// It should be added as linked file with the name "corpus-config.toml" to the top-level corpus.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct CorpusConfiguration {
+    #[serde(default)]
+    pub context: ContextConfiguration,
+    #[serde(default)]
+    pub view: ViewConfiguration,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub example_queries: Vec<ExampleQuery>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub visualizer: Vec<VisualizerRule>,
+}
+
+/// Configuration for configuring context in subgraph queries.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ContextConfiguration {
+    /// The default context size.
+    pub default: usize,
+    /// Available context sizes to choose from.
+    pub sizes: Vec<usize>,
+    /// If set, a maximum context size which should be enforced by the query system.
+    pub max: Option<usize>,
+    /// Default segmentation to use for defining the context, `None` if tokens should be used.
+    pub segmentation: Option<String>,
+}
+
+impl Default for ContextConfiguration {
+    fn default() -> Self {
+        ContextConfiguration {
+            default: 5,
+            segmentation: None,
+            max: None,
+            sizes: vec![1, 2, 5, 10],
+        }
+    }
+}
+
+/// Configuration how the results of a query should be shown
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ViewConfiguration {
+    /// Default segmentation to use for the displaying the text, `None` if tokens should be used.
+    pub base_text_segmentation: Option<String>,
+    /// Default number of results to show at once for paginated queries.
+    pub page_size: usize,
+}
+
+impl Default for ViewConfiguration {
+    fn default() -> Self {
+        ViewConfiguration {
+            base_text_segmentation: None,
+            page_size: 10,
+        }
+    }
+}
+
+/// An example query for the corpus with a description.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ExampleQuery {
+    pub query: String,
+    pub description: String,
+    pub query_language: QueryLanguage,
+}
+
+/// A rule when to trigger a visualizer for a specific result.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct VisualizerRule {
+    /// Which type of elements trigger this visualizer. If not given, all element types can trigger it.
+    pub element: Option<VisualizerRuleElement>,
+    /// In which layer the element needs to be part of to trigger this visualizer.
+    /// Only relevant for edges, since only they are part of layers.
+    /// If not given, elements of all layers trigger this visualization.
+    pub layer: Option<String>,
+    /// The abstract type of visualization, e.g. "tree", "discourse", "grid", ...
+    pub vis_type: String,
+    /// A text displayed to the user describing this visualization
+    pub display_name: String,
+    /// The default display state of the visualizer before any user interaction.
+    #[serde(default)]
+    pub visibility: VisualizerVisibility,
+    /// Additional configuration given as generic map of key values to the visualizer.
+    #[serde(
+        default,
+        serialize_with = "toml::ser::tables_last",
+        skip_serializing_if = "BTreeMap::is_empty"
+    )]
+    pub mappings: BTreeMap<String, String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum VisualizerVisibility {
+    #[serde(rename = "hidden")]
+    Hidden,
+    #[serde(rename = "visible")]
+    Visible,
+    #[serde(rename = "permanent")]
+    Permanent,
+    #[serde(rename = "preloaded")]
+    Preloaded,
+    #[serde(rename = "removed")]
+    Removed,
+}
+
+impl Default for VisualizerVisibility {
+    fn default() -> Self {
+        VisualizerVisibility::Hidden
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum VisualizerRuleElement {
+    #[serde(rename = "node")]
+    Node,
+    #[serde(rename = "edge")]
+    Edge,
 }
