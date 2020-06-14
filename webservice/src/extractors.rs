@@ -6,7 +6,7 @@ use jwt::VerifyWithKey;
 use sha2::Sha256;
 
 #[derive(Debug, Clone)]
-pub struct ClaimsAuth(pub Claims);
+pub struct ClaimsFromAuth(pub Claims);
 
 fn verify_token(token: &str, settings: &Settings) -> Result<Claims, ServiceError> {
     let key = Hmac::<Sha256>::new_varkey(settings.auth.jwt_secret.as_bytes())?;
@@ -29,7 +29,7 @@ fn verify_token(token: &str, settings: &Settings) -> Result<Claims, ServiceError
     }
 }
 
-impl FromRequest for ClaimsAuth {
+impl FromRequest for ClaimsFromAuth {
     type Error = ServiceError;
     type Future = Ready<Result<Self, Self::Error>>;
     type Config = Settings;
@@ -47,7 +47,7 @@ impl FromRequest for ClaimsAuth {
                         let token = authen_str[6..authen_str.len()].trim();
                         return match verify_token(token, settings) {
                             // Use the verified claim
-                            Ok(claim) => ok(ClaimsAuth(claim)),
+                            Ok(claim) => ok(ClaimsFromAuth(claim)),
                             // If a token was given but invalid, report an error
                             Err(e) => err(e),
                         };
@@ -57,7 +57,7 @@ impl FromRequest for ClaimsAuth {
         }
 
         // Return an anonymous default claim
-        ready(Ok(ClaimsAuth(Claims {
+        ready(Ok(ClaimsFromAuth(Claims {
             admin: false,
             corpus_groups: vec![],
             sub: "anonymous".to_string(),
