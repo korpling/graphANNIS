@@ -133,7 +133,6 @@ components:
         description:
           type: string
         query_language:
-          example: AQL
           type: string
           enum: [AQL, AQLQuirksV3]
     VisualizerRule:
@@ -142,7 +141,6 @@ components:
       properties:
         element:
           description: On which element type to trigger the visualizer on
-          example: Node
           type: string
           enum: [node, edge]
         layer:
