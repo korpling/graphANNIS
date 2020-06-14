@@ -1,0 +1,36 @@
+openapi: "3.0.2"
+info:
+  title: graphANNIS
+  version: "1.0"
+paths:
+  /local-login:
+    post:
+      summary: Create JWT token for credentials of a locally configured account.
+      tags:
+        - authentification
+      requestBody:
+        description: Object with the user ID and password to login with
+        required: true
+        content:
+          application/json:
+            schema:
+                type: object
+                required:
+                  - user_id 
+                  - password 
+                properties:
+                  user_id:
+                    type: string
+                  password:
+                    type: string
+      responses:
+        "200":
+          description: A valid JSON Web Token (JWT), valid until its expiration time is reached.
+          content:
+            text/plain:
+              schema: 
+                type: string
+                description: JSON Web Token (JWT)
+        
+        "401":
+          description: Unauthorized

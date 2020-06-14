@@ -1,5 +1,5 @@
 use crate::{errors::ServiceError, settings::Settings};
-use actix_web::{web, Error, HttpResponse};
+use actix_web::{web, HttpResponse};
 use hmac::{Hmac, Mac};
 use jwt::SignWithKey;
 use serde::Deserialize;
