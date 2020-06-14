@@ -66,10 +66,10 @@ pub async fn count(
 ) -> Result<HttpResponse, ServiceError> {
     let corpora =
         check_corpora_authorized(parse_corpora(&params.corpora), claims.0, &db_pool).await?;
-    let count = cs.count(
+    let count = cs.count_extra(
         &corpora,
         &params.q,
         parse_query_language(&params.query_language),
     )?;
-    Ok(HttpResponse::Ok().body(format!("{}", count)))
+    Ok(HttpResponse::Ok().json(count))
 }

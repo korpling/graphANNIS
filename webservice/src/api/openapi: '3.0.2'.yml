@@ -13,16 +13,36 @@ paths:
           description: "OK"
           content:
             application/json:
-              example: >
-                [
-                  "GUM",
-                  "BeMaTaC_L1_2013-02.1",
-                  "pcc2"
-                ]
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CorpusName"
+                $ref: "#/components/schemas/CorpusList"
+  /search/count:
+    get:
+      tags:
+        - search
+      summary: Count the number of results for a query.
+      parameters:
+        - name: q
+          description: The query to execute.
+          example: tok
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/CorpusName"
+        - name: corpora
+          in: query
+          required: true
+          description:  A comma-separated list of corpus names/identifiers.
+          schema:
+            $ref: "#/components/schemas/CorpusListRaw"
+        - name: query_language
+          description: The query language or query language dialect to choose.
+          in: query
+          schema:
+            $ref: "#/components/schemas/QueryLanguage"
+            
+      responses:
+        "200":
+          description: "OK"
   /corpora/{corpus}/configuration:
     get:
       tags:
@@ -83,6 +103,22 @@ components:
       type: string
       example: GUM
       description: An identifier for corpora. Should never contain "," because this might be needed as separator.
+    CorpusList:
+      description: List of corpus names/identifiers.
+      type: array
+      items:
+        $ref: "#/components/schemas/CorpusName"
+      example: >
+        [
+          "GUM",
+          "BeMaTaC_L1_2013-02.1",
+          "pcc2"
+        ]
+    CorpusListRaw:
+      description: A comma-separated list of corpus names/identifiers.
+      type: string
+      example: GUM,BeMaTaC_L1_2013-02.1,pcc2
+
     CorpusConfiguration:
       type: object
       properties:
@@ -123,7 +159,7 @@ components:
         visualizers:
           type: array
           description: An array of rules which visualizers to show for the search results.
-          items: 
+          items:
             $ref: "#/components/schemas/VisualizerRule"
     ExampleQuery:
       type: object
@@ -133,11 +169,10 @@ components:
         description:
           type: string
         query_language:
-          type: string
-          enum: [AQL, AQLQuirksV3]
+          $ref: "#/components/schemas/QueryLanguage"
     VisualizerRule:
       type: object
-      description:  A rule when to trigger a visualizer for a specific result.
+      description: A rule when to trigger a visualizer for a specific result.
       properties:
         element:
           description: On which element type to trigger the visualizer on
@@ -162,3 +197,7 @@ components:
         mappings:
           description: Additional configuration given as generic map of key values to the visualizer.
           type: object
+    QueryLanguage:
+      type: string
+      enum: [AQL, AQLQuirksV3]
+      default: AQL

@@ -2,7 +2,7 @@ use crate::corpusstorage::QueryLanguage;
 use std::collections::BTreeMap;
 
 /// A struct that contains the extended results of the count query.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize)]
 #[repr(C)]
 pub struct CountExtra {
     /// Total number of matches.
