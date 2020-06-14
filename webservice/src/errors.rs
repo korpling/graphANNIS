@@ -63,6 +63,12 @@ impl From<InvalidKeyLength> for ServiceError {
     }
 }
 
+impl From<bcrypt::BcryptError> for ServiceError {
+    fn from(_: bcrypt::BcryptError) -> Self {
+        ServiceError::InternalServerError
+    }
+}
+
 impl From<jwt::Error> for ServiceError {
     fn from(orig: jwt::Error) -> Self {
         ServiceError::InvalidJWTToken(format!("{}", orig))
