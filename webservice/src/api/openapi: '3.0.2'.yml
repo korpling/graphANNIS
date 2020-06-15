@@ -197,7 +197,7 @@ paths:
           example: "edge"
           schema:
             type: string
-          
+
         - name: list_values
           in: query
           description: If true, possible values are returned.
@@ -221,6 +221,38 @@ paths:
                   $ref: "#/components/schemas/Annotation"
         "404":
           description: "Corpus not found or access to corpus not allowed"
+
+  /corpora/{corpus}/files:
+    get:
+      tags:
+        - corpora
+      summary: Get an associated file for the corpus.
+      description: >
+        The annotation graph of a corpus can contain special nodes of the type "file", 
+        which are connected to (sub-) corpus and document nodes with a `PartOf` relation.
+        This endpoint allows to access the content of these file nodes.
+        It supports [HTTP range requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests) 
+        if you only need to access parts of the file.
+      parameters:
+        - name: corpus
+          in: path
+          description: The name of the corpus to get the configuration for.
+          required: true
+          example: "RIDGES_Herbology_Version9.0"
+          schema:
+            type: string
+        - name: name
+          in: query
+          description: The name of the file node.
+          required: true
+          example: "RIDGES_Herbology_Version9.0/ridges_norm.config"
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Returns the content of the requested file."
+        "404":
+          description: "Corpus or file not found."
 
   /local-login:
     post:

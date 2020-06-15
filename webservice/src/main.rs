@@ -135,7 +135,7 @@ async fn main() -> Result<()> {
                 web::get().to(api::corpora::subgraph),
             )
             .route(
-                "/corpora/{corpus}/files/{filename:.*}",
+                "/corpora/{corpus}/files",
                 web::get().to(api::corpora::files),
             )
     })

@@ -180,21 +180,37 @@ pub async fn edge_annotations(
     Ok(HttpResponse::Ok().json(annos))
 }
 
+#[derive(Deserialize)]
+pub struct FilesParameters {
+    name: String,
+}
+
 pub async fn files(
-    path: web::Path<(String, String)>,
+    corpus: web::Path<String>,
+    params: web::Query<FilesParameters>,
     claims: ClaimsFromAuth,
     db_pool: web::Data<DbPool>,
     settings: web::Data<Settings>,
 ) -> Result<NamedFile, ServiceError> {
-    let corpus = path.0.clone();
-    let file_path = path.1.clone();
     check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+
+    // Perform some sanity checks to make sure only the relative sub-folder is used
+    let file_path = params.name.trim();
+    if file_path.contains("..") {
+        return Err(ServiceError::BadRequest(
+            "No .. allowed in file name".to_string(),
+        ));
+    } else if file_path.starts_with("/") {
+        return Err(ServiceError::BadRequest(
+            "No absolute path allowed in file name".to_string(),
+        ));
+    }
 
     // Resolve against data folder
     let path = PathBuf::from(settings.database.graphannis.as_str())
-        .join(corpus)
+        .join(corpus.as_str())
         .join("files")
-        .join(file_path);
+        .join(&file_path);
 
     Ok(NamedFile::open(path)?)
 }
