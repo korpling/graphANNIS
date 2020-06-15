@@ -1,75 +1,61 @@
-use super::{check_corpora_authorized, parse_corpora, parse_query_language};
+use super::{check_corpora_authorized};
 use crate::{errors::ServiceError, extractors::ClaimsFromAuth, DbPool};
 use actix_web::web::{self, HttpResponse};
-use graphannis::{corpusstorage::ResultOrder, CorpusStorage};
+use graphannis::{
+    corpusstorage::{QueryLanguage, ResultOrder},
+    CorpusStorage,
+};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct FindQueryParameters {
-    q: String,
+pub struct FindQuery {
+    query: String,
     #[serde(default)]
-    query_language: Option<String>,
-    corpora: String,
+    query_language: QueryLanguage,
+    corpora: Vec<String>,
     #[serde(default)]
     limit: Option<usize>,
     #[serde(default)]
     offset: Option<usize>,
     #[serde(default)]
-    order: Option<String>,
+    order: ResultOrder,
 }
 
 pub async fn find(
-    params: web::Query<FindQueryParameters>,
+    params: web::Query<FindQuery>,
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
-    let corpora =
-        check_corpora_authorized(parse_corpora(&params.corpora), claims.0, &db_pool).await?;
+    let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
 
-    let order = if let Some(order) = &params.order {
-        match order.to_lowercase().as_str() {
-            "ascending" => ResultOrder::Normal,
-            "random" => ResultOrder::Randomized,
-            "descending" => ResultOrder::Inverted,
-            "unsorted" => ResultOrder::NotSorted,
-            _ => ResultOrder::Normal,
-        }
-    } else {
-        ResultOrder::Normal
-    };
 
     let matches = cs.find(
         &corpora,
-        &params.q,
-        parse_query_language(&params.query_language),
+        &params.query,
+        params.query_language,
         params.offset.unwrap_or_default(),
         params.limit,
-        order,
+        params.order,
     )?;
     Ok(HttpResponse::Ok().body(matches.join("\n")))
 }
 
 #[derive(Deserialize)]
-pub struct CountQueryParameters {
-    q: String,
+pub struct Query {
+    query: String,
     #[serde(default)]
-    query_language: Option<String>,
-    corpora: String,
+    query_language: QueryLanguage,
+    corpora: Vec<String>,
 }
 
 pub async fn count(
-    params: web::Query<CountQueryParameters>,
+    params: web::Json<Query>,
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
-    let corpora =
-        check_corpora_authorized(parse_corpora(&params.corpora), claims.0, &db_pool).await?;
-    let count = cs.count_extra(
-        &corpora,
-        &params.q,
-        parse_query_language(&params.query_language),
-    )?;
+    let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
+    let count = cs.count_extra(&corpora, &params.query, params.query_language)?;
     Ok(HttpResponse::Ok().json(count))
 }

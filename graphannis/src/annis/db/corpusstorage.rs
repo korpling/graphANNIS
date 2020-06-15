@@ -179,7 +179,7 @@ impl fmt::Display for CorpusInfo {
 }
 
 /// Defines the order of results of a `find` query.
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 #[repr(C)]
 pub enum ResultOrder {
     /// Order results by their document name and the the text position of the match.
@@ -191,6 +191,12 @@ pub enum ResultOrder {
     /// Results are not ordered at all, but also not actively randomized
     /// Each new query *might* result in a different order.
     NotSorted,
+}
+
+impl Default for ResultOrder {
+    fn default() -> Self {
+        ResultOrder::Normal
+    }
 }
 
 struct PreparationResult<'a> {
@@ -240,6 +246,12 @@ pub enum QueryLanguage {
     AQL,
     /// Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3
     AQLQuirksV3,
+}
+
+impl Default for QueryLanguage {
+    fn default() -> Self {
+        QueryLanguage::AQL
+    }
 }
 
 /// An enum of all supported input formats of graphANNIS.

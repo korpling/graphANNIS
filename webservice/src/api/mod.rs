@@ -1,7 +1,6 @@
 use crate::{actions, errors::ServiceError, DbPool};
 use actix_web::web;
 use auth::Claims;
-use graphannis::corpusstorage::QueryLanguage;
 
 pub mod auth;
 pub mod corpora;
@@ -41,17 +40,4 @@ async fn check_corpora_authorized(
                 .collect(),
         ))
     }
-}
-
-fn parse_query_language(query_language: &Option<String>) -> QueryLanguage {
-    if let Some(query_language) = query_language {
-        if query_language.to_uppercase() == "AQL_QUIRKS_V3" {
-            return QueryLanguage::AQLQuirksV3;
-        }
-    }
-    QueryLanguage::AQL
-}
-
-fn parse_corpora(corpora: &str) -> Vec<String> {
-    corpora.split(",").map(|c| c.trim().to_string()).collect()
 }

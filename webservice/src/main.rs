@@ -103,8 +103,8 @@ async fn main() -> Result<()> {
             .wrap(Logger::default())
             .wrap(Compress::default())
             .route("/local-login", web::post().to(api::auth::local_login))
-            .route("/search/count", web::get().to(api::search::count))
-            .route("/search/find", web::get().to(api::search::find))
+            .route("/search/count", web::post().to(api::search::count))
+            .route("/search/find", web::post().to(api::search::find))
             .route("/corpora", web::get().to(api::corpora::list))
             .route(
                 "/corpora/{corpus}/configuration",

@@ -16,30 +16,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/CorpusList"
   /search/count:
-    get:
+    post:
       tags:
         - search
       summary: Count the number of results for a query.
-      parameters:
-        - name: q
-          description: The query to execute.
-          example: tok
-          in: query
-          required: true
-          schema:
-            $ref: "#/components/schemas/CorpusName"
-        - name: corpora
-          in: query
-          required: true
-          description:  A comma-separated list of corpus names/identifiers.
-          schema:
-            $ref: "#/components/schemas/CorpusListRaw"
-        - name: query_language
-          description: The query language or query language dialect to choose.
-          in: query
-          schema:
-            $ref: "#/components/schemas/QueryLanguage"
-            
+      requestBody:
+        description: The definition of a query.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Query"
       responses:
         "200":
           description: "OK"
@@ -55,7 +42,7 @@ paths:
           description: The name of the corpus to get the configuration for.
           required: true
           schema:
-            $ref: "#/components/schemas/CorpusName"
+            type: string
       responses:
         "200":
           description: "OK"
@@ -99,26 +86,27 @@ paths:
           description: Unauthorized
 components:
   schemas:
-    CorpusName:
-      type: string
-      example: GUM
-      description: An identifier for corpora. Should never contain "," because this might be needed as separator.
     CorpusList:
       description: List of corpus names/identifiers.
       type: array
       items:
-        $ref: "#/components/schemas/CorpusName"
-      example: >
-        [
-          "GUM",
-          "BeMaTaC_L1_2013-02.1",
-          "pcc2"
-        ]
-    CorpusListRaw:
-      description: A comma-separated list of corpus names/identifiers.
+        type: string
+      example: [GUM, pcc2.1]
+    QueryLanguage:
       type: string
-      example: GUM,BeMaTaC_L1_2013-02.1,pcc2
-
+      enum: [AQL, AQLQuirksV3]
+      default: AQL
+    Query:
+      type: object
+      description: General properties of a query.
+      properties:
+        query:
+          type: string
+          description: The query to execute.
+        query_language:
+          $ref: "#/components/schemas/QueryLanguage"
+        corpora:
+          $ref: "#/components/schemas/CorpusList"
     CorpusConfiguration:
       type: object
       properties:
@@ -197,7 +185,3 @@ components:
         mappings:
           description: Additional configuration given as generic map of key values to the visualizer.
           type: object
-    QueryLanguage:
-      type: string
-      enum: [AQL, AQLQuirksV3]
-      default: AQL
