@@ -4,7 +4,7 @@ use crate::{
 };
 use actix_files::NamedFile;
 use actix_web::web::{self, HttpResponse};
-use graphannis::{graph::Component, model::AnnotationComponentType, CorpusStorage};
+use graphannis::{graph, model::AnnotationComponentType, CorpusStorage};
 use std::path::PathBuf;
 
 pub async fn list(
@@ -93,7 +93,7 @@ pub struct ListComponentsParameters {
 }
 
 #[derive(Serialize)]
-pub struct ListComponentsResult {
+pub struct Component {
     /// Type of the component
     #[serde(rename = "type")]
     ctype: AnnotationComponentType,
@@ -119,7 +119,7 @@ pub async fn list_components(
             params.name.as_deref(),
         )
         .into_iter()
-        .map(|c| ListComponentsResult {
+        .map(|c| Component {
             ctype: c.get_type(),
             name: c.name,
             layer: c.layer,
@@ -176,7 +176,7 @@ pub async fn edge_annotations(
 ) -> Result<HttpResponse, ServiceError> {
     check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
 
-    let component = Component::<AnnotationComponentType>::new(
+    let component = graph::Component::<AnnotationComponentType>::new(
         params.ctype.to_owned(),
         params.layer.to_string(),
         params.name.to_string(),

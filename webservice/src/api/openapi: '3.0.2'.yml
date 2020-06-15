@@ -126,6 +126,43 @@ paths:
         "404":
           description: "Corpus not found or access to corpus not allowed"
 
+  /corpora/{corpus}/components:
+    get:
+      tags:
+        - corpora
+      summary: List all edge components of the corpus.
+      parameters:
+        - name: corpus
+          in: path
+          description: The name of the corpus to get the components for.
+          required: true
+          example: "GUM"
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Only return components with this type.
+          example: Dominance
+          schema:
+            type: string
+        - name: name
+          in: query
+          description: Only return components with this name.
+          example: edge
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "The list of components"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Component"
+        "404":
+          description: "Corpus not found or access to corpus not allowed"
+
   /local-login:
     post:
       summary: Create JWT token for credentials of a locally configured account.
@@ -250,6 +287,34 @@ components:
           description: Value of the annotation
           type: string
           example: VVFIN
+
+    Component:
+      description: Definition of an edge component
+      type: object
+      properties:
+        type:
+          $ref: "#/components/schemas/AnnotationComponentType"
+        name:
+          description: Name of the component
+          type: string
+          example: dep
+        layer:
+          description: A layer name which allows to group different components into the same layer. Can be the empty string.
+          type: string
+          example: conll
+
+    AnnotationComponentType:
+      description: Type of component used for linguistic annotations.
+      type: string
+      enum:
+        - Coverage
+        - Dominance
+        - Pointing
+        - Ordering
+        - LeftToken
+        - RightToken
+        - PartOf
+      example: Pointing
 
     CorpusConfiguration:
       type: object
