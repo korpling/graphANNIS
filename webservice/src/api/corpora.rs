@@ -130,7 +130,7 @@ pub async fn list_components(
 }
 
 #[derive(Deserialize)]
-pub struct NodeAnnotationParameters {
+pub struct AnnotationParameters {
     #[serde(default)]
     list_values: bool,
     #[serde(default)]
@@ -139,7 +139,7 @@ pub struct NodeAnnotationParameters {
 
 pub async fn node_annotations(
     corpus: web::Path<String>,
-    params: web::Query<NodeAnnotationParameters>,
+    params: web::Query<AnnotationParameters>,
     cs: web::Data<CorpusStorage>,
     claims: ClaimsFromAuth,
     db_pool: web::Data<DbPool>,
@@ -154,32 +154,20 @@ pub async fn node_annotations(
 
     Ok(HttpResponse::Ok().json(annos))
 }
-
-#[derive(Deserialize)]
-pub struct EdgeAnnotationParameters {
-    #[serde(rename = "type")]
-    ctype: AnnotationComponentType,
-    name: String,
-    layer: String,
-    #[serde(default)]
-    list_values: bool,
-    #[serde(default)]
-    only_most_frequent_values: bool,
-}
-
 pub async fn edge_annotations(
-    corpus: web::Path<String>,
-    params: web::Query<EdgeAnnotationParameters>,
+    path: web::Path<(String, AnnotationComponentType, String, String)>,
+    params: web::Query<AnnotationParameters>,
     cs: web::Data<CorpusStorage>,
     claims: ClaimsFromAuth,
     db_pool: web::Data<DbPool>,
 ) -> Result<HttpResponse, ServiceError> {
+    let (corpus, ctype, layer, name) = path.as_ref();
     check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
 
     let component = graph::Component::<AnnotationComponentType>::new(
-        params.ctype.to_owned(),
-        params.layer.to_string(),
-        params.name.to_string(),
+        ctype.to_owned(),
+        layer.to_string(),
+        name.to_string(),
     );
 
     let annos = cs.list_edge_annotations(

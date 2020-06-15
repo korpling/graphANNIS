@@ -163,6 +163,65 @@ paths:
         "404":
           description: "Corpus not found or access to corpus not allowed"
 
+  /corpora/{corpus}/{type}/{layer}/{name}/edge_annotations:
+    get:
+      tags:
+        - corpora
+      summary: List all annotations of the corpus for a given edge component
+      parameters:
+        - name: corpus
+          in: path
+          description: The name of the corpus to get the configuration for.
+          required: true
+          example: "GUM"
+          schema:
+            type: string
+        - name: type
+          in: path
+          description: The component type.
+          required: true
+          example: "Dominance"
+          schema:
+            type: string
+        - name: layer
+          in: path
+          description: The component layer.
+          required: true
+          example: "const"
+          schema:
+            type: string
+        - name: name
+          in: path
+          description: The component name.
+          required: true
+          example: "edge"
+          schema:
+            type: string
+          
+        - name: list_values
+          in: query
+          description: If true, possible values are returned.
+          schema:
+            type: boolean
+            default: false
+        - name: only_most_frequent_values
+          in: query
+          description: If true, only the most frequent value per annotation is returned.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: "The list of annotations"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Annotation"
+        "404":
+          description: "Corpus not found or access to corpus not allowed"
+
   /local-login:
     post:
       summary: Create JWT token for credentials of a locally configured account.
