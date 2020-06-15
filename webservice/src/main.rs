@@ -119,7 +119,7 @@ async fn main() -> Result<()> {
                 web::get().to(api::corpora::configuration),
             )
             .route(
-                "/corpora/{corpus}/node_annotations",
+                "/corpora/{corpus}/node-annotations",
                 web::get().to(api::corpora::node_annotations),
             )
             .route(
@@ -127,12 +127,16 @@ async fn main() -> Result<()> {
                 web::get().to(api::corpora::list_components),
             )
             .route(
-                "/corpora/{corpus}/edge_annotations/{type}/{layer}/{name}/",
+                "/corpora/{corpus}/edge-annotations/{type}/{layer}/{name}/",
                 web::get().to(api::corpora::edge_annotations),
             )
             .route(
                 "/corpora/{corpus}/subgraph",
-                web::get().to(api::corpora::subgraph),
+                web::post().to(api::corpora::subgraph),
+            )
+            .route(
+                "/corpora/{corpus}/subgraph-for-query",
+                web::get().to(api::corpora::subgraph_for_query),
             )
             .route(
                 "/corpora/{corpus}/files",

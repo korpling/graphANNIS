@@ -4,7 +4,9 @@ use crate::{
 };
 use actix_files::NamedFile;
 use actix_web::web::{self, HttpResponse};
-use graphannis::{graph, model::AnnotationComponentType, CorpusStorage};
+use graphannis::{
+    corpusstorage::QueryLanguage, graph, model::AnnotationComponentType, CorpusStorage,
+};
 use std::path::PathBuf;
 
 pub async fn list(
@@ -35,8 +37,8 @@ pub async fn list(
 }
 
 #[derive(Deserialize)]
-pub struct SubgraphQueryParameters {
-    node_ids: String,
+pub struct SubgraphWithContext {
+    node_ids: Vec<String>,
     #[serde(default)]
     segmentation: Option<String>,
     #[serde(default)]
@@ -47,20 +49,15 @@ pub struct SubgraphQueryParameters {
 
 pub async fn subgraph(
     corpus: web::Path<String>,
-    params: web::Query<SubgraphQueryParameters>,
+    params: web::Json<SubgraphWithContext>,
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
     check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
-    let node_ids: Vec<String> = params
-        .node_ids
-        .split(",")
-        .map(|c| c.trim().to_string())
-        .collect();
     let graph = cs.subgraph(
         &corpus,
-        node_ids,
+        params.node_ids.clone(),
         params.left,
         params.right,
         params.segmentation.clone(),
@@ -69,7 +66,42 @@ pub async fn subgraph(
     let mut output = Vec::new();
     graphannis_core::graph::serialization::graphml::export(&graph, &mut output, |_| {})?;
 
-    Ok(HttpResponse::Ok().body(output))
+    Ok(HttpResponse::Ok()
+        .content_type("application/xml")
+        .body(output))
+}
+
+#[derive(Deserialize)]
+pub struct QuerySubgraphParameters {
+    query: String,
+    #[serde(default)]
+    query_language: QueryLanguage,
+    #[serde(default)]
+    component_type_filter: Option<AnnotationComponentType>,
+}
+
+pub async fn subgraph_for_query(
+    corpus: web::Path<String>,
+    params: web::Query<QuerySubgraphParameters>,
+    cs: web::Data<CorpusStorage>,
+    db_pool: web::Data<DbPool>,
+    claims: ClaimsFromAuth,
+) -> Result<HttpResponse, ServiceError> {
+    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+
+    let graph = cs.subgraph_for_query(
+        &corpus,
+        params.query.as_str(),
+        params.query_language,
+        params.component_type_filter.clone(),
+    )?;
+    // Export subgraph to GraphML
+    let mut output = Vec::new();
+    graphannis_core::graph::serialization::graphml::export(&graph, &mut output, |_| {})?;
+
+    Ok(HttpResponse::Ok()
+        .content_type("application/xml")
+        .body(output))
 }
 
 pub async fn configuration(
