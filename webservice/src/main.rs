@@ -9,7 +9,7 @@ use actix_cors::Cors;
 use actix_web::{
     http::{self, ContentEncoding},
     middleware::{Compress, Logger},
-    web, App, HttpServer,
+    web, App, HttpRequest, HttpServer,
 };
 use clap::Arg;
 use diesel::prelude::*;
@@ -81,6 +81,12 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
     Ok((cs, settings, db_pool))
 }
 
+async fn get_api_spec(_req: HttpRequest) -> web::HttpResponse {
+    web::HttpResponse::Ok()
+        .content_type("application/x-yaml")
+        .body(include_str!("openapi.yml"))
+}
+
 #[actix_rt::main]
 async fn main() -> Result<()> {
     // Initialize application and its state
@@ -96,6 +102,8 @@ async fn main() -> Result<()> {
     let settings = web::Data::new(settings);
     let db_pool = web::Data::new(db_pool);
 
+    let api_version = format!("/v{}", env!("CARGO_PKG_VERSION_MAJOR"),);
+
     // Run server
     HttpServer::new(move || {
         App::new()
@@ -110,37 +118,41 @@ async fn main() -> Result<()> {
             .app_data(db_pool.clone())
             .wrap(Logger::default())
             .wrap(Compress::new(ContentEncoding::Gzip))
-            .route("/local-login", web::post().to(api::auth::local_login))
-            .route("/search/count", web::post().to(api::search::count))
-            .route("/search/find", web::post().to(api::search::find))
-            .route("/corpora", web::get().to(api::corpora::list))
-            .route(
-                "/corpora/{corpus}/configuration",
-                web::get().to(api::corpora::configuration),
-            )
-            .route(
-                "/corpora/{corpus}/node-annotations",
-                web::get().to(api::corpora::node_annotations),
-            )
-            .route(
-                "/corpora/{corpus}/components",
-                web::get().to(api::corpora::list_components),
-            )
-            .route(
-                "/corpora/{corpus}/edge-annotations/{type}/{layer}/{name}/",
-                web::get().to(api::corpora::edge_annotations),
-            )
-            .route(
-                "/corpora/{corpus}/subgraph",
-                web::post().to(api::corpora::subgraph),
-            )
-            .route(
-                "/corpora/{corpus}/subgraph-for-query",
-                web::get().to(api::corpora::subgraph_for_query),
-            )
-            .route(
-                "/corpora/{corpus}/files",
-                web::get().to(api::corpora::files),
+            .service(
+                web::scope(&api_version)
+                    .route("openapi.yml", web::get().to(get_api_spec))
+                    .route("/local-login", web::post().to(api::auth::local_login))
+                    .service(
+                        web::scope("/search")
+                            .route("/count", web::post().to(api::search::count))
+                            .route("/find", web::post().to(api::search::find)),
+                    )
+                    .service(
+                        web::scope("/corpora")
+                            .route("", web::get().to(api::corpora::list))
+                            .route(
+                                "/{corpus}/configuration",
+                                web::get().to(api::corpora::configuration),
+                            )
+                            .route(
+                                "/{corpus}/node-annotations",
+                                web::get().to(api::corpora::node_annotations),
+                            )
+                            .route(
+                                "/{corpus}/components",
+                                web::get().to(api::corpora::list_components),
+                            )
+                            .route(
+                                "/{corpus}/edge-annotations/{type}/{layer}/{name}/",
+                                web::get().to(api::corpora::edge_annotations),
+                            )
+                            .route("/{corpus}/subgraph", web::post().to(api::corpora::subgraph))
+                            .route(
+                                "/{corpus}/subgraph-for-query",
+                                web::get().to(api::corpora::subgraph_for_query),
+                            )
+                            .route("/{corpus}/files", web::get().to(api::corpora::files)),
+                    ),
             )
     })
     .bind(bind_address)?
