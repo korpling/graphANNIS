@@ -20,6 +20,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CorpusList"
+
   /search/count:
     post:
       tags:
@@ -39,6 +40,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CountExtra"
+
   /search/find:
     post:
       tags:
@@ -62,6 +64,7 @@ paths:
                 example: >
                   GUM/GUM_whow_skittles#tok_925 GUM/GUM_whow_skittles#tok_926
                   GUM/GUM_whow_skittles#tok_926 GUM/GUM_whow_skittles#tok_927
+
   /corpora/{corpus}/configuration:
     get:
       tags:
@@ -83,8 +86,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CorpusConfiguration"
-        "401":
-          description: "Forbidden"
+        "404":
+          description: "Corpus not found or access to corpus not allowed"
+
+  /corpora/{corpus}/node_annotations:
+    get:
+      tags:
+        - corpora
+      summary: List all node annotations of the corpus.
+      parameters:
+        - name: corpus
+          in: path
+          description: The name of the corpus to get the configuration for.
+          required: true
+          example: "GUM"
+          schema:
+            type: string
+        - name: list_values
+          in: query
+          description: If true, possible values are returned.
+          schema:
+            type: boolean
+            default: false
+        - name: only_most_frequent_values
+          in: query
+          description: If true, only the most frequent value per annotation is returned.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: "The list of annotations"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Annotation"
+        "404":
+          description: "Corpus not found or access to corpus not allowed"
+
   /local-login:
     post:
       summary: Create JWT token for credentials of a locally configured account.
@@ -130,10 +171,12 @@ components:
       items:
         type: string
       example: [GUM, pcc2.1]
+
     QueryLanguage:
       type: string
       enum: [AQL, AQLQuirksV3]
       default: AQL
+
     CountQuery:
       type: object
       description: Query definition for counting matches.
@@ -146,6 +189,7 @@ components:
           $ref: "#/components/schemas/QueryLanguage"
         corpora:
           $ref: "#/components/schemas/CorpusList"
+
     FindQuery:
       type: object
       description: Query definition to find matches
@@ -181,6 +225,32 @@ components:
           type: integer
           description: Number of documents with at least one match.
           example: 230
+
+    AnnoKey:
+      description: Qualified name for annotation
+      type: object
+      properties:
+        name:
+          description: Name of the annotation.
+          type: string
+          example: pos
+        ns:
+          description: Namespace of the annotation.
+          type: string
+          example: stts
+
+    Annotation:
+      description: An annotation with a qualified name and a value.
+      type: object
+      properties:
+        key:
+          description: Qualified name or unique "key" for the annotation
+          $ref: "#/components/schemas/AnnoKey"
+        val:
+          description: Value of the annotation
+          type: string
+          example: VVFIN
+
     CorpusConfiguration:
       type: object
       properties:
@@ -223,6 +293,7 @@ components:
           description: An array of rules which visualizers to show for the search results.
           items:
             $ref: "#/components/schemas/VisualizerRule"
+
     ExampleQuery:
       type: object
       properties:
@@ -232,6 +303,7 @@ components:
           type: string
         query_language:
           $ref: "#/components/schemas/QueryLanguage"
+
     VisualizerRule:
       type: object
       description: A rule when to trigger a visualizer for a specific result.

@@ -7,7 +7,7 @@ use std::fmt::Display;
 pub enum ServiceError {
     BadRequest(String),
     InvalidJWTToken(String),
-    NonAuthorizedCorpus(Vec<String>),
+    NoSuchCorpus(Vec<String>),
     DatabaseError,
     InternalServerError,
     GraphAnnisError(GraphAnnisError),
@@ -19,11 +19,9 @@ impl Display for ServiceError {
         match self {
             ServiceError::BadRequest(msg) => write!(f, "Bad Request: {}", msg)?,
             ServiceError::InvalidJWTToken(msg) => write!(f, "Invalid JWT Token: {}", msg)?,
-            ServiceError::NonAuthorizedCorpus(corpora) => write!(
-                f,
-                "Not authorized to access the corpus/corpora {}",
-                corpora.join(", ")
-            )?,
+            ServiceError::NoSuchCorpus(corpora) => {
+                write!(f, "Non existing corpus/corpora {}", corpora.join(", "))?
+            }
             ServiceError::DatabaseError => write!(f, "Error accessing database")?,
             ServiceError::InternalServerError => write!(f, "Internal Server Error")?,
             ServiceError::GraphAnnisError(err) => write!(f, "{}", err)?,
@@ -43,8 +41,8 @@ impl ResponseError for ServiceError {
             ServiceError::InvalidJWTToken(ref message) => {
                 HttpResponse::Unauthorized().json(message)
             }
-            ServiceError::NonAuthorizedCorpus(corpora) => HttpResponse::Forbidden().json(format!(
-                "Not authorized to access the corpus/corpora {}",
+            ServiceError::NoSuchCorpus(corpora) => HttpResponse::NotFound().json(format!(
+                "Non existing corpus/corpora {}",
                 corpora.join(", ")
             )),
             ServiceError::DatabaseError => {
@@ -84,7 +82,12 @@ impl From<diesel::result::Error> for ServiceError {
 impl From<anyhow::Error> for ServiceError {
     fn from(orig: anyhow::Error) -> Self {
         if let Some(graphannis_err) = orig.downcast_ref::<GraphAnnisError>() {
-            ServiceError::GraphAnnisError(graphannis_err.clone())
+            match graphannis_err {
+                GraphAnnisError::NoSuchCorpus(corpora) => {
+                    ServiceError::NoSuchCorpus(vec![corpora.to_owned()])
+                }
+                _ => ServiceError::GraphAnnisError(graphannis_err.clone()),
+            }
         } else {
             ServiceError::InternalServerError
         }

@@ -33,7 +33,7 @@ async fn check_corpora_authorized(
     {
         Ok(requested_corpora)
     } else {
-        Err(ServiceError::NonAuthorizedCorpus(
+        Err(ServiceError::NoSuchCorpus(
             requested_corpora
                 .into_iter()
                 .filter(|c| !allowed_corpora.contains(c))
