@@ -36,7 +36,7 @@ pub struct FindQuery {
     #[serde(default)]
     limit: Option<usize>,
     #[serde(default)]
-    offset: Option<usize>,
+    offset: usize,
     #[serde(default)]
     order: ResultOrder,
 }
@@ -53,7 +53,7 @@ pub async fn find(
         &corpora,
         &params.query,
         params.query_language,
-        params.offset.unwrap_or_default(),
+        params.offset,
         params.limit,
         params.order,
     )?;
