@@ -5,7 +5,9 @@ extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
 
+use actix_cors::Cors;
 use actix_web::{
+    http::{self, ContentEncoding},
     middleware::{Compress, Logger},
     web, App, HttpServer,
 };
@@ -97,11 +99,17 @@ async fn main() -> Result<()> {
     // Run server
     HttpServer::new(move || {
         App::new()
+            .wrap(
+                Cors::new()
+                    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                    .allowed_header(http::header::CONTENT_TYPE)
+                    .finish(),
+            )
             .app_data(cs.clone())
             .app_data(settings.clone())
             .app_data(db_pool.clone())
             .wrap(Logger::default())
-            .wrap(Compress::default())
+            .wrap(Compress::new(ContentEncoding::Gzip))
             .route("/local-login", web::post().to(api::auth::local_login))
             .route("/search/count", web::post().to(api::search::count))
             .route("/search/find", web::post().to(api::search::find))

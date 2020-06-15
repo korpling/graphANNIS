@@ -2,6 +2,11 @@ openapi: "3.0.2"
 info:
   title: graphANNIS
   version: "1.0"
+servers:
+  - description: Your local developer service
+    url: http://localhost:5711
+security:
+  - bearerAuth: []
 paths:
   /corpora:
     get:
@@ -113,6 +118,11 @@ paths:
         "401":
           description: Unauthorized
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     CorpusList:
       description: List of corpus names/identifiers.
