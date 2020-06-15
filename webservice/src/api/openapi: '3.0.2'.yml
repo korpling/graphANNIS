@@ -163,7 +163,7 @@ paths:
         "404":
           description: "Corpus not found or access to corpus not allowed"
 
-  /corpora/{corpus}/{type}/{layer}/{name}/edge_annotations:
+  /corpora/{corpus}/edge_annotations/{type}/{layer}/{name}/:
     get:
       tags:
         - corpora

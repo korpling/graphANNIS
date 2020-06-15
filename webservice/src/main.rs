@@ -127,7 +127,7 @@ async fn main() -> Result<()> {
                 web::get().to(api::corpora::list_components),
             )
             .route(
-                "/corpora/{corpus}/{type}/{layer}/{name}/edge_annotations",
+                "/corpora/{corpus}/edge_annotations/{type}/{layer}/{name}/",
                 web::get().to(api::corpora::edge_annotations),
             )
             .route(
