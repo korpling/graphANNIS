@@ -5,8 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Node IDs in matches don't have the `salt:/` prefix anymore
+
 ### Addded
 
+- Web Service with REST API for the corpus storage
 - Copy and link files from the ExtData folder when importing relANNIS.
 - Map `resolver_vis_map.annis`, `example_queries.annis` and `corpus.properties` from relANNIS files 
   to a new unified corpus configuration stored as [TOML]() file.

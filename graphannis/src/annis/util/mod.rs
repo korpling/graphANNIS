@@ -102,16 +102,16 @@ mod tests {
     #[test]
     fn test_node_names_from_match() {
         assert_eq!(
-            vec!["salt://corpus1/doc1#n1".to_string()],
-            node_names_from_match("ns::name::salt://corpus1/doc1#n1")
+            vec!["corpus1/doc1#n1".to_string()],
+            node_names_from_match("ns::name::corpus1/doc1#n1")
         );
         assert_eq!(
-            vec!["salt://corpus1/doc1#n1".to_string()],
-            node_names_from_match("name::salt://corpus1/doc1#n1")
+            vec!["/corpus1/doc1#n1".to_string()],
+            node_names_from_match("name::corpus1/doc1#n1")
         );
         assert_eq!(
-            vec!["salt://corpus1/doc1#n1".to_string()],
-            node_names_from_match("salt://corpus1/doc1#n1")
+            vec!["corpus1/doc1#n1".to_string()],
+            node_names_from_match("corpus1/doc1#n1")
         );
 
         assert_eq!(

@@ -1454,7 +1454,6 @@ impl CorpusStorage {
                         .get_node_annos()
                         .get_value_for_item(&singlematch.node, &NODE_NAME_KEY)
                     {
-                        node_desc.push_str("salt:/");
                         node_desc.push_str(&name);
                     }
 
@@ -1567,7 +1566,7 @@ impl CorpusStorage {
         // find all nodes covering the same token
         for source_node_id in node_ids {
             let source_node_id: &str = if source_node_id.starts_with("salt:/") {
-                // remove the "salt:/" prefix
+                // remove the obsolete "salt:/" prefix
                 &source_node_id[6..]
             } else {
                 &source_node_id
@@ -1693,7 +1692,7 @@ impl CorpusStorage {
         // find all nodes that a connected with the corpus IDs
         for source_corpus_id in corpus_ids {
             let source_corpus_id: &str = if source_corpus_id.starts_with("salt:/") {
-                // remove the "salt:/" prefix
+                // remove the obsolete "salt:/" prefix
                 &source_corpus_id[6..]
             } else {
                 &source_corpus_id

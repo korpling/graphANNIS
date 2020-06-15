@@ -21,15 +21,42 @@ paths:
         - search
       summary: Count the number of results for a query.
       requestBody:
-        description: The definition of a query.
+        description: The definition of the query to execute.
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Query"
+              $ref: "#/components/schemas/CountQuery"
       responses:
         "200":
-          description: "OK"
+          description: "The extended count result."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CountExtra"
+  /search/find:
+    post:
+      tags:
+        - search
+      summary: Find results for a query and return the IDs of the matched nodes.
+      requestBody:
+        description: The definition of the query to execute.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FindQuery"
+      responses:
+        "200":
+          description: "The matches for the given query."
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: A textual representation of a list of matches. Each line describes a complete match. The single match is represented by the space-separated node IDs that matched.
+                example: >
+                  GUM/GUM_whow_skittles#tok_925 GUM/GUM_whow_skittles#tok_926
+                  GUM/GUM_whow_skittles#tok_926 GUM/GUM_whow_skittles#tok_927
   /corpora/{corpus}/configuration:
     get:
       tags:
@@ -41,6 +68,7 @@ paths:
           in: path
           description: The name of the corpus to get the configuration for.
           required: true
+          example: "GUM"
           schema:
             type: string
       responses:
@@ -96,17 +124,53 @@ components:
       type: string
       enum: [AQL, AQLQuirksV3]
       default: AQL
-    Query:
+    CountQuery:
       type: object
-      description: General properties of a query.
+      description: Query definition for counting matches.
       properties:
         query:
           type: string
           description: The query to execute.
+          example: tok
         query_language:
           $ref: "#/components/schemas/QueryLanguage"
         corpora:
           $ref: "#/components/schemas/CorpusList"
+    FindQuery:
+      type: object
+      description: Query definition to find matches
+      properties:
+        query:
+          type: string
+          description: The query to execute.
+          example: tok
+        query_language:
+          $ref: "#/components/schemas/QueryLanguage"
+        corpora:
+          $ref: "#/components/schemas/CorpusList"
+        limit:
+          type: integer
+          nullable: true
+          default: null
+          description: Return at most `n` matches, where `n` is the limit.  Use `null` to allow unlimited result sizes.
+          example: 10
+        offset:
+          type: integer
+          default: 0
+          description: Skip the `n` first results, where `n` is the offset.
+
+    CountExtra:
+      type: object
+      description: Contains the extended results of the count query.
+      properties:
+        match_count:
+          type: integer
+          description: Total number of matches.
+          example: 79017
+        document_count:
+          type: integer
+          description: Number of documents with at least one match.
+          example: 230
     CorpusConfiguration:
       type: object
       properties:
