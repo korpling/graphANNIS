@@ -6,7 +6,7 @@ pub struct CorpusGroup {
     pub corpus: String,
 }
 
-#[derive(Queryable, Insertable)]
+#[derive(Insertable)]
 pub struct Group {
     pub name: String,
 }

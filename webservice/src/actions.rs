@@ -1,5 +1,10 @@
-use crate::{api::auth::Claims, errors::ServiceError, models::CorpusGroup};
+use crate::{
+    api::{administration::Group, auth::Claims},
+    errors::ServiceError,
+    models,
+};
 use diesel::prelude::*;
+use models::CorpusGroup;
 use std::collections::{BTreeSet, HashSet};
 
 pub fn authorized_corpora_from_groups(
@@ -21,14 +26,26 @@ pub fn authorized_corpora_from_groups(
     Ok(allowed_corpora)
 }
 
-pub fn get_group_names(conn: &SqliteConnection) -> Result<Vec<String>, ServiceError> {
+pub fn list_groups(conn: &SqliteConnection) -> Result<Vec<Group>, ServiceError> {
+    use crate::schema::corpus_groups::dsl::*;
     use crate::schema::groups::dsl::*;
 
-    Ok(groups
-        .select(name)
-        .load::<String>(conn)?
-        .into_iter()
-        .collect())
+    let result = conn.transaction::<_, ServiceError, _>(move || {
+        let mut result: Vec<Group> = Vec::new();
+        // Collect the corpora for each group name
+        for group_name in groups.select(name).load::<String>(conn)? {
+            let corpora = corpus_groups
+                .select(corpus)
+                .filter(group.eq(&group_name))
+                .load::<String>(conn)?;
+            result.push(Group {
+                corpora,
+                name: group_name.clone(),
+            })
+        }
+        Ok(result)
+    })?;
+    Ok(result)
 }
 
 pub fn delete_group(group_name: &str, conn: &SqliteConnection) -> Result<(), ServiceError> {
@@ -41,14 +58,37 @@ pub fn delete_group(group_name: &str, conn: &SqliteConnection) -> Result<(), Ser
     Ok(())
 }
 
-pub fn get_corpora_for_group(
-    group_name: &str,
-    conn: &SqliteConnection,
-) -> Result<Vec<String>, ServiceError> {
-    use crate::schema::corpus_groups::dsl;
+pub fn add_or_replace_group(group: Group, conn: &SqliteConnection) -> Result<(), ServiceError> {
+    use crate::schema::corpus_groups::dsl as cg_dsl;
+    use crate::schema::groups::dsl as g_dsl;
 
-    Ok(dsl::corpus_groups
-        .select(dsl::corpus)
-        .filter(dsl::group.eq(group_name))
-        .load::<String>(conn)?)
+    conn.transaction::<_, ServiceError, _>(move || {
+        // Delete all group corpus relations for this group name
+        diesel::delete(cg_dsl::corpus_groups)
+            .filter(cg_dsl::group.eq(group.name.as_str()))
+            .execute(conn)?;
+
+        // Delete any possible group with the same name
+        diesel::delete(g_dsl::groups)
+            .filter(g_dsl::name.eq(&group.name))
+            .execute(conn)?;
+        // Insert the group with its name
+        diesel::insert_into(g_dsl::groups)
+            .values(models::Group {
+                name: group.name.clone(),
+            })
+            .execute(conn)?;
+        // Insert a group -> corpus relation for all corpora belonging to this group
+        for corpus in group.corpora.into_iter() {
+            diesel::insert_into(cg_dsl::corpus_groups)
+                .values(CorpusGroup {
+                    group: group.name.clone(),
+                    corpus,
+                })
+                .execute(conn)?;
+        }
+        Ok(())
+    })?;
+
+    Ok(())
 }

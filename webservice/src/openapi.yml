@@ -398,13 +398,38 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/CorpusGroup"
+                  $ref: "#/components/schemas/Group"
         403:
           description: Access is forbidden if the requesting client does not have administrator privileges.
 
   /groups/{name}:
+    put:
+      summary: Add or replace the user group given by its name
+      operationId: putGroup
+      tags:
+        - administration
+      parameters:
+        - name: "name"
+          in: path
+          required: true
+          example: "academic"
+          schema:
+            type: string
+      requestBody:
+        description: The group to add
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Group"
+
+      responses:
+        200:
+          description: Group was added or replaced successfully.
+        403:
+          description: Access is forbidden if the requesting client does not have administrator privileges.
     delete:
-      summary: Delete the group given by the name
+      summary: Delete the user group given by its name
       operationId: deleteGroup
       tags:
         - administration
@@ -418,7 +443,7 @@ paths:
 
       responses:
         200:
-          description: Group was deleted.
+          description: Group was deleted successfully.
         403:
           description: Access is forbidden if the requesting client does not have administrator privileges.
 
@@ -746,7 +771,7 @@ components:
           description: Additional configuration given as generic map of key values to the visualizer.
           type: object
 
-    CorpusGroup:
+    Group:
       type: object
       properties:
         name:
