@@ -165,7 +165,8 @@ async fn main() -> Result<()> {
                             .route("/{corpus}/files", web::get().to(api::corpora::files)),
                     )
                     .service(
-                        web::scope("/groups").route("", web::get().to(administration::list_groups)),
+                        web::scope("/groups").route("", web::get().to(administration::list_groups))
+                        .route("/{name}/", web::delete().to(administration::delete_group)),
                     ),
             )
     })

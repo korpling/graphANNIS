@@ -9,7 +9,7 @@ pub fn authorized_corpora_from_groups(
     use crate::schema::corpus_groups::dsl::*;
 
     let mut allowed_corpus_groups: HashSet<String> = claims.groups.iter().cloned().collect();
-    // Always allow the "anonymous" corpus group
+    // Always allow the "anonymous" group
     allowed_corpus_groups.insert("anonymous".to_string());
 
     let allowed_corpora: BTreeSet<String> = corpus_groups
@@ -30,6 +30,17 @@ pub fn get_group_names(conn: &SqliteConnection) -> Result<Vec<String>, ServiceEr
         .into_iter()
         .collect())
 }
+
+pub fn delete_group(group_name: &str, conn: &SqliteConnection) -> Result<(), ServiceError> {
+    use crate::schema::groups::dsl;
+
+    diesel::delete(dsl::groups)
+        .filter(dsl::name.eq(group_name))
+        .execute(conn)?;
+
+    Ok(())
+}
+
 pub fn get_corpora_for_group(
     group_name: &str,
     conn: &SqliteConnection,

@@ -386,13 +386,13 @@ paths:
           description: "Corpus or file not found."
   /groups:
     get:
-      summary: Get all available corpus groups
+      summary: Get all available user groups
       operationId: listGroups
       tags:
         - administration
       responses:
         200:
-          description: All available groups
+          description: All available user groups with their name and the corpora the user is allowed to access.
           content:
             application/json:
               schema:
@@ -400,7 +400,28 @@ paths:
                 items:
                   $ref: "#/components/schemas/CorpusGroup"
         403:
-          description: Access is forbidden because the requesting client does not have administrator privileges.
+          description: Access is forbidden if the requesting client does not have administrator privileges.
+
+  /groups/{name}:
+    delete:
+      summary: Delete the group given by the name
+      operationId: deleteGroup
+      tags:
+        - administration
+      parameters:
+        - name: "name"
+          in: path
+          required: true
+          example: "academic"
+          schema:
+            type: string
+
+      responses:
+        200:
+          description: Group was deleted.
+        403:
+          description: Access is forbidden if the requesting client does not have administrator privileges.
+
 
   /local-login:
     post:
@@ -627,7 +648,6 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/FrequencyTableRow"
-     
 
     FrequencyTableRow:
       type: object

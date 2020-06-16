@@ -31,3 +31,16 @@ pub async fn list_groups(
 
     Ok(HttpResponse::Ok().json(corpus_groups))
 }
+
+pub async fn delete_group(
+    group_name: web::Path<String>,
+    db_pool: web::Data<DbPool>,
+    claims: ClaimsFromAuth,
+) -> Result<HttpResponse, ServiceError> {
+    check_is_admin(&claims.0)?;
+
+    let conn = db_pool.get()?;
+    web::block::<_, _, ServiceError>(move || actions::delete_group(&group_name, &conn)).await?;
+
+    Ok(HttpResponse::Ok().json("Group deleted"))
+}
