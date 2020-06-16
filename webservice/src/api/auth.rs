@@ -16,7 +16,7 @@ pub struct Claims {
     pub sub: String,
     /// Expiration date as unix timestamp in seconds since epoch and UTC
     pub exp: Option<i64>,
-    pub corpus_groups: Vec<String>,
+    pub groups: Vec<String>,
     pub admin: bool,
 }
 
@@ -46,7 +46,7 @@ pub async fn local_login(
 
             let claims = Claims {
                 sub: provided_user.clone(),
-                corpus_groups: user.corpus_groups.clone(),
+                groups: user.corpus_groups.clone(),
                 admin: user.admin,
                 exp: Some(exp),
             };

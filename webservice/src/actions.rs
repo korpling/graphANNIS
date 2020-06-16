@@ -8,7 +8,7 @@ pub fn authorized_corpora_from_groups(
 ) -> Result<BTreeSet<String>, ServiceError> {
     use crate::schema::corpus_groups::dsl::*;
 
-    let mut allowed_corpus_groups: HashSet<String> = claims.corpus_groups.iter().cloned().collect();
+    let mut allowed_corpus_groups: HashSet<String> = claims.groups.iter().cloned().collect();
     // Always allow the "anonymous" corpus group
     allowed_corpus_groups.insert("anonymous".to_string());
 
