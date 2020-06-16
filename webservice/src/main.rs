@@ -11,11 +11,15 @@ use actix_web::{
     middleware::{Compress, Logger},
     web, App, HttpRequest, HttpServer,
 };
+use api::administration;
 use clap::Arg;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
-use std::io::{Error, ErrorKind, Result};
+use std::{
+    io::{Error, ErrorKind, Result},
+    path::PathBuf,
+};
 
 type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
 
@@ -73,10 +77,16 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
     let cs = graphannis::CorpusStorage::with_auto_cache_size(&data_dir, true)?;
 
     // Add a connection pool to the SQLite database
+
     let manager = ConnectionManager::<SqliteConnection>::new(&settings.database.sqlite);
-    let db_pool = r2d2::Pool::builder()
-        .build(manager)
-        .expect("Failed to create pool.");
+    let db_pool = r2d2::Pool::builder().build(manager)?;
+
+    info!(
+        "Using database {}",
+        PathBuf::from(&settings.database.sqlite)
+            .canonicalize()?
+            .to_string_lossy()
+    );
 
     Ok((cs, settings, db_pool))
 }
@@ -153,6 +163,9 @@ async fn main() -> Result<()> {
                                 web::get().to(api::corpora::subgraph_for_query),
                             )
                             .route("/{corpus}/files", web::get().to(api::corpora::files)),
+                    )
+                    .service(
+                        web::scope("/groups").route("", web::get().to(administration::list_groups)),
                     ),
             )
     })

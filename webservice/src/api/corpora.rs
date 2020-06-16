@@ -1,4 +1,4 @@
-use super::{check_corpora_authorized, check_is_admin};
+use super::check_corpora_authorized;
 use crate::{
     actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool,
 };
@@ -16,16 +16,14 @@ pub async fn list(
 ) -> Result<HttpResponse, ServiceError> {
     let all_corpora: Vec<String> = cs.list()?.into_iter().map(|c| c.name).collect();
 
-    let allowed_corpora = if check_is_admin(&claims.0) {
+    let allowed_corpora = if claims.0.admin {
         // Adminstrators always have access to all corpora
         all_corpora
     } else {
         // Query the database for all allowed corpora of this user
-        let conn = db_pool.get().map_err(|_| ServiceError::DatabaseError)?;
+        let conn = db_pool.get()?;
         let corpora_by_group =
-            web::block(move || actions::authorized_corpora_from_groups(&claims.0, &conn))
-                .await
-                .map_err(|_| ServiceError::InternalServerError)?;
+            web::block(move || actions::authorized_corpora_from_groups(&claims.0, &conn)).await?;
         // Filter out non-existing corpora
         all_corpora
             .into_iter()

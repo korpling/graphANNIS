@@ -2,12 +2,17 @@ use crate::{actions, errors::ServiceError, DbPool};
 use actix_web::web;
 use auth::Claims;
 
+pub mod administration;
 pub mod auth;
 pub mod corpora;
 pub mod search;
 
-fn check_is_admin(claims: &Claims) -> bool {
-    claims.admin
+fn check_is_admin(claims: &Claims) -> Result<(), ServiceError> {
+    if claims.admin {
+        Ok(())
+    } else {
+        Err(ServiceError::NotAnAdministrator(claims.sub.clone()))
+    }
 }
 
 /// Check that all `requested_corpora` are authorized for the user. If any of them is not, a `ServiceError::NonAuthorizedCorpus` error is returned.
@@ -16,16 +21,14 @@ async fn check_corpora_authorized(
     claims: Claims,
     db_pool: &web::Data<DbPool>,
 ) -> Result<Vec<String>, ServiceError> {
-    if check_is_admin(&claims) {
+    if claims.admin {
         // Adminstrators always have access to all corpora
         return Ok(requested_corpora);
     }
 
-    let conn = db_pool.get().map_err(|_| ServiceError::DatabaseError)?;
+    let conn = db_pool.get()?;
     let allowed_corpora =
-        web::block(move || actions::authorized_corpora_from_groups(&claims, &conn))
-            .await
-            .map_err(|_| ServiceError::InternalServerError)?;
+        web::block(move || actions::authorized_corpora_from_groups(&claims, &conn)).await?;
 
     if requested_corpora
         .iter()

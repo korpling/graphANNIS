@@ -37,7 +37,11 @@ pub async fn local_login(
             let now: chrono::DateTime<_> = chrono::Utc::now();
             let exp: i64 = now
                 .checked_add_signed(chrono::Duration::minutes(settings.auth.expiration_minutes))
-                .ok_or(ServiceError::InternalServerError)?
+                .ok_or_else(|| {
+                    ServiceError::InternalServerError(
+                        "Could not add expiration time to current time".to_string(),
+                    )
+                })?
                 .timestamp();
 
             let claims = Claims {

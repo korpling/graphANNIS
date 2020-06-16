@@ -384,6 +384,23 @@ paths:
           description: "Returns the content of the requested file."
         "404":
           description: "Corpus or file not found."
+  /groups:
+    get:
+      summary: Get all available corpus groups
+      operationId: listGroups
+      tags:
+        - administration
+      responses:
+        200:
+          description: All available groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CorpusGroup"
+        403:
+          description: Access is forbidden because the requesting client does not have administrator privileges.
 
   /local-login:
     post:
@@ -708,6 +725,15 @@ components:
         mappings:
           description: Additional configuration given as generic map of key values to the visualizer.
           type: object
+
+    CorpusGroup:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "academic"
+        corpora:
+          $ref: "#/components/schemas/CorpusList"
 
   examples:
     Subgraph:

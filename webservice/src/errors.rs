@@ -1,3 +1,4 @@
+use actix_rt::blocking::BlockingError;
 use actix_web::{error::ResponseError, HttpResponse};
 use graphannis::errors::GraphAnnisError;
 use hmac::crypto_mac::InvalidKeyLength;
@@ -8,10 +9,11 @@ pub enum ServiceError {
     BadRequest(String),
     InvalidJWTToken(String),
     NoSuchCorpus(Vec<String>),
-    DatabaseError,
-    InternalServerError,
+    DatabaseError(String),
+    InternalServerError(String),
     GraphAnnisError(GraphAnnisError),
     NotFound,
+    NotAnAdministrator(String),
 }
 
 impl Display for ServiceError {
@@ -22,10 +24,15 @@ impl Display for ServiceError {
             ServiceError::NoSuchCorpus(corpora) => {
                 write!(f, "Non existing corpus/corpora {}", corpora.join(", "))?
             }
-            ServiceError::DatabaseError => write!(f, "Error accessing database")?,
-            ServiceError::InternalServerError => write!(f, "Internal Server Error")?,
+            ServiceError::DatabaseError(e) => write!(f, "Error accessing database: {}", e)?,
+            ServiceError::InternalServerError(msg) => {
+                write!(f, "Internal Server Error: {:?}", msg)?
+            }
             ServiceError::GraphAnnisError(err) => write!(f, "{}", err)?,
             ServiceError::NotFound => write!(f, "Not found",)?,
+            ServiceError::NotAnAdministrator(user) => {
+                write!(f, "User {} is not an adminstrator", user)?
+            }
         }
         Ok(())
     }
@@ -45,12 +52,14 @@ impl ResponseError for ServiceError {
                 "Non existing corpus/corpora {}",
                 corpora.join(", ")
             )),
-            ServiceError::DatabaseError => {
+            ServiceError::DatabaseError(_) => {
                 HttpResponse::BadGateway().json("Error accessing database")
             }
-            ServiceError::InternalServerError => HttpResponse::InternalServerError().finish(),
+            ServiceError::InternalServerError(_) => HttpResponse::InternalServerError().finish(),
             ServiceError::GraphAnnisError(err) => HttpResponse::BadRequest().json(err),
             ServiceError::NotFound => HttpResponse::NotFound().finish(),
+            ServiceError::NotAnAdministrator(_) => HttpResponse::Forbidden()
+                .json("You need to have administrator privilege to access this resource."),
         }
     }
 }
@@ -62,8 +71,8 @@ impl From<InvalidKeyLength> for ServiceError {
 }
 
 impl From<bcrypt::BcryptError> for ServiceError {
-    fn from(_: bcrypt::BcryptError) -> Self {
-        ServiceError::InternalServerError
+    fn from(e: bcrypt::BcryptError) -> Self {
+        ServiceError::InternalServerError(format!("{}", e))
     }
 }
 
@@ -74,10 +83,19 @@ impl From<jwt::Error> for ServiceError {
 }
 
 impl From<diesel::result::Error> for ServiceError {
-    fn from(_orig: diesel::result::Error) -> Self {
-        ServiceError::DatabaseError
+    fn from(orig: diesel::result::Error) -> Self {
+        ServiceError::DatabaseError(orig.to_string())
     }
 }
+
+
+
+impl From<r2d2::Error> for ServiceError {
+    fn from(orig: r2d2::Error) -> Self {
+        ServiceError::DatabaseError(orig.to_string())
+    }
+}
+
 
 impl From<anyhow::Error> for ServiceError {
     fn from(orig: anyhow::Error) -> Self {
@@ -89,7 +107,7 @@ impl From<anyhow::Error> for ServiceError {
                 _ => ServiceError::GraphAnnisError(graphannis_err.clone()),
             }
         } else {
-            ServiceError::InternalServerError
+            ServiceError::InternalServerError(orig.to_string())
         }
     }
 }
@@ -98,7 +116,13 @@ impl From<std::io::Error> for ServiceError {
     fn from(e: std::io::Error) -> Self {
         match e.kind() {
             std::io::ErrorKind::NotFound => ServiceError::NotFound,
-            _ => ServiceError::InternalServerError,
+            _ => ServiceError::InternalServerError(e.to_string()),
         }
+    }
+}
+
+impl<T: std::fmt::Debug> From<BlockingError<T>> for ServiceError {
+    fn from(e: BlockingError<T>) -> Self {
+        ServiceError::InternalServerError(e.to_string())
     }
 }
