@@ -13,7 +13,9 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::*;
 use crate::annis::types::CountExtra;
-use crate::annis::types::{CorpusConfiguration, FrequencyTable, QueryAttributeDescription};
+use crate::annis::types::{
+    CorpusConfiguration, FrequencyTable, FrequencyTableRow, QueryAttributeDescription,
+};
 use crate::annis::util::quicksort;
 use crate::{
     graph::Match,
@@ -205,9 +207,10 @@ struct PreparationResult<'a> {
 }
 
 /// Definition of a single attribute of a frequency query.
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FrequencyDefEntry {
     /// The namespace of the annotation from which the attribute value is generated.
+    #[serde(default)]
     pub ns: Option<String>,
     /// The name of the annotation from which the attribute value is generated.
     pub name: String,
@@ -1854,11 +1857,14 @@ impl CorpusStorage {
         // output the frequency
         let mut result: FrequencyTable<String> = FrequencyTable::default();
         for (tuple, count) in tuple_frequency {
-            result.push((tuple, count));
+            result.push(FrequencyTableRow {
+                values: tuple,
+                count,
+            });
         }
 
         // sort the output (largest to smallest)
-        result.sort_by(|a, b| a.1.cmp(&b.1).reverse());
+        result.sort_by(|a, b| a.count.cmp(&b.count).reverse());
 
         Ok(result)
     }

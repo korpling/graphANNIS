@@ -12,10 +12,16 @@ pub struct CountExtra {
 }
 
 /// Definition of the result of a `frequency` query.
-///
-/// This is a vector of rows, and each row is a vector of columns with the different
-/// attribute values and a number of matches having this combination of attribute values.
-pub type FrequencyTable<T> = Vec<(Vec<T>, usize)>;
+pub type FrequencyTable<T> = Vec<FrequencyTableRow<T>>;
+
+/// Represents the unique combination of attribute values and how often this combination occurs.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FrequencyTableRow<T> {
+    /// Combination of different attribute values.
+    pub values: Vec<T>,
+    /// Number of matches having this combination of attribute values.
+    pub count: usize,
+}
 
 /// Description of an attribute of a query.
 pub struct QueryAttributeDescription {

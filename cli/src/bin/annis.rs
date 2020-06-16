@@ -542,11 +542,11 @@ impl AnnisRunner {
             // TODO: map header
             for row in frequency_table.into_iter() {
                 let mut out_row = Row::empty();
-                for att in row.0.iter() {
+                for att in row.values.iter() {
                     out_row.add_cell(Cell::from(att));
                 }
                 // also add the count
-                out_row.add_cell(Cell::from(&row.1));
+                out_row.add_cell(Cell::from(&row.count));
                 out.add_row(out_row);
             }
             out.printstd();

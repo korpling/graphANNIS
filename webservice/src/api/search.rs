@@ -3,7 +3,7 @@ use crate::{errors::ServiceError, extractors::ClaimsFromAuth, DbPool};
 use actix_web::web::{self, Bytes, HttpResponse};
 use futures::stream::iter;
 use graphannis::{
-    corpusstorage::{QueryLanguage, ResultOrder},
+    corpusstorage::{FrequencyDefEntry, QueryLanguage, ResultOrder},
     CorpusStorage,
 };
 use serde::Deserialize;
@@ -69,4 +69,31 @@ pub async fn find(
     Ok(HttpResponse::Ok()
         .content_type("text/plain")
         .streaming(body))
+}
+
+#[derive(Deserialize)]
+pub struct FrequencyQuery {
+    query: String,
+    #[serde(default)]
+    query_language: QueryLanguage,
+    corpora: Vec<String>,
+    definition: Vec<FrequencyDefEntry>,
+}
+
+pub async fn frequency(
+    params: web::Json<FrequencyQuery>,
+    cs: web::Data<CorpusStorage>,
+    db_pool: web::Data<DbPool>,
+    claims: ClaimsFromAuth,
+) -> Result<HttpResponse, ServiceError> {
+    let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
+
+    let result = cs.frequency(
+        &corpora,
+        &params.query,
+        params.query_language,
+        params.definition.clone(),
+    )?;
+
+    Ok(HttpResponse::Ok().json(result))
 }

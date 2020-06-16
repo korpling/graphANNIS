@@ -3,8 +3,8 @@ use super::cerror::ErrorList;
 use super::Matrix;
 use graphannis::{
     corpusstorage::{
-        CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, ImportFormat,
-        QueryAttributeDescription, QueryLanguage, ResultOrder,
+        CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, FrequencyTableRow,
+        ImportFormat, QueryAttributeDescription, QueryLanguage, ResultOrder,
     },
     model::{AnnotationComponent, AnnotationComponentType},
     update::GraphUpdate,
@@ -402,9 +402,9 @@ pub extern "C" fn annis_cs_frequency(
 
     let mut result: FrequencyTable<CString> = FrequencyTable::new();
 
-    for (tuple, count) in orig_ft.into_iter() {
-        let mut new_tuple: Vec<CString> = Vec::with_capacity(tuple.len());
-        for att in tuple.into_iter() {
+    for row in orig_ft.into_iter() {
+        let mut new_tuple: Vec<CString> = Vec::with_capacity(row.values.len());
+        for att in row.values.into_iter() {
             if let Ok(att) = CString::new(att) {
                 new_tuple.push(att);
             } else {
@@ -412,7 +412,10 @@ pub extern "C" fn annis_cs_frequency(
             }
         }
 
-        result.push((new_tuple, count));
+        result.push(FrequencyTableRow {
+            values: new_tuple,
+            count: row.count,
+        });
     }
     return Box::into_raw(Box::new(result));
 }
