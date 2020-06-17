@@ -453,9 +453,6 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead>(
                                 // Copy all data attributes into our own map
                                 data.insert(anno_key.clone(), t.unescape_and_decode(&reader)?);
                             }
-                        } else if level == 3 && current_data_key == "k0" {
-                            // This is the configuration content, get the escaped string
-                            config = Some(t.unescape_and_decode(&reader)?);
                         }
                     }
                 }
