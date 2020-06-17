@@ -779,7 +779,7 @@ impl CorpusStorage {
                     disk_based,
                     |status| {
                         info!("{}", status);
-                        // loading the file from relANNIS consumes memory, update the corpus cache regulary to allow it to adapat
+                        // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
                         self.check_cache_size_and_remove(vec![]);
                     },
                 )?;
@@ -858,6 +858,9 @@ impl CorpusStorage {
             );
         }
 
+        info!("copying linked files for corpus {}", corpus_name);
+        self.copy_linked_files_and_update_references(&db_path.join("files"), &mut graph)?;
+
         // save to its location
         info!("saving corpus {} to disk", corpus_name);
         let save_result = graph.save_to(&db_path);
@@ -868,9 +871,6 @@ impl CorpusStorage {
                 e
             );
         }
-
-        info!("copying linked files for corpus {}", corpus_name);
-        self.copy_imported_files(&db_path, &mut graph)?;
 
         // Use the imported/generated/default corpus configuration and store it in our graph directory
         let corpus_config_path = db_path.join("corpus-config.toml");
@@ -891,7 +891,11 @@ impl CorpusStorage {
         Ok(corpus_name)
     }
 
-    fn copy_imported_files(&self, db_path: &Path, graph: &mut AnnotationGraph) -> Result<()> {
+    fn copy_linked_files_and_update_references(
+        &self,
+        new_base_path: &Path,
+        graph: &mut AnnotationGraph,
+    ) -> Result<()> {
         let linked_file_key = AnnoKey {
             ns: ANNIS_NS.to_string(),
             name: "file".to_string(),
@@ -909,14 +913,14 @@ impl CorpusStorage {
                 if original_path.is_file() {
                     if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY) {
                         // Create a new file name based on the node name and copy the file
-                        let new_path = db_path.join("files").join(node_name.as_ref());
+                        let new_path = new_base_path.join(node_name.as_ref());
                         if let Some(parent) = new_path.parent() {
                             std::fs::create_dir_all(parent)?;
                         }
                         std::fs::copy(&original_path, &new_path)?;
                         // Update the annotation to link to the new file with a relative path.
                         // Use the corpus directory as base path for this relative path.
-                        let relative_path = new_path.strip_prefix(&db_path)?;
+                        let relative_path = new_path.strip_prefix(&new_base_path)?;
                         node_annos.insert(
                             node,
                             Annotation {
@@ -924,6 +928,36 @@ impl CorpusStorage {
                                 val: relative_path.to_string_lossy().to_string(),
                             },
                         )?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn copy_linked_files(&self, new_base_path: &Path, graph: &AnnotationGraph) -> Result<()> {
+        let linked_file_key = AnnoKey {
+            ns: ANNIS_NS.to_string(),
+            name: "file".to_string(),
+        };
+        // Find all nodes of the type "file"
+        let node_annos: &dyn AnnotationStorage<NodeID> = graph.get_node_annos();
+        let file_nodes: Vec<NodeID> = node_annos
+            .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
+            .map(|m| m.node)
+            .collect();
+        for node in file_nodes {
+            // Get the linked file for this node
+            if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key) {
+                let original_path = PathBuf::from(original_path.as_ref());
+                if original_path.is_file() {
+                    if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY) {
+                        // Create a new file name based on the node name and copy the file
+                        let new_path = new_base_path.join(node_name.as_ref());
+                        if let Some(parent) = new_path.parent() {
+                            std::fs::create_dir_all(parent)?;
+                        }
+                        std::fs::copy(&original_path, &new_path)?;
                     }
                 }
             }
@@ -973,6 +1007,14 @@ impl CorpusStorage {
                     },
                 )?;
             }
+        }
+
+        // Copy the referenced files to the same location as the output file.
+        // The current reference is always a relative path to the "files/" subfolder in the corpus data-directory.
+        // Updating the relative file names would be quite costly, so output the files also in a files/ subfolder
+        // next the GraphML file.
+        if let Some(parent_dir) = path.parent() {
+            self.copy_linked_files(&parent_dir.join("files"), &graph)?;
         }
 
         Ok(())
