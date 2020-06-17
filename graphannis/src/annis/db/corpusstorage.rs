@@ -472,9 +472,8 @@ impl CorpusStorage {
             MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
 
         for n in names {
-            if let Ok(corpus_info) = self.create_corpus_info(&n, &mut mem_ops) {
-                result.push(corpus_info);
-            }
+            let corpus_info = self.create_corpus_info(&n, &mut mem_ops)?;
+            result.push(corpus_info);
         }
 
         Ok(result)
@@ -509,6 +508,17 @@ impl CorpusStorage {
         Ok(corpora)
     }
 
+    fn get_corpus_config(&self, corpus_name: &str) -> Result<Option<CorpusConfiguration>> {
+        let corpus_config_path = self.db_dir.join(corpus_name).join("corpus-config.toml");
+        if corpus_config_path.is_file() {
+            let file_content = std::fs::read_to_string(corpus_config_path)?;
+            let config = toml::from_str(&file_content)?;
+            Ok(Some(config))
+        } else {
+            Ok(None)
+        }
+    }
+
     fn create_corpus_info(
         &self,
         corpus_name: &str,
@@ -518,12 +528,15 @@ impl CorpusStorage {
         let lock = cache_entry.read().unwrap();
 
         // Read configuration file or create a default one
-        let corpus_config_path = self.db_dir.join(corpus_name).join("corpus-config.toml");
-        let config: CorpusConfiguration = if corpus_config_path.is_file() {
-            toml::from_str(&std::fs::read_to_string(corpus_config_path)?)?
-        } else {
-            CorpusConfiguration::default()
-        };
+        let config: CorpusConfiguration = self
+            .get_corpus_config(corpus_name)
+            .with_context(|| {
+                format!(
+                    "Loading corpus-config.toml for corpus {} failed",
+                    corpus_name
+                )
+            })?
+            .unwrap_or_default();
 
         let corpus_info: CorpusInfo = match &*lock {
             CacheEntry::Loaded(ref db) => {
@@ -761,7 +774,7 @@ impl CorpusStorage {
                     "UnknownCorpus".to_string()
                 };
                 let input_file = File::open(path)?;
-                let g = graphannis_core::graph::serialization::graphml::import(
+                let (g, config_str) = graphannis_core::graph::serialization::graphml::import(
                     input_file,
                     disk_based,
                     |status| {
@@ -770,7 +783,12 @@ impl CorpusStorage {
                         self.check_cache_size_and_remove(vec![]);
                     },
                 )?;
-                (orig_corpus_name, g, CorpusConfiguration::default())
+                let config = if let Some(config_str) = config_str {
+                    toml::from_str(&config_str)?
+                } else {
+                    CorpusConfiguration::default()
+                };
+                (orig_corpus_name, g, config)
             }
             ImportFormat::GraphMLCompressed => {
                 let orig_corpus_name = if let Some(file_name) = path.file_stem() {
@@ -785,7 +803,7 @@ impl CorpusStorage {
                 };
                 let input_file = File::open(path)?;
                 let decompressed_input = brotli::Decompressor::new(input_file, 4096);
-                let g = graphannis_core::graph::serialization::graphml::import(
+                let (g, config_str) = graphannis_core::graph::serialization::graphml::import(
                     decompressed_input,
                     disk_based,
                     |status| {
@@ -794,7 +812,12 @@ impl CorpusStorage {
                         self.check_cache_size_and_remove(vec![]);
                     },
                 )?;
-                (orig_corpus_name, g, CorpusConfiguration::default())
+                let config = if let Some(config_str) = config_str {
+                    toml::from_str(&config_str)?
+                } else {
+                    CorpusConfiguration::default()
+                };
+                (orig_corpus_name, g, config)
             }
         };
 
@@ -920,11 +943,18 @@ impl CorpusStorage {
         // Perform the export on a read-only reference
         let lock = entry.read().unwrap();
         let graph: &AnnotationGraph = get_read_or_error(&lock)?;
+
+        let config_as_str = if let Some(config) = self.get_corpus_config(corpus_name)? {
+            Some(toml::to_string_pretty(&config)?)
+        } else {
+            None
+        };
         match format {
             ExportFormat::GraphML => {
                 let output_file = File::create(path)?;
                 graphannis_core::graph::serialization::graphml::export(
                     graph,
+                    config_as_str.as_deref(),
                     &output_file,
                     |status| {
                         info!("{}", status);
@@ -934,9 +964,14 @@ impl CorpusStorage {
             ExportFormat::GraphMLCompressed => {
                 let output_file = File::create(path)?;
                 let writer = CompressorWriter::new(output_file, 4096, 9, 22);
-                graphannis_core::graph::serialization::graphml::export(graph, writer, |status| {
-                    info!("{}", status);
-                })?;
+                graphannis_core::graph::serialization::graphml::export(
+                    graph,
+                    config_as_str.as_deref(),
+                    writer,
+                    |status| {
+                        info!("{}", status);
+                    },
+                )?;
             }
         }
 
