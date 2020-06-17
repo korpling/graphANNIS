@@ -859,7 +859,12 @@ impl CorpusStorage {
         }
 
         info!("copying linked files for corpus {}", corpus_name);
-        self.copy_linked_files_and_update_references(&db_path.join("files"), &mut graph)?;
+        let current_dir = PathBuf::from(".");
+        self.copy_linked_files_and_update_references(
+            path.parent().unwrap_or(&current_dir),
+            &db_path.join("files"),
+            &mut graph,
+        )?;
 
         // save to its location
         info!("saving corpus {} to disk", corpus_name);
@@ -893,6 +898,7 @@ impl CorpusStorage {
 
     fn copy_linked_files_and_update_references(
         &self,
+        old_base_path: &Path,
         new_base_path: &Path,
         graph: &mut AnnotationGraph,
     ) -> Result<()> {
@@ -909,7 +915,9 @@ impl CorpusStorage {
         for node in file_nodes {
             // Get the linked file for this node
             if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key) {
-                let original_path = PathBuf::from(original_path.as_ref());
+                let original_path = old_base_path
+                    .canonicalize()?
+                    .join(&PathBuf::from(original_path.as_ref()));
                 if original_path.is_file() {
                     if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY) {
                         // Create a new file name based on the node name and copy the file
@@ -935,7 +943,12 @@ impl CorpusStorage {
         Ok(())
     }
 
-    fn copy_linked_files(&self, new_base_path: &Path, graph: &AnnotationGraph) -> Result<()> {
+    fn copy_linked_files(
+        &self,
+        old_base_path: &Path,
+        new_base_path: &Path,
+        graph: &AnnotationGraph,
+    ) -> Result<()> {
         let linked_file_key = AnnoKey {
             ns: ANNIS_NS.to_string(),
             name: "file".to_string(),
@@ -949,7 +962,9 @@ impl CorpusStorage {
         for node in file_nodes {
             // Get the linked file for this node
             if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key) {
-                let original_path = PathBuf::from(original_path.as_ref());
+                let original_path = old_base_path
+                    .canonicalize()?
+                    .join(&PathBuf::from(original_path.as_ref()));
                 if original_path.is_file() {
                     if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY) {
                         // Create a new file name based on the node name and copy the file
@@ -1011,10 +1026,13 @@ impl CorpusStorage {
 
         // Copy the referenced files to the same location as the output file.
         // The current reference is always a relative path to the "files/" subfolder in the corpus data-directory.
-        // Updating the relative file names would be quite costly, so output the files also in a files/ subfolder
-        // next the GraphML file.
+        // Updating the relative file names would be quite costly, so output the files next the GraphML file.
         if let Some(parent_dir) = path.parent() {
-            self.copy_linked_files(&parent_dir.join("files"), &graph)?;
+            self.copy_linked_files(
+                &self.db_dir.join(corpus_name).join("files"),
+                &parent_dir,
+                &graph,
+            )?;
         }
 
         Ok(())
