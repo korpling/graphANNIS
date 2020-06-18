@@ -235,26 +235,43 @@ impl AnnisRunner {
 
         // Determine most likely input format based on the extension of the file
         let path = PathBuf::from(args[0]);
-        let mut format = ImportFormat::RelANNIS;
+
         if path.is_file() {
             if let Some(file_ext) = path.extension() {
                 let file_ext = file_ext.to_string_lossy().to_lowercase();
-                if file_ext == "graphml" || file_ext == "xml" {
-                    format = ImportFormat::GraphML
-                }
-                // TODO: add zip file support here
-            }
-        }
 
-        let t_before = std::time::SystemTime::now();
-        let name: String = self
-            .storage
-            .as_ref()
-            .ok_or(anyhow!("No corpus storage location set"))?
-            .import_from_fs(&path, format, overwritten_corpus_name, self.use_disk)?;
-        let load_time = t_before.elapsed();
-        if let Ok(t) = load_time {
-            info! {"imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                if file_ext == "zip" {
+                    // Import  ZIP file with possible multiple corpora
+                    let t_before = std::time::SystemTime::now();
+                    let names = self
+                        .storage
+                        .as_ref()
+                        .ok_or(anyhow!("No corpus storage location set"))?
+                        .import_all_from_zip(&path, self.use_disk)?;
+                    let load_time = t_before.elapsed();
+                    if let Ok(t) = load_time {
+                        info! {"imported corpora {:?} in {} ms", names, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                    }
+                } else {
+                    // Import a single corpus
+                    let mut format = ImportFormat::RelANNIS;
+
+                    if file_ext == "graphml" || file_ext == "xml" {
+                        format = ImportFormat::GraphML
+                    }
+
+                    let t_before = std::time::SystemTime::now();
+                    let name: String = self
+                        .storage
+                        .as_ref()
+                        .ok_or(anyhow!("No corpus storage location set"))?
+                        .import_from_fs(&path, format, overwritten_corpus_name, self.use_disk)?;
+                    let load_time = t_before.elapsed();
+                    if let Ok(t) = load_time {
+                        info! {"imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                    }
+                }
+            }
         }
 
         Ok(())
@@ -659,7 +676,7 @@ fn main() {
     };
 
     let log_config = simplelog::ConfigBuilder::new()
-        .add_filter_ignore_str("rustyline:")
+        .add_filter_ignore_str("rustyline")
         .build();
 
     if let Err(e) = TermLogger::init(
