@@ -62,7 +62,7 @@ pub async fn subgraph(
     )?;
     // Export subgraph to GraphML
     let mut output = Vec::new();
-    graphannis_core::graph::serialization::graphml::export(&graph, &mut output, |_| {})?;
+    graphannis_core::graph::serialization::graphml::export(&graph, None, &mut output, |_| {})?;
 
     Ok(HttpResponse::Ok()
         .content_type("application/xml")
@@ -95,7 +95,7 @@ pub async fn subgraph_for_query(
     )?;
     // Export subgraph to GraphML
     let mut output = Vec::new();
-    graphannis_core::graph::serialization::graphml::export(&graph, &mut output, |_| {})?;
+    graphannis_core::graph::serialization::graphml::export(&graph, None, &mut output, |_| {})?;
 
     Ok(HttpResponse::Ok()
         .content_type("application/xml")

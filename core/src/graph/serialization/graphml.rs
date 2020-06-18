@@ -20,10 +20,24 @@ use std::{
 
 fn write_annotation_keys<CT: ComponentType, W: std::io::Write>(
     graph: &Graph<CT>,
+    has_graph_configuration: bool,
     writer: &mut Writer<W>,
 ) -> Result<BTreeMap<AnnoKey, String>> {
     let mut key_id_mapping = BTreeMap::new();
     let mut id_counter = 0;
+
+    if has_graph_configuration {
+        let new_id = format!("k{}", id_counter);
+        id_counter += 1;
+
+        let mut key_start = BytesStart::borrowed_name("key".as_bytes());
+        key_start.push_attribute(("id", new_id.as_str()));
+        key_start.push_attribute(("for", "graph"));
+        key_start.push_attribute(("attr.name", "configuration"));
+        key_start.push_attribute(("attr.type", "string"));
+
+        writer.write_event(Event::Empty(key_start))?;
+    }
 
     // Create node annotation keys
     for key in graph.get_node_annos().annotation_keys() {
@@ -194,6 +208,7 @@ fn write_edges<CT: ComponentType, W: std::io::Write>(
 
 pub fn export<CT: ComponentType, W: std::io::Write, F>(
     graph: &Graph<CT>,
+    graph_configuration: Option<&str>,
     output: W,
     progress_callback: F,
 ) -> Result<()>
@@ -213,12 +228,28 @@ where
 
     // Define all valid annotation ns/name pairs
     progress_callback("exporting all available annotation keys");
-    let key_id_mapping = write_annotation_keys(graph, &mut writer)?;
+    let key_id_mapping = write_annotation_keys(graph, graph_configuration.is_some(), &mut writer)?;
 
     // We are writing a single graph
     let mut graph_start = BytesStart::borrowed_name("graph".as_bytes());
     graph_start.push_attribute(("edgedefault", "directed"));
+    // Add parse helper information to allow more efficient parsing
+    graph_start.push_attribute(("parse.order", "nodesfirst"));
+    graph_start.push_attribute(("parse.nodeids", "free"));
+    graph_start.push_attribute(("parse.edgeids", "canonical"));
+
     writer.write_event(Event::Start(graph_start))?;
+
+    // If graph configuration is given, add it as data element to the graph
+    if let Some(config) = graph_configuration {
+        let mut data_start = BytesStart::borrowed_name(b"data");
+        // This is always the first key ID
+        data_start.push_attribute(("key", "k0"));
+        writer.write_event(Event::Start(data_start))?;
+        // Add the annotation value as internal text node
+        writer.write_event(Event::CData(BytesText::from_escaped_str(config)))?;
+        writer.write_event(Event::End(BytesEnd::borrowed(b"data")))?;
+    }
 
     // Write out all nodes
     progress_callback("exporting nodes");
@@ -337,7 +368,7 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead>(
     input: &mut R,
     node_updates: &mut GraphUpdate,
     edge_updates: &mut GraphUpdate,
-) -> Result<()> {
+) -> Result<Option<String>> {
     let mut reader = Reader::from_reader(input);
     reader.expand_empty_elements(true);
 
@@ -353,6 +384,8 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead>(
     let mut current_target_id: Option<String> = None;
     let mut current_component: Option<String> = None;
     let mut data: HashMap<AnnoKey, String> = HashMap::new();
+
+    let mut config = None;
 
     loop {
         match reader.read_event(&mut buf)? {
@@ -414,9 +447,21 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead>(
             }
             Event::Text(t) => {
                 if let Some(current_data_key) = &current_data_key {
-                    if let Some(anno_key) = keys.get(current_data_key) {
-                        // Copy all data attributes into our own map
-                        data.insert(anno_key.clone(), t.unescape_and_decode(&reader)?);
+                    if in_graph {
+                        if level == 4 {
+                            if let Some(anno_key) = keys.get(current_data_key) {
+                                // Copy all data attributes into our own map
+                                data.insert(anno_key.clone(), t.unescape_and_decode(&reader)?);
+                            }
+                        }
+                    }
+                }
+            }
+            Event::CData(t) => {
+                if let Some(current_data_key) = &current_data_key {
+                    if in_graph && level == 3 && current_data_key == "k0" {
+                        // This is the configuration content
+                        config = Some(String::from_utf8_lossy(&t).to_string());
                     }
                 }
             }
@@ -456,14 +501,14 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead>(
             _ => {}
         }
     }
-    Ok(())
+    Ok(config)
 }
 
 pub fn import<CT: ComponentType, R: Read, F>(
     input: R,
     disk_based: bool,
     progress_callback: F,
-) -> Result<Graph<CT>>
+) -> Result<(Graph<CT>, Option<String>)>
 where
     F: Fn(&str) -> (),
 {
@@ -475,7 +520,7 @@ where
 
     // read in all nodes and edges, collecting annotation keys on the fly
     progress_callback("reading GraphML");
-    read_graphml::<CT, BufReader<R>>(&mut input, &mut updates, &mut edge_updates)?;
+    let config = read_graphml::<CT, BufReader<R>>(&mut input, &mut updates, &mut edge_updates)?;
 
     // Append all edges updates after the node updates:
     // edges would not be added if the nodes they are referring do not exist
@@ -487,7 +532,7 @@ where
     progress_callback("applying imported changes");
     g.apply_update(&mut updates, &progress_callback)?;
 
-    Ok(g)
+    Ok((g, config))
 }
 
 #[cfg(test)]
@@ -495,6 +540,13 @@ mod tests {
     use super::*;
     use crate::{graph::GraphUpdate, types::DefaultComponentType};
     use std::borrow::Cow;
+
+    const TEST_CONFIG: &str = r#"[some]
+key = "<value>"
+
+[some.another]
+value = "test""#;
+
     #[test]
     fn export_graphml() {
         // Create a sample graph using the simple type
@@ -531,7 +583,7 @@ mod tests {
 
         // export to GraphML, read generated XML and compare it
         let mut xml_data: Vec<u8> = Vec::default();
-        export(&g, &mut xml_data, |_| {}).unwrap();
+        export(&g, Some(TEST_CONFIG), &mut xml_data, |_| {}).unwrap();
         let expected = include_str!("graphml_example.graphml");
         let actual = String::from_utf8(xml_data).unwrap();
         assert_eq!(expected, actual);
@@ -544,7 +596,7 @@ mod tests {
                 .as_bytes()
                 .to_owned(),
         );
-        let g: Graph<DefaultComponentType> = import(input_xml, false, |_| {}).unwrap();
+        let (g, config_str) = import(input_xml, false, |_| {}).unwrap();
 
         // Check that all nodes, edges and annotations have been created
         let first_node_id = g.get_node_id_from_name("first_node").unwrap();
@@ -577,5 +629,7 @@ mod tests {
 
         let test_gs = g.get_graphstorage_as_ref(&component[0]).unwrap();
         assert_eq!(Some(1), test_gs.distance(first_node_id, second_node_id));
+
+        assert_eq!(Some(TEST_CONFIG), config_str.as_deref());
     }
 }

@@ -88,14 +88,11 @@ impl From<diesel::result::Error> for ServiceError {
     }
 }
 
-
-
 impl From<r2d2::Error> for ServiceError {
     fn from(orig: r2d2::Error) -> Self {
         ServiceError::DatabaseError(orig.to_string())
     }
 }
-
 
 impl From<anyhow::Error> for ServiceError {
     fn from(orig: anyhow::Error) -> Self {
