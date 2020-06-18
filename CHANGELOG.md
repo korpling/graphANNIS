@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is also exported to GraphML.
 - Export and import ZIP files containing multiple corpora.
 
+### Removed
+
+- Removed Brotli support: use the ZIP file export instead
+
 ## [0.27.0] - 2020-06-08
 
 ### Changed
