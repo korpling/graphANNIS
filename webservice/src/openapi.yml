@@ -24,7 +24,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CorpusList"
-  
+
   /import:
     post:
       tags:
@@ -46,8 +46,42 @@ paths:
               type: string
               format: binary
       responses:
+        "202":
+          description: Corpus import started. Returns a UUID for the background job which can be used with the `/jobs` endpoint
+          links:
+            GetJobForUUID:
+              operationId: getJob
+              parameters:
+                uuid: "$response.body#/uuid"
+          content:
+            application/json:
+              schema:
+                type: object
+                description: The UUID for the background job. Status can be queried via the /job endpoint and this UUID.
+                properties:
+                  uuid:
+                    type: string
+                    example: 
+                      7dac334e-7f8f-4f1c-919e-02912527f329
+
+  /jobs/{uuid}:
+    get:
+      tags:
+        - administration
+      operationId: getJob
+      summary: Get the status of the background job with the UUID
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: boolean
+            default: false
+      responses:
         "200":
-          description: "Corpora imported"
+          description: A representation of this status job
+            
+
 
   /search/count:
     post:
@@ -470,7 +504,6 @@ paths:
           description: Group was deleted successfully.
         403:
           description: Access is forbidden if the requesting client does not have administrator privileges.
-
 
   /local-login:
     post:

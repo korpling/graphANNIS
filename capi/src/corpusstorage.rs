@@ -609,6 +609,7 @@ pub extern "C" fn annis_cs_import_from_fs(
             override_corpus_name,
             disk_based,
             overwrite_existing,
+            |status| info!("{}", status)
         ),
         err,
         std::ptr::null_mut()

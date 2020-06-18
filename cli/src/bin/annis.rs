@@ -248,7 +248,9 @@ impl AnnisRunner {
                         .storage
                         .as_ref()
                         .ok_or(anyhow!("No corpus storage location set"))?
-                        .import_all_from_zip(zip_file, self.use_disk, true)?;
+                        .import_all_from_zip(zip_file, self.use_disk, true, |status| {
+                            info!("{}", status)
+                        })?;
                     let load_time = t_before.elapsed();
                     if let Ok(t) = load_time {
                         info! {"imported corpora {:?} in {} ms", names, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -272,6 +274,7 @@ impl AnnisRunner {
                             overwritten_corpus_name,
                             self.use_disk,
                             true,
+                            |status| info!("{}", status),
                         )?;
                     let load_time = t_before.elapsed();
                     if let Ok(t) = load_time {

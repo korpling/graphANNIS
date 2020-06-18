@@ -5,12 +5,23 @@ use crate::{
 use actix_web::web::{self, HttpResponse};
 use futures::prelude::*;
 use graphannis::CorpusStorage;
-use std::io::Write;
+use std::{collections::HashMap, io::Write, sync::RwLock};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Group {
     pub name: String,
     pub corpora: Vec<String>,
+}
+
+#[derive(Serialize, Clone)]
+pub enum Job {
+    Import { messages: Vec<String> },
+}
+
+#[derive(Default)]
+pub struct BackgroundJobs {
+    // Maps a UUID to a job
+    pub jobs: RwLock<HashMap<uuid::Uuid, Job>>,
 }
 
 pub async fn list_groups(
@@ -67,9 +78,15 @@ pub struct ImportParams {
     override_existing: bool,
 }
 
+#[derive(Serialize)]
+pub struct ImportResult {
+    uuid: String,
+}
+
 pub async fn import_corpus(
     params: web::Query<ImportParams>,
     mut body: web::Payload,
+    background_jobs: web::Data<BackgroundJobs>,
     cs: web::Data<CorpusStorage>,
     settings: web::Data<Settings>,
     claims: ClaimsFromAuth,
@@ -83,7 +100,40 @@ pub async fn import_corpus(
         tmp = web::block(move || tmp.write_all(&data).map(|_| tmp)).await?;
     }
 
-    cs.import_all_from_zip(tmp, settings.database.disk_based, params.override_existing)?;
+    // Create a UUID which is used for the background job
+    let id = uuid::Uuid::new_v4();
+    {
+        let mut jobs = background_jobs.jobs.write().expect("Lock was poisoned");
+        jobs.insert(
+            id,
+            Job::Import {
+                messages: Vec::default(),
+            },
+        );
+    }
+    // Execute the whole import in a background thread
+    std::thread::spawn(move || {
+        let id_as_string = id.to_string();
+        match cs.import_all_from_zip(
+            tmp,
+            settings.database.disk_based,
+            params.override_existing,
+            |status| {
+                info!("Job {} update: {}", &id_as_string, status);
+                // Add status report to background job messages
+                let mut jobs = background_jobs.jobs.write().expect("Lock was poisoned");
+                if let Some(Job::Import { messages }) = jobs.get_mut(&id) {
+                    messages.push(status.to_string());
+                }
+            },
+        ) {
+            Ok(_corpora) => {}
+            Err(_err) => {}
+        }
+    });
 
-    Ok(HttpResponse::Ok().json("Corpus imported"))
+    // TODO: calculate the correct endpoint using the ID
+    Ok(HttpResponse::Accepted().json(ImportResult {
+        uuid: id.to_string(),
+    }))
 }

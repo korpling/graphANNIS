@@ -7,10 +7,12 @@ extern crate diesel;
 
 use actix_cors::Cors;
 use actix_web::{
+    guard,
     http::{self, ContentEncoding},
     middleware::{Compress, Logger},
-    web, App, HttpRequest, HttpServer, guard,
+    web, App, HttpRequest, HttpServer,
 };
+use administration::BackgroundJobs;
 use api::administration;
 use clap::Arg;
 use diesel::prelude::*;
@@ -112,6 +114,9 @@ async fn main() -> Result<()> {
     let settings = web::Data::new(settings);
     let db_pool = web::Data::new(db_pool);
 
+    // Create a list of background jobs behind a Mutex
+    let background_jobs = web::Data::new(BackgroundJobs::default());
+
     let api_version = format!("/v{}", env!("CARGO_PKG_VERSION_MAJOR"),);
 
     // Run server
@@ -126,6 +131,7 @@ async fn main() -> Result<()> {
             .app_data(cs.clone())
             .app_data(settings.clone())
             .app_data(db_pool.clone())
+            .app_data(background_jobs.clone())
             .wrap(Logger::default())
             .wrap(Compress::new(ContentEncoding::Gzip))
             .service(

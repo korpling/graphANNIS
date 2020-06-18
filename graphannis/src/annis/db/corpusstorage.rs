@@ -771,16 +771,19 @@ impl CorpusStorage {
     /// - `zip_file` - The content of the ZIP file.
     /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
     /// - `overwrite_existing` - If `true`, overwrite existing corpora. Otherwise ignore.
+    /// - `progress_callback` - A callback function to which the import progress is reported to.
     ///
     /// Returns the names of the imported corpora.
-    pub fn import_all_from_zip<R>(
+    pub fn import_all_from_zip<R, F>(
         &self,
         zip_file: R,
         disk_based: bool,
         overwrite_existing: bool,
+        progress_callback: F,
     ) -> Result<Vec<String>>
     where
         R: Read + Seek,
+        F: Fn(&str) -> (),
     {
         // Unzip all files to a temporary directory
         let tmp_dir = tempfile::tempdir()?;
@@ -832,6 +835,7 @@ impl CorpusStorage {
                 None,
                 disk_based,
                 overwrite_existing,
+                &progress_callback,
             )?;
             corpus_names.push(name);
         }
@@ -844,6 +848,7 @@ impl CorpusStorage {
                 None,
                 disk_based,
                 overwrite_existing,
+                &progress_callback,
             )?;
             corpus_names.push(name);
         }
@@ -865,19 +870,24 @@ impl CorpusStorage {
     /// - `corpus_name` - Optionally override the name of the new corpus for file formats that already provide a corpus name. This only works if the imported file location only contains one corpus.
     /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
     /// - `overwrite_existing` - If `true`, overwrite existing corpora. Otherwise ignore.
-
+    /// - `progress_callback` - A callback function to which the import progress is reported to.
+    ///
     /// Returns the name of the imported corpus.
-    pub fn import_from_fs(
+    pub fn import_from_fs<F>(
         &self,
         path: &Path,
         format: ImportFormat,
         corpus_name: Option<String>,
         disk_based: bool,
         overwrite_existing: bool,
-    ) -> Result<String> {
+        progress_callback: F,
+    ) -> Result<String>
+    where
+        F: Fn(&str) -> (),
+    {
         let (orig_name, mut graph, config) = match format {
             ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
-                info!("{}", status);
+                progress_callback(status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
                 self.check_cache_size_and_remove(vec![]);
             })?,
@@ -892,7 +902,7 @@ impl CorpusStorage {
                     input_file,
                     disk_based,
                     |status| {
-                        info!("{}", status);
+                        progress_callback(status);
                         // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
                         self.check_cache_size_and_remove(vec![]);
                     },
