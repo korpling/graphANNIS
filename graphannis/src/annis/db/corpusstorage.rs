@@ -1014,6 +1014,7 @@ impl CorpusStorage {
     fn export_single_corpus_zip<W>(
         &self,
         corpus_name: &str,
+        use_corpus_subdirectory: bool,
         mut zip: &mut zip::ZipWriter<W>,
     ) -> Result<()>
     where
@@ -1022,7 +1023,11 @@ impl CorpusStorage {
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
-        let path_in_zip = PathBuf::from_str(&format!("{}.graphml", corpus_name))?;
+        let mut base_path = PathBuf::default();
+        if use_corpus_subdirectory {
+            base_path.push(corpus_name);
+        }
+        let path_in_zip = base_path.join(format!("{}.graphml", corpus_name));
         zip.start_file_from_path(&path_in_zip, options.clone())?;
 
         let entry = self.get_loaded_entry(corpus_name, false)?;
@@ -1056,7 +1061,8 @@ impl CorpusStorage {
         // Insert all linked files into the ZIP file
         for (node_name, original_path) in self.get_linked_files(corpus_name.as_ref(), graph)? {
             let node_name: String = node_name;
-            zip.start_file_from_path(&PathBuf::from_str(&node_name)?, options.clone())?;
+            
+            zip.start_file_from_path(&base_path.join(&node_name), options.clone())?;
             let file_to_copy = File::open(original_path)?;
             let mut reader = BufReader::new(file_to_copy);
             std::io::copy(&mut reader, zip)?;
@@ -1083,9 +1089,18 @@ impl CorpusStorage {
                 }
             }
             ExportFormat::GraphMLDirectory => {
-                std::fs::create_dir_all(path)?;
-                for corpus_name in corpora.iter() {
-                    let path = path.join(format!("{}.graphml", corpus_name.as_ref()));
+                let use_corpus_subdirectory = corpora.len() > 1;
+                for corpus_name in corpora {
+                    let mut path = PathBuf::from(path);
+                    if use_corpus_subdirectory {
+                        // Use a sub-directory with the corpus name to avoid conflicts with the
+                        // linked files
+                        path.push(corpus_name.as_ref());
+                    } else {
+                       
+                    };
+                    std::fs::create_dir_all(&path)?;
+                    path.push(format!("{}.graphml", corpus_name.as_ref()));
                     self.export_single_corpus_file(corpus_name.as_ref(), &path)?;
                 }
             }
@@ -1093,10 +1108,11 @@ impl CorpusStorage {
                 let output_file = File::create(path)?;
                 let mut zip = zip::ZipWriter::new(output_file);
 
+                let use_corpus_subdirectory = corpora.len() > 1;
                 for corpus_name in corpora {
                     // Add the GraphML file to the ZIP file
                     let corpus_name: &str = corpus_name.as_ref();
-                    self.export_single_corpus_zip(corpus_name, &mut zip)?;
+                    self.export_single_corpus_zip(corpus_name,use_corpus_subdirectory,  &mut zip)?;
                 }
 
                 zip.finish()?;
