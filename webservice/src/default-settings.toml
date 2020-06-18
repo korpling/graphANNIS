@@ -5,6 +5,7 @@ host = "localhost"
 [database]
 graphannis = "data/"
 sqlite = "service.sqlite"
+disk_based = false
 
 [auth]
 jwt_secret = ""

@@ -241,13 +241,14 @@ impl AnnisRunner {
                 let file_ext = file_ext.to_string_lossy().to_lowercase();
 
                 if file_ext == "zip" {
+                    let zip_file = std::fs::File::open(path)?;
                     // Import  ZIP file with possible multiple corpora
                     let t_before = std::time::SystemTime::now();
                     let names = self
                         .storage
                         .as_ref()
                         .ok_or(anyhow!("No corpus storage location set"))?
-                        .import_all_from_zip(&path, self.use_disk)?;
+                        .import_all_from_zip(zip_file, self.use_disk, true)?;
                     let load_time = t_before.elapsed();
                     if let Ok(t) = load_time {
                         info! {"imported corpora {:?} in {} ms", names, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -265,7 +266,13 @@ impl AnnisRunner {
                         .storage
                         .as_ref()
                         .ok_or(anyhow!("No corpus storage location set"))?
-                        .import_from_fs(&path, format, overwritten_corpus_name, self.use_disk)?;
+                        .import_from_fs(
+                            &path,
+                            format,
+                            overwritten_corpus_name,
+                            self.use_disk,
+                            true,
+                        )?;
                     let load_time = t_before.elapsed();
                     if let Ok(t) = load_time {
                         info! {"imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};

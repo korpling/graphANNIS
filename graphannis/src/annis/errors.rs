@@ -19,6 +19,7 @@ pub enum GraphAnnisError {
         name: String,
     },
     NoSuchCorpus(String),
+    CorpusExists(String),
 }
 
 impl Display for GraphAnnisError {
@@ -45,6 +46,7 @@ impl Display for GraphAnnisError {
                 write!(f, "Impossible search expression detected: {}", reason)
             }
             GraphAnnisError::NoSuchCorpus(name) => write!(f, "Corpus {} not found", &name),
+            GraphAnnisError::CorpusExists(name) => write!(f, "Corpus {} already exists.", &name),
         }
     }
 }

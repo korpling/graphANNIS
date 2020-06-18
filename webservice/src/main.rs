@@ -9,7 +9,7 @@ use actix_cors::Cors;
 use actix_web::{
     http::{self, ContentEncoding},
     middleware::{Compress, Logger},
-    web, App, HttpRequest, HttpServer,
+    web, App, HttpRequest, HttpServer, guard,
 };
 use api::administration;
 use clap::Arg;
@@ -132,6 +132,12 @@ async fn main() -> Result<()> {
                 web::scope(&api_version)
                     .route("openapi.yml", web::get().to(get_api_spec))
                     .route("/local-login", web::post().to(api::auth::local_login))
+                    .route(
+                        "/import",
+                        web::post()
+                            .guard(guard::Header("content-type", "application/zip"))
+                            .to(api::administration::import_corpus),
+                    )
                     .service(
                         web::scope("/search")
                             .route("/count", web::post().to(api::search::count))

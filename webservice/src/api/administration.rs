@@ -1,6 +1,11 @@
 use super::check_is_admin;
-use crate::{actions, errors::ServiceError, extractors::ClaimsFromAuth, DbPool};
+use crate::{
+    actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool,
+};
 use actix_web::web::{self, HttpResponse};
+use futures::prelude::*;
+use graphannis::CorpusStorage;
+use std::io::Write;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Group {
@@ -54,4 +59,31 @@ pub async fn put_group(
         .await?;
 
     Ok(HttpResponse::Ok().json("Group added/replaced"))
+}
+
+#[derive(Deserialize, Clone)]
+pub struct ImportParams {
+    #[serde(default)]
+    override_existing: bool,
+}
+
+pub async fn import_corpus(
+    params: web::Query<ImportParams>,
+    mut body: web::Payload,
+    cs: web::Data<CorpusStorage>,
+    settings: web::Data<Settings>,
+    claims: ClaimsFromAuth,
+) -> Result<HttpResponse, ServiceError> {
+    check_is_admin(&claims.0)?;
+
+    // Copy the request body, which should be a ZIP file, to a temporary file
+    let mut tmp = tempfile::tempfile()?;
+    while let Some(chunk) = body.next().await {
+        let data = chunk?;
+        tmp = web::block(move || tmp.write_all(&data).map(|_| tmp)).await?;
+    }
+
+    cs.import_all_from_zip(tmp, settings.database.disk_based, params.override_existing)?;
+
+    Ok(HttpResponse::Ok().json("Corpus imported"))
 }

@@ -24,6 +24,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CorpusList"
+  
+  /import:
+    post:
+      tags:
+        - administration
+      summary: Import all corpora which are part of the uploaded ZIP-file
+      description: This will search for all GraphML and relANNIS files in the uploaded ZIP file and imports them.
+      parameters:
+        - name: override_existing
+          in: query
+          description: If true, existing corpora will be overwritten by the uploaded ones.
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        required: true
+        content:
+          application/zip:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: "Corpora imported"
 
   /search/count:
     post:

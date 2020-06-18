@@ -768,18 +768,26 @@ impl CorpusStorage {
     ///
     /// This function will unzip the file to a temporary location and find all relANNIS and GraphML files in the ZIP file.
     /// The formats of the corpora can be relANNIS or GraphML.
-    /// - `path` - The location on the file system where the corpus data is located.
+    /// - `zip_file` - The content of the ZIP file.
     /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
+    /// - `overwrite_existing` - If `true`, overwrite existing corpora. Otherwise ignore.
     ///
     /// Returns the names of the imported corpora.
-    pub fn import_all_from_zip(&self, path: &Path, disk_based: bool) -> Result<Vec<String>> {
+    pub fn import_all_from_zip<R>(
+        &self,
+        zip_file: R,
+        disk_based: bool,
+        overwrite_existing: bool,
+    ) -> Result<Vec<String>>
+    where
+        R: Read + Seek,
+    {
         // Unzip all files to a temporary directory
         let tmp_dir = tempfile::tempdir()?;
         debug!(
             "Using temporary directory {} to extract ZIP file content.",
             tmp_dir.path().to_string_lossy()
         );
-        let zip_file = std::fs::File::open(path)?;
         let mut archive = zip::ZipArchive::new(zip_file)?;
 
         let mut relannis_files = Vec::new();
@@ -818,13 +826,25 @@ impl CorpusStorage {
         // Import all relANNIS files
         for p in relannis_files {
             info!("importing relANNIS corpus from {}", p.to_string_lossy());
-            let name = self.import_from_fs(&p, ImportFormat::RelANNIS, None, disk_based)?;
+            let name = self.import_from_fs(
+                &p,
+                ImportFormat::RelANNIS,
+                None,
+                disk_based,
+                overwrite_existing,
+            )?;
             corpus_names.push(name);
         }
         // Import all GraphML files
         for p in graphannis_files {
             info!("importing corpus from {}", p.to_string_lossy());
-            let name = self.import_from_fs(&p, ImportFormat::GraphML, None, disk_based)?;
+            let name = self.import_from_fs(
+                &p,
+                ImportFormat::GraphML,
+                None,
+                disk_based,
+                overwrite_existing,
+            )?;
             corpus_names.push(name);
         }
 
@@ -844,7 +864,8 @@ impl CorpusStorage {
     /// - `format` - The format in which this corpus data is stored.
     /// - `corpus_name` - Optionally override the name of the new corpus for file formats that already provide a corpus name. This only works if the imported file location only contains one corpus.
     /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
-    ///
+    /// - `overwrite_existing` - If `true`, overwrite existing corpora. Otherwise ignore.
+
     /// Returns the name of the imported corpus.
     pub fn import_from_fs(
         &self,
@@ -852,6 +873,7 @@ impl CorpusStorage {
         format: ImportFormat,
         corpus_name: Option<String>,
         disk_based: bool,
+        overwrite_existing: bool,
     ) -> Result<String> {
         let (orig_name, mut graph, config) = match format {
             ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
@@ -906,10 +928,16 @@ impl CorpusStorage {
         check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![]);
 
         // remove any possible old corpus
-        let old_entry = cache.remove(&corpus_name);
-        if old_entry.is_some() {
-            if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
-                error!("Error when removing existing files {}", e);
+        if cache.contains_key(&corpus_name) {
+            if overwrite_existing {
+                let old_entry = cache.remove(&corpus_name);
+                if old_entry.is_some() {
+                    if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
+                        error!("Error when removing existing files {}", e);
+                    }
+                }
+            } else {
+                return Err(GraphAnnisError::CorpusExists(corpus_name.to_string()).into());
             }
         }
 

@@ -590,6 +590,7 @@ pub extern "C" fn annis_cs_import_from_fs(
     format: ImportFormat,
     corpus_name: *const libc::c_char,
     disk_based: bool,
+    overwrite_existing: bool,
     err: *mut *mut ErrorList,
 ) -> *mut libc::c_char {
     let cs: &mut CorpusStorage = cast_mut!(ptr);
@@ -606,7 +607,8 @@ pub extern "C" fn annis_cs_import_from_fs(
             &PathBuf::from(path),
             format,
             override_corpus_name,
-            disk_based
+            disk_based,
+            overwrite_existing,
         ),
         err,
         std::ptr::null_mut()

@@ -16,6 +16,7 @@ pub struct Bind {
 pub struct Database {
     pub graphannis: String,
     pub sqlite: String,
+    pub disk_based: bool,
 }
 
 #[derive(Debug, Deserialize, Default)]
