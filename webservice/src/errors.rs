@@ -129,3 +129,9 @@ impl From<actix_web::error::PayloadError> for ServiceError {
         ServiceError::InternalServerError(e.to_string())
     }
 }
+
+impl From<uuid::Error> for ServiceError {
+    fn from(e: uuid::Error) -> Self {
+        ServiceError::BadRequest(e.to_string())
+    }
+}

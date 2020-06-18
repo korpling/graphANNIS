@@ -2,10 +2,13 @@ use super::check_is_admin;
 use crate::{
     actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool,
 };
-use actix_web::web::{self, HttpResponse};
+use actix_web::{
+    web::{self, HttpResponse},
+    HttpRequest,
+};
 use futures::prelude::*;
 use graphannis::CorpusStorage;
-use std::{collections::HashMap, io::Write, sync::RwLock};
+use std::{collections::HashMap, io::Write, path::PathBuf, sync::Mutex};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Group {
@@ -13,15 +16,25 @@ pub struct Group {
     pub corpora: Vec<String>,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize)]
+pub enum JobStatus {
+    Running,
+    Failed,
+    Finished,
+}
+
+#[derive(Serialize)]
 pub enum Job {
-    Import { messages: Vec<String> },
+    Import {
+        messages: Vec<String>,
+        status: JobStatus,
+    },
 }
 
 #[derive(Default)]
 pub struct BackgroundJobs {
     // Maps a UUID to a job
-    pub jobs: RwLock<HashMap<uuid::Uuid, Job>>,
+    pub jobs: Mutex<HashMap<uuid::Uuid, Job>>,
 }
 
 pub async fn list_groups(
@@ -103,11 +116,12 @@ pub async fn import_corpus(
     // Create a UUID which is used for the background job
     let id = uuid::Uuid::new_v4();
     {
-        let mut jobs = background_jobs.jobs.write().expect("Lock was poisoned");
+        let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
         jobs.insert(
             id,
             Job::Import {
                 messages: Vec::default(),
+                status: JobStatus::Running,
             },
         );
     }
@@ -121,19 +135,68 @@ pub async fn import_corpus(
             |status| {
                 info!("Job {} update: {}", &id_as_string, status);
                 // Add status report to background job messages
-                let mut jobs = background_jobs.jobs.write().expect("Lock was poisoned");
-                if let Some(Job::Import { messages }) = jobs.get_mut(&id) {
+                let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
+                if let Some(Job::Import { messages, .. }) = jobs.get_mut(&id) {
                     messages.push(status.to_string());
                 }
             },
         ) {
-            Ok(_corpora) => {}
-            Err(_err) => {}
+            Ok(corpora) => {
+                let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
+                if let Some(Job::Import { messages, status }) = jobs.get_mut(&id) {
+                    messages.push(format!("imported corpora {:?}", corpora));
+                    *status = JobStatus::Finished;
+                }
+            }
+            Err(err) => {
+                let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
+                if let Some(Job::Import { messages, status }) = jobs.get_mut(&id) {
+                    messages.push(format!("importing corpora failed: {:?}", err));
+                    *status = JobStatus::Failed;
+                }
+            }
         }
     });
 
-    // TODO: calculate the correct endpoint using the ID
     Ok(HttpResponse::Accepted().json(ImportResult {
         uuid: id.to_string(),
     }))
+}
+
+pub async fn jobs(
+    uuid: web::Path<String>,
+    background_jobs: web::Data<BackgroundJobs>,
+    claims: ClaimsFromAuth,
+    req: HttpRequest,
+) -> Result<HttpResponse, ServiceError> {
+    check_is_admin(&claims.0)?;
+
+    let uuid = uuid::Uuid::parse_str(&uuid)?;
+
+    let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
+    if let Some(j) = jobs.get(&uuid) {
+        let (response, delete_job) = match j {
+            Job::Import { status, .. } => match status {
+                JobStatus::Running => (HttpResponse::Ok().json(j), false),
+                JobStatus::Finished => {
+                    let req_path = PathBuf::from(req.path());
+                    let corpus_path = req_path.join("../corpora");
+                    (
+                        HttpResponse::SeeOther()
+                            .header("Location", corpus_path.to_string_lossy().as_ref())
+                            .json(j),
+                        true,
+                    )
+                }
+                JobStatus::Failed => (HttpResponse::Gone().json(j), true),
+            },
+        };
+        if delete_job {
+            // Only deliver the finished message once
+            jobs.remove(&uuid);
+        }
+        Ok(response)
+    } else {
+        Ok(HttpResponse::NotFound().finish())
+    }
 }

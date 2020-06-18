@@ -41,7 +41,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/zip:
+          application/octet-stream:
             schema:
               type: string
               format: binary
@@ -61,8 +61,7 @@ paths:
                 properties:
                   uuid:
                     type: string
-                    example: 
-                      7dac334e-7f8f-4f1c-919e-02912527f329
+                    example: 7dac334e-7f8f-4f1c-919e-02912527f329
 
   /jobs/{uuid}:
     get:
@@ -75,14 +74,29 @@ paths:
           in: path
           required: true
           schema:
-            type: boolean
-            default: false
+            type: string
       responses:
         "200":
-          description: A representation of this status job
-            
-
-
+          description: Job is still running
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "303":
+          description: Job was finished successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "410":
+          description: Job failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+        
   /search/count:
     post:
       tags:
@@ -837,6 +851,26 @@ components:
         corpora:
           $ref: "#/components/schemas/CorpusList"
 
+    ImportJob:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - Running
+            - Failed
+            - Finished
+        messages:
+          type: array
+          items:
+            type: string
+          example: ["started import of corpus GUM", "reading GraphML", "Error during import of GUM: corpus already exists"]    
+    Job:
+      type: object
+      properties:
+        Import:
+           $ref: "#/components/schemas/ImportJob"
+      
   examples:
     Subgraph:
       value: >

@@ -7,7 +7,6 @@ extern crate diesel;
 
 use actix_cors::Cors;
 use actix_web::{
-    guard,
     http::{self, ContentEncoding},
     middleware::{Compress, Logger},
     web, App, HttpRequest, HttpServer,
@@ -140,10 +139,9 @@ async fn main() -> Result<()> {
                     .route("/local-login", web::post().to(api::auth::local_login))
                     .route(
                         "/import",
-                        web::post()
-                            .guard(guard::Header("content-type", "application/zip"))
-                            .to(api::administration::import_corpus),
+                        web::post().to(api::administration::import_corpus),
                     )
+                    .route("/jobs/{uuid}", web::get().to(api::administration::jobs))
                     .service(
                         web::scope("/search")
                             .route("/count", web::post().to(api::search::count))
