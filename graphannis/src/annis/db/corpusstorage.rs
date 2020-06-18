@@ -749,6 +749,80 @@ impl CorpusStorage {
         Ok(db_entry)
     }
 
+    /// Import all corpora from a ZIP file.
+    ///
+    /// This function will unzip the file to a temporary location and find all relANNIS and GraphML files in the ZIP file.
+    /// The formats of the corpora can be relANNIS or GraphML.
+    /// - `path` - The location on the file system where the corpus data is located.
+    /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
+    ///
+    /// Returns the names of the imported corpora.
+    pub fn import_all_from_zip(&self, path: &Path, disk_based: bool) -> Result<Vec<String>> {
+        // Unzip all files to a temporary directory
+        let tmp_dir = tempfile::tempdir()?;
+        debug!(
+            "Using temporary directory {} to extract ZIP file content.",
+            tmp_dir.path().to_string_lossy()
+        );
+        let zip_file = std::fs::File::open(path)?;
+        let mut archive = zip::ZipArchive::new(zip_file)?;
+
+        let mut relannis_files = Vec::new();
+        let mut graphannis_files = Vec::new();
+
+        for i in 0..archive.len() {
+            let mut file = archive.by_index(i)?;
+            let output_path = tmp_dir.path().join(file.sanitized_name());
+
+            if let Some(file_name) = output_path.file_name() {
+                if file_name == "corpus.annis" || file_name == "corpus.tab" {
+                    if let Some(relannis_root) = output_path.parent() {
+                        relannis_files.push(relannis_root.to_owned())
+                    }
+                } else if let Some(ext) = output_path.extension() {
+                    if ext.to_string_lossy().to_ascii_lowercase() == "graphml" {
+                        graphannis_files.push(output_path.clone());
+                    }
+                }
+            }
+
+            debug!(
+                "copying ZIP file content {}",
+                file.sanitized_name().to_string_lossy(),
+            );
+            if let Some(parent) = output_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+
+            let mut output_file = std::fs::File::create(&output_path)?;
+            std::io::copy(&mut file, &mut output_file)?;
+        }
+
+        let mut corpus_names = Vec::new();
+
+        // Import all relANNIS files
+        for p in relannis_files {
+            info!("importing relANNIS corpus from {}", p.to_string_lossy());
+            let name = self.import_from_fs(&p, ImportFormat::RelANNIS, None, disk_based)?;
+            corpus_names.push(name);
+        }
+        // Import all GraphML files
+        for p in graphannis_files {
+            info!("importing corpus from {}", p.to_string_lossy());
+            let name = self.import_from_fs(&p, ImportFormat::GraphML, None, disk_based)?;
+            corpus_names.push(name);
+        }
+
+        // Delete temporary directory
+        debug!(
+            "deleting temporary directory {}",
+            tmp_dir.path().to_string_lossy()
+        );
+        std::fs::remove_dir_all(tmp_dir.path())?;
+
+        Ok(corpus_names)
+    }
+
     /// Import a corpus from an external location on the file system into this corpus storage.
     ///
     /// - `path` - The location on the file system where the corpus data is located.
@@ -798,7 +872,7 @@ impl CorpusStorage {
         let r = graph.ensure_loaded_all();
         if let Err(e) = r {
             error!(
-                "Some error occured when attempting to load components from disk: {:?}",
+                "Some error occurred when attempting to load components from disk: {:?}",
                 e
             );
         }
@@ -1061,7 +1135,7 @@ impl CorpusStorage {
         // Insert all linked files into the ZIP file
         for (node_name, original_path) in self.get_linked_files(corpus_name.as_ref(), graph)? {
             let node_name: String = node_name;
-            
+
             zip.start_file_from_path(&base_path.join(&node_name), options.clone())?;
             let file_to_copy = File::open(original_path)?;
             let mut reader = BufReader::new(file_to_copy);
@@ -1097,7 +1171,6 @@ impl CorpusStorage {
                         // linked files
                         path.push(corpus_name.as_ref());
                     } else {
-                       
                     };
                     std::fs::create_dir_all(&path)?;
                     path.push(format!("{}.graphml", corpus_name.as_ref()));
@@ -1112,7 +1185,7 @@ impl CorpusStorage {
                 for corpus_name in corpora {
                     // Add the GraphML file to the ZIP file
                     let corpus_name: &str = corpus_name.as_ref();
-                    self.export_single_corpus_zip(corpus_name,use_corpus_subdirectory,  &mut zip)?;
+                    self.export_single_corpus_zip(corpus_name, use_corpus_subdirectory, &mut zip)?;
                 }
 
                 zip.finish()?;

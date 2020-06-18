@@ -45,9 +45,9 @@ strum = "0.18"
 strum_macros = "0.18"
 zip = "0.5"
 toml = "0.5"
+tempfile = "3"
 
 [dev-dependencies]
-tempfile = "3"
 criterion = "0.3"
 
 [[bench]]
