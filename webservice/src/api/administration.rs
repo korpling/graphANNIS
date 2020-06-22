@@ -9,8 +9,15 @@ use actix_web::{
 use futures::prelude::*;
 use graphannis::CorpusStorage;
 use std::io::Read;
-use std::{collections::HashMap, fs::File, io::Write, path::PathBuf, sync::Mutex};
-use stream::try_unfold;
+use std::io::Seek;
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{BufReader, Write},
+    path::PathBuf,
+    sync::Mutex,
+};
+use stream::{iter, try_unfold};
 use web::Bytes;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -187,34 +194,32 @@ fn export_corpus_background_taks(
 ) -> Result<File, ServiceError> {
     // Create temporary file to export to. We can't use the ZipArchive with the
     // response body because it does implement `Write` but not `Seek`.
-    let mut tmp_zip = tempfile::tempfile()?;
+    let tmp_zip = tempfile::tempfile()?;
 
-    {
-        let mut zip = zip::ZipWriter::new(&mut tmp_zip);
+    let mut zip = zip::ZipWriter::new(tmp_zip);
 
-        let id_as_string = id.to_string();
+    let id_as_string = id.to_string();
 
-        let use_corpus_subdirectory = corpora.len() > 1;
-        for corpus_name in corpora {
-            // Add the GraphML file to the ZIP file
-            let corpus_name: &str = corpus_name.as_ref();
-            cs.export_corpus_zip(corpus_name, use_corpus_subdirectory, &mut zip, |status| {
-                info!("Job {} update: {}", &id_as_string, status);
-                // Add status report to background job messages
-                let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
-                if let Some(j) = jobs.get_mut(&id) {
-                    j.messages.push(status.to_string());
-                }
-            })?;
-        }
-
-        zip.finish()?;
+    let use_corpus_subdirectory = corpora.len() > 1;
+    for corpus_name in corpora {
+        // Add the GraphML file to the ZIP file
+        let corpus_name: &str = corpus_name.as_ref();
+        cs.export_corpus_zip(corpus_name, use_corpus_subdirectory, &mut zip, |status| {
+            info!("Job {} update: {}", &id_as_string, status);
+            // Add status report to background job messages
+            let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
+            if let Some(j) = jobs.get_mut(&id) {
+                j.messages.push(status.to_string());
+            }
+        })?;
     }
+    let mut tmp_zip = zip.finish()?;
+    tmp_zip.seek(std::io::SeekFrom::Start(0))?;
     Ok(tmp_zip)
 }
 
 pub async fn export_corpus(
-    params: web::Data<ExportParams>,
+    params: web::Json<ExportParams>,
     cs: web::Data<CorpusStorage>,
     claims: ClaimsFromAuth,
     background_jobs: web::Data<BackgroundJobs>,
@@ -254,7 +259,9 @@ pub async fn export_corpus(
         }
     });
 
-    Ok(HttpResponse::Ok().finish())
+    Ok(HttpResponse::Accepted().json(JobReference {
+        uuid: id.to_string(),
+    }))
 }
 
 pub async fn jobs(
@@ -272,7 +279,7 @@ pub async fn jobs(
         match j.status {
             JobStatus::Running => {
                 // Job still running, do not remove it from the job list
-                return Ok(HttpResponse::Ok().json(j));
+                return Ok(HttpResponse::Accepted().json(j));
             }
             _ => {}
         }
@@ -285,20 +292,28 @@ pub async fn jobs(
             }
             JobStatus::Finished(result) => {
                 if let Some(result) = result {
-                    let reader = try_unfold(result, |mut file| async move {
+                    let reader = try_unfold(result.bytes(), |mut file| async move {
                         let mut buffer: Vec<u8> = Vec::with_capacity(1024);
-                        match file.read(&mut buffer) {
-                            Ok(bytes_read) => {
-                                if bytes_read > 0 {
-                                    Ok(Some((Bytes::from(buffer), file)))
-                                } else {
-                                    Ok(None)
+                        for _ in 0..1024 {
+                            if let Some(b) = file.next() {
+                                match b {
+                                    Ok(b) => buffer.push(b),
+                                    Err(err) => {
+                                        return Err(ServiceError::InternalServerError(format!(
+                                            "{}",
+                                            err.to_string()
+                                        )))
+                                    }
                                 }
+                            } else {
+                                // End of file
+                                break;
                             }
-                            Err(err) => Err(ServiceError::InternalServerError(format!(
-                                "{}",
-                                err.to_string()
-                            ))),
+                        }
+                        if buffer.is_empty() {
+                            Ok(None)
+                        } else {
+                            Ok(Some((Bytes::from(buffer), file)))
                         }
                     });
                     return Ok(HttpResponse::Ok().streaming(reader));

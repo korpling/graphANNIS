@@ -62,6 +62,37 @@ paths:
                   uuid:
                     type: string
                     example: 7dac334e-7f8f-4f1c-919e-02912527f329
+  /export:
+    post:
+      tags:
+        - administration
+      summary: Get all requested corpora as ZIP-file
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                corpora:
+                  $ref: "#/components/schemas/CorpusList"
+      responses:
+        "202":
+          description: Corpus export started. Returns a UUID for the background job which can be used with the `/jobs` endpoint
+          links:
+            GetJobForUUID:
+              operationId: getJob
+              parameters:
+                uuid: "$response.body#/uuid"
+          content:
+            application/json:
+              schema:
+                type: object
+                description: The UUID for the background job. Status can be queried via the /job endpoint and this UUID.
+                properties:
+                  uuid:
+                    type: string
+                    example: 7dac334e-7f8f-4f1c-919e-02912527f329
 
   /jobs/{uuid}:
     get:
@@ -76,12 +107,14 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        "202":
           description: Job is still running
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Job"
+        "200":
+          description: Job was finished successfully and result can be downloaded from the body
         "303":
           description: Job was finished successfully
           content:
@@ -89,8 +122,13 @@ paths:
               schema:
                 type: array
                 description: The messages produced by the background job.
-                example: ["started import of corpus GUM", "reading GraphML", "Error during import of GUM: corpus already exists"]    
-                items: 
+                example:
+                  [
+                    "started import of corpus GUM",
+                    "reading GraphML",
+                    "Error during import of GUM: corpus already exists",
+                  ]
+                items:
                   type: string
         "410":
           description: Job failed
@@ -100,7 +138,7 @@ paths:
                 $ref: "#/components/schemas/Job"
         "404":
           description: Job not found
-        
+
   /search/count:
     post:
       tags:
@@ -873,9 +911,13 @@ components:
           type: array
           items:
             type: string
-          example: ["started import of corpus GUM", "reading GraphML", "Error during import of GUM: corpus already exists"]    
+          example:
+            [
+              "started import of corpus GUM",
+              "reading GraphML",
+              "Error during import of GUM: corpus already exists",
+            ]
 
-      
   examples:
     Subgraph:
       value: >
