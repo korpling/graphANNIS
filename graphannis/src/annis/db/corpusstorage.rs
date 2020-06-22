@@ -1101,7 +1101,7 @@ impl CorpusStorage {
         Ok(())
     }
 
-    fn export_single_corpus_file(&self, corpus_name: &str, path: &Path) -> Result<()> {
+    fn export_corpus_graphml(&self, corpus_name: &str, path: &Path) -> Result<()> {
         let output_file = File::create(path)?;
         let entry = self.get_loaded_entry(corpus_name, false)?;
 
@@ -1138,14 +1138,16 @@ impl CorpusStorage {
         Ok(())
     }
 
-    fn export_single_corpus_zip<W>(
+    pub fn export_corpus_zip<W, F>(
         &self,
         corpus_name: &str,
         use_corpus_subdirectory: bool,
         mut zip: &mut zip::ZipWriter<W>,
+        progress_callback: F,
     ) -> Result<()>
     where
         W: Write + Seek,
+        F: Fn(&str) -> (),
     {
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
@@ -1180,9 +1182,7 @@ impl CorpusStorage {
             graph,
             config_as_str,
             &mut zip,
-            |status| {
-                info!("{}", status);
-            },
+            progress_callback,
         )?;
 
         // Insert all linked files into the ZIP file
@@ -1207,7 +1207,7 @@ impl CorpusStorage {
         match format {
             ExportFormat::GraphML => {
                 if corpora.len() == 1 {
-                    self.export_single_corpus_file(corpora[0].as_ref(), path)?;
+                    self.export_corpus_graphml(corpora[0].as_ref(), path)?;
                 } else if corpora.len() > 1 {
                     return Err(anyhow!(
                         "This format can only export one corpus but {} have been given as argument",
@@ -1227,7 +1227,7 @@ impl CorpusStorage {
                     };
                     std::fs::create_dir_all(&path)?;
                     path.push(format!("{}.graphml", corpus_name.as_ref()));
-                    self.export_single_corpus_file(corpus_name.as_ref(), &path)?;
+                    self.export_corpus_graphml(corpus_name.as_ref(), &path)?;
                 }
             }
             ExportFormat::GraphMLZip => {
@@ -1238,7 +1238,14 @@ impl CorpusStorage {
                 for corpus_name in corpora {
                     // Add the GraphML file to the ZIP file
                     let corpus_name: &str = corpus_name.as_ref();
-                    self.export_single_corpus_zip(corpus_name, use_corpus_subdirectory, &mut zip)?;
+                    self.export_corpus_zip(
+                        corpus_name,
+                        use_corpus_subdirectory,
+                        &mut zip,
+                        |status| {
+                            info!("{}", status);
+                        },
+                    )?;
                 }
 
                 zip.finish()?;

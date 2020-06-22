@@ -87,7 +87,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Job"
+                type: array
+                description: The messages produced by the background job.
+                example: ["started import of corpus GUM", "reading GraphML", "Error during import of GUM: corpus already exists"]    
+                items: 
+                  type: string
         "410":
           description: Job failed
           content:
@@ -851,9 +855,14 @@ components:
         corpora:
           $ref: "#/components/schemas/CorpusList"
 
-    ImportJob:
+    Job:
       type: object
       properties:
+        job_type:
+          type: string
+          enum:
+            - Import
+            - Export
         status:
           type: string
           enum:
@@ -865,11 +874,7 @@ components:
           items:
             type: string
           example: ["started import of corpus GUM", "reading GraphML", "Error during import of GUM: corpus already exists"]    
-    Job:
-      type: object
-      properties:
-        Import:
-           $ref: "#/components/schemas/ImportJob"
+
       
   examples:
     Subgraph:

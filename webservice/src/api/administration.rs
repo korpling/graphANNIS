@@ -8,7 +8,10 @@ use actix_web::{
 };
 use futures::prelude::*;
 use graphannis::CorpusStorage;
-use std::{collections::HashMap, io::Write, path::PathBuf, sync::Mutex};
+use std::io::Read;
+use std::{collections::HashMap, fs::File, io::Write, path::PathBuf, sync::Mutex};
+use stream::try_unfold;
+use web::Bytes;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Group {
@@ -20,15 +23,21 @@ pub struct Group {
 pub enum JobStatus {
     Running,
     Failed,
-    Finished,
+    #[serde(skip)]
+    Finished(Option<File>),
 }
 
 #[derive(Serialize)]
-pub enum Job {
-    Import {
-        messages: Vec<String>,
-        status: JobStatus,
-    },
+pub enum JobType {
+    Import,
+    Export,
+}
+
+#[derive(Serialize)]
+pub struct Job {
+    job_type: JobType,
+    messages: Vec<String>,
+    status: JobStatus,
 }
 
 #[derive(Default)]
@@ -92,7 +101,7 @@ pub struct ImportParams {
 }
 
 #[derive(Serialize)]
-pub struct ImportResult {
+pub struct JobReference {
     uuid: String,
 }
 
@@ -119,7 +128,8 @@ pub async fn import_corpus(
         let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
         jobs.insert(
             id,
-            Job::Import {
+            Job {
+                job_type: JobType::Import,
                 messages: Vec::default(),
                 status: JobStatus::Running,
             },
@@ -136,31 +146,115 @@ pub async fn import_corpus(
                 info!("Job {} update: {}", &id_as_string, status);
                 // Add status report to background job messages
                 let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
-                if let Some(Job::Import { messages, .. }) = jobs.get_mut(&id) {
-                    messages.push(status.to_string());
+                if let Some(j) = jobs.get_mut(&id) {
+                    j.messages.push(status.to_string());
                 }
             },
         ) {
             Ok(corpora) => {
                 let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
-                if let Some(Job::Import { messages, status }) = jobs.get_mut(&id) {
-                    messages.push(format!("imported corpora {:?}", corpora));
-                    *status = JobStatus::Finished;
+                if let Some(j) = jobs.get_mut(&id) {
+                    j.messages.push(format!("imported corpora {:?}", corpora));
+                    j.status = JobStatus::Finished(None);
                 }
             }
             Err(err) => {
                 let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
-                if let Some(Job::Import { messages, status }) = jobs.get_mut(&id) {
-                    messages.push(format!("importing corpora failed: {:?}", err));
-                    *status = JobStatus::Failed;
+                if let Some(j) = jobs.get_mut(&id) {
+                    j.messages
+                        .push(format!("importing corpora failed: {:?}", err));
+                    j.status = JobStatus::Failed;
                 }
             }
         }
     });
 
-    Ok(HttpResponse::Accepted().json(ImportResult {
+    Ok(HttpResponse::Accepted().json(JobReference {
         uuid: id.to_string(),
     }))
+}
+
+#[derive(Deserialize)]
+pub struct ExportParams {
+    corpora: Vec<String>,
+}
+
+fn export_corpus_background_taks(
+    corpora: &Vec<String>,
+    cs: &CorpusStorage,
+    id: uuid::Uuid,
+    background_jobs: web::Data<BackgroundJobs>,
+) -> Result<File, ServiceError> {
+    // Create temporary file to export to. We can't use the ZipArchive with the
+    // response body because it does implement `Write` but not `Seek`.
+    let mut tmp_zip = tempfile::tempfile()?;
+
+    {
+        let mut zip = zip::ZipWriter::new(&mut tmp_zip);
+
+        let id_as_string = id.to_string();
+
+        let use_corpus_subdirectory = corpora.len() > 1;
+        for corpus_name in corpora {
+            // Add the GraphML file to the ZIP file
+            let corpus_name: &str = corpus_name.as_ref();
+            cs.export_corpus_zip(corpus_name, use_corpus_subdirectory, &mut zip, |status| {
+                info!("Job {} update: {}", &id_as_string, status);
+                // Add status report to background job messages
+                let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
+                if let Some(j) = jobs.get_mut(&id) {
+                    j.messages.push(status.to_string());
+                }
+            })?;
+        }
+
+        zip.finish()?;
+    }
+    Ok(tmp_zip)
+}
+
+pub async fn export_corpus(
+    params: web::Data<ExportParams>,
+    cs: web::Data<CorpusStorage>,
+    claims: ClaimsFromAuth,
+    background_jobs: web::Data<BackgroundJobs>,
+) -> Result<HttpResponse, ServiceError> {
+    check_is_admin(&claims.0)?;
+
+    // Create a UUID which is used for the background job
+    let id = uuid::Uuid::new_v4();
+    {
+        let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
+        jobs.insert(
+            id,
+            Job {
+                job_type: JobType::Export,
+                messages: Vec::default(),
+                status: JobStatus::Running,
+            },
+        );
+    }
+    // Execute the whole import in a background thread
+    std::thread::spawn(move || {
+        match export_corpus_background_taks(&params.corpora, &cs, id, background_jobs.clone()) {
+            Ok(tmp_file) => {
+                let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
+                if let Some(j) = jobs.get_mut(&id) {
+                    j.status = JobStatus::Finished(Some(tmp_file));
+                }
+            }
+            Err(err) => {
+                let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
+                if let Some(j) = jobs.get_mut(&id) {
+                    j.messages
+                        .push(format!("exporting corpora failed: {:?}", err));
+                    j.status = JobStatus::Failed;
+                }
+            }
+        }
+    });
+
+    Ok(HttpResponse::Ok().finish())
 }
 
 pub async fn jobs(
@@ -175,28 +269,50 @@ pub async fn jobs(
 
     let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
     if let Some(j) = jobs.get(&uuid) {
-        let (response, delete_job) = match j {
-            Job::Import { status, .. } => match status {
-                JobStatus::Running => (HttpResponse::Ok().json(j), false),
-                JobStatus::Finished => {
+        match j.status {
+            JobStatus::Running => {
+                // Job still running, do not remove it from the job list
+                return Ok(HttpResponse::Ok().json(j));
+            }
+            _ => {}
+        }
+    }
+    // Job is finished/errored: remove it from the list and process it
+    if let Some(j) = jobs.remove(&uuid) {
+        match j.status {
+            JobStatus::Failed => {
+                return Ok(HttpResponse::Gone().json(j));
+            }
+            JobStatus::Finished(result) => {
+                if let Some(result) = result {
+                    let reader = try_unfold(result, |mut file| async move {
+                        let mut buffer: Vec<u8> = Vec::with_capacity(1024);
+                        match file.read(&mut buffer) {
+                            Ok(bytes_read) => {
+                                if bytes_read > 0 {
+                                    Ok(Some((Bytes::from(buffer), file)))
+                                } else {
+                                    Ok(None)
+                                }
+                            }
+                            Err(err) => Err(ServiceError::InternalServerError(format!(
+                                "{}",
+                                err.to_string()
+                            ))),
+                        }
+                    });
+                    return Ok(HttpResponse::Ok().streaming(reader));
+                } else {
                     let req_path = PathBuf::from(req.path());
                     let corpus_path = req_path.join("../corpora");
-                    (
-                        HttpResponse::SeeOther()
-                            .header("Location", corpus_path.to_string_lossy().as_ref())
-                            .json(j),
-                        true,
-                    )
+
+                    return Ok(HttpResponse::SeeOther()
+                        .header("Location", corpus_path.to_string_lossy().as_ref())
+                        .json(j.messages));
                 }
-                JobStatus::Failed => (HttpResponse::Gone().json(j), true),
-            },
-        };
-        if delete_job {
-            // Only deliver the finished message once
-            jobs.remove(&uuid);
+            }
+            _ => {}
         }
-        Ok(response)
-    } else {
-        Ok(HttpResponse::NotFound().finish())
     }
+    Ok(HttpResponse::NotFound().finish())
 }

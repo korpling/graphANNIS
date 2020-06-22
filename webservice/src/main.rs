@@ -141,6 +141,10 @@ async fn main() -> Result<()> {
                         "/import",
                         web::post().to(api::administration::import_corpus),
                     )
+                    .route(
+                        "/export",
+                        web::post().to(api::administration::export_corpus),
+                    )
                     .route("/jobs/{uuid}", web::get().to(api::administration::jobs))
                     .service(
                         web::scope("/search")
