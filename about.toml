@@ -5,5 +5,6 @@ accepted = [
     "BSD-2-Clause",
     "MPL-2.0",
     "CC0-1.0",
-    "ISC"
+    "ISC",
+    "Zlib",
 ]
