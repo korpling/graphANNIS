@@ -649,6 +649,14 @@ components:
           type: integer
           default: 0
           description: Skip the `n` first results, where `n` is the offset.
+        order:
+          type: string
+          default: Normal
+          enum:
+            - Normal
+            - Inverted
+            - Randomized
+            - NotSorted
 
     FrequencyQuery:
       type: object

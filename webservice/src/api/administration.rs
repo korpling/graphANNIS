@@ -10,14 +10,8 @@ use futures::prelude::*;
 use graphannis::CorpusStorage;
 use std::io::Read;
 use std::io::Seek;
-use std::{
-    collections::HashMap,
-    fs::File,
-    io::{BufReader, Write},
-    path::PathBuf,
-    sync::Mutex,
-};
-use stream::{iter, try_unfold};
+use std::{collections::HashMap, fs::File, io::Write, path::PathBuf, sync::Mutex};
+use stream::try_unfold;
 use web::Bytes;
 
 #[derive(Serialize, Deserialize, Clone)]
