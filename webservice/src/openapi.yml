@@ -248,7 +248,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/QueryAttributeDescription"
+                type: array
+                items:
+                  $ref: "#/components/schemas/QueryAttributeDescription"
               example:
                 - alternative: 0,
                   query_fragment: pos="NN"
