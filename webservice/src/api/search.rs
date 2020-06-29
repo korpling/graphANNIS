@@ -28,6 +28,21 @@ pub async fn count(
 }
 
 #[derive(Deserialize)]
+pub struct ParseQuery {
+    query: String,
+    #[serde(default)]
+    query_language: QueryLanguage,
+}
+
+pub async fn node_descriptions(
+    params: web::Query<ParseQuery>,
+    cs: web::Data<CorpusStorage>,
+) -> Result<HttpResponse, ServiceError> {
+    let desc = cs.node_descriptions(&params.query, params.query_language)?;
+    Ok(HttpResponse::Ok().json(desc))
+}
+
+#[derive(Deserialize)]
 pub struct FindQuery {
     query: String,
     #[serde(default)]

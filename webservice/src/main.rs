@@ -150,7 +150,11 @@ async fn main() -> Result<()> {
                         web::scope("/search")
                             .route("/count", web::post().to(api::search::count))
                             .route("/find", web::post().to(api::search::find))
-                            .route("/frequency", web::post().to(api::search::frequency)),
+                            .route("/frequency", web::post().to(api::search::frequency))
+                            .route(
+                                "/node-descriptions",
+                                web::get().to(api::search::node_descriptions),
+                            ),
                     )
                     .service(
                         web::scope("/corpora")

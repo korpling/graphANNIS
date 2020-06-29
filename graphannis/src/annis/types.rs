@@ -24,6 +24,7 @@ pub struct FrequencyTableRow<T> {
 }
 
 /// Description of an attribute of a query.
+#[derive(Serialize)]
 pub struct QueryAttributeDescription {
     /// ID of the alternative this attribute is part of.
     pub alternative: usize,
