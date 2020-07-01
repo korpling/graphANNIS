@@ -116,6 +116,7 @@ pub struct ViewConfiguration {
     /// Default number of results to show at once for paginated queries.
     pub page_size: usize,
     // A list of fully qualified annotation names that should be hidden when displayed.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub hidden_annos: Vec<String>,
 }
 
