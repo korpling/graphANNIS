@@ -255,6 +255,8 @@ where
         load_example_queries(&path, &mut config, is_annis_33, &progress_callback)?;
         load_corpus_properties(&path, &mut config, &progress_callback)?;
 
+        // TODO: implement handling the "virtual_tokenization_from_namespace" and "virtual_tokenization_mapping" corpus properties
+
         db.apply_update(&mut updates, &progress_callback)?;
 
         progress_callback("calculating node statistics");
