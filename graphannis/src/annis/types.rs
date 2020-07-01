@@ -115,6 +115,8 @@ pub struct ViewConfiguration {
     pub base_text_segmentation: Option<String>,
     /// Default number of results to show at once for paginated queries.
     pub page_size: usize,
+    // A list of fully qualified annotation names that should be hidden when displayed.
+    pub hidden_annos: Vec<String>,
 }
 
 impl Default for ViewConfiguration {
@@ -122,6 +124,7 @@ impl Default for ViewConfiguration {
         ViewConfiguration {
             base_text_segmentation: None,
             page_size: 10,
+            hidden_annos: Vec::default(),
         }
     }
 }

@@ -974,6 +974,11 @@ components:
               type: integer
               description: Default number of results to show at once for paginated queries.
               example: 10
+            hidden_annos:
+              type: array
+              items:
+                type: string
+              description:  A list of fully qualified annotation names that should be hidden when displayed.
         example_queries:
           type: array
           description: An array of example queries for the corpus with a description.

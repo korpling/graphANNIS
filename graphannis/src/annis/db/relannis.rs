@@ -547,6 +547,13 @@ where
                         config.view.base_text_segmentation = Some(value.to_string());
                     }
                 }
+                "hidden_annos" => {
+                    if !value.is_empty() {
+                        // Entry is a comma-separated list
+                        config.view.hidden_annos =
+                            value.split(",").map(|a| a.trim().to_owned()).collect();
+                    }
+                }
                 _ => {}
             };
         }
