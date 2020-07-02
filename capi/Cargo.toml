@@ -1,6 +1,6 @@
 [package]
 name = "graphannis-capi"
-version = "0.27.0"
+version = "0.28.0"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 license = "Apache-2.0"
 description = "This is the C-API to the ANNIS linguistic search and visualization system."
