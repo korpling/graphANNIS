@@ -19,7 +19,7 @@ regex = "1"
 file_diff = "1"
 
 [dependencies]
-graphannis-core = { path = "../core/", version = "^0.27"}
+graphannis-core = { path = "../core/", version = "^0.28"}
 regex = "1"
 regex-syntax = "0.6"
 serde = { version = "1.0", features = ["rc"] }
