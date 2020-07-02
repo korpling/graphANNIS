@@ -13,7 +13,7 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::*;
 use crate::annis::types::CountExtra;
-use crate::annis::types::{FrequencyTable, QueryAttributeDescription};
+use crate::annis::types::{CorpusConfiguration, FrequencyTable, QueryAttributeDescription};
 use crate::annis::util::quicksort;
 use crate::{
     graph::Match,
@@ -37,6 +37,7 @@ use std::collections::{BTreeSet, HashSet};
 use std::fmt;
 use std::fs::File;
 use std::fs::OpenOptions;
+use std::io::prelude::*;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -47,12 +48,14 @@ use rustc_hash::FxHashMap;
 
 use rand;
 use rand::seq::SliceRandom;
-use std::ffi::CString;
+use std::{
+    ffi::CString,
+    io::{BufReader, Write},
+};
 use sys_info;
 
 use anyhow::{Context, Error};
 use aql::model::AnnotationComponentType;
-use brotli::CompressorWriter;
 use db::AnnotationStorage;
 
 #[cfg(test)]
@@ -133,6 +136,10 @@ pub struct CorpusInfo {
     pub node_annos_load_size: Option<usize>,
     /// A list of descriptions for the graph storages of this corpus.
     pub graphstorages: Vec<GraphStorageInfo>,
+    /// The current configuration of this corpus.
+    /// This information is stored in the "corpus-config.toml` file in the data directory
+    /// and loaded on demand.
+    pub config: CorpusConfiguration,
 }
 
 impl fmt::Display for CorpusInfo {
@@ -231,7 +238,7 @@ impl FromStr for FrequencyDefEntry {
 /// Currently, only the ANNIS Query Language (AQL) and its variants are supported, but this enum allows us to add a support for older query language versions
 /// or completely new query languages.
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum QueryLanguage {
     AQL,
     /// Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3
@@ -247,8 +254,6 @@ pub enum ImportFormat {
     /// [GraphML](http://graphml.graphdrawing.org/) based export-format, suitable to be imported from other graph databases.
     /// This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/docs/labs/apoc/current/import/graphml/).
     GraphML,
-    /// Like `GraphML`, but compressed with the [Brotli](https://github.com/google/brotli) compression format.
-    GraphMLCompressed,
 }
 
 /// An enum of all supported output formats of graphANNIS.
@@ -258,8 +263,10 @@ pub enum ExportFormat {
     /// [GraphML](http://graphml.graphdrawing.org/) based export-format, suitable to be imported into other graph databases.
     /// This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/docs/labs/apoc/current/import/graphml/).
     GraphML,
-    /// Like `GraphML`, but compressed with the [Brotli](https://github.com/google/brotli) compression format.
-    GraphMLCompressed,
+    /// Like `GraphML`, but compressed as ZIP file. Linked files are also copied into the ZIP file.
+    GraphMLZip,
+    /// Like `GraphML`, but using a directory with multiple GraphML files, each for one corpus.
+    GraphMLDirectory,
 }
 
 /// Different strategies how it is decided when corpora need to be removed from the cache.
@@ -468,9 +475,8 @@ impl CorpusStorage {
             MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
 
         for n in names {
-            if let Ok(corpus_info) = self.create_corpus_info(&n, &mut mem_ops) {
-                result.push(corpus_info);
-            }
+            let corpus_info = self.create_corpus_info(&n, &mut mem_ops)?;
+            result.push(corpus_info);
         }
 
         Ok(result)
@@ -505,6 +511,17 @@ impl CorpusStorage {
         Ok(corpora)
     }
 
+    fn get_corpus_config(&self, corpus_name: &str) -> Result<Option<CorpusConfiguration>> {
+        let corpus_config_path = self.db_dir.join(corpus_name).join("corpus-config.toml");
+        if corpus_config_path.is_file() {
+            let file_content = std::fs::read_to_string(corpus_config_path)?;
+            let config = toml::from_str(&file_content)?;
+            Ok(Some(config))
+        } else {
+            Ok(None)
+        }
+    }
+
     fn create_corpus_info(
         &self,
         corpus_name: &str,
@@ -512,6 +529,18 @@ impl CorpusStorage {
     ) -> Result<CorpusInfo> {
         let cache_entry = self.get_entry(corpus_name)?;
         let lock = cache_entry.read().unwrap();
+
+        // Read configuration file or create a default one
+        let config: CorpusConfiguration = self
+            .get_corpus_config(corpus_name)
+            .with_context(|| {
+                format!(
+                    "Loading corpus-config.toml for corpus {} failed",
+                    corpus_name
+                )
+            })?
+            .unwrap_or_default();
+
         let corpus_info: CorpusInfo = match &*lock {
             CacheEntry::Loaded(ref db) => {
                 // check if all components are loaded
@@ -546,6 +575,7 @@ impl CorpusStorage {
                     load_status,
                     graphstorages,
                     node_annos_load_size,
+                    config,
                 }
             }
             &CacheEntry::NotLoaded => CorpusInfo {
@@ -553,6 +583,7 @@ impl CorpusStorage {
                 load_status: LoadStatus::NotLoaded,
                 graphstorages: vec![],
                 node_annos_load_size: None,
+                config,
             },
         };
         Ok(corpus_info)
@@ -718,11 +749,85 @@ impl CorpusStorage {
         Ok(db_entry)
     }
 
+    /// Import all corpora from a ZIP file.
+    ///
+    /// This function will unzip the file to a temporary location and find all relANNIS and GraphML files in the ZIP file.
+    /// The formats of the corpora can be relANNIS or GraphML.
+    /// - `path` - The location on the file system where the corpus data is located.
+    /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
+    ///
+    /// Returns the names of the imported corpora.
+    pub fn import_all_from_zip(&self, path: &Path, disk_based: bool) -> Result<Vec<String>> {
+        // Unzip all files to a temporary directory
+        let tmp_dir = tempfile::tempdir()?;
+        debug!(
+            "Using temporary directory {} to extract ZIP file content.",
+            tmp_dir.path().to_string_lossy()
+        );
+        let zip_file = std::fs::File::open(path)?;
+        let mut archive = zip::ZipArchive::new(zip_file)?;
+
+        let mut relannis_files = Vec::new();
+        let mut graphannis_files = Vec::new();
+
+        for i in 0..archive.len() {
+            let mut file = archive.by_index(i)?;
+            let output_path = tmp_dir.path().join(file.sanitized_name());
+
+            if let Some(file_name) = output_path.file_name() {
+                if file_name == "corpus.annis" || file_name == "corpus.tab" {
+                    if let Some(relannis_root) = output_path.parent() {
+                        relannis_files.push(relannis_root.to_owned())
+                    }
+                } else if let Some(ext) = output_path.extension() {
+                    if ext.to_string_lossy().to_ascii_lowercase() == "graphml" {
+                        graphannis_files.push(output_path.clone());
+                    }
+                }
+            }
+
+            debug!(
+                "copying ZIP file content {}",
+                file.sanitized_name().to_string_lossy(),
+            );
+            if let Some(parent) = output_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+
+            let mut output_file = std::fs::File::create(&output_path)?;
+            std::io::copy(&mut file, &mut output_file)?;
+        }
+
+        let mut corpus_names = Vec::new();
+
+        // Import all relANNIS files
+        for p in relannis_files {
+            info!("importing relANNIS corpus from {}", p.to_string_lossy());
+            let name = self.import_from_fs(&p, ImportFormat::RelANNIS, None, disk_based)?;
+            corpus_names.push(name);
+        }
+        // Import all GraphML files
+        for p in graphannis_files {
+            info!("importing corpus from {}", p.to_string_lossy());
+            let name = self.import_from_fs(&p, ImportFormat::GraphML, None, disk_based)?;
+            corpus_names.push(name);
+        }
+
+        // Delete temporary directory
+        debug!(
+            "deleting temporary directory {}",
+            tmp_dir.path().to_string_lossy()
+        );
+        std::fs::remove_dir_all(tmp_dir.path())?;
+
+        Ok(corpus_names)
+    }
+
     /// Import a corpus from an external location on the file system into this corpus storage.
     ///
     /// - `path` - The location on the file system where the corpus data is located.
     /// - `format` - The format in which this corpus data is stored.
-    /// - `corpus_name` - Optionally override the name of the new corpus for file formats that already provide a corpus name.
+    /// - `corpus_name` - Optionally override the name of the new corpus for file formats that already provide a corpus name. This only works if the imported file location only contains one corpus.
     /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
     ///
     /// Returns the name of the imported corpus.
@@ -733,7 +838,7 @@ impl CorpusStorage {
         corpus_name: Option<String>,
         disk_based: bool,
     ) -> Result<String> {
-        let (orig_name, mut graph) = match format {
+        let (orig_name, mut graph, config) = match format {
             ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
                 info!("{}", status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
@@ -746,47 +851,28 @@ impl CorpusStorage {
                     "UnknownCorpus".to_string()
                 };
                 let input_file = File::open(path)?;
-                let g = graphannis_core::graph::serialization::graphml::import(
+                let (g, config_str) = graphannis_core::graph::serialization::graphml::import(
                     input_file,
                     disk_based,
                     |status| {
                         info!("{}", status);
-                        // loading the file from relANNIS consumes memory, update the corpus cache regulary to allow it to adapat
+                        // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
                         self.check_cache_size_and_remove(vec![]);
                     },
                 )?;
-                (orig_corpus_name, g)
-            }
-            ImportFormat::GraphMLCompressed => {
-                let orig_corpus_name = if let Some(file_name) = path.file_stem() {
-                    let mut file_name = file_name.to_string_lossy().to_string();
-                    // The file might end with ".br" as file ending instead of ".graphml"
-                    if file_name.ends_with(".graphml") {
-                        file_name.truncate(file_name.len() - ".graphml".len());
-                    }
-                    file_name
+                let config = if let Some(config_str) = config_str {
+                    toml::from_str(&config_str)?
                 } else {
-                    "UnknownCorpus".to_string()
+                    CorpusConfiguration::default()
                 };
-                let input_file = File::open(path)?;
-                let decompressed_input = brotli::Decompressor::new(input_file, 4096);
-                let g = graphannis_core::graph::serialization::graphml::import(
-                    decompressed_input,
-                    disk_based,
-                    |status| {
-                        info!("{}", status);
-                        // loading the file from relANNIS consumes memory, update the corpus cache regulary to allow it to adapat
-                        self.check_cache_size_and_remove(vec![]);
-                    },
-                )?;
-                (orig_corpus_name, g)
+                (orig_corpus_name, g, config)
             }
         };
 
         let r = graph.ensure_loaded_all();
         if let Err(e) = r {
             error!(
-                "Some error occured when attempting to load components from disk: {:?}",
+                "Some error occurred when attempting to load components from disk: {:?}",
                 e
             );
         }
@@ -820,6 +906,16 @@ impl CorpusStorage {
             );
         }
 
+        info!("copying linked files for corpus {}", corpus_name);
+        let current_dir = PathBuf::from(".");
+        let files_dir = db_path.join("files");
+        std::fs::create_dir_all(&files_dir)?;
+        self.copy_linked_files_and_update_references(
+            path.parent().unwrap_or(&current_dir),
+            &files_dir,
+            &mut graph,
+        )?;
+
         // save to its location
         info!("saving corpus {} to disk", corpus_name);
         let save_result = graph.save_to(&db_path);
@@ -831,6 +927,15 @@ impl CorpusStorage {
             );
         }
 
+        // Use the imported/generated/default corpus configuration and store it in our graph directory
+        let corpus_config_path = db_path.join("corpus-config.toml");
+        info!(
+            "saving corpus configuration file for corpus {} to {}",
+            corpus_name,
+            &corpus_config_path.to_string_lossy()
+        );
+        std::fs::write(corpus_config_path, toml::to_string(&config)?)?;
+
         // make it known to the cache
         cache.insert(
             corpus_name.clone(),
@@ -841,7 +946,110 @@ impl CorpusStorage {
         Ok(corpus_name)
     }
 
-    pub fn export_to_fs(&self, corpus_name: &str, path: &Path, format: ExportFormat) -> Result<()> {
+    fn copy_linked_files_and_update_references(
+        &self,
+        old_base_path: &Path,
+        new_base_path: &Path,
+        graph: &mut AnnotationGraph,
+    ) -> Result<()> {
+        let linked_file_key = AnnoKey {
+            ns: ANNIS_NS.to_string(),
+            name: "file".to_string(),
+        };
+        // Find all nodes of the type "file"
+        let node_annos: &mut dyn AnnotationStorage<NodeID> = graph.get_node_annos_mut();
+        let file_nodes: Vec<NodeID> = node_annos
+            .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
+            .map(|m| m.node)
+            .collect();
+        for node in file_nodes {
+            // Get the linked file for this node
+            if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key) {
+                let original_path = old_base_path
+                    .canonicalize()?
+                    .join(&PathBuf::from(original_path.as_ref()));
+                if original_path.is_file() {
+                    if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY) {
+                        // Create a new file name based on the node name and copy the file
+                        let new_path = new_base_path.join(node_name.as_ref());
+                        if let Some(parent) = new_path.parent() {
+                            std::fs::create_dir_all(parent)?;
+                        }
+                        std::fs::copy(&original_path, &new_path)?;
+                        // Update the annotation to link to the new file with a relative path.
+                        // Use the corpus directory as base path for this relative path.
+                        let relative_path = new_path.strip_prefix(&new_base_path)?;
+                        node_annos.insert(
+                            node,
+                            Annotation {
+                                key: linked_file_key.clone(),
+                                val: relative_path.to_string_lossy().to_string(),
+                            },
+                        )?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Find all nodes of the type "file" and return an iterator
+    /// over a tuple of the node name and the absolute path of the linked file.
+    fn get_linked_files<'a>(
+        &'a self,
+        corpus_name: &'a str,
+        graph: &'a AnnotationGraph,
+    ) -> Result<impl Iterator<Item = (String, PathBuf)> + 'a> {
+        let linked_file_key = AnnoKey {
+            ns: ANNIS_NS.to_string(),
+            name: "file".to_string(),
+        };
+
+        let base_path = self.db_dir.join(corpus_name).join("files").canonicalize()?;
+
+        // Find all nodes of the type "file"
+        let node_annos: &dyn AnnotationStorage<NodeID> = graph.get_node_annos();
+        let it = node_annos
+            .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
+            // Get the linked file for this node
+            .filter_map(move |m| {
+                if let Some(node_name) = node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY) {
+                    if let Some(file_path_value) =
+                        node_annos.get_value_for_item(&m.node, &linked_file_key)
+                    {
+                        return Some((
+                            node_name.to_string(),
+                            base_path.join(file_path_value.to_string()),
+                        ));
+                    }
+                }
+                None
+            });
+        Ok(it)
+    }
+
+    fn copy_linked_files_to_disk(
+        &self,
+        corpus_name: &str,
+        new_base_path: &Path,
+        graph: &AnnotationGraph,
+    ) -> Result<()> {
+        for (node_name, original_path) in self.get_linked_files(corpus_name, graph)? {
+            let node_name: String = node_name;
+            if original_path.is_file() {
+                // Create a new file name based on the node name and copy the file
+                let new_path = new_base_path.join(&node_name);
+                if let Some(parent) = new_path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                std::fs::copy(&original_path, &new_path)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn export_single_corpus_file(&self, corpus_name: &str, path: &Path) -> Result<()> {
+        let output_file = File::create(path)?;
         let entry = self.get_loaded_entry(corpus_name, false)?;
 
         // Ensure all components are loaded
@@ -853,23 +1061,134 @@ impl CorpusStorage {
         // Perform the export on a read-only reference
         let lock = entry.read().unwrap();
         let graph: &AnnotationGraph = get_read_or_error(&lock)?;
+
+        let config_as_str = if let Some(config) = self.get_corpus_config(corpus_name)? {
+            Some(toml::to_string_pretty(&config)?)
+        } else {
+            None
+        };
+
+        let config_as_str = config_as_str.as_deref();
+        graphannis_core::graph::serialization::graphml::export(
+            graph,
+            config_as_str,
+            output_file,
+            |status| {
+                info!("{}", status);
+            },
+        )?;
+
+        if let Some(parent_dir) = path.parent() {
+            self.copy_linked_files_to_disk(corpus_name, &parent_dir, &graph)?;
+        }
+
+        Ok(())
+    }
+
+    fn export_single_corpus_zip<W>(
+        &self,
+        corpus_name: &str,
+        use_corpus_subdirectory: bool,
+        mut zip: &mut zip::ZipWriter<W>,
+    ) -> Result<()>
+    where
+        W: Write + Seek,
+    {
+        let options =
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+        let mut base_path = PathBuf::default();
+        if use_corpus_subdirectory {
+            base_path.push(corpus_name);
+        }
+        let path_in_zip = base_path.join(format!("{}.graphml", corpus_name));
+        zip.start_file_from_path(&path_in_zip, options.clone())?;
+
+        let entry = self.get_loaded_entry(corpus_name, false)?;
+
+        // Ensure all components are loaded
+        {
+            let mut lock = entry.write().unwrap();
+            let graph: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
+            graph.ensure_loaded_all()?;
+        }
+        // Perform the export on a read-only reference
+        let lock = entry.read().unwrap();
+        let graph: &AnnotationGraph = get_read_or_error(&lock)?;
+
+        let config_as_str = if let Some(config) = self.get_corpus_config(corpus_name)? {
+            Some(toml::to_string_pretty(&config)?)
+        } else {
+            None
+        };
+
+        let config_as_str: Option<&str> = config_as_str.as_deref();
+        graphannis_core::graph::serialization::graphml::export(
+            graph,
+            config_as_str,
+            &mut zip,
+            |status| {
+                info!("{}", status);
+            },
+        )?;
+
+        // Insert all linked files into the ZIP file
+        for (node_name, original_path) in self.get_linked_files(corpus_name.as_ref(), graph)? {
+            let node_name: String = node_name;
+
+            zip.start_file_from_path(&base_path.join(&node_name), options.clone())?;
+            let file_to_copy = File::open(original_path)?;
+            let mut reader = BufReader::new(file_to_copy);
+            std::io::copy(&mut reader, zip)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn export_to_fs<S: AsRef<str>>(
+        &self,
+        corpora: &[S],
+        path: &Path,
+        format: ExportFormat,
+    ) -> Result<()> {
         match format {
             ExportFormat::GraphML => {
-                let output_file = File::create(path)?;
-                graphannis_core::graph::serialization::graphml::export(
-                    graph,
-                    &output_file,
-                    |status| {
-                        info!("{}", status);
-                    },
-                )?;
+                if corpora.len() == 1 {
+                    self.export_single_corpus_file(corpora[0].as_ref(), path)?;
+                } else if corpora.len() > 1 {
+                    return Err(anyhow!(
+                        "This format can only export one corpus but {} have been given as argument",
+                        corpora.len()
+                    ))?;
+                }
             }
-            ExportFormat::GraphMLCompressed => {
+            ExportFormat::GraphMLDirectory => {
+                let use_corpus_subdirectory = corpora.len() > 1;
+                for corpus_name in corpora {
+                    let mut path = PathBuf::from(path);
+                    if use_corpus_subdirectory {
+                        // Use a sub-directory with the corpus name to avoid conflicts with the
+                        // linked files
+                        path.push(corpus_name.as_ref());
+                    } else {
+                    };
+                    std::fs::create_dir_all(&path)?;
+                    path.push(format!("{}.graphml", corpus_name.as_ref()));
+                    self.export_single_corpus_file(corpus_name.as_ref(), &path)?;
+                }
+            }
+            ExportFormat::GraphMLZip => {
                 let output_file = File::create(path)?;
-                let writer = CompressorWriter::new(output_file, 4096, 9, 22);
-                graphannis_core::graph::serialization::graphml::export(graph, writer, |status| {
-                    info!("{}", status);
-                })?;
+                let mut zip = zip::ZipWriter::new(output_file);
+
+                let use_corpus_subdirectory = corpora.len() > 1;
+                for corpus_name in corpora {
+                    // Add the GraphML file to the ZIP file
+                    let corpus_name: &str = corpus_name.as_ref();
+                    self.export_single_corpus_zip(corpus_name, use_corpus_subdirectory, &mut zip)?;
+                }
+
+                zip.finish()?;
             }
         }
 

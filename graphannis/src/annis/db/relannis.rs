@@ -3,7 +3,17 @@ use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::errors::*;
 use crate::annis::util::create_str_vec_key;
 use crate::update::{GraphUpdate, UpdateEvent};
-use crate::{annis::db::aql::model::TOK, AnnotationGraph};
+use crate::{
+    annis::{
+        db::aql::model::TOK,
+        types::{
+            CorpusConfiguration, ExampleQuery, VisualizerRule, VisualizerRuleElement,
+            VisualizerVisibility,
+        },
+    },
+    corpusstorage::QueryLanguage,
+    AnnotationGraph,
+};
 use csv;
 use graphannis_core::{
     graph::ANNIS_NS,
@@ -200,7 +210,7 @@ pub fn load<F>(
     path: &Path,
     disk_based: bool,
     progress_callback: F,
-) -> Result<(String, AnnotationGraph)>
+) -> Result<(String, AnnotationGraph, CorpusConfiguration)>
 where
     F: Fn(&str) -> (),
 {
@@ -220,6 +230,7 @@ where
         };
 
         let mut db = AnnotationGraph::with_default_graphstorages(disk_based)?;
+        let mut config = CorpusConfiguration::default();
         let mut updates = GraphUpdate::new();
         let load_node_and_corpus_result =
             load_node_and_corpus_tables(&path, &mut updates, is_annis_33, &progress_callback)?;
@@ -240,6 +251,10 @@ where
             )?;
         }
 
+        load_resolver_vis_map(&path, &mut config, is_annis_33, &progress_callback)?;
+        load_example_queries(&path, &mut config, is_annis_33, &progress_callback)?;
+        load_corpus_properties(&path, &mut config, &progress_callback)?;
+
         db.apply_update(&mut updates, &progress_callback)?;
 
         progress_callback("calculating node statistics");
@@ -256,7 +271,7 @@ where
             path.to_string_lossy()
         ));
 
-        return Ok((load_node_and_corpus_result.toplevel_corpus_name, db));
+        return Ok((load_node_and_corpus_result.toplevel_corpus_name, db, config));
     }
 
     Err(anyhow!("Directory {} not found", path.to_string_lossy()))
@@ -291,6 +306,7 @@ where
         &texts,
         &corpus_id_to_annos,
         is_annis_33,
+        path,
     )?;
 
     Ok(LoadNodeAndCorpusResult {
@@ -333,6 +349,278 @@ where
     )?;
 
     Ok(load_rank_result)
+}
+
+fn load_resolver_vis_map<F>(
+    path: &Path,
+    config: &mut CorpusConfiguration,
+    is_annis_33: bool,
+    progress_callback: &F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
+    let mut resolver_tab_path = PathBuf::from(path);
+    resolver_tab_path.push(if is_annis_33 {
+        "resolver_vis_map.annis"
+    } else {
+        "resolver_vis_map.tab"
+    });
+
+    if !resolver_tab_path.is_file() {
+        // This is an optional file, don't fail if it does not exist
+        return Ok(());
+    }
+
+    progress_callback(&format!(
+        "loading {}",
+        resolver_tab_path.to_str().unwrap_or_default()
+    ));
+
+    let mut resolver_tab_csv = postgresql_import_reader(resolver_tab_path.as_path())?;
+
+    let mut rules_by_order: Vec<(i64, VisualizerRule)> = Vec::new();
+
+    for result in resolver_tab_csv.records() {
+        let line = result?;
+
+        let layer = get_field_str(&line, 2).filter(|l| l != "NULL");
+        let element = get_field_str(&line, 3).map_or(None, |e| match e.as_str() {
+            "node" => Some(VisualizerRuleElement::Node),
+            "edge" => Some(VisualizerRuleElement::Edge),
+            _ => None,
+        });
+        let vis_type =
+            get_field_str(&line, 4).ok_or(anyhow!("Missing vis_type column in resolver table"))?;
+        let display_name = get_field_str(&line, 5)
+            .ok_or(anyhow!("Missing display_name column in resolver table"))?;
+
+        let visibility = get_field_str(&line, 6)
+            .ok_or(anyhow!("Missing visibility column in resolver table"))?;
+        let visibility = match visibility.as_str() {
+            "hidden" => VisualizerVisibility::Hidden,
+            "visible" => VisualizerVisibility::Visible,
+            "permanent" => VisualizerVisibility::Permanent,
+            "preloaded" => VisualizerVisibility::Preloaded,
+            "removed" => VisualizerVisibility::Removed,
+            _ => VisualizerVisibility::default(),
+        };
+        let order =
+            get_field_str(&line, 7).ok_or(anyhow!("Missing order column in resolver table"))?;
+        let order = i64::from_str_radix(&order, 10).unwrap_or_default();
+
+        let mappings: BTreeMap<String, String> =
+            if let Some(mappings_field) = get_field_str(&line, 8) {
+                mappings_field
+                    .split(";")
+                    .filter_map(|key_value| {
+                        let splitted: Vec<_> = key_value.splitn(2, ":").collect();
+                        if splitted.len() == 2 {
+                            Some((splitted[0].to_string(), splitted[1].to_string()))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+            } else {
+                BTreeMap::new()
+            };
+        let rule = VisualizerRule {
+            layer,
+            element,
+            vis_type: vis_type.to_string(),
+            display_name: display_name.to_string(),
+            visibility,
+            mappings,
+        };
+
+        // Insert at sorted position by the order
+        match rules_by_order.binary_search_by_key(&order, |(o, _)| *o) {
+            Ok(idx) => rules_by_order.insert(idx + 1, (order, rule)),
+            Err(idx) => rules_by_order.insert(idx, (order, rule)),
+        }
+    }
+
+    config.visualizer = rules_by_order.into_iter().map(|(_, r)| r).collect();
+
+    Ok(())
+}
+
+fn load_example_queries<F>(
+    path: &Path,
+    config: &mut CorpusConfiguration,
+    is_annis_33: bool,
+    progress_callback: &F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
+    let mut example_queries_path = PathBuf::from(path);
+    example_queries_path.push(if is_annis_33 {
+        "example_queries.annis"
+    } else {
+        "example_queries.tab"
+    });
+
+    if !example_queries_path.is_file() {
+        // This is an optional file, don't fail if it does not exist
+        return Ok(());
+    }
+
+    progress_callback(&format!(
+        "loading {}",
+        example_queries_path.to_str().unwrap_or_default()
+    ));
+
+    let mut example_queries_csv = postgresql_import_reader(example_queries_path.as_path())?;
+
+    for result in example_queries_csv.records() {
+        let line = result?;
+
+        if let (Some(query), Some(description)) = (get_field_str(&line, 0), get_field_str(&line, 1))
+        {
+            config.example_queries.push(ExampleQuery {
+                query: query.to_string(),
+                description: description.to_string(),
+                query_language: QueryLanguage::AQL,
+            });
+        }
+    }
+    Ok(())
+}
+
+fn load_corpus_properties<F>(
+    path: &Path,
+    config: &mut CorpusConfiguration,
+    progress_callback: &F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
+    let corpus_config_path = path.join("ExtData").join("corpus.properties");
+
+    if !corpus_config_path.is_file() {
+        // This is an optional file, don't fail if it does not exist
+        return Ok(());
+    }
+
+    progress_callback(&format!(
+        "loading {}",
+        corpus_config_path.to_str().unwrap_or_default()
+    ));
+
+    // property files are small, we can read them all at once
+    let content = std::fs::read_to_string(corpus_config_path)?;
+    // read all lines
+    for line in content.lines() {
+        // split into key and value
+        let splitted: Vec<_> = line.splitn(2, "=").collect();
+        if splitted.len() == 2 {
+            let key = splitted[0];
+            let value = splitted[1];
+
+            match key {
+                "max-context" => {
+                    if let Ok(value) = usize::from_str_radix(value, 10) {
+                        config.context.max = Some(value);
+                    }
+                }
+                "default-context" => {
+                    if let Ok(value) = usize::from_str_radix(value, 10) {
+                        config.context.default = value;
+                    }
+                }
+                "results-per-page" => {
+                    if let Ok(value) = usize::from_str_radix(value, 10) {
+                        config.view.page_size = value;
+                    }
+                }
+                "default-context-segmentation" => {
+                    if !value.is_empty() {
+                        config.context.segmentation = Some(value.to_string());
+                    }
+                }
+                "default-base-text-segmentation" => {
+                    if !value.is_empty() {
+                        config.view.base_text_segmentation = Some(value.to_string());
+                    }
+                }
+                _ => {}
+            };
+        }
+    }
+
+    // The context step is dependent on the max-context configuration.
+    // Use a second pass to make sure it already has been set.
+    for line in content.lines() {
+        // split into key and value
+        let splitted: Vec<_> = line.splitn(2, "=").collect();
+        if splitted.len() == 2 {
+            let key = splitted[0];
+            let value = splitted[1];
+
+            match key {
+                "context-steps" => {
+                    if let Ok(value) = usize::from_str_radix(value, 10) {
+                        config.context.sizes = (value..=config.context.max.unwrap_or(value))
+                            .step_by(value)
+                            .collect();
+                    }
+                }
+                _ => {}
+            };
+        }
+    }
+
+    Ok(())
+}
+
+fn add_external_data_files(
+    import_path: &Path,
+    parent_node_full_name: &str,
+    document: Option<&str>,
+    updates: &mut GraphUpdate,
+) -> Result<()> {
+    // Get a reference to the ExtData folder
+    let mut ext_data = import_path.join("ExtData");
+    // Toplevel corpus files are located directly in the ExtData folder,
+    // files assigned to documents are in a sub-folder with the document name.
+    if let Some(document) = document {
+        ext_data.push(document);
+    }
+    if ext_data.is_dir() {
+        // List all files in the target folder
+        for file in std::fs::read_dir(&ext_data)? {
+            let file = file?;
+            if file.file_type()?.is_file() {
+                // Add a node for the linked file that is part of the (sub-) corpus
+                let node_name = format!(
+                    "{}/{}",
+                    parent_node_full_name,
+                    file.file_name().to_string_lossy()
+                );
+                updates.add_event(UpdateEvent::AddNode {
+                    node_type: "file".to_string(),
+                    node_name: node_name.clone(),
+                })?;
+                updates.add_event(UpdateEvent::AddNodeLabel {
+                    node_name: node_name.clone(),
+                    anno_ns: ANNIS_NS.to_string(),
+                    anno_name: "file".to_string(),
+                    anno_value: file.path().to_string_lossy().to_string(),
+                })?;
+                updates.add_event(UpdateEvent::AddEdge {
+                    source_node: node_name.clone(),
+                    target_node: parent_node_full_name.to_owned(),
+                    layer: ANNIS_NS.to_owned(),
+                    component_type: AnnotationComponentType::PartOf.to_string(),
+                    component_name: String::default(),
+                })?;
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File>, csv::Error> {
@@ -1392,6 +1680,7 @@ fn add_subcorpora(
     texts: &HashMap<TextKey, Text>,
     corpus_id_to_annos: &BTreeMap<(u32, AnnoKey), String>,
     is_annis_33: bool,
+    path: &Path,
 ) -> Result<()> {
     // add the toplevel corpus as node
     {
@@ -1433,6 +1722,7 @@ fn add_subcorpora(
                     break;
                 }
             }
+            add_external_data_files(path, &corpus_table.toplevel_corpus_name, None, updates)?;
         }
     }
 
@@ -1488,6 +1778,8 @@ fn add_subcorpora(
                 component_type: AnnotationComponentType::PartOf.to_string(),
                 component_name: String::default(),
             })?;
+
+            add_external_data_files(path, &subcorpus_full_name, Some(corpus_name), updates)?;
         } // end if not toplevel corpus
     } // end for each document/sub-corpus
 

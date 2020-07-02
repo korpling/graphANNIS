@@ -69,10 +69,6 @@ typedef enum {
    * This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/docs/labs/apoc/current/import/graphml/).
    */
   GraphML,
-  /**
-   * Like `GraphML`, but compressed with the [Brotli](https://github.com/google/brotli) compression format.
-   */
-  GraphMLCompressed,
 } AnnisImportFormat;
 
 /**
