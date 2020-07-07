@@ -31,6 +31,77 @@ use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
 
+lazy_static! {
+    static ref DEFAULT_VISUALIZER_RULES: Vec<(i64, VisualizerRule)> = vec![
+        (
+            -1,
+            VisualizerRule {
+                display_name: "kwic".to_string(),
+                vis_type: "kiwc".to_string(),
+                element: None,
+                layer: None,
+                visibility: VisualizerVisibility::Permanent,
+                mappings: BTreeMap::default(),
+            }
+        ),
+        (
+            101,
+            VisualizerRule {
+                display_name: "tree".to_string(),
+                vis_type: "tree".to_string(),
+                element: Some(VisualizerRuleElement::Node),
+                layer: Some("tiger".to_string()),
+                visibility: VisualizerVisibility::Hidden,
+                mappings: BTreeMap::default(),
+            }
+        ),
+        (
+            102,
+            VisualizerRule {
+                display_name: "exmaralda".to_string(),
+                vis_type: "grid".to_string(),
+                element: Some(VisualizerRuleElement::Node),
+                layer: Some("exmaralda".to_string()),
+                visibility: VisualizerVisibility::Hidden,
+                mappings: BTreeMap::default(),
+            }
+        ),
+        (
+            103,
+            VisualizerRule {
+                display_name: "mmax".to_string(),
+                vis_type: "grid".to_string(),
+                element: Some(VisualizerRuleElement::Node),
+                layer: Some("mmax".to_string()),
+                visibility: VisualizerVisibility::Hidden,
+                mappings: BTreeMap::default(),
+            }
+        ),
+        (
+            104,
+            VisualizerRule {
+                display_name: "coref".to_string(),
+                vis_type: "discourse".to_string(),
+                element: Some(VisualizerRuleElement::Edge),
+                layer: Some("mmax".to_string()),
+                visibility: VisualizerVisibility::Hidden,
+                mappings: BTreeMap::default(),
+            }
+        ),
+        (
+            105,
+            VisualizerRule {
+                display_name: "urml".to_string(),
+                vis_type: "grid".to_string(),
+                element: Some(VisualizerRuleElement::Node),
+                layer: Some("urml".to_string()),
+                visibility: VisualizerVisibility::Hidden,
+                mappings: BTreeMap::default(),
+            }
+        ),
+    ];
+}
+
 #[derive(
     Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, Serialize, Deserialize, MallocSizeOf,
 )]
@@ -381,7 +452,7 @@ where
 
     let mut resolver_tab_csv = postgresql_import_reader(resolver_tab_path.as_path())?;
 
-    let mut rules_by_order: Vec<(i64, VisualizerRule)> = Vec::new();
+    let mut rules_by_order: Vec<(i64, VisualizerRule)> = DEFAULT_VISUALIZER_RULES.clone();
 
     for result in resolver_tab_csv.records() {
         let line = result?;
@@ -399,18 +470,10 @@ where
 
         let visibility = get_field_str(&line, 6)
             .ok_or(anyhow!("Missing visibility column in resolver table"))?;
-        let visibility = match visibility.as_str() {
-            "hidden" => VisualizerVisibility::Hidden,
-            "visible" => VisualizerVisibility::Visible,
-            "permanent" => VisualizerVisibility::Permanent,
-            "preloaded" => VisualizerVisibility::Preloaded,
-            "removed" => VisualizerVisibility::Removed,
-            _ => VisualizerVisibility::default(),
-        };
+
         let order =
             get_field_str(&line, 7).ok_or(anyhow!("Missing order column in resolver table"))?;
         let order = i64::from_str_radix(&order, 10).unwrap_or_default();
-
         let mappings: BTreeMap<String, String> =
             if let Some(mappings_field) = get_field_str(&line, 8) {
                 mappings_field
@@ -427,19 +490,38 @@ where
             } else {
                 BTreeMap::new()
             };
-        let rule = VisualizerRule {
-            layer,
-            element,
-            vis_type: vis_type.to_string(),
-            display_name: display_name.to_string(),
-            visibility,
-            mappings,
-        };
+        if visibility == "removed" {
+            // Remove the matching default visualization
+            rules_by_order.retain(|(_, vis)| {
+                vis.display_name != display_name
+                    || vis.element != element
+                    || vis.layer != layer
+                    || vis.vis_type != vis_type
+            });
+        } else {
+            // Insert the new Rule
+            let visibility = match visibility.as_str() {
+                "hidden" => VisualizerVisibility::Hidden,
+                "visible" => VisualizerVisibility::Visible,
+                "permanent" => VisualizerVisibility::Permanent,
+                "preloaded" => VisualizerVisibility::Preloaded,
+                _ => VisualizerVisibility::default(),
+            };
 
-        // Insert at sorted position by the order
-        match rules_by_order.binary_search_by_key(&order, |(o, _)| *o) {
-            Ok(idx) => rules_by_order.insert(idx + 1, (order, rule)),
-            Err(idx) => rules_by_order.insert(idx, (order, rule)),
+            let rule = VisualizerRule {
+                layer,
+                element,
+                vis_type: vis_type.to_string(),
+                display_name: display_name.to_string(),
+                visibility,
+                mappings,
+            };
+
+            // Insert at sorted position by the order
+            match rules_by_order.binary_search_by_key(&order, |(o, _)| *o) {
+                Ok(idx) => rules_by_order.insert(idx + 1, (order, rule)),
+                Err(idx) => rules_by_order.insert(idx, (order, rule)),
+            }
         }
     }
 

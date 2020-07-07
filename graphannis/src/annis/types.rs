@@ -173,8 +173,6 @@ pub enum VisualizerVisibility {
     Permanent,
     #[serde(rename = "preloaded")]
     Preloaded,
-    #[serde(rename = "removed")]
-    Removed,
 }
 
 impl Default for VisualizerVisibility {
@@ -183,7 +181,7 @@ impl Default for VisualizerVisibility {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum VisualizerRuleElement {
     #[serde(rename = "node")]
     Node,
