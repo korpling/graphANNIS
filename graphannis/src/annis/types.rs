@@ -81,7 +81,7 @@ pub struct CorpusConfiguration {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub example_queries: Vec<ExampleQuery>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub visualizer: Vec<VisualizerRule>,
+    pub visualizers: Vec<VisualizerRule>,
 }
 
 /// Configuration for configuring context in subgraph queries.

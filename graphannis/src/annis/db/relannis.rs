@@ -525,7 +525,7 @@ where
         }
     }
 
-    config.visualizer = rules_by_order.into_iter().map(|(_, r)| r).collect();
+    config.visualizers = rules_by_order.into_iter().map(|(_, r)| r).collect();
 
     Ok(())
 }
