@@ -37,7 +37,7 @@ lazy_static! {
             -1,
             VisualizerRule {
                 display_name: "kwic".to_string(),
-                vis_type: "kiwc".to_string(),
+                vis_type: "kwic".to_string(),
                 element: None,
                 layer: None,
                 visibility: VisualizerVisibility::Permanent,
