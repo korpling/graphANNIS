@@ -163,7 +163,7 @@ pub struct VisualizerRule {
     pub mappings: BTreeMap<String, String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum VisualizerVisibility {
     #[serde(rename = "hidden")]
     Hidden,

@@ -32,9 +32,10 @@ use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
 
 lazy_static! {
-    static ref DEFAULT_VISUALIZER_RULES: Vec<(i64, VisualizerRule)> = vec![
+    static ref DEFAULT_VISUALIZER_RULES: Vec<(i64, bool, VisualizerRule)> = vec![
         (
             -1,
+            true,
             VisualizerRule {
                 display_name: "kwic".to_string(),
                 vis_type: "kwic".to_string(),
@@ -46,6 +47,7 @@ lazy_static! {
         ),
         (
             101,
+            true,
             VisualizerRule {
                 display_name: "tree".to_string(),
                 vis_type: "tree".to_string(),
@@ -57,6 +59,7 @@ lazy_static! {
         ),
         (
             102,
+            true,
             VisualizerRule {
                 display_name: "exmaralda".to_string(),
                 vis_type: "grid".to_string(),
@@ -68,6 +71,7 @@ lazy_static! {
         ),
         (
             103,
+            true,
             VisualizerRule {
                 display_name: "mmax".to_string(),
                 vis_type: "grid".to_string(),
@@ -79,6 +83,7 @@ lazy_static! {
         ),
         (
             104,
+            true,
             VisualizerRule {
                 display_name: "coref".to_string(),
                 vis_type: "discourse".to_string(),
@@ -90,6 +95,7 @@ lazy_static! {
         ),
         (
             105,
+            true,
             VisualizerRule {
                 display_name: "urml".to_string(),
                 vis_type: "grid".to_string(),
@@ -452,7 +458,7 @@ where
 
     let mut resolver_tab_csv = postgresql_import_reader(resolver_tab_path.as_path())?;
 
-    let mut rules_by_order: Vec<(i64, VisualizerRule)> = DEFAULT_VISUALIZER_RULES.clone();
+    let mut rules_by_order: Vec<(i64, bool, VisualizerRule)> = DEFAULT_VISUALIZER_RULES.clone();
 
     for result in resolver_tab_csv.records() {
         let line = result?;
@@ -492,8 +498,9 @@ where
             };
         if visibility == "removed" {
             // Remove the matching default visualization
-            rules_by_order.retain(|(_, vis)| {
-                vis.display_name != display_name
+            rules_by_order.retain(|(_, is_default, vis)| {
+                !is_default
+                    || vis.display_name != display_name
                     || vis.element != element
                     || vis.layer != layer
                     || vis.vis_type != vis_type
@@ -517,15 +524,21 @@ where
                 mappings,
             };
 
+            // Remove any of the existing rules that match exactly the same conditions and show the same visualizer with
+            // the same parameters.
+            rules_by_order.retain(|(_, is_default, vis)| {
+                !is_default || vis.layer.is_none() || vis.layer != rule.layer
+            });
+
             // Insert at sorted position by the order
-            match rules_by_order.binary_search_by_key(&order, |(o, _)| *o) {
-                Ok(idx) => rules_by_order.insert(idx + 1, (order, rule)),
-                Err(idx) => rules_by_order.insert(idx, (order, rule)),
+            match rules_by_order.binary_search_by_key(&order, |(o, _, _)| *o) {
+                Ok(idx) => rules_by_order.insert(idx + 1, (order, false, rule)),
+                Err(idx) => rules_by_order.insert(idx, (order, false, rule)),
             }
         }
     }
 
-    config.visualizers = rules_by_order.into_iter().map(|(_, r)| r).collect();
+    config.visualizers = rules_by_order.into_iter().map(|(_, _, r)| r).collect();
 
     Ok(())
 }
