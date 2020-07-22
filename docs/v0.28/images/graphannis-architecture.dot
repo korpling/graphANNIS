@@ -1,0 +1,32 @@
+digraph Architecture {
+  graph [ dpi = 300 ]; 
+  margin=0;
+  node[shape=box];
+  rankdir=LR;
+  
+  user[xlabel="User", label="", image="stick-actor.png", height=0.5, width=0.347, fixedsize=true, color=white];
+
+  subgraph clusterJava {
+    margin=5;
+    label="Java"; labelloc=t;
+
+    frontend[label="front-end\nweb application"];
+    backend[label="back-end\nservice"];
+
+
+    frontend -> backend[label="transmission of AQL query\nvia REST interface"];
+    backend -> frontend[label="result mapped as Salt graph\nor total number of matches"];
+    
+  };
+  subgraph clusterCpp {
+     margin=5;
+     label="Rust with C interface"; style=filled; bgcolor=lightgrey; labelloc=t;
+
+     graphANNIS[shape=box,label="graphANNIS\nlibrary"];
+  };
+  
+
+  user -> frontend[dir=both];
+  backend -> graphANNIS[label="Java Native Interface calls", dir=both];  
+
+}
