@@ -24,7 +24,7 @@ use graphannis_core::{
 use percent_encoding::utf8_percent_encode;
 use std;
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::prelude::*;
@@ -93,10 +93,41 @@ impl KeySerializer for TextProperty {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, MallocSizeOf)]
 struct TextKey {
     id: u32,
     corpus_ref: Option<u32>,
+}
+
+impl KeySerializer for TextKey {
+    fn create_key<'a>(&'a self) -> Cow<'a, [u8]> {
+        let mut result = Vec::with_capacity(std::mem::size_of::<u32>() * 2);
+        result.extend(&self.id.to_be_bytes());
+        if let Some(corpus_ref) = self.corpus_ref {
+            result.extend(&corpus_ref.to_be_bytes());
+        }
+        Cow::Owned(result)
+    }
+
+    fn parse_key(key: &[u8]) -> Self {
+        let id_size = std::mem::size_of::<u32>();
+        let id = u32::from_be_bytes(
+            key[0..id_size]
+                .try_into()
+                .expect("TextKey deserialization key was too small"),
+        );
+        let corpus_ref = if key.len() == id_size * 2 {
+            Some(u32::from_be_bytes(
+                key[id_size..]
+                    .try_into()
+                    .expect("TextKey deserialization key was too small"),
+            ))
+        } else {
+            None
+        };
+
+        TextKey { id, corpus_ref }
+    }
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, MallocSizeOf)]
@@ -146,6 +177,7 @@ impl KeySerializer for NodeByTextEntry {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 struct Text {
     name: String,
 }
@@ -717,7 +749,7 @@ fn parse_text_tab<F>(
     path: &PathBuf,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<HashMap<TextKey, Text>>
+) -> Result<DiskMap<TextKey, Text>>
 where
     F: Fn(&str) -> (),
 {
@@ -733,7 +765,7 @@ where
         text_tab_path.to_str().unwrap_or_default()
     ));
 
-    let mut texts: HashMap<TextKey, Text> = HashMap::default();
+    let mut texts: DiskMap<TextKey, Text> = DiskMap::default();
 
     let mut text_tab_csv = postgresql_import_reader(text_tab_path.as_path())?;
 
@@ -757,7 +789,7 @@ where
             None
         };
         let key = TextKey { id, corpus_ref };
-        texts.insert(key.clone(), Text { name });
+        texts.insert(key.clone(), Text { name })?;
     }
 
     Ok(texts)
@@ -1011,7 +1043,7 @@ where
 fn load_node_tab<F>(
     path: &PathBuf,
     updates: &mut GraphUpdate,
-    texts: &mut HashMap<TextKey, Text>,
+    texts: &mut DiskMap<TextKey, Text>,
     corpus_table: &ParsedCorpusTable,
     is_annis_33: bool,
     progress_callback: &F,
@@ -1084,12 +1116,12 @@ where
                     id: text_id,
                     corpus_ref: None,
                 };
-                if let Some(existing_text) = texts.remove(&text_key_without_corpus) {
+                if let Some(existing_text) = texts.remove(&text_key_without_corpus)? {
                     let text_key = TextKey {
                         id: text_id,
                         corpus_ref: Some(corpus_id),
                     };
-                    texts.insert(text_key, existing_text);
+                    texts.insert(text_key, existing_text)?;
                 }
             }
 
@@ -1385,7 +1417,7 @@ where
 fn load_nodes<F>(
     path: &PathBuf,
     updates: &mut GraphUpdate,
-    texts: &mut HashMap<TextKey, Text>,
+    texts: &mut DiskMap<TextKey, Text>,
     corpus_table: &ParsedCorpusTable,
     is_annis_33: bool,
     progress_callback: &F,
@@ -1677,7 +1709,7 @@ fn add_subcorpora(
     updates: &mut GraphUpdate,
     corpus_table: &ParsedCorpusTable,
     node_node_result: &LoadNodeResult,
-    texts: &HashMap<TextKey, Text>,
+    texts: &DiskMap<TextKey, Text>,
     corpus_id_to_annos: &BTreeMap<(u32, AnnoKey), String>,
     is_annis_33: bool,
     path: &Path,
@@ -1784,7 +1816,7 @@ fn add_subcorpora(
     } // end for each document/sub-corpus
 
     // add a node for each text and the connection between all sub-nodes of the text
-    for (text_key, text) in texts {
+    for (text_key, text) in texts.iter() {
         // add text node (including its name)
         if let Some(corpus_ref) = text_key.corpus_ref {
             let text_name = utf8_percent_encode(&text.name, SALT_URI_ENCODE_SET).to_string();
