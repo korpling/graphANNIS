@@ -1090,11 +1090,15 @@ where
                 if current_text_offset < token_left_char {
                     // Create the new white space token from the start to left border of this token
                     if let Some(t) = texts.try_get(&text_key)? {
-                        let previous_token_text_prop = TextProperty {
-                            segmentation: left_text_pos.segmentation.to_string(),
-                            corpus_id: left_text_pos.corpus_id,
-                            text_id: left_text_pos.text_id,
-                            val: (current_text_offset - 1) as u32,
+                        let previous_token_text_prop = if current_text_offset > 0 {
+                            Some(TextProperty {
+                                segmentation: left_text_pos.segmentation.to_string(),
+                                corpus_id: left_text_pos.corpus_id,
+                                text_id: left_text_pos.text_id,
+                                val: (current_text_offset - 1) as u32,
+                            })
+                        } else {
+                            None
                         };
 
                         let created_token_id = format!(
@@ -1132,20 +1136,22 @@ where
                         })?;
 
                         // Connect the new node with Ordering edges to the token before and after
-                        if let Some(previous_token) = textpos_table
-                            .token_by_right_textpos
-                            .try_get(&previous_token_text_prop)?
-                        {
-                            if let Some(previous_token) =
-                                id_to_node_name.try_get(&previous_token)?
+                        if let Some(previous_token_text_prop) = previous_token_text_prop {
+                            if let Some(previous_token) = textpos_table
+                                .token_by_right_textpos
+                                .try_get(&previous_token_text_prop)?
                             {
-                                updates.add_event(UpdateEvent::AddEdge {
-                                    source_node: previous_token,
-                                    target_node: created_token_id.to_string(),
-                                    component_type: "Ordering".to_string(),
-                                    component_name: "text".to_string(),
-                                    layer: ANNIS_NS.to_string(),
-                                })?;
+                                if let Some(previous_token) =
+                                    id_to_node_name.try_get(&previous_token)?
+                                {
+                                    updates.add_event(UpdateEvent::AddEdge {
+                                        source_node: previous_token,
+                                        target_node: created_token_id.to_string(),
+                                        component_type: "Ordering".to_string(),
+                                        component_name: "text".to_string(),
+                                        layer: ANNIS_NS.to_string(),
+                                    })?;
+                                }
                             }
                         }
                         if let Some(next_token) = id_to_node_name.try_get(&next_real_token_id)? {
