@@ -180,6 +180,7 @@ impl KeySerializer for NodeByTextEntry {
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 struct Text {
     name: String,
+    val: String,
 }
 
 struct CorpusTableEntry {
@@ -779,6 +780,9 @@ where
         let name = get_field_str(&line, if is_annis_33 { 2 } else { 1 })
             .ok_or(anyhow!("Missing column"))?;
 
+        let value = get_field_str(&line, if is_annis_33 { 3 } else { 2 })
+            .ok_or(anyhow!("Missing column"))?;
+
         let corpus_ref = if is_annis_33 {
             Some(
                 line.get(0)
@@ -789,7 +793,7 @@ where
             None
         };
         let key = TextKey { id, corpus_ref };
-        texts.insert(key.clone(), Text { name })?;
+        texts.insert(key.clone(), Text { name, val: value })?;
     }
 
     Ok(texts)
@@ -1035,6 +1039,88 @@ where
                 )
             }
         } // end if not a token
+    }
+
+    Ok(())
+}
+
+fn add_white_space_token<F>(
+    updates: &mut GraphUpdate,
+    textpos_table: &TextPosTable,
+    texts: &mut DiskMap<TextKey, Text>,
+    id_to_node_name: &DiskMap<NodeID, String>,
+    progress_callback: &F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
+    progress_callback("Adding non-tokenized primary text segments as white-space tokens.");
+    // Go through each discovered token and check if there is whitespace before this token in the original text.
+    let mut white_space_range_start = 0;
+    for (token_text_pos, next_real_token_id) in textpos_table.token_by_index.iter() {
+        // Get the left character border for this token
+        if let (Some(left_text_pos), Some(right_text_pos)) = (
+            textpos_table.node_to_left.try_get(&next_real_token_id)?,
+            textpos_table.node_to_right.try_get(&next_real_token_id)?,
+        ) {
+            let left_char = left_text_pos.val;
+            if white_space_range_start < left_char {
+                // Create the new white space token from the start to left border of this token
+                let text_key = TextKey {
+                    corpus_ref: Some(token_text_pos.corpus_id),
+                    id: token_text_pos.text_id,
+                };
+                if let Some(t) = texts.try_get(&text_key)? {
+                    let covered_text =
+                        &t.val[(white_space_range_start as usize)..(left_char as usize)];
+                    let created_token_id = format!(
+                        "artificial_white_space_token_{}_{}_{}",
+                        t.name, white_space_range_start, left_char
+                    );
+                    updates.add_event(UpdateEvent::AddNode {
+                        node_name: created_token_id.clone(),
+                        node_type: "node".to_string(),
+                    })?;
+                    updates.add_event(UpdateEvent::AddNodeLabel {
+                        node_name: created_token_id.clone(),
+                        anno_ns: ANNIS_NS.to_string(),
+                        anno_name: TOK.to_string(),
+                        anno_value: covered_text.to_string(),
+                    })?;
+                    // Connect the new node with Ordering edges to the token before and after
+                    let previous_token_text_prop = TextProperty {
+                        segmentation: left_text_pos.segmentation.to_string(),
+                        corpus_id: left_text_pos.corpus_id,
+                        text_id: left_text_pos.text_id,
+                        val: white_space_range_start - 1,
+                    };
+                    if let Some(previous_token) = textpos_table
+                        .token_by_right_textpos
+                        .try_get(&previous_token_text_prop)?
+                    {
+                        if let Some(previous_token) = id_to_node_name.try_get(&previous_token)? {
+                            updates.add_event(UpdateEvent::AddEdge {
+                                source_node: previous_token,
+                                target_node: created_token_id.to_string(),
+                                component_type: "Ordering".to_string(),
+                                component_name: "text".to_string(),
+                                layer: ANNIS_NS.to_string(),
+                            })?;
+                        }
+                    }
+                    if let Some(next_token) = id_to_node_name.try_get(&next_real_token_id)? {
+                        updates.add_event(UpdateEvent::AddEdge {
+                            source_node: created_token_id.to_string(),
+                            target_node: next_token.to_string(),
+                            component_type: "Ordering".to_string(),
+                            component_name: "text".to_string(),
+                            layer: ANNIS_NS.to_string(),
+                        })?;
+                    }
+                    white_space_range_start = right_text_pos.val;
+                }
+            }
+        }
     }
 
     Ok(())
@@ -1440,6 +1526,14 @@ where
         &node_tab_parse_result.missing_seg_span,
         &node_tab_parse_result.id_to_node_name,
         is_annis_33,
+        progress_callback,
+    )?;
+
+    add_white_space_token(
+        updates,
+        &node_tab_parse_result.textpos_table,
+        texts,
+        &node_tab_parse_result.id_to_node_name,
         progress_callback,
     )?;
 
