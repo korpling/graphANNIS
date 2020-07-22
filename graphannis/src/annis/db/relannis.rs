@@ -1487,7 +1487,7 @@ where
     let pos_parent = if is_annis_33 { 5 } else { 4 };
 
     // first run: collect all pre-order values for a node
-    let mut pre_to_node_id: BTreeMap<u32, NodeID> = BTreeMap::new();
+    let mut pre_to_node_id: DiskMap<u32, NodeID> = DiskMap::default();
     for result in rank_tab_csv.records() {
         let line = result?;
         let pre: u32 = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
@@ -1495,7 +1495,7 @@ where
             .get(pos_node_ref)
             .ok_or(anyhow!("Missing column"))?
             .parse()?;
-        pre_to_node_id.insert(pre, node_id);
+        pre_to_node_id.insert(pre, node_id)?;
     }
 
     // second run: get the actual edges
@@ -1544,10 +1544,7 @@ where
 
                     let pre: u32 = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
 
-                    let e = Edge {
-                        source: *source,
-                        target,
-                    };
+                    let e = Edge { source, target };
 
                     if c.get_type() == AnnotationComponentType::Coverage {
                         load_rank_result
