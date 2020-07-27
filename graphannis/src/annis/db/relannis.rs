@@ -1208,6 +1208,13 @@ where
                             })?;
                         }
                     }
+                    // Set the current offset to the end of this token
+                    let new_offset = right_text_pos.val as usize;
+                    // Skip the text of this token
+                    for _ in current_text_offset..new_offset {
+                        text_char_it.next();
+                    }
+                    current_text_offset = new_offset;
                 }
             }
             previous_real_token_id = Some(next_real_token_id);
