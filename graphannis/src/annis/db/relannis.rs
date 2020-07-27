@@ -808,7 +808,6 @@ fn calculate_automatic_token_order<F>(
 where
     F: Fn(&str) -> (),
 {
-    // TODO: cleanup, better variable naming
     // iterate over all token by their order, find the nodes with the same
     // text coverage (either left or right) and add explicit Ordering edge
 
@@ -1081,6 +1080,8 @@ where
             val: u32::max_value(),
         };
 
+        let mut previous_real_token_id = None;
+
         // Go through each discovered token of this text and check if there is whitespace before this token in the original text.
         for (text, next_real_token_id) in textpos_table
             .token_by_index
@@ -1096,17 +1097,6 @@ where
                 if current_text_offset < token_left_char {
                     // Create the new white space token from the start to left border of this token
                     if let Some(t) = texts.try_get(&text_key)? {
-                        let previous_token_text_prop = if current_text_offset > 0 {
-                            Some(TextProperty {
-                                segmentation: left_text_pos.segmentation.to_string(),
-                                corpus_id: left_text_pos.corpus_id,
-                                text_id: left_text_pos.text_id,
-                                val: (current_text_offset - 1) as u32,
-                            })
-                        } else {
-                            None
-                        };
-
                         let text_name =
                             utf8_percent_encode(&t.name, SALT_URI_ENCODE_SET).to_string();
                         let subcorpus_full_name = get_corpus_path(text.corpus_id, corpus_table)?;
@@ -1159,23 +1149,17 @@ where
                         })?;
 
                         // Connect the new node with Ordering edges to the token before and after
-                        if let Some(previous_token_text_prop) = previous_token_text_prop {
-                            if let Some(previous_token) = textpos_table
-                                .token_by_right_textpos
-                                .try_get(&previous_token_text_prop)?
+                        if let Some(previous_real_token_id) = previous_real_token_id {
+                            if let Some(previous_token) =
+                                id_to_node_name.try_get(&previous_real_token_id)?
                             {
-                                if let Some(previous_token) =
-                                    id_to_node_name.try_get(&previous_token)?
-                                {
-                                    updates.add_event(UpdateEvent::AddEdge {
-                                        source_node: previous_token.clone(),
-                                        target_node: created_token_id.to_string(),
-                                        component_type: AnnotationComponentType::Ordering
-                                            .to_string(),
-                                        component_name: IGNORED_TOK.to_string(),
-                                        layer: ANNIS_NS.to_string(),
-                                    })?;
-                                }
+                                updates.add_event(UpdateEvent::AddEdge {
+                                    source_node: previous_token.clone(),
+                                    target_node: created_token_id.to_string(),
+                                    component_type: AnnotationComponentType::Ordering.to_string(),
+                                    component_name: "text".to_string(),
+                                    layer: ANNIS_NS.to_string(),
+                                })?;
                             }
                         }
                         if let Some(next_token) = id_to_node_name.try_get(&next_real_token_id)? {
@@ -1183,14 +1167,31 @@ where
                                 source_node: created_token_id.to_string(),
                                 target_node: next_token.to_string(),
                                 component_type: AnnotationComponentType::Ordering.to_string(),
-                                component_name: IGNORED_TOK.to_string(),
+                                component_name: "text".to_string(),
                                 layer: ANNIS_NS.to_string(),
                             })?;
                         }
                         added_token_count += 1;
                     }
+                } else {
+                    // There is no whitespace between the token, create a direct ordering edge between them
+                    if let Some(previous_real_token_id) = previous_real_token_id {
+                        if let (Some(previous_token), Some(next_token)) = (
+                            id_to_node_name.try_get(&previous_real_token_id)?,
+                            id_to_node_name.try_get(&next_real_token_id)?,
+                        ) {
+                            updates.add_event(UpdateEvent::AddEdge {
+                                source_node: previous_token.to_string(),
+                                target_node: next_token.to_string(),
+                                component_type: AnnotationComponentType::Ordering.to_string(),
+                                component_name: "text".to_string(),
+                                layer: ANNIS_NS.to_string(),
+                            })?;
+                        }
+                    }
                 }
             }
+            previous_real_token_id = Some(next_real_token_id);
         }
     }
     progress_callback(&format!(
