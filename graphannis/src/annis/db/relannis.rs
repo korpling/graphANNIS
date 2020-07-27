@@ -1,4 +1,4 @@
-use super::aql::model::AnnotationComponentType;
+use super::aql::model::{AnnotationComponentType, IGNORED_TOK};
 use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::errors::*;
 use crate::annis::util::create_str_vec_key;
@@ -16,7 +16,7 @@ use crate::{
 };
 use csv;
 use graphannis_core::{
-    graph::ANNIS_NS,
+    graph::{ANNIS_NS, DEFAULT_NS},
     serializer::KeySerializer,
     types::{AnnoKey, Component, Edge, NodeID},
     util::disk_collections::DiskMap,
@@ -826,6 +826,11 @@ where
                 && last_textprop.segmentation == current_textprop.segmentation
             {
                 // we are still in the same text, add ordering between token
+                let ordering_layer = if current_textprop.segmentation.is_empty() {
+                    ANNIS_NS.to_owned()
+                } else {
+                    DEFAULT_NS.to_owned()
+                };
                 updates.add_event(
                     UpdateEvent::AddEdge {
                         source_node: id_to_node_name
@@ -836,7 +841,7 @@ where
                             .try_get(&current_token)?
                             .ok_or_else(|| anyhow!("Can't get node name for current token with ID {} in \"calculate_automatic_token_order\" function.", current_token))?
                             .clone(),
-                        layer: ANNIS_NS.to_owned(),
+                        layer: ordering_layer,
                         component_type: AnnotationComponentType::Ordering.to_string(),
                         component_name: current_textprop.segmentation.clone(),
                     },
@@ -1136,12 +1141,12 @@ where
                         // Add events
                         updates.add_event(UpdateEvent::AddNode {
                             node_name: created_token_id.clone(),
-                            node_type: "white_space_token".to_string(),
+                            node_type: IGNORED_TOK.to_string(),
                         })?;
                         updates.add_event(UpdateEvent::AddNodeLabel {
                             node_name: created_token_id.clone(),
                             anno_ns: ANNIS_NS.to_string(),
-                            anno_name: TOK.to_string(),
+                            anno_name: IGNORED_TOK.to_string(),
                             anno_value: covered_text.to_string(),
                         })?;
 
@@ -1167,7 +1172,7 @@ where
                                         target_node: created_token_id.to_string(),
                                         component_type: AnnotationComponentType::Ordering
                                             .to_string(),
-                                        component_name: "relannis.text".to_string(),
+                                        component_name: IGNORED_TOK.to_string(),
                                         layer: ANNIS_NS.to_string(),
                                     })?;
                                 }
@@ -1178,7 +1183,7 @@ where
                                 source_node: created_token_id.to_string(),
                                 target_node: next_token.to_string(),
                                 component_type: AnnotationComponentType::Ordering.to_string(),
-                                component_name: "relannis.text".to_string(),
+                                component_name: IGNORED_TOK.to_string(),
                                 layer: ANNIS_NS.to_string(),
                             })?;
                         }

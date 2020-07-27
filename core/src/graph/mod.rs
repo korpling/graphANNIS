@@ -25,6 +25,7 @@ use tempfile;
 use update::{GraphUpdate, UpdateEvent};
 
 pub const ANNIS_NS: &str = "annis";
+pub const DEFAULT_NS: &str = "default_ns";
 pub const NODE_NAME: &str = "node_name";
 pub const NODE_TYPE: &str = "node_type";
 

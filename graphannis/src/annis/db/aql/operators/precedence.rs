@@ -8,7 +8,7 @@ use crate::{
     graph::{GraphStorage, Match},
     model::{AnnotationComponent, AnnotationComponentType},
 };
-use graphannis_core::graph::{ANNIS_NS, DEFAULT_ANNO_KEY};
+use graphannis_core::graph::{ANNIS_NS, DEFAULT_ANNO_KEY, DEFAULT_NS};
 
 use std;
 use std::collections::{HashSet, VecDeque};
@@ -47,9 +47,14 @@ lazy_static! {
 
 impl BinaryOperatorSpec for PrecedenceSpec {
     fn necessary_components(&self, db: &AnnotationGraph) -> HashSet<AnnotationComponent> {
+        let ordering_layer = if self.segmentation.is_none() {
+            ANNIS_NS.to_owned()
+        } else {
+            DEFAULT_NS.to_owned()
+        };
         let component_order = AnnotationComponent::new(
             AnnotationComponentType::Ordering,
-            ANNIS_NS.to_owned(),
+            ordering_layer,
             self.segmentation
                 .clone()
                 .unwrap_or_else(|| String::from("")),
@@ -85,9 +90,14 @@ impl std::fmt::Display for PrecedenceSpec {
 
 impl<'a> Precedence<'a> {
     pub fn new(graph: &'a AnnotationGraph, spec: PrecedenceSpec) -> Option<Precedence<'a>> {
+        let ordering_layer = if spec.segmentation.is_none() {
+            ANNIS_NS.to_owned()
+        } else {
+            DEFAULT_NS.to_owned()
+        };
         let component_order = AnnotationComponent::new(
             AnnotationComponentType::Ordering,
-            ANNIS_NS.to_owned(),
+            ordering_layer,
             spec.segmentation
                 .clone()
                 .unwrap_or_else(|| String::from("")),
