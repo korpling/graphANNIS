@@ -1102,8 +1102,8 @@ where
                         };
 
                         let created_token_id = format!(
-                            "artificial_white_space_token_{}_{}_{}",
-                            t.name, current_text_offset, token_left_char
+                            "artificial_white_space_token_{}_{}_{}_{}",
+                            t.name, current_text_offset, token_left_char, added_token_count,
                         );
 
                         // Get the covered text
@@ -1145,7 +1145,7 @@ where
                                     id_to_node_name.try_get(&previous_token)?
                                 {
                                     updates.add_event(UpdateEvent::AddEdge {
-                                        source_node: previous_token,
+                                        source_node: previous_token.clone(),
                                         target_node: created_token_id.to_string(),
                                         component_type: "Ordering".to_string(),
                                         component_name: "text".to_string(),
