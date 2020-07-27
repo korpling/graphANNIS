@@ -1102,7 +1102,7 @@ where
                         };
 
                         let created_token_id = format!(
-                            "artificial_white_space_token_{}_{}_{}_{}",
+                            "white_space_token_{}_{}_{}_{}",
                             t.name, current_text_offset, token_left_char, added_token_count,
                         );
 
@@ -1126,7 +1126,7 @@ where
                         // Add events
                         updates.add_event(UpdateEvent::AddNode {
                             node_name: created_token_id.clone(),
-                            node_type: "node".to_string(),
+                            node_type: "white_space_token".to_string(),
                         })?;
                         updates.add_event(UpdateEvent::AddNodeLabel {
                             node_name: created_token_id.clone(),
