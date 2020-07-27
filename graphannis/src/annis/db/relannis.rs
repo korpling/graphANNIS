@@ -421,6 +421,15 @@ where
         path,
     )?;
 
+    add_white_space_token(
+        updates,
+        &load_nodes_result.textpos_table,
+        &mut texts,
+        &load_nodes_result.id_to_node_name,
+        &corpus_table,
+        progress_callback,
+    )?;
+
     Ok(LoadNodeAndCorpusResult {
         toplevel_corpus_name: corpus_table.toplevel_corpus_name,
         id_to_node_name: load_nodes_result.id_to_node_name,
@@ -1706,15 +1715,6 @@ where
         &node_tab_parse_result.missing_seg_span,
         &node_tab_parse_result.id_to_node_name,
         is_annis_33,
-        progress_callback,
-    )?;
-
-    add_white_space_token(
-        updates,
-        &node_tab_parse_result.textpos_table,
-        texts,
-        &node_tab_parse_result.id_to_node_name,
-        corpus_table,
         progress_callback,
     )?;
 
