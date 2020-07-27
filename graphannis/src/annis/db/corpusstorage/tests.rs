@@ -5,7 +5,7 @@ use crate::annis::db::{aql::model::AnnotationComponentType, example_generator};
 use crate::corpusstorage::QueryLanguage;
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::CorpusStorage;
-use graphannis_core::types::NodeID;
+use graphannis_core::{graph::DEFAULT_NS, types::NodeID};
 
 #[test]
 fn delete() {
@@ -130,7 +130,7 @@ fn subgraph_with_segmentation() {
         g.add_event(UpdateEvent::AddEdge {
             source_node: format!("root/doc1#seg{}", i),
             target_node: format!("root/doc1#seg{}", i + 1),
-            layer: "annis".to_string(),
+            layer: DEFAULT_NS.to_string(),
             component_type: "Ordering".to_string(),
             component_name: "seg".to_string(),
         })
