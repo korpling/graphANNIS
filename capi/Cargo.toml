@@ -1,6 +1,6 @@
 [package]
 name = "graphannis-capi"
-version = "0.27.0"
+version = "0.28.0"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 license = "Apache-2.0"
 description = "This is the C-API to the ANNIS linguistic search and visualization system."
@@ -12,7 +12,7 @@ edition = "2018"
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
-graphannis = { path = "../graphannis/", version = "^0.27" }
+graphannis = { path = "../graphannis/", version = "^0.28"}
 simplelog = { version = "0.7"}
 log = "0.4"
 libc = "0.2"

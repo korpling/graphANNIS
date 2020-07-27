@@ -24,7 +24,7 @@ use graphannis_core::{
 use percent_encoding::utf8_percent_encode;
 use std;
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::prelude::*;
@@ -170,10 +170,41 @@ impl KeySerializer for TextProperty {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, MallocSizeOf)]
 struct TextKey {
     id: u32,
     corpus_ref: Option<u32>,
+}
+
+impl KeySerializer for TextKey {
+    fn create_key<'a>(&'a self) -> Cow<'a, [u8]> {
+        let mut result = Vec::with_capacity(std::mem::size_of::<u32>() * 2);
+        result.extend(&self.id.to_be_bytes());
+        if let Some(corpus_ref) = self.corpus_ref {
+            result.extend(&corpus_ref.to_be_bytes());
+        }
+        Cow::Owned(result)
+    }
+
+    fn parse_key(key: &[u8]) -> Self {
+        let id_size = std::mem::size_of::<u32>();
+        let id = u32::from_be_bytes(
+            key[0..id_size]
+                .try_into()
+                .expect("TextKey deserialization key was too small"),
+        );
+        let corpus_ref = if key.len() == id_size * 2 {
+            Some(u32::from_be_bytes(
+                key[id_size..]
+                    .try_into()
+                    .expect("TextKey deserialization key was too small"),
+            ))
+        } else {
+            None
+        };
+
+        TextKey { id, corpus_ref }
+    }
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, MallocSizeOf)]
@@ -223,8 +254,10 @@ impl KeySerializer for NodeByTextEntry {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 struct Text {
     name: String,
+    val: String,
 }
 
 struct CorpusTableEntry {
@@ -821,7 +854,7 @@ fn parse_text_tab<F>(
     path: &PathBuf,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<HashMap<TextKey, Text>>
+) -> Result<DiskMap<TextKey, Text>>
 where
     F: Fn(&str) -> (),
 {
@@ -837,7 +870,7 @@ where
         text_tab_path.to_str().unwrap_or_default()
     ));
 
-    let mut texts: HashMap<TextKey, Text> = HashMap::default();
+    let mut texts: DiskMap<TextKey, Text> = DiskMap::default();
 
     let mut text_tab_csv = postgresql_import_reader(text_tab_path.as_path())?;
 
@@ -851,6 +884,9 @@ where
         let name = get_field_str(&line, if is_annis_33 { 2 } else { 1 })
             .ok_or(anyhow!("Missing column"))?;
 
+        let value = get_field_str(&line, if is_annis_33 { 3 } else { 2 })
+            .ok_or(anyhow!("Missing column"))?;
+
         let corpus_ref = if is_annis_33 {
             Some(
                 line.get(0)
@@ -861,7 +897,7 @@ where
             None
         };
         let key = TextKey { id, corpus_ref };
-        texts.insert(key.clone(), Text { name });
+        texts.insert(key.clone(), Text { name, val: value })?;
     }
 
     Ok(texts)
@@ -1112,10 +1148,162 @@ where
     Ok(())
 }
 
+fn add_white_space_token<F>(
+    updates: &mut GraphUpdate,
+    textpos_table: &TextPosTable,
+    texts: &mut DiskMap<TextKey, Text>,
+    id_to_node_name: &DiskMap<NodeID, String>,
+    corpus_table: &ParsedCorpusTable,
+    progress_callback: &F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
+    progress_callback("adding non-tokenized primary text segments as white-space tokens");
+    let mut added_token_count = 0;
+
+    // Iterate over all texts of the graph separately
+    for (text_key, text) in texts.try_iter()? {
+        let mut text_char_it = text.val.chars();
+        let mut current_text_offset = 0;
+
+        let min_text_prop = TextProperty {
+            corpus_id: text_key.corpus_ref.unwrap_or_default(),
+            text_id: text_key.id,
+            segmentation: "".to_string(),
+            val: u32::min_value(),
+        };
+        let max_text_prop = TextProperty {
+            corpus_id: text_key.corpus_ref.unwrap_or_default(),
+            text_id: text_key.id,
+            segmentation: "".to_string(),
+            val: u32::max_value(),
+        };
+
+        // Go through each discovered token of this text and check if there is whitespace before this token in the original text.
+        for (text, next_real_token_id) in textpos_table
+            .token_by_index
+            .range(min_text_prop..max_text_prop)
+        {
+            // Get the left character border for this token
+            if let (Some(left_text_pos), Some(right_text_pos)) = (
+                textpos_table.node_to_left.try_get(&next_real_token_id)?,
+                textpos_table.node_to_right.try_get(&next_real_token_id)?,
+            ) {
+                let token_left_char = left_text_pos.val as usize;
+                let token_char_length = (right_text_pos.val - left_text_pos.val) as usize;
+                if current_text_offset < token_left_char {
+                    // Create the new white space token from the start to left border of this token
+                    if let Some(t) = texts.try_get(&text_key)? {
+                        let previous_token_text_prop = if current_text_offset > 0 {
+                            Some(TextProperty {
+                                segmentation: left_text_pos.segmentation.to_string(),
+                                corpus_id: left_text_pos.corpus_id,
+                                text_id: left_text_pos.text_id,
+                                val: (current_text_offset - 1) as u32,
+                            })
+                        } else {
+                            None
+                        };
+
+                        let text_name =
+                            utf8_percent_encode(&t.name, SALT_URI_ENCODE_SET).to_string();
+                        let subcorpus_full_name = get_corpus_path(text.corpus_id, corpus_table)?;
+                        let text_full_name = format!("{}#{}", &subcorpus_full_name, &text_name);
+
+                        let created_token_id = format!(
+                            "{}#white_space_token_{}_{}_{}_{}",
+                            subcorpus_full_name,
+                            text_name,
+                            current_text_offset,
+                            token_left_char,
+                            added_token_count,
+                        );
+
+                        // Get the covered text
+                        let mut covered_text =
+                            String::with_capacity(token_left_char - current_text_offset);
+                        for _ in current_text_offset..token_left_char {
+                            if let Some(c) = text_char_it.next() {
+                                covered_text.push(c);
+                                current_text_offset += 1;
+                            }
+                        }
+
+                        // Skip the text of the current token
+                        for _ in 0..token_char_length {
+                            if text_char_it.next().is_some() {
+                                current_text_offset += 1;
+                            }
+                        }
+
+                        // Add events
+                        updates.add_event(UpdateEvent::AddNode {
+                            node_name: created_token_id.clone(),
+                            node_type: "white_space_token".to_string(),
+                        })?;
+                        updates.add_event(UpdateEvent::AddNodeLabel {
+                            node_name: created_token_id.clone(),
+                            anno_ns: ANNIS_NS.to_string(),
+                            anno_name: TOK.to_string(),
+                            anno_value: covered_text.to_string(),
+                        })?;
+
+                        updates.add_event(UpdateEvent::AddEdge {
+                            source_node: created_token_id.clone(),
+                            target_node: text_full_name,
+                            component_type: AnnotationComponentType::PartOf.to_string(),
+                            component_name: String::default(),
+                            layer: ANNIS_NS.to_owned(),
+                        })?;
+
+                        // Connect the new node with Ordering edges to the token before and after
+                        if let Some(previous_token_text_prop) = previous_token_text_prop {
+                            if let Some(previous_token) = textpos_table
+                                .token_by_right_textpos
+                                .try_get(&previous_token_text_prop)?
+                            {
+                                if let Some(previous_token) =
+                                    id_to_node_name.try_get(&previous_token)?
+                                {
+                                    updates.add_event(UpdateEvent::AddEdge {
+                                        source_node: previous_token.clone(),
+                                        target_node: created_token_id.to_string(),
+                                        component_type: AnnotationComponentType::Ordering
+                                            .to_string(),
+                                        component_name: "relannis.text".to_string(),
+                                        layer: ANNIS_NS.to_string(),
+                                    })?;
+                                }
+                            }
+                        }
+                        if let Some(next_token) = id_to_node_name.try_get(&next_real_token_id)? {
+                            updates.add_event(UpdateEvent::AddEdge {
+                                source_node: created_token_id.to_string(),
+                                target_node: next_token.to_string(),
+                                component_type: AnnotationComponentType::Ordering.to_string(),
+                                component_name: "relannis.text".to_string(),
+                                layer: ANNIS_NS.to_string(),
+                            })?;
+                        }
+                        added_token_count += 1;
+                    }
+                }
+            }
+        }
+    }
+    progress_callback(&format!(
+        "added {} non-tokenized primary text segments as white-space tokens",
+        added_token_count
+    ));
+
+    Ok(())
+}
+
 fn load_node_tab<F>(
     path: &PathBuf,
     updates: &mut GraphUpdate,
-    texts: &mut HashMap<TextKey, Text>,
+    texts: &mut DiskMap<TextKey, Text>,
     corpus_table: &ParsedCorpusTable,
     is_annis_33: bool,
     progress_callback: &F,
@@ -1188,12 +1376,12 @@ where
                     id: text_id,
                     corpus_ref: None,
                 };
-                if let Some(existing_text) = texts.remove(&text_key_without_corpus) {
+                if let Some(existing_text) = texts.remove(&text_key_without_corpus)? {
                     let text_key = TextKey {
                         id: text_id,
                         corpus_ref: Some(corpus_id),
                     };
-                    texts.insert(text_key, existing_text);
+                    texts.insert(text_key, existing_text)?;
                 }
             }
 
@@ -1489,7 +1677,7 @@ where
 fn load_nodes<F>(
     path: &PathBuf,
     updates: &mut GraphUpdate,
-    texts: &mut HashMap<TextKey, Text>,
+    texts: &mut DiskMap<TextKey, Text>,
     corpus_table: &ParsedCorpusTable,
     is_annis_33: bool,
     progress_callback: &F,
@@ -1512,6 +1700,15 @@ where
         &node_tab_parse_result.missing_seg_span,
         &node_tab_parse_result.id_to_node_name,
         is_annis_33,
+        progress_callback,
+    )?;
+
+    add_white_space_token(
+        updates,
+        &node_tab_parse_result.textpos_table,
+        texts,
+        &node_tab_parse_result.id_to_node_name,
+        corpus_table,
         progress_callback,
     )?;
 
@@ -1559,7 +1756,7 @@ where
     let pos_parent = if is_annis_33 { 5 } else { 4 };
 
     // first run: collect all pre-order values for a node
-    let mut pre_to_node_id: BTreeMap<u32, NodeID> = BTreeMap::new();
+    let mut pre_to_node_id: DiskMap<u32, NodeID> = DiskMap::default();
     for result in rank_tab_csv.records() {
         let line = result?;
         let pre: u32 = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
@@ -1567,7 +1764,7 @@ where
             .get(pos_node_ref)
             .ok_or(anyhow!("Missing column"))?
             .parse()?;
-        pre_to_node_id.insert(pre, node_id);
+        pre_to_node_id.insert(pre, node_id)?;
     }
 
     // second run: get the actual edges
@@ -1616,10 +1813,7 @@ where
 
                     let pre: u32 = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
 
-                    let e = Edge {
-                        source: *source,
-                        target,
-                    };
+                    let e = Edge { source, target };
 
                     if c.get_type() == AnnotationComponentType::Coverage {
                         load_rank_result
@@ -1781,7 +1975,7 @@ fn add_subcorpora(
     updates: &mut GraphUpdate,
     corpus_table: &ParsedCorpusTable,
     node_node_result: &LoadNodeResult,
-    texts: &HashMap<TextKey, Text>,
+    texts: &DiskMap<TextKey, Text>,
     corpus_id_to_annos: &BTreeMap<(u32, AnnoKey), String>,
     is_annis_33: bool,
     path: &Path,
@@ -1888,7 +2082,7 @@ fn add_subcorpora(
     } // end for each document/sub-corpus
 
     // add a node for each text and the connection between all sub-nodes of the text
-    for (text_key, text) in texts {
+    for (text_key, text) in texts.iter() {
         // add text node (including its name)
         if let Some(corpus_ref) = text_key.corpus_ref {
             let text_name = utf8_percent_encode(&text.name, SALT_URI_ENCODE_SET).to_string();
