@@ -1148,7 +1148,7 @@ where
                                         source_node: previous_token.clone(),
                                         target_node: created_token_id.to_string(),
                                         component_type: "Ordering".to_string(),
-                                        component_name: "text".to_string(),
+                                        component_name: "relannis.text".to_string(),
                                         layer: ANNIS_NS.to_string(),
                                     })?;
                                 }
@@ -1159,7 +1159,7 @@ where
                                 source_node: created_token_id.to_string(),
                                 target_node: next_token.to_string(),
                                 component_type: "Ordering".to_string(),
-                                component_name: "text".to_string(),
+                                component_name: "relannis.text".to_string(),
                                 layer: ANNIS_NS.to_string(),
                             })?;
                         }
