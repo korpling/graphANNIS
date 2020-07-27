@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add non-tokenized primary text segments as special nodes with the node type "white-space-token" when importing relANNIS.
+- Add non-tokenized primary text segments as special nodes with the node type "ignored-tok" when importing relANNIS.
   These are connected with edges in the Ordering/annis/text component to the other token and allow to re-construct the
   original relANNIS primary text.
 
