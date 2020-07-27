@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   These are connected with edges in the Ordering/annis/relannis.text component to the other token and allow to re-construct the
   original relANNIS primary text.
 
+### Fixed
+
+- Load all components when extracting a subgraph using an AQL query
+
 ## [0.28.0] - 2020-07-02
 
 ### Addded
