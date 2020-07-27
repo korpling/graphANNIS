@@ -7,8 +7,8 @@ use crate::{
     AnnotationGraph,
 };
 use graphannis_core::{
-    graph::ANNIS_NS,
-    types::{Component, NodeID},
+    graph::{ANNIS_NS, NODE_TYPE_KEY},
+    types::{AnnoKey, Component, NodeID},
 };
 
 use std::collections::HashSet;
@@ -87,7 +87,13 @@ impl<'a> TokenHelper<'a> {
     }
 
     pub fn is_token(&self, id: NodeID) -> bool {
-        if self.node_annos.has_value_for_item(&id, &TOKEN_KEY) {
+        if self.node_annos.has_value_for_item(&id, &TOKEN_KEY)
+            && self
+                .node_annos
+                .get_value_for_item(&id, &NODE_TYPE_KEY)
+                .as_deref()
+                == Some("node")
+        {
             // check if there is no outgoing edge in any of the coverage components
             self.has_outgoing_coverage_edges(id) == false
         } else {
