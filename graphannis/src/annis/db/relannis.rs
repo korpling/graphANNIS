@@ -279,10 +279,16 @@ struct TextPosTable {
     token_by_index: DiskMap<TextProperty, NodeID>,
     // maps a token node id to the token index
     token_to_index: DiskMap<NodeID, TextProperty>,
-    // map as node to it's "left" value
+    //// Map as node to it's "left" value.
+    //// This is used for alignment and can be the token or character index.
     node_to_left: DiskMap<NodeID, TextProperty>,
-    // map as node to it's "right" value
+    /// Map as node to it's "right" value.
+    //// This is used for alignment and can be the token or character index.
     node_to_right: DiskMap<NodeID, TextProperty>,
+    /// Map a node to its left character index.
+    node_to_left_char: DiskMap<NodeID, TextProperty>,
+    /// Map a node to its right character index.
+    node_to_right_char: DiskMap<NodeID, TextProperty>,
 }
 
 struct LoadRankResult {
@@ -1202,8 +1208,12 @@ where
         {
             // Get the left character border for this token
             if let (Some(left_text_pos), Some(right_text_pos)) = (
-                textpos_table.node_to_left.try_get(&next_real_token_id)?,
-                textpos_table.node_to_right.try_get(&next_real_token_id)?,
+                textpos_table
+                    .node_to_left_char
+                    .try_get(&next_real_token_id)?,
+                textpos_table
+                    .node_to_right_char
+                    .try_get(&next_real_token_id)?,
             ) {
                 let token_left_char = left_text_pos.val as usize;
                 let token_char_length = (right_text_pos.val - left_text_pos.val) as usize;
@@ -1350,6 +1360,8 @@ where
         node_to_right: DiskMap::default(),
         token_by_index: DiskMap::default(),
         token_to_index: DiskMap::default(),
+        node_to_left_char: DiskMap::default(),
+        node_to_right_char: DiskMap::default(),
     };
 
     // start "scan all lines" visibility block
@@ -1421,34 +1433,66 @@ where
                 })?;
             }
 
-            // Use left/right token columns for relANNIS 3.3 and the left/right character column otherwise.
+            // Add the raw character offsets so it is possible to extract the text later on
+            let left_char_val = line
+                .get(5)
+                .ok_or(anyhow!("Missing column"))?
+                .parse::<u32>()?;
+            let left_char_pos = TextProperty {
+                segmentation: String::from(""),
+                val: left_char_val,
+                corpus_id,
+                text_id,
+            };
+            let right_char_val = line
+                .get(6)
+                .ok_or(anyhow!("Missing column"))?
+                .parse::<u32>()?;
+            let right_char_pos = TextProperty {
+                segmentation: String::from(""),
+                val: right_char_val,
+                corpus_id,
+                text_id,
+            };
+            textpos_table
+                .node_to_left_char
+                .insert(node_nr, left_char_pos)?;
+            textpos_table
+                .node_to_right_char
+                .insert(node_nr, right_char_pos)?;
+
+            // Use left/right token columns for relANNIS 3.3 and the left/right character column otherwise to determine which token are aligned.
             // For some malformed corpora, the token coverage information is more robust and guaranties that a node is
             // only left/right aligned to a single token.
-            let left_column = if is_annis_33 { 8 } else { 5 };
-            let right_column = if is_annis_33 { 9 } else { 6 };
+            let left_alignment_column = if is_annis_33 { 8 } else { 5 };
+            let right_alignment_column = if is_annis_33 { 9 } else { 6 };
 
-            let left_val = line
-                .get(left_column)
+            let left_alignment_val = line
+                .get(left_alignment_column)
                 .ok_or(anyhow!("Missing column"))?
                 .parse::<u32>()?;
-            let left = TextProperty {
+            let left_alignment = TextProperty {
                 segmentation: String::from(""),
-                val: left_val,
+                val: left_alignment_val,
                 corpus_id,
                 text_id,
             };
-            let right_val = line
-                .get(right_column)
+            let right_alignment_val = line
+                .get(right_alignment_column)
                 .ok_or(anyhow!("Missing column"))?
                 .parse::<u32>()?;
-            let right = TextProperty {
+            let right_alignment = TextProperty {
                 segmentation: String::from(""),
-                val: right_val,
+                val: right_alignment_val,
                 corpus_id,
                 text_id,
             };
-            textpos_table.node_to_left.insert(node_nr, left.clone())?;
-            textpos_table.node_to_right.insert(node_nr, right.clone())?;
+            textpos_table
+                .node_to_left
+                .insert(node_nr, left_alignment.clone())?;
+            textpos_table
+                .node_to_right
+                .insert(node_nr, right_alignment.clone())?;
 
             if token_index_raw != "NULL" {
                 let span = if has_segmentations {
@@ -1474,10 +1518,12 @@ where
                     .token_by_index
                     .insert(index.clone(), node_nr)?;
                 textpos_table.token_to_index.insert(node_nr, index)?;
-                textpos_table.token_by_left_textpos.insert(left, node_nr)?;
+                textpos_table
+                    .token_by_left_textpos
+                    .insert(left_alignment, node_nr)?;
                 textpos_table
                     .token_by_right_textpos
-                    .insert(right, node_nr)?;
+                    .insert(right_alignment, node_nr)?;
             } else if has_segmentations {
                 let segmentation_name = if is_annis_33 {
                     get_field_str(&line, 11).ok_or(anyhow!("Missing column"))?
@@ -1539,6 +1585,8 @@ where
     missing_seg_span.compact()?;
     textpos_table.node_to_left.compact()?;
     textpos_table.node_to_right.compact()?;
+    textpos_table.node_to_left_char.compact()?;
+    textpos_table.node_to_right_char.compact()?;
     textpos_table.token_to_index.compact()?;
     textpos_table.token_by_index.compact()?;
     textpos_table.token_by_left_textpos.compact()?;
