@@ -1049,6 +1049,7 @@ fn add_white_space_token<F>(
     textpos_table: &TextPosTable,
     texts: &mut DiskMap<TextKey, Text>,
     id_to_node_name: &DiskMap<NodeID, String>,
+    corpus_table: &ParsedCorpusTable,
     progress_callback: &F,
 ) -> Result<()>
 where
@@ -1076,7 +1077,7 @@ where
         };
 
         // Go through each discovered token of this text and check if there is whitespace before this token in the original text.
-        for (_, next_real_token_id) in textpos_table
+        for (text, next_real_token_id) in textpos_table
             .token_by_index
             .range(min_text_prop..max_text_prop)
         {
@@ -1101,9 +1102,18 @@ where
                             None
                         };
 
+                        let text_name =
+                            utf8_percent_encode(&t.name, SALT_URI_ENCODE_SET).to_string();
+                        let subcorpus_full_name = get_corpus_path(text.corpus_id, corpus_table)?;
+                        let text_full_name = format!("{}#{}", &subcorpus_full_name, &text_name);
+
                         let created_token_id = format!(
-                            "white_space_token_{}_{}_{}_{}",
-                            t.name, current_text_offset, token_left_char, added_token_count,
+                            "{}#white_space_token_{}_{}_{}_{}",
+                            subcorpus_full_name,
+                            text_name,
+                            current_text_offset,
+                            token_left_char,
+                            added_token_count,
                         );
 
                         // Get the covered text
@@ -1133,6 +1143,14 @@ where
                             anno_ns: ANNIS_NS.to_string(),
                             anno_name: TOK.to_string(),
                             anno_value: covered_text.to_string(),
+                        })?;
+
+                        updates.add_event(UpdateEvent::AddEdge {
+                            source_node: created_token_id.clone(),
+                            target_node: text_full_name,
+                            component_type: AnnotationComponentType::PartOf.to_string(),
+                            component_name: String::default(),
+                            layer: ANNIS_NS.to_owned(),
                         })?;
 
                         // Connect the new node with Ordering edges to the token before and after
@@ -1586,6 +1604,7 @@ where
         &node_tab_parse_result.textpos_table,
         texts,
         &node_tab_parse_result.id_to_node_name,
+        corpus_table,
         progress_callback,
     )?;
 
