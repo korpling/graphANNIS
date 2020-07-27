@@ -1898,7 +1898,9 @@ impl CorpusStorage {
         query_language: QueryLanguage,
         component_type_filter: Option<AnnotationComponentType>,
     ) -> Result<AnnotationGraph> {
-        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |g| {
+            g.get_all_components(component_type_filter.clone(), None)
+        })?;
 
         let mut max_alt_size = 0;
         for alt in &prep.query.alternatives {
