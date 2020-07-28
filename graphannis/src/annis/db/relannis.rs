@@ -759,7 +759,7 @@ fn add_external_data_files(
                     node_name: node_name.clone(),
                     anno_ns: ANNIS_NS.to_string(),
                     anno_name: "file".to_string(),
-                    anno_value: file.path().to_string_lossy().to_string(),
+                    anno_value: file.path().canonicalize()?.to_string_lossy().to_string(),
                 })?;
                 updates.add_event(UpdateEvent::AddEdge {
                     source_node: node_name.clone(),
