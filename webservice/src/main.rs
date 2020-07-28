@@ -180,7 +180,11 @@ async fn main() -> Result<()> {
                                 "/{corpus}/subgraph-for-query",
                                 web::get().to(api::corpora::subgraph_for_query),
                             )
-                            .route("/{corpus}/files", web::get().to(api::corpora::files)),
+                            .route(
+                                "/{corpus}/files/{name}",
+                                web::get().to(api::corpora::file_content),
+                            )
+                            .route("/{corpus}/files", web::get().to(api::corpora::list_files)),
                     )
                     .service(
                         web::scope("/groups")

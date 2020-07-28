@@ -118,6 +118,18 @@ impl From<std::io::Error> for ServiceError {
     }
 }
 
+impl From<std::path::StripPrefixError> for ServiceError {
+    fn from(e: std::path::StripPrefixError) -> Self {
+        ServiceError::InternalServerError(e.to_string())
+    }
+}
+
+impl From<walkdir::Error> for ServiceError {
+    fn from(e: walkdir::Error) -> Self {
+        ServiceError::InternalServerError(e.to_string())
+    }
+}
+
 impl<T: std::fmt::Debug> From<BlockingError<T>> for ServiceError {
     fn from(e: BlockingError<T>) -> Self {
         ServiceError::InternalServerError(e.to_string())

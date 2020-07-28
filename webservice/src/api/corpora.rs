@@ -211,21 +211,74 @@ pub async fn edge_annotations(
 }
 
 #[derive(Deserialize)]
-pub struct FilesParameters {
-    name: String,
+pub struct ListFilesParameters {
+    node: Option<String>,
 }
 
-pub async fn files(
+pub async fn list_files(
     corpus: web::Path<String>,
-    params: web::Query<FilesParameters>,
+    params: web::Query<ListFilesParameters>,
+    claims: ClaimsFromAuth,
+    db_pool: web::Data<DbPool>,
+    settings: web::Data<Settings>,
+) -> Result<HttpResponse, ServiceError> {
+    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+
+    let mut found_files = Vec::default();
+    // Get the base path
+    let base_path = PathBuf::from(settings.database.graphannis.as_str())
+        .join(corpus.as_str())
+        .join("files")
+        .canonicalize()?;
+
+    // if the node name is set, restrict the search to the subfolder with the same ID, otherwise use the corpus ID
+    let search_path = if let Some(node) = &params.node {
+        // Perform some sanity checks to make sure only the relative sub-folder is used
+        let file_path = node.trim();
+        if file_path.contains("..") {
+            return Err(ServiceError::BadRequest(
+                "No .. allowed in file name".to_string(),
+            ));
+        } else if file_path.starts_with("/") {
+            return Err(ServiceError::BadRequest(
+                "No absolute path allowed in file name".to_string(),
+            ));
+        };
+        base_path.join(file_path)
+    } else {
+        base_path.join(corpus.as_ref())
+    };
+
+    // List all files in the search path
+    if search_path.exists() && search_path.is_dir() {
+        for entry in walkdir::WalkDir::new(search_path) {
+            let entry = entry?;
+            // get the absolute path
+            let entry_path = entry.path().canonicalize()?;
+            if entry_path.is_file() {
+                // get relative path to base path and add it to result
+                let resolved_path = entry_path.strip_prefix(&base_path)?;
+                found_files.push(resolved_path.to_string_lossy().to_string());
+            }
+        }
+    }
+
+    Ok(HttpResponse::Ok().json(found_files))
+}
+
+pub async fn file_content(
+    path: web::Path<(String, String)>,
     claims: ClaimsFromAuth,
     db_pool: web::Data<DbPool>,
     settings: web::Data<Settings>,
 ) -> Result<NamedFile, ServiceError> {
+    let corpus = &path.0;
+    let name = percent_encoding::percent_decode_str(&path.1).decode_utf8_lossy();
+
     check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
 
     // Perform some sanity checks to make sure only the relative sub-folder is used
-    let file_path = params.name.trim();
+    let file_path = name.trim();
     if file_path.contains("..") {
         return Err(ServiceError::BadRequest(
             "No .. allowed in file name".to_string(),

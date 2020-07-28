@@ -34,3 +34,5 @@ futures = "0.3"
 tempfile = "3"
 uuid = {version ="0.8", features = ["v4"]}
 zip = "0.5"
+walkdir = "2"
+percent-encoding = "2.1"
