@@ -816,12 +816,13 @@ impl CorpusStorage {
                 "copying ZIP file content {}",
                 file.sanitized_name().to_string_lossy(),
             );
-            if let Some(parent) = output_path.parent() {
+            if file.is_dir() {
+                std::fs::create_dir_all(output_path)?;
+            } else if let Some(parent) = output_path.parent() {
                 std::fs::create_dir_all(parent)?;
+                let mut output_file = std::fs::File::create(&output_path)?;
+                std::io::copy(&mut file, &mut output_file)?;
             }
-
-            let mut output_file = std::fs::File::create(&output_path)?;
-            std::io::copy(&mut file, &mut output_file)?;
         }
 
         let mut corpus_names = Vec::new();
