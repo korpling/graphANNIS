@@ -28,7 +28,7 @@ pub enum JobStatus {
     Finished(Option<File>),
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub enum JobType {
     Import,
     Export,
@@ -280,9 +280,15 @@ pub async fn jobs(
     }
     // Job is finished/errored: remove it from the list and process it
     if let Some(j) = jobs.remove(&uuid) {
+        let messages = j.messages;
+        let job_type = j.job_type;
         match j.status {
             JobStatus::Failed => {
-                return Ok(HttpResponse::Gone().json(j));
+                return Ok(HttpResponse::Gone().json(Job {
+                    messages,
+                    job_type,
+                    status: JobStatus::Failed,
+                }));
             }
             JobStatus::Finished(result) => {
                 if let Some(result) = result {
@@ -317,7 +323,11 @@ pub async fn jobs(
 
                     return Ok(HttpResponse::SeeOther()
                         .header("Location", corpus_path.to_string_lossy().as_ref())
-                        .json(j.messages));
+                        .json(Job {
+                            messages,
+                            job_type,
+                            status: JobStatus::Finished(None),
+                        }));
                 }
             }
             _ => {}
