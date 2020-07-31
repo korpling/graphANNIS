@@ -573,7 +573,7 @@ impl AnnisRunner {
             // TODO: map header
             for row in frequency_table.into_iter() {
                 let mut out_row = Row::empty();
-                for att in row.values.iter() {
+                for att in row.0.iter() {
                     if att.trim().is_empty() {
                         // This is whitespace only, add some quotation marks to show to make it visible
                         let mut val = "'".to_owned();
@@ -585,7 +585,7 @@ impl AnnisRunner {
                     }
                 }
                 // also add the count
-                out_row.add_cell(Cell::from(&row.count));
+                out_row.add_cell(Cell::from(&row.1));
                 out.add_row(out_row);
             }
             out.printstd();
