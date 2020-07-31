@@ -49,14 +49,18 @@ paths:
         "202":
           description: Corpus import started. Returns a UUID for the background job which can be used with the `/jobs` endpoint
           links:
-            getJob:
+            GetJobForUUID:
               parameters:
                 uuid: "$response.body#/uuid"
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ImportResult"
-
+                type: object
+                description: The UUID for the background job. Status can be queried via the /job endpoint and this UUID.
+                properties:
+                  uuid:
+                    type: string
+                    example: 7dac334e-7f8f-4f1c-919e-02912527f329
   /export:
     post:
       tags:
@@ -75,7 +79,7 @@ paths:
         "202":
           description: Corpus export started. Returns a UUID for the background job which can be used with the `/jobs` endpoint
           links:
-            getJob:
+            GetJobForUUID:
               parameters:
                 uuid: "$response.body#/uuid"
           content:
@@ -109,17 +113,21 @@ paths:
                 $ref: "#/components/schemas/Job"
         "200":
           description: Job was finished successfully and result can be downloaded from the body
-          content:
-            default:
-              schema:
-                type: string
-                format: binary
         "303":
-          description: Job was finished successfully and status can be inspected
+          description: Job was finished successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Job"
+                type: array
+                description: The messages produced by the background job.
+                example:
+                  [
+                    "started import of corpus GUM",
+                    "reading GraphML",
+                    "Error during import of GUM: corpus already exists",
+                  ]
+                items:
+                  type: string
         "410":
           description: Job failed
           content:
@@ -1095,13 +1103,6 @@ components:
               "reading GraphML",
               "Error during import of GUM: corpus already exists",
             ]
-    ImportResult:
-      type: object
-      description: The UUID for the background job. Status can be queried via the /job endpoint and this UUID.
-      properties:
-        uuid:
-          type: string
-          example: 7dac334e-7f8f-4f1c-919e-02912527f329
 
   examples:
     Subgraph:
