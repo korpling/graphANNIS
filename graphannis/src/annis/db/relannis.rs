@@ -1,4 +1,4 @@
-use super::aql::model::{AnnotationComponentType, IGNORED_TOK};
+use super::aql::model::{AnnotationComponentType, TOK_WHITESPACE_AFTER, TOK_WHITESPACE_BEFORE};
 use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::errors::*;
 use crate::annis::util::create_str_vec_key;
@@ -348,12 +348,11 @@ where
         path,
     )?;
 
-    add_white_space_token(
+    add_white_space_token_labels(
         updates,
         &load_nodes_result.textpos_table,
         &mut texts,
         &load_nodes_result.id_to_node_name,
-        &corpus_table,
         progress_callback,
     )?;
 
@@ -1063,19 +1062,18 @@ where
     Ok(())
 }
 
-fn add_white_space_token<F>(
+fn add_white_space_token_labels<F>(
     updates: &mut GraphUpdate,
     textpos_table: &TextPosTable,
     texts: &mut DiskMap<TextKey, Text>,
     id_to_node_name: &DiskMap<NodeID, String>,
-    corpus_table: &ParsedCorpusTable,
     progress_callback: &F,
 ) -> Result<()>
 where
     F: Fn(&str) -> (),
 {
-    progress_callback("adding non-tokenized primary text segments as white-space tokens");
-    let mut added_token_count = 0;
+    progress_callback("adding non-tokenized primary text segments as white-space label to tokens");
+    let mut added_whitespace_label_count = 0;
 
     // Iterate over all texts of the graph separately
     for (text_key, text) in texts.try_iter()? {
@@ -1095,134 +1093,102 @@ where
             val: u32::max_value(),
         };
 
-        let mut previous_real_token_id = None;
+        let mut previous_token_id = None;
 
-        // Go through each discovered token of this text and check if there is whitespace before this token in the original text.
-        for (text, next_real_token_id) in textpos_table
+        // Go through each discovered token of this text and check if there is whitespace after this token in the original text.
+        let mut token_iterator = textpos_table
             .token_by_index
             .range(min_text_prop..max_text_prop)
-        {
-            // Get the left character border for this token
+            .peekable();
+        while let Some((_, current_token_id)) = token_iterator.next() {
+            // Get the character borders for this token
             if let (Some(left_text_pos), Some(right_text_pos)) = (
-                textpos_table
-                    .node_to_left_char
-                    .try_get(&next_real_token_id)?,
+                textpos_table.node_to_left_char.try_get(&current_token_id)?,
                 textpos_table
                     .node_to_right_char
-                    .try_get(&next_real_token_id)?,
+                    .try_get(&current_token_id)?,
             ) {
                 let token_left_char = left_text_pos.val as usize;
-                let token_char_length = (right_text_pos.val - left_text_pos.val) as usize;
-                if current_text_offset < token_left_char {
-                    // Create the new white space token from the start to left border of this token
-                    if let Some(t) = texts.try_get(&text_key)? {
-                        let text_name =
-                            utf8_percent_encode(&t.name, SALT_URI_ENCODE_SET).to_string();
-                        let subcorpus_full_name = get_corpus_path(text.corpus_id, corpus_table)?;
-                        let text_full_name = format!("{}#{}", &subcorpus_full_name, &text_name);
+                let token_right_char = right_text_pos.val as usize;
 
-                        let created_token_id = format!(
-                            "{}#white_space_token_{}_{}_{}_{}",
-                            subcorpus_full_name,
-                            text_name,
-                            current_text_offset,
-                            token_left_char,
-                            added_token_count,
-                        );
-
-                        // Get the covered text
-                        let mut covered_text =
-                            String::with_capacity(token_left_char - current_text_offset);
-                        for _ in current_text_offset..token_left_char {
-                            if let Some(c) = text_char_it.next() {
-                                covered_text.push(c);
-                                current_text_offset += 1;
-                            }
+                if previous_token_id.is_none() && current_text_offset < token_left_char {
+                    // We need to add the potential whitespace before this token as label
+                    let mut covered_text_before =
+                        String::with_capacity(token_left_char - current_text_offset);
+                    for _ in current_text_offset..token_left_char {
+                        if let Some(c) = text_char_it.next() {
+                            covered_text_before.push(c);
+                            current_text_offset += 1;
                         }
-
-                        // Skip the text of the current token
-                        for _ in 0..token_char_length {
-                            if text_char_it.next().is_some() {
-                                current_text_offset += 1;
-                            }
-                        }
-
-                        // Add events
-                        updates.add_event(UpdateEvent::AddNode {
-                            node_name: created_token_id.clone(),
-                            node_type: IGNORED_TOK.to_string(),
-                        })?;
+                    }
+                    if let Some(token_name) = id_to_node_name.try_get(&current_token_id)? {
                         updates.add_event(UpdateEvent::AddNodeLabel {
-                            node_name: created_token_id.clone(),
+                            node_name: token_name,
                             anno_ns: ANNIS_NS.to_string(),
-                            anno_name: IGNORED_TOK.to_string(),
-                            anno_value: covered_text.to_string(),
+                            anno_name: TOK_WHITESPACE_BEFORE.to_string(),
+                            anno_value: covered_text_before,
                         })?;
+                        added_whitespace_label_count += 1;
+                    }
+                }
 
-                        updates.add_event(UpdateEvent::AddEdge {
-                            source_node: created_token_id.clone(),
-                            target_node: text_full_name,
-                            component_type: AnnotationComponentType::PartOf.to_string(),
-                            component_name: String::default(),
-                            layer: ANNIS_NS.to_owned(),
-                        })?;
+                // Skip the characters of the current token
+                for _ in current_text_offset..token_right_char {
+                    if text_char_it.next().is_some() {
+                        current_text_offset += 1;
+                    }
+                }
 
-                        // Connect the new node with Ordering edges to the token before and after
-                        if let Some(previous_real_token_id) = previous_real_token_id {
-                            if let Some(previous_token) =
-                                id_to_node_name.try_get(&previous_real_token_id)?
-                            {
-                                updates.add_event(UpdateEvent::AddEdge {
-                                    source_node: previous_token.clone(),
-                                    target_node: created_token_id.to_string(),
-                                    component_type: AnnotationComponentType::Ordering.to_string(),
-                                    component_name: "text".to_string(),
-                                    layer: ANNIS_NS.to_string(),
-                                })?;
-                            }
-                        }
-                        if let Some(next_token) = id_to_node_name.try_get(&next_real_token_id)? {
-                            updates.add_event(UpdateEvent::AddEdge {
-                                source_node: created_token_id.to_string(),
-                                target_node: next_token.to_string(),
-                                component_type: AnnotationComponentType::Ordering.to_string(),
-                                component_name: "text".to_string(),
-                                layer: ANNIS_NS.to_string(),
-                            })?;
-                        }
-                        added_token_count += 1;
+                // Get the token borders of the next token to determine where the whitespace after this token is
+                let mut whitespace_end_pos = None;
+                if let Some((_, next_token_id)) = token_iterator.peek() {
+                    if let Some(next_token_left_pos) =
+                        textpos_table.node_to_left_char.try_get(next_token_id)?
+                    {
+                        whitespace_end_pos = Some(next_token_left_pos.val as usize);
+                    }
+                }
+
+                // Get the covered text which either goes until the next token or until the end of the text if there is none
+                let mut covered_text_after = if let Some(end_pos) = whitespace_end_pos {
+                    if current_text_offset < end_pos {
+                        String::with_capacity(current_text_offset - token_right_char)
+                    } else {
+                        String::default()
                     }
                 } else {
-                    // There is no whitespace between the token, create a direct ordering edge between them
-                    if let Some(previous_real_token_id) = previous_real_token_id {
-                        if let (Some(previous_token), Some(next_token)) = (
-                            id_to_node_name.try_get(&previous_real_token_id)?,
-                            id_to_node_name.try_get(&next_real_token_id)?,
-                        ) {
-                            updates.add_event(UpdateEvent::AddEdge {
-                                source_node: previous_token.to_string(),
-                                target_node: next_token.to_string(),
-                                component_type: AnnotationComponentType::Ordering.to_string(),
-                                component_name: "text".to_string(),
-                                layer: ANNIS_NS.to_string(),
-                            })?;
+                    String::default()
+                };
+
+                if let Some(end_pos) = whitespace_end_pos {
+                    for _ in current_text_offset..end_pos {
+                        if let Some(c) = text_char_it.next() {
+                            covered_text_after.push(c);
+                            current_text_offset += 1;
                         }
                     }
-                    // Set the current offset to the end of this token
-                    let new_offset = right_text_pos.val as usize;
-                    // Skip the text of this token
-                    for _ in current_text_offset..new_offset {
-                        text_char_it.next();
+                } else {
+                    while let Some(c) = text_char_it.next() {
+                        covered_text_after.push(c);
+                        current_text_offset += 1;
                     }
-                    current_text_offset = new_offset;
+                }
+                if let Some(token_name) = id_to_node_name.try_get(&current_token_id)? {
+                    updates.add_event(UpdateEvent::AddNodeLabel {
+                        node_name: token_name,
+                        anno_ns: ANNIS_NS.to_string(),
+                        anno_name: TOK_WHITESPACE_AFTER.to_string(),
+                        anno_value: covered_text_after,
+                    })?;
+                    added_whitespace_label_count += 1;
                 }
             }
-            previous_real_token_id = Some(next_real_token_id);
+            previous_token_id = Some(current_token_id);
         }
     }
     progress_callback(&format!(
-        "added {} non-tokenized primary text segments as white-space tokens",
-        added_token_count
+        "added {} non-tokenized primary text segments as white-space labels to the existing tokens",
+        added_whitespace_label_count
     ));
 
     Ok(())

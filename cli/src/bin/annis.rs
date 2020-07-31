@@ -567,7 +567,15 @@ impl AnnisRunner {
             for row in frequency_table.into_iter() {
                 let mut out_row = Row::empty();
                 for att in row.0.iter() {
-                    out_row.add_cell(Cell::from(att));
+                    if att.trim().is_empty() {
+                        // This is whitespace only, add some quotation marks to show to make it visible
+                        let mut val = "'".to_owned();
+                        val.push_str(att);
+                        val.push('\'');
+                        out_row.add_cell(Cell::from(&val));
+                    } else {
+                        out_row.add_cell(Cell::from(att));
+                    }
                 }
                 // also add the count
                 out_row.add_cell(Cell::from(&row.1));
