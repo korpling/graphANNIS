@@ -4,6 +4,8 @@ extern crate log;
 extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
+#[macro_use]
+extern crate diesel_migrations;
 
 use actix_cors::Cors;
 use actix_web::{
@@ -22,8 +24,6 @@ use std::{
     path::PathBuf,
 };
 
-type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
-
 mod actions;
 mod api;
 mod errors;
@@ -31,6 +31,11 @@ mod extractors;
 mod models;
 mod schema;
 mod settings;
+
+
+embed_migrations!("migrations");
+type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
+
 
 fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, DbPool)> {
     // Parse CLI arguments
@@ -81,6 +86,10 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
 
     let manager = ConnectionManager::<SqliteConnection>::new(&settings.database.sqlite);
     let db_pool = r2d2::Pool::builder().build(manager)?;
+
+     // Make sure the database has all migrations applied
+    let conn = db_pool.get()?;
+    embedded_migrations::run(&conn)?;
 
     info!(
         "Using database {}",
