@@ -1,4 +1,4 @@
-use super::check_corpora_authorized;
+use super::{check_corpora_authorized, check_is_admin};
 use crate::{
     actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool,
 };
@@ -296,4 +296,17 @@ pub async fn file_content(
         .join(&file_path);
 
     Ok(NamedFile::open(path)?)
+}
+pub async fn delete(
+    path: web::Path<String>,
+    claims: ClaimsFromAuth,
+    cs: web::Data<CorpusStorage>,
+) -> Result<HttpResponse, ServiceError> {
+    check_is_admin(&claims.0)?;
+
+    if cs.delete(path.as_ref())? {
+        Ok(HttpResponse::Ok().finish())
+    } else {
+        Ok(HttpResponse::NotFound().finish())
+    }
 }

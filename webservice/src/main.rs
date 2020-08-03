@@ -159,6 +159,7 @@ async fn main() -> Result<()> {
                     .service(
                         web::scope("/corpora")
                             .route("", web::get().to(api::corpora::list))
+                            .route("/{corpus}", web::delete().to(api::corpora::delete))
                             .route(
                                 "/{corpus}/configuration",
                                 web::get().to(api::corpora::configuration),
