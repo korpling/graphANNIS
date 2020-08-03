@@ -2,15 +2,12 @@ use super::check_is_admin;
 use crate::{
     actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool,
 };
-use actix_web::{
-    web::{self, HttpResponse},
-    HttpRequest,
-};
+use actix_web::web::{self, HttpResponse};
 use futures::prelude::*;
 use graphannis::CorpusStorage;
 use std::io::Read;
 use std::io::Seek;
-use std::{collections::HashMap, fs::File, io::Write, path::PathBuf, sync::Mutex};
+use std::{collections::HashMap, fs::File, io::Write, sync::Mutex};
 use stream::try_unfold;
 use web::Bytes;
 
@@ -262,7 +259,6 @@ pub async fn jobs(
     uuid: web::Path<String>,
     background_jobs: web::Data<BackgroundJobs>,
     claims: ClaimsFromAuth,
-    req: HttpRequest,
 ) -> Result<HttpResponse, ServiceError> {
     check_is_admin(&claims.0)?;
 
@@ -312,12 +308,7 @@ pub async fn jobs(
                     });
                     return Ok(HttpResponse::Ok().streaming(reader));
                 } else {
-                    let req_path = PathBuf::from(req.path());
-                    let corpus_path = req_path.join("../corpora");
-
-                    return Ok(HttpResponse::SeeOther()
-                        .header("Location", corpus_path.to_string_lossy().as_ref())
-                        .json(j.messages));
+                    return Ok(HttpResponse::Ok().json(j.messages));
                 }
             }
             _ => {}
