@@ -24,6 +24,9 @@ use crate::{
 };
 
 pub const TOK: &str = "tok";
+pub const TOK_WHITESPACE_BEFORE: &str = "tok-whitespace-before";
+pub const TOK_WHITESPACE_AFTER: &str = "tok-whitespace-after";
+
 lazy_static! {
     pub static ref TOKEN_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
         ns: ANNIS_NS.to_owned(),

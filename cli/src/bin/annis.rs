@@ -236,40 +236,51 @@ impl AnnisRunner {
         // Determine most likely input format based on the extension of the file
         let path = PathBuf::from(args[0]);
 
-        if path.is_file() {
-            if let Some(file_ext) = path.extension() {
-                let file_ext = file_ext.to_string_lossy().to_lowercase();
+        if path.exists() {
+            let file_ext_owned = path
+                .extension()
+                .map(|file_ext| file_ext.to_string_lossy().to_lowercase());
+            let file_ext = file_ext_owned.as_deref();
 
-                if file_ext == "zip" {
-                    // Import  ZIP file with possible multiple corpora
-                    let t_before = std::time::SystemTime::now();
-                    let names = self
-                        .storage
-                        .as_ref()
-                        .ok_or(anyhow!("No corpus storage location set"))?
-                        .import_all_from_zip(&path, self.use_disk)?;
-                    let load_time = t_before.elapsed();
-                    if let Ok(t) = load_time {
-                        info! {"imported corpora {:?} in {} ms", names, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
-                    }
-                } else {
-                    // Import a single corpus
-                    let mut format = ImportFormat::RelANNIS;
+            if file_ext == Some("zip") {
+                let zip_file = std::fs::File::open(path)?;
+                // Import  ZIP file with possible multiple corpora
+                let t_before = std::time::SystemTime::now();
+                let names = self
+                    .storage
+                    .as_ref()
+                    .ok_or(anyhow!("No corpus storage location set"))?
+                    .import_all_from_zip(zip_file, self.use_disk, true, |status| {
+                        info!("{}", status)
+                    })?;
+                let load_time = t_before.elapsed();
+                if let Ok(t) = load_time {
+                    info! {"imported corpora {:?} in {} ms", names, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                }
+            } else {
+                // Import a single corpus
+                let mut format = ImportFormat::RelANNIS;
 
-                    if file_ext == "graphml" || file_ext == "xml" {
-                        format = ImportFormat::GraphML
-                    }
+                if file_ext == Some("graphml") || file_ext == Some("xml") {
+                    format = ImportFormat::GraphML
+                }
 
-                    let t_before = std::time::SystemTime::now();
-                    let name: String = self
-                        .storage
-                        .as_ref()
-                        .ok_or(anyhow!("No corpus storage location set"))?
-                        .import_from_fs(&path, format, overwritten_corpus_name, self.use_disk)?;
-                    let load_time = t_before.elapsed();
-                    if let Ok(t) = load_time {
-                        info! {"imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
-                    }
+                let t_before = std::time::SystemTime::now();
+                let name: String = self
+                    .storage
+                    .as_ref()
+                    .ok_or(anyhow!("No corpus storage location set"))?
+                    .import_from_fs(
+                        &path,
+                        format,
+                        overwritten_corpus_name,
+                        self.use_disk,
+                        true,
+                        |status| info!("{}", status),
+                    )?;
+                let load_time = t_before.elapsed();
+                if let Ok(t) = load_time {
+                    info! {"imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
                 }
             }
         }
@@ -562,11 +573,19 @@ impl AnnisRunner {
             // TODO: map header
             for row in frequency_table.into_iter() {
                 let mut out_row = Row::empty();
-                for att in row.0.iter() {
-                    out_row.add_cell(Cell::from(att));
+                for att in row.values.iter() {
+                    if att.trim().is_empty() {
+                        // This is whitespace only, add some quotation marks to show to make it visible
+                        let mut val = "'".to_owned();
+                        val.push_str(att);
+                        val.push('\'');
+                        out_row.add_cell(Cell::from(&val));
+                    } else {
+                        out_row.add_cell(Cell::from(att));
+                    }
                 }
                 // also add the count
-                out_row.add_cell(Cell::from(&row.1));
+                out_row.add_cell(Cell::from(&row.count));
                 out.add_row(out_row);
             }
             out.printstd();

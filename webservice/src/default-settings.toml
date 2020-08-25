@@ -1,0 +1,17 @@
+[bind]
+port = 5711
+host = "localhost"
+
+[database]
+graphannis = "data/"
+sqlite = "service.sqlite"
+disk_based = false
+
+[auth]
+jwt_secret = ""
+expiration_minutes = 120
+
+[logging]
+debug = false
+
+[users]

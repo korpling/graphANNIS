@@ -1,5 +1,6 @@
 use super::memory_estimation;
 use anyhow::Result;
+use bincode::config::Options;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
@@ -51,7 +52,7 @@ where
     unchanged_from_disk: bool,
     last_inserted_key: Option<Vec<u8>>,
 
-    serialization: bincode::Config,
+    serialization: bincode::config::DefaultOptions,
 
     est_sum_memory: usize,
 
@@ -67,8 +68,6 @@ where
         persisted_file: Option<&Path>,
         eviction_strategy: EvictionStrategy,
     ) -> Result<DiskMap<K, V>> {
-        let serialization = bincode::config();
-
         let mut disk_tables = Vec::default();
 
         if let Some(persisted_file) = persisted_file {
@@ -87,7 +86,7 @@ where
             unchanged_from_disk: persisted_file.is_some(),
             last_inserted_key: None,
 
-            serialization: serialization,
+            serialization: bincode::options(),
             phantom: std::marker::PhantomData,
             est_sum_memory: 0,
         })
@@ -526,7 +525,7 @@ pub struct Range<'a, K, V> {
     c0_range: Peekable<std::collections::btree_map::Range<'a, Vec<u8>, Option<V>>>,
     table_iterators: Vec<TableIterator>,
     exhausted: Vec<bool>,
-    serialization: bincode::Config,
+    serialization: bincode::config::DefaultOptions,
 
     current_key: Vec<u8>,
     current_value: Vec<u8>,
@@ -544,7 +543,7 @@ where
         range_end: Bound<Vec<u8>>,
         disk_tables: &[Table],
         c0: &'a BTreeMap<Vec<u8>, Option<V>>,
-        serialization: bincode::Config,
+        serialization: bincode::config::DefaultOptions,
     ) -> Range<'a, K, V> {
         let mut table_iterators: Vec<TableIterator> =
             disk_tables.iter().rev().map(|table| table.iter()).collect();
@@ -787,7 +786,7 @@ pub struct SimplifiedRange<K, V> {
     range_end: Bound<Vec<u8>>,
     table_it: TableIterator,
     exhausted: bool,
-    serialization: bincode::Config,
+    serialization: bincode::config::DefaultOptions,
 
     current_key: Vec<u8>,
     current_value: Vec<u8>,
@@ -804,7 +803,7 @@ where
         range_start: Bound<Vec<u8>>,
         range_end: Bound<Vec<u8>>,
         disk_table: &Table,
-        serialization: bincode::Config,
+        serialization: bincode::config::DefaultOptions,
     ) -> SimplifiedRange<K, V> {
         let mut table_it = disk_table.iter();
         let mut exhausted = false;
@@ -975,7 +974,7 @@ struct SortedLogTableIterator<'a, K, V> {
     current_table_iterator: Option<TableIterator>,
     remaining_table_iterators: Vec<TableIterator>,
     c0_iterator: std::collections::btree_map::Iter<'a, Vec<u8>, Option<V>>,
-    serialization: bincode::Config,
+    serialization: bincode::config::DefaultOptions,
     phantom: std::marker::PhantomData<K>,
 }
 

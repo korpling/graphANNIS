@@ -2,7 +2,7 @@ use crate::corpusstorage::QueryLanguage;
 use std::collections::BTreeMap;
 
 /// A struct that contains the extended results of the count query.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize)]
 #[repr(C)]
 pub struct CountExtra {
     /// Total number of matches.
@@ -12,12 +12,19 @@ pub struct CountExtra {
 }
 
 /// Definition of the result of a `frequency` query.
-///
-/// This is a vector of rows, and each row is a vector of columns with the different
-/// attribute values and a number of matches having this combination of attribute values.
-pub type FrequencyTable<T> = Vec<(Vec<T>, usize)>;
+pub type FrequencyTable<T> = Vec<FrequencyTableRow<T>>;
+
+/// Represents the unique combination of attribute values and how often this combination occurs.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FrequencyTableRow<T> {
+    /// Combination of different attribute values.
+    pub values: Vec<T>,
+    /// Number of matches having this combination of attribute values.
+    pub count: usize,
+}
 
 /// Description of an attribute of a query.
+#[derive(Serialize)]
 pub struct QueryAttributeDescription {
     /// ID of the alternative this attribute is part of.
     pub alternative: usize,
@@ -29,7 +36,7 @@ pub struct QueryAttributeDescription {
     pub anno_name: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct LineColumn {
     pub line: usize,
     pub column: usize,
@@ -41,7 +48,7 @@ impl std::fmt::Display for LineColumn {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct LineColumnRange {
     pub start: LineColumn,
     pub end: Option<LineColumn>,
@@ -74,7 +81,7 @@ pub struct CorpusConfiguration {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub example_queries: Vec<ExampleQuery>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub visualizer: Vec<VisualizerRule>,
+    pub visualizers: Vec<VisualizerRule>,
 }
 
 /// Configuration for configuring context in subgraph queries.
@@ -108,6 +115,9 @@ pub struct ViewConfiguration {
     pub base_text_segmentation: Option<String>,
     /// Default number of results to show at once for paginated queries.
     pub page_size: usize,
+    // A list of fully qualified annotation names that should be hidden when displayed.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hidden_annos: Vec<String>,
 }
 
 impl Default for ViewConfiguration {
@@ -115,6 +125,7 @@ impl Default for ViewConfiguration {
         ViewConfiguration {
             base_text_segmentation: None,
             page_size: 10,
+            hidden_annos: Vec::default(),
         }
     }
 }
@@ -152,7 +163,7 @@ pub struct VisualizerRule {
     pub mappings: BTreeMap<String, String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum VisualizerVisibility {
     #[serde(rename = "hidden")]
     Hidden,
@@ -162,8 +173,6 @@ pub enum VisualizerVisibility {
     Permanent,
     #[serde(rename = "preloaded")]
     Preloaded,
-    #[serde(rename = "removed")]
-    Removed,
 }
 
 impl Default for VisualizerVisibility {
@@ -172,7 +181,7 @@ impl Default for VisualizerVisibility {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum VisualizerRuleElement {
     #[serde(rename = "node")]
     Node,

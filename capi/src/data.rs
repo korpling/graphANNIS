@@ -271,7 +271,7 @@ pub extern "C" fn annis_freqtable_str_nrows(ptr: *const FrequencyTable<CString>)
 pub extern "C" fn annis_freqtable_str_ncols(ptr: *const FrequencyTable<CString>) -> size_t {
     let v: &FrequencyTable<CString> = cast_const!(ptr);
     if !v.is_empty() {
-        return v[0].0.len();
+        return v[0].values.len();
     }
     return 0;
 }
@@ -286,8 +286,8 @@ pub extern "C" fn annis_freqtable_str_get(
     // custom implementation for string matrix, don't return a referance to CString but a char pointer
     let ft: &FrequencyTable<CString> = cast_const!(ptr);
     if row < ft.len() {
-        if col < ft[row].0.len() {
-            return ft[row].0[col].as_ptr();
+        if col < ft[row].values.len() {
+            return ft[row].values[col].as_ptr();
         }
     }
     return std::ptr::null();
@@ -301,7 +301,7 @@ pub extern "C" fn annis_freqtable_str_count(
 ) -> size_t {
     let ft: &FrequencyTable<CString> = cast_const!(ptr);
     if row < ft.len() {
-        return ft[row].1;
+        return ft[row].count;
     }
     return 0;
 }

@@ -538,7 +538,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{graph::GraphUpdate, types::DefaultComponentType};
+    use crate::{
+        graph::{GraphUpdate, DEFAULT_NS},
+        types::DefaultComponentType,
+    };
     use std::borrow::Cow;
 
     const TEST_CONFIG: &str = r#"[some]
@@ -563,7 +566,7 @@ value = "test""#;
         .unwrap();
         u.add_event(UpdateEvent::AddNodeLabel {
             node_name: "first_node".to_string(),
-            anno_ns: "default_ns".to_string(),
+            anno_ns: DEFAULT_NS.to_string(),
             anno_name: "an_annotation".to_string(),
             anno_value: "something".to_string(),
         })
@@ -609,7 +612,7 @@ value = "test""#;
             g.get_node_annos().get_value_for_item(
                 &first_node_id,
                 &AnnoKey {
-                    ns: "default_ns".to_string(),
+                    ns: DEFAULT_NS.to_string(),
                     name: "an_annotation".to_string(),
                 }
             )
