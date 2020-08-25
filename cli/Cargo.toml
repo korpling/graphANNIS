@@ -1,6 +1,6 @@
 [package]
 name = "graphannis-cli"
-version = "0.29.0"
+version = "0.29.1"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 license = "Apache-2.0"
 description = "This is a command-line interface to the new backend implementation of the ANNIS linguistic search and visualization system."
