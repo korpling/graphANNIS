@@ -9,7 +9,6 @@ disk_based = false
 
 [auth]
 jwt_secret = ""
-redirect_token_parameter = "auth_token"
 expiration_minutes = 120
 
 [logging]
