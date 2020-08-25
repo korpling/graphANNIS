@@ -10,7 +10,7 @@ edition = "2018"
 
 [dependencies]
 graphannis= {path = "../graphannis/", version= "^0.28"}
-graphannis-core= {path = "../core/", version= "^0.28"}
+graphannis-core= {path = "../core/", version= "^0.29"}
 simplelog = "0.7"
 clap = "2"
 anyhow = "1"
