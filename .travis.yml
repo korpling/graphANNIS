@@ -21,7 +21,7 @@ jobs:
     # Use MSVC toolchain on windows
     - os: windows
       rust: stable-x86_64-pc-windows-msvc
- 
+
 before_cache:
   - rm -rf "$TRAVIS_HOME/.cargo/registry/src"
 
@@ -42,7 +42,6 @@ before_script:
   - if [[ "$TEST_SUITE" = "--ignored" ]]; then export BUILD_FLAGS="--release" ; fi
   - echo "Building with flags \"$BUILD_FLAGS\""
 
-
 script:
   - cargo fmt -- --check
   # Build all sub-crates with all features
@@ -54,27 +53,32 @@ script:
   - cargo test --all-features $BUILD_FLAGS -- $TEST_SUITE
   # generate the documentation (for testing if it works and later deploy)
   - mdbook build --dest-dir book/${SHORT_VERSION} docs/
-  
 
 before_deploy:
   # recreate release binary after testing
-  - cargo build --release --all-features --lib
-  # rename the binary file
-  -  if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mv target/release/libgraphannis_capi.so target/release/libgraphannis.so ; fi
-  -  if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mv target/release/libgraphannis_capi.dylib target/release/libgraphannis.dylib ; fi
-  -  if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then mv target/release/graphannis_capi.dll target/release/graphannis.dll ; fi
-  # determine which binary to deploy
-  - export RELEASE_PKG_FILE=target/release/libgraphannis.so
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dylib ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then export RELEASE_PKG_FILE=target/release/graphannis.dll ; fi
-
+  - cargo build --release --all-features
+  # rename the binary files
+  - bash $TRAVIS_BUILD_DIR/misc/rename-deployed-files.sh
+  # determine which binary files to deploy
+  - export LIBRARY_FILE=target/release/libgraphannis.so
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export LIBRARY_FILE=target/release/libgraphannis.dylib ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then export LIBRARY_FILE=target/release/graphannis.dll ; fi
+  - export CLI_FILE=target/release/annis
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CLI_FILE=target/release/annis.osx ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then export CLI_FILE=target/release/annis.exe ; fi
+  - export REST_FILE=target/release/graphannis-webservice
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export REST_FILE=target/release/graphannis-webservice.osx ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then export REST_FILE=target/release/graphannis-webservice.exe ; fi
 
 deploy:
   - provider: releases
     api_key:
       secure: FyOCVablsxCiORudaeXHR1f7j39gT5DUUGaeE/YtBdgdQEw1YzDBdkZx/puDHfrh8zM4uovYR+TX9aIlt/XlW9TSRmY9HVPIH6llfBr/Ap/e9R6o+cux04vuF+ozG/aU9i2HsTq8a0XELumGj2Gl6qffO2iRysBWMcnrPr+BXo3+qypUKCiR9aYWG8H0iw7pPT2jikXcIEPhiY+XCXKxb7QO7hp9Kz42rVBJKhxAbrJKZ6WQVouFfhuOcf+o1jDHloTge6LmWw7QdTffm/O3yjAeLk2BZr/TUy/6SDD1mRXBiSY3Zjkfps1aigFGLdbaJG29Cqvesix+Hf3m+0ISSZyB3T6sIKaA8eWAPN1VeWTwl+f7Fscp30xcvQR2+i8EbazQiAjFqwNXQfC7GsOCLNVytYJuWEj9fT96xDYi8BBk60JA1SUrImr2ZNqubLT9KnOYS3E7px+T1qc88tK5mKZZTwIuYGPNha/CjMklKZtnanpOn9SViQg4b9SyEUxTXxCuH3AdtCufyMR6plECbiwRnXJW7yQzcdN9XH7ajBqjSPgQdM0nD4rpCWwpQ9aV7MwpLc5gjXhOK8jSXikoCgmoij1KL8YRc8cIY0eH1WlOxkeC9LLhEid/n2/wmT2u57vDXapY2PpGnbWk+I3MAHHdvJBZgvZ7Q+KFu5ImaTA=
     file_glob: true
-    file: "${RELEASE_PKG_FILE}"
+    file:
+      - "${LIBRARY_FILE}"
+      - "${CLI_FILE}"
+      - "${CLI_FILE}"
     on:
       repo: korpling/graphANNIS
       branch: master
@@ -91,4 +95,3 @@ deploy:
       tags: true
       condition: $TRAVIS_OS_NAME == "linux" && $TEST_SUITE == ""
     skip-cleanup: true
-      

@@ -1,6 +1,6 @@
 # Interactive command-line
 
-The `annis` command must be started with the data directory as argument.
+The `annis` command[^rename] must be started with the data directory as argument.
 When running, it will provide you with an interactive prompt where you can execute commands using the generic `command-name arguments` syntax.
 E.g, to list all corpora in the data directory just enter the `list` command without arguments.
 
@@ -145,3 +145,5 @@ Memory: 14.86 MB
 
 A corpus might not be fully loaded into memory if not all components have been needed yet.
 To load a corpus fully into main memory, use the `preload` command.
+
+[^rename]: When downloading a binary from the release page, on MacOS you might need to rename the downloaded file from `annis.osx` to `annis`. The executable is called `annis.exe` on Windows.
