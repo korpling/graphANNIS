@@ -8,6 +8,10 @@ In addition to [using graphANNIS as a library in you application](../embed.md), 
 You can just execute the `graphannis-webservice` executable to start a web-server with default settings and on port 5711 which will listen to requests from `localhost`.
 SSL is not supported, so if you want to make the service accessible from the outside you should use a proxy server with encryption enabled and a valid certificate.
 
+The graphANNIS REST API is specified and documented in [OpenAPI 3](https://swagger.io/docs/specification/about/).
+The specification file can also be used to auto-generate client code, e.g. with the [OpenAPI Generator](https://github.com/OpenAPITools/openapi-generator#overview).
+The rendered documentation (in Markdown) is [included in the repository](https://github.com/korpling/graphANNIS/tree/develop/webservice/docs/).
+
 ## Configuration
 
 The executable takes a `--config` argument, which must point to a configuration file in the [TOML format](https://toml.io).

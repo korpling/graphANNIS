@@ -8,6 +8,6 @@
   - [Python Tutorial](./embed-python.md)
   - [Java Tutorial](./embed-java.md)
   - [Rust Tutorial](./embed-rust.md)
-- [REST service](./rest.md)
+- [REST service](./rest/README.md)
 - [Interactive command-line](./cli.md)
 - [Release checklist](./release-checklist.md)
