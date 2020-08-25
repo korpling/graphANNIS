@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `cargo release` did not release all crates
+
 ## [0.29.0] - 2020-08-25
 
 ### Changed
@@ -14,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add non-tokenized primary text segments as special labels "tok-whitespace-before" and "tok-whitespace-after" to the existing token
-  when importing from relANNIS. This allows to re-construct the original relANNIS primary text by iterating over all token in order 
+  when importing from relANNIS. This allows to re-construct the original relANNIS primary text by iterating over all token in order
   and be prepending or append these labels to the token values.
 - Add a REST based web-service replacing the legacy annis-service
 
@@ -28,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Web Service with REST API for the corpus storage
 - Copy and link files from the ExtData folder when importing relANNIS.
-- Map `resolver_vis_map.annis`, `example_queries.annis` and `corpus.properties` from relANNIS files 
+- Map `resolver_vis_map.annis`, `example_queries.annis` and `corpus.properties` from relANNIS files
   to a new unified corpus configuration stored as [TOML]() file. This corpus configuration
   is also exported to GraphML.
 - Export and import ZIP files containing multiple corpora.
@@ -41,11 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Backward incompatible: Return opaque [anyhow](https://github.com/dtolnay/anyhow) `Error` type in all 
+- Backward incompatible: Return opaque [anyhow](https://github.com/dtolnay/anyhow) `Error` type in all
   functions instead of our own enum.
   The new `Error` type also implements `std::error::Error` and is equivalent to using `Box<dyn std:error::Error>`.
 - Upgraded parser generator lalrpop to version 0.18.x
-
 
 ### Added
 
@@ -65,9 +68,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Backward incompatible: the `AnnotationStorage` and `WriteableGraphStorage` interfaces have been adjusted to return `Result` types for mutable functions. 
+- Backward incompatible: the `AnnotationStorage` and `WriteableGraphStorage` interfaces have been adjusted to return `Result` types for mutable functions.
   This change is necessary because on-disk annotation storage implementations might fail, and we want to handle it when modifying the annotation storage.
-- Improved main memory usage when importing relANNIS files. 
+- Improved main memory usage when importing relANNIS files.
   The implementation now uses temporary disk-based maps instead of memory-intensive maps.
   This change also affects the `GraphUpdate` class, which is now disk-based, too.
 
@@ -79,12 +82,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Reconstruct coverage edges with the correct component, if the actual edges are omitted in rank.annis, 
+- Reconstruct coverage edges with the correct component, if the actual edges are omitted in rank.annis,
   but the ones without a parent node are still present. [#125](https://github.com/korpling/graphANNIS/issues/125)
 
 ## [0.25.1] - 2020-01-03
 
-###  Fixed
+### Fixed
 
 - Inverted sort order did not reverse the corpus name list for multiple corpora
 - Workaround for docs.rs problems seem to have caused other problems and graphANNIS was not recognized as library
@@ -94,32 +97,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Backward incompatible: the several search functions (`find`, `count`, etc.) not take several corpus names as argument.
-This is especially important for `find`, where the implementation can be optimized to correctly skip over a given offset
-using the internal state.
-Such an optimization is impossible from outside when calling the API and not having access to the iterator.
+  This is especially important for `find`, where the implementation can be optimized to correctly skip over a given offset
+  using the internal state.
+  Such an optimization is impossible from outside when calling the API and not having access to the iterator.
 
 ### Fixed
 
-- Don't assume inverse operator has the same cost when fan-out is too different. 
-Subgraph queries could be very slow for corpora with large documents due to an estimation error from this assumption 
-the `@` operator. 
+- Don't assume inverse operator has the same cost when fan-out is too different.
+  Subgraph queries could be very slow for corpora with large documents due to an estimation error from this assumption
+  the `@` operator.
 
 ## [0.24.0] - 2019-11-15
 
 ### Changed
 
 - The annotation storage is now a complete interface which provides all functions necessary to write and read annotations.
-  To make this less dependent on the current implementation of the 
+  To make this less dependent on the current implementation of the
   in-memory annotation storage, the annotation key symbol (an integer) has been removed.
   This annotation key symbol has been used in the `Match` class as well, which is now using an `Arc<AnnoKey>` instead. The `AnnoKey` contains
   the fully qualified name as `String`.
   Several functions of the annotation storage that used to have `String` parameters now take `&str` and resulting string values are now returned as `Cow<str>`. The latter change is also meant to enable more flexible implementations, that can choose to allocate new strings (e.g. from disk) or return references to existing memory locations.
-- The `Graph` uses a boxed instance of the general `AnnotationStorage` trait. 
+- The `Graph` uses a boxed instance of the general `AnnotationStorage` trait.
   Before, this was an `Arc` to the specific implementation, which made it possible to simply clone the node annotation storage.
   Now, references to it must be used, e.g. in the operators. This changes a lot of things in the `BinaryOperator` trait, like
   the signature of `get_inverse_operator()` and the filter functions that are used as conditions for the node search (these
   need an argument to the node annotation storage now)
-- `Graph` does not implement the `AnnotationStorage<NodeID>` trait anymore, 
+- `Graph` does not implement the `AnnotationStorage<NodeID>` trait anymore,
   but provides a getter to reference its field.
 - Data source nodes are now included when querying for a subgraph with context. This is needed for parallel text support in ANNIS 4.
 
@@ -133,13 +136,12 @@ the `@` operator.
 
 - Deploying release artifacts by CI was broken due to invalid condition
 
-
 ## [0.23.0] - 2019-10-16
 
 ### Added
 
-- Subgraph queries can now define the context using  ordering relation names (segmentation) 
-instead of the default context in tokens. **This changes the function signature of the `subgraph(...)` function.**
+- Subgraph queries can now define the context using ordering relation names (segmentation)
+  instead of the default context in tokens. **This changes the function signature of the `subgraph(...)` function.**
 
 ### Changed
 
@@ -155,8 +157,8 @@ instead of the default context in tokens. **This changes the function signature 
 ### Changed
 
 - Updated several dependencies
-- Organize documentation topics in sub-folders. 
-  Previously, mdbook did not updated the images on these sites on the print.html. 
+- Organize documentation topics in sub-folders.
+  Previously, mdbook did not updated the images on these sites on the print.html.
   Since mdbook >0.3.1 this is fixed and we can use the better layout.
 
 ## [0.21.0] - 2019-05-26
@@ -171,7 +173,7 @@ instead of the default context in tokens. **This changes the function signature 
 
 ### Fixed
 
-- CorpusStorageManager: Escape the corpus name when writing it to its disk location to support e.g. corpora with slash 
+- CorpusStorageManager: Escape the corpus name when writing it to its disk location to support e.g. corpora with slash
   in their name.
 - Quirks mode: sort matches by reversed document path (document first)
 - Node names/paths where double encoded both when importing them and when executing the "find" function
@@ -226,11 +228,11 @@ instead of the default context in tokens. **This changes the function signature 
 
 - **Renamed the "PartOfSubcorpus" component type to more general "PartOf"**
 - relANNIS import now takes the sub-corpus structure into account
-- Quirks mode now also emulates the component search normalization behavior. 
-Search nodes that where part of multiple dominance/pointing relation joins where duplicated and joined with 
-the identity operator to work around the issue that nodes of different components could not be joined in relANNIS.
-This leads additional output nodes in the find(...) query.
-See also the [original JavaDoc](https://github.com/korpling/ANNIS/blob/b7e0e36a0e1ac043e820462dd3f788f5107505a5/annis-service/src/main/java/annis/ql/parser/ComponentSearchRelationNormalizer.java#L32) for an explanation.
+- Quirks mode now also emulates the component search normalization behavior.
+  Search nodes that where part of multiple dominance/pointing relation joins where duplicated and joined with
+  the identity operator to work around the issue that nodes of different components could not be joined in relANNIS.
+  This leads additional output nodes in the find(...) query.
+  See also the [original JavaDoc](https://github.com/korpling/ANNIS/blob/b7e0e36a0e1ac043e820462dd3f788f5107505a5/annis-service/src/main/java/annis/ql/parser/ComponentSearchRelationNormalizer.java#L32) for an explanation.
 - The error_chain crate is no longer used for error reporting, instead a custom Error representation is used
 
 ### Fixed
@@ -259,7 +261,6 @@ See also the [original JavaDoc](https://github.com/korpling/ANNIS/blob/b7e0e36a0
 ### Fixed Bugs
 
 - [#70](https://github.com/korpling/graphANNIS/issues/70) get_all_components() returns all components with matching name if none with the same type exist
-
 
 ## [0.17.1]
 
@@ -341,15 +342,13 @@ See also the [original JavaDoc](https://github.com/korpling/ANNIS/blob/b7e0e36a0
 - [#33](https://github.com/corpus-tools/graphANNIS/issues/33) Improve memory usage of the relANNIS importer
 - [#32](https://github.com/corpus-tools/graphANNIS/issues/32) Faster and more flexible sort of results in "find" function
 
-
 ## [0.11.1]
 
 ### Fixed Bugs
 
 - [#31](https://github.com/corpus-tools/graphANNIS/issues/31) Reorder result in find also when acting as a proxy.
 
-release v0.11.0
-===============
+# release v0.11.0
 
 ### Fixed Bugs
 
@@ -361,16 +360,13 @@ release v0.11.0
 - [#27](https://github.com/corpus-tools/graphANNIS/issues/27) Make the corpus cache more robust and avoid swapping
 - [#19](https://github.com/corpus-tools/graphANNIS/issues/19) Check codebase with the clippy tool
 
-release v0.10.1
-===============
+# release v0.10.1
 
 ### Fixed Bugs
 
 - [#26](https://github.com/corpus-tools/graphANNIS/issues/26) Docs.rs does not build because "allocator_api" is not enabled on their rustc
 
-
-release v0.10.0
-===============
+# release v0.10.0
 
 ### Enhancements
 
@@ -384,24 +380,20 @@ release v0.10.0
 - [#12](https://github.com/corpus-tools/graphANNIS/issues/12) Improve speed of loading adjacency list graph storages
 - [#11](https://github.com/corpus-tools/graphANNIS/issues/11) Use criterion.rs library for benchmarks
 
-
-release v0.9.0
-==============
+# release v0.9.0
 
 ### Enhancements
 
 - [#10](https://github.com/corpus-tools/graphANNIS/issues/10) Better error reporting for C-API
 - [#8](https://github.com/corpus-tools/graphANNIS/issues/8) Implement AQL parser and replace JSON query representations with AQL
 
-release v0.8.1
-==============
+# release v0.8.1
 
 ### Fixed Bugs
 
 - [#9](https://github.com/corpus-tools/graphANNIS/issues/9) Wait for all background writers before dropping the CorpusStorage
 
-release v0.8.0
-==============
+# release v0.8.0
 
 ### Enhancements
 
@@ -410,8 +402,7 @@ release v0.8.0
 - [#5](https://github.com/corpus-tools/graphANNIS/issues/5) Allow to delete corpora from the command line
 - [#4](https://github.com/corpus-tools/graphANNIS/issues/4) Use file lock to prevent opening the same GraphDB in different processes
 
-release v0.7.1
-==============
+# release v0.7.1
 
 ### Fixed Bugs
 
@@ -434,13 +425,12 @@ First release of the Rust port of graphANNIS from C++.
 - [#22](https://github.com/thomaskrause/graphANNIS/issues/22) Use text-book function for estimating the selectivity for the abstract edge operator
 - [#21](https://github.com/thomaskrause/graphANNIS/issues/21) Allow to load query in console from file
 
-
 ## [0.4.0]
 
 ### Fixed Bugs
 
 - [#20](https://github.com/thomaskrause/graphANNIS/issues/20) UniqueDFS should output each matched node only once, but still visit each node.
-- [#14](https://github.com/thomaskrause/graphANNIS/issues/14) Do not iterate over covered text positions but use the token index 
+- [#14](https://github.com/thomaskrause/graphANNIS/issues/14) Do not iterate over covered text positions but use the token index
 - [#13](https://github.com/thomaskrause/graphANNIS/issues/13) Fix duplicate matches in case a const anno value is used in a base search
 
 ### Enhancements
@@ -451,7 +441,6 @@ First release of the Rust port of graphANNIS from C++.
 - [#16](https://github.com/thomaskrause/graphANNIS/issues/16) Allow base node search by membership in a component
 - [#15](https://github.com/thomaskrause/graphANNIS/issues/15) Better handling of Regular Expressions on a RHS of an index join
 - [#12](https://github.com/thomaskrause/graphANNIS/issues/12) Add support for relANNIS style multiple segmentation
-
 
 ## [0.3.0]
 
@@ -468,7 +457,6 @@ First release of the Rust port of graphANNIS from C++.
 - [#7](https://github.com/thomaskrause/graphANNIS/issues/7) Support OR queries
 - [#6](https://github.com/thomaskrause/graphANNIS/issues/6) Add metadata query support
 - [#5](https://github.com/thomaskrause/graphANNIS/issues/5) Add a SIMD based join
-
 
 ## [0.2.0]
 
@@ -488,6 +476,7 @@ Initial development release with an actual release number.
 
 There has been the benchmark-journal-2016-07-27 tag before which was used in a benchmark for a paper.
 Since then the following improvements have been made:
+
 - using an edge annotation as base for a node search on the LHS of the join
 - adding parallel join implementations
 
