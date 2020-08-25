@@ -13,7 +13,7 @@ pcc2.1 (not loaded)
 tiger2 (not loaded)
 ```
 
-The interactive CLI supports auto-completion by pressing the <kbd>Tab</kbd> key.
+The interactive CLI supports auto-completion by pressing the <kbd>Tab</kbd> key and you can navigate to old executed commands using the arrow up and down keys.
 
 You can also use the `-c` argument at startup to execute a single command instead of starting the interactive command line.
 This is useful for e.g. importing or exporting corpora from a script.
@@ -51,3 +51,27 @@ The prompt will change from `>>` to the list of corpus names and `>`.
 This command allows to export the currently selected corpus into a graphML file, which is given as argument.
 When using the file ending `.zip` instead of `.graphml`, the graphML output will be packaged into a compressed ZIP-file.
 You can also use a directory as argument, in this case all selected corpora will be exported into separate graphML files in this directory and with the corpus name as part of the file name.
+
+### `count`
+
+When one or more corpus is selected, you can use `count <query>` to get the number of matches for an AQL query.
+
+```
+GUM> count tok
+15:18:52 [ INFO] Executed query in 13 ms
+result: 44079 matches
+```
+
+### `find`
+
+`find` also allows to execute AQL queries, but instead of counting the results it will list all matching IDs.
+
+```
+GUM> find tok="Some" . pos=/N.*/
+15:23:19 [ INFO] Executed query in 5 ms
+GUM/GUM_interview_ants#tok_139 GUM::pos::GUM/GUM_interview_ants#tok_140
+GUM/GUM_news_hackers#tok_489 GUM::pos::GUM/GUM_news_hackers#tok_490
+GUM/GUM_voyage_cuba#tok_279 GUM::pos::GUM/GUM_voyage_cuba#tok_280
+GUM/GUM_whow_joke#tok_657 GUM::pos::GUM/GUM_whow_joke#tok_658
+GUM/GUM_whow_parachute#tok_722 GUM::pos::GUM/GUM_whow_parachute#tok_723
+```
