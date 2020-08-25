@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.29.2] - 2020-08-25
+
+### Fixed
+
+- Travis did add the webservice executables to the release
+
 ## [0.29.1] - 2020-08-25
 
 ### Fixed
