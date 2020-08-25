@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.29.0] - 2020-08-25
+
 ### Changed
 
 - Node IDs in matches don't have the `salt:/` prefix anymore
