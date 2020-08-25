@@ -13,7 +13,9 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::*;
 use crate::annis::types::CountExtra;
-use crate::annis::types::{CorpusConfiguration, FrequencyTable, QueryAttributeDescription};
+use crate::annis::types::{
+    CorpusConfiguration, FrequencyTable, FrequencyTableRow, QueryAttributeDescription,
+};
 use crate::annis::util::quicksort;
 use crate::{
     graph::Match,
@@ -182,7 +184,7 @@ impl fmt::Display for CorpusInfo {
 }
 
 /// Defines the order of results of a `find` query.
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 #[repr(C)]
 pub enum ResultOrder {
     /// Order results by their document name and the the text position of the match.
@@ -196,15 +198,22 @@ pub enum ResultOrder {
     NotSorted,
 }
 
+impl Default for ResultOrder {
+    fn default() -> Self {
+        ResultOrder::Normal
+    }
+}
+
 struct PreparationResult<'a> {
     query: Disjunction<'a>,
     db_entry: Arc<RwLock<CacheEntry>>,
 }
 
 /// Definition of a single attribute of a frequency query.
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FrequencyDefEntry {
     /// The namespace of the annotation from which the attribute value is generated.
+    #[serde(default)]
     pub ns: Option<String>,
     /// The name of the annotation from which the attribute value is generated.
     pub name: String,
@@ -243,6 +252,12 @@ pub enum QueryLanguage {
     AQL,
     /// Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3
     AQLQuirksV3,
+}
+
+impl Default for QueryLanguage {
+    fn default() -> Self {
+        QueryLanguage::AQL
+    }
 }
 
 /// An enum of all supported input formats of graphANNIS.
@@ -753,18 +768,29 @@ impl CorpusStorage {
     ///
     /// This function will unzip the file to a temporary location and find all relANNIS and GraphML files in the ZIP file.
     /// The formats of the corpora can be relANNIS or GraphML.
-    /// - `path` - The location on the file system where the corpus data is located.
+    /// - `zip_file` - The content of the ZIP file.
     /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
+    /// - `overwrite_existing` - If `true`, overwrite existing corpora. Otherwise ignore.
+    /// - `progress_callback` - A callback function to which the import progress is reported to.
     ///
     /// Returns the names of the imported corpora.
-    pub fn import_all_from_zip(&self, path: &Path, disk_based: bool) -> Result<Vec<String>> {
+    pub fn import_all_from_zip<R, F>(
+        &self,
+        zip_file: R,
+        disk_based: bool,
+        overwrite_existing: bool,
+        progress_callback: F,
+    ) -> Result<Vec<String>>
+    where
+        R: Read + Seek,
+        F: Fn(&str) -> (),
+    {
         // Unzip all files to a temporary directory
         let tmp_dir = tempfile::tempdir()?;
         debug!(
             "Using temporary directory {} to extract ZIP file content.",
             tmp_dir.path().to_string_lossy()
         );
-        let zip_file = std::fs::File::open(path)?;
         let mut archive = zip::ZipArchive::new(zip_file)?;
 
         let mut relannis_files = Vec::new();
@@ -790,12 +816,13 @@ impl CorpusStorage {
                 "copying ZIP file content {}",
                 file.sanitized_name().to_string_lossy(),
             );
-            if let Some(parent) = output_path.parent() {
+            if file.is_dir() {
+                std::fs::create_dir_all(output_path)?;
+            } else if let Some(parent) = output_path.parent() {
                 std::fs::create_dir_all(parent)?;
+                let mut output_file = std::fs::File::create(&output_path)?;
+                std::io::copy(&mut file, &mut output_file)?;
             }
-
-            let mut output_file = std::fs::File::create(&output_path)?;
-            std::io::copy(&mut file, &mut output_file)?;
         }
 
         let mut corpus_names = Vec::new();
@@ -803,13 +830,27 @@ impl CorpusStorage {
         // Import all relANNIS files
         for p in relannis_files {
             info!("importing relANNIS corpus from {}", p.to_string_lossy());
-            let name = self.import_from_fs(&p, ImportFormat::RelANNIS, None, disk_based)?;
+            let name = self.import_from_fs(
+                &p,
+                ImportFormat::RelANNIS,
+                None,
+                disk_based,
+                overwrite_existing,
+                &progress_callback,
+            )?;
             corpus_names.push(name);
         }
         // Import all GraphML files
         for p in graphannis_files {
             info!("importing corpus from {}", p.to_string_lossy());
-            let name = self.import_from_fs(&p, ImportFormat::GraphML, None, disk_based)?;
+            let name = self.import_from_fs(
+                &p,
+                ImportFormat::GraphML,
+                None,
+                disk_based,
+                overwrite_existing,
+                &progress_callback,
+            )?;
             corpus_names.push(name);
         }
 
@@ -829,18 +870,25 @@ impl CorpusStorage {
     /// - `format` - The format in which this corpus data is stored.
     /// - `corpus_name` - Optionally override the name of the new corpus for file formats that already provide a corpus name. This only works if the imported file location only contains one corpus.
     /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
+    /// - `overwrite_existing` - If `true`, overwrite existing corpora. Otherwise ignore.
+    /// - `progress_callback` - A callback function to which the import progress is reported to.
     ///
     /// Returns the name of the imported corpus.
-    pub fn import_from_fs(
+    pub fn import_from_fs<F>(
         &self,
         path: &Path,
         format: ImportFormat,
         corpus_name: Option<String>,
         disk_based: bool,
-    ) -> Result<String> {
+        overwrite_existing: bool,
+        progress_callback: F,
+    ) -> Result<String>
+    where
+        F: Fn(&str) -> (),
+    {
         let (orig_name, mut graph, config) = match format {
             ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
-                info!("{}", status);
+                progress_callback(status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
                 self.check_cache_size_and_remove(vec![]);
             })?,
@@ -855,7 +903,7 @@ impl CorpusStorage {
                     input_file,
                     disk_based,
                     |status| {
-                        info!("{}", status);
+                        progress_callback(status);
                         // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
                         self.check_cache_size_and_remove(vec![]);
                     },
@@ -891,10 +939,16 @@ impl CorpusStorage {
         check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![]);
 
         // remove any possible old corpus
-        let old_entry = cache.remove(&corpus_name);
-        if old_entry.is_some() {
-            if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
-                error!("Error when removing existing files {}", e);
+        if cache.contains_key(&corpus_name) {
+            if overwrite_existing {
+                let old_entry = cache.remove(&corpus_name);
+                if old_entry.is_some() {
+                    if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
+                        error!("Error when removing existing files {}", e);
+                    }
+                }
+            } else {
+                return Err(GraphAnnisError::CorpusExists(corpus_name.to_string()).into());
             }
         }
 
@@ -1048,7 +1102,7 @@ impl CorpusStorage {
         Ok(())
     }
 
-    fn export_single_corpus_file(&self, corpus_name: &str, path: &Path) -> Result<()> {
+    fn export_corpus_graphml(&self, corpus_name: &str, path: &Path) -> Result<()> {
         let output_file = File::create(path)?;
         let entry = self.get_loaded_entry(corpus_name, false)?;
 
@@ -1085,14 +1139,16 @@ impl CorpusStorage {
         Ok(())
     }
 
-    fn export_single_corpus_zip<W>(
+    pub fn export_corpus_zip<W, F>(
         &self,
         corpus_name: &str,
         use_corpus_subdirectory: bool,
         mut zip: &mut zip::ZipWriter<W>,
+        progress_callback: F,
     ) -> Result<()>
     where
         W: Write + Seek,
+        F: Fn(&str) -> (),
     {
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
@@ -1127,9 +1183,7 @@ impl CorpusStorage {
             graph,
             config_as_str,
             &mut zip,
-            |status| {
-                info!("{}", status);
-            },
+            progress_callback,
         )?;
 
         // Insert all linked files into the ZIP file
@@ -1154,7 +1208,7 @@ impl CorpusStorage {
         match format {
             ExportFormat::GraphML => {
                 if corpora.len() == 1 {
-                    self.export_single_corpus_file(corpora[0].as_ref(), path)?;
+                    self.export_corpus_graphml(corpora[0].as_ref(), path)?;
                 } else if corpora.len() > 1 {
                     return Err(anyhow!(
                         "This format can only export one corpus but {} have been given as argument",
@@ -1174,7 +1228,7 @@ impl CorpusStorage {
                     };
                     std::fs::create_dir_all(&path)?;
                     path.push(format!("{}.graphml", corpus_name.as_ref()));
-                    self.export_single_corpus_file(corpus_name.as_ref(), &path)?;
+                    self.export_corpus_graphml(corpus_name.as_ref(), &path)?;
                 }
             }
             ExportFormat::GraphMLZip => {
@@ -1185,7 +1239,14 @@ impl CorpusStorage {
                 for corpus_name in corpora {
                     // Add the GraphML file to the ZIP file
                     let corpus_name: &str = corpus_name.as_ref();
-                    self.export_single_corpus_zip(corpus_name, use_corpus_subdirectory, &mut zip)?;
+                    self.export_corpus_zip(
+                        corpus_name,
+                        use_corpus_subdirectory,
+                        &mut zip,
+                        |status| {
+                            info!("{}", status);
+                        },
+                    )?;
                 }
 
                 zip.finish()?;
@@ -1694,7 +1755,6 @@ impl CorpusStorage {
                         .get_node_annos()
                         .get_value_for_item(&singlematch.node, &NODE_NAME_KEY)
                     {
-                        node_desc.push_str("salt:/");
                         node_desc.push_str(&name);
                     }
 
@@ -1807,7 +1867,7 @@ impl CorpusStorage {
         // find all nodes covering the same token
         for source_node_id in node_ids {
             let source_node_id: &str = if source_node_id.starts_with("salt:/") {
-                // remove the "salt:/" prefix
+                // remove the obsolete "salt:/" prefix
                 &source_node_id[6..]
             } else {
                 &source_node_id
@@ -1935,7 +1995,7 @@ impl CorpusStorage {
         // find all nodes that a connected with the corpus IDs
         for source_corpus_id in corpus_ids {
             let source_corpus_id: &str = if source_corpus_id.starts_with("salt:/") {
-                // remove the "salt:/" prefix
+                // remove the obsolete "salt:/" prefix
                 &source_corpus_id[6..]
             } else {
                 &source_corpus_id
@@ -2097,11 +2157,14 @@ impl CorpusStorage {
         // output the frequency
         let mut result: FrequencyTable<String> = FrequencyTable::default();
         for (tuple, count) in tuple_frequency {
-            result.push((tuple, count));
+            result.push(FrequencyTableRow {
+                values: tuple,
+                count,
+            });
         }
 
         // sort the output (largest to smallest)
-        result.sort_by(|a, b| a.1.cmp(&b.1).reverse());
+        result.sort_by(|a, b| a.count.cmp(&b.count).reverse());
 
         Ok(result)
     }

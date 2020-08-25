@@ -5,11 +5,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Node IDs in matches don't have the `salt:/` prefix anymore
+
 ### Added
 
 - Add non-tokenized primary text segments as special labels "tok-whitespace-before" and "tok-whitespace-after" to the existing token
   when importing from relANNIS. This allows to re-construct the original relANNIS primary text by iterating over all token in order 
   and be prepending or append these labels to the token values.
+- Add a REST based web-service replacing the legacy annis-service
 
 ### Fixed
 
@@ -19,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Addded
 
+- Web Service with REST API for the corpus storage
 - Copy and link files from the ExtData folder when importing relANNIS.
 - Map `resolver_vis_map.annis`, `example_queries.annis` and `corpus.properties` from relANNIS files 
   to a new unified corpus configuration stored as [TOML]() file. This corpus configuration

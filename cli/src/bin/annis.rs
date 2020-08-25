@@ -18,13 +18,10 @@ use rustyline::completion::{Completer, FilenameCompleter};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use rustyline_derive::{Helper, Highlighter, Hinter, Validator};
-use simplelog::{LevelFilter, SharedLogger, SimpleLogger, TermLogger};
+use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
-use std::{
-    fs::File,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 #[derive(Helper, Hinter, Highlighter, Validator)]
 struct ConsoleHelper {
@@ -246,13 +243,16 @@ impl AnnisRunner {
             let file_ext = file_ext_owned.as_deref();
 
             if file_ext == Some("zip") {
+                let zip_file = std::fs::File::open(path)?;
                 // Import  ZIP file with possible multiple corpora
                 let t_before = std::time::SystemTime::now();
                 let names = self
                     .storage
                     .as_ref()
                     .ok_or(anyhow!("No corpus storage location set"))?
-                    .import_all_from_zip(&path, self.use_disk)?;
+                    .import_all_from_zip(zip_file, self.use_disk, true, |status| {
+                        info!("{}", status)
+                    })?;
                 let load_time = t_before.elapsed();
                 if let Ok(t) = load_time {
                     info! {"imported corpora {:?} in {} ms", names, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -270,7 +270,14 @@ impl AnnisRunner {
                     .storage
                     .as_ref()
                     .ok_or(anyhow!("No corpus storage location set"))?
-                    .import_from_fs(&path, format, overwritten_corpus_name, self.use_disk)?;
+                    .import_from_fs(
+                        &path,
+                        format,
+                        overwritten_corpus_name,
+                        self.use_disk,
+                        true,
+                        |status| info!("{}", status),
+                    )?;
                 let load_time = t_before.elapsed();
                 if let Ok(t) = load_time {
                     info! {"imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -566,7 +573,7 @@ impl AnnisRunner {
             // TODO: map header
             for row in frequency_table.into_iter() {
                 let mut out_row = Row::empty();
-                for att in row.0.iter() {
+                for att in row.values.iter() {
                     if att.trim().is_empty() {
                         // This is whitespace only, add some quotation marks to show to make it visible
                         let mut val = "'".to_owned();
@@ -578,7 +585,7 @@ impl AnnisRunner {
                     }
                 }
                 // also add the count
-                out_row.add_cell(Cell::from(&row.1));
+                out_row.add_cell(Cell::from(&row.count));
                 out.add_row(out_row);
             }
             out.printstd();
@@ -691,35 +698,16 @@ fn main() {
         .add_filter_ignore_str("rustyline")
         .build();
 
-    let mut loggers: Vec<Box<dyn SharedLogger>> = Vec::default();
-    if let Some(term_logger) = TermLogger::new(
+    if let Err(e) = TermLogger::init(
         log_filter,
         log_config.clone(),
         simplelog::TerminalMode::Mixed,
     ) {
-        loggers.push(term_logger);
-    } else {
-        // Use a more simple terminal logger
-        loggers.push(SimpleLogger::new(log_filter, log_config.clone()));
-    }
-
-    // Add an additional logfile for tracing when debug is enabled
-    if matches.is_present("debug") {
-        match File::create("graphannis-trace.log") {
-            Ok(f) => loggers.push(simplelog::WriteLogger::new(
-                LevelFilter::Trace,
-                log_config.clone(),
-                f,
-            )),
-            Err(e) => println!(
-                "Could not create trace logging file graphannis-trace.log: {}",
-                e
-            ),
+        println!("Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger", e);
+        if let Err(e_simple) = SimpleLogger::init(log_filter, log_config) {
+            println!("Simple logging failed too: {}", e_simple);
         }
     }
-
-    // Combine all these loggers
-    simplelog::CombinedLogger::init(loggers).expect("Could not initialize logging");
 
     let dir = std::path::PathBuf::from(matches.value_of("DATA_DIR").unwrap());
     if !dir.is_dir() {

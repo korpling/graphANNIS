@@ -40,7 +40,9 @@ pub mod corpusstorage {
         CacheStrategy, CorpusInfo, ExportFormat, FrequencyDefEntry, GraphStorageInfo, ImportFormat,
         LoadStatus, QueryLanguage, ResultOrder,
     };
-    pub use crate::annis::types::{CountExtra, FrequencyTable, QueryAttributeDescription};
+    pub use crate::annis::types::{
+        CountExtra, FrequencyTable, FrequencyTableRow, QueryAttributeDescription,
+    };
 }
 
 pub use graphannis_core::graph::update;

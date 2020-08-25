@@ -4,7 +4,7 @@ use std::fmt::Display;
 
 pub type Result<T> = std::result::Result<T, anyhow::Error>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub enum GraphAnnisError {
     AQLSyntaxError {
         desc: String,
@@ -19,6 +19,7 @@ pub enum GraphAnnisError {
         name: String,
     },
     NoSuchCorpus(String),
+    CorpusExists(String),
 }
 
 impl Display for GraphAnnisError {
@@ -45,6 +46,7 @@ impl Display for GraphAnnisError {
                 write!(f, "Impossible search expression detected: {}", reason)
             }
             GraphAnnisError::NoSuchCorpus(name) => write!(f, "Corpus {} not found", &name),
+            GraphAnnisError::CorpusExists(name) => write!(f, "Corpus {} already exists.", &name),
         }
     }
 }

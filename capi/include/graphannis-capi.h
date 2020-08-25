@@ -142,14 +142,6 @@ typedef struct AnnisCorpusStorage AnnisCorpusStorage;
 typedef struct AnnisDiskMap_u64__UpdateEvent AnnisDiskMap_u64__UpdateEvent;
 
 /**
- * Definition of the result of a `frequency` query.
- *
- * This is a vector of rows, and each row is a vector of columns with the different
- * attribute values and a number of matches having this combination of attribute values.
- */
-typedef struct AnnisFrequencyTable_CString AnnisFrequencyTable_CString;
-
-/**
  * A representation of a graph including node annotations and edges.
  * Edges are partioned into components and each component is implemented by specialized graph storage implementation.
  *
@@ -170,6 +162,8 @@ typedef struct AnnisVec_CString AnnisVec_CString;
 typedef struct AnnisVec_Edge AnnisVec_Edge;
 
 typedef struct AnnisVec_Error AnnisVec_Error;
+
+typedef struct AnnisVec_FrequencyTableRow_CString AnnisVec_FrequencyTableRow_CString;
 
 typedef struct AnnisVec_QueryAttributeDescription AnnisVec_QueryAttributeDescription;
 
@@ -208,6 +202,11 @@ typedef struct {
    */
   uint64_t document_count;
 } AnnisCountExtra;
+
+/**
+ * Definition of the result of a `frequency` query.
+ */
+typedef AnnisVec_FrequencyTableRow_CString AnnisFrequencyTable_CString;
 
 /**
  * Simple definition of a matrix from a single data type.
@@ -393,6 +392,7 @@ char *annis_cs_import_from_fs(AnnisCorpusStorage *ptr,
                               AnnisImportFormat format,
                               const char *corpus_name,
                               bool disk_based,
+                              bool overwrite_existing,
                               AnnisErrorList **err);
 
 /**

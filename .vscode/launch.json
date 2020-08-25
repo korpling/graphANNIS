@@ -1,7 +1,6 @@
 {
     "version": "0.2.0",
     "configurations": [
-        
         {
             "type": "lldb",
             "request": "attach",
@@ -20,6 +19,24 @@
                 "data"
             ],
             "cwd": "${workspaceRoot}",
+            "terminal": "integrated",
+            "env": {
+                "RUST_BACKTRACE": "1"
+            },
+            "sourceLanguages": [
+                "rust"
+            ]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Web Service",
+            "program": "${workspaceRoot}/target/debug/graphannis-webservice",
+            "args": [
+                "--config",
+                "tmp/test.toml"
+            ],
+            "cwd": "${workspaceRoot}/webservice/",
             "terminal": "integrated",
             "env": {
                 "RUST_BACKTRACE": "1"

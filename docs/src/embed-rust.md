@@ -62,10 +62,9 @@ The following example searches for all tokens that contain a `s` character.[^aql
 Output:
 ```ignore
 Number of matches: 2
-Match 0: salt:/tutorial/doc1#t2
-Match 1: salt:/tutorial/doc1#t6
+Match 0: tutorial/doc1#t2
+Match 1: tutorial/doc1#t6
 ```
-GraphANNIS will add the URI scheme `salt:/` to your node names automatically.
 
 ## Getting subgraphs
 
@@ -77,17 +76,17 @@ It will contain all covered nodes of the matches and additionally a given contex
 ```
 Output:
 ```ignore
-salt:/tutorial/doc1#t1 salt:/tutorial/doc1#t2
+tutorial/doc1#t1 tutorial/doc1#t2
 Number of nodes in subgraph: 4
-salt:/tutorial/doc1#t2 salt:/tutorial/doc1#t3
+tutorial/doc1#t2 tutorial/doc1#t3
 Number of nodes in subgraph: 5
-salt:/tutorial/doc1#t3 salt:/tutorial/doc1#t4
+tutorial/doc1#t3 tutorial/doc1#t4
 Number of nodes in subgraph: 6
-salt:/tutorial/doc1#t4 salt:/tutorial/doc1#t5
+tutorial/doc1#t4 tutorial/doc1#t5
 Number of nodes in subgraph: 6
-salt:/tutorial/doc1#t5 salt:/tutorial/doc1#t6
+tutorial/doc1#t5 tutorial/doc1#t6
 Number of nodes in subgraph: 5
-salt:/tutorial/doc1#t6 salt:/tutorial/doc1#t7
+tutorial/doc1#t6 tutorial/doc1#t7
 Number of nodes in subgraph: 4
 ```
 The result object of the `subgraph(...)` function is the type `Graph`, which provides basic graph access functions (see the API documentation for details).

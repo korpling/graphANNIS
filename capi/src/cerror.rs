@@ -43,6 +43,7 @@ fn error_kind(e: &Box<dyn StdError>) -> &'static str {
             errors::GraphAnnisError::LoadingGraphFailed { .. } => "LoadingGraphFailed",
             errors::GraphAnnisError::ImpossibleSearch(_) => "ImpossibleSearch",
             errors::GraphAnnisError::NoSuchCorpus(_) => "NoSuchCorpus",
+            errors::GraphAnnisError::CorpusExists(_) => "CorpusExists",
         }
     } else {
         // Check for several known types

@@ -1,0 +1,40 @@
+[package]
+name = "graphannis-webservice"
+version = "0.27.0"
+authors = ["Thomas Krause <thomaskrause@posteo.de>"]
+license = "Apache-2.0"
+description = "This is a web service to the new backend implementation of the ANNIS linguistic search and visualization system."
+repository = "https://github.com/korpling/graphANNIS"
+readme = "crate-info.md"
+edition = "2018"
+
+[dependencies]
+graphannis= {path = "../graphannis/", version= "^0.28"}
+graphannis-core= {path = "../core/", version= "^0.28"}
+simplelog = "0.7"
+clap = "2"
+anyhow = "1"
+log = "0.4"
+actix-web = "2"
+actix-rt = "1"
+actix-service = "1"
+actix-files = "0.2"
+actix-cors = "0.2"
+serde = { version = "1.0", features = ["rc"] }
+serde_derive = "1.0"
+config = "0.10"
+bcrypt = "0.8"
+jwt = "0.7"
+sha2 = "0.8"
+hmac = "0.7"
+chrono = "0.4"
+diesel = { version = "1.4.5", features = ["sqlite", "r2d2"] }
+libsqlite3-sys = { version = "0.17.3", features = ["bundled"] }
+diesel_migrations = "1.4"
+r2d2 = "0.8"
+futures = "0.3"
+tempfile = "3"
+uuid = {version ="0.8", features = ["v4"]}
+zip = "0.5"
+walkdir = "2"
+percent-encoding = "2.1"
