@@ -77,7 +77,7 @@ deploy:
     file:
       - "${LIBRARY_FILE}"
       - "${CLI_FILE}"
-      - "${CLI_FILE}"
+      - "${REST_FILE}"
     on:
       repo: korpling/graphANNIS
       branch: master
