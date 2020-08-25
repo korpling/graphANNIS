@@ -32,10 +32,8 @@ mod models;
 mod schema;
 mod settings;
 
-
 embed_migrations!("migrations");
 type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
-
 
 fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, DbPool)> {
     // Parse CLI arguments
@@ -61,9 +59,15 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
         LevelFilter::Info
     };
 
-    let log_config = simplelog::ConfigBuilder::new()
-        .add_filter_ignore_str("rustyline:")
-        .build();
+    let mut log_config = simplelog::ConfigBuilder::new();
+    log_config.add_filter_ignore_str("rustyline:");
+    if settings.logging.debug {
+        warn!("Enabling request logging to console in debug mode");
+    } else {
+        log_config.add_filter_ignore_str("actix_web:");
+    }
+
+    let log_config = log_config.build();
 
     if let Err(e) = TermLogger::init(
         log_filter,
@@ -87,7 +91,7 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
     let manager = ConnectionManager::<SqliteConnection>::new(&settings.database.sqlite);
     let db_pool = r2d2::Pool::builder().build(manager)?;
 
-     // Make sure the database has all migrations applied
+    // Make sure the database has all migrations applied
     let conn = db_pool.get()?;
     embedded_migrations::run(&conn)?;
 
