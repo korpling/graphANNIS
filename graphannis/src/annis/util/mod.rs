@@ -106,7 +106,7 @@ mod tests {
             node_names_from_match("ns::name::corpus1/doc1#n1")
         );
         assert_eq!(
-            vec!["/corpus1/doc1#n1".to_string()],
+            vec!["corpus1/doc1#n1".to_string()],
             node_names_from_match("name::corpus1/doc1#n1")
         );
         assert_eq!(
