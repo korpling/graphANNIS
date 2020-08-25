@@ -10,5 +10,5 @@
   - [Rust Tutorial](./embed-rust.md)
 - [Command-line tools](./tools/README.md)
   - [Interactive CLI](./tools/annis.md)
-  - [REST web-service](./tools/rest.md)
+  - [REST service](./tools/rest.md)
 - [Release checklist](./release-checklist.md)
