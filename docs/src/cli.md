@@ -1,4 +1,4 @@
-# Interactive CLI
+# Interactive command-line
 
 The `annis` command must be started with the data directory as argument.
 When running, it will provide you with an interactive prompt where you can execute commands using the generic `command-name arguments` syntax.
