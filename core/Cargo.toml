@@ -35,7 +35,7 @@ quick-xml = "0.18"
 percent-encoding = "2.1"
 
 [target.'cfg(windows)'.dependencies]
-kernel32-sys = { version = "0.2.2" }
+winapi = { version = "0.3", features = ["heapapi"] }
 
 [dev-dependencies]
 fake = "2.2"
