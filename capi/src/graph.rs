@@ -98,10 +98,10 @@ pub extern "C" fn annis_graph_outgoing_edges(
 
     if let Some(gs) = db.get_graphstorage(component) {
         let gs: Arc<dyn GraphStorage> = gs;
-        result.extend(gs.get_outgoing_edges(source).map(|target| Edge {
-            source,
-            target,
-        }));
+        result.extend(
+            gs.get_outgoing_edges(source)
+                .map(|target| Edge { source, target }),
+        );
     }
 
     Box::into_raw(Box::new(result))

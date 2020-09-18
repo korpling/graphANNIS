@@ -126,7 +126,7 @@ where
                 anno_key_sizes: BTreeMap::new(),
                 largest_item: None,
                 histogram_bounds: BTreeMap::new(),
-                location: path.to_path_buf(),
+                location: path.clone(),
                 temp_dir: None,
                 phantom: std::marker::PhantomData,
             };
@@ -175,10 +175,7 @@ where
                 name: name.to_string(),
             })]
         } else {
-            self.get_qnames(name)
-                .into_iter()
-                .map(|key| Arc::from(key))
-                .collect()
+            self.get_qnames(name).into_iter().map(Arc::from).collect()
         };
         let key_ranges: Vec<usize> = key_ranges
             .into_iter()
@@ -219,7 +216,7 @@ where
                     .anno_key_symbols
                     .get_value(anno_key_symbol)
                     .unwrap_or_default();
-                (item_id, Arc::from(key))
+                (item_id, key)
             });
 
         Box::new(it)
@@ -339,7 +336,7 @@ where
                 self.largest_item = Some(item);
             }
 
-            let anno_key_entry = self.anno_key_sizes.entry(anno.key.clone()).or_insert(0);
+            let anno_key_entry = self.anno_key_sizes.entry(anno.key).or_insert(0);
             *anno_key_entry += 1;
         }
 
@@ -354,7 +351,7 @@ where
             let parsed_key = self.parse_by_container_key(key);
             let anno = Annotation {
                 key: parsed_key.1.as_ref().clone(),
-                val: val,
+                val,
             };
             result.push(anno);
         }
@@ -615,13 +612,13 @@ where
                     }
                 })
                 .map(move |item| item.into());
-            return Box::new(it);
+            Box::new(it)
         } else if negated {
             // return all values
-            return self.exact_anno_search(namespace, name, None.into());
+            self.exact_anno_search(namespace, name, None.into())
         } else {
             // if regular expression pattern is invalid return empty iterator
-            return Box::new(std::iter::empty());
+            Box::new(std::iter::empty())
         }
     }
 
@@ -659,7 +656,7 @@ where
                             false
                         }
                     })
-                    .map(|key| Arc::from(key))
+                    .map(Arc::from)
                     .collect();
                 res
             }
@@ -798,10 +795,10 @@ where
                 .map(|(val, count)| (count, Cow::Owned(val)))
                 .collect();
             values_with_count.sort();
-            return values_with_count
+            values_with_count
                 .into_iter()
                 .map(|(_count, val)| val)
-                .collect();
+                .collect()
         } else {
             let values_unique: HashSet<Cow<str>> = self
                 .get_by_anno_qname_range(key)
@@ -810,7 +807,7 @@ where
                     Cow::Owned(val)
                 })
                 .collect();
-            return values_unique.into_iter().collect();
+            values_unique.into_iter().collect()
         }
     }
 

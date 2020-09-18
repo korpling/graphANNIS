@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 
 use crate::serializer::KeySerializer;
-use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::iter::Peekable;
 use std::ops::{Bound, RangeBounds};
@@ -257,7 +256,7 @@ where
         panic!("{}\nCause:\n{:?}", DEFAULT_MSG, last_err.unwrap())
     }
 
-    fn get_raw(&self, key: &Cow<[u8]>) -> Result<Option<V>> {
+    fn get_raw(&self, key: &[u8]) -> Result<Option<V>> {
         // Check C0 first
         if let Some(value) = self.c0.get(key.as_ref()) {
             if value.is_some() {
@@ -387,7 +386,7 @@ where
                 c0_iterator: self.c0.iter(),
                 current_table_iterator,
                 remaining_table_iterators,
-                serialization: self.serialization.clone(),
+                serialization: self.serialization,
                 phantom: std::marker::PhantomData,
             };
             Ok(Box::new(it))
@@ -439,15 +438,15 @@ where
                 mapped_start_bound,
                 mapped_end_bound,
                 &self.disk_tables[0],
-                self.serialization.clone(),
+                self.serialization,
             ))
         } else {
             Box::new(Range::new(
                 mapped_start_bound,
                 mapped_end_bound,
-                &self.disk_tables[..],
+                self.disk_tables.as_slice(),
                 &self.c0,
-                self.serialization.clone(),
+                self.serialization,
             ))
         }
     }
@@ -674,17 +673,17 @@ where
             range_end,
             exhausted,
             table_iterators,
-            serialization: serialization,
+            serialization,
             current_key: Vec::new(),
             current_value: Vec::new(),
             phantom: std::marker::PhantomData,
         }
     }
 
-    fn range_contains(&self, item: &Vec<u8>) -> bool {
+    fn range_contains(&self, item: &[u8]) -> bool {
         (match &self.range_start {
-            Bound::Included(ref start) => start <= item,
-            Bound::Excluded(ref start) => start < item,
+            Bound::Included(ref start) => start.as_slice() <= item,
+            Bound::Excluded(ref start) => start.as_slice() < item,
             Bound::Unbounded => true,
         }) && (match &self.range_end {
             Bound::Included(ref end) => item <= end,
@@ -693,10 +692,10 @@ where
         })
     }
 
-    fn advance_all(&mut self, after_key: &Vec<u8>) {
+    fn advance_all(&mut self, after_key: &[u8]) {
         // Skip all smaller or equal keys in C0
         while let Some(c0_item) = self.c0_range.peek() {
-            if c0_item.0 <= after_key {
+            if c0_item.0.as_slice() <= after_key {
                 self.c0_range.next();
             } else {
                 break;
@@ -705,15 +704,16 @@ where
 
         // Skip all smaller or equal keys in all disk tables
         for i in 0..self.table_iterators.len() {
-            if self.exhausted[i] == false && self.table_iterators[i].valid() {
-                if self.table_iterators[i].current(&mut self.current_key, &mut self.current_value) {
-                    if !self.range_contains(&self.current_key) {
-                        self.exhausted[i] = true;
-                        break;
-                    }
-                    if &self.current_key <= after_key {
-                        self.table_iterators[i].advance();
-                    }
+            if !self.exhausted[i]
+                && self.table_iterators[i].valid()
+                && self.table_iterators[i].current(&mut self.current_key, &mut self.current_value)
+            {
+                if !self.range_contains(&self.current_key) {
+                    self.exhausted[i] = true;
+                    break;
+                }
+                if self.current_key.as_slice() <= after_key {
+                    self.table_iterators[i].advance();
                 }
             }
         }
@@ -742,24 +742,25 @@ where
             // Iterate over all disk tables
             for i in 0..self.table_iterators.len() {
                 let table_it = &mut self.table_iterators[i];
-                if self.exhausted[i] == false && table_it.valid() {
-                    if table_it.current(&mut self.current_key, &mut self.current_value) {
-                        if self.range_contains(&self.current_key) {
-                            let key_is_smaller = if let Some((smallest_key, _)) = &smallest_key {
-                                &self.current_key < smallest_key
-                            } else {
-                                true
-                            };
-                            if key_is_smaller {
-                                let value: Option<V> = self
-                                    .serialization
-                                    .deserialize(&self.current_value)
-                                    .expect("Could not decode previously written data from disk.");
-                                smallest_key = Some((self.current_key.clone(), value));
-                            }
+                if !self.exhausted[i]
+                    && table_it.valid()
+                    && table_it.current(&mut self.current_key, &mut self.current_value)
+                {
+                    if self.range_contains(&self.current_key) {
+                        let key_is_smaller = if let Some((smallest_key, _)) = &smallest_key {
+                            &self.current_key < smallest_key
                         } else {
-                            self.exhausted[i] = true;
+                            true
+                        };
+                        if key_is_smaller {
+                            let value: Option<V> = self
+                                .serialization
+                                .deserialize(&self.current_value)
+                                .expect("Could not decode previously written data from disk.");
+                            smallest_key = Some((self.current_key.clone(), value));
                         }
+                    } else {
+                        self.exhausted[i] = true;
                     }
                 }
             }
@@ -914,17 +915,17 @@ where
             range_end,
             exhausted,
             table_it,
-            serialization: serialization,
+            serialization,
             current_key: Vec::new(),
             current_value: Vec::new(),
             phantom: std::marker::PhantomData,
         }
     }
 
-    fn range_contains(&self, item: &Vec<u8>) -> bool {
+    fn range_contains(&self, item: &[u8]) -> bool {
         (match &self.range_start {
-            Bound::Included(ref start) => start <= item,
-            Bound::Excluded(ref start) => start < item,
+            Bound::Included(ref start) => start.as_slice() <= item,
+            Bound::Excluded(ref start) => start.as_slice() < item,
             Bound::Unbounded => true,
         }) && (match &self.range_end {
             Bound::Included(ref end) => item <= end,
@@ -942,7 +943,7 @@ where
     type Item = (K, V);
 
     fn next(&mut self) -> Option<(K, V)> {
-        while self.exhausted == false && self.table_it.valid() {
+        while !self.exhausted && self.table_it.valid() {
             if self
                 .table_it
                 .current(&mut self.current_key, &mut self.current_value)
@@ -994,7 +995,7 @@ where
                     .deserialize(&value)
                     .expect("Could not decode previously written data from disk.");
                 if let Some(value) = value {
-                    return Some((key, value.clone()));
+                    return Some((key, value));
                 } else {
                     panic!("Optimized log table iterator should have been called only if no entry was ever deleted");
                 }

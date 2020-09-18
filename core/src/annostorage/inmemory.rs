@@ -276,10 +276,7 @@ where
                 self.largest_item = Some(item);
             }
 
-            let anno_key_entry = self
-                .anno_key_sizes
-                .entry(orig_anno_key.clone())
-                .or_insert(0);
+            let anno_key_entry = self.anno_key_sizes.entry(orig_anno_key).or_insert(0);
             *anno_key_entry += 1;
         }
 
@@ -520,14 +517,11 @@ where
                 name: name.to_string(),
             })]
         } else {
-            self.get_qnames(name)
-                .into_iter()
-                .map(|key| Arc::from(key))
-                .collect()
+            self.get_qnames(name).into_iter().map(Arc::from).collect()
         };
-        // Create a vector fore each matching AnnoKey to the value map containing all items and their annotation values
+        // Create a vector for each matching AnnoKey to the value map containing all items and their annotation values
         // for this key.
-        let value_maps: Vec<(Arc<AnnoKey>, &FxHashMap<usize, Vec<T>>)> = key_ranges
+        let value_maps: Vec<(Arc<AnnoKey>, &ValueItemMap<T>)> = key_ranges
             .into_iter()
             .filter_map(|key| {
                 let key_id = self.anno_keys.get_symbol(&key)?;
@@ -556,10 +550,10 @@ where
                     // flatten the hash set of all items, returns all items for the condition
                     .flat_map(|(items, key)| items.iter().cloned().zip(std::iter::repeat(key)))
                     .map(move |item| item.into());
-                return Box::new(it);
+                Box::new(it)
             } else {
                 // value is not known, return empty result
-                return Box::new(std::iter::empty());
+                Box::new(std::iter::empty())
             }
         } else {
             // Search for all annotations having a matching qualified name, regardless of the value
@@ -584,9 +578,9 @@ where
                         }
                     })
                     .map(move |item| item.into());
-                return Box::new(it);
+                Box::new(it)
             } else {
-                return Box::new(matching_qname_annos.map(move |item| item.into()));
+                Box::new(matching_qname_annos.map(move |item| item.into()))
             }
         }
     }

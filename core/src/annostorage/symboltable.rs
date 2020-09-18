@@ -2,7 +2,6 @@ use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::util::memory_estimation::shallow_size_of_fxhashmap;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std;
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -121,6 +120,10 @@ where
 
     pub fn len(&self) -> usize {
         self.by_id.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.by_id.is_empty()
     }
 
     pub fn clear(&mut self) {

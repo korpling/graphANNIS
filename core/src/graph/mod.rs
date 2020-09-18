@@ -11,7 +11,6 @@ use crate::{
 use anyhow::Result;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
-use std;
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
@@ -21,7 +20,6 @@ use std::{
     borrow::Cow,
     sync::{Arc, Mutex},
 };
-use tempfile;
 use update::{GraphUpdate, UpdateEvent};
 
 pub const ANNIS_NS: &str = "annis";
@@ -84,7 +82,7 @@ impl<CT: ComponentType> MallocSizeOf for Graph<CT> {
 }
 
 fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<dyn GraphStorage>> {
-    let cpath = component_path.ok_or(anyhow!("Can't load component with empty path"))?;
+    let cpath = component_path.ok_or_else(|| anyhow!("Can't load component with empty path"))?;
 
     // load component into memory
     let impl_path = PathBuf::from(&cpath).join("impl.cfg");
@@ -326,7 +324,7 @@ impl<CT: ComponentType> Graph<CT> {
             Ok(id)
         } else {
             let id = self.get_node_id_from_name(&node_name);
-            cache.insert(node_name.to_string(), id.clone())?;
+            cache.insert(node_name.to_string(), id)?;
             Ok(id)
         }
     }
@@ -334,7 +332,7 @@ impl<CT: ComponentType> Graph<CT> {
     #[allow(clippy::cognitive_complexity)]
     fn apply_update_in_memory<F>(&mut self, u: &mut GraphUpdate, progress_callback: F) -> Result<()>
     where
-        F: Fn(&str) -> (),
+        F: Fn(&str),
     {
         self.reset_cached_size();
 
@@ -345,8 +343,7 @@ impl<CT: ComponentType> Graph<CT> {
         let mut node_ids: DiskMap<String, Option<NodeID>> =
             DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000))?;
         // Iterate once over all changes in the same order as the updates have been added
-        let mut nr_updates = 0;
-        for (id, change) in u.iter()? {
+        for (nr_updates, (id, change)) in u.iter()?.enumerate() {
             trace!("applying event {:?}", &change);
             ComponentType::before_update_event(&change, self, &mut update_graph_index)?;
             match &change {
@@ -558,7 +555,6 @@ impl<CT: ComponentType> Graph<CT> {
             ComponentType::after_update_event(change, self, &mut update_graph_index)?;
             self.current_change_id = id;
 
-            nr_updates += 1;
             if nr_updates % 100_000 == 0 {
                 progress_callback(&format!("applied {} atomic updates", nr_updates));
             }
@@ -574,7 +570,7 @@ impl<CT: ComponentType> Graph<CT> {
     /// If the graph has a location on the disk, the changes are persisted.
     pub fn apply_update<F>(&mut self, u: &mut GraphUpdate, progress_callback: F) -> Result<()>
     where
-        F: Fn(&str) -> (),
+        F: Fn(&str),
     {
         progress_callback("applying list of atomic updates");
 
@@ -751,7 +747,9 @@ impl<CT: ComponentType> Graph<CT> {
             })?;
         let gs_mut_ref: &mut dyn GraphStorage = Arc::get_mut(entry)
             .ok_or_else(|| anyhow!("Could not get mutable reference for component {}", c))?;
-        Ok(gs_mut_ref.as_writeable().ok_or(anyhow!("Invalid type"))?)
+        Ok(gs_mut_ref
+            .as_writeable()
+            .ok_or_else(|| anyhow!("Invalid type"))?)
     }
 
     /// Returns `true` if the graph storage for this specific component is loaded and ready to use.
