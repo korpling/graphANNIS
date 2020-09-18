@@ -1,7 +1,7 @@
 use super::cerror;
 use super::cerror::ErrorList;
 use super::Matrix;
-use super::{cast_const, cast_mut, cstr};
+use super::{cast_const, cast_mut, cstr, map_cerr};
 use graphannis::{
     corpusstorage::{
         CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, FrequencyTableRow,
@@ -122,7 +122,7 @@ pub extern "C" fn annis_cs_count(
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
 
-    return try_cerr!(cs.count(&corpus_names, &query, query_language), err, 0);
+    map_cerr(cs.count(&corpus_names, &query, query_language), err).unwrap_or(0)
 }
 
 /// Count the number of results for a `query` and return both the total number of matches and also the number of documents in the result set.
@@ -147,12 +147,7 @@ pub extern "C" fn annis_cs_count_extra(
         .iter()
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
-
-    return try_cerr!(
-        cs.count_extra(&corpus_names, &query, query_language),
-        err,
-        CountExtra::default()
-    );
+    map_cerr(cs.count_extra(&corpus_names, &query, query_language), err).unwrap_or_default()
 }
 
 /// Find all results for a `query` and return the match ID for each result.
@@ -195,18 +190,18 @@ pub extern "C" fn annis_cs_find(
         unsafe { Some(*limit) }
     };
 
-    let result = try_cerr!(
+    map_cerr(
         cs.find(&corpus_names, &query, query_language, offset, limit, order),
         err,
-        std::ptr::null_mut()
-    );
-
-    let vec_result: Vec<CString> = result
-        .into_iter()
-        .map(|x| CString::new(x).unwrap_or_default())
-        .collect();
-
-    return Box::into_raw(Box::new(vec_result));
+    )
+    .map(|result| {
+        let vec_result = result
+            .into_iter()
+            .map(|x| CString::new(x).unwrap_or_default())
+            .collect();
+        Box::into_raw(Box::new(vec_result))
+    })
+    .unwrap_or_else(|| std::ptr::null_mut())
 }
 
 /// Return the copy of a subgraph which includes the given list of node annotation identifiers,
@@ -242,12 +237,12 @@ pub extern "C" fn annis_cs_subgraph(
         Some(cstr(segmentation).to_string())
     };
 
-    let result = try_cerr!(
+    map_cerr(
         cs.subgraph(&corpus, node_ids, ctx_left, ctx_right, segmentation),
         err,
-        std::ptr::null_mut()
-    );
-    return Box::into_raw(Box::new(result));
+    )
+    .map(|result| Box::into_raw(Box::new(result)))
+    .unwrap_or_else(|| std::ptr::null_mut())
 }
 
 /// Return the copy of a subgraph which includes all nodes that belong to any of the given list of sub-corpus/document identifiers.
@@ -270,22 +265,9 @@ pub extern "C" fn annis_cs_subcorpus_graph(
         .collect();
     let corpus = cstr(corpus_name);
 
-    trace!(
-        "annis_cs_subcorpus_graph(..., {}, {:?}) called",
-        corpus,
-        corpus_ids
-    );
-
-    let result = try_cerr!(
-        cs.subcorpus_graph(&corpus, corpus_ids),
-        err,
-        std::ptr::null_mut()
-    );
-    trace!(
-        "annis_cs_subcorpus_graph(...) returns subgraph with {} labels",
-        result.get_node_annos().number_of_annotations()
-    );
-    return Box::into_raw(Box::new(result));
+    map_cerr(cs.subcorpus_graph(&corpus, corpus_ids), err)
+        .map(|result| Box::into_raw(Box::new(result)))
+        .unwrap_or_else(|| std::ptr::null_mut())
 }
 
 /// Return the copy of the graph of the corpus structure given by `corpus_name`.
@@ -301,8 +283,9 @@ pub extern "C" fn annis_cs_corpus_graph(
     let cs: &CorpusStorage = cast_const(ptr);
     let corpus = cstr(corpus_name);
 
-    let result = try_cerr!(cs.corpus_graph(&corpus), err, std::ptr::null_mut());
-    return Box::into_raw(Box::new(result));
+    map_cerr(cs.corpus_graph(&corpus), err)
+        .map(|result| Box::into_raw(Box::new(result)))
+        .unwrap_or_else(|| std::ptr::null_mut())
 }
 
 /// Return the copy of a subgraph which includes all nodes matched by the given `query`.
@@ -324,12 +307,12 @@ pub extern "C" fn annis_cs_subgraph_for_query(
     let corpus = cstr(corpus_name);
     let query = cstr(query);
 
-    let result = try_cerr!(
+    map_cerr(
         cs.subgraph_for_query(&corpus, &query, query_language, None),
         err,
-        std::ptr::null_mut()
-    );
-    return Box::into_raw(Box::new(result));
+    )
+    .map(|result| Box::into_raw(Box::new(result)))
+    .unwrap_or_else(|| std::ptr::null_mut())
 }
 
 /// Return the copy of a subgraph which includes all nodes matched by the given `query` and an additional filter.
@@ -353,12 +336,12 @@ pub extern "C" fn annis_cs_subgraph_for_query_with_ctype(
     let corpus = cstr(corpus_name);
     let query = cstr(query);
 
-    let result = try_cerr!(
+    map_cerr(
         cs.subgraph_for_query(&corpus, &query, query_language, Some(component_type_filter)),
         err,
-        std::ptr::null_mut()
-    );
-    return Box::into_raw(Box::new(result));
+    )
+    .map(|result| Box::into_raw(Box::new(result)))
+    .unwrap_or_else(|| std::ptr::null_mut())
 }
 
 /// Execute a frequency query.
@@ -393,30 +376,32 @@ pub extern "C" fn annis_cs_frequency(
         .filter_map(|d| -> Option<FrequencyDefEntry> { d.parse().ok() })
         .collect();
 
-    let orig_ft = try_cerr!(
+    match map_cerr(
         cs.frequency(&corpus_names, &query, query_language, table_def),
         err,
-        std::ptr::null_mut()
-    );
+    ) {
+        Some(orig_ft) => {
+            let mut result: FrequencyTable<CString> = FrequencyTable::new();
 
-    let mut result: FrequencyTable<CString> = FrequencyTable::new();
+            for row in orig_ft.into_iter() {
+                let mut new_tuple: Vec<CString> = Vec::with_capacity(row.values.len());
+                for att in row.values.into_iter() {
+                    if let Ok(att) = CString::new(att) {
+                        new_tuple.push(att);
+                    } else {
+                        new_tuple.push(CString::default())
+                    }
+                }
 
-    for row in orig_ft.into_iter() {
-        let mut new_tuple: Vec<CString> = Vec::with_capacity(row.values.len());
-        for att in row.values.into_iter() {
-            if let Ok(att) = CString::new(att) {
-                new_tuple.push(att);
-            } else {
-                new_tuple.push(CString::default())
+                result.push(FrequencyTableRow {
+                    values: new_tuple,
+                    count: row.count,
+                });
             }
+            Box::into_raw(Box::new(result))
         }
-
-        result.push(FrequencyTableRow {
-            values: new_tuple,
-            count: row.count,
-        });
+        None => std::ptr::null_mut(),
     }
-    return Box::into_raw(Box::new(result));
 }
 
 /// List all available corpora in the corpus storage.
@@ -432,14 +417,16 @@ pub extern "C" fn annis_cs_list(
 
     let mut corpora: Vec<CString> = vec![];
 
-    let info = try_cerr!(cs.list(), err, std::ptr::null_mut());
-
-    for c in info {
-        if let Ok(name) = CString::new(c.name) {
-            corpora.push(name);
-        }
-    }
-    return Box::into_raw(Box::new(corpora));
+    map_cerr(cs.list(), err)
+        .map(|info| {
+            for c in info {
+                if let Ok(name) = CString::new(c.name) {
+                    corpora.push(name);
+                }
+            }
+            Box::into_raw(Box::new(corpora))
+        })
+        .unwrap_or_else(|| std::ptr::null_mut())
 }
 
 /// Returns a list of all node annotations of a corpus given by `corpus_name`.
@@ -539,11 +526,11 @@ pub extern "C" fn annis_cs_validate_query(
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
 
-    return try_cerr!(
+    map_cerr(
         cs.validate_query(&corpus_names, &query, query_language),
         err,
-        false
-    );
+    )
+    .unwrap_or(false)
 }
 
 /// Parses a `query`and return a list of descriptions for its nodes.
@@ -563,12 +550,9 @@ pub extern "C" fn annis_cs_node_descriptions(
 
     let query = cstr(query);
 
-    let result = try_cerr!(
-        cs.node_descriptions(&query, query_language),
-        err,
-        std::ptr::null_mut()
-    );
-    return Box::into_raw(Box::new(result));
+    map_cerr(cs.node_descriptions(&query, query_language), err)
+        .map(|result| Box::into_raw(Box::new(result)))
+        .unwrap_or_else(|| std::ptr::null_mut())
 }
 
 /// Import a corpus from an external location on the file system into this corpus storage.
@@ -600,23 +584,23 @@ pub extern "C" fn annis_cs_import_from_fs(
         Some(String::from(cstr(corpus_name)))
     };
     let path: &str = &cstr(path);
-
-    let corpus_name: String = try_cerr!(
+    map_cerr(
         cs.import_from_fs(
             &PathBuf::from(path),
             format,
             override_corpus_name,
             disk_based,
             overwrite_existing,
-            |status| info!("{}", status)
+            |status| info!("{}", status),
         ),
         err,
-        std::ptr::null_mut()
-    );
-
-    return CString::new(corpus_name.as_str())
-        .unwrap_or_default()
-        .into_raw();
+    )
+    .map(|corpus_name| {
+        CString::new(corpus_name.as_str())
+            .unwrap_or_default()
+            .into_raw()
+    })
+    .unwrap_or(std::ptr::null_mut())
 }
 
 /// Returns a list of all components of a corpus given by `corpus_name` and the component type.
@@ -649,7 +633,7 @@ pub extern "C" fn annis_cs_delete(
     let cs: &mut CorpusStorage = cast_mut(ptr);
     let corpus = cstr(corpus);
 
-    try_cerr!(cs.delete(&corpus), err, false)
+    map_cerr(cs.delete(&corpus), err).unwrap_or(false)
 }
 
 /// Unloads a corpus from the cache.
@@ -677,5 +661,6 @@ pub extern "C" fn annis_cs_apply_update(
     let cs: &mut CorpusStorage = cast_mut(ptr);
     let update: &mut GraphUpdate = cast_mut(update);
     let corpus_name = cstr(corpus_name);
-    try_cerr!(cs.apply_update(&corpus_name, update), err, ());
+
+    map_cerr(cs.apply_update(&corpus_name, update), err);
 }

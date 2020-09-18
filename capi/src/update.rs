@@ -1,6 +1,5 @@
-use super::cerror;
 use super::cerror::ErrorList;
-use super::{cast_mut, cstr};
+use super::{cast_mut, cstr, map_cerr};
 use graphannis::update::{GraphUpdate, UpdateEvent};
 
 /// Create a new graph (empty) update instance
@@ -24,13 +23,12 @@ pub extern "C" fn annis_graphupdate_add_node(
     err: *mut *mut ErrorList,
 ) {
     let u: &mut GraphUpdate = cast_mut(ptr);
-    return try_cerr!(
+    map_cerr(
         u.add_event(UpdateEvent::AddNode {
             node_name: String::from(cstr(node_name)),
             node_type: String::from(cstr(node_type)),
         }),
         err,
-        ()
     );
 }
 
@@ -46,12 +44,11 @@ pub extern "C" fn annis_graphupdate_delete_node(
     err: *mut *mut ErrorList,
 ) {
     let cs: &mut GraphUpdate = cast_mut(ptr);
-    return try_cerr!(
+    map_cerr(
         cs.add_event(UpdateEvent::DeleteNode {
             node_name: String::from(cstr(node_name)),
         }),
         err,
-        ()
     );
 }
 
@@ -73,7 +70,7 @@ pub extern "C" fn annis_graphupdate_add_node_label(
     err: *mut *mut ErrorList,
 ) {
     let cs: &mut GraphUpdate = cast_mut(ptr);
-    return try_cerr!(
+    map_cerr(
         cs.add_event(UpdateEvent::AddNodeLabel {
             node_name: String::from(cstr(node_name)),
             anno_ns: String::from(cstr(anno_ns)),
@@ -81,7 +78,6 @@ pub extern "C" fn annis_graphupdate_add_node_label(
             anno_value: String::from(cstr(anno_value)),
         }),
         err,
-        ()
     );
 }
 
@@ -101,14 +97,13 @@ pub extern "C" fn annis_graphupdate_delete_node_label(
     err: *mut *mut ErrorList,
 ) {
     let cs: &mut GraphUpdate = cast_mut(ptr);
-    return try_cerr!(
+    map_cerr(
         cs.add_event(UpdateEvent::DeleteNodeLabel {
             node_name: String::from(cstr(node_name)),
             anno_ns: String::from(cstr(anno_ns)),
             anno_name: String::from(cstr(anno_name)),
         }),
         err,
-        ()
     );
 }
 
@@ -132,7 +127,8 @@ pub extern "C" fn annis_graphupdate_add_edge(
     err: *mut *mut ErrorList,
 ) {
     let cs: &mut GraphUpdate = cast_mut(ptr);
-    return try_cerr!(
+
+    map_cerr(
         cs.add_event(UpdateEvent::AddEdge {
             source_node: String::from(cstr(source_node)),
             target_node: String::from(cstr(target_node)),
@@ -141,7 +137,6 @@ pub extern "C" fn annis_graphupdate_add_edge(
             component_name: String::from(cstr(component_name)),
         }),
         err,
-        ()
     );
 }
 
@@ -165,7 +160,7 @@ pub extern "C" fn annis_graphupdate_delete_edge(
     err: *mut *mut ErrorList,
 ) {
     let cs: &mut GraphUpdate = cast_mut(ptr);
-    return try_cerr!(
+    map_cerr(
         cs.add_event(UpdateEvent::DeleteEdge {
             source_node: String::from(cstr(source_node)),
             target_node: String::from(cstr(target_node)),
@@ -174,7 +169,6 @@ pub extern "C" fn annis_graphupdate_delete_edge(
             component_name: String::from(cstr(component_name)),
         }),
         err,
-        ()
     );
 }
 
@@ -204,7 +198,8 @@ pub extern "C" fn annis_graphupdate_add_edge_label(
     err: *mut *mut ErrorList,
 ) {
     let cs: &mut GraphUpdate = cast_mut(ptr);
-    return try_cerr!(
+
+    map_cerr(
         cs.add_event(UpdateEvent::AddEdgeLabel {
             source_node: String::from(cstr(source_node)),
             target_node: String::from(cstr(target_node)),
@@ -216,7 +211,6 @@ pub extern "C" fn annis_graphupdate_add_edge_label(
             anno_value: String::from(cstr(anno_value)),
         }),
         err,
-        ()
     );
 }
 
@@ -244,7 +238,8 @@ pub extern "C" fn annis_graphupdate_delete_edge_label(
     err: *mut *mut ErrorList,
 ) {
     let cs: &mut GraphUpdate = cast_mut(ptr);
-    return try_cerr!(
+
+    map_cerr(
         cs.add_event(UpdateEvent::DeleteEdgeLabel {
             source_node: String::from(cstr(source_node)),
             target_node: String::from(cstr(target_node)),
@@ -255,6 +250,5 @@ pub extern "C" fn annis_graphupdate_delete_edge_label(
             anno_name: String::from(cstr(anno_name)),
         }),
         err,
-        ()
     );
 }
