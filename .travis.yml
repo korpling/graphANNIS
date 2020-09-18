@@ -34,7 +34,6 @@ branches:
     # - /^test-release-process.*$/
 
 before_script:
-  - rustup component add rustfmt
   - export SHORT_VERSION=`echo ${TRAVIS_TAG:-develop} | sed -E 's/(\.[0-9]+)$//'`
   - misc/download-mdbook.sh 0.3.5
   # Build in release mode if search tests are executed
@@ -42,7 +41,6 @@ before_script:
   - echo "Building with flags \"$BUILD_FLAGS\""
 
 script:
-  - cargo fmt -- --check
   # Build all sub-crates with all features
   - cargo build $BUILD_FLAGS --all-features
   # Download and import test corpora if necessary
