@@ -6,7 +6,7 @@ use graphannis::update::{GraphUpdate, UpdateEvent};
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_new() -> *mut GraphUpdate {
     let gu = GraphUpdate::new();
-    return Box::into_raw(Box::new(gu));
+    Box::into_raw(Box::new(gu))
 }
 
 /// Add "add node" action to the graph update object.

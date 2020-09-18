@@ -12,7 +12,7 @@ use std::sync::Arc;
 #[no_mangle]
 pub extern "C" fn annis_component_type(c: *const AnnotationComponent) -> AnnotationComponentType {
     let c: &AnnotationComponent = cast_const(c);
-    return c.get_type();
+    c.get_type()
 }
 
 /// Get the layer of the given component.
@@ -22,7 +22,7 @@ pub extern "C" fn annis_component_type(c: *const AnnotationComponent) -> Annotat
 pub extern "C" fn annis_component_layer(c: *const AnnotationComponent) -> *mut libc::c_char {
     let c: &AnnotationComponent = cast_const(c);
     let as_string: &str = &c.layer;
-    return CString::new(as_string).unwrap_or_default().into_raw();
+    CString::new(as_string).unwrap_or_default().into_raw()
 }
 
 /// Get the name of the given component.
@@ -32,7 +32,7 @@ pub extern "C" fn annis_component_layer(c: *const AnnotationComponent) -> *mut l
 pub extern "C" fn annis_component_name(c: *const AnnotationComponent) -> *mut libc::c_char {
     let c: &AnnotationComponent = cast_const(c);
     let as_string: &str = &c.name;
-    return CString::new(as_string).unwrap_or_default().into_raw();
+    CString::new(as_string).unwrap_or_default().into_raw()
 }
 
 /// Return an iterator over all nodes of the graph `g` and the given `node_type` (e.g. "node" or "corpus").
@@ -47,7 +47,7 @@ pub extern "C" fn annis_graph_nodes_by_type(
         .get_node_annos()
         .exact_anno_search(Some("annis"), "node_type", Some(node_type.as_ref()).into())
         .map(|m: Match| m.node);
-    return Box::into_raw(Box::new(Box::new(it)));
+    Box::into_raw(Box::new(Box::new(it)))
 }
 
 /// Return a vector of all annotations for the given `node` in the graph `g`.
@@ -99,7 +99,7 @@ pub extern "C" fn annis_graph_outgoing_edges(
     if let Some(gs) = db.get_graphstorage(component) {
         let gs: Arc<dyn GraphStorage> = gs;
         result.extend(gs.get_outgoing_edges(source).map(|target| Edge {
-            source: source.clone(),
+            source,
             target,
         }));
     }
