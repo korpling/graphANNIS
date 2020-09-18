@@ -3,6 +3,8 @@ extern crate log;
 
 use std::borrow::Cow;
 
+use cerror::ErrorList;
+
 fn cast_mut<'a, T>(x: *mut T) -> &'a mut T {
     unsafe {
         assert!(!x.is_null());
@@ -27,20 +29,18 @@ fn cstr<'a>(orig: *const libc::c_char) -> Cow<'a, str> {
     }
 }
 
-macro_rules! try_cerr {
-    ($x:expr , $err_ptr:ident, $default_return_val:expr) => {
-        match $x {
-            Ok(v) => v,
-            Err(err) => {
-                if !$err_ptr.is_null() {
-                    unsafe {
-                        *$err_ptr = cerror::new(err.into());
-                    }
+fn map_cerr<T>(x: Result<T, anyhow::Error>, err_ptr: *mut *mut ErrorList) -> Option<T> {
+    match x {
+        Ok(v) => Some(v),
+        Err(err) => {
+            if !err_ptr.is_null() {
+                unsafe {
+                    *err_ptr = cerror::new(err.into());
                 }
-                return $default_return_val;
             }
+            None
         }
-    };
+    }
 }
 
 /// Simple definition of a matrix from a single data type.

@@ -16,3 +16,4 @@ graphannis = { path = "../graphannis/", version = "^0.29"}
 simplelog = { version = "0.7"}
 log = "0.4"
 libc = "0.2"
+anyhow = "1"
