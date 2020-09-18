@@ -1827,16 +1827,12 @@ impl CorpusStorage {
             let single_result_length = single_result.len();
             result.extend(single_result.into_iter());
 
-            if let Some(mut limit) = &mut limit {
-                limit = limit - single_result_length;
-                if limit <= 0 {
+            if let Some(current_limit) = limit {
+                if current_limit <= single_result_length {
                     break;
+                } else {
+                    limit = Some(current_limit - single_result_length);
                 }
-            }
-            if skipped < offset {
-                offset -= skipped;
-            } else {
-                offset = 0;
             }
         }
         Ok(result)
