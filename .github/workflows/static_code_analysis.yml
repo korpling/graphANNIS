@@ -5,8 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - run: rustup component add clippy
-      - run: rustup component add format
+      - run: rustup component add clippy rustfmt
       - uses: actions-rs/cargo@v1.0.1
         with:
           command: fmt
