@@ -37,7 +37,7 @@ pub fn create_query_input(
 
     let queries = util::get_queries_from_csv(queries_file, true);
     for def in queries {
-        let mut bench_name = String::from(def.corpus[0].clone());
+        let mut bench_name = def.corpus[0].clone();
         bench_name.push_str("/");
         bench_name.push_str(&def.name);
 
@@ -47,7 +47,7 @@ pub fn create_query_input(
         });
     }
 
-    return benches;
+    benches
 }
 
 fn main() {

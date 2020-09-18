@@ -239,7 +239,7 @@ pub async fn list_files(
             return Err(ServiceError::BadRequest(
                 "No .. allowed in file name".to_string(),
             ));
-        } else if file_path.starts_with("/") {
+        } else if file_path.starts_with('/') {
             return Err(ServiceError::BadRequest(
                 "No absolute path allowed in file name".to_string(),
             ));
@@ -283,7 +283,7 @@ pub async fn file_content(
         return Err(ServiceError::BadRequest(
             "No .. allowed in file name".to_string(),
         ));
-    } else if file_path.starts_with("/") {
+    } else if file_path.starts_with('/') {
         return Err(ServiceError::BadRequest(
             "No absolute path allowed in file name".to_string(),
         ));
