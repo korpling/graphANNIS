@@ -1,4 +1,3 @@
-
 use file_diff::diff;
 
 use regex::Regex;

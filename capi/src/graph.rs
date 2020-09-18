@@ -1,4 +1,4 @@
-use super::{cstr, cast_const};
+use super::{cast_const, cstr};
 use crate::data::IterPtr;
 use graphannis::{
     graph::{Annotation, Edge, GraphStorage, Match, NodeID},
