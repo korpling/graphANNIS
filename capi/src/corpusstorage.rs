@@ -36,7 +36,7 @@ pub extern "C" fn annis_cs_with_auto_cache_size(
 
     match s {
         Ok(result) => {
-            return Box::into_raw(Box::new(result));
+            Box::into_raw(Box::new(result))
         }
         Err(e) => {
             if !err.is_null() {
@@ -44,7 +44,7 @@ pub extern "C" fn annis_cs_with_auto_cache_size(
                     *err = cerror::new(e.into());
                 }
             }
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -74,7 +74,7 @@ pub extern "C" fn annis_cs_with_max_cache_size(
 
     match s {
         Ok(result) => {
-            return Box::into_raw(Box::new(result));
+            Box::into_raw(Box::new(result))
         }
         Err(e) => {
             if !err.is_null() {
@@ -82,7 +82,7 @@ pub extern "C" fn annis_cs_with_max_cache_size(
                     *err = cerror::new(e.into());
                 }
             }
-            return std::ptr::null_mut();
+            std::ptr::null_mut()
         }
     }
 }
@@ -201,7 +201,7 @@ pub extern "C" fn annis_cs_find(
             .collect();
         Box::into_raw(Box::new(vec_result))
     })
-    .unwrap_or_else(|| std::ptr::null_mut())
+    .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Return the copy of a subgraph which includes the given list of node annotation identifiers,
@@ -242,7 +242,7 @@ pub extern "C" fn annis_cs_subgraph(
         err,
     )
     .map(|result| Box::into_raw(Box::new(result)))
-    .unwrap_or_else(|| std::ptr::null_mut())
+    .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Return the copy of a subgraph which includes all nodes that belong to any of the given list of sub-corpus/document identifiers.
@@ -267,7 +267,7 @@ pub extern "C" fn annis_cs_subcorpus_graph(
 
     map_cerr(cs.subcorpus_graph(&corpus, corpus_ids), err)
         .map(|result| Box::into_raw(Box::new(result)))
-        .unwrap_or_else(|| std::ptr::null_mut())
+        .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Return the copy of the graph of the corpus structure given by `corpus_name`.
@@ -285,7 +285,7 @@ pub extern "C" fn annis_cs_corpus_graph(
 
     map_cerr(cs.corpus_graph(&corpus), err)
         .map(|result| Box::into_raw(Box::new(result)))
-        .unwrap_or_else(|| std::ptr::null_mut())
+        .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Return the copy of a subgraph which includes all nodes matched by the given `query`.
@@ -312,7 +312,7 @@ pub extern "C" fn annis_cs_subgraph_for_query(
         err,
     )
     .map(|result| Box::into_raw(Box::new(result)))
-    .unwrap_or_else(|| std::ptr::null_mut())
+    .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Return the copy of a subgraph which includes all nodes matched by the given `query` and an additional filter.
@@ -341,7 +341,7 @@ pub extern "C" fn annis_cs_subgraph_for_query_with_ctype(
         err,
     )
     .map(|result| Box::into_raw(Box::new(result)))
-    .unwrap_or_else(|| std::ptr::null_mut())
+    .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Execute a frequency query.
@@ -426,7 +426,7 @@ pub extern "C" fn annis_cs_list(
             }
             Box::into_raw(Box::new(corpora))
         })
-        .unwrap_or_else(|| std::ptr::null_mut())
+        .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Returns a list of all node annotations of a corpus given by `corpus_name`.
@@ -456,7 +456,7 @@ pub extern "C" fn annis_cs_list_node_annotations(
             result.push(vec![ns, name, val]);
         }
     }
-    return Box::into_raw(Box::new(result));
+    Box::into_raw(Box::new(result))
 }
 
 /// Returns a list of all edge annotations of a corpus given by `corpus_name` and the component.
@@ -498,7 +498,7 @@ pub extern "C" fn annis_cs_list_edge_annotations(
             result.push(vec![ns, name, val]);
         }
     }
-    return Box::into_raw(Box::new(result));
+    Box::into_raw(Box::new(result))
 }
 
 /// Parses a `query` and checks if it is valid.
@@ -552,7 +552,7 @@ pub extern "C" fn annis_cs_node_descriptions(
 
     map_cerr(cs.node_descriptions(&query, query_language), err)
         .map(|result| Box::into_raw(Box::new(result)))
-        .unwrap_or_else(|| std::ptr::null_mut())
+        .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Import a corpus from an external location on the file system into this corpus storage.

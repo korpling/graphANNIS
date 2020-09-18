@@ -1,7 +1,5 @@
 use super::cerror::{Error, ErrorList};
 use super::cstr;
-use libc;
-use simplelog;
 use simplelog::{Config, LevelFilter, WriteLogger};
 use std::fs::File;
 

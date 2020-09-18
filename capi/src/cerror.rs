@@ -26,8 +26,8 @@ impl<'a> std::iter::Iterator for CauseIterator<'a> {
     fn next(&mut self) -> std::option::Option<Error> {
         let std_error = self.current?;
         let result = Error {
-            msg: CString::new(std_error.to_string()).unwrap_or(CString::default()),
-            kind: CString::new("Cause").unwrap_or(CString::default()),
+            msg: CString::new(std_error.to_string()).unwrap_or_default(),
+            kind: CString::new("Cause").unwrap_or_default(),
         };
         self.current = std_error.source();
         Some(result)
@@ -59,8 +59,8 @@ fn error_kind(e: &Box<dyn StdError>) -> &'static str {
 pub fn create_error_list(e: Box<dyn StdError>) -> ErrorList {
     let mut result = ErrorList::new();
     result.push(Error {
-        msg: CString::new(e.to_string()).unwrap_or(CString::default()),
-        kind: CString::new(error_kind(&e)).unwrap_or(CString::default()),
+        msg: CString::new(e.to_string()).unwrap_or_default(),
+        kind: CString::new(error_kind(&e)).unwrap_or_default(),
     });
     let cause_it = CauseIterator {
         current: e.source(),
@@ -85,7 +85,7 @@ impl From<log::SetLoggerError> for Error {
                 kind: CString::new("SetLoggerError").unwrap(),
             }
         };
-        return err;
+        err
     }
 }
 
@@ -103,7 +103,7 @@ impl From<std::io::Error> for Error {
                 kind: CString::new("std::io::Error").unwrap(),
             }
         };
-        return err;
+        err
     }
 }
 /// Creates a new error from the internal type
@@ -125,7 +125,7 @@ pub extern "C" fn annis_error_get_msg(ptr: *const ErrorList, i: size_t) -> *cons
         return std::ptr::null();
     }
     let err: &Error = cast_const(item);
-    return err.msg.as_ptr();
+    err.msg.as_ptr()
 }
 
 /// Get the kind or type for the error at position `i` in the list.
@@ -136,5 +136,5 @@ pub extern "C" fn annis_error_get_kind(ptr: *const ErrorList, i: size_t) -> *con
         return std::ptr::null();
     }
     let err: &Error = cast_const(item);
-    return err.kind.as_ptr();
+    err.kind.as_ptr()
 }
