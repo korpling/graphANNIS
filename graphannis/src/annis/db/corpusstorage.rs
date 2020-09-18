@@ -1834,6 +1834,11 @@ impl CorpusStorage {
                     limit = Some(current_limit - single_result_length);
                 }
             }
+            if skipped < offset {
+                offset -= skipped;
+            } else {
+                offset = 0;
+            }
         }
         Ok(result)
     }
