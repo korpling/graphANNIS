@@ -20,14 +20,12 @@ pub extern "C" fn annis_free(ptr: *mut c_void) {
 
 /// Frees the string given as `s` argument.
 #[no_mangle]
-pub extern "C" fn annis_str_free(s: *mut c_char) {
-    unsafe {
-        if s.is_null() {
-            return;
-        }
-        // take ownership and destruct
-        CString::from_raw(s)
-    };
+pub unsafe extern "C" fn annis_str_free(s: *mut c_char) {
+    if s.is_null() {
+        return;
+    }
+    // take ownership and destruct
+    CString::from_raw(s);
 }
 
 pub type IterPtr<T> = Box<dyn Iterator<Item = T>>;
