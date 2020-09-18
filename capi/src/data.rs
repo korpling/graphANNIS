@@ -10,12 +10,12 @@ use std::ffi::CString;
 
 /// Frees the internal object given as `ptr` argument.
 #[no_mangle]
-pub extern "C" fn annis_free(ptr: *mut c_void) {
+pub unsafe extern "C" fn annis_free(ptr: *mut c_void) {
     if ptr.is_null() {
         return;
     }
     // take ownership and destroy the pointer
-    unsafe { Box::from_raw(ptr) };
+    Box::from_raw(ptr);
 }
 
 /// Frees the string given as `s` argument.
