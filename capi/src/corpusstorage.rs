@@ -22,6 +22,10 @@ use std::path::PathBuf;
 /// - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
 /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+///
+/// # Safety
+///
+/// This functions dereferences the `err` pointer and is therefore unsafe.
 #[no_mangle]
 pub unsafe extern "C" fn annis_cs_with_auto_cache_size(
     db_dir: *const libc::c_char,
@@ -51,6 +55,10 @@ pub unsafe extern "C" fn annis_cs_with_auto_cache_size(
 /// - `max_cache_size` - Fixed maximum size of the cache in bytes.
 /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+///
+/// # Safety
+///
+/// This functions dereferences the `err` pointer and is therefore unsafe.
 #[no_mangle]
 pub unsafe extern "C" fn annis_cs_with_max_cache_size(
     db_dir: *const libc::c_char,
@@ -81,6 +89,10 @@ pub unsafe extern "C" fn annis_cs_with_max_cache_size(
 
 /// Frees the reference to the corpus storage object.
 /// - `ptr` - The corpus storage object.
+///
+/// # Safety
+///
+/// This functions dereferences the pointer given as argument and is therefore unsafe.
 #[no_mangle]
 pub unsafe extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
     if ptr.is_null() {
@@ -157,6 +169,10 @@ pub extern "C" fn annis_cs_count_extra(
 ///
 /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
 /// You can use the `annis_cs_subgraph(...)` method to get the subgraph for a single match described by the node annnotation identifiers.
+///
+/// # Safety
+///
+/// This functions dereferences the `err` pointer and is therefore unsafe.
 #[no_mangle]
 pub unsafe extern "C" fn annis_cs_find(
     ptr: *const CorpusStorage,
@@ -202,6 +218,10 @@ pub unsafe extern "C" fn annis_cs_find(
 /// - `ctx_left` and `ctx_right` - Left and right context in token distance to be included in the subgraph.
 /// - `segmentation` - The name of the segmentation which should be used to as base for the context. Use `None` to define the context in the default token layer.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+///
+/// # Safety
+///
+/// This functions dereferences the `err` pointer and is therefore unsafe.
 #[no_mangle]
 pub extern "C" fn annis_cs_subgraph(
     ptr: *const CorpusStorage,
@@ -239,6 +259,10 @@ pub extern "C" fn annis_cs_subgraph(
 /// - `corpus_name` - The name of the corpus for which the subgraph should be generated from.
 /// - `corpus_ids` - A set of sub-corpus/document identifiers describing the subgraph.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+///
+/// # Safety
+///
+/// This functions dereferences the `err` pointer and is therefore unsafe.
 #[no_mangle]
 pub extern "C" fn annis_cs_subcorpus_graph(
     ptr: *const CorpusStorage,

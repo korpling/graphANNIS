@@ -9,6 +9,10 @@ use libc::{c_char, c_void, size_t};
 use std::ffi::CString;
 
 /// Frees the internal object given as `ptr` argument.
+///
+/// # Safety
+///
+/// This functions dereferences the `ptr` pointer and is therefore unsafe.
 #[no_mangle]
 pub unsafe extern "C" fn annis_free(ptr: *mut c_void) {
     if ptr.is_null() {
@@ -19,6 +23,10 @@ pub unsafe extern "C" fn annis_free(ptr: *mut c_void) {
 }
 
 /// Frees the string given as `s` argument.
+///
+/// # Safety
+///
+/// This functions dereferences the `s` pointer and is therefore unsafe.
 #[no_mangle]
 pub unsafe extern "C" fn annis_str_free(s: *mut c_char) {
     if s.is_null() {
