@@ -178,7 +178,7 @@ pub struct ExportParams {
 }
 
 fn export_corpus_background_taks(
-    corpora: &Vec<String>,
+    corpora: &[String],
     cs: &CorpusStorage,
     id: uuid::Uuid,
     background_jobs: web::Data<BackgroundJobs>,
@@ -266,12 +266,9 @@ pub async fn jobs(
 
     let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
     if let Some(j) = jobs.get(&uuid) {
-        match j.status {
-            JobStatus::Running => {
-                // Job still running, do not remove it from the job list
-                return Ok(HttpResponse::Accepted().json(j));
-            }
-            _ => {}
+        if let JobStatus::Running = j.status {
+            // Job still running, do not remove it from the job list
+            return Ok(HttpResponse::Accepted().json(j));
         }
     }
     // Job is finished/errored: remove it from the list and process it

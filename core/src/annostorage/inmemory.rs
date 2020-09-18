@@ -8,7 +8,6 @@ use anyhow::Context;
 use anyhow::Result;
 use core::ops::Bound::*;
 use itertools::Itertools;
-use regex_syntax;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
@@ -234,17 +233,17 @@ where
             let existing_entry_idx = existing_item_entry.binary_search_by_key(&anno.key, |a| a.key);
 
             if let Ok(existing_entry_idx) = existing_entry_idx {
-                let orig_anno = existing_item_entry[existing_entry_idx].clone();
+                let orig_anno = existing_item_entry[existing_entry_idx];
                 // abort if the same annotation key with the same value already exist
                 if orig_anno.val == anno.val {
                     return Ok(());
                 }
                 // insert annotation for item at existing position
-                existing_item_entry[existing_entry_idx] = anno.clone();
+                existing_item_entry[existing_entry_idx] = anno;
                 Some(orig_anno)
             } else if let Err(insertion_idx) = existing_entry_idx {
                 // insert at sorted position -> the result will still be a sorted vector
-                existing_item_entry.insert(insertion_idx, anno.clone());
+                existing_item_entry.insert(insertion_idx, anno);
                 None
             } else {
                 None
