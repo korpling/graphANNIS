@@ -1,7 +1,6 @@
 use super::db::aql::model::AnnotationComponentType;
 use crate::{annis::db::AnnotationStorage, graph::Match, AnnotationGraph};
 use graphannis_core::types::{Component, Edge};
-use std;
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]

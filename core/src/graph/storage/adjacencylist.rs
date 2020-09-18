@@ -27,7 +27,7 @@ fn get_fan_outs(edges: &FxHashMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
         }
     }
     // order the fan-outs
-    fan_outs.sort();
+    fan_outs.sort_unstable();
 
     fan_outs
 }

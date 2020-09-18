@@ -305,7 +305,7 @@ impl<'a> Conjunction<'a> {
     ) -> Result<()> {
         //let original_order = self.operators.len();
         let idx_left = self.resolve_variable_pos(var_left, location.clone())?;
-        let idx_right = self.resolve_variable_pos(var_right, location.clone())?;
+        let idx_right = self.resolve_variable_pos(var_right, location)?;
 
         self.binary_operators.push(BinaryOperatorSpecEntry {
             op,
@@ -410,16 +410,16 @@ impl<'a> Conjunction<'a> {
             self.make_exec_plan_with_order(db, config, best_operator_order.clone())?;
         let mut best_cost: usize = initial_plan
             .get_desc()
-            .ok_or(anyhow!("Plan description missing"))?
+            .ok_or_else(|| anyhow!("Plan description missing"))?
             .cost
             .clone()
-            .ok_or(anyhow!("Plan cost missing"))?
+            .ok_or_else(|| anyhow!("Plan cost missing"))?
             .intermediate_sum;
         trace!(
             "initial plan:\n{}",
             initial_plan
                 .get_desc()
-                .ok_or(anyhow!("Plan description missing"))?
+                .ok_or_else(|| anyhow!("Plan description missing"))?
                 .debug_string("  ")
         );
 
@@ -452,16 +452,16 @@ impl<'a> Conjunction<'a> {
                 let alt_plan = self.make_exec_plan_with_order(db, config, op_order.clone())?;
                 let alt_cost = alt_plan
                     .get_desc()
-                    .ok_or(anyhow!("Plan description missing"))?
+                    .ok_or_else(|| anyhow!("Plan description missing"))?
                     .cost
                     .clone()
-                    .ok_or(anyhow!("Plan cost missing"))?
+                    .ok_or_else(|| anyhow!("Plan cost missing"))?
                     .intermediate_sum;
                 trace!(
                     "alternatives plan: \n{}",
                     initial_plan
                         .get_desc()
-                        .ok_or(anyhow!("Plan description missing"))?
+                        .ok_or_else(|| anyhow!("Plan description missing"))?
                         .debug_string("  ")
                 );
 
@@ -693,10 +693,10 @@ impl<'a> Conjunction<'a> {
 
             let idx_left: usize = *(exec_left
                 .get_desc()
-                .ok_or(anyhow!("Plan description missing"))?
+                .ok_or_else(|| anyhow!("Plan description missing"))?
                 .node_pos
                 .get(&spec_idx_left)
-                .ok_or(anyhow!("LHS operand not found"))?);
+                .ok_or_else(|| anyhow!("LHS operand not found"))?);
 
             let new_exec: Box<dyn ExecutionNode<Item = Vec<Match>>> =
                 if component_left == component_right {
@@ -704,10 +704,10 @@ impl<'a> Conjunction<'a> {
                     // TODO: check if LHS or RHS is better suited as filter input iterator
                     let idx_right: usize = *(exec_left
                         .get_desc()
-                        .ok_or(anyhow!("Plan description missing"))?
+                        .ok_or_else(|| anyhow!("Plan description missing"))?
                         .node_pos
                         .get(&spec_idx_right)
-                        .ok_or(anyhow!("RHS operand not found"))?);
+                        .ok_or_else(|| anyhow!("RHS operand not found"))?);
 
                     let filter = Filter::new_binary(exec_left, idx_left, idx_right, op_entry);
                     Box::new(filter)
@@ -717,10 +717,10 @@ impl<'a> Conjunction<'a> {
                     })?;
                     let idx_right: usize = *(exec_right
                         .get_desc()
-                        .ok_or(anyhow!("Plan description missing"))?
+                        .ok_or_else(|| anyhow!("Plan description missing"))?
                         .node_pos
                         .get(&spec_idx_right)
-                        .ok_or(anyhow!("RHS operand not found"))?);
+                        .ok_or_else(|| anyhow!("RHS operand not found"))?);
 
                     create_join(
                         db, config, op_entry, exec_left, exec_right, idx_left, idx_right,
@@ -729,7 +729,7 @@ impl<'a> Conjunction<'a> {
 
             let new_component_nr = new_exec
                 .get_desc()
-                .ok_or(anyhow!("missing description for execution node"))?
+                .ok_or_else(|| anyhow!("missing description for execution node"))?
                 .component_nr;
             update_components_for_nodes(&mut node2component, component_left, new_component_nr);
             update_components_for_nodes(&mut node2component, component_right, new_component_nr);

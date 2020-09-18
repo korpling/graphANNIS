@@ -13,7 +13,6 @@ use graphannis_core::{
 };
 
 use rustc_hash::FxHashSet;
-use std;
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -44,7 +43,7 @@ impl BinaryOperatorSpec for NearSpec {
         );
 
         let mut v = HashSet::default();
-        v.insert(component_order.clone());
+        v.insert(component_order);
         v.extend(token_helper::necessary_components(db));
         v
     }

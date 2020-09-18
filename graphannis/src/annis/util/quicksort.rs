@@ -1,7 +1,4 @@
 use rand::Rng;
-use rayon;
-use std;
-
 /// Make sure that the first `n` items of the complete vector are sorted by the given comparision function.
 ///
 /// This returns the original items and it is guaranteed that the items (0..n) are
@@ -223,7 +220,7 @@ mod test {
             }
 
             let mut sorted_by_stdlib = items.clone();
-            sorted_by_stdlib.sort();
+            sorted_by_stdlib.sort_unstable();
             super::sort_first_n_items_parallel(&mut items, items_size, |x, y| x.cmp(y));
             assert_eq!(items, sorted_by_stdlib);
         }

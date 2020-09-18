@@ -4,7 +4,6 @@ use crate::annis::db::query::Config;
 use crate::AnnotationGraph;
 use crate::{annis::errors::*, graph::Match};
 use graphannis_core::types::{AnnoKey, NodeID};
-use std;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Formatter;

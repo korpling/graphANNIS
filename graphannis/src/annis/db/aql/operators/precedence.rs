@@ -10,7 +10,6 @@ use crate::{
 };
 use graphannis_core::graph::{ANNIS_NS, DEFAULT_ANNO_KEY, DEFAULT_NS};
 
-use std;
 use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
 
@@ -61,7 +60,7 @@ impl BinaryOperatorSpec for PrecedenceSpec {
         );
 
         let mut v = HashSet::default();
-        v.insert(component_order.clone());
+        v.insert(component_order);
         v.insert(COMPONENT_LEFT.clone());
         v.insert(COMPONENT_RIGHT.clone());
         v.extend(token_helper::necessary_components(db));

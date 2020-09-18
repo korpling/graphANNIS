@@ -4,7 +4,6 @@ use graphannis_core::{
     graph::{storage::GraphStorage, ANNIS_NS, NODE_NAME},
     types::{AnnoKey, NodeID},
 };
-use std;
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::ffi::CString;
@@ -98,27 +97,14 @@ fn compare_document_path(
 
 fn compare_string(s1: &str, s2: &str, collation: CollationType) -> std::cmp::Ordering {
     match collation {
-        CollationType::Default => {
-            if s1 < s2 {
-                return std::cmp::Ordering::Less;
-            } else if s1 > s2 {
-                return std::cmp::Ordering::Greater;
-            }
-            std::cmp::Ordering::Equal
-        }
+        CollationType::Default => s1.cmp(s2),
         CollationType::Locale => {
-            let cmp = unsafe {
+            let cmp_from_strcoll = unsafe {
                 let c_s1 = CString::new(s1).unwrap_or_default();
                 let c_s2 = CString::new(s2).unwrap_or_default();
                 libc::strcoll(c_s1.as_ptr(), c_s2.as_ptr())
             };
-            if cmp < 0 {
-                std::cmp::Ordering::Less
-            } else if cmp > 0 {
-                std::cmp::Ordering::Greater
-            } else {
-                std::cmp::Ordering::Equal
-            }
+            cmp_from_strcoll.cmp(&0)
         }
     }
 }

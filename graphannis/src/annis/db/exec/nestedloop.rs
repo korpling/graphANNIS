@@ -143,7 +143,7 @@ impl<'a> Iterator for NestedLoop<'a> {
                         }
                     }
                 } else {
-                    while let Some(m_inner) = self.inner.next() {
+                    while let Some(mut m_inner) = self.inner.next() {
                         self.inner_cache.push(m_inner.clone());
 
                         let filter_true = if self.left_is_outer {
@@ -161,7 +161,7 @@ impl<'a> Iterator for NestedLoop<'a> {
                                     != m_inner[self.inner_idx].anno_key)
                         {
                             let mut result = m_outer.clone();
-                            result.append(&mut m_inner.clone());
+                            result.append(&mut m_inner);
                             return Some(result);
                         }
                     }
