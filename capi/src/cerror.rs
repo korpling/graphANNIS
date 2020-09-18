@@ -34,6 +34,7 @@ impl<'a> std::iter::Iterator for CauseIterator<'a> {
     }
 }
 
+#[allow(clippy::borrowed_box)]
 fn error_kind(e: &Box<dyn StdError>) -> &'static str {
     if let Some(annis_err) = e.downcast_ref::<errors::GraphAnnisError>() {
         match annis_err {
@@ -73,7 +74,7 @@ pub fn create_error_list(e: Box<dyn StdError>) -> ErrorList {
 
 impl From<log::SetLoggerError> for Error {
     fn from(e: log::SetLoggerError) -> Error {
-        let err = if let Ok(error_msg) = CString::new(e.to_string()) {
+        if let Ok(error_msg) = CString::new(e.to_string()) {
             Error {
                 msg: error_msg,
                 kind: CString::new("SetLoggerError").unwrap(),
@@ -84,14 +85,13 @@ impl From<log::SetLoggerError> for Error {
                 msg: CString::new(String::from("Some error occurred")).unwrap(),
                 kind: CString::new("SetLoggerError").unwrap(),
             }
-        };
-        err
+        }
     }
 }
 
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Error {
-        let err = if let Ok(error_msg) = CString::new(e.to_string()) {
+        if let Ok(error_msg) = CString::new(e.to_string()) {
             Error {
                 msg: error_msg,
                 kind: CString::new("std::io::Error").unwrap(),
@@ -102,8 +102,7 @@ impl From<std::io::Error> for Error {
                 msg: CString::new(String::from("Some error occurred")).unwrap(),
                 kind: CString::new("std::io::Error").unwrap(),
             }
-        };
-        err
+        }
     }
 }
 /// Creates a new error from the internal type

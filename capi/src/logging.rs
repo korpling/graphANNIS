@@ -32,6 +32,10 @@ impl From<LogLevel> for simplelog::LevelFilter {
 /// - `logfile` - The file that is used to output the log messages.
 /// - `level` - Minimum level to output.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+///
+/// # Safety
+///
+/// This functions dereferences the `err` pointer and is therefore unsafe.
 #[no_mangle]
 pub unsafe extern "C" fn annis_init_logging(
     logfile: *const libc::c_char,
