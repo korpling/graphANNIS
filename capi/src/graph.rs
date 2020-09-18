@@ -1,11 +1,10 @@
+use super::safe_cstr;
 use crate::data::IterPtr;
 use graphannis::{
     graph::{Annotation, Edge, GraphStorage, Match, NodeID},
     model::{AnnotationComponent, AnnotationComponentType},
     AnnotationGraph,
 };
-use libc;
-use std;
 use std::ffi::CString;
 use std::sync::Arc;
 
@@ -43,7 +42,7 @@ pub extern "C" fn annis_graph_nodes_by_type(
     node_type: *const libc::c_char,
 ) -> *mut IterPtr<NodeID> {
     let db: &AnnotationGraph = cast_const!(g);
-    let node_type = cstr!(node_type);
+    let node_type = safe_cstr(node_type);
     let it = db
         .get_node_annos()
         .exact_anno_search(Some("annis"), "node_type", Some(node_type.as_ref()).into())

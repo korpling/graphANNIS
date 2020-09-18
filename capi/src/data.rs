@@ -1,3 +1,4 @@
+use super::safe_cstr;
 use super::Matrix;
 use graphannis::{
     corpusstorage::{FrequencyTable, QueryAttributeDescription},
@@ -5,7 +6,6 @@ use graphannis::{
     model::AnnotationComponent,
 };
 use libc::{c_char, c_void, size_t};
-use std;
 use std::ffi::CString;
 
 /// Frees the internal object given as `ptr` argument.
@@ -89,7 +89,7 @@ pub extern "C" fn annis_vec_str_new() -> *mut Vec<CString> {
 #[no_mangle]
 pub extern "C" fn annis_vec_str_push(ptr: *mut Vec<CString>, v: *const c_char) {
     let strvec: &mut Vec<CString> = cast_mut!(ptr);
-    let v: &str = &cstr!(v);
+    let v: &str = &safe_cstr(v);
     if let Ok(cval) = CString::new(v) {
         strvec.push(cval);
     }

@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate log;
 
+use std::borrow::Cow;
+
 #[allow(unused_macros)]
 macro_rules! cast_mut {
     ($x:expr) => {{
@@ -20,17 +22,14 @@ macro_rules! cast_const {
     }};
 }
 
-macro_rules! cstr {
-    ($x:expr) => {
-        unsafe {
-            use std::borrow::Cow;
-            if $x.is_null() {
-                Cow::from("")
-            } else {
-                std::ffi::CStr::from_ptr($x).to_string_lossy()
-            }
+fn safe_cstr<'a>(orig: *const libc::c_char) -> Cow<'a, str> {
+    unsafe {
+        if orig.is_null() {
+            Cow::from("")
+        } else {
+            std::ffi::CStr::from_ptr(orig).to_string_lossy()
         }
-    };
+    }
 }
 
 macro_rules! try_cerr {

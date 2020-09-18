@@ -1,8 +1,8 @@
 use super::cerror::{Error, ErrorList};
+use super::safe_cstr;
 use libc;
 use simplelog;
 use simplelog::{Config, LevelFilter, WriteLogger};
-use std;
 use std::fs::File;
 
 /// Different levels of logging. Higher levels activate logging of events of lower levels as well.
@@ -41,7 +41,7 @@ pub extern "C" fn annis_init_logging(
     err: *mut *mut ErrorList,
 ) {
     if !logfile.is_null() {
-        let logfile: &str = &cstr!(logfile);
+        let logfile: &str = &safe_cstr(logfile);
 
         match File::create(logfile) {
             Ok(f) => {
