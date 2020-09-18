@@ -41,7 +41,7 @@ fn write_annotation_keys<CT: ComponentType, W: std::io::Write>(
 
     // Create node annotation keys
     for key in graph.get_node_annos().annotation_keys() {
-        if (key.ns != ANNIS_NS || key.name != NODE_NAME) && key_id_mapping.contains_key(&key) {
+        if (key.ns != ANNIS_NS || key.name != NODE_NAME) && !key_id_mapping.contains_key(&key) {
             let new_id = format!("k{}", id_counter);
             id_counter += 1;
 
