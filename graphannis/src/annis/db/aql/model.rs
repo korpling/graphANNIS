@@ -103,11 +103,9 @@ impl AQLUpdateGraphIndex {
     ) -> Result<NodeID> {
         if let Some(id) = self.node_ids.try_get(&node_name)? {
             return Ok(id);
-        } else {
-            if let Some(id) = graph.get_node_id_from_name(&node_name) {
-                self.node_ids.insert(node_name.to_string(), id.clone())?;
-                return Ok(id);
-            }
+        } else if let Some(id) = graph.get_node_id_from_name(&node_name) {
+            self.node_ids.insert(node_name.to_string(), id)?;
+            return Ok(id);
         }
         Err(anyhow!(
             "Could not get internal node ID for node {} when processing graph update",
@@ -500,7 +498,7 @@ impl ComponentType for AnnotationComponentType {
                     {
                         // might be a new text coverage component
                         let c = AnnotationComponent::new(ctype.clone(), layer, component_name);
-                        index.text_coverage_components.insert(c.clone());
+                        index.text_coverage_components.insert(c);
                     }
 
                     if index.calculate_invalid_nodes {

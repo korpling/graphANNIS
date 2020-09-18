@@ -13,7 +13,6 @@ use graphannis_core::{
     graph::ANNIS_NS,
     types::{Component, NodeID},
 };
-use std;
 use std::borrow::Cow;
 use std::collections::HashSet;
 

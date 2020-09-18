@@ -13,7 +13,6 @@ use graphannis_core::{
 };
 use rustc_hash::FxHashSet;
 
-use std;
 use std::collections::HashSet;
 use std::sync::Arc;
 

@@ -8,8 +8,6 @@ use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
     types::{Component, Edge, NodeID},
 };
-use regex;
-use std;
 use std::collections::{HashSet, VecDeque};
 use std::iter::FromIterator;
 use std::sync::Arc;

@@ -17,8 +17,6 @@ use graphannis_core::{
     types::{Component, Edge, NodeID},
 };
 use itertools::Itertools;
-use regex;
-use std;
 use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
@@ -243,7 +241,7 @@ impl<'a> NodeSearch<'a> {
                         false,
                         is_meta,
                         super::NodeDescArg {
-                            query_fragment: query_fragment.to_owned(),
+                            query_fragment,
                             node_nr,
                         },
                         location_in_query,
@@ -275,7 +273,7 @@ impl<'a> NodeSearch<'a> {
                         true,
                         is_meta,
                         super::NodeDescArg {
-                            query_fragment: query_fragment.to_owned(),
+                            query_fragment,
                             node_nr,
                         },
                         location_in_query,
@@ -390,7 +388,7 @@ impl<'a> NodeSearch<'a> {
         node_nr: usize,
     ) -> Result<NodeSearch<'a>> {
         let base_it = db.get_node_annos().exact_anno_search(
-            qname.0.as_ref().map(String::as_str),
+            qname.0.as_deref(),
             &qname.1,
             val.as_ref().map(String::as_str),
         );
@@ -426,27 +424,21 @@ impl<'a> NodeSearch<'a> {
             };
 
         let est_output = match val {
-            ValueSearch::Some(ref val) => db.get_node_annos().guess_max_count(
-                qname.0.as_ref().map(String::as_str),
-                &qname.1,
-                &val,
-                &val,
-            ),
+            ValueSearch::Some(ref val) => {
+                db.get_node_annos()
+                    .guess_max_count(qname.0.as_deref(), &qname.1, &val, &val)
+            }
             ValueSearch::NotSome(ref val) => {
                 let total = db
                     .get_node_annos()
-                    .number_of_annotations_by_name(qname.0.as_ref().map(String::as_str), &qname.1);
+                    .number_of_annotations_by_name(qname.0.as_deref(), &qname.1);
                 total
-                    - db.get_node_annos().guess_max_count(
-                        qname.0.as_ref().map(String::as_str),
-                        &qname.1,
-                        &val,
-                        &val,
-                    )
+                    - db.get_node_annos()
+                        .guess_max_count(qname.0.as_deref(), &qname.1, &val, &val)
             }
             ValueSearch::Any => db
                 .get_node_annos()
-                .number_of_annotations_by_name(qname.0.as_ref().map(String::as_str), &qname.1),
+                .number_of_annotations_by_name(qname.0.as_deref(), &qname.1),
         };
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
@@ -489,7 +481,7 @@ impl<'a> NodeSearch<'a> {
             node_search_desc: Arc::new(NodeSearchDesc {
                 qname: (qname.0, Some(qname.1)),
                 cond: filters,
-                const_output: const_output.clone(),
+                const_output,
             }),
             is_sorted: false,
         })
@@ -505,12 +497,9 @@ impl<'a> NodeSearch<'a> {
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         // match_regex works only with values
-        let base_it = db.get_node_annos().regex_anno_search(
-            qname.0.as_ref().map(String::as_str),
-            &qname.1,
-            pattern,
-            negated,
-        );
+        let base_it =
+            db.get_node_annos()
+                .regex_anno_search(qname.0.as_deref(), &qname.1, pattern, negated);
 
         let const_output = if is_meta {
             Some(NODE_TYPE_KEY.clone())
@@ -545,19 +534,13 @@ impl<'a> NodeSearch<'a> {
         let est_output = if negated {
             let total = db
                 .get_node_annos()
-                .number_of_annotations_by_name(qname.0.as_ref().map(String::as_str), &qname.1);
+                .number_of_annotations_by_name(qname.0.as_deref(), &qname.1);
             total
-                - db.get_node_annos().guess_max_count_regex(
-                    qname.0.as_ref().map(String::as_str),
-                    &qname.1,
-                    pattern,
-                )
+                - db.get_node_annos()
+                    .guess_max_count_regex(qname.0.as_deref(), &qname.1, pattern)
         } else {
-            db.get_node_annos().guess_max_count_regex(
-                qname.0.as_ref().map(String::as_str),
-                &qname.1,
-                pattern,
-            )
+            db.get_node_annos()
+                .guess_max_count_regex(qname.0.as_deref(), &qname.1, pattern)
         };
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
@@ -961,14 +944,11 @@ impl<'a> NodeSearch<'a> {
                 db.get_node_annos()
                     .get_all_keys_for_item(
                         &node,
-                        node_search_desc.qname.0.as_ref().map(String::as_str),
-                        node_search_desc.qname.1.as_ref().map(String::as_str),
+                        node_search_desc.qname.0.as_deref(),
+                        node_search_desc.qname.1.as_deref(),
                     )
                     .into_iter()
-                    .map(move |anno_key| Match {
-                        node,
-                        anno_key: anno_key.clone(),
-                    })
+                    .map(move |anno_key| Match { node, anno_key })
             })
             .filter_map(move |m: Match| -> Option<Vec<Match>> {
                 // only include the nodes that fullfill all original node search predicates

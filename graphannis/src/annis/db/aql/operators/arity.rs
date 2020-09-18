@@ -13,7 +13,6 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use rustc_hash::FxHashSet;
-use std;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AritySpec {

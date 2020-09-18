@@ -190,8 +190,8 @@ fn next_candidates(
     let it_nodes = Box::from(op.retrieve_matches(&m_lhs[lhs_idx]).map(|m| m.node).fuse());
 
     node_annos.get_keys_for_iterator(
-        node_search_desc.qname.0.as_ref().map(String::as_str),
-        node_search_desc.qname.1.as_ref().map(String::as_str),
+        node_search_desc.qname.0.as_deref(),
+        node_search_desc.qname.1.as_deref(),
         it_nodes,
     )
 }
