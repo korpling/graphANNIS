@@ -289,10 +289,7 @@ pub async fn jobs(
                                 match b {
                                     Ok(b) => buffer.push(b),
                                     Err(err) => {
-                                        return Err(ServiceError::InternalServerError(format!(
-                                            "{}",
-                                            err.to_string()
-                                        )))
+                                        return Err(ServiceError::InternalServerError(err.to_string()))
                                     }
                                 }
                             } else {

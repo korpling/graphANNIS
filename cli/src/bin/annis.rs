@@ -144,7 +144,7 @@ impl AnnisRunner {
             .completion_type(rustyline::CompletionType::List)
             .build();
         let mut rl = Editor::with_config(config);
-        if let Err(_) = rl.load_history("annis_history.txt") {
+        if rl.load_history("annis_history.txt").is_err() {
             println!("No previous history.");
         }
 
@@ -162,7 +162,7 @@ impl AnnisRunner {
             match readline {
                 Ok(line) => {
                     rl.add_history_entry(&line.clone());
-                    if self.exec(&line) == false {
+                    if !self.exec(&line) {
                         break;
                     }
                 }
@@ -185,7 +185,7 @@ impl AnnisRunner {
 
     fn exec(&mut self, line: &str) -> bool {
         let line_splitted: Vec<&str> = line.splitn(2, ' ').collect();
-        if line_splitted.len() > 0 {
+        if !line_splitted.is_empty() {
             let cmd = line_splitted[0];
             let args = if line_splitted.len() > 1 {
                 String::from(line_splitted[1])
@@ -211,14 +211,14 @@ impl AnnisRunner {
                 "quirks_mode" => self.quirks_mode(&args),
                 "info" => self.info(&args),
                 "quit" | "exit" => return false,
-                _ => Err(anyhow!("unknown command \"{}\"", cmd).into()),
+                _ => Err(anyhow!("unknown command \"{}\"", cmd)),
             };
             if let Err(err) = result {
                 println!("Error: {:?}", err)
             }
         }
         // stay in loop
-        return true;
+        true
     }
 
     fn import(&mut self, args: &str) -> Result<()> {
@@ -628,7 +628,7 @@ impl AnnisRunner {
         let new_val = match args.trim().to_lowercase().as_str() {
             "on" | "true" => true,
             "off" | "false" => false,
-            _ => return Err(anyhow!("unknown argument \"{}\"", args).into()),
+            _ => return Err(anyhow!("unknown argument \"{}\"", args)),
         };
 
         self.use_disk = new_val;
@@ -639,7 +639,7 @@ impl AnnisRunner {
         let use_quirks = match args.trim().to_lowercase().as_str() {
             "on" | "true" => true,
             "off" | "false" => false,
-            _ => return Err(anyhow!("unknown argument \"{}\"", args).into()),
+            _ => return Err(anyhow!("unknown argument \"{}\"", args)),
         };
 
         self.query_language = if use_quirks {

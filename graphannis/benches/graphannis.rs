@@ -28,7 +28,7 @@ static ref CORPUS_STORAGE : Option<CorpusStorage> = {
     } else {
         None
     };
-    return cs;
+    cs
     };
 }
 
