@@ -1,7 +1,7 @@
 use super::cerror;
 use super::cerror::ErrorList;
-use super::safe_cstr;
 use super::Matrix;
+use super::{cast_const, cast_mut, cstr};
 use graphannis::{
     corpusstorage::{
         CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, FrequencyTableRow,
@@ -28,7 +28,7 @@ pub extern "C" fn annis_cs_with_auto_cache_size(
     use_parallel_joins: bool,
     err: *mut *mut ErrorList,
 ) -> *mut CorpusStorage {
-    let db_dir = safe_cstr(db_dir);
+    let db_dir = cstr(db_dir);
 
     let db_dir_path = PathBuf::from(String::from(db_dir));
 
@@ -62,7 +62,7 @@ pub extern "C" fn annis_cs_with_max_cache_size(
     use_parallel_joins: bool,
     err: *mut *mut ErrorList,
 ) -> *mut CorpusStorage {
-    let db_dir = safe_cstr(db_dir);
+    let db_dir = cstr(db_dir);
 
     let db_dir_path = PathBuf::from(String::from(db_dir));
 
@@ -114,10 +114,10 @@ pub extern "C" fn annis_cs_count(
     query_language: QueryLanguage,
     err: *mut *mut ErrorList,
 ) -> u64 {
-    let cs: &CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const(ptr);
 
-    let query = safe_cstr(query);
-    let corpus_names: Vec<String> = cast_const!(corpus_names)
+    let query = cstr(query);
+    let corpus_names: Vec<String> = cast_const(corpus_names)
         .iter()
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
@@ -140,10 +140,10 @@ pub extern "C" fn annis_cs_count_extra(
     query_language: QueryLanguage,
     err: *mut *mut ErrorList,
 ) -> CountExtra {
-    let cs: &CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const(ptr);
 
-    let query = safe_cstr(query);
-    let corpus_names: Vec<String> = cast_const!(corpus_names)
+    let query = cstr(query);
+    let corpus_names: Vec<String> = cast_const(corpus_names)
         .iter()
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
@@ -181,10 +181,10 @@ pub extern "C" fn annis_cs_find(
     order: ResultOrder,
     err: *mut *mut ErrorList,
 ) -> *mut Vec<CString> {
-    let cs: &CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const(ptr);
 
-    let query = safe_cstr(query);
-    let corpus_names: Vec<String> = cast_const!(corpus_names)
+    let query = cstr(query);
+    let corpus_names: Vec<String> = cast_const(corpus_names)
         .iter()
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
@@ -229,17 +229,17 @@ pub extern "C" fn annis_cs_subgraph(
     segmentation: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> *mut AnnotationGraph {
-    let cs: &CorpusStorage = cast_const!(ptr);
-    let node_ids: Vec<String> = cast_const!(node_ids)
+    let cs: &CorpusStorage = cast_const(ptr);
+    let node_ids: Vec<String> = cast_const(node_ids)
         .iter()
         .map(|id| String::from(id.to_string_lossy()))
         .collect();
-    let corpus = safe_cstr(corpus_name);
+    let corpus = cstr(corpus_name);
 
     let segmentation = if segmentation.is_null() {
         None
     } else {
-        Some(safe_cstr(segmentation).to_string())
+        Some(cstr(segmentation).to_string())
     };
 
     let result = try_cerr!(
@@ -263,12 +263,12 @@ pub extern "C" fn annis_cs_subcorpus_graph(
     corpus_ids: *const Vec<CString>,
     err: *mut *mut ErrorList,
 ) -> *mut AnnotationGraph {
-    let cs: &CorpusStorage = cast_const!(ptr);
-    let corpus_ids: Vec<String> = cast_const!(corpus_ids)
+    let cs: &CorpusStorage = cast_const(ptr);
+    let corpus_ids: Vec<String> = cast_const(corpus_ids)
         .iter()
         .map(|id| String::from(id.to_string_lossy()))
         .collect();
-    let corpus = safe_cstr(corpus_name);
+    let corpus = cstr(corpus_name);
 
     trace!(
         "annis_cs_subcorpus_graph(..., {}, {:?}) called",
@@ -298,8 +298,8 @@ pub extern "C" fn annis_cs_corpus_graph(
     corpus_name: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> *mut AnnotationGraph {
-    let cs: &CorpusStorage = cast_const!(ptr);
-    let corpus = safe_cstr(corpus_name);
+    let cs: &CorpusStorage = cast_const(ptr);
+    let corpus = cstr(corpus_name);
 
     let result = try_cerr!(cs.corpus_graph(&corpus), err, std::ptr::null_mut());
     return Box::into_raw(Box::new(result));
@@ -320,9 +320,9 @@ pub extern "C" fn annis_cs_subgraph_for_query(
     query_language: QueryLanguage,
     err: *mut *mut ErrorList,
 ) -> *mut AnnotationGraph {
-    let cs: &CorpusStorage = cast_const!(ptr);
-    let corpus = safe_cstr(corpus_name);
-    let query = safe_cstr(query);
+    let cs: &CorpusStorage = cast_const(ptr);
+    let corpus = cstr(corpus_name);
+    let query = cstr(query);
 
     let result = try_cerr!(
         cs.subgraph_for_query(&corpus, &query, query_language, None),
@@ -349,9 +349,9 @@ pub extern "C" fn annis_cs_subgraph_for_query_with_ctype(
     component_type_filter: AnnotationComponentType,
     err: *mut *mut ErrorList,
 ) -> *mut AnnotationGraph {
-    let cs: &CorpusStorage = cast_const!(ptr);
-    let corpus = safe_cstr(corpus_name);
-    let query = safe_cstr(query);
+    let cs: &CorpusStorage = cast_const(ptr);
+    let corpus = cstr(corpus_name);
+    let query = cstr(query);
 
     let result = try_cerr!(
         cs.subgraph_for_query(&corpus, &query, query_language, Some(component_type_filter)),
@@ -380,14 +380,14 @@ pub extern "C" fn annis_cs_frequency(
     frequency_query_definition: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> *mut FrequencyTable<CString> {
-    let cs: &CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const(ptr);
 
-    let query = safe_cstr(query);
-    let corpus_names: Vec<String> = cast_const!(corpus_names)
+    let query = cstr(query);
+    let corpus_names: Vec<String> = cast_const(corpus_names)
         .iter()
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
-    let frequency_query_definition = safe_cstr(frequency_query_definition);
+    let frequency_query_definition = cstr(frequency_query_definition);
     let table_def: Vec<FrequencyDefEntry> = frequency_query_definition
         .split(',')
         .filter_map(|d| -> Option<FrequencyDefEntry> { d.parse().ok() })
@@ -428,7 +428,7 @@ pub extern "C" fn annis_cs_list(
     ptr: *const CorpusStorage,
     err: *mut *mut ErrorList,
 ) -> *mut Vec<CString> {
-    let cs: &CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const(ptr);
 
     let mut corpora: Vec<CString> = vec![];
 
@@ -455,8 +455,8 @@ pub extern "C" fn annis_cs_list_node_annotations(
     list_values: bool,
     only_most_frequent_values: bool,
 ) -> *mut Matrix<CString> {
-    let cs: &CorpusStorage = cast_const!(ptr);
-    let corpus = safe_cstr(corpus_name);
+    let cs: &CorpusStorage = cast_const(ptr);
+    let corpus = cstr(corpus_name);
 
     let orig_vec = cs.list_node_annotations(&corpus, list_values, only_most_frequent_values);
     let mut result: Matrix<CString> = Matrix::new();
@@ -491,12 +491,12 @@ pub extern "C" fn annis_cs_list_edge_annotations(
     list_values: bool,
     only_most_frequent_values: bool,
 ) -> *mut Matrix<CString> {
-    let cs: &CorpusStorage = cast_const!(ptr);
-    let corpus = safe_cstr(corpus_name);
+    let cs: &CorpusStorage = cast_const(ptr);
+    let corpus = cstr(corpus_name);
     let component = AnnotationComponent::new(
         component_type,
-        String::from(safe_cstr(component_layer)),
-        String::from(safe_cstr(component_name)),
+        String::from(cstr(component_layer)),
+        String::from(cstr(component_name)),
     );
 
     let orig_vec =
@@ -531,10 +531,10 @@ pub extern "C" fn annis_cs_validate_query(
     query_language: QueryLanguage,
     err: *mut *mut ErrorList,
 ) -> bool {
-    let cs: &CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const(ptr);
 
-    let query = safe_cstr(query);
-    let corpus_names: Vec<String> = cast_const!(corpus_names)
+    let query = cstr(query);
+    let corpus_names: Vec<String> = cast_const(corpus_names)
         .iter()
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
@@ -559,9 +559,9 @@ pub extern "C" fn annis_cs_node_descriptions(
     query_language: QueryLanguage,
     err: *mut *mut ErrorList,
 ) -> *mut Vec<QueryAttributeDescription> {
-    let cs: &CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const(ptr);
 
-    let query = safe_cstr(query);
+    let query = cstr(query);
 
     let result = try_cerr!(
         cs.node_descriptions(&query, query_language),
@@ -592,14 +592,14 @@ pub extern "C" fn annis_cs_import_from_fs(
     overwrite_existing: bool,
     err: *mut *mut ErrorList,
 ) -> *mut libc::c_char {
-    let cs: &mut CorpusStorage = cast_mut!(ptr);
+    let cs: &mut CorpusStorage = cast_mut(ptr);
 
     let override_corpus_name: Option<String> = if corpus_name.is_null() {
         None
     } else {
-        Some(String::from(safe_cstr(corpus_name)))
+        Some(String::from(cstr(corpus_name)))
     };
-    let path: &str = &safe_cstr(path);
+    let path: &str = &cstr(path);
 
     let corpus_name: String = try_cerr!(
         cs.import_from_fs(
@@ -629,8 +629,8 @@ pub extern "C" fn annis_cs_list_components_by_type(
     corpus_name: *const libc::c_char,
     ctype: AnnotationComponentType,
 ) -> *mut Vec<AnnotationComponent> {
-    let cs: &CorpusStorage = cast_const!(ptr);
-    let corpus = safe_cstr(corpus_name);
+    let cs: &CorpusStorage = cast_const(ptr);
+    let corpus = cstr(corpus_name);
 
     Box::into_raw(Box::new(cs.list_components(&corpus, Some(ctype), None)))
 }
@@ -646,8 +646,8 @@ pub extern "C" fn annis_cs_delete(
     corpus: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> bool {
-    let cs: &mut CorpusStorage = cast_mut!(ptr);
-    let corpus = safe_cstr(corpus);
+    let cs: &mut CorpusStorage = cast_mut(ptr);
+    let corpus = cstr(corpus);
 
     try_cerr!(cs.delete(&corpus), err, false)
 }
@@ -655,8 +655,8 @@ pub extern "C" fn annis_cs_delete(
 /// Unloads a corpus from the cache.
 #[no_mangle]
 pub extern "C" fn annis_cs_unload(ptr: *mut CorpusStorage, corpus: *const libc::c_char) {
-    let cs: &mut CorpusStorage = cast_mut!(ptr);
-    let corpus = safe_cstr(corpus);
+    let cs: &mut CorpusStorage = cast_mut(ptr);
+    let corpus = cstr(corpus);
 
     cs.unload(&corpus);
 }
@@ -674,8 +674,8 @@ pub extern "C" fn annis_cs_apply_update(
     update: *mut GraphUpdate,
     err: *mut *mut ErrorList,
 ) {
-    let cs: &mut CorpusStorage = cast_mut!(ptr);
-    let update: &mut GraphUpdate = cast_mut!(update);
-    let corpus_name = safe_cstr(corpus_name);
+    let cs: &mut CorpusStorage = cast_mut(ptr);
+    let update: &mut GraphUpdate = cast_mut(update);
+    let corpus_name = cstr(corpus_name);
     try_cerr!(cs.apply_update(&corpus_name, update), err, ());
 }

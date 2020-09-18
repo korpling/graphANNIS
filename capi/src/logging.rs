@@ -1,5 +1,5 @@
 use super::cerror::{Error, ErrorList};
-use super::safe_cstr;
+use super::cstr;
 use libc;
 use simplelog;
 use simplelog::{Config, LevelFilter, WriteLogger};
@@ -41,7 +41,7 @@ pub extern "C" fn annis_init_logging(
     err: *mut *mut ErrorList,
 ) {
     if !logfile.is_null() {
-        let logfile: &str = &safe_cstr(logfile);
+        let logfile: &str = &cstr(logfile);
 
         match File::create(logfile) {
             Ok(f) => {
