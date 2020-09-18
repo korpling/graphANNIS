@@ -1829,8 +1829,10 @@ impl CorpusStorage {
 
             if let Some(current_limit) = limit {
                 if current_limit <= single_result_length {
+                    // Searching in this corpus already yielded enough results
                     break;
                 } else {
+                    // Adjust the limit for the next corpora to the already found results so-far
                     limit = Some(current_limit - single_result_length);
                 }
             }
