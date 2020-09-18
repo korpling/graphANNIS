@@ -33,7 +33,7 @@ impl From<LogLevel> for simplelog::LevelFilter {
 /// - `level` - Minimum level to output.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
-pub extern "C" fn annis_init_logging(
+pub unsafe extern "C" fn annis_init_logging(
     logfile: *const libc::c_char,
     level: LogLevel,
     err: *mut *mut ErrorList,
@@ -46,17 +46,13 @@ pub extern "C" fn annis_init_logging(
                 if let Err(e) = WriteLogger::init(LevelFilter::from(level), Config::default(), f) {
                     // File was created, but logger was not.
                     if !err.is_null() {
-                        unsafe {
-                            *err = Box::into_raw(Box::new(vec![Error::from(e)]));
-                        }
+                        *err = Box::into_raw(Box::new(vec![Error::from(e)]));
                     }
                 }
             }
             Err(e) => {
                 if !err.is_null() {
-                    unsafe {
-                        *err = Box::into_raw(Box::new(vec![Error::from(e)]));
-                    }
+                    *err = Box::into_raw(Box::new(vec![Error::from(e)]));
                 }
             }
         };

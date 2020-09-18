@@ -23,7 +23,7 @@ use std::path::PathBuf;
 /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
-pub extern "C" fn annis_cs_with_auto_cache_size(
+pub unsafe extern "C" fn annis_cs_with_auto_cache_size(
     db_dir: *const libc::c_char,
     use_parallel_joins: bool,
     err: *mut *mut ErrorList,
@@ -35,14 +35,10 @@ pub extern "C" fn annis_cs_with_auto_cache_size(
     let s = CorpusStorage::with_auto_cache_size(&db_dir_path, use_parallel_joins);
 
     match s {
-        Ok(result) => {
-            Box::into_raw(Box::new(result))
-        }
+        Ok(result) => Box::into_raw(Box::new(result)),
         Err(e) => {
             if !err.is_null() {
-                unsafe {
-                    *err = cerror::new(e.into());
-                }
+                *err = cerror::new(e.into());
             }
             std::ptr::null_mut()
         }
@@ -56,7 +52,7 @@ pub extern "C" fn annis_cs_with_auto_cache_size(
 /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
-pub extern "C" fn annis_cs_with_max_cache_size(
+pub unsafe extern "C" fn annis_cs_with_max_cache_size(
     db_dir: *const libc::c_char,
     max_cache_size: usize,
     use_parallel_joins: bool,
@@ -73,14 +69,10 @@ pub extern "C" fn annis_cs_with_max_cache_size(
     );
 
     match s {
-        Ok(result) => {
-            Box::into_raw(Box::new(result))
-        }
+        Ok(result) => Box::into_raw(Box::new(result)),
         Err(e) => {
             if !err.is_null() {
-                unsafe {
-                    *err = cerror::new(e.into());
-                }
+                *err = cerror::new(e.into());
             }
             std::ptr::null_mut()
         }
@@ -90,12 +82,12 @@ pub extern "C" fn annis_cs_with_max_cache_size(
 /// Frees the reference to the corpus storage object.
 /// - `ptr` - The corpus storage object.
 #[no_mangle]
-pub extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
+pub unsafe extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
     if ptr.is_null() {
         return;
     }
     // take ownership and destroy the pointer
-    unsafe { Box::from_raw(ptr) };
+    Box::from_raw(ptr);
 }
 
 /// Count the number of results for a `query`.
@@ -103,7 +95,7 @@ pub extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
 /// - `corpus_names` - The name of the corpora to execute the query on.
 /// - `query` - The query as string.
 /// - `query_language` The query language of the query (e.g. AQL).
-/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+/// - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
 ///
 /// Returns the count as number.
 #[no_mangle]
@@ -166,7 +158,7 @@ pub extern "C" fn annis_cs_count_extra(
 /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
 /// You can use the `annis_cs_subgraph(...)` method to get the subgraph for a single match described by the node annnotation identifiers.
 #[no_mangle]
-pub extern "C" fn annis_cs_find(
+pub unsafe extern "C" fn annis_cs_find(
     ptr: *const CorpusStorage,
     corpus_names: *const Vec<CString>,
     query: *const libc::c_char,
@@ -184,11 +176,7 @@ pub extern "C" fn annis_cs_find(
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
 
-    let limit = if limit.is_null() {
-        None
-    } else {
-        unsafe { Some(*limit) }
-    };
+    let limit = if limit.is_null() { None } else { Some(*limit) };
 
     map_cerr(
         cs.find(&corpus_names, &query, query_language, offset, limit, order),
