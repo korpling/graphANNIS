@@ -2,5 +2,7 @@
     "python.pythonPath": "/usr/bin/python3",
     "rust.all_features": true,
     "debug.node.autoAttach": "on",
-    "cSpell.language": "de,en"
+    "cSpell.language": "de,en",
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file"
 }
