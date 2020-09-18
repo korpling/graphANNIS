@@ -1,6 +1,6 @@
-use csv;
+
 use file_diff::diff;
-use lalrpop;
+
 use regex::Regex;
 use std::ops::Deref;
 use std::path::PathBuf;
