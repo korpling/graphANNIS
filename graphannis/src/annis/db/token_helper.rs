@@ -32,7 +32,7 @@ lazy_static! {
     };
     static ref COMPONENT_RIGHT: Component<AnnotationComponentType> = {
         Component::new(
-            AnnotationComponentType::RightToken.into(),
+            AnnotationComponentType::RightToken,
             ANNIS_NS.to_owned(),
             "".to_owned(),
         )
@@ -89,7 +89,7 @@ impl<'a> TokenHelper<'a> {
     pub fn is_token(&self, id: NodeID) -> bool {
         if self.node_annos.has_value_for_item(&id, &TOKEN_KEY) {
             // check if there is no outgoing edge in any of the coverage components
-            self.has_outgoing_coverage_edges(id) == false
+            !self.has_outgoing_coverage_edges(id)
         } else {
             false
         }
