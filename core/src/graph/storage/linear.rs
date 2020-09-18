@@ -9,7 +9,6 @@ use anyhow::Result;
 use rustc_hash::FxHashMap;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
-use std;
 use std::{clone::Clone, path::Path};
 
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]

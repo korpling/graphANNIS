@@ -1,6 +1,4 @@
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use rustc_hash;
-use std;
 
 pub fn shallow_size_of_fxhashmap<K, V>(
     val: &rustc_hash::FxHashMap<K, V>,

@@ -162,7 +162,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
         };
         let it = CycleSafeDFS::<'a>::new(self, node, min_distance, max_distance)
             .map(|x| x.node)
-            .filter(move |n| visited.insert(n.clone()));
+            .filter(move |n| visited.insert(*n));
         Box::new(it)
     }
 
@@ -181,7 +181,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
 
         let it = CycleSafeDFS::<'a>::new_inverse(self, node, min_distance, max_distance)
             .map(|x| x.node)
-            .filter(move |n| visited.insert(n.clone()));
+            .filter(move |n| visited.insert(*n));
         Box::new(it)
     }
 
@@ -284,13 +284,13 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         for target in self.get_outgoing_edges(node) {
             to_delete.push_back(Edge {
                 source: node,
-                target: target,
+                target,
             });
         }
 
         for source in self.get_ingoing_edges(node) {
             to_delete.push_back(Edge {
-                source: source,
+                source,
                 target: node,
             });
         }

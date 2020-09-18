@@ -8,7 +8,6 @@ use crate::{
 use anyhow::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
-use std;
 use std::clone::Clone;
 use std::{ops::Bound::*, path::Path};
 
@@ -227,7 +226,7 @@ where
                     }
                     _ => None,
                 })
-                .filter(move |n| visited.insert(n.clone()));
+                .filter(move |n| visited.insert(*n));
             Box::new(it)
         } else {
             Box::new(std::iter::empty())
@@ -326,7 +325,7 @@ where
                         None
                     }
                 })
-                .filter(move |n| visited.insert(n.clone()));
+                .filter(move |n| visited.insert(*n));
             Box::new(it)
         } else {
             Box::new(std::iter::empty())
