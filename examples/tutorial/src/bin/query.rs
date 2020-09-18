@@ -19,7 +19,7 @@ fn main() {
             ResultOrder::Normal,
         )
         .unwrap();
-    for i in 0..matches.len() {
-        println!("Match {}: {}", i, matches[i]);
+    for (i, m) in matches.iter().enumerate() {
+        println!("Match {}: {}", i, m);
     }
 }
