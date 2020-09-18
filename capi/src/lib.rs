@@ -3,26 +3,21 @@ extern crate log;
 
 use std::borrow::Cow;
 
-#[allow(unused_macros)]
-macro_rules! cast_mut {
-    ($x:expr) => {{
-        unsafe {
-            assert!(!$x.is_null());
-            (&mut (*$x))
-        }
-    }};
+fn cast_mut<'a, T>(x: *mut T) -> &'a mut T {
+    unsafe {
+        assert!(!x.is_null());
+        &mut (*x)
+    }
 }
 
-macro_rules! cast_const {
-    ($x:expr) => {{
-        unsafe {
-            assert!(!$x.is_null(), "Object argument was null");
-            (&(*$x))
-        }
-    }};
+fn cast_const<'a, T>(x: *const T) -> &'a T {
+    unsafe {
+        assert!(!x.is_null(), "Object argument was null");
+        &(*x)
+    }
 }
 
-fn safe_cstr<'a>(orig: *const libc::c_char) -> Cow<'a, str> {
+fn cstr<'a>(orig: *const libc::c_char) -> Cow<'a, str> {
     unsafe {
         if orig.is_null() {
             Cow::from("")

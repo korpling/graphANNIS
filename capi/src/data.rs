@@ -1,5 +1,5 @@
-use super::safe_cstr;
 use super::Matrix;
+use super::{cast_const, cast_mut, cstr};
 use graphannis::{
     corpusstorage::{FrequencyTable, QueryAttributeDescription},
     graph::{Annotation, Edge, NodeID},
@@ -33,7 +33,7 @@ pub extern "C" fn annis_str_free(s: *mut c_char) {
 pub type IterPtr<T> = Box<dyn Iterator<Item = T>>;
 
 pub fn iter_next<T>(ptr: *mut Box<dyn Iterator<Item = T>>) -> *mut T {
-    let it: &mut Box<dyn Iterator<Item = T>> = cast_mut!(ptr);
+    let it: &mut Box<dyn Iterator<Item = T>> = cast_mut(ptr);
     if let Some(v) = it.next() {
         return Box::into_raw(Box::new(v));
     }
@@ -48,12 +48,12 @@ pub extern "C" fn annis_iter_nodeid_next(ptr: *mut IterPtr<NodeID>) -> *mut Node
 }
 
 pub fn vec_size<T>(ptr: *const Vec<T>) -> size_t {
-    let v: &Vec<T> = cast_const!(ptr);
+    let v: &Vec<T> = cast_const(ptr);
     return v.len();
 }
 
 pub fn vec_get<T>(ptr: *const Vec<T>, i: size_t) -> *const T {
-    let v: &Vec<T> = cast_const!(ptr);
+    let v: &Vec<T> = cast_const(ptr);
     if i < v.len() {
         return &v[i] as *const T;
     }
@@ -70,7 +70,7 @@ pub extern "C" fn annis_vec_str_size(ptr: *const Vec<CString>) -> size_t {
 #[no_mangle]
 pub extern "C" fn annis_vec_str_get(ptr: *const Vec<CString>, i: size_t) -> *const c_char {
     // custom implementation for string vectors, don't return a referance to CString but a char pointer
-    let strvec: &Vec<CString> = cast_const!(ptr);
+    let strvec: &Vec<CString> = cast_const(ptr);
     if i < strvec.len() {
         return strvec[i].as_ptr();
     } else {
@@ -88,8 +88,8 @@ pub extern "C" fn annis_vec_str_new() -> *mut Vec<CString> {
 /// Add an element to the string vector.
 #[no_mangle]
 pub extern "C" fn annis_vec_str_push(ptr: *mut Vec<CString>, v: *const c_char) {
-    let strvec: &mut Vec<CString> = cast_mut!(ptr);
-    let v: &str = &safe_cstr(v);
+    let strvec: &mut Vec<CString> = cast_mut(ptr);
+    let v: &str = &cstr(v);
     if let Ok(cval) = CString::new(v) {
         strvec.push(cval);
     }
@@ -98,7 +98,7 @@ pub extern "C" fn annis_vec_str_push(ptr: *mut Vec<CString>, v: *const c_char) {
 /// Get the namespace of the given annotation object.
 #[no_mangle]
 pub extern "C" fn annis_annotation_ns(ptr: *const Annotation) -> *mut c_char {
-    let anno: &Annotation = cast_const!(ptr);
+    let anno: &Annotation = cast_const(ptr);
     return CString::new(anno.key.ns.as_str())
         .unwrap_or_default()
         .into_raw();
@@ -107,7 +107,7 @@ pub extern "C" fn annis_annotation_ns(ptr: *const Annotation) -> *mut c_char {
 /// Get the name of the given annotation object.
 #[no_mangle]
 pub extern "C" fn annis_annotation_name(ptr: *const Annotation) -> *mut c_char {
-    let anno: &Annotation = cast_const!(ptr);
+    let anno: &Annotation = cast_const(ptr);
     return CString::new(anno.key.name.as_str())
         .unwrap_or_default()
         .into_raw();
@@ -116,7 +116,7 @@ pub extern "C" fn annis_annotation_name(ptr: *const Annotation) -> *mut c_char {
 /// Get the value of the given annotation object.
 #[no_mangle]
 pub extern "C" fn annis_annotation_val(ptr: *const Annotation) -> *mut c_char {
-    let anno: &Annotation = cast_const!(ptr);
+    let anno: &Annotation = cast_const(ptr);
     return CString::new(anno.val.as_str())
         .unwrap_or_default()
         .into_raw();
@@ -177,7 +177,7 @@ pub extern "C" fn annis_vec_qattdesc_get_component_nr(
     i: size_t,
 ) -> usize {
     let desc_ptr: *const QueryAttributeDescription = vec_get(ptr, i);
-    let desc: &QueryAttributeDescription = cast_const!(desc_ptr);
+    let desc: &QueryAttributeDescription = cast_const(desc_ptr);
     return desc.alternative;
 }
 
@@ -190,7 +190,7 @@ pub extern "C" fn annis_vec_qattdesc_get_aql_fragment(
     i: size_t,
 ) -> *mut c_char {
     let desc_ptr: *const QueryAttributeDescription = vec_get(ptr, i);
-    let desc: &QueryAttributeDescription = cast_const!(desc_ptr);
+    let desc: &QueryAttributeDescription = cast_const(desc_ptr);
     let cstr: CString = CString::new(desc.query_fragment.as_str()).unwrap_or(CString::default());
     return cstr.into_raw();
 }
@@ -204,7 +204,7 @@ pub extern "C" fn annis_vec_qattdesc_get_variable(
     i: size_t,
 ) -> *mut c_char {
     let desc_ptr: *const QueryAttributeDescription = vec_get(ptr, i);
-    let desc: &QueryAttributeDescription = cast_const!(desc_ptr);
+    let desc: &QueryAttributeDescription = cast_const(desc_ptr);
     let cstr: CString = CString::new(desc.variable.as_str()).unwrap_or(CString::default());
     return cstr.into_raw();
 }
@@ -218,7 +218,7 @@ pub extern "C" fn annis_vec_qattdesc_get_anno_name(
     i: size_t,
 ) -> *mut c_char {
     let desc_ptr: *const QueryAttributeDescription = vec_get(ptr, i);
-    let desc: &QueryAttributeDescription = cast_const!(desc_ptr);
+    let desc: &QueryAttributeDescription = cast_const(desc_ptr);
     if let Some(ref anno_name) = desc.anno_name {
         let cstr: CString = CString::new(anno_name.as_str()).unwrap_or(CString::default());
         return cstr.into_raw();
@@ -236,7 +236,7 @@ pub extern "C" fn annis_matrix_str_nrows(ptr: *const Matrix<CString>) -> size_t 
 /// Returns the number of columns of the string matrix.
 #[no_mangle]
 pub extern "C" fn annis_matrix_str_ncols(ptr: *const Matrix<CString>) -> size_t {
-    let v: &Vec<Vec<CString>> = cast_const!(ptr);
+    let v: &Vec<Vec<CString>> = cast_const(ptr);
     if !v.is_empty() {
         return v[0].len();
     }
@@ -251,7 +251,7 @@ pub extern "C" fn annis_matrix_str_get(
     col: size_t,
 ) -> *const c_char {
     // custom implementation for string matrix, don't return a referance to CString but a char pointer
-    let strmatrix: &Vec<Vec<CString>> = cast_const!(ptr);
+    let strmatrix: &Vec<Vec<CString>> = cast_const(ptr);
     if row < strmatrix.len() {
         if col < strmatrix[row].len() {
             return strmatrix[row][col].as_ptr();
@@ -269,7 +269,7 @@ pub extern "C" fn annis_freqtable_str_nrows(ptr: *const FrequencyTable<CString>)
 /// Returns the number of columns of the frequency table.
 #[no_mangle]
 pub extern "C" fn annis_freqtable_str_ncols(ptr: *const FrequencyTable<CString>) -> size_t {
-    let v: &FrequencyTable<CString> = cast_const!(ptr);
+    let v: &FrequencyTable<CString> = cast_const(ptr);
     if !v.is_empty() {
         return v[0].values.len();
     }
@@ -284,7 +284,7 @@ pub extern "C" fn annis_freqtable_str_get(
     col: size_t,
 ) -> *const c_char {
     // custom implementation for string matrix, don't return a referance to CString but a char pointer
-    let ft: &FrequencyTable<CString> = cast_const!(ptr);
+    let ft: &FrequencyTable<CString> = cast_const(ptr);
     if row < ft.len() {
         if col < ft[row].values.len() {
             return ft[row].values[col].as_ptr();
@@ -299,7 +299,7 @@ pub extern "C" fn annis_freqtable_str_count(
     ptr: *const FrequencyTable<CString>,
     row: size_t,
 ) -> size_t {
-    let ft: &FrequencyTable<CString> = cast_const!(ptr);
+    let ft: &FrequencyTable<CString> = cast_const(ptr);
     if row < ft.len() {
         return ft[row].count;
     }

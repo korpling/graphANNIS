@@ -1,8 +1,7 @@
+use super::cast_const;
 use super::data::{vec_get, vec_size};
 use graphannis::errors;
 use libc::{c_char, size_t};
-use log;
-use std;
 use std::error::Error as StdError;
 use std::ffi::CString;
 
@@ -125,7 +124,7 @@ pub extern "C" fn annis_error_get_msg(ptr: *const ErrorList, i: size_t) -> *cons
     if item.is_null() {
         return std::ptr::null();
     }
-    let err: &Error = cast_const!(item);
+    let err: &Error = cast_const(item);
     return err.msg.as_ptr();
 }
 
@@ -136,6 +135,6 @@ pub extern "C" fn annis_error_get_kind(ptr: *const ErrorList, i: size_t) -> *con
     if item.is_null() {
         return std::ptr::null();
     }
-    let err: &Error = cast_const!(item);
+    let err: &Error = cast_const(item);
     return err.kind.as_ptr();
 }
