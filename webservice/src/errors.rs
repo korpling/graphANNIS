@@ -136,6 +136,12 @@ impl<T: std::fmt::Debug> From<BlockingError<T>> for ServiceError {
     }
 }
 
+impl From<actix_web::Error> for ServiceError {
+    fn from(e: actix_web::Error) -> Self {
+        ServiceError::InternalServerError(e.to_string())
+    }
+}
+
 impl From<actix_web::error::PayloadError> for ServiceError {
     fn from(e: actix_web::error::PayloadError) -> Self {
         ServiceError::InternalServerError(e.to_string())
