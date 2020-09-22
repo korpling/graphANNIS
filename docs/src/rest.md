@@ -10,7 +10,7 @@ SSL is not supported, so if you want to make the service accessible from the out
 
 The graphANNIS REST API is specified and documented in [OpenAPI 3](https://swagger.io/docs/specification/about/).
 The specification file can also be used to auto-generate client code, e.g. with the [OpenAPI Generator](https://github.com/OpenAPITools/openapi-generator#overview).
-The rendered documentation (in Markdown) is [included in the repository](https://github.com/korpling/graphANNIS/tree/develop/webservice/docs/).
+The documentation can be displayed with any OpenAPI 3 viewer like [MrinDoc](https://mrin9.github.io/OpenAPI-Viewer/#/load/https%3A%2F%2Fraw.githubusercontent.com%2Fkorpling%2FgraphANNIS%2Fmaster%2Fwebservice%2Fsrc%2Fopenapi.yml) using the URL to the [released openapi.yml file](https://raw.githubusercontent.com/korpling/graphANNIS/master/webservice/src/openapi.yml).
 
 ## Configuration
 
