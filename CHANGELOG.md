@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Pull requests are now checked with the Clippy static code analyis tool
+- Updated Actix Web dependency for webservice to version 3
 
 ## [0.29.2] - 2020-08-25
 
