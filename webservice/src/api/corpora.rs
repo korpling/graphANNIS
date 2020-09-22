@@ -267,13 +267,12 @@ pub async fn list_files(
 }
 
 pub async fn file_content(
-    path: web::Path<(String, String)>,
+    web::Path((corpus, name)): web::Path<(String, String)>,
     claims: ClaimsFromAuth,
     db_pool: web::Data<DbPool>,
     settings: web::Data<Settings>,
 ) -> Result<NamedFile, ServiceError> {
-    let corpus = &path.0;
-    let name = percent_encoding::percent_decode_str(&path.1).decode_utf8_lossy();
+    let name = percent_encoding::percent_decode_str(&name).decode_utf8_lossy();
 
     check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
 
