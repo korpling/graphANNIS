@@ -32,7 +32,7 @@ disk_based = false
 debug = false
 
 [auth]
-jwt_secret = ""
+token_verification = {HS256 = ""}
 expiration_minutes = 120
 
 [users.test]
@@ -65,8 +65,36 @@ For complex authentication and authorization scenarios, like logging in using an
 Your application will need to redirect to the login-page provided by these services when the user wants to login.
 These services then generate a JWT token which should be used as Bearer-Token in the `Authorization` header of each HTTP request to the API.
 
-For an JWT token to be accepted, it must be signed with the HMAC with SHA-256 (HS256) algorithm and a shared secret.
-Create a random secret and add this secret as value to the `jwt_secret` key in the `[auth]` section in the graphANNIS configuration and in the external JWT token provider service.
+For an JWT token to be accepted, it must be signed.
+You can choose between HMAC with SHA-256 (HS256) algorithm and a shared secret or a RSA Signature with SHA-256 (RS256) and a public and private blic key pair.
+
+#### HMAC with SHA-256 (HS256)
+
+Create a random secret and add this secret as value to the `token_verification` key in the `[auth]` section in the graphANNIS configuration and in the external JWT token provider service.
+
+```toml
+[auth]
+token_verification = {HS256 = "<some-very-private-and-secret-key>"}
+```
+
+#### RSA Signature with SHA-256 (RS256)
+
+If you want to user the [local accounts feature](#local-accounts), you have to create both a private and public key pair and add them as value to the `token_verification` key in the `[auth]` section.
+
+
+```toml
+[auth.token_verification.RS256]
+public_key = "<you can share this key with everyone>"
+private_key = "<this a a secret only known to the server and used to sign local accounts>"
+```
+
+If the graphANNIS REST service is not intended as provider of JWT tokens but should just consume and validate them, the public key is sufficient.
+
+```toml
+[auth.token_verification.RS256]
+public_key = "<you can share this key with everyone>"
+```
+
 
 #### Claims
 
@@ -81,7 +109,7 @@ JWT tokens can contain the following claims:
 
 In addition to using an external token provider, you can configure local accounts based on usernames and passwords.
 This can be e.g. useful to add a local administrator account when the token provider does not allow to add a `admin` claim.
-GraphANNIS provides a simple REST API to generate JWT tokens for these local accounts.
+GraphANNIS provides a simplistic REST API to generate JWT tokens for these local accounts.
 The `expiration_minutes` key in the `[auth]` section allows you to configure how long a JWT token will be valid which was issued for local accounts.
 
 To add a user, add a `[users.<name>]` section and add the values for the following keys:
