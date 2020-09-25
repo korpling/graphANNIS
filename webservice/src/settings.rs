@@ -1,7 +1,9 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use config::ConfigError;
 use jsonwebtoken::{DecodingKey, EncodingKey};
 use std::{collections::HashMap, ops::Deref};
+
+use crate::errors::ServiceError;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Logging {
@@ -24,7 +26,10 @@ pub struct Database {
 #[derive(Debug, Deserialize)]
 pub enum JWTVerification {
     HS256(String),
-    RS256(String),
+    RS256 {
+        public_key: String,
+        private_key: Option<String>,
+    },
 }
 
 impl JWTVerification {
@@ -33,8 +38,14 @@ impl JWTVerification {
             JWTVerification::HS256(secret) => {
                 jsonwebtoken::EncodingKey::from_secret(secret.as_bytes())
             }
-            JWTVerification::RS256(public_key) => {
-                jsonwebtoken::EncodingKey::from_rsa_pem(public_key.as_bytes())?
+            JWTVerification::RS256 { private_key, .. } => {
+                if let Some(private_key) = private_key {
+                    jsonwebtoken::EncodingKey::from_rsa_pem(private_key.as_bytes())?
+                } else {
+                    bail!(ServiceError::SigningJWTTokenDisabled(
+                        "Missing private key in configuration".to_string(),
+                    ));
+                }
             }
         };
         Ok(key)
@@ -45,7 +56,7 @@ impl JWTVerification {
             JWTVerification::HS256(secret) => {
                 jsonwebtoken::DecodingKey::from_secret(secret.as_bytes())
             }
-            JWTVerification::RS256(public_key) => {
+            JWTVerification::RS256 { public_key, .. } => {
                 jsonwebtoken::DecodingKey::from_rsa_pem(public_key.as_bytes())?
             }
         };
@@ -55,7 +66,7 @@ impl JWTVerification {
     pub fn as_algorithm(&self) -> jsonwebtoken::Algorithm {
         match &self {
             JWTVerification::HS256(_) => jsonwebtoken::Algorithm::HS256,
-            JWTVerification::RS256(_) => jsonwebtoken::Algorithm::RS256,
+            JWTVerification::RS256 { .. } => jsonwebtoken::Algorithm::RS256,
         }
     }
 }
