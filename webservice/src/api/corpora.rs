@@ -16,7 +16,14 @@ pub async fn list(
 ) -> Result<HttpResponse, ServiceError> {
     let all_corpora: Vec<String> = cs.list()?.into_iter().map(|c| c.name).collect();
 
-    let allowed_corpora = if claims.0.admin {
+    let allowed_corpora = if claims
+        .0
+        .roles
+        .iter()
+        .filter(|r| r.as_str() == "admin")
+        .next()
+        .is_some()
+    {
         // Adminstrators always have access to all corpora
         all_corpora
     } else {

@@ -75,7 +75,7 @@ JWT tokens can contain the following claims:
 - `sub` (mandatory): The subject the token was issued to.
 - `groups`: A possible empty list of strings to which corpus groups the subject belongs to. All users (even when not logged-in) are part of the `anonymous` group. You can use the API to configure which groups have access to which corpus.
 - `exp`: An optional expiration date as unix timestamp in seconds since epoch and UTC.
-- `admin`: If true, this user is an adminstrator.
+- `roles`: A list of roles this user has. If the use is an administrator, this user will have the "admin" rule.
 
 #### Local accounts
 
