@@ -8,7 +8,7 @@ sqlite = "service.sqlite"
 disk_based = false
 
 [auth]
-jwt_secret = ""
+token_verification = {HS256 = "not-a-random-secret"}
 expiration_minutes = 120
 
 [logging]
