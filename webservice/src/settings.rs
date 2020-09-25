@@ -1,4 +1,6 @@
+use anyhow::Result;
 use config::ConfigError;
+use jsonwebtoken::{DecodingKey, EncodingKey};
 use std::{collections::HashMap, ops::Deref};
 
 #[derive(Debug, Deserialize, Default)]
@@ -19,9 +21,54 @@ pub struct Database {
     pub disk_based: bool,
 }
 
+#[derive(Debug, Deserialize)]
+pub enum JWTVerification {
+    HS256(String),
+    RS256(String),
+}
+
+impl JWTVerification {
+    pub fn create_encoding_key(&self) -> Result<EncodingKey> {
+        let key = match &self {
+            JWTVerification::HS256(secret) => {
+                jsonwebtoken::EncodingKey::from_secret(secret.as_bytes())
+            }
+            JWTVerification::RS256(public_key) => {
+                jsonwebtoken::EncodingKey::from_rsa_pem(public_key.as_bytes())?
+            }
+        };
+        Ok(key)
+    }
+
+    pub fn create_decoding_key(&self) -> Result<DecodingKey> {
+        let key = match &self {
+            JWTVerification::HS256(secret) => {
+                jsonwebtoken::DecodingKey::from_secret(secret.as_bytes())
+            }
+            JWTVerification::RS256(public_key) => {
+                jsonwebtoken::DecodingKey::from_rsa_pem(public_key.as_bytes())?
+            }
+        };
+        Ok(key)
+    }
+
+    pub fn as_algorithm(&self) -> jsonwebtoken::Algorithm {
+        match &self {
+            JWTVerification::HS256(_) => jsonwebtoken::Algorithm::HS256,
+            JWTVerification::RS256(_) => jsonwebtoken::Algorithm::RS256,
+        }
+    }
+}
+
+impl Default for JWTVerification {
+    fn default() -> Self {
+        JWTVerification::HS256("".to_string())
+    }
+}
+
 #[derive(Debug, Deserialize, Default)]
 pub struct Auth {
-    pub jwt_secret: String,
+    pub token_verification: JWTVerification,
     pub expiration_minutes: i64,
 }
 
