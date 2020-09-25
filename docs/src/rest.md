@@ -62,7 +62,7 @@ To also enable debug output, set the value for the `debug` field to `true`.
 The graphANNIS service uses [JSON Web Tokens (JWT)](https://jwt.io/) to authorize access to restricted parts of the REST API.
 The authorization is performed using these tokens and graphANNIS requires certain claims as payload, but how they are generated is up to the administrator of the service.
 For complex authentication and authorization scenarios, like logging in using an institutional account or using e.g. Google or Facebook accounts, you can use an external commercial service like e.g. [https://auth0.com/](Auth0) or install an open source solution like [Keycloak](https://www.keycloak.org/) to generate the secret tokens.
-Your application will redirect to the login-page provided by these services when the user wants to login.
+Your application will need to redirect to the login-page provided by these services when the user wants to login.
 These services then generate a JWT token which should be used as Bearer-Token in the `Authorization` header of each HTTP request to the API.
 
 For an JWT token to be accepted, it must be signed with the HMAC with SHA-256 (HS256) algorithm and a shared secret.
