@@ -1,9 +1,6 @@
 use crate::{errors::ServiceError, settings::Settings};
 use actix_web::{web, HttpResponse};
-use hmac::{Hmac, Mac};
-use jwt::SignWithKey;
 use serde::Deserialize;
-use sha2::Sha256;
 
 #[derive(Serialize, Deserialize)]
 pub struct LoginData {
@@ -31,8 +28,6 @@ pub async fn local_login(
         let provided_password = &login_data.password;
         let verified = bcrypt::verify(&provided_password, &user.password)?;
         if verified {
-            // Create the JWT token
-            let key: Hmac<Sha256> = Hmac::new_varkey(settings.auth.jwt_secret.as_bytes())?;
             // Determine an expiration date based on the configuration
             let now: chrono::DateTime<_> = chrono::Utc::now();
             let exp: i64 = now
@@ -56,8 +51,11 @@ pub async fn local_login(
                 roles,
                 exp: Some(exp),
             };
+            // Create the JWT key and header from the configuration
+            let key = settings.auth.token_verification.create_encoding_key()?;
+            let header = jsonwebtoken::Header::new(settings.auth.token_verification.as_algorithm());
             // Create the actual token
-            let token_str = claims.sign_with_key(&key)?;
+            let token_str = jsonwebtoken::encode(&header, &claims, &key)?;
             return Ok(HttpResponse::Ok()
                 .content_type("text/plain")
                 .body(token_str));

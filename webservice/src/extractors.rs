@@ -1,17 +1,17 @@
 use crate::{api::auth::Claims, errors::ServiceError, settings::Settings};
 use actix_web::{web, FromRequest};
 use futures::future::{err, ok, ready, Ready};
-use hmac::{Hmac, Mac};
-use jwt::VerifyWithKey;
-use sha2::Sha256;
-
 #[derive(Debug, Clone)]
 pub struct ClaimsFromAuth(pub Claims);
 
 fn verify_token(token: &str, settings: &Settings) -> Result<Claims, ServiceError> {
-    let key = Hmac::<Sha256>::new_varkey(settings.auth.jwt_secret.as_bytes())?;
-    let claims = VerifyWithKey::<Claims>::verify_with_key(token, &key)?;
-    let claim_still_valid = if let Some(exp) = claims.exp {
+    let key = settings.auth.token_verification.create_decoding_key()?;
+
+    let validation = jsonwebtoken::Validation::new(settings.auth.token_verification.as_algorithm());
+
+    let token = jsonwebtoken::decode::<Claims>(token, &key, &validation)?;
+
+    let claim_still_valid = if let Some(exp) = token.claims.exp {
         // Check that the claim is still valid, thus not expired
         let expiration_date = chrono::NaiveDateTime::from_timestamp(exp, 0);
         let current_date = chrono::Utc::now();
@@ -21,7 +21,7 @@ fn verify_token(token: &str, settings: &Settings) -> Result<Claims, ServiceError
     };
 
     if claim_still_valid {
-        Ok(claims)
+        Ok(token.claims)
     } else {
         Err(ServiceError::InvalidJWTToken(
             "Token is expired".to_string(),
