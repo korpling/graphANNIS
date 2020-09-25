@@ -9,23 +9,12 @@ fn verify_token(token: &str, settings: &Settings) -> Result<Claims, ServiceError
 
     let validation = jsonwebtoken::Validation::new(settings.auth.token_verification.as_algorithm());
 
-    let token = jsonwebtoken::decode::<Claims>(token, &key, &validation)?;
-
-    let claim_still_valid = if let Some(exp) = token.claims.exp {
-        // Check that the claim is still valid, thus not expired
-        let expiration_date = chrono::NaiveDateTime::from_timestamp(exp, 0);
-        let current_date = chrono::Utc::now();
-        current_date.naive_utc() < expiration_date
-    } else {
-        true
-    };
-
-    if claim_still_valid {
-        Ok(token.claims)
-    } else {
-        Err(ServiceError::InvalidJWTToken(
-            "Token is expired".to_string(),
-        ))
+    match jsonwebtoken::decode::<Claims>(token, &key, &validation) {
+        Ok(token) => Ok(token.claims),
+        Err(err) => {
+            debug!("{}", err);
+            Err(err.into())
+        }
     }
 }
 
