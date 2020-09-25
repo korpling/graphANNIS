@@ -58,7 +58,7 @@ impl FromRequest for ClaimsFromAuth {
 
         // Return an anonymous default claim
         ready(Ok(ClaimsFromAuth(Claims {
-            admin: false,
+            roles: vec![],
             groups: vec![],
             sub: "anonymous".to_string(),
             exp: None,

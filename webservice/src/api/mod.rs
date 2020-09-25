@@ -8,7 +8,13 @@ pub mod corpora;
 pub mod search;
 
 fn check_is_admin(claims: &Claims) -> Result<(), ServiceError> {
-    if claims.admin {
+    if claims
+        .roles
+        .iter()
+        .filter(|r| r.as_str() == "admin")
+        .next()
+        .is_some()
+    {
         Ok(())
     } else {
         Err(ServiceError::NotAnAdministrator(claims.sub.clone()))
@@ -21,7 +27,13 @@ async fn check_corpora_authorized(
     claims: Claims,
     db_pool: &web::Data<DbPool>,
 ) -> Result<Vec<String>, ServiceError> {
-    if claims.admin {
+    if claims
+        .roles
+        .iter()
+        .filter(|r| r.as_str() == "admin")
+        .next()
+        .is_some()
+    {
         // Adminstrators always have access to all corpora
         return Ok(requested_corpora);
     }

@@ -17,7 +17,7 @@ pub struct Claims {
     /// Expiration date as unix timestamp in seconds since epoch and UTC
     pub exp: Option<i64>,
     pub groups: Vec<String>,
-    pub admin: bool,
+    pub roles: Vec<String>,
 }
 
 pub async fn local_login(
@@ -44,10 +44,16 @@ pub async fn local_login(
                 })?
                 .timestamp();
 
+            let roles = if user.admin {
+                vec!["admin".to_string()]
+            } else {
+                vec![]
+            };
+
             let claims = Claims {
                 sub: provided_user.clone(),
                 groups: user.corpus_groups.clone(),
-                admin: user.admin,
+                roles,
                 exp: Some(exp),
             };
             // Create the actual token
