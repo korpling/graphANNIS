@@ -1,9 +1,7 @@
-use crate::{actions, errors::ServiceError, DbPool};
+use crate::{actions, auth::Claims, errors::ServiceError, DbPool};
 use actix_web::web;
-use auth::Claims;
 
 pub mod administration;
-pub mod auth;
 pub mod corpora;
 pub mod search;
 

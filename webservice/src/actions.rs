@@ -1,8 +1,4 @@
-use crate::{
-    api::{administration::Group, auth::Claims},
-    errors::ServiceError,
-    models,
-};
+use crate::{api::administration::Group, auth::Claims, errors::ServiceError, models};
 use diesel::prelude::*;
 use models::CorpusGroup;
 use std::collections::{BTreeSet, HashSet};

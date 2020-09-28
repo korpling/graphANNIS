@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pull requests are now checked with the Clippy static code analyis tool
 - Updated Actix Web dependency for webservice to version 3
 
+### Removed
+
+- The REST API does not act as an identity provider anymore and the `/local-login` endpoint has been removed
+
 ## [0.29.2] - 2020-08-25
 
 ### Fixed

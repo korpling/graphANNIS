@@ -1,4 +1,4 @@
-use crate::{api::auth::Claims, errors::ServiceError, settings::Settings};
+use crate::{auth::Claims, errors::ServiceError, settings::Settings};
 use actix_web::{web, FromRequest};
 use futures::future::{err, ok, ready, Ready};
 #[derive(Debug, Clone)]
