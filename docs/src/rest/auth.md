@@ -39,9 +39,9 @@ public_key = """
 JWT tokens can contain the following claims:
 
 - `sub` (mandatory): The subject the token was issued to.
-- `groups`: A possible empty list of strings to which corpus groups the subject belongs to. All users (even when not logged-in) are part of the `anonymous` group. You can use the API to configure which groups have access to which corpus.
+- `https://corpus-tools.org/annis/groups`: A possible empty list of strings to which corpus groups the subject belongs to. All users (even when not logged-in) are part of the `anonymous` group. You can use the API to configure which groups have access to which corpus.
 - `exp`: An optional expiration date as unix timestamp in seconds since epoch and UTC.
-- `roles`: A list of roles this user has. If the user is an administrator, this user must have the "admin" role.
+- `https://corpus-tools.org/annis/roles`: A list of roles this user has. If the user is an administrator, this user must have the "admin" role.
 
 ## Creating JWT tokens for development or testing
 
@@ -52,5 +52,5 @@ Generate a random secret, add it to you configuration file as `HS256` token veri
 To create a token for an adminstrator user, simply execute
 
 ```bash
-jwt encode --secret "<some-very-private-and-secret-key>" --sub someone -- '{"roles": ["admin"]}'
+jwt encode --secret "<some-very-private-and-secret-key>" --sub someone -- '{"https://corpus-tools.org/annis/roles": ["admin"]}'
 ```
