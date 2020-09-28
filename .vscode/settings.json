@@ -4,5 +4,10 @@
     "debug.node.autoAttach": "on",
     "cSpell.language": "de,en",
     "editor.formatOnSave": true,
-    "editor.formatOnSaveMode": "file"
+    "editor.formatOnSaveMode": "file",
+    "ltex.workspaceFolderDictionary": {
+        "en-US": [
+            "graphANNIS"
+        ]
+    }
 }

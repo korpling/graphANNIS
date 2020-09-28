@@ -7,7 +7,6 @@ use std::fmt::Display;
 pub enum ServiceError {
     BadRequest(String),
     InvalidJWTToken(String),
-    SigningJWTTokenDisabled(String),
     NoSuchCorpus(Vec<String>),
     DatabaseError(String),
     InternalServerError(String),
@@ -32,9 +31,6 @@ impl Display for ServiceError {
             ServiceError::NotFound => write!(f, "Not found",)?,
             ServiceError::NotAnAdministrator(user) => {
                 write!(f, "User {} is not an adminstrator", user)?
-            }
-            ServiceError::SigningJWTTokenDisabled(reason) => {
-                write!(f, "Signing JWT tokens is in the configuration: {}", reason)?
             }
         }
         Ok(())
@@ -63,8 +59,6 @@ impl ResponseError for ServiceError {
             ServiceError::NotFound => HttpResponse::NotFound().finish(),
             ServiceError::NotAnAdministrator(_) => HttpResponse::Forbidden()
                 .json("You need to have administrator privilege to access this resource."),
-            ServiceError::SigningJWTTokenDisabled(_) => HttpResponse::InternalServerError()
-                .json("Signing JWT token is not configured for this service"),
         }
     }
 }
