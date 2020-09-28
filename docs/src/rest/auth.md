@@ -28,9 +28,9 @@ If you want to user the [local accounts feature](#local-accounts), you have to c
 [auth.token_verification]
 type = "RS256"
 public_key = """
------BEGIN CERTIFICATE-----
-<you can share this public key with everyone>
------END CERTIFICATE-----
+-----BEGIN PUBLIC KEY-----
+<you can share this PEM encoded public key with everyone>
+-----END PUBLIC KEY-----
 """
 ```
 
