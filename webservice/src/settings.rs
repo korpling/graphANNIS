@@ -22,18 +22,19 @@ pub struct Database {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(tag = "type")]
 pub enum JWTVerification {
-    HS256(String),
-    RS256(String),
+    HS256 { secret: String },
+    RS256 { public_key: String },
 }
 
 impl JWTVerification {
     pub fn create_decoding_key(&self) -> Result<DecodingKey> {
         let key = match &self {
-            JWTVerification::HS256(secret) => {
+            JWTVerification::HS256 { secret } => {
                 jsonwebtoken::DecodingKey::from_secret(secret.as_bytes())
             }
-            JWTVerification::RS256(public_key) => {
+            JWTVerification::RS256 { public_key } => {
                 jsonwebtoken::DecodingKey::from_rsa_pem(public_key.as_bytes())?
             }
         };
@@ -42,7 +43,7 @@ impl JWTVerification {
 
     pub fn as_algorithm(&self) -> jsonwebtoken::Algorithm {
         match &self {
-            JWTVerification::HS256(_) => jsonwebtoken::Algorithm::HS256,
+            JWTVerification::HS256 { .. } => jsonwebtoken::Algorithm::HS256,
             JWTVerification::RS256 { .. } => jsonwebtoken::Algorithm::RS256,
         }
     }
@@ -50,14 +51,15 @@ impl JWTVerification {
 
 impl Default for JWTVerification {
     fn default() -> Self {
-        JWTVerification::HS256("".to_string())
+        JWTVerification::HS256 {
+            secret: "".to_string(),
+        }
     }
 }
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Auth {
     pub token_verification: JWTVerification,
-    pub expiration_minutes: i64,
 }
 
 #[derive(Debug, Deserialize, Default)]

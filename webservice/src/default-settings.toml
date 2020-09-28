@@ -8,7 +8,6 @@ graphannis = "data/"
 sqlite = "service.sqlite"
 
 [auth]
-expiration_minutes = 120
 token_verification = {HS256 = "not-a-random-secret"}
 
 [logging]
