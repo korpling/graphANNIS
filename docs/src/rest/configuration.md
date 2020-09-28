@@ -19,7 +19,6 @@ debug = false
 
 [auth]
 token_verification = {HS256 = ""}
-expiration_minutes = 120
 ```
 
 ## [bind] section

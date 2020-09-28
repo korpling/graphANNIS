@@ -15,8 +15,9 @@ You can choose between HMAC with SHA-256 (HS256) algorithm and a shared secret o
 Create a random secret and add this secret as value to the `token_verification` key in the `[auth]` section in the graphANNIS configuration and in the external JWT token provider service.
 
 ```toml
-[auth]
-token_verification = {HS256 = "<some-very-private-and-secret-key>"}
+[auth.token_verification]
+type = "HS256"
+secret = "<some-very-private-and-secret-key>"
 ```
 
 ## RSA Signature with SHA-256 (RS256)
@@ -24,8 +25,13 @@ token_verification = {HS256 = "<some-very-private-and-secret-key>"}
 If you want to user the [local accounts feature](#local-accounts), you have to create both a private and public key pair and add the public key as value to the `token_verification` key in the `[auth]` section.
 
 ```toml
-[auth]
-token_verification = {RS256 = "<you can share this public key with everyone>"}
+[auth.token_verification]
+type = "RS256"
+public_key = """
+-----BEGIN CERTIFICATE-----
+<you can share this public key with everyone>
+-----END CERTIFICATE-----
+"""
 ```
 
 ## Claims
