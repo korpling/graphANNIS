@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- JWT secret configuration now supports RS256 in addition to HS256. This enables support of applications which use Keycloak as their identity provider, since they only provide public keys.
 - Pull requests are now checked with the Clippy static code analyis tool
 - Updated Actix Web dependency for webservice to version 3
 
