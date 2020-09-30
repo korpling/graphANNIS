@@ -1,14 +1,12 @@
-use super::cerror;
 use super::cerror::ErrorList;
+use super::{cast_mut, cstr, map_cerr};
 use graphannis::update::{GraphUpdate, UpdateEvent};
-use libc;
-use std;
 
 /// Create a new graph (empty) update instance
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_new() -> *mut GraphUpdate {
     let gu = GraphUpdate::new();
-    return Box::into_raw(Box::new(gu));
+    Box::into_raw(Box::new(gu))
 }
 
 /// Add "add node" action to the graph update object.
@@ -24,14 +22,13 @@ pub extern "C" fn annis_graphupdate_add_node(
     node_type: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) {
-    let u: &mut GraphUpdate = cast_mut!(ptr);
-    return try_cerr!(
+    let u: &mut GraphUpdate = cast_mut(ptr);
+    map_cerr(
         u.add_event(UpdateEvent::AddNode {
-            node_name: String::from(cstr!(node_name)),
-            node_type: String::from(cstr!(node_type)),
+            node_name: String::from(cstr(node_name)),
+            node_type: String::from(cstr(node_type)),
         }),
         err,
-        ()
     );
 }
 
@@ -46,13 +43,12 @@ pub extern "C" fn annis_graphupdate_delete_node(
     node_name: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) {
-    let cs: &mut GraphUpdate = cast_mut!(ptr);
-    return try_cerr!(
+    let cs: &mut GraphUpdate = cast_mut(ptr);
+    map_cerr(
         cs.add_event(UpdateEvent::DeleteNode {
-            node_name: String::from(cstr!(node_name)),
+            node_name: String::from(cstr(node_name)),
         }),
         err,
-        ()
     );
 }
 
@@ -73,16 +69,15 @@ pub extern "C" fn annis_graphupdate_add_node_label(
     anno_value: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) {
-    let cs: &mut GraphUpdate = cast_mut!(ptr);
-    return try_cerr!(
+    let cs: &mut GraphUpdate = cast_mut(ptr);
+    map_cerr(
         cs.add_event(UpdateEvent::AddNodeLabel {
-            node_name: String::from(cstr!(node_name)),
-            anno_ns: String::from(cstr!(anno_ns)),
-            anno_name: String::from(cstr!(anno_name)),
-            anno_value: String::from(cstr!(anno_value)),
+            node_name: String::from(cstr(node_name)),
+            anno_ns: String::from(cstr(anno_ns)),
+            anno_name: String::from(cstr(anno_name)),
+            anno_value: String::from(cstr(anno_value)),
         }),
         err,
-        ()
     );
 }
 
@@ -101,15 +96,14 @@ pub extern "C" fn annis_graphupdate_delete_node_label(
     anno_name: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) {
-    let cs: &mut GraphUpdate = cast_mut!(ptr);
-    return try_cerr!(
+    let cs: &mut GraphUpdate = cast_mut(ptr);
+    map_cerr(
         cs.add_event(UpdateEvent::DeleteNodeLabel {
-            node_name: String::from(cstr!(node_name)),
-            anno_ns: String::from(cstr!(anno_ns)),
-            anno_name: String::from(cstr!(anno_name)),
+            node_name: String::from(cstr(node_name)),
+            anno_ns: String::from(cstr(anno_ns)),
+            anno_name: String::from(cstr(anno_name)),
         }),
         err,
-        ()
     );
 }
 
@@ -132,17 +126,17 @@ pub extern "C" fn annis_graphupdate_add_edge(
     component_name: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) {
-    let cs: &mut GraphUpdate = cast_mut!(ptr);
-    return try_cerr!(
+    let cs: &mut GraphUpdate = cast_mut(ptr);
+
+    map_cerr(
         cs.add_event(UpdateEvent::AddEdge {
-            source_node: String::from(cstr!(source_node)),
-            target_node: String::from(cstr!(target_node)),
-            layer: String::from(cstr!(layer)),
-            component_type: String::from(cstr!(component_type)),
-            component_name: String::from(cstr!(component_name)),
+            source_node: String::from(cstr(source_node)),
+            target_node: String::from(cstr(target_node)),
+            layer: String::from(cstr(layer)),
+            component_type: String::from(cstr(component_type)),
+            component_name: String::from(cstr(component_name)),
         }),
         err,
-        ()
     );
 }
 
@@ -165,17 +159,16 @@ pub extern "C" fn annis_graphupdate_delete_edge(
     component_name: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) {
-    let cs: &mut GraphUpdate = cast_mut!(ptr);
-    return try_cerr!(
+    let cs: &mut GraphUpdate = cast_mut(ptr);
+    map_cerr(
         cs.add_event(UpdateEvent::DeleteEdge {
-            source_node: String::from(cstr!(source_node)),
-            target_node: String::from(cstr!(target_node)),
-            layer: String::from(cstr!(layer)),
-            component_type: String::from(cstr!(component_type)),
-            component_name: String::from(cstr!(component_name)),
+            source_node: String::from(cstr(source_node)),
+            target_node: String::from(cstr(target_node)),
+            layer: String::from(cstr(layer)),
+            component_type: String::from(cstr(component_type)),
+            component_name: String::from(cstr(component_name)),
         }),
         err,
-        ()
     );
 }
 
@@ -204,20 +197,20 @@ pub extern "C" fn annis_graphupdate_add_edge_label(
     anno_value: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) {
-    let cs: &mut GraphUpdate = cast_mut!(ptr);
-    return try_cerr!(
+    let cs: &mut GraphUpdate = cast_mut(ptr);
+
+    map_cerr(
         cs.add_event(UpdateEvent::AddEdgeLabel {
-            source_node: String::from(cstr!(source_node)),
-            target_node: String::from(cstr!(target_node)),
-            layer: String::from(cstr!(layer)),
-            component_type: String::from(cstr!(component_type)),
-            component_name: String::from(cstr!(component_name)),
-            anno_ns: String::from(cstr!(anno_ns)),
-            anno_name: String::from(cstr!(anno_name)),
-            anno_value: String::from(cstr!(anno_value)),
+            source_node: String::from(cstr(source_node)),
+            target_node: String::from(cstr(target_node)),
+            layer: String::from(cstr(layer)),
+            component_type: String::from(cstr(component_type)),
+            component_name: String::from(cstr(component_name)),
+            anno_ns: String::from(cstr(anno_ns)),
+            anno_name: String::from(cstr(anno_name)),
+            anno_value: String::from(cstr(anno_value)),
         }),
         err,
-        ()
     );
 }
 
@@ -244,18 +237,18 @@ pub extern "C" fn annis_graphupdate_delete_edge_label(
     anno_name: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) {
-    let cs: &mut GraphUpdate = cast_mut!(ptr);
-    return try_cerr!(
+    let cs: &mut GraphUpdate = cast_mut(ptr);
+
+    map_cerr(
         cs.add_event(UpdateEvent::DeleteEdgeLabel {
-            source_node: String::from(cstr!(source_node)),
-            target_node: String::from(cstr!(target_node)),
-            layer: String::from(cstr!(layer)),
-            component_type: String::from(cstr!(component_type)),
-            component_name: String::from(cstr!(component_name)),
-            anno_ns: String::from(cstr!(anno_ns)),
-            anno_name: String::from(cstr!(anno_name)),
+            source_node: String::from(cstr(source_node)),
+            target_node: String::from(cstr(target_node)),
+            layer: String::from(cstr(layer)),
+            component_type: String::from(cstr(component_type)),
+            component_name: String::from(cstr(component_name)),
+            anno_ns: String::from(cstr(anno_ns)),
+            anno_name: String::from(cstr(anno_name)),
         }),
         err,
-        ()
     );
 }

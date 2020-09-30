@@ -1,8 +1,5 @@
 pub mod quicksort;
 
-use csv;
-use regex_syntax;
-use std;
 use std::path::Path;
 
 pub fn contains_regex_metacharacters(pattern: &str) -> bool {

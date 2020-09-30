@@ -33,7 +33,6 @@ use graphannis_core::{
 };
 use linked_hash_map::LinkedHashMap;
 use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
-use std;
 use std::borrow::Cow;
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
@@ -48,13 +47,11 @@ use std::thread;
 
 use rustc_hash::FxHashMap;
 
-use rand;
 use rand::seq::SliceRandom;
 use std::{
     ffi::CString,
     io::{BufReader, Write},
 };
-use sys_info;
 
 use anyhow::{Context, Error};
 use aql::model::AnnotationComponentType;
@@ -422,6 +419,8 @@ fn add_subgraph_precedence_with_segmentation(
     Ok(())
 }
 
+type FindIterator<'a> = Box<dyn Iterator<Item = Vec<Match>> + 'a>;
+
 impl CorpusStorage {
     /// Create a new instance with a maximum size for the internal corpus cache.
     ///
@@ -628,7 +627,7 @@ impl CorpusStorage {
         let cache = &mut *cache_lock;
 
         let entry = cache
-            .entry(corpus_name.clone())
+            .entry(corpus_name)
             .or_insert_with(|| Arc::new(RwLock::new(CacheEntry::NotLoaded)));
 
         Ok(entry.clone())
@@ -783,7 +782,7 @@ impl CorpusStorage {
     ) -> Result<Vec<String>>
     where
         R: Read + Seek,
-        F: Fn(&str) -> (),
+        F: Fn(&str),
     {
         // Unzip all files to a temporary directory
         let tmp_dir = tempfile::tempdir()?;
@@ -884,7 +883,7 @@ impl CorpusStorage {
         progress_callback: F,
     ) -> Result<String>
     where
-        F: Fn(&str) -> (),
+        F: Fn(&str),
     {
         let (orig_name, mut graph, config) = match format {
             ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
@@ -1148,7 +1147,7 @@ impl CorpusStorage {
     ) -> Result<()>
     where
         W: Write + Seek,
-        F: Fn(&str) -> (),
+        F: Fn(&str),
     {
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
@@ -1158,7 +1157,7 @@ impl CorpusStorage {
             base_path.push(corpus_name);
         }
         let path_in_zip = base_path.join(format!("{}.graphml", corpus_name));
-        zip.start_file_from_path(&path_in_zip, options.clone())?;
+        zip.start_file_from_path(&path_in_zip, options)?;
 
         let entry = self.get_loaded_entry(corpus_name, false)?;
 
@@ -1190,7 +1189,7 @@ impl CorpusStorage {
         for (node_name, original_path) in self.get_linked_files(corpus_name.as_ref(), graph)? {
             let node_name: String = node_name;
 
-            zip.start_file_from_path(&base_path.join(&node_name), options.clone())?;
+            zip.start_file_from_path(&base_path.join(&node_name), options)?;
             let file_to_copy = File::open(original_path)?;
             let mut reader = BufReader::new(file_to_copy);
             std::io::copy(&mut reader, zip)?;
@@ -1209,11 +1208,11 @@ impl CorpusStorage {
             ExportFormat::GraphML => {
                 if corpora.len() == 1 {
                     self.export_corpus_graphml(corpora[0].as_ref(), path)?;
-                } else if corpora.len() > 1 {
+                } else {
                     return Err(anyhow!(
                         "This format can only export one corpus but {} have been given as argument",
                         corpora.len()
-                    ))?;
+                    ));
                 }
             }
             ExportFormat::GraphMLDirectory => {
@@ -1273,8 +1272,7 @@ impl CorpusStorage {
             let mut _lock = db_entry.write().unwrap();
 
             if db_path.is_dir() && db_path.exists() {
-                std::fs::remove_dir_all(db_path.clone())
-                    .context("Error when removing existing files")?
+                std::fs::remove_dir_all(db_path).context("Error when removing existing files")?
             }
 
             Ok(true)
@@ -1551,7 +1549,7 @@ impl CorpusStorage {
         limit: Option<usize>,
         order: ResultOrder,
         quirks_mode: bool,
-    ) -> Result<(Box<dyn Iterator<Item = Vec<Match>> + 'b>, Option<usize>)> {
+    ) -> Result<(FindIterator<'b>, Option<usize>)> {
         let mut query_config = self.query_config.clone();
         if order == ResultOrder::NotSorted {
             // Do execute query in parallel if the order should not be sorted to have a more stable result ordering.
@@ -1580,7 +1578,7 @@ impl CorpusStorage {
             }
         }
         let mut expected_size: Option<usize> = None;
-        let base_it: Box<dyn Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
+        let base_it: FindIterator = if order == ResultOrder::NotSorted
             || (order == ResultOrder::Normal && plan.is_sorted_by_text() && !quirks_mode)
         {
             // If the output is already sorted correctly, directly return the iterator.
@@ -1827,10 +1825,13 @@ impl CorpusStorage {
             let single_result_length = single_result.len();
             result.extend(single_result.into_iter());
 
-            if let Some(mut limit) = &mut limit {
-                limit = limit - single_result_length;
-                if limit <= 0 {
+            if let Some(current_limit) = limit {
+                if current_limit <= single_result_length {
+                    // Searching in this corpus already yielded enough results
                     break;
+                } else {
+                    // Adjust the limit for the next corpora to the already found results so-far
+                    limit = Some(current_limit - single_result_length);
                 }
             }
             if skipped < offset {
@@ -1970,7 +1971,7 @@ impl CorpusStorage {
         let match_idx: Vec<usize> = (0..max_alt_size).collect();
 
         extract_subgraph_by_query(
-            &prep.db_entry.clone(),
+            &prep.db_entry,
             &prep.query,
             &match_idx,
             &self.query_config,

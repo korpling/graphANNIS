@@ -1,8 +1,6 @@
 use super::cerror::{Error, ErrorList};
-use libc;
-use simplelog;
+use super::cstr;
 use simplelog::{Config, LevelFilter, WriteLogger};
-use std;
 use std::fs::File;
 
 /// Different levels of logging. Higher levels activate logging of events of lower levels as well.
@@ -34,31 +32,31 @@ impl From<LogLevel> for simplelog::LevelFilter {
 /// - `logfile` - The file that is used to output the log messages.
 /// - `level` - Minimum level to output.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+///
+/// # Safety
+///
+/// This functions dereferences the `err` pointer and is therefore unsafe.
 #[no_mangle]
-pub extern "C" fn annis_init_logging(
+pub unsafe extern "C" fn annis_init_logging(
     logfile: *const libc::c_char,
     level: LogLevel,
     err: *mut *mut ErrorList,
 ) {
     if !logfile.is_null() {
-        let logfile: &str = &cstr!(logfile);
+        let logfile: &str = &cstr(logfile);
 
         match File::create(logfile) {
             Ok(f) => {
                 if let Err(e) = WriteLogger::init(LevelFilter::from(level), Config::default(), f) {
                     // File was created, but logger was not.
                     if !err.is_null() {
-                        unsafe {
-                            *err = Box::into_raw(Box::new(vec![Error::from(e)]));
-                        }
+                        *err = Box::into_raw(Box::new(vec![Error::from(e)]));
                     }
                 }
             }
             Err(e) => {
                 if !err.is_null() {
-                    unsafe {
-                        *err = Box::into_raw(Box::new(vec![Error::from(e)]));
-                    }
+                    *err = Box::into_raw(Box::new(vec![Error::from(e)]));
                 }
             }
         };

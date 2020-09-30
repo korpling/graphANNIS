@@ -1,8 +1,7 @@
+use super::cast_const;
 use super::data::{vec_get, vec_size};
 use graphannis::errors;
 use libc::{c_char, size_t};
-use log;
-use std;
 use std::error::Error as StdError;
 use std::ffi::CString;
 
@@ -27,14 +26,15 @@ impl<'a> std::iter::Iterator for CauseIterator<'a> {
     fn next(&mut self) -> std::option::Option<Error> {
         let std_error = self.current?;
         let result = Error {
-            msg: CString::new(std_error.to_string()).unwrap_or(CString::default()),
-            kind: CString::new("Cause").unwrap_or(CString::default()),
+            msg: CString::new(std_error.to_string()).unwrap_or_default(),
+            kind: CString::new("Cause").unwrap_or_default(),
         };
         self.current = std_error.source();
         Some(result)
     }
 }
 
+#[allow(clippy::borrowed_box)]
 fn error_kind(e: &Box<dyn StdError>) -> &'static str {
     if let Some(annis_err) = e.downcast_ref::<errors::GraphAnnisError>() {
         match annis_err {
@@ -60,8 +60,8 @@ fn error_kind(e: &Box<dyn StdError>) -> &'static str {
 pub fn create_error_list(e: Box<dyn StdError>) -> ErrorList {
     let mut result = ErrorList::new();
     result.push(Error {
-        msg: CString::new(e.to_string()).unwrap_or(CString::default()),
-        kind: CString::new(error_kind(&e)).unwrap_or(CString::default()),
+        msg: CString::new(e.to_string()).unwrap_or_default(),
+        kind: CString::new(error_kind(&e)).unwrap_or_default(),
     });
     let cause_it = CauseIterator {
         current: e.source(),
@@ -74,7 +74,7 @@ pub fn create_error_list(e: Box<dyn StdError>) -> ErrorList {
 
 impl From<log::SetLoggerError> for Error {
     fn from(e: log::SetLoggerError) -> Error {
-        let err = if let Ok(error_msg) = CString::new(e.to_string()) {
+        if let Ok(error_msg) = CString::new(e.to_string()) {
             Error {
                 msg: error_msg,
                 kind: CString::new("SetLoggerError").unwrap(),
@@ -85,14 +85,13 @@ impl From<log::SetLoggerError> for Error {
                 msg: CString::new(String::from("Some error occurred")).unwrap(),
                 kind: CString::new("SetLoggerError").unwrap(),
             }
-        };
-        return err;
+        }
     }
 }
 
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Error {
-        let err = if let Ok(error_msg) = CString::new(e.to_string()) {
+        if let Ok(error_msg) = CString::new(e.to_string()) {
             Error {
                 msg: error_msg,
                 kind: CString::new("std::io::Error").unwrap(),
@@ -103,8 +102,7 @@ impl From<std::io::Error> for Error {
                 msg: CString::new(String::from("Some error occurred")).unwrap(),
                 kind: CString::new("std::io::Error").unwrap(),
             }
-        };
-        return err;
+        }
     }
 }
 /// Creates a new error from the internal type
@@ -125,8 +123,8 @@ pub extern "C" fn annis_error_get_msg(ptr: *const ErrorList, i: size_t) -> *cons
     if item.is_null() {
         return std::ptr::null();
     }
-    let err: &Error = cast_const!(item);
-    return err.msg.as_ptr();
+    let err: &Error = cast_const(item);
+    err.msg.as_ptr()
 }
 
 /// Get the kind or type for the error at position `i` in the list.
@@ -136,6 +134,6 @@ pub extern "C" fn annis_error_get_kind(ptr: *const ErrorList, i: size_t) -> *con
     if item.is_null() {
         return std::ptr::null();
     }
-    let err: &Error = cast_const!(item);
-    return err.kind.as_ptr();
+    let err: &Error = cast_const(item);
+    err.kind.as_ptr()
 }

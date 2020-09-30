@@ -16,8 +16,8 @@ pub async fn list(
 ) -> Result<HttpResponse, ServiceError> {
     let all_corpora: Vec<String> = cs.list()?.into_iter().map(|c| c.name).collect();
 
-    let allowed_corpora = if claims.0.admin {
-        // Adminstrators always have access to all corpora
+    let allowed_corpora = if claims.0.roles.iter().any(|r| r.as_str() == "admin") {
+        // Administrators always have access to all corpora
         all_corpora
     } else {
         // Query the database for all allowed corpora of this user
@@ -239,7 +239,7 @@ pub async fn list_files(
             return Err(ServiceError::BadRequest(
                 "No .. allowed in file name".to_string(),
             ));
-        } else if file_path.starts_with("/") {
+        } else if file_path.starts_with('/') {
             return Err(ServiceError::BadRequest(
                 "No absolute path allowed in file name".to_string(),
             ));
@@ -267,13 +267,12 @@ pub async fn list_files(
 }
 
 pub async fn file_content(
-    path: web::Path<(String, String)>,
+    web::Path((corpus, name)): web::Path<(String, String)>,
     claims: ClaimsFromAuth,
     db_pool: web::Data<DbPool>,
     settings: web::Data<Settings>,
 ) -> Result<NamedFile, ServiceError> {
-    let corpus = &path.0;
-    let name = percent_encoding::percent_decode_str(&path.1).decode_utf8_lossy();
+    let name = percent_encoding::percent_decode_str(&name).decode_utf8_lossy();
 
     check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
 
@@ -283,7 +282,7 @@ pub async fn file_content(
         return Err(ServiceError::BadRequest(
             "No .. allowed in file name".to_string(),
         ));
-    } else if file_path.starts_with("/") {
+    } else if file_path.starts_with('/') {
         return Err(ServiceError::BadRequest(
             "No absolute path allowed in file name".to_string(),
         ));

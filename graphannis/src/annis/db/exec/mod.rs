@@ -6,7 +6,6 @@ use crate::{
 };
 use graphannis_core::types::{AnnoKey, NodeID};
 
-use std;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -107,7 +106,7 @@ impl Desc {
         if let Some(ref rhs) = rhs {
             for e in &rhs.node_pos {
                 // the RHS has an offset after the join
-                node_pos.insert(e.0.clone(), e.1 + offset);
+                node_pos.insert(*e.0, e.1 + offset);
             }
         }
 

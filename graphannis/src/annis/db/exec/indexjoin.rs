@@ -6,7 +6,6 @@ use crate::{
     graph::Match,
 };
 use graphannis_core::types::NodeID;
-use std;
 use std::iter::Peekable;
 use std::sync::Arc;
 
@@ -98,8 +97,8 @@ impl<'a> IndexJoin<'a> {
             );
 
             return Some(self.node_annos.get_keys_for_iterator(
-                self.node_search_desc.qname.0.as_ref().map(String::as_str),
-                self.node_search_desc.qname.1.as_ref().map(String::as_str),
+                self.node_search_desc.qname.0.as_deref(),
+                self.node_search_desc.qname.1.as_deref(),
                 it_nodes,
             ));
         }

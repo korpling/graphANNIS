@@ -14,7 +14,6 @@ use crate::{
     corpusstorage::QueryLanguage,
     AnnotationGraph,
 };
-use csv;
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_NS},
     serializer::KeySerializer,
@@ -22,7 +21,6 @@ use graphannis_core::{
     util::disk_collections::DiskMap,
 };
 use percent_encoding::utf8_percent_encode;
-use std;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::convert::TryInto;
@@ -119,7 +117,7 @@ struct TextProperty {
 }
 
 impl KeySerializer for TextProperty {
-    fn create_key<'a>(&'a self) -> Cow<'a, [u8]> {
+    fn create_key(&self) -> Cow<[u8]> {
         let mut result =
             Vec::with_capacity(self.segmentation.len() + 1 + std::mem::size_of::<u32>() * 3);
         result.extend(create_str_vec_key(&[&self.segmentation]));
@@ -177,7 +175,7 @@ struct TextKey {
 }
 
 impl KeySerializer for TextKey {
-    fn create_key<'a>(&'a self) -> Cow<'a, [u8]> {
+    fn create_key(&self) -> Cow<[u8]> {
         let mut result = Vec::with_capacity(std::mem::size_of::<u32>() * 2);
         result.extend(&self.id.to_be_bytes());
         if let Some(corpus_ref) = self.corpus_ref {
@@ -215,7 +213,7 @@ struct NodeByTextEntry {
 }
 
 impl KeySerializer for NodeByTextEntry {
-    fn create_key<'a>(&'a self) -> Cow<'a, [u8]> {
+    fn create_key(&self) -> Cow<[u8]> {
         let mut result =
             Vec::with_capacity(std::mem::size_of::<u32>() * 2 + std::mem::size_of::<NodeID>());
         result.extend(&self.text_id.to_be_bytes());
@@ -328,13 +326,13 @@ pub fn load<F>(
     progress_callback: F,
 ) -> Result<(String, AnnotationGraph, CorpusConfiguration)>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     // convert to path
     let path = PathBuf::from(path);
     if path.is_dir() && path.exists() {
         // check if this is the ANNIS 3.3 import format
-        let annis_version_path = path.clone().join("annis.version");
+        let annis_version_path = path.join("annis.version");
         let is_annis_33 = if annis_version_path.exists() {
             let mut file = File::open(&annis_version_path)?;
             let mut version_str = String::new();
@@ -402,7 +400,7 @@ fn load_node_and_corpus_tables<F>(
     progress_callback: &F,
 ) -> Result<LoadNodeAndCorpusResult>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let corpus_table = parse_corpus_tab(&path, is_annis_33, &progress_callback)?;
     let mut texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
@@ -450,7 +448,7 @@ fn load_edge_tables<F>(
     progress_callback: &F,
 ) -> Result<LoadRankResult>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let load_rank_result = {
         let component_by_id = load_component_tab(path, is_annis_33, progress_callback)?;
@@ -484,7 +482,7 @@ fn load_resolver_vis_map<F>(
     progress_callback: &F,
 ) -> Result<()>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let mut resolver_tab_path = PathBuf::from(path);
     resolver_tab_path.push(if is_annis_33 {
@@ -511,28 +509,28 @@ where
         let line = result?;
 
         let layer = get_field_str(&line, 2).filter(|l| l != "NULL");
-        let element = get_field_str(&line, 3).map_or(None, |e| match e.as_str() {
+        let element = get_field_str(&line, 3).and_then(|e| match e.as_str() {
             "node" => Some(VisualizerRuleElement::Node),
             "edge" => Some(VisualizerRuleElement::Edge),
             _ => None,
         });
-        let vis_type =
-            get_field_str(&line, 4).ok_or(anyhow!("Missing vis_type column in resolver table"))?;
+        let vis_type = get_field_str(&line, 4)
+            .ok_or_else(|| anyhow!("Missing vis_type column in resolver table"))?;
         let display_name = get_field_str(&line, 5)
-            .ok_or(anyhow!("Missing display_name column in resolver table"))?;
+            .ok_or_else(|| anyhow!("Missing display_name column in resolver table"))?;
 
         let visibility = get_field_str(&line, 6)
-            .ok_or(anyhow!("Missing visibility column in resolver table"))?;
+            .ok_or_else(|| anyhow!("Missing visibility column in resolver table"))?;
 
-        let order =
-            get_field_str(&line, 7).ok_or(anyhow!("Missing order column in resolver table"))?;
+        let order = get_field_str(&line, 7)
+            .ok_or_else(|| anyhow!("Missing order column in resolver table"))?;
         let order = i64::from_str_radix(&order, 10).unwrap_or_default();
         let mappings: BTreeMap<String, String> =
             if let Some(mappings_field) = get_field_str(&line, 8) {
                 mappings_field
-                    .split(";")
+                    .split(';')
                     .filter_map(|key_value| {
-                        let splitted: Vec<_> = key_value.splitn(2, ":").collect();
+                        let splitted: Vec<_> = key_value.splitn(2, ':').collect();
                         if splitted.len() == 2 {
                             Some((splitted[0].to_string(), splitted[1].to_string()))
                         } else {
@@ -597,7 +595,7 @@ fn load_example_queries<F>(
     progress_callback: &F,
 ) -> Result<()>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let mut example_queries_path = PathBuf::from(path);
     example_queries_path.push(if is_annis_33 {
@@ -639,7 +637,7 @@ fn load_corpus_properties<F>(
     progress_callback: &F,
 ) -> Result<()>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let corpus_config_path = path.join("ExtData").join("corpus.properties");
 
@@ -658,7 +656,7 @@ where
     // read all lines
     for line in content.lines() {
         // split into key and value
-        let splitted: Vec<_> = line.splitn(2, "=").collect();
+        let splitted: Vec<_> = line.splitn(2, '=').collect();
         if splitted.len() == 2 {
             let key = splitted[0];
             let value = splitted[1];
@@ -693,7 +691,7 @@ where
                     if !value.is_empty() {
                         // Entry is a comma-separated list
                         config.view.hidden_annos =
-                            value.split(",").map(|a| a.trim().to_owned()).collect();
+                            value.split(',').map(|a| a.trim().to_owned()).collect();
                     }
                 }
                 _ => {}
@@ -705,21 +703,18 @@ where
     // Use a second pass to make sure it already has been set.
     for line in content.lines() {
         // split into key and value
-        let splitted: Vec<_> = line.splitn(2, "=").collect();
+        let splitted: Vec<_> = line.splitn(2, '=').collect();
         if splitted.len() == 2 {
             let key = splitted[0];
             let value = splitted[1];
 
-            match key {
-                "context-steps" => {
-                    if let Ok(value) = usize::from_str_radix(value, 10) {
-                        config.context.sizes = (value..=config.context.max.unwrap_or(value))
-                            .step_by(value)
-                            .collect();
-                    }
+            if let "context-steps" = key {
+                if let Ok(value) = usize::from_str_radix(value, 10) {
+                    config.context.sizes = (value..=config.context.max.unwrap_or(value))
+                        .step_by(value)
+                        .collect();
                 }
-                _ => {}
-            };
+            }
         }
     }
 
@@ -800,7 +795,7 @@ fn parse_corpus_tab<F>(
     progress_callback: &F,
 ) -> Result<ParsedCorpusTable>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let mut corpus_tab_path = PathBuf::from(path);
     corpus_tab_path.push(if is_annis_33 {
@@ -824,16 +819,16 @@ where
 
         let id = line
             .get(0)
-            .ok_or(anyhow!("Missing column"))?
+            .ok_or_else(|| anyhow!("Missing column"))?
             .parse::<u32>()?;
-        let name = get_field_str(&line, 1).ok_or(anyhow!("Missing column"))?;
+        let name = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
         let pre_order = line
             .get(4)
-            .ok_or(anyhow!("Missing column"))?
+            .ok_or_else(|| anyhow!("Missing column"))?
             .parse::<u32>()?;
         let post_order = line
             .get(5)
-            .ok_or(anyhow!("Missing column"))?
+            .ok_or_else(|| anyhow!("Missing column"))?
             .parse::<u32>()?;
 
         corpus_by_id.insert(
@@ -851,12 +846,12 @@ where
     let toplevel_corpus_id = corpus_by_preorder
         .iter()
         .next()
-        .ok_or(anyhow!("Toplevel corpus not found"))?
+        .ok_or_else(|| anyhow!("Toplevel corpus not found"))?
         .1;
     Ok(ParsedCorpusTable {
         toplevel_corpus_name: corpus_by_id
             .get(toplevel_corpus_id)
-            .ok_or(anyhow!("Toplevel corpus name not found"))?
+            .ok_or_else(|| anyhow!("Toplevel corpus name not found"))?
             .name
             .clone(),
         corpus_by_preorder,
@@ -870,7 +865,7 @@ fn parse_text_tab<F>(
     progress_callback: &F,
 ) -> Result<DiskMap<TextKey, Text>>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let mut text_tab_path = PathBuf::from(path);
     text_tab_path.push(if is_annis_33 {
@@ -893,18 +888,18 @@ where
 
         let id = line
             .get(if is_annis_33 { 1 } else { 0 })
-            .ok_or(anyhow!("Missing column"))?
+            .ok_or_else(|| anyhow!("Missing column"))?
             .parse::<u32>()?;
         let name = get_field_str(&line, if is_annis_33 { 2 } else { 1 })
-            .ok_or(anyhow!("Missing column"))?;
+            .ok_or_else(|| anyhow!("Missing column"))?;
 
         let value = get_field_str(&line, if is_annis_33 { 3 } else { 2 })
-            .ok_or(anyhow!("Missing column"))?;
+            .ok_or_else(|| anyhow!("Missing column"))?;
 
         let corpus_ref = if is_annis_33 {
             Some(
                 line.get(0)
-                    .ok_or(anyhow!("Missing column"))?
+                    .ok_or_else(|| anyhow!("Missing column"))?
                     .parse::<u32>()?,
             )
         } else {
@@ -924,7 +919,7 @@ fn calculate_automatic_token_order<F>(
     progress_callback: &F,
 ) -> Result<()>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     // iterate over all token by their order, find the nodes with the same
     // text coverage (either left or right) and add explicit Ordering edge
@@ -1087,16 +1082,16 @@ fn add_automatic_cov_edge_for_node(
                     source_node: load_node_and_corpus_result
                         .id_to_node_name
                         .try_get(&n)?
-                        .ok_or(anyhow!("Missing node name"))?
+                        .ok_or_else(|| anyhow!("Missing node name"))?
                         .clone(),
                     target_node: load_node_and_corpus_result
                         .id_to_node_name
                         .try_get(&tok_id)?
-                        .ok_or(anyhow!("Missing node name"))?
+                        .ok_or_else(|| anyhow!("Missing node name"))?
                         .clone(),
                     layer: component_layer,
                     component_type: AnnotationComponentType::Coverage.to_string(),
-                    component_name: component_name,
+                    component_name,
                 })?;
             }
         }
@@ -1112,7 +1107,7 @@ fn calculate_automatic_coverage_edges<F>(
     progress_callback: &F,
 ) -> Result<()>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     // add explicit coverage edges for each node in the special annis namespace coverage component
     progress_callback("calculating the automatically generated Coverage edges");
@@ -1174,7 +1169,7 @@ fn add_white_space_token_labels<F>(
     progress_callback: &F,
 ) -> Result<()>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     progress_callback("adding non-tokenized primary text segments as white-space label to tokens");
     let mut added_whitespace_label_count = 0;
@@ -1219,12 +1214,15 @@ where
                     // We need to add the potential whitespace before this token as label
                     let mut covered_text_before =
                         String::with_capacity(token_left_char - current_text_offset);
+                    let mut skipped_before_token = 0;
                     for _ in current_text_offset..token_left_char {
                         if let Some(c) = text_char_it.next() {
                             covered_text_before.push(c);
-                            current_text_offset += 1;
+                            skipped_before_token += 1;
                         }
                     }
+                    current_text_offset += skipped_before_token;
+
                     if let Some(token_name) = id_to_node_name.try_get(&current_token_id)? {
                         updates.add_event(UpdateEvent::AddNodeLabel {
                             node_name: token_name,
@@ -1237,11 +1235,13 @@ where
                 }
 
                 // Skip the characters of the current token
+                let mut skipped_token_characters = 0;
                 for _ in current_text_offset..token_right_char {
                     if text_char_it.next().is_some() {
-                        current_text_offset += 1;
+                        skipped_token_characters += 1;
                     }
                 }
+                current_text_offset += skipped_token_characters;
 
                 // Get the token borders of the next token to determine where the whitespace after this token is
                 let mut whitespace_end_pos = None;
@@ -1268,10 +1268,12 @@ where
                     for _ in current_text_offset..end_pos {
                         if let Some(c) = text_char_it.next() {
                             covered_text_after.push(c);
-                            current_text_offset += 1;
                         }
                     }
+                    current_text_offset += end_pos - current_text_offset;
                 } else {
+                    // We can't borrow the iterator here (would not be an iterator) and we can't own it using a for-loop
+                    #[allow(clippy::while_let_on_iterator)]
                     while let Some(c) = text_char_it.next() {
                         covered_text_after.push(c);
                         current_text_offset += 1;
@@ -1307,7 +1309,7 @@ fn load_node_tab<F>(
     progress_callback: &F,
 ) -> Result<NodeTabParseResult>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let mut nodes_by_text: DiskMap<NodeByTextEntry, bool> = DiskMap::default();
     let mut missing_seg_span: DiskMap<NodeID, String> = DiskMap::default();
@@ -1346,20 +1348,20 @@ where
 
             let node_nr = line
                 .get(0)
-                .ok_or(anyhow!("Missing column"))?
+                .ok_or_else(|| anyhow!("Missing column"))?
                 .parse::<NodeID>()?;
             let has_segmentations = is_annis_33 || line.len() > 10;
-            let token_index_raw = line.get(7).ok_or(anyhow!("Missing column"))?;
+            let token_index_raw = line.get(7).ok_or_else(|| anyhow!("Missing column"))?;
             let text_id = line
                 .get(1)
-                .ok_or(anyhow!("Missing column"))?
+                .ok_or_else(|| anyhow!("Missing column"))?
                 .parse::<u32>()?;
             let corpus_id = line
                 .get(2)
-                .ok_or(anyhow!("Missing column"))?
+                .ok_or_else(|| anyhow!("Missing column"))?
                 .parse::<u32>()?;
-            let layer = get_field_str(&line, 3).ok_or(anyhow!("Missing column"))?;
-            let node_name = get_field_str(&line, 4).ok_or(anyhow!("Missing column"))?;
+            let layer = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
+            let node_name = get_field_str(&line, 4).ok_or_else(|| anyhow!("Missing column"))?;
 
             nodes_by_text.insert(
                 NodeByTextEntry {
@@ -1409,7 +1411,7 @@ where
             // Add the raw character offsets so it is possible to extract the text later on
             let left_char_val = line
                 .get(5)
-                .ok_or(anyhow!("Missing column"))?
+                .ok_or_else(|| anyhow!("Missing column"))?
                 .parse::<u32>()?;
             let left_char_pos = TextProperty {
                 segmentation: String::from(""),
@@ -1419,7 +1421,7 @@ where
             };
             let right_char_val = line
                 .get(6)
-                .ok_or(anyhow!("Missing column"))?
+                .ok_or_else(|| anyhow!("Missing column"))?
                 .parse::<u32>()?;
             let right_char_pos = TextProperty {
                 segmentation: String::from(""),
@@ -1442,7 +1444,7 @@ where
 
             let left_alignment_val = line
                 .get(left_alignment_column)
-                .ok_or(anyhow!("Missing column"))?
+                .ok_or_else(|| anyhow!("Missing column"))?
                 .parse::<u32>()?;
             let left_alignment = TextProperty {
                 segmentation: String::from(""),
@@ -1452,7 +1454,7 @@ where
             };
             let right_alignment_val = line
                 .get(right_alignment_column)
-                .ok_or(anyhow!("Missing column"))?
+                .ok_or_else(|| anyhow!("Missing column"))?
                 .parse::<u32>()?;
             let right_alignment = TextProperty {
                 segmentation: String::from(""),
@@ -1469,9 +1471,9 @@ where
 
             if token_index_raw != "NULL" {
                 let span = if has_segmentations {
-                    get_field_str(&line, 12).ok_or(anyhow!("Missing column"))?
+                    get_field_str(&line, 12).ok_or_else(|| anyhow!("Missing column"))?
                 } else {
-                    get_field_str(&line, 9).ok_or(anyhow!("Missing column"))?
+                    get_field_str(&line, 9).ok_or_else(|| anyhow!("Missing column"))?
                 };
 
                 updates.add_event(UpdateEvent::AddNodeLabel {
@@ -1499,19 +1501,19 @@ where
                     .insert(right_alignment, node_nr)?;
             } else if has_segmentations {
                 let segmentation_name = if is_annis_33 {
-                    get_field_str(&line, 11).ok_or(anyhow!("Missing column"))?
+                    get_field_str(&line, 11).ok_or_else(|| anyhow!("Missing column"))?
                 } else {
-                    get_field_str(&line, 8).ok_or(anyhow!("Missing column"))?
+                    get_field_str(&line, 8).ok_or_else(|| anyhow!("Missing column"))?
                 };
 
                 if segmentation_name != "NULL" {
                     let seg_index = if is_annis_33 {
                         line.get(10)
-                            .ok_or(anyhow!("Missing column"))?
+                            .ok_or_else(|| anyhow!("Missing column"))?
                             .parse::<u32>()?
                     } else {
                         line.get(9)
-                            .ok_or(anyhow!("Missing column"))?
+                            .ok_or_else(|| anyhow!("Missing column"))?
                             .parse::<u32>()?
                     };
 
@@ -1522,7 +1524,7 @@ where
                             anno_ns: ANNIS_NS.to_owned(),
                             anno_name: TOK.to_owned(),
                             anno_value: get_field_str(&line, 12)
-                                .ok_or(anyhow!("Missing column"))?,
+                                .ok_or_else(|| anyhow!("Missing column"))?,
                         })?;
                     } else {
                         // we need to get the span information from the node_annotation file later
@@ -1591,7 +1593,7 @@ fn load_node_anno_tab<F>(
     progress_callback: &F,
 ) -> Result<()>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let mut node_anno_tab_path = PathBuf::from(path);
     node_anno_tab_path.push(if is_annis_33 {
@@ -1610,14 +1612,14 @@ where
     for (line_nr, result) in node_anno_tab_csv.records().enumerate() {
         let line = result?;
 
-        let col_id = line.get(0).ok_or(anyhow!("Missing column"))?;
+        let col_id = line.get(0).ok_or_else(|| anyhow!("Missing column"))?;
         let node_id: NodeID = col_id.parse()?;
         let node_name = id_to_node_name
             .try_get(&node_id)?
-            .ok_or(anyhow!("Missing node name"))?;
-        let col_ns = get_field_str(&line, 1).ok_or(anyhow!("Missing column"))?;
-        let col_name = get_field_str(&line, 2).ok_or(anyhow!("Missing column"))?;
-        let col_val = get_field_str(&line, 3).ok_or(anyhow!("Missing column"))?;
+            .ok_or_else(|| anyhow!("Missing node name"))?;
+        let col_ns = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
+        let col_name = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?;
+        let col_val = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
         // we have to make some sanity checks
         if col_ns != "annis" || col_name != "tok" {
             let anno_val: String = if col_val == "NULL" {
@@ -1642,8 +1644,8 @@ where
 
             // add all missing span values from the annotation, but don't add NULL values
             if let Some(seg) = missing_seg_span.try_get(&node_id)? {
-                if seg == get_field_str(&line, 2).ok_or(anyhow!("Missing column"))?
-                    && get_field_str(&line, 3).ok_or(anyhow!("Missing column"))? != "NULL"
+                if seg == get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?
+                    && get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))? != "NULL"
                 {
                     updates.add_event(UpdateEvent::AddNodeLabel {
                         node_name: node_name.clone(),
@@ -1673,7 +1675,7 @@ fn load_component_tab<F>(
     progress_callback: &F,
 ) -> Result<BTreeMap<u32, Component<AnnotationComponentType>>>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let mut component_tab_path = PathBuf::from(path);
     component_tab_path.push(if is_annis_33 {
@@ -1693,11 +1695,14 @@ where
     for result in component_tab_csv.records() {
         let line = result?;
 
-        let cid: u32 = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
-        let col_type = get_field_str(&line, 1).ok_or(anyhow!("Missing column"))?;
+        let cid: u32 = line
+            .get(0)
+            .ok_or_else(|| anyhow!("Missing column"))?
+            .parse()?;
+        let col_type = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
         if col_type != "NULL" {
-            let layer = get_field_str(&line, 2).ok_or(anyhow!("Missing column"))?;
-            let name = get_field_str(&line, 3).ok_or(anyhow!("Missing column"))?;
+            let layer = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?;
+            let name = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
             let name = if name == "NULL" {
                 String::from("")
             } else {
@@ -1719,7 +1724,7 @@ fn load_nodes<F>(
     progress_callback: &F,
 ) -> Result<LoadNodeResult>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let node_tab_parse_result = load_node_tab(
         path,
@@ -1755,7 +1760,7 @@ fn load_rank_tab<F>(
     progress_callback: &F,
 ) -> Result<LoadRankResult>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let mut rank_tab_path = PathBuf::from(path);
     rank_tab_path.push(if is_annis_33 {
@@ -1786,10 +1791,13 @@ where
     let mut pre_to_node_id: DiskMap<u32, NodeID> = DiskMap::default();
     for result in rank_tab_csv.records() {
         let line = result?;
-        let pre: u32 = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
+        let pre: u32 = line
+            .get(0)
+            .ok_or_else(|| anyhow!("Missing column"))?
+            .parse()?;
         let node_id: NodeID = line
             .get(pos_node_ref)
-            .ok_or(anyhow!("Missing column"))?
+            .ok_or_else(|| anyhow!("Missing column"))?
             .parse()?;
         pre_to_node_id.insert(pre, node_id)?;
     }
@@ -1802,15 +1810,17 @@ where
 
         let component_ref: u32 = line
             .get(pos_component_ref)
-            .ok_or(anyhow!("Missing column"))?
+            .ok_or_else(|| anyhow!("Missing column"))?
             .parse()?;
 
         let target: NodeID = line
             .get(pos_node_ref)
-            .ok_or(anyhow!("Missing column"))?
+            .ok_or_else(|| anyhow!("Missing column"))?
             .parse()?;
 
-        let parent_as_str = line.get(pos_parent).ok_or(anyhow!("Missing column"))?;
+        let parent_as_str = line
+            .get(pos_parent)
+            .ok_or_else(|| anyhow!("Missing column"))?;
         if parent_as_str == "NULL" {
             if let Some(c) = component_by_id.get(&component_ref) {
                 if c.get_type() == AnnotationComponentType::Coverage {
@@ -1827,18 +1837,21 @@ where
                     updates.add_event(UpdateEvent::AddEdge {
                         source_node: id_to_node_name
                             .try_get(&source)?
-                            .ok_or(anyhow!("Missing node name"))?
+                            .ok_or_else(|| anyhow!("Missing node name"))?
                             .to_owned(),
                         target_node: id_to_node_name
                             .try_get(&target)?
-                            .ok_or(anyhow!("Missing node name"))?
+                            .ok_or_else(|| anyhow!("Missing node name"))?
                             .to_owned(),
                         layer: c.layer.clone(),
                         component_type: c.get_type().to_string(),
                         component_name: c.name.clone(),
                     })?;
 
-                    let pre: u32 = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
+                    let pre: u32 = line
+                        .get(0)
+                        .ok_or_else(|| anyhow!("Missing column"))?
+                        .parse()?;
 
                     let e = Edge { source, target };
 
@@ -1877,7 +1890,7 @@ fn load_edge_annotation<F>(
     progress_callback: &F,
 ) -> Result<()>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let mut edge_anno_tab_path = PathBuf::from(path);
     edge_anno_tab_path.push(if is_annis_33 {
@@ -1896,22 +1909,25 @@ where
     for result in edge_anno_tab_csv.records() {
         let line = result?;
 
-        let pre: u32 = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
+        let pre: u32 = line
+            .get(0)
+            .ok_or_else(|| anyhow!("Missing column"))?
+            .parse()?;
         if let Some(c) = rank_result.components_by_pre.try_get(&pre)? {
             if let Some(e) = rank_result.edges_by_pre.try_get(&pre)? {
-                let ns = get_field_str(&line, 1).ok_or(anyhow!("Missing column"))?;
+                let ns = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
                 let ns = if ns == "NULL" { String::default() } else { ns };
-                let name = get_field_str(&line, 2).ok_or(anyhow!("Missing column"))?;
-                let val = get_field_str(&line, 3).ok_or(anyhow!("Missing column"))?;
+                let name = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?;
+                let val = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
 
                 updates.add_event(UpdateEvent::AddEdgeLabel {
                     source_node: id_to_node_name
                         .try_get(&e.source)?
-                        .ok_or(anyhow!("Missing node name"))?
+                        .ok_or_else(|| anyhow!("Missing node name"))?
                         .to_owned(),
                     target_node: id_to_node_name
                         .try_get(&e.target)?
-                        .ok_or(anyhow!("Missing node name"))?
+                        .ok_or_else(|| anyhow!("Missing node name"))?
                         .to_owned(),
                     layer: c.layer.clone(),
                     component_type: c.get_type().to_string(),
@@ -1933,7 +1949,7 @@ fn load_corpus_annotation<F>(
     progress_callback: &F,
 ) -> Result<BTreeMap<(u32, AnnoKey), String>>
 where
-    F: Fn(&str) -> (),
+    F: Fn(&str),
 {
     let mut corpus_id_to_anno = BTreeMap::new();
 
@@ -1954,11 +1970,14 @@ where
     for result in corpus_anno_tab_csv.records() {
         let line = result?;
 
-        let id = line.get(0).ok_or(anyhow!("Missing column"))?.parse()?;
-        let ns = get_field_str(&line, 1).ok_or(anyhow!("Missing column"))?;
+        let id = line
+            .get(0)
+            .ok_or_else(|| anyhow!("Missing column"))?
+            .parse()?;
+        let ns = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
         let ns = if ns == "NULL" { String::default() } else { ns };
-        let name = get_field_str(&line, 2).ok_or(anyhow!("Missing column"))?;
-        let val = get_field_str(&line, 3).ok_or(anyhow!("Missing column"))?;
+        let name = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?;
+        let val = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
 
         let anno_key = AnnoKey { ns, name };
 
@@ -2147,7 +2166,7 @@ fn add_subcorpora(
                     source_node: node_node_result
                         .id_to_node_name
                         .try_get(&n)?
-                        .ok_or(anyhow!("Missing node name"))?
+                        .ok_or_else(|| anyhow!("Missing node name"))?
                         .clone(),
                     target_node: text_full_name.clone(),
                     layer: ANNIS_NS.to_owned(),

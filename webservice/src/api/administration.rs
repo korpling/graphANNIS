@@ -2,14 +2,15 @@ use super::check_is_admin;
 use crate::{
     actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool,
 };
-use actix_web::web::{self, HttpResponse};
+use actix_files::NamedFile;
+use actix_web::{
+    web::{self, HttpResponse},
+    HttpRequest,
+};
 use futures::prelude::*;
 use graphannis::CorpusStorage;
-use std::io::Read;
 use std::io::Seek;
 use std::{collections::HashMap, fs::File, io::Write, sync::Mutex};
-use stream::try_unfold;
-use web::Bytes;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Group {
@@ -22,7 +23,7 @@ pub enum JobStatus {
     Running,
     Failed,
     #[serde(skip)]
-    Finished(Option<File>),
+    Finished(Option<(File, String)>),
 }
 
 #[derive(Serialize)]
@@ -178,7 +179,7 @@ pub struct ExportParams {
 }
 
 fn export_corpus_background_taks(
-    corpora: &Vec<String>,
+    corpora: &[String],
     cs: &CorpusStorage,
     id: uuid::Uuid,
     background_jobs: web::Data<BackgroundJobs>,
@@ -236,7 +237,8 @@ pub async fn export_corpus(
             Ok(tmp_file) => {
                 let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
                 if let Some(j) = jobs.get_mut(&id) {
-                    j.status = JobStatus::Finished(Some(tmp_file));
+                    let created_file_name = params.corpora.join("_") + ".zip";
+                    j.status = JobStatus::Finished(Some((tmp_file, created_file_name)));
                 }
             }
             Err(err) => {
@@ -259,6 +261,7 @@ pub async fn jobs(
     uuid: web::Path<String>,
     background_jobs: web::Data<BackgroundJobs>,
     claims: ClaimsFromAuth,
+    req: HttpRequest,
 ) -> Result<HttpResponse, ServiceError> {
     check_is_admin(&claims.0)?;
 
@@ -266,12 +269,9 @@ pub async fn jobs(
 
     let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
     if let Some(j) = jobs.get(&uuid) {
-        match j.status {
-            JobStatus::Running => {
-                // Job still running, do not remove it from the job list
-                return Ok(HttpResponse::Accepted().json(j));
-            }
-            _ => {}
+        if let JobStatus::Running = j.status {
+            // Job still running, do not remove it from the job list
+            return Ok(HttpResponse::Accepted().json(j));
         }
     }
     // Job is finished/errored: remove it from the list and process it
@@ -281,32 +281,10 @@ pub async fn jobs(
                 return Ok(HttpResponse::Gone().json(j));
             }
             JobStatus::Finished(result) => {
-                if let Some(result) = result {
-                    let reader = try_unfold(result.bytes(), |mut file| async move {
-                        let mut buffer: Vec<u8> = Vec::with_capacity(1024);
-                        for _ in 0..1024 {
-                            if let Some(b) = file.next() {
-                                match b {
-                                    Ok(b) => buffer.push(b),
-                                    Err(err) => {
-                                        return Err(ServiceError::InternalServerError(format!(
-                                            "{}",
-                                            err.to_string()
-                                        )))
-                                    }
-                                }
-                            } else {
-                                // End of file
-                                break;
-                            }
-                        }
-                        if buffer.is_empty() {
-                            Ok(None)
-                        } else {
-                            Ok(Some((Bytes::from(buffer), file)))
-                        }
-                    });
-                    return Ok(HttpResponse::Ok().streaming(reader));
+                if let Some((tmp_file, file_name)) = result {
+                    let named_file = NamedFile::from_file(tmp_file, file_name)?;
+                    let response = named_file.into_response(&req)?;
+                    return Ok(response);
                 } else {
                     return Ok(HttpResponse::Ok().json(j.messages));
                 }

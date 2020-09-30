@@ -12,7 +12,6 @@ use graphannis_core::{
     types::Component,
 };
 
-use std;
 use std::collections::HashSet;
 use std::sync::Arc;
 

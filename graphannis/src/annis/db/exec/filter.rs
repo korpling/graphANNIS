@@ -4,7 +4,6 @@ use crate::{
     annis::operator::{BinaryOperator, EstimationType, UnaryOperator},
     graph::Match,
 };
-use std;
 
 pub struct Filter<'a> {
     it: Box<dyn Iterator<Item = Vec<Match>> + 'a>,

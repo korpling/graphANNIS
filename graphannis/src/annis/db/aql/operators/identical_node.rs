@@ -4,7 +4,6 @@ use crate::{
     graph::Match,
 };
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
-use std;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]

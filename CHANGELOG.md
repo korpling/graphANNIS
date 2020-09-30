@@ -5,6 +5,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.30.0] - 2020-09-30
+
+### Changed
+
+- JWT secret configuration now supports RS256 in addition to HS256. This enables support of applications which use Keycloak as their identity provider, since they only provide public keys.
+- JWT tokens now should have the `roles` field instead of using the `admin` field. This enhances compatibility with Keycloak.
+- Pull requests are now checked with the Clippy static code analyis tool
+- Updated Actix Web dependency for webservice to version 3
+
+### Removed
+
+- The REST API does not act as an identity provider anymore and the `/local-login` endpoint has been removed
+
 ## [0.29.2] - 2020-08-25
 
 ### Fixed

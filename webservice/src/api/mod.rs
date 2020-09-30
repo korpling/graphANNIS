@@ -1,14 +1,12 @@
-use crate::{actions, errors::ServiceError, DbPool};
+use crate::{actions, auth::Claims, errors::ServiceError, DbPool};
 use actix_web::web;
-use auth::Claims;
 
 pub mod administration;
-pub mod auth;
 pub mod corpora;
 pub mod search;
 
 fn check_is_admin(claims: &Claims) -> Result<(), ServiceError> {
-    if claims.admin {
+    if claims.roles.iter().any(|r| r.as_str() == "admin") {
         Ok(())
     } else {
         Err(ServiceError::NotAnAdministrator(claims.sub.clone()))
@@ -21,8 +19,8 @@ async fn check_corpora_authorized(
     claims: Claims,
     db_pool: &web::Data<DbPool>,
 ) -> Result<Vec<String>, ServiceError> {
-    if claims.admin {
-        // Adminstrators always have access to all corpora
+    if claims.roles.iter().any(|r| r.as_str() == "admin") {
+        // Administrators always have access to all corpora
         return Ok(requested_corpora);
     }
 

@@ -1,19 +1,18 @@
+use super::{cast_const, cstr};
 use crate::data::IterPtr;
 use graphannis::{
     graph::{Annotation, Edge, GraphStorage, Match, NodeID},
     model::{AnnotationComponent, AnnotationComponentType},
     AnnotationGraph,
 };
-use libc;
-use std;
 use std::ffi::CString;
 use std::sync::Arc;
 
 /// Get the type of the given component.
 #[no_mangle]
 pub extern "C" fn annis_component_type(c: *const AnnotationComponent) -> AnnotationComponentType {
-    let c: &AnnotationComponent = cast_const!(c);
-    return c.get_type();
+    let c: &AnnotationComponent = cast_const(c);
+    c.get_type()
 }
 
 /// Get the layer of the given component.
@@ -21,9 +20,9 @@ pub extern "C" fn annis_component_type(c: *const AnnotationComponent) -> Annotat
 /// The returned string must be deallocated by the caller using annis_str_free()!
 #[no_mangle]
 pub extern "C" fn annis_component_layer(c: *const AnnotationComponent) -> *mut libc::c_char {
-    let c: &AnnotationComponent = cast_const!(c);
+    let c: &AnnotationComponent = cast_const(c);
     let as_string: &str = &c.layer;
-    return CString::new(as_string).unwrap_or_default().into_raw();
+    CString::new(as_string).unwrap_or_default().into_raw()
 }
 
 /// Get the name of the given component.
@@ -31,9 +30,9 @@ pub extern "C" fn annis_component_layer(c: *const AnnotationComponent) -> *mut l
 /// The returned string must be deallocated by the caller using annis_str_free()!
 #[no_mangle]
 pub extern "C" fn annis_component_name(c: *const AnnotationComponent) -> *mut libc::c_char {
-    let c: &AnnotationComponent = cast_const!(c);
+    let c: &AnnotationComponent = cast_const(c);
     let as_string: &str = &c.name;
-    return CString::new(as_string).unwrap_or_default().into_raw();
+    CString::new(as_string).unwrap_or_default().into_raw()
 }
 
 /// Return an iterator over all nodes of the graph `g` and the given `node_type` (e.g. "node" or "corpus").
@@ -42,13 +41,13 @@ pub extern "C" fn annis_graph_nodes_by_type(
     g: *const AnnotationGraph,
     node_type: *const libc::c_char,
 ) -> *mut IterPtr<NodeID> {
-    let db: &AnnotationGraph = cast_const!(g);
-    let node_type = cstr!(node_type);
+    let db: &AnnotationGraph = cast_const(g);
+    let node_type = cstr(node_type);
     let it = db
         .get_node_annos()
         .exact_anno_search(Some("annis"), "node_type", Some(node_type.as_ref()).into())
         .map(|m: Match| m.node);
-    return Box::into_raw(Box::new(Box::new(it)));
+    Box::into_raw(Box::new(Box::new(it)))
 }
 
 /// Return a vector of all annotations for the given `node` in the graph `g`.
@@ -57,7 +56,7 @@ pub extern "C" fn annis_graph_annotations_for_node(
     g: *const AnnotationGraph,
     node: NodeID,
 ) -> *mut Vec<Annotation> {
-    let db: &AnnotationGraph = cast_const!(g);
+    let db: &AnnotationGraph = cast_const(g);
 
     Box::into_raw(Box::new(
         db.get_node_annos().get_annotations_for_item(&node),
@@ -69,7 +68,7 @@ pub extern "C" fn annis_graph_annotations_for_node(
 pub extern "C" fn annis_graph_all_components(
     g: *const AnnotationGraph,
 ) -> *mut Vec<AnnotationComponent> {
-    let db: &AnnotationGraph = cast_const!(g);
+    let db: &AnnotationGraph = cast_const(g);
 
     Box::into_raw(Box::new(db.get_all_components(None, None)))
 }
@@ -80,7 +79,7 @@ pub extern "C" fn annis_graph_all_components_by_type(
     g: *const AnnotationGraph,
     ctype: AnnotationComponentType,
 ) -> *mut Vec<AnnotationComponent> {
-    let db: &AnnotationGraph = cast_const!(g);
+    let db: &AnnotationGraph = cast_const(g);
 
     Box::into_raw(Box::new(db.get_all_components(Some(ctype), None)))
 }
@@ -92,17 +91,17 @@ pub extern "C" fn annis_graph_outgoing_edges(
     source: NodeID,
     component: *const AnnotationComponent,
 ) -> *mut Vec<Edge> {
-    let db: &AnnotationGraph = cast_const!(g);
-    let component: &AnnotationComponent = cast_const!(component);
+    let db: &AnnotationGraph = cast_const(g);
+    let component: &AnnotationComponent = cast_const(component);
 
     let mut result: Vec<Edge> = Vec::new();
 
     if let Some(gs) = db.get_graphstorage(component) {
         let gs: Arc<dyn GraphStorage> = gs;
-        result.extend(gs.get_outgoing_edges(source).map(|target| Edge {
-            source: source.clone(),
-            target,
-        }));
+        result.extend(
+            gs.get_outgoing_edges(source)
+                .map(|target| Edge { source, target }),
+        );
     }
 
     Box::into_raw(Box::new(result))
@@ -115,8 +114,8 @@ pub extern "C" fn annis_graph_annotations_for_edge(
     edge: Edge,
     component: *const AnnotationComponent,
 ) -> *mut Vec<Annotation> {
-    let db: &AnnotationGraph = cast_const!(g);
-    let component: &AnnotationComponent = cast_const!(component);
+    let db: &AnnotationGraph = cast_const(g);
+    let component: &AnnotationComponent = cast_const(component);
 
     let annos: Vec<Annotation> = if let Some(gs) = db.get_graphstorage(component) {
         gs.get_anno_storage().get_annotations_for_item(&edge)

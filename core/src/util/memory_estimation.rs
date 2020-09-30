@@ -1,6 +1,4 @@
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use rustc_hash;
-use std;
 
 pub fn shallow_size_of_fxhashmap<K, V>(
     val: &rustc_hash::FxHashMap<K, V>,
@@ -78,8 +76,8 @@ pub mod platform {
 
 #[cfg(windows)]
 pub mod platform {
-    extern crate kernel32;
-    use self::kernel32::{GetProcessHeap, HeapSize, HeapValidate};
+    extern crate winapi;
+    use self::winapi::um::heapapi::{GetProcessHeap, HeapSize, HeapValidate};
     use std::os::raw::c_void;
 
     /// Get the size of a heap block.

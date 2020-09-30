@@ -1,17 +1,14 @@
 [bind]
-port = 5711
 host = "localhost"
+port = 5711
 
 [database]
+disk_based = false
 graphannis = "data/"
 sqlite = "service.sqlite"
-disk_based = false
 
 [auth]
-jwt_secret = ""
-expiration_minutes = 120
+token_verification = {HS256 = "not-a-random-secret"}
 
 [logging]
 debug = false
-
-[users]

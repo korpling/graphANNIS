@@ -27,7 +27,7 @@ fn get_fan_outs(edges: &FxHashMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
         }
     }
     // order the fan-outs
-    fan_outs.sort();
+    fan_outs.sort_unstable();
 
     fan_outs
 }
@@ -130,7 +130,7 @@ impl GraphStorage for AdjacencyListStorage {
         };
         let it = CycleSafeDFS::<'a>::new(self, node, min_distance, max_distance)
             .map(|x| x.node)
-            .filter(move |n| visited.insert(n.clone()));
+            .filter(move |n| visited.insert(*n));
         Box::new(it)
     }
 
@@ -149,7 +149,7 @@ impl GraphStorage for AdjacencyListStorage {
 
         let it = CycleSafeDFS::<'a>::new_inverse(self, node, min_distance, max_distance)
             .map(|x| x.node)
-            .filter(move |n| visited.insert(n.clone()));
+            .filter(move |n| visited.insert(*n));
         Box::new(it)
     }
 

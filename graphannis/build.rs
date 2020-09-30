@@ -1,6 +1,5 @@
-use csv;
 use file_diff::diff;
-use lalrpop;
+
 use regex::Regex;
 use std::ops::Deref;
 use std::path::PathBuf;
@@ -84,10 +83,7 @@ fn search_{corpus_escaped}_{name_escaped}() {{
 }
 
 fn create_parser() {
-    println!(
-        "cargo:rerun-if-changed={}",
-        "src/annis/db/aql/parser.lalrpop"
-    );
+    println!("cargo:rerun-if-changed=src/annis/db/aql/parser.lalrpop");
     lalrpop::process_root().unwrap();
 }
 

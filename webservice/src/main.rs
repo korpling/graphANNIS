@@ -26,6 +26,7 @@ use std::{
 
 mod actions;
 mod api;
+mod auth;
 mod errors;
 mod extractors;
 mod models;
@@ -149,7 +150,6 @@ async fn main() -> Result<()> {
             .service(
                 web::scope(&api_version)
                     .route("openapi.yml", web::get().to(get_api_spec))
-                    .route("/local-login", web::post().to(api::auth::local_login))
                     .route(
                         "/import",
                         web::post().to(api::administration::import_corpus),

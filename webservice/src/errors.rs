@@ -1,7 +1,6 @@
 use actix_rt::blocking::BlockingError;
 use actix_web::{error::ResponseError, HttpResponse};
 use graphannis::errors::GraphAnnisError;
-use hmac::crypto_mac::InvalidKeyLength;
 use std::fmt::Display;
 
 #[derive(Debug)]
@@ -64,20 +63,14 @@ impl ResponseError for ServiceError {
     }
 }
 
-impl From<InvalidKeyLength> for ServiceError {
-    fn from(_: InvalidKeyLength) -> Self {
-        ServiceError::BadRequest("Invalid JWT key length".to_owned())
-    }
-}
-
 impl From<bcrypt::BcryptError> for ServiceError {
     fn from(e: bcrypt::BcryptError) -> Self {
         ServiceError::InternalServerError(format!("{}", e))
     }
 }
 
-impl From<jwt::Error> for ServiceError {
-    fn from(orig: jwt::Error) -> Self {
+impl From<jsonwebtoken::errors::Error> for ServiceError {
+    fn from(orig: jsonwebtoken::errors::Error) -> Self {
         ServiceError::InvalidJWTToken(format!("{}", orig))
     }
 }
@@ -132,6 +125,12 @@ impl From<walkdir::Error> for ServiceError {
 
 impl<T: std::fmt::Debug> From<BlockingError<T>> for ServiceError {
     fn from(e: BlockingError<T>) -> Self {
+        ServiceError::InternalServerError(e.to_string())
+    }
+}
+
+impl From<actix_web::Error> for ServiceError {
+    fn from(e: actix_web::Error) -> Self {
         ServiceError::InternalServerError(e.to_string())
     }
 }

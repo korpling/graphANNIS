@@ -227,8 +227,6 @@ fn add_node_specs_by_start<'a>(
 ) -> Result<BTreeMap<usize, String>> {
     let mut pos_to_node_id: BTreeMap<usize, String> = BTreeMap::default();
     for (start_pos, (node_spec, variable)) in pos_to_node {
-        let variable = variable.as_ref().map(|s| &**s);
-
         let start = get_line_and_column_for_pos(start_pos, &offsets);
         let end = if let Some(end_pos) = pos_to_endpos.get(&start_pos) {
             Some(get_line_and_column_for_pos(*end_pos, &offsets))
@@ -238,7 +236,7 @@ fn add_node_specs_by_start<'a>(
 
         let idx = q.add_node_from_query(
             node_spec,
-            variable,
+            variable.as_deref(),
             Some(LineColumnRange { start, end }),
             true,
         );
