@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.30.0] - 2020-09-30
+
 ### Changed
 
 - JWT secret configuration now supports RS256 in addition to HS256. This enables support of applications which use Keycloak as their identity provider, since they only provide public keys.
