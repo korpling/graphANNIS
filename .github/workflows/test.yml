@@ -59,7 +59,7 @@ jobs:
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
       - name: Cleanup Cargo registry before cache
-        run: rm -rf ~/.cargo/registry/src"
+        run: rm -rf ~/.cargo/registry/src
   long_running_tests:
     name: Execute long running tests
     runs-on: ubuntu-16.04
