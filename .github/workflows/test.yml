@@ -48,12 +48,6 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - uses: actions/cache@v2
-        with:
-          path: |
-            target
-            relannis
-          key: ${{ runner.os }}-rust-and-corpora-${{ hashFiles('**/Cargo.toml') }}
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
   long_running_tests:
