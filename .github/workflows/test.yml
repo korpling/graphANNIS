@@ -15,8 +15,11 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
       - run: cargo test --all-features
+      - run: misc/download-mdbook.sh 0.3.5
+      - name: Generate the documentation
+        run: mdbook build docs/
   test_windows:
     name: Execute automated tests on Windows
     runs-on: windows-2016
@@ -31,7 +34,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
       - run: cargo test --all-features
   test_mac:
     name: Execute automated tests on OSX
@@ -47,5 +50,31 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            relannis
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
       - run: cargo test --all-features
+  long_running_tests:
+    name: Execute long running tests
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-integration-tests-${{ hashFiles('**/Cargo.toml') }}
+      - name: Build CLI binary
+        run: cargo build --release --bin annis
+      - name: Download test corpora if necessary
+        run: (test -z "$TEST_SUITE" -o \( -d relannis/GUM/ -a -d relannis/pcc2.1/ \) || "./misc/download-test-corpora.sh")
+      - name: Import GUM corpus
+        run: ./target/release/annis data --cmd 'import relannis/GUM
+      - name: Import pcc2.1 corpus
+        run: ./target/release/annis data --cmd 'import relannis/pcc2.1
+      - name: Run integration tests
+        run: cargo test --release -- --ignored
