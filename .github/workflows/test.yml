@@ -16,7 +16,8 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
-      - run: cargo test --all-features
+      - run: cargo build --all-features --verbose
+      - run: cargo test --all-features --verbose
       - run: misc/download-mdbook.sh 0.3.5
         env:
           OS_NAME: linux
@@ -37,7 +38,8 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
-      - run: cargo test --all-features
+      - run: cargo build --all-features --verbose
+      - run: cargo test --all-features --verbose
   test_mac:
     name: Execute automated tests on OSX
     runs-on: macos-10.15
@@ -54,7 +56,8 @@ jobs:
             target
             relannis
           key: ${{ runner.os }}-rust-cargo-${{ hashFiles('**/Cargo.toml') }}
-      - run: cargo test --all-features
+      - run: cargo build --all-features --verbose
+      - run: cargo test --all-features --verbose
       - name: Cleanup Cargo registry before cache
         run: rm -rf ~/.cargo/registry/src"
   long_running_tests:
