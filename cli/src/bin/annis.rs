@@ -678,6 +678,7 @@ fn main() {
                 .short("c")
                 .long("cmd")
                 .help("Executes command")
+                .multiple(true)
                 .takes_value(true),
         )
         .arg(
@@ -718,9 +719,11 @@ fn main() {
     let runner_result = AnnisRunner::new(&dir);
     match runner_result {
         Ok(mut runner) => {
-            if let Some(cmd) = matches.value_of("cmd") {
-                // execute command directly
-                runner.exec(cmd);
+            if let Some(commands) = matches.values_of("cmd") {
+                // execute commands directly
+                for single_command in commands {
+                    runner.exec(single_command);
+                }
             } else {
                 runner.start_loop();
             }
