@@ -693,10 +693,7 @@ impl CorpusStorage {
         // check if basics (node annotation, strings) of the database are loaded
         let loaded = {
             let lock = cache_entry.read().unwrap();
-            match &*lock {
-                CacheEntry::Loaded(_) => true,
-                _ => false,
-            }
+            matches!(&*lock, CacheEntry::Loaded(_))
         };
 
         if loaded {
