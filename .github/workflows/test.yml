@@ -51,7 +51,7 @@ jobs:
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
   long_running_tests:
-    name: Execute long running tests
+    name: Execute search tests
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v2
@@ -75,3 +75,4 @@ jobs:
         run: ./target/release/annis data --cmd 'use_disk on' --cmd 'import relannis/pcc2.1'
       - name: Run integration tests
         run: cargo test --release -- --ignored
+        working-directory: graphannis
