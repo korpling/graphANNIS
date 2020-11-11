@@ -1266,7 +1266,8 @@ where
                 };
 
                 if let Some(end_pos) = whitespace_end_pos {
-                    for _ in current_text_offset..end_pos {
+                    let covered_text_start = current_text_offset;
+                    for _ in covered_text_start..end_pos {
                         if let Some(c) = text_char_it.next() {
                             covered_text_after.push(c);
                             current_text_offset += 1;
