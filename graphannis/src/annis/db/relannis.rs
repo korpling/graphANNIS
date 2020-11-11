@@ -1244,6 +1244,7 @@ where
                 current_text_offset += skipped_token_characters;
 
                 // Get the token borders of the next token to determine where the whitespace after this token is
+                // The whitespace end position is non-inclusive.
                 let mut whitespace_end_pos = None;
                 if let Some((_, next_token_id)) = token_iterator.peek() {
                     if let Some(next_token_left_pos) =
@@ -1268,10 +1269,11 @@ where
                     for _ in current_text_offset..end_pos {
                         if let Some(c) = text_char_it.next() {
                             covered_text_after.push(c);
+                            current_text_offset += 1;
                         }
                     }
-                    current_text_offset += end_pos - current_text_offset;
                 } else {
+                    // Add all remaining text to the "tok-whitespace-after" annotation value.
                     // We can't borrow the iterator here (would not be an iterator) and we can't own it using a for-loop
                     #[allow(clippy::while_let_on_iterator)]
                     while let Some(c) = text_char_it.next() {

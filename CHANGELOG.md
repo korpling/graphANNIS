@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Fixed
+
+- Importing a relANNIS corpus could fail because the integer would wrap around from negative to a large value when calculating the `tok-whitespace-after` annotation value. This large value would then be used to allocate memory, which will fail. 
+
 ## Changed
 
 - There can be multiple `--cmd` arguments for the CLI, which are executed in the order they are given.
