@@ -1,0 +1,30 @@
+name: Automated tests
+on: push
+jobs:
+  test_linux:
+    name: Execute automated tests on Ubuntu Linux
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo test --all-features
+  test_windows:
+    name: Execute automated tests on Windows
+    runs-on: windows-2016
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo test --all-features
+  test_mac:
+    name: Execute automated tests on OSX
+    runs-on: macos-10.15
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo test --all-features
