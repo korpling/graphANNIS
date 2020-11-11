@@ -51,15 +51,11 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
             target
             relannis
-          key: ${{ runner.os }}-rust-cargo-${{ hashFiles('**/Cargo.toml') }}
+          key: ${{ runner.os }}-rust-and-corpora-${{ hashFiles('**/Cargo.toml') }}
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
-      - name: Cleanup Cargo registry before cache
-        run: rm -rf ~/.cargo/registry/src
   long_running_tests:
     name: Execute long running tests
     runs-on: ubuntu-16.04
