@@ -1,5 +1,5 @@
 on: release
-name: Static code analysis
+name: Deploy released binaries
 jobs:
   deploy_linux_binaries:
     runs-on: ubuntu-16.04
@@ -19,7 +19,7 @@ jobs:
           echo "::set-output name=url::$url"
         env:
           response: ${{ steps.get_release.outputs.data }}
-      - name: Upload libgraphannis.so
+      - name: Upload graphANNIS shared library
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,3 +46,93 @@ jobs:
           asset_path: ./target/release/graphannis-webservice
           asset_name: graphannis-webservice
           asset_content_type: application/x-sharedlib
+  deploy_windows_binaries:
+    runs-on: windows-2016
+    steps:
+      - uses: actions/checkout@v2
+      - run: cargo build --release --bin annis --bin graphannis-webservice --lib
+      - uses: octokit/request-action@v2.x
+        id: get_release
+        with:
+          route: GET /repos/:repository/releases/latest
+          repository: ${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - id: get_upload_url
+        run: |
+          url=$(echo "$response" | jq -r '.upload_url')
+          echo "::set-output name=url::$url"
+        env:
+          response: ${{ steps.get_release.outputs.data }}
+      - name: Upload graphANNIS shared library
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{steps.get_upload_url.outputs.url}}
+          asset_path: ./target/release/graphannis_capi.dll
+          asset_name: graphannis.dll
+          asset_content_type: application/x-dosexec
+      - name: Upload graphANNIS CLI
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{steps.get_upload_url.outputs.url}}
+          asset_path: ./target/release/annis.exe
+          asset_name: annis.exe
+          asset_content_type: application/x-dosexec
+      - name: Upload graphANNIS webservice
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{steps.get_upload_url.outputs.url}}
+          asset_path: ./target/release/graphannis-webservice.exe
+          asset_name: graphannis-webservice.exe
+          asset_content_type: application/x-dosexec
+  deploy_macos_binaries:
+    runs-on: macos-10.15
+    steps:
+      - uses: actions/checkout@v2
+      - run: cargo build --release --bin annis --bin graphannis-webservice --lib
+      - uses: octokit/request-action@v2.x
+        id: get_release
+        with:
+          route: GET /repos/:repository/releases/latest
+          repository: ${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - id: get_upload_url
+        run: |
+          url=$(echo "$response" | jq -r '.upload_url')
+          echo "::set-output name=url::$url"
+        env:
+          response: ${{ steps.get_release.outputs.data }}
+      - name: Upload graphANNIS shared library
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{steps.get_upload_url.outputs.url}}
+          asset_path: ./target/release/libgraphannis_capi.dylib
+          asset_name: libgraphannis.dylib
+          asset_content_type: application/x-mach-binary
+      - name: Upload graphANNIS CLI
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{steps.get_upload_url.outputs.url}}
+          asset_path: ./target/release/annis
+          asset_name: annis.osx
+          asset_content_type: application/x-mach-binary
+      - name: Upload graphANNIS webservice
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{steps.get_upload_url.outputs.url}}
+          asset_path: ./target/release/graphannis-webservice
+          asset_name: graphannis-webservice.osx
+          asset_content_type: application/x-mach-binary
