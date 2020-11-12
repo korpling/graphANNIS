@@ -13,9 +13,9 @@ Language bindings can have their own version number, but should state which core
    - `cargo release minor` for minor updates (e.g. 1.0.1 to 1.1.0)
    - `cargo release major` for major updates (e.g. 1.1.0 to 2.0.0)
 5. **Merge** the release branch both into the master and develop branch then delete the release branch.
-6.  Create the **release on GitHub**, copy the changelog entry as release notes. Save the release as draft
-7.  Wait for Continuous Integration (CI) to finish building the release artifacts for all systems and then **publish the drafted release**
-8.  Update and release language bindings 
+6.  Create the **release on GitHub**, copy the changelog entry as release notes and **publish the release**.
+    The release artifacts will be created and attached to this release automatically by the `deploy` GitHub Actions workflow.
+7.  Update and release language bindings 
     -  [Python](https://github.com/korpling/graphANNIS-python#release-process)
     -  [Java](https://github.com/korpling/graphANNIS-java#release-process)
 
