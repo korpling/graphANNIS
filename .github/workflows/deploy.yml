@@ -163,7 +163,7 @@ jobs:
         run: cp -R docs/book/* gh-pages/docs/
       - run: git add docs/$SHORT_VERSION
         working-directory: gh-pages
-      - run: git -c user.name='gh-actions' -c user.email='gh-actions' commit -m "add documentation for version $SHORT_VERSION"
+      - run: git -c user.name='gh-actions' -c user.email='gh-actions' commit --allow-empty -m "add documentation for version $SHORT_VERSION"
         working-directory: gh-pages
       - name: Push changes
         uses: ad-m/github-push-action@v0.6.0
