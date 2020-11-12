@@ -53,7 +53,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set release version
-        run: echo RELEASE_VERSION=$env:GITHUB_REF.replace('refs/tags/', '') | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        run: |
+          $version = $env:GITHUB_REF.replace('refs/tags/', '')
+          echo "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - run: echo $RELEASE_VERSION
       - uses: octokit/request-action@v2.x
         id: get_release
