@@ -52,10 +52,10 @@ jobs:
     runs-on: windows-2016
     steps:
       - uses: actions/checkout@v2
+      - name: Set release version
+        run: echo "RELEASE_VERSION=$env:GITHUB_REF.replace('refs/tags/', '')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - run: cargo build --release --bin annis --bin graphannis-webservice --lib
       - run: dir target/release
-      - name: Set release version
-        run: echo "$env:GITHUB_REF.replace('refs/tags/', '')" | Out-File -FilePath $env:RELEASE_VERSION -Encoding utf8 -Append
       - uses: octokit/request-action@v2.x
         id: get_release
         with:
