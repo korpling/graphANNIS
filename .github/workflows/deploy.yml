@@ -6,11 +6,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: cargo build --release --bin annis --bin graphannis-webservice --lib
+      - run: ls target/release
+      - name: Set release version
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - uses: octokit/request-action@v2.x
         id: get_release
         with:
-          route: GET /repos/:repository/releases/latest
-          repository: ${{ github.repository }}
+          route: GET /repos/${{ github.repository }}/releases/tags/${{env.RELEASE_VERSION}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - id: get_upload_url
@@ -51,11 +53,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: cargo build --release --bin annis --bin graphannis-webservice --lib
+      - run: dir target/release
+      - name: Set release version
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - uses: octokit/request-action@v2.x
         id: get_release
         with:
-          route: GET /repos/:repository/releases/latest
-          repository: ${{ github.repository }}
+          route: GET /repos/${{ github.repository }}/releases/tags/${{env.RELEASE_VERSION}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - id: get_upload_url
@@ -96,11 +100,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: cargo build --release --bin annis --bin graphannis-webservice --lib
+      - run: ls target/release
+      - name: Set release version
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - uses: octokit/request-action@v2.x
         id: get_release
         with:
-          route: GET /repos/:repository/releases/latest
-          repository: ${{ github.repository }}
+          route: GET /repos/${{ github.repository }}/releases/tags/${{env.RELEASE_VERSION}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - id: get_upload_url
