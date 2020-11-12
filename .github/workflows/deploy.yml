@@ -55,7 +55,7 @@ jobs:
       - run: cargo build --release --bin annis --bin graphannis-webservice --lib
       - run: dir target/release
       - name: Set release version
-        run: echo ("::set-env name=RELEASE_VERSION::" + $env:GITHUB_REF.replace('refs/tags/', ''))
+        run: echo "$env:GITHUB_REF.replace('refs/tags/', '')" | Out-File -FilePath $env:RELEASE_VERSION -Encoding utf8 -Append
       - uses: octokit/request-action@v2.x
         id: get_release
         with:
@@ -63,9 +63,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - id: get_upload_url
-        run: |
-          url=$(echo "$response" | jq -r '.upload_url')
-          echo "::set-output name=url::$url"
+        run: echo "$response" | jq -r '.upload_url' | Out-File -FilePath $env:ASSET_UPLOAD_URL -Encoding utf8 -Append
         env:
           response: ${{ steps.get_release.outputs.data }}
       - name: Upload graphANNIS shared library
@@ -73,7 +71,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{steps.get_upload_url.outputs.url}}
+          upload_url: ${{env.ASSET_UPLOAD_URL}}
           asset_path: ./target/release/graphannis_capi.dll
           asset_name: graphannis.dll
           asset_content_type: application/x-dosexec
@@ -82,7 +80,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{steps.get_upload_url.outputs.url}}
+          upload_url: ${{env.ASSET_UPLOAD_URL}}
           asset_path: ./target/release/annis.exe
           asset_name: annis.exe
           asset_content_type: application/x-dosexec
@@ -91,7 +89,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{steps.get_upload_url.outputs.url}}
+          upload_url: ${{env.ASSET_UPLOAD_URL}}
           asset_path: ./target/release/graphannis-webservice.exe
           asset_name: graphannis-webservice.exe
           asset_content_type: application/x-dosexec
