@@ -1,4 +1,4 @@
-# graphANNIS [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2598164.svg)](https://doi.org/10.5281/zenodo.2598164) [![Build Status](https://travis-ci.org/korpling/graphANNIS.svg?branch=develop)](https://travis-ci.org/korpling/graphANNIS)
+# graphANNIS [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2598164.svg)](https://doi.org/10.5281/zenodo.2598164) ![Automated tests](https://github.com/korpling/graphANNIS/workflows/Automated%20tests/badge.svg)
 
 This is a new backend implementation of the ANNIS linguistic search and visualization system (http://corpus-tools.org/annis/).
 
