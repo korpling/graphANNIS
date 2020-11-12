@@ -53,15 +53,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set release version
-        run: echo "RELEASE_VERSION=$env:GITHUB_REF.replace('refs/tags/', '')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - run: cargo build --release --bin annis --bin graphannis-webservice --lib
-      - run: dir target/release
+        run: echo RELEASE_VERSION=$env:GITHUB_REF.replace('refs/tags/', '') | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - run: echo $RELEASE_VERSION
       - uses: octokit/request-action@v2.x
         id: get_release
         with:
           route: GET /repos/${{ github.repository }}/releases/tags/${{env.RELEASE_VERSION}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: cargo build --release --bin annis --bin graphannis-webservice --lib
+      - run: dir target/release
       - id: get_upload_url
         run: echo "$response" | jq -r '.upload_url' | Out-File -FilePath $env:ASSET_UPLOAD_URL -Encoding utf8 -Append
         env:
