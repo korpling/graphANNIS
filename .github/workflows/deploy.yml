@@ -1,0 +1,48 @@
+on: release
+name: Static code analysis
+jobs:
+  deploy_linux_binaries:
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: cargo build --release --bin annis --bin graphannis-webservice --lib
+      - uses: octokit/request-action@v2.x
+        id: get_release
+        with:
+          route: GET /repos/:repository/releases/latest
+          repository: ${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - id: get_upload_url
+        run: |
+          url=$(echo "$response" | jq -r '.upload_url')
+          echo "::set-output name=url::$url"
+        env:
+          response: ${{ steps.get_release.outputs.data }}
+      - name: Upload libgraphannis.so
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{steps.get_upload_url.outputs.url}}
+          asset_path: ./target/release/libgraphannis_capi.so
+          asset_name: libgraphannis.so
+          asset_content_type: application/x-sharedlib
+      - name: Upload graphANNIS CLI
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{steps.get_upload_url.outputs.url}}
+          asset_path: ./target/release/annis
+          asset_name: annis
+          asset_content_type: application/x-sharedlib
+      - name: Upload graphANNIS webservice
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{steps.get_upload_url.outputs.url}}
+          asset_path: ./target/release/graphannis-webservice
+          asset_name: graphannis-webservice
+          asset_content_type: application/x-sharedlib
