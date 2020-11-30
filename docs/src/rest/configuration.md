@@ -17,8 +17,9 @@ disk_based = false
 [logging]
 debug = false
 
-[auth]
-token_verification = {HS256 = ""}
+[auth.token_verification]
+secret = "not-a-random-secret"
+type = "HS256"
 ```
 
 ## [bind] section
