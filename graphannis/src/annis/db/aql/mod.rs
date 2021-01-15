@@ -123,6 +123,17 @@ fn map_conjunction<'a>(
                             spec.dist.clone()
                         };
                     }
+                    ast::BinaryOpSpec::Near(ref mut spec) => {
+                        // limit unspecified ^* near-by operator to 50
+                        spec.dist = if let RangeSpec::Unbound = spec.dist {
+                            RangeSpec::Bound {
+                                min_dist: 1,
+                                max_dist: 50,
+                            }
+                        } else {
+                            spec.dist.clone()
+                        };
+                    }
                     _ => {}
                 }
             }
