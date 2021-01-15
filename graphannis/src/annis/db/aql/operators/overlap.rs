@@ -91,28 +91,34 @@ impl<'a> BinaryOperator for Overlap<'a> {
         }
 
         let lhs_is_token = self.tok_helper.is_token(lhs.node);
+        let coverage_gs = self.tok_helper.get_gs_coverage();
+        if lhs_is_token && coverage_gs.is_empty() {
+            // There are only token in this corpus and an thus the only covered node is the LHS itself
+            result.insert(lhs.node);
+        } else {
+            // Find covered nodes in all Coverage graph storages
+            for gs_cov in coverage_gs.iter() {
+                let covered: Box<dyn Iterator<Item = NodeID>> = if lhs_is_token {
+                    Box::new(std::iter::once(lhs.node))
+                } else {
+                    // all covered token
+                    Box::new(
+                        gs_cov
+                            .find_connected(lhs.node, 1, std::ops::Bound::Included(1))
+                            .fuse(),
+                    )
+                };
 
-        for gs_cov in self.tok_helper.get_gs_coverage().iter() {
-            let covered: Box<dyn Iterator<Item = NodeID>> = if lhs_is_token {
-                Box::new(std::iter::once(lhs.node))
-            } else {
-                // all covered token
-                Box::new(
-                    gs_cov
-                        .find_connected(lhs.node, 1, std::ops::Bound::Included(1))
-                        .fuse(),
-                )
-            };
-
-            for t in covered {
-                // get all nodes that are covering the token (in all coverage components)
-                for gs_cov in self.tok_helper.get_gs_coverage().iter() {
-                    for n in gs_cov.get_ingoing_edges(t) {
-                        result.insert(n);
+                for t in covered {
+                    // get all nodes that are covering the token (in all coverage components)
+                    for gs_cov in self.tok_helper.get_gs_coverage().iter() {
+                        for n in gs_cov.get_ingoing_edges(t) {
+                            result.insert(n);
+                        }
                     }
+                    // also add the token itself
+                    result.insert(t);
                 }
-                // also add the token itself
-                result.insert(t);
             }
         }
 
