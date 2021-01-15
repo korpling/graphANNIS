@@ -783,7 +783,8 @@ fn get_field_str(record: &csv::StringRecord, i: usize) -> Option<String> {
         return Some(
             r.replace("\\t", "\t")
                 .replace("\\'", "'")
-                .replace("\\\\", "\\"),
+                .replace("\\\\", "\\")
+                .replace("\\$", "$"),
         );
     }
     None

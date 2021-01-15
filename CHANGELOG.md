@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Fixed
 
 - Importing a relANNIS corpus could fail because the integer would wrap around from negative to a large value when calculating the `tok-whitespace-after` annotation value. This large value would then be used to allocate memory, which will fail. 
+- Adding `\$` to the escaped input sequence in the relANNIS import, fixing issues with some old SFB 632 corpora
 
 ## Changed
 
