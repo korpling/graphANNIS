@@ -21,13 +21,13 @@ use graphannis_core::{
     util::disk_collections::DiskMap,
 };
 use percent_encoding::utf8_percent_encode;
-use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
+use std::{borrow::Cow, collections::HashMap};
 
 lazy_static! {
     static ref DEFAULT_VISUALIZER_RULES: Vec<(i64, bool, VisualizerRule)> = vec![
@@ -815,6 +815,8 @@ where
 
     let mut corpus_tab_csv = postgresql_import_reader(corpus_tab_path.as_path())?;
 
+    let mut document_names: HashMap<String, usize> = HashMap::new();
+
     for result in corpus_tab_csv.records() {
         let line = result?;
 
@@ -822,7 +824,26 @@ where
             .get(0)
             .ok_or_else(|| anyhow!("Missing column"))?
             .parse::<u32>()?;
-        let name = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
+        let mut name = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
+
+        let corpus_type = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing columne"))?;
+        if corpus_type == "DOCUMENT" {
+            // There was always an implicit constraint that document names must be unique in the whole corpus,
+            // even when the document belongs to different sub-corpora.
+            // Some corpora violate this constraint and we change the document name in order to avoid duplicate node names later on
+            let existing_count = document_names
+                .entry(name.clone())
+                .and_modify(|count| *count += 1)
+                .or_insert(1);
+            if *existing_count > 1 {
+                warn!(
+                    "duplicate document name \"{}\" detected: will be renamed to \"{}_{}\"",
+                    name, name, existing_count
+                );
+                name = format!("{}_{}", name, existing_count);
+            }
+        }
+
         let pre_order = line
             .get(4)
             .ok_or_else(|| anyhow!("Missing column"))?
