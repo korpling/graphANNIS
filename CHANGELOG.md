@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adding `\$` to the escaped input sequence in the relANNIS import, fixing issues with some old SFB 632 corpora
 - Unbound near-by-operator (`^*`) was not limited to 50 in quirks mode
 - Workaround for duplicated document names when importing invalid relANNIS corpora
+- Corpus names with non-ASCII characters where not listed with their decoded name
 
 ## Changed
 

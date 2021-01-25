@@ -32,7 +32,7 @@ use graphannis_core::{
     util::memory_estimation,
 };
 use linked_hash_map::LinkedHashMap;
-use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
+use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, CONTROLS};
 use std::borrow::Cow;
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
@@ -518,8 +518,11 @@ impl CorpusStorage {
                 )
             })?;
             if ftype.is_dir() {
-                let corpus_name = c_dir.file_name().to_string_lossy().to_string();
-                corpora.push(corpus_name.clone());
+                let directory_name = c_dir.file_name();
+                let corpus_name = directory_name.to_string_lossy();
+                // Use the decoded corpus name instead of the directory name
+                let corpus_name = percent_decode_str(&corpus_name);
+                corpora.push(corpus_name.decode_utf8_lossy().to_string());
             }
         }
         Ok(corpora)
