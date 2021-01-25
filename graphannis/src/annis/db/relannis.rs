@@ -836,11 +836,12 @@ where
                 .and_modify(|count| *count += 1)
                 .or_insert(1);
             if *existing_count > 1 {
+                let old_name = name.clone();
+                name = format!("{}_duplicated_document_name_{}", name, existing_count);
                 warn!(
-                    "duplicate document name \"{}\" detected: will be renamed to \"{}_{}\"",
-                    name, name, existing_count
+                    "duplicated document name \"{}\" detected: will be renamed to \"{}\"",
+                    old_name, name
                 );
-                name = format!("{}_{}", name, existing_count);
             }
         }
 
