@@ -51,7 +51,10 @@ cache = {FixedMaxMemory = 8000}
 at most 8 GB of RAM.
 
 ## [logging] section
-toml
+
+Per default, graphANNIS will only output information, warning and error messages.
+To also enable debug output, set the value for the `debug` field to `true`.
+
 ## [auth] section
 
 This section configures the [authentication and authorization](auth.md) of the REST service.
