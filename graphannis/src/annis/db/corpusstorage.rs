@@ -22,6 +22,7 @@ use crate::{
     malloc_size_of::{MallocSizeOf, MallocSizeOfOps},
     AnnotationGraph,
 };
+use fmt::Display;
 use fs2::FileExt;
 use graphannis_core::{
     annostorage::ValueSearch,
@@ -282,8 +283,9 @@ pub enum ExportFormat {
 }
 
 /// Different strategies how it is decided when corpora need to be removed from the cache.
+#[derive(Debug, Deserialize, Clone)]
 pub enum CacheStrategy {
-    /// Fixed maximum size of the cache in bytes.
+    /// Fixed maximum size of the cache in Megabytes.
     /// Before and after a new entry is loaded, the cache is cleared to have at maximum this given size.
     /// The loaded entry is always added to the cache, even if the single corpus is larger than the maximum size.
     FixedMaxMemory(usize),
@@ -292,6 +294,21 @@ pub enum CacheStrategy {
     /// Cache size is checked before and after a corpus is loaded.
     /// The loaded entry is always added to the cache, even if the single corpus is larger than the maximum size.
     PercentOfFreeMemory(f64),
+}
+
+impl Display for CacheStrategy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CacheStrategy::FixedMaxMemory(megabytes) => write!(f, "{} MB", megabytes),
+            CacheStrategy::PercentOfFreeMemory(percent) => write!(f, "{}%", percent),
+        }
+    }
+}
+
+impl Default for CacheStrategy {
+    fn default() -> Self {
+        CacheStrategy::PercentOfFreeMemory(25.0)
+    }
 }
 
 pub const SALT_URI_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b':').add(b'%');
@@ -2390,7 +2407,7 @@ fn check_cache_size_and_remove_with_cache(
     }
 
     let max_cache_size: usize = match cache_strategy {
-        CacheStrategy::FixedMaxMemory(max_size) => *max_size,
+        CacheStrategy::FixedMaxMemory(max_size) => *max_size * 1_000_000,
         CacheStrategy::PercentOfFreeMemory(max_percent) => {
             // get the current free space in main memory
             if let Ok(mem) = sys_info::mem_info() {
@@ -2409,8 +2426,8 @@ fn check_cache_size_and_remove_with_cache(
 
     debug!(
         "Current cache size is {:.2} MB / max  {:.2} MB",
-        (size_sum as f64) / (1024.0 * 1024.0),
-        (max_cache_size as f64) / (1024.0 * 1024.0)
+        (size_sum as f64) / 1_000_000.0,
+        (max_cache_size as f64) / 1_000_000.0
     );
 
     // remove older entries (at the beginning) until cache size requirements are met,
@@ -2423,8 +2440,8 @@ fn check_cache_size_and_remove_with_cache(
                 size_sum -= corpus_size;
                 debug!(
                     "Current cache size is {:.2} MB / max  {:.2} MB",
-                    (size_sum as f64) / (1024.0 * 1024.0),
-                    (max_cache_size as f64) / (1024.0 * 1024.0)
+                    (size_sum as f64) / 1_000_000.0,
+                    (max_cache_size as f64) / 1_000_000.0
                 );
             }
         } else {

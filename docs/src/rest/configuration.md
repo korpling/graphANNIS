@@ -13,6 +13,7 @@ host = "localhost"
 graphannis = "data/"
 sqlite = "service.sqlite"
 disk_based = false
+cache = {PercentOfFreeMemory = 25.0}
 
 [logging]
 debug = false
@@ -33,11 +34,24 @@ For configuration unique to the REST service, a small SQLite database is used, w
 A new database file will be created at this path when the service is started and the file does not exist yet.
 Also, you can decide if you want to prefer disk-based storage of annotations by setting the value for the `disk_based` key to `true`.
 
+You can configure how much memory is used by the service for caching loaded corpora with the `cache` key.
+There are two types of strategies: 
+
+- `PercentOfFreeMemory` estimates the free space of memory for the system during startup and only uses the given value (as percent) of the available free space. 
+- `FixedMaxMemory` will use at most the given value in Megabytes.
+
+For example, setting the configuration value to
+```toml
+cache = {PercentOfFreeMemory = 80.0}
+``` 
+will use 80% of the available free memory and 
+```toml
+cache = {FixedMaxMemory = 8000}
+``` 
+at most 8 GB of RAM.
+
 ## [logging] section
-
-Per default, graphANNIS will only output information, warning and error messages.
-To also enable debug output, set the value for the `debug` field to `true`.
-
+toml
 ## [auth] section
 
 This section configures the [authentication and authorization](auth.md) of the REST service.
