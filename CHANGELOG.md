@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unbound near-by-operator (`^*`) was not limited to 50 in quirks mode
 - Workaround for duplicated document names when importing invalid relANNIS corpora
 - Corpus names with non-ASCII characters where not listed with their decoded name
+- Fix memory consumption of AQL parser in repeated calls (like the webservice).
 
 ## Changed
 

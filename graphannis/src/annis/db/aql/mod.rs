@@ -21,6 +21,10 @@ use lalrpop_util::ParseError;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 
+thread_local! {
+    static AQL_PARSER: parser::DisjunctionParser = parser::DisjunctionParser::new();
+}
+
 fn map_conjunction<'a>(
     c: Vec<ast::Literal>,
     offsets: &BTreeMap<usize, usize>,
@@ -365,7 +369,7 @@ fn get_alternatives_from_dnf(expr: ast::Expr) -> Vec<Vec<ast::Literal>> {
 }
 
 pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a>> {
-    let ast = parser::DisjunctionParser::new().parse(query_as_aql);
+    let ast = AQL_PARSER.with(|p| p.parse(query_as_aql));
     match ast {
         Ok(ast) => {
             let offsets = get_line_offsets(query_as_aql);
