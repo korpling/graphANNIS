@@ -85,7 +85,11 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
 
     // Create a graphANNIS corpus storage as shared state
     let data_dir = std::path::PathBuf::from(&settings.database.graphannis);
-    let cs = graphannis::CorpusStorage::with_auto_cache_size(&data_dir, true)?;
+    let cs = graphannis::CorpusStorage::with_cache_strategy(
+        &data_dir,
+        settings.database.cache.clone(),
+        true,
+    )?;
 
     // Add a connection pool to the SQLite database
 
@@ -97,10 +101,11 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
     embedded_migrations::run(&conn)?;
 
     info!(
-        "Using database {}",
+        "Using database {} with at most {} of RAM for the corpus cache.",
         PathBuf::from(&settings.database.sqlite)
             .canonicalize()?
-            .to_string_lossy()
+            .to_string_lossy(),
+        &settings.database.cache
     );
 
     Ok((cs, settings, db_pool))

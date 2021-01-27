@@ -16,7 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changed
 
+- The `FixedMaxMemory` `CacheStrategy` now uses Megabytes instead of bytes.
 - There can be multiple `--cmd` arguments for the CLI, which are executed in the order they are given.
+
+## Added
+
+- The webservice configuration now allows to configure the size of the in-memory corpus cache.
 
 ## [0.30.0] - 2020-09-30
 
