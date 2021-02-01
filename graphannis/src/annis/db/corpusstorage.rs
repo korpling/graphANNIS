@@ -61,6 +61,8 @@ use db::AnnotationStorage;
 #[cfg(test)]
 mod tests;
 
+const MAX_VECTOR_RESERVATION: usize = 10_000_00;
+
 enum CacheEntry {
     Loaded(AnnotationGraph),
     NotLoaded,
@@ -1604,7 +1606,9 @@ impl CorpusStorage {
             Box::from(plan)
         } else {
             let estimated_result_size = plan.estimated_output_size();
-            let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(estimated_result_size);
+            // Estimations can be wrong on the upper limit, so limit the maximal reserved vector size
+            let mut tmp_results: Vec<Vec<Match>> =
+                Vec::with_capacity(std::cmp::min(estimated_result_size, MAX_VECTOR_RESERVATION));
 
             for mgroup in plan {
                 // add all matches to temporary vector
