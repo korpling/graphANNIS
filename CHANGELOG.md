@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Workaround for duplicated document names when importing invalid relANNIS corpora
 - Corpus names with non-ASCII characters where not listed with their decoded name
 - Fix memory consumption of AQL parser in repeated calls (like the webservice).
+- Limit the memory which is reserved for an internal result vector to avoid out-of-memory errors when the estimation is wrong.
 
 ## Changed
 
