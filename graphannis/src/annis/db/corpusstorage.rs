@@ -566,6 +566,7 @@ impl CorpusStorage {
             .get_corpus_config(corpus_name)
             .map_err(|e| CorpusStorageError::LoadingCorpusConfig {
                 corpus: corpus_name.to_string(),
+                source: Box::new(e),
             })?
             .unwrap_or_default();
 
