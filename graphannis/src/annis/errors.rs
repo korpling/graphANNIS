@@ -84,7 +84,10 @@ pub enum CorpusStorageError {
         source: std::io::Error,
     },
     #[error("loading corpus-config.toml for corpus {corpus} failed")]
-    LoadingCorpusConfig { corpus: String },
+    LoadingCorpusConfig {
+        corpus: String,
+        source: Box<dyn std::error::Error + Send + Sync>,
+    },
     #[error("could not create corpus with name {corpus}")]
     CreateCorpus {
         corpus: String,

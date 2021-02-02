@@ -1,5 +1,6 @@
 use super::disjunction::Disjunction;
 use super::Config;
+use crate::annis::db::exec::filter::Filter;
 use crate::annis::db::exec::indexjoin::IndexJoin;
 use crate::annis::db::exec::nestedloop::NestedLoop;
 use crate::annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
@@ -11,14 +12,12 @@ use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
 };
 use crate::AnnotationGraph;
-use crate::{annis::db::exec::filter::Filter, corpusstorage::GraphStorageInfo};
 use crate::{
     annis::types::{LineColumnRange, QueryAttributeDescription},
     errors::Result,
     graph::Match,
 };
 use graphannis_core::{
-    errors::GraphAnnisCoreError,
     graph::storage::GraphStatistic,
     types::{Component, Edge},
 };
