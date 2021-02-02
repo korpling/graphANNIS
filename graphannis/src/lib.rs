@@ -17,9 +17,6 @@ extern crate serde_derive;
 extern crate lazy_static;
 
 #[macro_use]
-extern crate anyhow;
-
-#[macro_use]
 extern crate lalrpop_util;
 
 #[cfg(feature = "c-api")]
