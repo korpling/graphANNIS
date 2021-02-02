@@ -1960,7 +1960,9 @@ where
             if let Some(e) = rank_result.edges_by_pre.try_get(&pre)? {
                 let ns = get_field(&line, 1, "namespace", &edge_anno_tab_path)?.unwrap_or_default();
                 let name = get_field_not_null(&line, 2, "name", &edge_anno_tab_path)?;
-                let val = get_field_not_null(&line, 3, "value", &edge_anno_tab_path)?;
+                // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
+                let val = get_field(&line, 3, "value", &edge_anno_tab_path)?
+                    .unwrap_or_else(|| std::char::MAX.to_string());
 
                 updates.add_event(UpdateEvent::AddEdgeLabel {
                     source_node: id_to_node_name
@@ -2018,7 +2020,9 @@ where
             .parse()?;
         let ns = get_field(&line, 1, "namespace", &corpus_anno_tab_path)?.unwrap_or_default();
         let name = get_field_not_null(&line, 2, "name", &corpus_anno_tab_path)?;
-        let val = get_field(&line, 3, "value", &corpus_anno_tab_path)?.unwrap_or_default();
+        // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
+        let val = get_field(&line, 3, "value", &corpus_anno_tab_path)?
+            .unwrap_or_else(|| std::char::MAX.to_string());
 
         let anno_key = AnnoKey { ns, name };
 
