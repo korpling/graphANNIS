@@ -62,6 +62,8 @@ pub enum GraphAnnisError {
     #[error(transparent)]
     ParseIntError(#[from] std::num::ParseIntError),
     #[error(transparent)]
+    Enquote(#[from] enquote::Error),
+    #[error(transparent)]
     Anyhow(#[from] anyhow::Error),
 }
 

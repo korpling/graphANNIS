@@ -1,7 +1,7 @@
 use super::aql::model::{AnnotationComponentType, TOK_WHITESPACE_AFTER, TOK_WHITESPACE_BEFORE};
-use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::errors::*;
 use crate::annis::util::create_str_vec_key;
+use crate::annis::{db::corpusstorage::SALT_URI_ENCODE_SET, errors};
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::{
     annis::{
@@ -510,26 +510,24 @@ where
     for result in resolver_tab_csv.records() {
         let line = result?;
 
-        let layer = get_field_str(&line, 2).filter(|l| l != "NULL");
-        let element = get_field_str(&line, 3).and_then(|e| match e.as_str() {
-            "node" => Some(VisualizerRuleElement::Node),
-            "edge" => Some(VisualizerRuleElement::Edge),
-            _ => None,
-        });
-        let vis_type = get_field_str(&line, 4)
-            .ok_or_else(|| anyhow!("Missing vis_type column in resolver table"))?;
-        let display_name = get_field_str(&line, 5)
-            .ok_or_else(|| anyhow!("Missing display_name column in resolver table"))?;
+        let layer = get_field(&line, 2, "namespace", &resolver_tab_path)?;
+        let element =
+            get_field(&line, 3, "element", &resolver_tab_path)?.and_then(|e| match e.as_str() {
+                "node" => Some(VisualizerRuleElement::Node),
+                "edge" => Some(VisualizerRuleElement::Edge),
+                _ => None,
+            });
+        let vis_type = get_field_not_null(&line, 4, "vis_type", &resolver_tab_path)?;
+        let display_name = get_field_not_null(&line, 5, "display_name", &resolver_tab_path)?;
 
-        let visibility = get_field_str(&line, 6)
-            .ok_or_else(|| anyhow!("Missing visibility column in resolver table"))?;
+        let visibility = get_field_not_null(&line, 6, "visibility", &resolver_tab_path)?;
 
-        let order = get_field_str(&line, 7)
-            .ok_or_else(|| anyhow!("Missing order column in resolver table"))?;
+        let order = get_field_not_null(&line, 7, "order", &resolver_tab_path)?;
         let order = i64::from_str_radix(&order, 10).unwrap_or_default();
         let mappings: BTreeMap<String, String> =
-            if let Some(mappings_field) = get_field_str(&line, 8) {
+            if let Ok(mappings_field) = get_field(&line, 8, "mappings", &resolver_tab_path) {
                 mappings_field
+                    .unwrap_or_default()
                     .split(';')
                     .filter_map(|key_value| {
                         let splitted: Vec<_> = key_value.splitn(2, ':').collect();
@@ -621,11 +619,13 @@ where
     for result in example_queries_csv.records() {
         let line = result?;
 
-        if let (Some(query), Some(description)) = (get_field_str(&line, 0), get_field_str(&line, 1))
-        {
+        if let (Some(query), Some(description)) = (
+            get_field(&line, 0, "query", &example_queries_path)?,
+            get_field(&line, 1, "description", &example_queries_path)?,
+        ) {
             config.example_queries.push(ExampleQuery {
-                query: query.to_string(),
-                description: description.to_string(),
+                query,
+                description,
                 query_language: QueryLanguage::AQL,
             });
         }
@@ -779,17 +779,39 @@ fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File
         .from_path(path)
 }
 
-fn get_field_str(record: &csv::StringRecord, i: usize) -> Option<String> {
-    if let Some(r) = record.get(i) {
-        // replace some known escape sequences
-        return Some(
-            r.replace("\\t", "\t")
-                .replace("\\'", "'")
-                .replace("\\\\", "\\")
-                .replace("\\$", "$"),
-        );
+fn get_field(
+    record: &csv::StringRecord,
+    i: usize,
+    column_name: &str,
+    file: &Path,
+) -> crate::errors::Result<Option<String>> {
+    let r = record.get(i).ok_or_else(|| RelAnnisError::MissingColumn {
+        pos: i,
+        name: column_name.to_string(),
+        file: file.to_string_lossy().to_string(),
+    })?;
+
+    if r == "NULL" {
+        Ok(None)
+    } else {
+        let result = enquote::unescape(r, None)?;
+        Ok(Some(result))
     }
-    None
+}
+
+fn get_field_not_null(
+    record: &csv::StringRecord,
+    i: usize,
+    column_name: &str,
+    file: &Path,
+) -> crate::errors::Result<String> {
+    let result =
+        get_field(record, i, column_name, file)?.ok_or_else(|| RelAnnisError::UnexpectedNull {
+            pos: i,
+            name: column_name.to_string(),
+            file: file.to_string_lossy().to_string(),
+        })?;
+    Ok(result)
 }
 
 fn parse_corpus_tab<F>(
@@ -826,9 +848,9 @@ where
             .get(0)
             .ok_or_else(|| anyhow!("Missing column"))?
             .parse::<u32>()?;
-        let mut name = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
+        let mut name = get_field_not_null(&line, 1, "name", &corpus_tab_path)?;
 
-        let corpus_type = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing columne"))?;
+        let corpus_type = get_field_not_null(&line, 2, "type", &corpus_tab_path)?;
         if corpus_type == "DOCUMENT" {
             // There was always an implicit constraint that document names must be unique in the whole corpus,
             // even when the document belongs to different sub-corpora.
@@ -915,11 +937,19 @@ where
             .get(if is_annis_33 { 1 } else { 0 })
             .ok_or_else(|| anyhow!("Missing column"))?
             .parse::<u32>()?;
-        let name = get_field_str(&line, if is_annis_33 { 2 } else { 1 })
-            .ok_or_else(|| anyhow!("Missing column"))?;
+        let name = get_field_not_null(
+            &line,
+            if is_annis_33 { 2 } else { 1 },
+            "name",
+            &text_tab_path,
+        )?;
 
-        let value = get_field_str(&line, if is_annis_33 { 3 } else { 2 })
-            .ok_or_else(|| anyhow!("Missing column"))?;
+        let value = get_field_not_null(
+            &line,
+            if is_annis_33 { 3 } else { 2 },
+            "text",
+            &text_tab_path,
+        )?;
 
         let corpus_ref = if is_annis_33 {
             Some(
@@ -1388,8 +1418,8 @@ where
                 .get(2)
                 .ok_or_else(|| anyhow!("Missing column"))?
                 .parse::<u32>()?;
-            let layer = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
-            let node_name = get_field_str(&line, 4).ok_or_else(|| anyhow!("Missing column"))?;
+            let layer = get_field(&line, 3, "layer", &node_tab_path)?;
+            let node_name = get_field_not_null(&line, 4, "name", &node_tab_path)?;
 
             nodes_by_text.insert(
                 NodeByTextEntry {
@@ -1427,13 +1457,15 @@ where
             })?;
             id_to_node_name.insert(node_nr, node_path.clone())?;
 
-            if !layer.is_empty() && layer != "NULL" {
-                updates.add_event(UpdateEvent::AddNodeLabel {
-                    node_name: node_path.clone(),
-                    anno_ns: ANNIS_NS.to_owned(),
-                    anno_name: "layer".to_owned(),
-                    anno_value: layer,
-                })?;
+            if let Some(layer) = layer {
+                if !layer.is_empty() {
+                    updates.add_event(UpdateEvent::AddNodeLabel {
+                        node_name: node_path.clone(),
+                        anno_ns: ANNIS_NS.to_owned(),
+                        anno_name: "layer".to_owned(),
+                        anno_value: layer,
+                    })?;
+                }
             }
 
             // Add the raw character offsets so it is possible to extract the text later on
@@ -1499,9 +1531,9 @@ where
 
             if token_index_raw != "NULL" {
                 let span = if has_segmentations {
-                    get_field_str(&line, 12).ok_or_else(|| anyhow!("Missing column"))?
+                    get_field_not_null(&line, 12, "span", &node_tab_path)?
                 } else {
-                    get_field_str(&line, 9).ok_or_else(|| anyhow!("Missing column"))?
+                    get_field_not_null(&line, 9, "span", &node_tab_path)?
                 };
 
                 updates.add_event(UpdateEvent::AddNodeLabel {
@@ -1529,12 +1561,12 @@ where
                     .insert(right_alignment, node_nr)?;
             } else if has_segmentations {
                 let segmentation_name = if is_annis_33 {
-                    get_field_str(&line, 11).ok_or_else(|| anyhow!("Missing column"))?
+                    get_field(&line, 11, "seg_name", &node_tab_path)?
                 } else {
-                    get_field_str(&line, 8).ok_or_else(|| anyhow!("Missing column"))?
+                    get_field(&line, 8, "seg_name", &node_tab_path)?
                 };
 
-                if segmentation_name != "NULL" {
+                if let Some(segmentation_name) = segmentation_name {
                     let seg_index = if is_annis_33 {
                         line.get(10)
                             .ok_or_else(|| anyhow!("Missing column"))?
@@ -1551,8 +1583,7 @@ where
                             node_name: node_path,
                             anno_ns: ANNIS_NS.to_owned(),
                             anno_name: TOK.to_owned(),
-                            anno_value: get_field_str(&line, 12)
-                                .ok_or_else(|| anyhow!("Missing column"))?,
+                            anno_value: get_field_not_null(&line, 12, "span", &node_tab_path)?,
                         })?;
                     } else {
                         // we need to get the span information from the node_annotation file later
@@ -1645,44 +1676,33 @@ where
         let node_name = id_to_node_name
             .try_get(&node_id)?
             .ok_or_else(|| anyhow!("Missing node name"))?;
-        let col_ns = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
-        let col_name = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?;
-        let col_val = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
+        let col_ns = get_field(&line, 1, "namespace", &node_anno_tab_path)?.unwrap_or_default();
+        let col_name = get_field_not_null(&line, 2, "name", &node_anno_tab_path)?;
+        let col_val = get_field(&line, 3, "value", &node_anno_tab_path)?;
         // we have to make some sanity checks
         if col_ns != "annis" || col_name != "tok" {
-            let anno_val: String = if col_val == "NULL" {
-                // use an "invalid" string so it can't be found by its value, but only by its annotation name
-                std::char::MAX.to_string()
-            } else {
-                col_val
-            };
+            let has_valid_value = col_val.is_some();
+            // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
+            let anno_val = col_val.unwrap_or_else(|| std::char::MAX.to_string());
 
-            let col_ns = if col_ns == "NULL" {
-                String::default()
-            } else {
-                col_ns
-            };
+            if let Some(seg) = missing_seg_span.try_get(&node_id)? {
+                // add all missing span values from the annotation, but don't add NULL values
+                if seg == col_name && has_valid_value {
+                    updates.add_event(UpdateEvent::AddNodeLabel {
+                        node_name: node_name.clone(),
+                        anno_ns: ANNIS_NS.to_owned(),
+                        anno_name: TOK.to_owned(),
+                        anno_value: anno_val.clone(),
+                    })?;
+                }
+            }
 
             updates.add_event(UpdateEvent::AddNodeLabel {
                 node_name: node_name.clone(),
                 anno_ns: col_ns,
                 anno_name: col_name,
-                anno_value: anno_val.clone(),
+                anno_value: anno_val,
             })?;
-
-            // add all missing span values from the annotation, but don't add NULL values
-            if let Some(seg) = missing_seg_span.try_get(&node_id)? {
-                if seg == get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?
-                    && get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))? != "NULL"
-                {
-                    updates.add_event(UpdateEvent::AddNodeLabel {
-                        node_name: node_name.clone(),
-                        anno_ns: ANNIS_NS.to_owned(),
-                        anno_name: TOK.to_owned(),
-                        anno_value: anno_val,
-                    })?;
-                }
-            }
         }
 
         if (line_nr + 1) % 100_000 == 0 {
@@ -1727,15 +1747,9 @@ where
             .get(0)
             .ok_or_else(|| anyhow!("Missing column"))?
             .parse()?;
-        let col_type = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
-        if col_type != "NULL" {
-            let layer = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?;
-            let name = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
-            let name = if name == "NULL" {
-                String::from("")
-            } else {
-                name
-            };
+        if let Some(col_type) = get_field(&line, 1, "type", &component_tab_path)? {
+            let layer = get_field(&line, 2, "layer", &component_tab_path)?.unwrap_or_default();
+            let name = get_field(&line, 3, "name", &component_tab_path)?.unwrap_or_default();
             let ctype = component_type_from_short_name(&col_type)?;
             component_by_id.insert(cid, Component::new(ctype, layer, name));
         }
@@ -1943,10 +1957,9 @@ where
             .parse()?;
         if let Some(c) = rank_result.components_by_pre.try_get(&pre)? {
             if let Some(e) = rank_result.edges_by_pre.try_get(&pre)? {
-                let ns = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
-                let ns = if ns == "NULL" { String::default() } else { ns };
-                let name = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?;
-                let val = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
+                let ns = get_field(&line, 1, "namespace", &edge_anno_tab_path)?.unwrap_or_default();
+                let name = get_field_not_null(&line, 2, "name", &edge_anno_tab_path)?;
+                let val = get_field_not_null(&line, 3, "value", &edge_anno_tab_path)?;
 
                 updates.add_event(UpdateEvent::AddEdgeLabel {
                     source_node: id_to_node_name
@@ -2002,10 +2015,9 @@ where
             .get(0)
             .ok_or_else(|| anyhow!("Missing column"))?
             .parse()?;
-        let ns = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
-        let ns = if ns == "NULL" { String::default() } else { ns };
-        let name = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?;
-        let val = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
+        let ns = get_field(&line, 1, "namespace", &corpus_anno_tab_path)?.unwrap_or_default();
+        let name = get_field_not_null(&line, 2, "name", &corpus_anno_tab_path)?;
+        let val = get_field_not_null(&line, 3, "value", &corpus_anno_tab_path)?;
 
         let anno_key = AnnoKey { ns, name };
 
