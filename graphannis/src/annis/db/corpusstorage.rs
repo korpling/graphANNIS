@@ -61,7 +61,7 @@ use db::AnnotationStorage;
 #[cfg(test)]
 mod tests;
 
-const MAX_VECTOR_RESERVATION: usize = 10_000_00;
+const MAX_VECTOR_RESERVATION: usize = 10_000_000;
 
 enum CacheEntry {
     Loaded(AnnotationGraph),
