@@ -2,9 +2,9 @@ use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use crate::{
     annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage},
     dfs::CycleSafeDFS,
+    errors::Result,
     types::{Edge, NodeID},
 };
-use anyhow::Result;
 use num_traits::ToPrimitive;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Deserialize;

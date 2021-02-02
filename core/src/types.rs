@@ -9,10 +9,13 @@ use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, EnumString};
 
 use super::serializer::{FixedSizeKeySerializer, KeySerializer};
-use crate::graph::{update::UpdateEvent, Graph};
-use anyhow::{Error, Result};
+use crate::{
+    errors::{ComponentTypeError, GraphAnnisCoreError},
+    graph::{update::UpdateEvent, Graph},
+};
 use fmt::Debug;
 use malloc_size_of::MallocSizeOf;
+use std::result::Result as StdResult;
 
 /// Unique internal identifier for a single node.
 pub type NodeID = u64;
@@ -111,26 +114,29 @@ pub trait ComponentType:
     Into<u16> + From<u16> + FromStr + ToString + Send + Sync + Clone + Debug + Ord
 {
     type UpdateGraphIndex;
-    fn init_update_graph_index(_graph: &Graph<Self>) -> Result<Self::UpdateGraphIndex>;
+
+    fn init_update_graph_index(
+        _graph: &Graph<Self>,
+    ) -> StdResult<Self::UpdateGraphIndex, ComponentTypeError>;
 
     fn before_update_event(
         _update: &UpdateEvent,
         _graph: &Graph<Self>,
         _index: &mut Self::UpdateGraphIndex,
-    ) -> Result<()> {
+    ) -> StdResult<(), ComponentTypeError> {
         Ok(())
     }
     fn after_update_event(
         _update: UpdateEvent,
         _graph: &Graph<Self>,
         _index: &mut Self::UpdateGraphIndex,
-    ) -> Result<()> {
+    ) -> StdResult<(), ComponentTypeError> {
         Ok(())
     }
     fn apply_update_graph_index(
         _index: Self::UpdateGraphIndex,
         _graph: &mut Graph<Self>,
-    ) -> Result<()> {
+    ) -> StdResult<(), ComponentTypeError> {
         Ok(())
     }
 
@@ -173,7 +179,10 @@ pub struct DefaultGraphIndex;
 
 impl ComponentType for DefaultComponentType {
     type UpdateGraphIndex = DefaultGraphIndex;
-    fn init_update_graph_index(_graph: &Graph<Self>) -> Result<Self::UpdateGraphIndex> {
+
+    fn init_update_graph_index(
+        _graph: &Graph<Self>,
+    ) -> StdResult<Self::UpdateGraphIndex, ComponentTypeError> {
         Ok(DefaultGraphIndex {})
     }
     fn all_component_types() -> Vec<Self> {
@@ -225,9 +234,9 @@ impl<CT: ComponentType> std::fmt::Display for Component<CT> {
 }
 
 impl<CT: ComponentType> std::str::FromStr for Component<CT> {
-    type Err = Error;
+    type Err = GraphAnnisCoreError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         let splitted: Vec<_> = s.splitn(3, '/').collect();
         if splitted.len() == 3 {
             if let Ok(ctype) = CT::from_str(splitted[0]) {
@@ -239,12 +248,13 @@ impl<CT: ComponentType> std::str::FromStr for Component<CT> {
                 };
                 Ok(result)
             } else {
-                Err(anyhow!("Invalid component type {}", splitted[0]))
+                Err(GraphAnnisCoreError::InvalidComponentType(
+                    splitted[0].to_string(),
+                ))
             }
         } else {
-            Err(anyhow!(
-                "Invalid format for component description, expected ctype/layer/name, but got {}",
-                s
+            Err(GraphAnnisCoreError::InvalidComponentDescriptionFormat(
+                s.to_string(),
             ))
         }
     }

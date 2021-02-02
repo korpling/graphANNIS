@@ -2,13 +2,16 @@ pub mod serialization;
 pub mod storage;
 pub mod update;
 
-use crate::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use crate::{
     annostorage::AnnotationStorage,
+    errors::Result,
     graph::storage::{registry, GraphStorage, WriteableGraphStorage},
     util::disk_collections::{DiskMap, EvictionStrategy},
 };
-use anyhow::Result;
+use crate::{
+    errors::GraphAnnisCoreError,
+    types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID},
+};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
 use std::collections::BTreeMap;
@@ -81,16 +84,14 @@ impl<CT: ComponentType> MallocSizeOf for Graph<CT> {
     }
 }
 
-fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<dyn GraphStorage>> {
-    let cpath = component_path.ok_or_else(|| anyhow!("Can't load component with empty path"))?;
-
+fn load_component_from_disk(component_path: &Path) -> Result<Arc<dyn GraphStorage>> {
     // load component into memory
-    let impl_path = PathBuf::from(&cpath).join("impl.cfg");
+    let impl_path = PathBuf::from(component_path).join("impl.cfg");
     let mut f_impl = std::fs::File::open(impl_path)?;
     let mut impl_name = String::new();
     f_impl.read_to_string(&mut impl_name)?;
 
-    let gs = registry::deserialize(&impl_name, &cpath)?;
+    let gs = registry::deserialize(&impl_name, component_path)?;
 
     Ok(gs)
 }
@@ -668,13 +669,18 @@ impl<CT: ComponentType> Graph<CT> {
             let mut loaded_comp: Arc<dyn GraphStorage> = if let Some(gs_opt) = gs_opt {
                 gs_opt
             } else {
-                load_component_from_disk(self.component_path(c))?
+                let component_path = self
+                    .component_path(c)
+                    .ok_or(GraphAnnisCoreError::EmptyComponentPath)?;
+                load_component_from_disk(&component_path)?
             };
 
             // copy to writable implementation if needed
             let is_writable = {
                 Arc::get_mut(&mut loaded_comp)
-                    .ok_or_else(|| anyhow!("Could not get mutable reference for component {}", c))?
+                    .ok_or_else(|| {
+                        GraphAnnisCoreError::NonExclusiveComponentReference(c.to_string())
+                    })?
                     .as_writeable()
                     .is_some()
             };
@@ -699,7 +705,7 @@ impl<CT: ComponentType> Graph<CT> {
         let mut entry = self
             .components
             .remove(c)
-            .ok_or_else(|| anyhow!("Component {} is missing", c.clone()))?;
+            .ok_or_else(|| GraphAnnisCoreError::MissingComponent(c.to_string()))?;
         if let Some(ref mut gs) = entry {
             if let Some(gs_mut) = Arc::get_mut(gs) {
                 // Since immutable graph storages can't change, only writable graph storage statistics need to be re-calculated
@@ -707,7 +713,9 @@ impl<CT: ComponentType> Graph<CT> {
                     writeable_gs.calculate_statistics();
                 }
             } else {
-                result = Err(anyhow!("Component {} is currently used", c.clone()));
+                result = Err(GraphAnnisCoreError::NonExclusiveComponentReference(
+                    c.to_string(),
+                ));
             }
         }
         // re-insert component entry
@@ -737,19 +745,15 @@ impl<CT: ComponentType> Graph<CT> {
         let entry: &mut Arc<dyn GraphStorage> = self
             .components
             .get_mut(c)
-            .ok_or_else(|| anyhow!("Could not get mutable reference for component {}", c))?
+            .ok_or_else(|| GraphAnnisCoreError::MissingComponent(c.to_string()))?
             .as_mut()
-            .ok_or_else(|| {
-                anyhow!(
-                    "Could not get mutable reference to optional value for component {}",
-                    c
-                )
-            })?;
+            .ok_or_else(|| GraphAnnisCoreError::ComponentNotLoaded(c.to_string()))?;
+
         let gs_mut_ref: &mut dyn GraphStorage = Arc::get_mut(entry)
-            .ok_or_else(|| anyhow!("Could not get mutable reference for component {}", c))?;
+            .ok_or_else(|| GraphAnnisCoreError::NonExclusiveComponentReference(c.to_string()))?;
         Ok(gs_mut_ref
             .as_writeable()
-            .ok_or_else(|| anyhow!("Invalid type"))?)
+            .ok_or_else(|| GraphAnnisCoreError::ReadOnlyComponent(c.to_string()))?)
     }
 
     /// Returns `true` if the graph storage for this specific component is loaded and ready to use.
@@ -781,9 +785,10 @@ impl<CT: ComponentType> Graph<CT> {
             .into_par_iter()
             .map(|c| {
                 info!("Loading component {} from disk", c);
-                let cpath = self.component_path(&c);
-                let loaded_component = load_component_from_disk(cpath);
-                (c, loaded_component)
+                match self.component_path(&c) {
+                    Some(cpath) => (c, load_component_from_disk(&cpath)),
+                    None => (c, Err(GraphAnnisCoreError::EmptyComponentPath)),
+                }
             })
             .collect();
 
@@ -804,8 +809,11 @@ impl<CT: ComponentType> Graph<CT> {
                 gs_opt
             } else {
                 self.reset_cached_size();
+                let component_path = self
+                    .component_path(c)
+                    .ok_or(GraphAnnisCoreError::EmptyComponentPath)?;
                 info!("Loading component {} from disk", c);
-                load_component_from_disk(self.component_path(c))?
+                load_component_from_disk(&component_path)?
             };
 
             self.components.insert(c.clone(), Some(loaded));

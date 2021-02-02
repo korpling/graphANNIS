@@ -1,11 +1,11 @@
 use crate::annostorage::symboltable::SymbolTable;
 use crate::annostorage::AnnotationStorage;
 use crate::annostorage::{Match, ValueSearch};
+use crate::errors::Result;
 use crate::serializer::{FixedSizeKeySerializer, KeySerializer};
 use crate::types::{AnnoKey, Annotation, NodeID};
 use crate::util::disk_collections::{DiskMap, EvictionStrategy};
 use crate::util::{self, memory_estimation};
-use anyhow::Result;
 use core::ops::Bound::*;
 use rand::seq::IteratorRandom;
 use std::borrow::Cow;

@@ -1,5 +1,6 @@
 use crate::{
     annostorage::ValueSearch,
+    errors::{GraphAnnisCoreError, Result},
     graph::{
         update::{GraphUpdate, UpdateEvent},
         Graph, ANNIS_NS, NODE_NAME, NODE_NAME_KEY, NODE_TYPE, NODE_TYPE_KEY,
@@ -7,7 +8,6 @@ use crate::{
     types::{AnnoKey, Annotation, Component, ComponentType, Edge},
     util::{join_qname, split_qname},
 };
-use anyhow::Result;
 use quick_xml::{
     events::{attributes::Attributes, BytesDecl, BytesEnd, BytesStart, BytesText, Event},
     Reader, Writer,
@@ -100,12 +100,9 @@ fn write_data<W: std::io::Write>(
 ) -> Result<()> {
     let mut data_start = BytesStart::borrowed_name(b"data");
 
-    let key_id = key_id_mapping.get(&anno.key).ok_or_else(|| {
-        anyhow!(
-            "Could not find annotation key ID for {:?} when mapping to GraphML",
-            &anno.key
-        )
-    })?;
+    let key_id = key_id_mapping
+        .get(&anno.key)
+        .ok_or_else(|| GraphAnnisCoreError::GraphMLMissingAnnotationKey(anno.key.clone()))?;
 
     data_start.push_attribute(("key", key_id.as_str()));
     writer.write_event(Event::Start(data_start))?;
