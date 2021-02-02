@@ -1,9 +1,9 @@
 use super::*;
-use anyhow::Result;
 
 use crate::{
     annostorage::ondisk::AnnoStorageImpl,
     dfs::CycleSafeDFS,
+    errors::Result,
     util::disk_collections::{DiskMap, EvictionStrategy},
 };
 use itertools::Itertools;

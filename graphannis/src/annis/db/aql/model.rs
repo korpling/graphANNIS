@@ -1,6 +1,7 @@
 use crate::graph::{Edge, EdgeContainer, GraphStorage, NodeID};
 use graphannis_core::{
     dfs::CycleSafeDFS,
+    errors::ComponentTypeError,
     graph::{storage::union::UnionEdgeContainer, ANNIS_NS},
     types::ComponentType,
     util::disk_collections::{DiskMap, EvictionStrategy},
@@ -14,7 +15,6 @@ use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, EnumString};
 
 use crate::{update::UpdateEvent, AnnotationGraph};
-use anyhow::Result;
 use rustc_hash::FxHashSet;
 
 use crate::{
@@ -100,24 +100,28 @@ impl AQLUpdateGraphIndex {
         &mut self,
         node_name: Cow<String>,
         graph: &AnnotationGraph,
-    ) -> Result<NodeID> {
+    ) -> std::result::Result<NodeID, ComponentTypeError> {
         if let Some(id) = self.node_ids.try_get(&node_name)? {
             return Ok(id);
         } else if let Some(id) = graph.get_node_id_from_name(&node_name) {
             self.node_ids.insert(node_name.to_string(), id)?;
             return Ok(id);
         }
-        Err(anyhow!(
-            "Could not get internal node ID for node {} when processing graph update",
-            node_name
-        ))
+        Err(ComponentTypeError(
+            anyhow!(
+                "Could not get internal node ID for node {} when processing graph update",
+                node_name
+            )
+            .into(),
+        )
+        .into())
     }
 
     fn calculate_invalidated_nodes_by_coverage(
         &mut self,
         graph: &AnnotationGraph,
         node: NodeID,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), ComponentTypeError> {
         let containers: Vec<&dyn EdgeContainer> = self
             .text_coverage_components
             .iter()
@@ -139,7 +143,7 @@ impl AQLUpdateGraphIndex {
         &self,
         graph: &mut AnnotationGraph,
         gs_order: Arc<dyn GraphStorage>,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), ComponentTypeError> {
         {
             // remove existing left/right token edges for the invalidated nodes
             let gs_left = graph.get_or_create_writable(&AnnotationComponent::new(
@@ -220,7 +224,7 @@ impl AQLUpdateGraphIndex {
         n: NodeID,
         all_cov_components: &[AnnotationComponent],
         all_dom_gs: &[Arc<dyn GraphStorage>],
-    ) -> Result<FxHashSet<NodeID>> {
+    ) -> std::result::Result<FxHashSet<NodeID>, ComponentTypeError> {
         let mut covered_token = FxHashSet::default();
         for c in all_cov_components.iter() {
             if let Some(gs) = graph.get_graphstorage_as_ref(c) {
@@ -274,7 +278,7 @@ impl AQLUpdateGraphIndex {
         gs_order: &dyn GraphStorage,
         all_cov_gs: &[Arc<dyn GraphStorage>],
         all_dom_gs: &[Arc<dyn GraphStorage>],
-    ) -> Result<Option<NodeID>> {
+    ) -> std::result::Result<Option<NodeID>, ComponentTypeError> {
         let alignment_component =
             AnnotationComponent::new(ctype.clone(), ANNIS_NS.to_owned(), "".to_owned());
 
@@ -397,7 +401,9 @@ impl ComponentType for AnnotationComponentType {
         ]
     }
 
-    fn init_update_graph_index(graph: &AnnotationGraph) -> Result<Self::UpdateGraphIndex> {
+    fn init_update_graph_index(
+        graph: &AnnotationGraph,
+    ) -> std::result::Result<Self::UpdateGraphIndex, ComponentTypeError> {
         // Cache the expensive mapping of node names to IDs
         let node_ids = DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000))?;
 
@@ -425,7 +431,7 @@ impl ComponentType for AnnotationComponentType {
         update: &UpdateEvent,
         graph: &AnnotationGraph,
         index: &mut Self::UpdateGraphIndex,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), ComponentTypeError> {
         match update {
             UpdateEvent::DeleteNode { node_name } => {
                 let existing_node_id =
@@ -473,7 +479,7 @@ impl ComponentType for AnnotationComponentType {
         update: UpdateEvent,
         graph: &AnnotationGraph,
         index: &mut Self::UpdateGraphIndex,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), ComponentTypeError> {
         match update {
             UpdateEvent::AddNode { node_name, .. } => {
                 if !index.calculate_invalid_nodes {
@@ -530,7 +536,7 @@ impl ComponentType for AnnotationComponentType {
     fn apply_update_graph_index(
         mut index: Self::UpdateGraphIndex,
         graph: &mut AnnotationGraph,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), ComponentTypeError> {
         index.invalid_nodes.compact()?;
 
         // Re-index the inherited coverage component.

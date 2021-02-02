@@ -1,6 +1,7 @@
 use actix_rt::blocking::BlockingError;
 use actix_web::{error::ResponseError, HttpResponse};
 use graphannis::errors::GraphAnnisError;
+use graphannis_core::errors::GraphAnnisCoreError;
 use std::fmt::Display;
 
 #[derive(Debug)]
@@ -150,5 +151,11 @@ impl From<zip::result::ZipError> for ServiceError {
 impl From<uuid::Error> for ServiceError {
     fn from(e: uuid::Error) -> Self {
         ServiceError::BadRequest(e.to_string())
+    }
+}
+
+impl From<GraphAnnisCoreError> for ServiceError {
+    fn from(e: GraphAnnisCoreError) -> Self {
+        ServiceError::DatabaseError(e.to_string())
     }
 }

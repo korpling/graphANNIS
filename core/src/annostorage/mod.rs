@@ -2,8 +2,10 @@ pub mod inmemory;
 pub mod ondisk;
 pub mod symboltable;
 
-use crate::types::{AnnoKey, Annotation, Edge, NodeID};
-use anyhow::Result;
+use crate::{
+    errors::Result,
+    types::{AnnoKey, Annotation, Edge, NodeID},
+};
 use std::borrow::Cow;
 use std::path::Path;
 use std::sync::Arc;

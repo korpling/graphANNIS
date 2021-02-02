@@ -1,11 +1,10 @@
 use super::{AnnotationStorage, Match};
-use crate::annostorage::symboltable::SymbolTable;
 use crate::annostorage::ValueSearch;
+use crate::errors::Result;
 use crate::malloc_size_of::MallocSizeOf;
 use crate::types::{AnnoKey, Annotation, Edge};
 use crate::util::{self, memory_estimation};
-use anyhow::Context;
-use anyhow::Result;
+use crate::{annostorage::symboltable::SymbolTable, errors::GraphAnnisCoreError};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -899,11 +898,11 @@ where
         self.clear_internal();
 
         let path = location.join("nodes_v1.bin");
-        let f = std::fs::File::open(path.clone()).with_context(|| {
-            format!(
-                "Could not load annotation storage from file {}",
-                path.to_string_lossy(),
-            )
+        let f = std::fs::File::open(path.clone()).map_err(|e| {
+            GraphAnnisCoreError::LoadingAnnotationStorage {
+                path: path.to_string_lossy().to_string(),
+                source: e,
+            }
         })?;
         let mut reader = std::io::BufReader::new(f);
         *self = bincode::deserialize_from(&mut reader)?;
