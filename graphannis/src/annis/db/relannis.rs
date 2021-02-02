@@ -1,7 +1,7 @@
 use super::aql::model::{AnnotationComponentType, TOK_WHITESPACE_AFTER, TOK_WHITESPACE_BEFORE};
+use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::errors::*;
 use crate::annis::util::create_str_vec_key;
-use crate::annis::{db::corpusstorage::SALT_URI_ENCODE_SET, errors};
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::{
     annis::{
@@ -522,8 +522,9 @@ where
 
         let visibility = get_field_not_null(&line, 6, "visibility", &resolver_tab_path)?;
 
-        let order = get_field_not_null(&line, 7, "order", &resolver_tab_path)?;
-        let order = i64::from_str_radix(&order, 10).unwrap_or_default();
+        let order = get_field(&line, 7, "order", &resolver_tab_path)?
+            .map(|order| i64::from_str_radix(&order, 10).unwrap_or_default())
+            .unwrap_or_default();
         let mappings: BTreeMap<String, String> =
             if let Ok(mappings_field) = get_field(&line, 8, "mappings", &resolver_tab_path) {
                 mappings_field
@@ -2017,7 +2018,7 @@ where
             .parse()?;
         let ns = get_field(&line, 1, "namespace", &corpus_anno_tab_path)?.unwrap_or_default();
         let name = get_field_not_null(&line, 2, "name", &corpus_anno_tab_path)?;
-        let val = get_field_not_null(&line, 3, "value", &corpus_anno_tab_path)?;
+        let val = get_field(&line, 3, "value", &corpus_anno_tab_path)?.unwrap_or_default();
 
         let anno_key = AnnoKey { ns, name };
 
