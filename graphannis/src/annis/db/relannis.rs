@@ -29,6 +29,8 @@ use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
 use std::{borrow::Cow, collections::HashMap};
 
+use anyhow::anyhow;
+
 lazy_static! {
     static ref DEFAULT_VISUALIZER_RULES: Vec<(i64, bool, VisualizerRule)> = vec![
         (
@@ -390,7 +392,7 @@ where
         return Ok((load_node_and_corpus_result.toplevel_corpus_name, db, config));
     }
 
-    Err(anyhow!("Directory {} not found", path.to_string_lossy()))
+    Err(anyhow!("Directory {} not found", path.to_string_lossy()).into())
 }
 
 fn load_node_and_corpus_tables<F>(
@@ -2211,9 +2213,6 @@ fn component_type_from_short_name(short_type: &str) -> Result<AnnotationComponen
         "d" => Ok(AnnotationComponentType::Dominance),
         "p" => Ok(AnnotationComponentType::Pointing),
         "o" => Ok(AnnotationComponentType::Ordering),
-        _ => Err(anyhow!(
-            "Invalid component type short name '{}'",
-            short_type
-        )),
+        _ => Err(anyhow!("Invalid component type short name '{}'", short_type).into()),
     }
 }

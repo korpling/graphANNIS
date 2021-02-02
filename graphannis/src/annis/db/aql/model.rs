@@ -1,4 +1,7 @@
-use crate::graph::{Edge, EdgeContainer, GraphStorage, NodeID};
+use crate::{
+    errors::GraphAnnisError,
+    graph::{Edge, EdgeContainer, GraphStorage, NodeID},
+};
 use graphannis_core::{
     dfs::CycleSafeDFS,
     errors::ComponentTypeError,
@@ -108,13 +111,8 @@ impl AQLUpdateGraphIndex {
             return Ok(id);
         }
         Err(ComponentTypeError(
-            anyhow!(
-                "Could not get internal node ID for node {} when processing graph update",
-                node_name
-            )
-            .into(),
-        )
-        .into())
+            GraphAnnisError::NoSuchNodeID(node_name.to_string()).into(),
+        ))
     }
 
     fn calculate_invalidated_nodes_by_coverage(

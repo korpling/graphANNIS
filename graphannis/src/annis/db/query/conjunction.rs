@@ -1,6 +1,5 @@
 use super::disjunction::Disjunction;
 use super::Config;
-use crate::annis::db::exec::filter::Filter;
 use crate::annis::db::exec::indexjoin::IndexJoin;
 use crate::annis::db::exec::nestedloop::NestedLoop;
 use crate::annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
@@ -12,12 +11,14 @@ use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
 };
 use crate::AnnotationGraph;
+use crate::{annis::db::exec::filter::Filter, corpusstorage::GraphStorageInfo};
 use crate::{
     annis::types::{LineColumnRange, QueryAttributeDescription},
+    errors::Result,
     graph::Match,
 };
-use anyhow::Error;
 use graphannis_core::{
+    errors::GraphAnnisCoreError,
     graph::storage::GraphStatistic,
     types::{Component, Edge},
 };
@@ -277,10 +278,10 @@ impl<'a> Conjunction<'a> {
                 .push(UnaryOperatorSpecEntry { op, idx: *idx });
             Ok(())
         } else {
-            Err(GraphAnnisError::AQLSemanticError {
+            Err(GraphAnnisError::AQLSemanticError(AQLError {
                 desc: format!("Operand '#{}' not found", var),
                 location,
-            }
+            })
             .into())
         }
     }
@@ -328,10 +329,10 @@ impl<'a> Conjunction<'a> {
         if let Some(pos) = self.variables.get(variable) {
             return Ok(*pos);
         }
-        Err(GraphAnnisError::AQLSemanticError {
+        Err(GraphAnnisError::AQLSemanticError(AQLError {
             desc: format!("Operand '#{}' not found", variable),
             location,
-        }
+        })
         .into())
     }
 
@@ -358,10 +359,10 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        Err(GraphAnnisError::AQLSemanticError {
+        Err(GraphAnnisError::AQLSemanticError(AQLError {
             desc: format!("Operand '#{}' not found", variable),
             location,
-        }
+        })
         .into())
     }
 
@@ -410,16 +411,16 @@ impl<'a> Conjunction<'a> {
             self.make_exec_plan_with_order(db, config, best_operator_order.clone())?;
         let mut best_cost: usize = initial_plan
             .get_desc()
-            .ok_or_else(|| anyhow!("Plan description missing"))?
+            .ok_or(GraphAnnisError::PlanDescriptionMissing)?
             .cost
             .clone()
-            .ok_or_else(|| anyhow!("Plan cost missing"))?
+            .ok_or(GraphAnnisError::PlanCostMissing)?
             .intermediate_sum;
         trace!(
             "initial plan:\n{}",
             initial_plan
                 .get_desc()
-                .ok_or_else(|| anyhow!("Plan description missing"))?
+                .ok_or(GraphAnnisError::PlanDescriptionMissing)?
                 .debug_string("  ")
         );
 
@@ -452,16 +453,16 @@ impl<'a> Conjunction<'a> {
                 let alt_plan = self.make_exec_plan_with_order(db, config, op_order.clone())?;
                 let alt_cost = alt_plan
                     .get_desc()
-                    .ok_or_else(|| anyhow!("Plan description missing"))?
+                    .ok_or(GraphAnnisError::PlanDescriptionMissing)?
                     .cost
                     .clone()
-                    .ok_or_else(|| anyhow!("Plan cost missing"))?
+                    .ok_or(GraphAnnisError::PlanCostMissing)?
                     .intermediate_sum;
                 trace!(
                     "alternatives plan: \n{}",
                     initial_plan
                         .get_desc()
-                        .ok_or_else(|| anyhow!("Plan description missing"))?
+                        .ok_or(GraphAnnisError::PlanDescriptionMissing)?
                         .debug_string("  ")
                 );
 
@@ -551,7 +552,7 @@ impl<'a> Conjunction<'a> {
 
         // Remember node search errors, but do not bail out of this function before the component
         // semantics check has been performed.
-        let mut node_search_errors: Vec<Error> = Vec::default();
+        let mut node_search_errors: Vec<GraphAnnisError> = Vec::default();
 
         // 1. add all nodes
 
@@ -625,7 +626,7 @@ impl<'a> Conjunction<'a> {
         for op_spec_entry in self.unary_operators.iter() {
             let child_exec: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
                 .remove(&op_spec_entry.idx)
-                .ok_or_else(|| anyhow!("no execution node for component {}", op_spec_entry.idx))?;
+                .ok_or_else(|| GraphAnnisError::NoExecutionNode(op_spec_entry.idx))?;
 
             let op: Box<dyn UnaryOperator> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
@@ -681,22 +682,22 @@ impl<'a> Conjunction<'a> {
 
             let component_left: usize = *(node2component
                 .get(&spec_idx_left)
-                .ok_or_else(|| anyhow!("no component for node #{}", spec_idx_left + 1))?);
+                .ok_or_else(|| GraphAnnisError::NoComponentForNode(spec_idx_left + 1))?);
             let component_right: usize = *(node2component
                 .get(&spec_idx_right)
-                .ok_or_else(|| anyhow!("no component for node #{}", spec_idx_right + 1))?);
+                .ok_or_else(|| GraphAnnisError::NoComponentForNode(spec_idx_right + 1))?);
 
             // get the original execution node
             let exec_left: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
                 .remove(&component_left)
-                .ok_or_else(|| anyhow!("no execution node for component {}", component_left))?;
+                .ok_or_else(|| GraphAnnisError::NoExecutionNode(component_left))?;
 
             let idx_left: usize = *(exec_left
                 .get_desc()
-                .ok_or_else(|| anyhow!("Plan description missing"))?
+                .ok_or(GraphAnnisError::PlanDescriptionMissing)?
                 .node_pos
                 .get(&spec_idx_left)
-                .ok_or_else(|| anyhow!("LHS operand not found"))?);
+                .ok_or(GraphAnnisError::LHSOperandNotFound)?);
 
             let new_exec: Box<dyn ExecutionNode<Item = Vec<Match>>> =
                 if component_left == component_right {
@@ -704,23 +705,23 @@ impl<'a> Conjunction<'a> {
                     // TODO: check if LHS or RHS is better suited as filter input iterator
                     let idx_right: usize = *(exec_left
                         .get_desc()
-                        .ok_or_else(|| anyhow!("Plan description missing"))?
+                        .ok_or(GraphAnnisError::PlanDescriptionMissing)?
                         .node_pos
                         .get(&spec_idx_right)
-                        .ok_or_else(|| anyhow!("RHS operand not found"))?);
+                        .ok_or(GraphAnnisError::RHSOperandNotFound)?);
 
                     let filter = Filter::new_binary(exec_left, idx_left, idx_right, op_entry);
                     Box::new(filter)
                 } else {
-                    let exec_right = component2exec.remove(&component_right).ok_or_else(|| {
-                        anyhow!("no execution node for component {}", component_right)
-                    })?;
+                    let exec_right = component2exec
+                        .remove(&component_right)
+                        .ok_or_else(|| GraphAnnisError::NoExecutionNode(component_right))?;
                     let idx_right: usize = *(exec_right
                         .get_desc()
-                        .ok_or_else(|| anyhow!("Plan description missing"))?
+                        .ok_or(GraphAnnisError::PlanDescriptionMissing)?
                         .node_pos
                         .get(&spec_idx_right)
-                        .ok_or_else(|| anyhow!("RHS operand not found"))?);
+                        .ok_or(GraphAnnisError::RHSOperandNotFound)?);
 
                     create_join(
                         db, config, op_entry, exec_left, exec_right, idx_left, idx_right,
@@ -729,7 +730,7 @@ impl<'a> Conjunction<'a> {
 
             let new_component_nr = new_exec
                 .get_desc()
-                .ok_or_else(|| anyhow!("missing description for execution node"))?
+                .ok_or(GraphAnnisError::PlanDescriptionMissing)?
                 .component_nr;
             update_components_for_nodes(&mut node2component, component_left, new_component_nr);
             update_components_for_nodes(&mut node2component, component_right, new_component_nr);
@@ -796,13 +797,13 @@ impl<'a> Conjunction<'a> {
                     let n_var = &self.nodes[*node_nr].0;
                     let location = self.location_in_query.get(n_var);
 
-                    return Err(GraphAnnisError::AQLSemanticError {
+                    return Err(GraphAnnisError::AQLSemanticError(AQLError {
                         desc: format!(
                             "Variable \"{}\" not bound (use linguistic operators)",
                             n_var
                         ),
                         location: location.cloned(),
-                    }
+                    })
                     .into());
                 }
             }

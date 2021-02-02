@@ -11,7 +11,7 @@ pub enum ServiceError {
     NoSuchCorpus(Vec<String>),
     DatabaseError(String),
     InternalServerError(String),
-    GraphAnnisError(GraphAnnisError),
+    GraphAnnisError(String),
     NotFound,
     NotAnAdministrator(String),
 }
@@ -95,7 +95,7 @@ impl From<anyhow::Error> for ServiceError {
                 GraphAnnisError::NoSuchCorpus(corpora) => {
                     ServiceError::NoSuchCorpus(vec![corpora.to_owned()])
                 }
-                _ => ServiceError::GraphAnnisError(graphannis_err.clone()),
+                _ => ServiceError::GraphAnnisError(graphannis_err.to_string()),
             }
         } else {
             ServiceError::InternalServerError(orig.to_string())
@@ -157,5 +157,11 @@ impl From<uuid::Error> for ServiceError {
 impl From<GraphAnnisCoreError> for ServiceError {
     fn from(e: GraphAnnisCoreError) -> Self {
         ServiceError::DatabaseError(e.to_string())
+    }
+}
+
+impl From<GraphAnnisError> for ServiceError {
+    fn from(e: GraphAnnisError) -> Self {
+        ServiceError::GraphAnnisError(e.to_string())
     }
 }

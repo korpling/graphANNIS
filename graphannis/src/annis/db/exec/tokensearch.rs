@@ -8,11 +8,11 @@ use crate::{
     graph::Match, AnnotationGraph,
 };
 use graphannis_core::{
+    errors::Result,
     graph::{storage::GraphStorage, ANNIS_NS, NODE_TYPE_KEY},
     types::{AnnoKey, Component, NodeID},
 };
 
-use anyhow::Result;
 use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;

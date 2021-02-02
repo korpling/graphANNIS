@@ -8,7 +8,6 @@ use graphannis::corpusstorage::LoadStatus;
 use graphannis::corpusstorage::QueryLanguage;
 use graphannis::corpusstorage::ResultOrder;
 use graphannis::corpusstorage::{ExportFormat, ImportFormat};
-use graphannis::errors::*;
 use graphannis::CorpusStorage;
 use log::info;
 use prettytable::Cell;
@@ -22,6 +21,8 @@ use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
+
+use anyhow::Result;
 
 #[derive(Helper, Hinter, Highlighter, Validator)]
 struct ConsoleHelper {

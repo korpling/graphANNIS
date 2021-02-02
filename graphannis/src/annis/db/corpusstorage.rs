@@ -54,7 +54,6 @@ use std::{
     io::{BufReader, Write},
 };
 
-use anyhow::{Context, Error};
 use aql::model::AnnotationComponentType;
 use db::AnnotationStorage;
 
@@ -222,14 +221,11 @@ pub struct FrequencyDefEntry {
 }
 
 impl FromStr for FrequencyDefEntry {
-    type Err = Error;
+    type Err = GraphAnnisError;
     fn from_str(s: &str) -> std::result::Result<FrequencyDefEntry, Self::Err> {
         let splitted: Vec<&str> = s.splitn(2, ':').collect();
         if splitted.len() != 2 {
-            bail!(
-                "Frequency definition must consists of two parts: \
-                 the referenced node and the annotation name or \"tok\" separated by \":\""
-            );
+            return Err(GraphAnnisError::InvalidFrequencyDefinition);
         }
         let node_ref = splitted[0];
         let anno_key = graphannis_core::util::split_qname(splitted[1]);
@@ -517,25 +513,24 @@ impl CorpusStorage {
 
     fn list_from_disk(&self) -> Result<Vec<String>> {
         let mut corpora: Vec<String> = Vec::new();
-        let directories = self.db_dir.read_dir().with_context(|| {
-            format!(
-                "Listing directories from {} failed",
-                self.db_dir.to_string_lossy()
-            )
-        })?;
+        let directories =
+            self.db_dir
+                .read_dir()
+                .map_err(|e| CorpusStorageError::ListingDirectories {
+                    source: e,
+                    path: self.db_dir.to_string_lossy().to_string(),
+                })?;
         for c_dir in directories {
-            let c_dir = c_dir.with_context(|| {
-                format!(
-                    "Could not get directory entry of folder {}",
-                    self.db_dir.to_string_lossy()
-                )
+            let c_dir = c_dir.map_err(|e| CorpusStorageError::DirectoryEntry {
+                source: e,
+                path: self.db_dir.to_string_lossy().to_string(),
             })?;
-            let ftype = c_dir.file_type().with_context(|| {
-                format!(
-                    "Could not determine file type for {}",
-                    c_dir.path().to_string_lossy()
-                )
-            })?;
+            let ftype = c_dir
+                .file_type()
+                .map_err(|e| CorpusStorageError::FileTypeDetection {
+                    source: e,
+                    path: self.db_dir.to_string_lossy().to_string(),
+                })?;
             if ftype.is_dir() {
                 let directory_name = c_dir.file_name();
                 let corpus_name = directory_name.to_string_lossy();
@@ -569,11 +564,8 @@ impl CorpusStorage {
         // Read configuration file or create a default one
         let config: CorpusConfiguration = self
             .get_corpus_config(corpus_name)
-            .with_context(|| {
-                format!(
-                    "Loading corpus-config.toml for corpus {} failed",
-                    corpus_name
-                )
+            .map_err(|e| CorpusStorageError::LoadingCorpusConfig {
+                corpus: corpus_name.to_string(),
             })?
             .unwrap_or_default();
 
@@ -687,7 +679,10 @@ impl CorpusStorage {
 
             // save corpus to the path where it should be stored
             db.persist_to(&db_path)
-                .with_context(|| format!("Could not create corpus with name {}", corpus_name))?;
+                .map_err(|e| CorpusStorageError::CreateCorpus {
+                    corpus: corpus_name.to_string(),
+                    source: e,
+                })?;
             db
         } else {
             let mut db = AnnotationGraph::new(false)?;
@@ -1228,10 +1223,10 @@ impl CorpusStorage {
                 if corpora.len() == 1 {
                     self.export_corpus_graphml(corpora[0].as_ref(), path)?;
                 } else {
-                    return Err(anyhow!(
-                        "This format can only export one corpus but {} have been given as argument",
-                        corpora.len()
-                    ));
+                    return Err(CorpusStorageError::MultipleCorporaForSingleCorpusFormat(
+                        corpora.len(),
+                    )
+                    .into());
                 }
             }
             ExportFormat::GraphMLDirectory => {
@@ -1291,7 +1286,12 @@ impl CorpusStorage {
             let mut _lock = db_entry.write().unwrap();
 
             if db_path.is_dir() && db_path.exists() {
-                std::fs::remove_dir_all(db_path).context("Error when removing existing files")?
+                std::fs::remove_dir_all(db_path).map_err(|e| {
+                    CorpusStorageError::RemoveFileForCorpus {
+                        corpus: corpus_name.to_string(),
+                        source: e,
+                    }
+                })?
             }
 
             Ok(true)
@@ -1304,9 +1304,7 @@ impl CorpusStorage {
     ///
     /// It is ensured that the update process is atomic and that the changes are persisted to disk if the result is `Ok`.
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<()> {
-        let db_entry = self
-            .get_loaded_entry(corpus_name, true)
-            .with_context(|| format!("Could not get loaded entry for corpus {}", corpus_name))?;
+        let db_entry = self.get_loaded_entry(corpus_name, true)?;
         {
             let mut lock = db_entry.write().unwrap();
             let db: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
@@ -2385,7 +2383,7 @@ fn get_write_or_error<'a>(
     if let CacheEntry::Loaded(ref mut db) = &mut **lock {
         Ok(db)
     } else {
-        Err(anyhow!("Could get loaded graph storage entry"))
+        Err(CorpusStorageError::CorpusCacheEntryNotLoaded.into())
     }
 }
 
@@ -2558,8 +2556,10 @@ fn create_subgraph_edge(
 }
 
 fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
-    std::fs::create_dir_all(&db_dir)
-        .with_context(|| format!("Could not create directory {}", db_dir.to_string_lossy()))?;
+    std::fs::create_dir_all(&db_dir).map_err(|e| CorpusStorageError::LockCorpusDirectory {
+        path: db_dir.to_string_lossy().to_string(),
+        source: e,
+    })?;
     let lock_file_path = db_dir.join("db.lock");
     // check if we can get the file lock
     let lock_file = OpenOptions::new()
@@ -2567,18 +2567,16 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
         .write(true)
         .create(true)
         .open(lock_file_path.as_path())
-        .with_context(|| {
-            format!(
-                "Could not open or create lockfile {}",
-                lock_file_path.to_string_lossy()
-            )
+        .map_err(|e| CorpusStorageError::LockCorpusDirectory {
+            path: db_dir.to_string_lossy().to_string(),
+            source: e,
         })?;
-    lock_file.try_lock_exclusive().with_context(|| {
-        format!(
-            "Could not acquire lock for directory {}",
-            db_dir.to_string_lossy()
-        )
-    })?;
+    lock_file
+        .try_lock_exclusive()
+        .map_err(|e| CorpusStorageError::LockCorpusDirectory {
+            path: db_dir.to_string_lossy().to_string(),
+            source: e,
+        })?;
 
     Ok(lock_file)
 }
