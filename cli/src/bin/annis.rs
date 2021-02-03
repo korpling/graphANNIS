@@ -18,9 +18,9 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use rustyline_derive::{Helper, Highlighter, Hinter, Validator};
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
-use std::collections::BTreeSet;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
+use std::{collections::BTreeSet, time::Duration};
 
 use anyhow::Result;
 
@@ -517,6 +517,7 @@ impl AnnisRunner {
                     self.offset,
                     self.limit,
                     ResultOrder::Normal,
+                    Some(Duration::from_secs(60)),
                 )?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {

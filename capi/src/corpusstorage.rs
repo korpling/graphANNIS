@@ -195,7 +195,15 @@ pub unsafe extern "C" fn annis_cs_find(
     let limit = if limit.is_null() { None } else { Some(*limit) };
 
     map_cerr(
-        cs.find(&corpus_names, &query, query_language, offset, limit, order),
+        cs.find(
+            &corpus_names,
+            &query,
+            query_language,
+            offset,
+            limit,
+            order,
+            None,
+        ),
         err,
     )
     .map(|result| {

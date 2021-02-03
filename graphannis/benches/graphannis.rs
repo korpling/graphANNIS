@@ -59,6 +59,7 @@ fn find_all_nouns_gum(bench: &mut Criterion) {
                 usize::min_value(),
                 None,
                 ResultOrder::Normal,
+                None,
             );
             assert!(f.is_ok());
         })
