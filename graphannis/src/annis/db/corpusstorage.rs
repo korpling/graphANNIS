@@ -1534,7 +1534,7 @@ impl CorpusStorage {
 
             let mut known_documents = HashSet::new();
 
-            for (match_nr, m) in plan.enumerate() {
+            for m in plan {
                 if !m.is_empty() {
                     let m: &Match = &m[0];
                     if let Some(node_name) = db
