@@ -19,7 +19,6 @@ lalrpop = {version = "0.19", features = ["lexer"]}
 regex = "1"
 
 [dependencies]
-anyhow = "1"
 boolean_expression = "0.3"
 csv = "1"
 fs2 = "0.4"
