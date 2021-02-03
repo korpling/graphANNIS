@@ -795,8 +795,13 @@ fn get_field(
     if r == "NULL" {
         Ok(None)
     } else {
-        let result = enquote::unescape(r, None)?;
-        Ok(Some(result))
+        // replace some known escape sequences
+        Ok(Some(
+            r.replace("\\t", "\t")
+                .replace("\\'", "'")
+                .replace("\\\\", "\\")
+                .replace("\\$", "$"),
+        ))
     }
 }
 

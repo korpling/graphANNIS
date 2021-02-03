@@ -22,7 +22,6 @@ regex = "1"
 anyhow = "1"
 boolean_expression = "0.3"
 csv = "1"
-enquote = "1"
 fs2 = "0.4"
 graphannis-core = {path = "../core/", version = "^0.30"}
 graphannis-malloc_size_of = "1.0"
