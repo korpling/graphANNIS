@@ -990,11 +990,11 @@ where
                 updates.add_event(UpdateEvent::AddEdge {
                     source_node: id_to_node_name
                         .try_get(&last_token)?
-                        .ok_or_else(|| RelAnnisError::NodeNotFound(last_token))?
+                        .ok_or(RelAnnisError::NodeNotFound(last_token))?
                         .clone(),
                     target_node: id_to_node_name
                         .try_get(&current_token)?
-                        .ok_or_else(|| RelAnnisError::NodeNotFound(current_token))?
+                        .ok_or(RelAnnisError::NodeNotFound(current_token))?
                         .clone(),
                     layer: ordering_layer,
                     component_type: AnnotationComponentType::Ordering.to_string(),
@@ -1034,7 +1034,7 @@ fn add_automatic_cov_edge_for_node(
     let left_aligned_tok = if let Some(left_aligned_tok) = left_aligned_tok {
         left_aligned_tok
     } else {
-        right_aligned_tok.ok_or_else(|| RelAnnisError::AlignedNotFound(n))?
+        right_aligned_tok.ok_or(RelAnnisError::AlignedNotFound(n))?
     };
     let right_aligned_tok = if let Some(right_aligned_tok) = right_aligned_tok {
         right_aligned_tok
@@ -1046,12 +1046,12 @@ fn add_automatic_cov_edge_for_node(
         .textpos_table
         .token_to_index
         .try_get(&left_aligned_tok)?
-        .ok_or_else(|| RelAnnisError::LeftAlignedNotFound(n))?;
+        .ok_or(RelAnnisError::LeftAlignedNotFound(n))?;
     let right_tok_pos = load_node_and_corpus_result
         .textpos_table
         .token_to_index
         .try_get(&right_aligned_tok)?
-        .ok_or_else(|| RelAnnisError::RightAlignedNotFound(n))?;
+        .ok_or(RelAnnisError::RightAlignedNotFound(n))?;
 
     for i in left_tok_pos.val..=right_tok_pos.val {
         let tok_idx = TextProperty {
@@ -1064,7 +1064,7 @@ fn add_automatic_cov_edge_for_node(
             .textpos_table
             .token_by_index
             .try_get(&tok_idx)?
-            .ok_or_else(|| RelAnnisError::NoTokenForPosition(tok_idx))?;
+            .ok_or(RelAnnisError::NoTokenForPosition(tok_idx))?;
         if n != tok_id {
             let edge = Edge {
                 source: n,
@@ -1109,12 +1109,12 @@ fn add_automatic_cov_edge_for_node(
                     source_node: load_node_and_corpus_result
                         .id_to_node_name
                         .try_get(&n)?
-                        .ok_or_else(|| RelAnnisError::NodeNotFound(n))?
+                        .ok_or(RelAnnisError::NodeNotFound(n))?
                         .clone(),
                     target_node: load_node_and_corpus_result
                         .id_to_node_name
                         .try_get(&tok_id)?
-                        .ok_or_else(|| RelAnnisError::NodeNotFound(tok_id))?
+                        .ok_or(RelAnnisError::NodeNotFound(tok_id))?
                         .clone(),
                     layer: component_layer,
                     component_type: AnnotationComponentType::Coverage.to_string(),
@@ -1144,7 +1144,7 @@ where
         .node_to_left
         .try_iter()?
     {
-        if textprop.segmentation == ""
+        if textprop.segmentation.is_empty()
             && !load_node_and_corpus_result
                 .textpos_table
                 .token_to_index
@@ -1160,7 +1160,7 @@ where
                 .textpos_table
                 .node_to_right
                 .try_get(&n)?
-                .ok_or_else(|| RelAnnisError::NoRightPositionForNode(n))?;
+                .ok_or(RelAnnisError::NoRightPositionForNode(n))?;
             let right_pos = TextProperty {
                 segmentation: String::from(""),
                 corpus_id: textprop.corpus_id,
@@ -1631,7 +1631,7 @@ where
         let node_id: NodeID = col_id.parse()?;
         let node_name = id_to_node_name
             .try_get(&node_id)?
-            .ok_or_else(|| RelAnnisError::NodeNotFound(node_id))?;
+            .ok_or(RelAnnisError::NodeNotFound(node_id))?;
         let col_ns = get_field(&line, 1, "namespace", &node_anno_tab_path)?.unwrap_or_default();
         let col_name = get_field_not_null(&line, 2, "name", &node_anno_tab_path)?;
         let col_val = get_field(&line, 3, "value", &node_anno_tab_path)?;
@@ -1813,11 +1813,11 @@ where
                     updates.add_event(UpdateEvent::AddEdge {
                         source_node: id_to_node_name
                             .try_get(&source)?
-                            .ok_or_else(|| RelAnnisError::NodeNotFound(source))?
+                            .ok_or(RelAnnisError::NodeNotFound(source))?
                             .to_owned(),
                         target_node: id_to_node_name
                             .try_get(&target)?
-                            .ok_or_else(|| RelAnnisError::NodeNotFound(target))?
+                            .ok_or(RelAnnisError::NodeNotFound(target))?
                             .to_owned(),
                         layer: c.layer.clone(),
                         component_type: c.get_type().to_string(),
@@ -1837,13 +1837,11 @@ where
                     load_rank_result.edges_by_pre.insert(pre, e)?;
                 }
             }
-        } else {
-            if let Some(c) = component_by_id.get(&component_ref) {
-                if c.get_type() == AnnotationComponentType::Coverage {
-                    load_rank_result
-                        .component_for_parentless_target_node
-                        .insert(target, c.clone())?;
-                }
+        } else if let Some(c) = component_by_id.get(&component_ref) {
+            if c.get_type() == AnnotationComponentType::Coverage {
+                load_rank_result
+                    .component_for_parentless_target_node
+                    .insert(target, c.clone())?;
             }
         }
     }
@@ -1902,11 +1900,11 @@ where
                 updates.add_event(UpdateEvent::AddEdgeLabel {
                     source_node: id_to_node_name
                         .try_get(&e.source)?
-                        .ok_or_else(|| RelAnnisError::NodeNotFound(e.source))?
+                        .ok_or(RelAnnisError::NodeNotFound(e.source))?
                         .to_owned(),
                     target_node: id_to_node_name
                         .try_get(&e.target)?
-                        .ok_or_else(|| RelAnnisError::NodeNotFound(e.target))?
+                        .ok_or(RelAnnisError::NodeNotFound(e.target))?
                         .to_owned(),
                     layer: c.layer.clone(),
                     component_type: c.get_type().to_string(),
@@ -1968,7 +1966,7 @@ fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
     let corpus = corpus_table
         .corpus_by_id
         .get(&cid)
-        .ok_or_else(|| RelAnnisError::CorpusNotFound(cid))?;
+        .ok_or(RelAnnisError::CorpusNotFound(cid))?;
     let pre = corpus.pre;
     let post = corpus.post;
 
@@ -1989,7 +1987,7 @@ fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
     let corpus = corpus_table
         .corpus_by_id
         .get(&cid)
-        .ok_or_else(|| RelAnnisError::CorpusNotFound(cid))?;
+        .ok_or(RelAnnisError::CorpusNotFound(cid))?;
     let corpus_name = utf8_percent_encode(&corpus.name, SALT_URI_ENCODE_SET).to_string();
     Ok(format!("{}/{}", parent_path, &corpus_name))
 }
@@ -2143,7 +2141,7 @@ fn add_subcorpora(
                     source_node: node_node_result
                         .id_to_node_name
                         .try_get(&n)?
-                        .ok_or_else(|| RelAnnisError::NodeNotFound(n))?
+                        .ok_or(RelAnnisError::NodeNotFound(n))?
                         .clone(),
                     target_node: text_full_name.clone(),
                     layer: ANNIS_NS.to_owned(),

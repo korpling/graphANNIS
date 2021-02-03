@@ -40,7 +40,6 @@ use std::fmt;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
-use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::{Arc, Condvar, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
@@ -668,7 +667,7 @@ impl CorpusStorage {
         } else if create_if_missing {
             true
         } else {
-            return Err(GraphAnnisError::NoSuchCorpus(corpus_name.to_string()).into());
+            return Err(GraphAnnisError::NoSuchCorpus(corpus_name.to_string()));
         };
 
         // make sure the cache is not too large before adding the new corpus
@@ -962,7 +961,7 @@ impl CorpusStorage {
                     }
                 }
             } else {
-                return Err(GraphAnnisError::CorpusExists(corpus_name.to_string()).into());
+                return Err(GraphAnnisError::CorpusExists(corpus_name.to_string()));
             }
         }
 
@@ -1364,7 +1363,7 @@ impl CorpusStorage {
 
             let necessary_components = q.necessary_components(db);
 
-            let mut missing: HashSet<_> = HashSet::from_iter(necessary_components.iter().cloned());
+            let mut missing: HashSet<_> = necessary_components.iter().cloned().collect();
 
             let additional_components = additional_components_callback(db);
 
@@ -1887,12 +1886,10 @@ impl CorpusStorage {
 
         // find all nodes covering the same token
         for source_node_id in node_ids {
-            let source_node_id: &str = if source_node_id.starts_with("salt:/") {
-                // remove the obsolete "salt:/" prefix
-                &source_node_id[6..]
-            } else {
-                &source_node_id
-            };
+            // remove the obsolete "salt:/" prefix
+            let source_node_id: &str = source_node_id
+                .strip_prefix("salt:/")
+                .unwrap_or(&source_node_id);
 
             let m = NodeSearchSpec::ExactValue {
                 ns: Some(ANNIS_NS.to_string()),
@@ -2015,12 +2012,10 @@ impl CorpusStorage {
         };
         // find all nodes that a connected with the corpus IDs
         for source_corpus_id in corpus_ids {
-            let source_corpus_id: &str = if source_corpus_id.starts_with("salt:/") {
-                // remove the obsolete "salt:/" prefix
-                &source_corpus_id[6..]
-            } else {
-                &source_corpus_id
-            };
+            // remove the obsolete "salt:/" prefix
+            let source_corpus_id: &str = source_corpus_id
+                .strip_prefix("salt:/")
+                .unwrap_or(&source_corpus_id);
             // All annotation nodes
             {
                 let mut q = Conjunction::new();
@@ -2373,8 +2368,7 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a An
     } else {
         Err(GraphAnnisError::LoadingGraphFailed {
             name: "".to_string(),
-        }
-        .into())
+        })
     }
 }
 
@@ -2520,7 +2514,9 @@ fn create_subgraph_edge(
     for c in components {
         // don't include index components
         let ctype = c.get_type();
-        if !((ctype == AnnotationComponentType::Coverage && c.layer == "annis" && c.name != "")
+        if !((ctype == AnnotationComponentType::Coverage
+            && c.layer == "annis"
+            && !c.name.is_empty())
             || ctype == AnnotationComponentType::RightToken
             || ctype == AnnotationComponentType::LeftToken)
         {

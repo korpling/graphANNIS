@@ -26,7 +26,6 @@ use rand::distributions::Uniform;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use std::collections::{BTreeMap, HashMap, HashSet};
-use std::iter::FromIterator;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -280,8 +279,7 @@ impl<'a> Conjunction<'a> {
             Err(GraphAnnisError::AQLSemanticError(AQLError {
                 desc: format!("Operand '#{}' not found", var),
                 location,
-            })
-            .into())
+            }))
         }
     }
 
@@ -331,8 +329,7 @@ impl<'a> Conjunction<'a> {
         Err(GraphAnnisError::AQLSemanticError(AQLError {
             desc: format!("Operand '#{}' not found", variable),
             location,
-        })
-        .into())
+        }))
     }
 
     pub fn is_included_in_output(&self, variable: &str) -> bool {
@@ -361,8 +358,7 @@ impl<'a> Conjunction<'a> {
         Err(GraphAnnisError::AQLSemanticError(AQLError {
             desc: format!("Operand '#{}' not found", variable),
             location,
-        })
-        .into())
+        }))
     }
 
     pub fn necessary_components(
@@ -403,7 +399,7 @@ impl<'a> Conjunction<'a> {
         let mut rng = SmallRng::from_seed(*b"Graphs are great");
         let dist = Uniform::from(0..self.binary_operators.len());
 
-        let mut best_operator_order = Vec::from_iter(0..self.binary_operators.len());
+        let mut best_operator_order: Vec<_> = (0..self.binary_operators.len()).collect();
 
         // TODO: cache the base estimates
         let initial_plan =
@@ -625,7 +621,7 @@ impl<'a> Conjunction<'a> {
         for op_spec_entry in self.unary_operators.iter() {
             let child_exec: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
                 .remove(&op_spec_entry.idx)
-                .ok_or_else(|| GraphAnnisError::NoExecutionNode(op_spec_entry.idx))?;
+                .ok_or(GraphAnnisError::NoExecutionNode(op_spec_entry.idx))?;
 
             let op: Box<dyn UnaryOperator> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
@@ -689,7 +685,7 @@ impl<'a> Conjunction<'a> {
             // get the original execution node
             let exec_left: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
                 .remove(&component_left)
-                .ok_or_else(|| GraphAnnisError::NoExecutionNode(component_left))?;
+                .ok_or(GraphAnnisError::NoExecutionNode(component_left))?;
 
             let idx_left: usize = *(exec_left
                 .get_desc()
@@ -714,7 +710,7 @@ impl<'a> Conjunction<'a> {
                 } else {
                     let exec_right = component2exec
                         .remove(&component_right)
-                        .ok_or_else(|| GraphAnnisError::NoExecutionNode(component_right))?;
+                        .ok_or(GraphAnnisError::NoExecutionNode(component_right))?;
                     let idx_right: usize = *(exec_right
                         .get_desc()
                         .ok_or(GraphAnnisError::PlanDescriptionMissing)?
@@ -747,12 +743,9 @@ impl<'a> Conjunction<'a> {
             .map(|(_cid, exec)| exec)
             .next()
             .ok_or_else(|| {
-                {
-                    GraphAnnisError::ImpossibleSearch(String::from(
-                        "could not find execution node for query component",
-                    ))
-                }
-                .into()
+                GraphAnnisError::ImpossibleSearch(String::from(
+                    "could not find execution node for query component",
+                ))
             })
     }
 
@@ -802,8 +795,7 @@ impl<'a> Conjunction<'a> {
                             n_var
                         ),
                         location: location.cloned(),
-                    })
-                    .into());
+                    }));
                 }
             }
         }

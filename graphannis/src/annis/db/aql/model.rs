@@ -10,7 +10,6 @@ use graphannis_core::{
     util::disk_collections::{DiskMap, EvictionStrategy},
 };
 use std::fmt;
-use std::iter::FromIterator;
 
 use std::borrow::Cow;
 use std::{str::FromStr, sync::Arc};
@@ -328,7 +327,7 @@ impl AQLUpdateGraphIndex {
         }
 
         // order the candidate token by their position in the order chain
-        let mut candidates = Vec::from_iter(candidates.into_iter());
+        let mut candidates: Vec<_> = candidates.into_iter().collect();
         candidates.sort_unstable_by(move |a, b| {
             if a == b {
                 return std::cmp::Ordering::Equal;
