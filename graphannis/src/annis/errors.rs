@@ -1,9 +1,11 @@
 use std::fmt::Display;
 
 use crate::annis::types::LineColumnRange;
-use graphannis_core::errors::GraphAnnisCoreError;
+use graphannis_core::{errors::GraphAnnisCoreError, types::NodeID};
 use strum_macros;
 use thiserror::Error;
+
+use super::db::relannis::TextProperty;
 
 pub type Result<T> = std::result::Result<T, GraphAnnisError>;
 
@@ -126,6 +128,24 @@ pub enum RelAnnisError {
         name: String,
         file: String,
     },
+    #[error("toplevel corpus not found")]
+    ToplevelCorpusNotFound,
+    #[error("corpus with ID {0} not found")]
+    CorpusNotFound(u32),
+    #[error("node with ID {0} not found")]
+    NodeNotFound(NodeID),
+    #[error("can't get find any aligned token (left or right) for node with ID {0}")]
+    AlignedNotFound(NodeID),
+    #[error("can't get left aligned token for node with ID {0}")]
+    LeftAlignedNotFound(NodeID),
+    #[error("can't get right aligned token for node with ID {0}")]
+    RightAlignedNotFound(NodeID),
+    #[error("can't get token ID for position {0:?}")]
+    NoTokenForPosition(TextProperty),
+    #[error("can't get right position of node {0}")]
+    NoRightPositionForNode(NodeID),
+    #[error("invalid component type short name '{0}'")]
+    InvalidComponentShortName(String),
 }
 
 #[derive(Debug)]
