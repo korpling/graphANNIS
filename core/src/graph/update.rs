@@ -93,7 +93,7 @@ impl GraphUpdate {
     }
 
     /// Get all changes
-    pub fn iter<'a>(&'a self) -> Result<GraphUpdateIterator<'a>> {
+    pub fn iter(&self) -> Result<GraphUpdateIterator> {
         let it = GraphUpdateIterator::new(self)?;
         Ok(it)
     }

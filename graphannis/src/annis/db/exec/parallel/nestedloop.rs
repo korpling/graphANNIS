@@ -128,7 +128,7 @@ impl<'a> NestedLoop<'a> {
         }
     }
 
-    fn next_match_buffer<'b>(&'b mut self, tx: &Sender<Vec<Match>>) {
+    fn next_match_buffer(&mut self, tx: &Sender<Vec<Match>>) {
         self.match_candidate_buffer.clear();
 
         while self.match_candidate_buffer.len() < MAX_BUFFER_SIZE {

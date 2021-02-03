@@ -2,7 +2,6 @@ use std::fmt::Display;
 
 use crate::annis::types::LineColumnRange;
 use graphannis_core::{errors::GraphAnnisCoreError, types::NodeID};
-use strum_macros;
 use thiserror::Error;
 
 use super::db::relannis::TextProperty;
