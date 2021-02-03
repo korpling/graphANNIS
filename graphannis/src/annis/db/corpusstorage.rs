@@ -1517,7 +1517,10 @@ impl CorpusStorage {
         corpus_names: &[S],
         query: &str,
         query_language: QueryLanguage,
+        timeout: Option<Duration>,
     ) -> Result<CountExtra> {
+        let timeout = TimeoutCheck::new(timeout);
+
         let mut match_count: u64 = 0;
         let mut document_count: u64 = 0;
 
@@ -1531,7 +1534,7 @@ impl CorpusStorage {
 
             let mut known_documents = HashSet::new();
 
-            let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
+            for (match_nr, m) in plan.enumerate() {
                 if !m.is_empty() {
                     let m: &Match = &m[0];
                     if let Some(node_name) = db
@@ -1545,11 +1548,15 @@ impl CorpusStorage {
                         known_documents.insert(doc_path.to_owned());
                     }
                 }
-                (acc.0 + 1, known_documents.len())
-            });
+                match_count += 1;
 
-            match_count += result.0;
-            document_count += result.1 as u64;
+                if match_count % 1_000 == 0 {
+                    timeout.check()?;
+                }
+            }
+            document_count += known_documents.len() as u64;
+
+            timeout.check()?;
         }
 
         Ok(CountExtra {

@@ -151,7 +151,11 @@ pub extern "C" fn annis_cs_count_extra(
         .iter()
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
-    map_cerr(cs.count_extra(&corpus_names, &query, query_language), err).unwrap_or_default()
+    map_cerr(
+        cs.count_extra(&corpus_names, &query, query_language, None),
+        err,
+    )
+    .unwrap_or_default()
 }
 
 /// Find all results for a `query` and return the match ID for each result.
