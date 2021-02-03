@@ -507,12 +507,20 @@ impl AnnisRunner {
                 .storage
                 .as_ref()
                 .ok_or_else(|| anyhow!("No corpus storage location set"))?
-                .count(&self.current_corpus, args, self.query_language)?;
+                .count_extra(
+                    &self.current_corpus,
+                    args,
+                    self.query_language,
+                    self.timeout,
+                )?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
-            println!("result: {} matches", c);
+            println!(
+                "result: {} matches in {} documents",
+                c.match_count, c.document_count
+            );
         }
         Ok(())
     }
