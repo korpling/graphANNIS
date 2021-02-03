@@ -1,6 +1,6 @@
 pub mod quicksort;
 
-use crate::errors::{CorpusStorageError, Result};
+use crate::errors::{GraphAnnisError, Result};
 
 use std::{
     path::Path,
@@ -115,7 +115,7 @@ impl TimeoutCheck {
     pub fn check(&self) -> Result<()> {
         if let Some(timeout) = self.timeout {
             if self.start_time.elapsed() > timeout {
-                return Err(CorpusStorageError::Timeout.into());
+                return Err(GraphAnnisError::Timeout.into());
             }
         }
         Ok(())

@@ -19,6 +19,8 @@ pub enum GraphAnnisError {
     AQLSemanticError(AQLError),
     #[error("impossible search expression detected: {0}")]
     ImpossibleSearch(String),
+    #[error("timeout")]
+    Timeout,
     #[error("could not load graph {name} from disk")]
     LoadingGraphFailed { name: String },
     #[error("corpus {0} not found")]
@@ -106,8 +108,6 @@ pub enum CorpusStorageError {
     },
     #[error("the corpus cache entry is not loaded")]
     CorpusCacheEntryNotLoaded,
-    #[error("timeout")]
-    Timeout,
 }
 
 #[derive(Error, Debug)]
