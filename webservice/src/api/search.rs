@@ -1,5 +1,7 @@
+use std::time::Duration;
+
 use super::check_corpora_authorized;
-use crate::{errors::ServiceError, extractors::ClaimsFromAuth, DbPool};
+use crate::{errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool};
 use actix_web::web::{self, Bytes, HttpResponse};
 use futures::stream::iter;
 use graphannis::{
@@ -20,10 +22,19 @@ pub async fn count(
     params: web::Json<CountQuery>,
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
+    settings: web::Data<Settings>,
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
     let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
-    let count = cs.count_extra(&corpora, &params.query, params.query_language)?;
+    let count = cs.count_extra(
+        &corpora,
+        &params.query,
+        params.query_language,
+        settings
+            .database
+            .query_timeout
+            .map(|secs| Duration::from_secs(secs)),
+    )?;
     Ok(HttpResponse::Ok().json(count))
 }
 
@@ -60,6 +71,7 @@ pub async fn find(
     params: web::Json<FindQuery>,
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
+    settings: web::Data<Settings>,
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
     let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
@@ -71,7 +83,10 @@ pub async fn find(
         params.offset,
         params.limit,
         params.order,
-        None,
+        settings
+            .database
+            .query_timeout
+            .map(|secs| Duration::from_secs(secs)),
     )?;
 
     let body = iter(
