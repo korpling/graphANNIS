@@ -41,6 +41,7 @@ impl ConsoleHelper {
         known_commands.insert("corpus".to_string());
         known_commands.insert("set-offset".to_string());
         known_commands.insert("set-limit".to_string());
+        known_commands.insert("set-timeout".to_string());
         known_commands.insert("preload".to_string());
         known_commands.insert("update_statistics".to_string());
         known_commands.insert("count".to_string());
@@ -124,6 +125,7 @@ struct AnnisRunner {
     use_parallel_joins: bool,
     use_disk: bool,
     query_language: QueryLanguage,
+    timeout: Option<Duration>,
 }
 
 impl AnnisRunner {
@@ -137,6 +139,7 @@ impl AnnisRunner {
             query_language: QueryLanguage::AQL,
             offset: 0,
             limit: None,
+            timeout: None,
         })
     }
 
@@ -201,6 +204,7 @@ impl AnnisRunner {
                 "corpus" => self.corpus(&args),
                 "set-offset" => self.set_offset(&args),
                 "set-limit" => self.set_limit(&args),
+                "set-timeout" => self.set_timeout(&args),
                 "preload" => self.preload(),
                 "update_statistics" => self.update_statistics(),
                 "plan" => self.plan(&args),
@@ -399,6 +403,18 @@ impl AnnisRunner {
             self.limit = None;
         } else {
             self.limit = Some(usize::from_str_radix(args.trim(), 10)?);
+        }
+        Ok(())
+    }
+
+    fn set_timeout(&mut self, args: &str) -> Result<()> {
+        if args.is_empty() {
+            self.timeout = None;
+            println!("Timeout disabled");
+        } else {
+            let seconds = u64::from_str_radix(args.trim(), 10)?;
+            println!("Timeout set to {} seconds", seconds);
+            self.timeout = Some(Duration::from_secs(seconds));
         }
         Ok(())
     }
