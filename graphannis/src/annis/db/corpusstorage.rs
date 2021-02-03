@@ -1,4 +1,3 @@
-use crate::annis::db;
 use crate::annis::db::aql;
 use crate::annis::db::aql::operators;
 use crate::annis::db::aql::operators::RangeSpec;
@@ -17,6 +16,7 @@ use crate::annis::types::{
     CorpusConfiguration, FrequencyTable, FrequencyTableRow, QueryAttributeDescription,
 };
 use crate::annis::util::quicksort;
+use crate::annis::{db, util::TimeoutCheck};
 use crate::{
     graph::Match,
     malloc_size_of::{MallocSizeOf, MallocSizeOfOps},
@@ -34,7 +34,6 @@ use graphannis_core::{
 };
 use linked_hash_map::LinkedHashMap;
 use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, CONTROLS};
-use std::borrow::Cow;
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
 use std::fs::File;
@@ -44,6 +43,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::{Arc, Condvar, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::thread;
+use std::{borrow::Cow, time::Duration};
 
 use rustc_hash::FxHashMap;
 
@@ -1686,6 +1686,7 @@ impl CorpusStorage {
         offset: usize,
         limit: Option<usize>,
         order: ResultOrder,
+        timeout: TimeoutCheck,
     ) -> Result<(Vec<String>, usize)> {
         let prep = self.prepare_query(corpus_name, query, query_language, |db| {
             let mut additional_components = vec![Component::new(
@@ -1729,13 +1730,18 @@ impl CorpusStorage {
         let mut skipped = 0;
         while skipped < offset && base_it.next().is_some() {
             skipped += 1;
+
+            if skipped % 1_000 == 0 {
+                timeout.check()?;
+            }
         }
         let base_it: Box<dyn Iterator<Item = Vec<Match>>> = if let Some(limit) = limit {
             Box::new(base_it.take(limit))
         } else {
             Box::new(base_it)
         };
-        results.extend(base_it.map(|m: Vec<Match>| {
+
+        for (match_nr, m) in base_it.enumerate() {
             let mut match_desc: Vec<String> = Vec::new();
             for (i, singlematch) in m.iter().enumerate() {
                 // check if query node actually should be included in quirks mode
@@ -1778,10 +1784,11 @@ impl CorpusStorage {
                     match_desc.push(node_desc);
                 }
             }
-            let mut result = String::new();
-            result.push_str(&match_desc.join(" "));
-            result
-        }));
+            results.push(match_desc.join(" "));
+            if match_nr % 1_000 == 0 {
+                timeout.check()?;
+            }
+        }
 
         Ok((results, skipped))
     }
@@ -1807,7 +1814,10 @@ impl CorpusStorage {
         offset: usize,
         limit: Option<usize>,
         order: ResultOrder,
+        timeout: Option<Duration>,
     ) -> Result<Vec<String>> {
+        let timeout = TimeoutCheck::new(timeout);
+
         let mut result = Vec::new();
 
         // Sort corpus names
@@ -1838,6 +1848,7 @@ impl CorpusStorage {
                 offset,
                 limit,
                 order,
+                timeout,
             )?;
 
             // Adjust limit and offset according to the found matches for the next corpus.
@@ -1858,6 +1869,8 @@ impl CorpusStorage {
             } else {
                 offset = 0;
             }
+
+            timeout.check()?;
         }
         Ok(result)
     }

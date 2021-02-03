@@ -17,6 +17,7 @@ fn main() {
             0,
             Some(100),
             ResultOrder::Normal,
+            None,
         )
         .unwrap();
     for (i, m) in matches.iter().enumerate() {

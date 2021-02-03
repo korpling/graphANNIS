@@ -71,6 +71,7 @@ pub async fn find(
         params.offset,
         params.limit,
         params.order,
+        None,
     )?;
 
     let body = iter(

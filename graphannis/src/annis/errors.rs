@@ -106,6 +106,8 @@ pub enum CorpusStorageError {
     },
     #[error("the corpus cache entry is not loaded")]
     CorpusCacheEntryNotLoaded,
+    #[error("timeout")]
+    Timeout,
 }
 
 #[derive(Error, Debug)]
