@@ -63,8 +63,6 @@ pub enum GraphAnnisError {
     Csv(#[from] csv::Error),
     #[error(transparent)]
     ParseIntError(#[from] std::num::ParseIntError),
-    #[error(transparent)]
-    Anyhow(#[from] anyhow::Error),
 }
 
 #[derive(Error, Debug)]
