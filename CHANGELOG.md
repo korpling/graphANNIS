@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The `FixedMaxMemory` `CacheStrategy` now uses Megabytes instead of bytes.
 - There can be multiple `--cmd` arguments for the CLI, which are executed in the order they are given.
+- The graphannis and core crates now use their own error type instead of the one provided by the `anyhow` crate.
 
 ## Added
 
