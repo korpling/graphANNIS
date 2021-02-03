@@ -107,7 +107,7 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
             .to_string_lossy(),
         &settings.database.cache
     );
-    if let Some(timeout) = &settings.database.timeout {
+    if let Some(timeout) = &settings.database.query_timeout {
         info!("Queries timeout set to {} seconds", timeout);
     }
 
