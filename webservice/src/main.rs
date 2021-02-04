@@ -142,6 +142,13 @@ async fn main() -> Result<()> {
 
     // Run server
     HttpServer::new(move || {
+        let logger = if settings.logging.debug {
+            // Log all requests in debug
+            Logger::default()
+        } else {
+            Logger::default().exclude_regex(".*")
+        };
+
         App::new()
             .wrap(
                 Cors::new()
@@ -153,7 +160,7 @@ async fn main() -> Result<()> {
             .app_data(settings.clone())
             .app_data(db_pool.clone())
             .app_data(background_jobs.clone())
-            .wrap(Logger::default())
+            .wrap(logger)
             .wrap(Compress::new(ContentEncoding::Gzip))
             .service(
                 web::scope(&api_version)
