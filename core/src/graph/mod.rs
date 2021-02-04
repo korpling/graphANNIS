@@ -149,7 +149,7 @@ impl<CT: ComponentType> Graph<CT> {
     /// * `location` - The path on the disk
     /// * `preload` - If `true`, all components are loaded from disk into main memory.
     pub fn load_from(&mut self, location: &Path, preload: bool) -> Result<()> {
-        info!("Loading corpus from {}", location.to_string_lossy());
+        debug!("Loading corpus from {}", location.to_string_lossy());
         self.clear();
 
         let location = PathBuf::from(location);
@@ -783,12 +783,12 @@ impl<CT: ComponentType> Graph<CT> {
         // load missing components in parallel
         let loaded_components: Vec<(_, Result<Arc<dyn GraphStorage>>)> = components_to_load
             .into_par_iter()
-            .map(|c| {
-                info!("Loading component {} from disk", c);
-                match self.component_path(&c) {
-                    Some(cpath) => (c, load_component_from_disk(&cpath)),
-                    None => (c, Err(GraphAnnisCoreError::EmptyComponentPath)),
+            .map(|c| match self.component_path(&c) {
+                Some(cpath) => {
+                    debug!("Loading component {} from {}", c, &cpath.to_string_lossy());
+                    (c, load_component_from_disk(&cpath))
                 }
+                None => (c, Err(GraphAnnisCoreError::EmptyComponentPath)),
             })
             .collect();
 
