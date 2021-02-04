@@ -812,7 +812,11 @@ impl<CT: ComponentType> Graph<CT> {
                 let component_path = self
                     .component_path(c)
                     .ok_or(GraphAnnisCoreError::EmptyComponentPath)?;
-                info!("Loading component {} from disk", c);
+                debug!(
+                    "Loading component {} from {}",
+                    c,
+                    &component_path.to_string_lossy()
+                );
                 load_component_from_disk(&component_path)?
             };
 
