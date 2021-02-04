@@ -697,6 +697,13 @@ impl CorpusStorage {
 
         check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![corpus_name]);
 
+        // Output the new cache state
+        info!(
+            "Loaded corpus {}. {}",
+            corpus_name,
+            get_corpus_cache_info_as_string(cache)
+        );
+
         Ok(entry)
     }
 
@@ -2402,26 +2409,32 @@ fn get_write_or_error<'a>(
     }
 }
 
-fn check_cache_size_and_remove_with_cache(
-    cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
-    cache_strategy: &CacheStrategy,
-    keep: Vec<&str>,
-) {
+fn get_cache_sizes(
+    cache: &LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
+) -> LinkedHashMap<String, usize> {
     let mut mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
 
-    let keep: HashSet<&str> = keep.into_iter().collect();
-
-    // check size of each corpus and calculate the sum of used memory
-    let mut size_sum: usize = 0;
     let mut db_sizes: LinkedHashMap<String, usize> = LinkedHashMap::new();
     for (corpus, db_entry) in cache.iter() {
         let lock = db_entry.read().unwrap();
         if let CacheEntry::Loaded(ref db) = &*lock {
             let s = db.size_of_cached(&mut mem_ops);
-            size_sum += s;
             db_sizes.insert(corpus.clone(), s);
         }
     }
+    db_sizes
+}
+
+fn check_cache_size_and_remove_with_cache(
+    cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
+    cache_strategy: &CacheStrategy,
+    keep: Vec<&str>,
+) {
+    let keep: HashSet<&str> = keep.into_iter().collect();
+
+    // check size of each corpus and calculate the sum of used memory
+    let db_sizes = get_cache_sizes(cache);
+    let mut size_sum: usize = db_sizes.iter().map(|(_, s)| s).sum();
 
     let max_cache_size: usize = match cache_strategy {
         CacheStrategy::FixedMaxMemory(max_size) => *max_size * 1_000_000,
@@ -2452,19 +2465,45 @@ fn check_cache_size_and_remove_with_cache(
     for (corpus_name, corpus_size) in db_sizes.iter() {
         if size_sum > max_cache_size {
             if !keep.contains(corpus_name.as_str()) {
-                info!("Removing corpus {} from cache", corpus_name);
                 cache.remove(corpus_name);
                 size_sum -= corpus_size;
                 debug!(
-                    "Current cache size is {:.2} MB / max  {:.2} MB",
-                    (size_sum as f64) / 1_000_000.0,
-                    (max_cache_size as f64) / 1_000_000.0
+                    "Removing corpus {} from cache. {}",
+                    corpus_name,
+                    get_corpus_cache_info_as_string(cache),
                 );
             }
         } else {
             // cache size is smaller, nothing to do
             break;
         }
+    }
+}
+
+/// Return the current size and loaded corpora as debug string.
+fn get_corpus_cache_info_as_string(
+    cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
+) -> String {
+    let cache_sizes = get_cache_sizes(cache);
+    if cache_sizes.is_empty() {
+        "Corpus cache is currently empty".to_string()
+    } else {
+        let corpus_memory_as_string: Vec<String> = cache_sizes
+            .iter()
+            .map(|(corpus_name, corpus_size)| {
+                format!(
+                    "{} ({:.2} MB)",
+                    corpus_name,
+                    (*corpus_size as f64) / 1_000_000.0
+                )
+            })
+            .collect();
+        let size_sum: usize = cache_sizes.iter().map(|(_, s)| s).sum();
+        format!(
+            "Total size is {:.2} MB and corpora in cache are: {}.",
+            (size_sum as f64) / 1_000_000.0,
+            corpus_memory_as_string.join(", ")
+        )
     }
 }
 
