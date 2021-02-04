@@ -137,7 +137,7 @@ impl<CT: ComponentType> Graph<CT> {
 
     /// Clear the graph content.
     /// This removes all node annotations, edges and knowledge about components.
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         self.reset_cached_size();
         self.node_annos = Box::new(crate::annostorage::inmemory::AnnoStorageImpl::new());
         self.components.clear();
