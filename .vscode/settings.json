@@ -9,5 +9,8 @@
         "en-US": [
             "graphANNIS"
         ]
+    },
+    "files.watcherExclude": {
+        "**/target/**": true
     }
 }
