@@ -2473,10 +2473,17 @@ fn check_cache_size_and_remove_with_cache(
     for (corpus_name, corpus_size) in db_sizes.iter() {
         if size_sum > max_cache_size {
             if !keep.contains(corpus_name.as_str()) {
-                cache.remove(corpus_name);
+                if let Some(old_entry) = cache.remove(corpus_name) {
+                    // Wait until the entry is unused by e.g. some queries
+                    let mut old_entry = old_entry.write().unwrap();
+                    if let CacheEntry::Loaded(ref mut graph) = *old_entry {
+                        // Manually unload/clear the node annotation and all graph storages
+                        graph.clear();
+                    }
+                }
                 size_sum -= corpus_size;
                 debug!(
-                    "Removing corpus {} from cache. {}",
+                    "Removed corpus {} from cache. {}",
                     corpus_name,
                     get_corpus_cache_info_as_string(cache, max_cache_size),
                 );
