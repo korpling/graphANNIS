@@ -695,13 +695,17 @@ impl CorpusStorage {
         cache.remove(corpus_name);
         cache.insert(String::from(corpus_name), entry.clone());
 
-        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![corpus_name]);
+        let used_cache_size =
+            check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![corpus_name]);
 
         // Output the new cache state
         info!(
             "Loaded corpus {}. {}",
             corpus_name,
-            get_corpus_cache_info_as_string(cache)
+            get_corpus_cache_info_as_string(
+                cache,
+                get_max_cache_size(&self.cache_strategy, used_cache_size)
+            )
         );
 
         Ok(entry)
@@ -2425,18 +2429,8 @@ fn get_cache_sizes(
     db_sizes
 }
 
-fn check_cache_size_and_remove_with_cache(
-    cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
-    cache_strategy: &CacheStrategy,
-    keep: Vec<&str>,
-) {
-    let keep: HashSet<&str> = keep.into_iter().collect();
-
-    // check size of each corpus and calculate the sum of used memory
-    let db_sizes = get_cache_sizes(cache);
-    let mut size_sum: usize = db_sizes.iter().map(|(_, s)| s).sum();
-
-    let max_cache_size: usize = match cache_strategy {
+fn get_max_cache_size(cache_strategy: &CacheStrategy, used_cache_size: usize) -> usize {
+    match cache_strategy {
         CacheStrategy::FixedMaxMemory(max_size) => *max_size * 1_000_000,
         CacheStrategy::PercentOfFreeMemory(max_percent) => {
             // get the current free space in main memory
@@ -2445,14 +2439,28 @@ fn check_cache_size_and_remove_with_cache(
                 let free_system_mem: usize = mem.avail as usize * 1024; // mem.free is in KiB
                                                                         // A part of the system memory is already used by the cache.
                                                                         // We want x percent of the overall available memory (thus not used by us), so add the cache size
-                let available_memory: usize = free_system_mem + size_sum;
+                let available_memory: usize = free_system_mem + used_cache_size;
                 ((available_memory as f64) * (max_percent / 100.0)) as usize
             } else {
                 // fallback to include only the last loaded corpus if free memory size is unknown
                 0
             }
         }
-    };
+    }
+}
+
+fn check_cache_size_and_remove_with_cache(
+    cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
+    cache_strategy: &CacheStrategy,
+    keep: Vec<&str>,
+) -> usize {
+    let keep: HashSet<&str> = keep.into_iter().collect();
+
+    // check size of each corpus and calculate the sum of used memory
+    let db_sizes = get_cache_sizes(cache);
+    let mut size_sum: usize = db_sizes.iter().map(|(_, s)| s).sum();
+
+    let max_cache_size: usize = get_max_cache_size(cache_strategy, size_sum);
 
     debug!(
         "Current cache size is {:.2} MB / max  {:.2} MB",
@@ -2470,7 +2478,7 @@ fn check_cache_size_and_remove_with_cache(
                 debug!(
                     "Removing corpus {} from cache. {}",
                     corpus_name,
-                    get_corpus_cache_info_as_string(cache),
+                    get_corpus_cache_info_as_string(cache, max_cache_size),
                 );
             }
         } else {
@@ -2478,11 +2486,13 @@ fn check_cache_size_and_remove_with_cache(
             break;
         }
     }
+    size_sum
 }
 
 /// Return the current size and loaded corpora as debug string.
 fn get_corpus_cache_info_as_string(
     cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
+    max_cache_size: usize,
 ) -> String {
     let cache_sizes = get_cache_sizes(cache);
     if cache_sizes.is_empty() {
@@ -2500,8 +2510,9 @@ fn get_corpus_cache_info_as_string(
             .collect();
         let size_sum: usize = cache_sizes.iter().map(|(_, s)| s).sum();
         format!(
-            "Total size is {:.2} MB and corpora in cache are: {}.",
+            "Total cache size is {:.2} MB / {:.2} MB and loaded corpora are: {}.",
             (size_sum as f64) / 1_000_000.0,
+            (max_cache_size as f64) / 1_000_000.0,
             corpus_memory_as_string.join(", ")
         )
     }
