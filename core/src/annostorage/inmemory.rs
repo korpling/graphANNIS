@@ -68,6 +68,7 @@ impl<
         self.by_container.clear();
         self.by_anno.clear();
         self.anno_keys.clear();
+        self.anno_key_sizes.clear();
         self.histogram_bounds.clear();
         self.largest_item = None;
         self.anno_values.clear();
