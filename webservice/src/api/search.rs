@@ -115,6 +115,7 @@ pub async fn frequency(
     params: web::Json<FrequencyQuery>,
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
+    settings: web::Data<Settings>,
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
     let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
@@ -124,6 +125,10 @@ pub async fn frequency(
         &params.query,
         params.query_language,
         params.definition.clone(),
+        settings
+            .database
+            .query_timeout
+            .map(|secs| Duration::from_secs(secs)),
     )?;
 
     Ok(HttpResponse::Ok().json(result))
