@@ -5,6 +5,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Changed
+
+- The `FixedMaxMemory` `CacheStrategy` now uses Megabytes instead of bytes.
+- There can be multiple `--cmd` arguments for the CLI, which are executed in the order they are given.
+- The graphannis and core crates now use their own error type instead of the one provided by the `anyhow` crate.
+
+## Added
+
+- The webservice configuration now allows to configure the size of the in-memory corpus cache.
+
+
 ## Fixed
 
 - Importing a relANNIS corpus could fail because the integer would wrap around from negative to a large value when calculating the `tok-whitespace-after` annotation value. This large value would then be used to allocate memory, which will fail. 
@@ -15,15 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix memory consumption of AQL parser in repeated calls (like the webservice).
 - Limit the memory which is reserved for an internal result vector to avoid out-of-memory errors when the estimation is wrong.
 
-## Changed
-
-- The `FixedMaxMemory` `CacheStrategy` now uses Megabytes instead of bytes.
-- There can be multiple `--cmd` arguments for the CLI, which are executed in the order they are given.
-- The graphannis and core crates now use their own error type instead of the one provided by the `anyhow` crate.
-
-## Added
-
-- The webservice configuration now allows to configure the size of the in-memory corpus cache.
 
 ## [0.30.0] - 2020-09-30
 
