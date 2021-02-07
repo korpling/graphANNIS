@@ -401,7 +401,7 @@ pub extern "C" fn annis_cs_frequency(
         .collect();
 
     match map_cerr(
-        cs.frequency(&corpus_names, &query, query_language, table_def),
+        cs.frequency(&corpus_names, &query, query_language, table_def, None),
         err,
     ) {
         Some(orig_ft) => {

@@ -588,6 +588,7 @@ impl AnnisRunner {
                     splitted_arg[1],
                     self.query_language,
                     table_def,
+                    self.timeout,
                 )?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {

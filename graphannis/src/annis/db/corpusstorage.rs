@@ -2151,6 +2151,7 @@ impl CorpusStorage {
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
     /// - `definition` - A list of frequency query definitions.
+    /// - `timeout` - If not `None`, the query will be aborted after running for the given amount of time.
     ///
     /// Returns a frequency table of strings.
     pub fn frequency<S: AsRef<str>>(
@@ -2159,7 +2160,10 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
         definition: Vec<FrequencyDefEntry>,
+        timeout: Option<Duration>,
     ) -> Result<FrequencyTable<String>> {
+        let timeout = TimeoutCheck::new(timeout);
+
         let mut tuple_frequency: FxHashMap<Vec<String>, usize> = FxHashMap::default();
 
         for cn in corpus_names {
@@ -2209,6 +2213,10 @@ impl CorpusStorage {
                 // add the tuple to the frequency count
                 let tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
                 *tuple_count += 1;
+
+                if *tuple_count % 1_000 == 0 {
+                    timeout.check()?;
+                }
             }
         }
 
