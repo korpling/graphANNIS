@@ -32,7 +32,7 @@ pub fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
 }
 
 /// Defines a definition of a query including its number of expected results.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct SearchDef {
     pub aql: String,
     pub count: u64,

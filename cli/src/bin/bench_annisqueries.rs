@@ -4,8 +4,8 @@ extern crate criterion;
 extern crate graphannis;
 
 use clap::*;
-use criterion::Bencher;
-use criterion::Criterion;
+use criterion::BenchmarkGroup;
+use criterion::{measurement::Measurement, Criterion};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -15,39 +15,42 @@ use graphannis::corpusstorage::QueryLanguage;
 use graphannis::util;
 use graphannis::CorpusStorage;
 
-pub struct CountBench {
-    pub def: util::SearchDef,
-    pub cs: Arc<CorpusStorage>,
-}
-
-impl std::fmt::Debug for CountBench {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}/{}", self.def.corpus[0], self.def.name)
-    }
-}
-
-pub fn create_query_input(
+pub fn create_query_input<M>(
     data_dir: &Path,
     queries_file: &Path,
     use_parallel_joins: bool,
-) -> std::vec::Vec<CountBench> {
-    let mut benches = std::vec::Vec::new();
-
+    benchmark_group: &mut BenchmarkGroup<M>,
+) where
+    M: Measurement,
+{
     let cs = Arc::new(CorpusStorage::with_auto_cache_size(data_dir, use_parallel_joins).unwrap());
 
     let queries = util::get_queries_from_csv(queries_file, true);
-    for def in queries {
+    for def in queries.into_iter() {
         let mut bench_name = def.corpus[0].clone();
         bench_name.push_str("/");
         bench_name.push_str(&def.name);
 
-        benches.push(CountBench {
-            def,
-            cs: cs.clone(),
+        let cs = cs.clone();
+
+        benchmark_group.bench_function(&bench_name, move |b| {
+            for c in def.corpus.iter() {
+                // TODO: preloading all corpora is necessary, but how do we prevent unloading?
+                cs.preload(c).unwrap();
+            }
+            let cs = cs.clone();
+            let def = def.clone();
+            b.iter(move || {
+                let count =
+                    if let Ok(count) = cs.count(&def.corpus, &def.aql, QueryLanguage::AQL, None) {
+                        count
+                    } else {
+                        0
+                    };
+                assert_eq!(def.count, count);
+            });
         });
     }
-
-    benches
 }
 
 fn main() {
@@ -133,29 +136,9 @@ fn main() {
 
     let use_parallel_joins = matches.is_present("parallel");
 
-    let benches = create_query_input(&data_dir, &queries_dir, use_parallel_joins);
+    let mut crit = crit.with_plots();
+    let mut group = crit.benchmark_group("count");
 
-    crit.with_plots()
-        .bench_function_over_inputs(
-            "count",
-            |b: &mut Bencher, obj: &CountBench| {
-                for c in obj.def.corpus.iter() {
-                    // TODO: preloading all corpora is necessary, but how do we prevent unloading?
-                    obj.cs.preload(c).unwrap();
-                }
-                b.iter(|| {
-                    let count = if let Ok(count) =
-                        obj.cs
-                            .count(&obj.def.corpus, &obj.def.aql, QueryLanguage::AQL, None)
-                    {
-                        count
-                    } else {
-                        0
-                    };
-                    assert_eq!(obj.def.count, count);
-                });
-            },
-            benches,
-        )
-        .final_summary();
+    create_query_input(&data_dir, &queries_dir, use_parallel_joins, &mut group);
+    group.finish();
 }
