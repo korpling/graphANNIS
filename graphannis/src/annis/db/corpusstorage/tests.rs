@@ -73,11 +73,13 @@ fn apply_update_add_and_delete_nodes() {
 
     cs.apply_update("root", &mut g).unwrap();
 
-    let node_count = cs.count(&["root"], "node", QueryLanguage::AQL).unwrap();
+    let node_count = cs
+        .count(&["root"], "node", QueryLanguage::AQL, None)
+        .unwrap();
     assert_eq!(22, node_count);
 
     let edge_count = cs
-        .count(&["root"], "node ->dep node", QueryLanguage::AQL)
+        .count(&["root"], "node ->dep node", QueryLanguage::AQL, None)
         .unwrap();
     assert_eq!(1, edge_count);
 
@@ -89,10 +91,12 @@ fn apply_update_add_and_delete_nodes() {
     .unwrap();
     cs.apply_update("root", &mut g).unwrap();
 
-    let node_count = cs.count(&["root"], "node", QueryLanguage::AQL).unwrap();
+    let node_count = cs
+        .count(&["root"], "node", QueryLanguage::AQL, None)
+        .unwrap();
     assert_eq!(21, node_count);
     let edge_count = cs
-        .count(&["root"], "node ->dep node", QueryLanguage::AQL)
+        .count(&["root"], "node ->dep node", QueryLanguage::AQL, None)
         .unwrap();
     assert_eq!(0, edge_count);
 }
@@ -164,7 +168,7 @@ fn subgraph_with_segmentation() {
 
     assert_eq!(
         5,
-        cs.count(&["root"], "node .seg,1,2 node", QueryLanguage::AQL)
+        cs.count(&["root"], "node .seg,1,2 node", QueryLanguage::AQL, None)
             .unwrap()
     );
 

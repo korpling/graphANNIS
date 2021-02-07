@@ -146,7 +146,7 @@ fn main() {
                 b.iter(|| {
                     let count = if let Ok(count) =
                         obj.cs
-                            .count(&obj.def.corpus, &obj.def.aql, QueryLanguage::AQL)
+                            .count(&obj.def.corpus, &obj.def.aql, QueryLanguage::AQL, None)
                     {
                         count
                     } else {

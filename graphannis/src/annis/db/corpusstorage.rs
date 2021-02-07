@@ -1494,14 +1494,16 @@ impl CorpusStorage {
     /// - `corpus_names` - The name of the corpora to execute the query on.
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
-    ///
+    /// - `timeout` - If not `None`, the query will be aborted after running for the given amount of time.
     /// Returns the count as number.
     pub fn count<S: AsRef<str>>(
         &self,
         corpus_names: &[S],
         query: &str,
         query_language: QueryLanguage,
+        timeout: Option<Duration>,
     ) -> Result<u64> {
+        let timeout = TimeoutCheck::new(timeout);
         let mut total_count: u64 = 0;
 
         for cn in corpus_names {
@@ -1512,7 +1514,14 @@ impl CorpusStorage {
             let db = get_read_or_error(&lock)?;
             let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
-            total_count += plan.count() as u64;
+            for _ in plan {
+                total_count += 1;
+                if total_count % 1_000 == 0 {
+                    timeout.check()?;
+                }
+            }
+
+            timeout.check()?;
         }
 
         Ok(total_count)
@@ -1523,6 +1532,7 @@ impl CorpusStorage {
     /// - `corpus_names` - The name of the corpora to execute the query on.
     /// - `query` - The query as string.
     /// - `query_language` The query language of the query (e.g. AQL).
+    /// - `timeout` - If not `None`, the query will be aborted after running for the given amount of time.
     pub fn count_extra<S: AsRef<str>>(
         &self,
         corpus_names: &[S],
@@ -1821,6 +1831,7 @@ impl CorpusStorage {
     /// - `offset` - Skip the `n` first results, where `n` is the offset.
     /// - `limit` - Return at most `n` matches, where `n` is the limit.  Use `None` to allow unlimited result sizes.
     /// - `order` - Specify the order of the matches.
+    /// - `timeout` - If not `None`, the query will be aborted after running for the given amount of time.
     ///
     /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
     /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
