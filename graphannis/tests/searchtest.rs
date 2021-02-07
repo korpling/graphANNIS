@@ -2,7 +2,7 @@ extern crate graphannis;
 #[macro_use]
 extern crate lazy_static;
 
-use graphannis::corpusstorage::QueryLanguage;
+use graphannis::corpusstorage::{QueryLanguage, SearchQuery};
 use graphannis::CorpusStorage;
 
 use std::path::PathBuf;
@@ -44,8 +44,13 @@ fn non_reflexivity_nodes() {
             if corpora.contains("GUM") {
                 let node_count = {
                     let cs = cs_mutex.lock().unwrap();
-                    cs.count(&["GUM"], "node", QueryLanguage::AQL, None)
-                        .unwrap_or(0)
+                    let query = SearchQuery {
+                        corpus_names: &["GUM"],
+                        query: "node",
+                        query_language: QueryLanguage::AQL,
+                        timeout: None,
+                    };
+                    cs.count(query).unwrap_or(0)
                 };
 
                 let operators_to_test = vec![
@@ -56,13 +61,13 @@ fn non_reflexivity_nodes() {
                 for o in operators_to_test.into_iter() {
                     let count = {
                         let cs = cs_mutex.lock().unwrap();
-                        cs.count(
-                            &["GUM"],
-                            &format!("node {} node", o),
-                            QueryLanguage::AQL,
-                            None,
-                        )
-                        .unwrap_or(0)
+                        let query = SearchQuery {
+                            corpus_names: &["GUM"],
+                            query: "node {} node",
+                            query_language: QueryLanguage::AQL,
+                            timeout: None,
+                        };
+                        cs.count(query).unwrap_or(0)
                     };
                     assert_ne!(
                         node_count, count,
@@ -89,8 +94,13 @@ fn non_reflexivity_tokens() {
             if corpora.contains("GUM") {
                 let tok_count = {
                     let cs = cs_mutex.lock().unwrap();
-                    cs.count(&["GUM"], "tok", QueryLanguage::AQL, None)
-                        .unwrap_or(0)
+                    let query = SearchQuery {
+                        corpus_names: &["GUM"],
+                        query: "tok",
+                        query_language: QueryLanguage::AQL,
+                        timeout: None,
+                    };
+                    cs.count(query).unwrap_or(0)
                 };
 
                 let operators_to_test = vec![
@@ -100,13 +110,13 @@ fn non_reflexivity_tokens() {
                 for o in operators_to_test.into_iter() {
                     let count = {
                         let cs = cs_mutex.lock().unwrap();
-                        cs.count(
-                            &["GUM"],
-                            &format!("tok {} tok", o),
-                            QueryLanguage::AQL,
-                            None,
-                        )
-                        .unwrap_or(0)
+                        let query = SearchQuery {
+                            corpus_names: &["GUM"],
+                            query: &format!("tok {} tok", o),
+                            query_language: QueryLanguage::AQL,
+                            timeout: None,
+                        };
+                        cs.count(query).unwrap_or(0)
                     };
                     assert_ne!(
                         tok_count, count,

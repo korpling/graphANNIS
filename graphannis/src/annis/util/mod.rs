@@ -115,7 +115,7 @@ impl TimeoutCheck {
     pub fn check(&self) -> Result<()> {
         if let Some(timeout) = self.timeout {
             if self.start_time.elapsed() > timeout {
-                return Err(GraphAnnisError::Timeout.into());
+                return Err(GraphAnnisError::Timeout);
             }
         }
         Ok(())
