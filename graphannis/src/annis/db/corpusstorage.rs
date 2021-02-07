@@ -322,6 +322,19 @@ pub const PATH_SEGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b'%')
     .add(b'/');
 
+/// Common arguments to all search queries.
+#[derive(Debug, Clone)]
+pub struct SearchQuery<'a, S: AsRef<str>> {
+    /// The name of the corpora to execute the query on.
+    pub corpus_names: &'a [S],
+    /// The query as string.
+    pub query: &'a str,
+    ///  The query language of the query (e.g. AQL).
+    pub query_language: QueryLanguage,
+    /// If not `None`, the query will be aborted after running for the given amount of time.
+    pub timeout: Option<Duration>,
+}
+
 /// A thread-safe API for managing corpora stored in a common location on the file system.
 ///
 /// Multiple corpora can be part of a corpus storage and they are identified by their unique name.
@@ -1491,23 +1504,15 @@ impl CorpusStorage {
     }
 
     /// Count the number of results for a `query`.
-    /// - `corpus_names` - The name of the corpora to execute the query on.
-    /// - `query` - The query as string.
-    /// - `query_language` The query language of the query (e.g. AQL).
-    /// - `timeout` - If not `None`, the query will be aborted after running for the given amount of time.
+    /// - `query` - The search query definition.
     /// Returns the count as number.
-    pub fn count<S: AsRef<str>>(
-        &self,
-        corpus_names: &[S],
-        query: &str,
-        query_language: QueryLanguage,
-        timeout: Option<Duration>,
-    ) -> Result<u64> {
-        let timeout = TimeoutCheck::new(timeout);
+    pub fn count<S: AsRef<str>>(&self, query: SearchQuery<S>) -> Result<u64> {
+        let timeout = TimeoutCheck::new(query.timeout);
         let mut total_count: u64 = 0;
 
-        for cn in corpus_names {
-            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
+        for cn in query.corpus_names {
+            let prep =
+                self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
 
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read().unwrap();
@@ -1529,24 +1534,16 @@ impl CorpusStorage {
 
     /// Count the number of results for a `query` and return both the total number of matches and also the number of documents in the result set.
     ///
-    /// - `corpus_names` - The name of the corpora to execute the query on.
-    /// - `query` - The query as string.
-    /// - `query_language` The query language of the query (e.g. AQL).
-    /// - `timeout` - If not `None`, the query will be aborted after running for the given amount of time.
-    pub fn count_extra<S: AsRef<str>>(
-        &self,
-        corpus_names: &[S],
-        query: &str,
-        query_language: QueryLanguage,
-        timeout: Option<Duration>,
-    ) -> Result<CountExtra> {
-        let timeout = TimeoutCheck::new(timeout);
+    /// - `query` - The search query definition.
+    pub fn count_extra<S: AsRef<str>>(&self, query: SearchQuery<S>) -> Result<CountExtra> {
+        let timeout = TimeoutCheck::new(query.timeout);
 
         let mut match_count: u64 = 0;
         let mut document_count: u64 = 0;
 
-        for cn in corpus_names {
-            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
+        for cn in query.corpus_names {
+            let prep =
+                self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
 
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read().unwrap();
@@ -1706,17 +1703,16 @@ impl CorpusStorage {
         Ok((base_it, expected_size))
     }
 
-    fn find_in_single_corpus(
+    fn find_in_single_corpus<S: AsRef<str>>(
         &self,
+        query: &SearchQuery<S>,
         corpus_name: &str,
-        query: &str,
-        query_language: QueryLanguage,
         offset: usize,
         limit: Option<usize>,
         order: ResultOrder,
         timeout: TimeoutCheck,
     ) -> Result<(Vec<String>, usize)> {
-        let prep = self.prepare_query(corpus_name, query, query_language, |db| {
+        let prep = self.prepare_query(corpus_name, query.query, query.query_language, |db| {
             let mut additional_components = vec![Component::new(
                 AnnotationComponentType::Ordering,
                 ANNIS_NS.to_owned(),
@@ -1734,7 +1730,7 @@ impl CorpusStorage {
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
 
-        let quirks_mode = match query_language {
+        let quirks_mode = match query.query_language {
             QueryLanguage::AQL => false,
             QueryLanguage::AQLQuirksV3 => true,
         };
@@ -1825,32 +1821,27 @@ impl CorpusStorage {
     ///
     /// The query is paginated and an offset and limit can be specified.
     ///
-    /// - `corpus_names` - The name of the corpora to execute the query on.
-    /// - `query` - The query as string.
-    /// - `query_language` The query language of the query (e.g. AQL).
+    /// - `query` - The search query definition.
     /// - `offset` - Skip the `n` first results, where `n` is the offset.
     /// - `limit` - Return at most `n` matches, where `n` is the limit.  Use `None` to allow unlimited result sizes.
     /// - `order` - Specify the order of the matches.
-    /// - `timeout` - If not `None`, the query will be aborted after running for the given amount of time.
     ///
     /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
     /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
     pub fn find<S: AsRef<str>>(
         &self,
-        corpus_names: &[S],
-        query: &str,
-        query_language: QueryLanguage,
+        query: SearchQuery<S>,
         offset: usize,
         limit: Option<usize>,
         order: ResultOrder,
-        timeout: Option<Duration>,
     ) -> Result<Vec<String>> {
-        let timeout = TimeoutCheck::new(timeout);
+        let timeout = TimeoutCheck::new(query.timeout);
 
         let mut result = Vec::new();
 
         // Sort corpus names
-        let mut corpus_names: Vec<String> = corpus_names
+        let mut corpus_names: Vec<String> = query
+            .corpus_names
             .iter()
             .map(|c| String::from(c.as_ref()))
             .collect();
@@ -1870,15 +1861,8 @@ impl CorpusStorage {
         let mut offset = offset;
         let mut limit = limit;
         for cn in corpus_names {
-            let (single_result, skipped) = self.find_in_single_corpus(
-                cn.as_ref(),
-                query,
-                query_language,
-                offset,
-                limit,
-                order,
-                timeout,
-            )?;
+            let (single_result, skipped) =
+                self.find_in_single_corpus(&query, cn.as_ref(), offset, limit, order, timeout)?;
 
             // Adjust limit and offset according to the found matches for the next corpus.
             let single_result_length = single_result.len();
@@ -2147,27 +2131,22 @@ impl CorpusStorage {
 
     /// Execute a frequency query.
     ///
-    /// - `corpus_names` - The name of the corpora to execute the query on.
-    /// - `query` - The query as string.
-    /// - `query_language` The query language of the query (e.g. AQL).
+    /// - `query` - The search query definition.
     /// - `definition` - A list of frequency query definitions.
-    /// - `timeout` - If not `None`, the query will be aborted after running for the given amount of time.
     ///
     /// Returns a frequency table of strings.
     pub fn frequency<S: AsRef<str>>(
         &self,
-        corpus_names: &[S],
-        query: &str,
-        query_language: QueryLanguage,
+        query: SearchQuery<S>,
         definition: Vec<FrequencyDefEntry>,
-        timeout: Option<Duration>,
     ) -> Result<FrequencyTable<String>> {
-        let timeout = TimeoutCheck::new(timeout);
+        let timeout = TimeoutCheck::new(query.timeout);
 
         let mut tuple_frequency: FxHashMap<Vec<String>, usize> = FxHashMap::default();
 
-        for cn in corpus_names {
-            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
+        for cn in query.corpus_names {
+            let prep =
+                self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
 
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read().unwrap();

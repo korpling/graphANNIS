@@ -7,8 +7,8 @@ extern crate rand;
 extern crate rustc_hash;
 
 use criterion::Criterion;
-use graphannis::corpusstorage::QueryLanguage;
 use graphannis::corpusstorage::ResultOrder;
+use graphannis::corpusstorage::{QueryLanguage, SearchQuery};
 use graphannis::CorpusStorage;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -52,15 +52,13 @@ fn find_all_nouns_gum(bench: &mut Criterion) {
 
     bench.bench_function("find_all_nouns_gum", move |b| {
         b.iter(|| {
-            let f = cs.find(
-                &["GUM"],
-                "pos=\"NN\"",
-                QueryLanguage::AQL,
-                usize::min_value(),
-                None,
-                ResultOrder::Normal,
-                None,
-            );
+            let query = SearchQuery {
+                corpus_names: &["GUM"],
+                query: "pos=\"NN\"",
+                query_language: QueryLanguage::AQL,
+                timeout: None,
+            };
+            let f = cs.find(query, usize::min_value(), None, ResultOrder::Normal);
             assert!(f.is_ok());
         })
     });

@@ -5,7 +5,7 @@ use crate::{errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings
 use actix_web::web::{self, Bytes, HttpResponse};
 use futures::stream::iter;
 use graphannis::{
-    corpusstorage::{FrequencyDefEntry, QueryLanguage, ResultOrder},
+    corpusstorage::{FrequencyDefEntry, QueryLanguage, ResultOrder, SearchQuery},
     CorpusStorage,
 };
 use serde::Deserialize;
@@ -26,15 +26,16 @@ pub async fn count(
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
     let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
-    let count = cs.count_extra(
-        &corpora,
-        &params.query,
-        params.query_language,
-        settings
+    let query = SearchQuery {
+        corpus_names: &corpora,
+        query: &params.query,
+        query_language: params.query_language,
+        timeout: settings
             .database
             .query_timeout
             .map(|secs| Duration::from_secs(secs)),
-    )?;
+    };
+    let count = cs.count_extra(query)?;
     Ok(HttpResponse::Ok().json(count))
 }
 
@@ -75,19 +76,16 @@ pub async fn find(
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
     let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
-
-    let matches = cs.find(
-        &corpora,
-        &params.query,
-        params.query_language,
-        params.offset,
-        params.limit,
-        params.order,
-        settings
+    let query = SearchQuery {
+        corpus_names: &corpora,
+        query: &params.query,
+        query_language: params.query_language,
+        timeout: settings
             .database
             .query_timeout
             .map(|secs| Duration::from_secs(secs)),
-    )?;
+    };
+    let matches = cs.find(query, params.offset, params.limit, params.order)?;
 
     let body = iter(
         matches
@@ -119,17 +117,16 @@ pub async fn frequency(
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
     let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
-
-    let result = cs.frequency(
-        &corpora,
-        &params.query,
-        params.query_language,
-        params.definition.clone(),
-        settings
+    let query = SearchQuery {
+        corpus_names: &corpora,
+        query: &params.query,
+        query_language: params.query_language,
+        timeout: settings
             .database
             .query_timeout
             .map(|secs| Duration::from_secs(secs)),
-    )?;
+    };
+    let result = cs.frequency(query, params.definition.clone())?;
 
     Ok(HttpResponse::Ok().json(result))
 }

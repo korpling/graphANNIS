@@ -2,11 +2,11 @@
 extern crate anyhow;
 
 use clap::{App, Arg};
-use graphannis::corpusstorage::CorpusInfo;
 use graphannis::corpusstorage::FrequencyDefEntry;
 use graphannis::corpusstorage::LoadStatus;
 use graphannis::corpusstorage::QueryLanguage;
 use graphannis::corpusstorage::ResultOrder;
+use graphannis::corpusstorage::{CorpusInfo, SearchQuery};
 use graphannis::corpusstorage::{ExportFormat, ImportFormat};
 use graphannis::CorpusStorage;
 use log::info;
@@ -498,6 +498,15 @@ impl AnnisRunner {
         Ok(())
     }
 
+    fn create_query_from_args<'a>(&'a self, query: &'a str) -> SearchQuery<'a, String> {
+        SearchQuery {
+            corpus_names: &self.current_corpus,
+            query_language: self.query_language,
+            timeout: self.timeout,
+            query: query,
+        }
+    }
+
     fn count(&self, args: &str) -> Result<()> {
         if self.current_corpus.is_empty() {
             println!("You need to select a corpus first with the \"corpus\" command");
@@ -507,12 +516,7 @@ impl AnnisRunner {
                 .storage
                 .as_ref()
                 .ok_or_else(|| anyhow!("No corpus storage location set"))?
-                .count_extra(
-                    &self.current_corpus,
-                    args,
-                    self.query_language,
-                    self.timeout,
-                )?;
+                .count_extra(self.create_query_from_args(args))?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -535,13 +539,10 @@ impl AnnisRunner {
                 .as_ref()
                 .ok_or_else(|| anyhow!("No corpus storage location set"))?
                 .find(
-                    &self.current_corpus[..],
-                    args,
-                    self.query_language,
+                    self.create_query_from_args(args),
                     self.offset,
                     self.limit,
                     ResultOrder::Normal,
-                    Some(Duration::from_secs(60)),
                 )?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
@@ -583,13 +584,7 @@ impl AnnisRunner {
                 .storage
                 .as_ref()
                 .ok_or_else(|| anyhow!("No corpus storage location set"))?
-                .frequency(
-                    &self.current_corpus,
-                    splitted_arg[1],
-                    self.query_language,
-                    table_def,
-                    self.timeout,
-                )?;
+                .frequency(self.create_query_from_args(splitted_arg[1]), table_def)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};

@@ -33,6 +33,7 @@ pub use crate::annis::db::corpusstorage::CorpusStorage;
 
 /// Types that are used by the `CorpusStorage` API.
 pub mod corpusstorage {
+    pub use crate::annis::db::corpusstorage::SearchQuery;
     pub use crate::annis::db::corpusstorage::{
         CacheStrategy, CorpusInfo, ExportFormat, FrequencyDefEntry, GraphStorageInfo, ImportFormat,
         LoadStatus, QueryLanguage, ResultOrder,

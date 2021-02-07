@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use std::sync::Arc;
 
-use graphannis::corpusstorage::QueryLanguage;
+use graphannis::corpusstorage::{QueryLanguage, SearchQuery};
 use graphannis::util;
 use graphannis::CorpusStorage;
 
@@ -41,12 +41,17 @@ pub fn create_query_input<M>(
             let cs = cs.clone();
             let def = def.clone();
             b.iter(move || {
-                let count =
-                    if let Ok(count) = cs.count(&def.corpus, &def.aql, QueryLanguage::AQL, None) {
-                        count
-                    } else {
-                        0
-                    };
+                let search_query = SearchQuery {
+                    query: &def.aql,
+                    corpus_names: &def.corpus,
+                    query_language: QueryLanguage::AQL,
+                    timeout: None,
+                };
+                let count = if let Ok(count) = cs.count(search_query) {
+                    count
+                } else {
+                    0
+                };
                 assert_eq!(def.count, count);
             });
         });
