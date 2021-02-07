@@ -55,7 +55,7 @@ fn search_{corpus_escaped}_{name_escaped}() {{
     if let Some(cs_mutex) = CORPUS_STORAGE.as_ref() {{
         let search_count = {{ 
             let cs = cs_mutex.lock().unwrap();
-            cs.count(&[\"{corpus}\"], aql, QueryLanguage::AQL).unwrap_or(0)
+            cs.count(&[\"{corpus}\"], aql, QueryLanguage::AQL, None).unwrap_or(0)
         }};
         assert_eq!(
             {count}, search_count,

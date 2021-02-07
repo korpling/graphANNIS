@@ -126,7 +126,7 @@ pub extern "C" fn annis_cs_count(
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
 
-    map_cerr(cs.count(&corpus_names, &query, query_language), err).unwrap_or(0)
+    map_cerr(cs.count(&corpus_names, &query, query_language, None), err).unwrap_or(0)
 }
 
 /// Count the number of results for a `query` and return both the total number of matches and also the number of documents in the result set.
