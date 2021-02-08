@@ -27,9 +27,10 @@ where
             size += std::mem::size_of::<Arc<T>>() + s.size_of(ops);
         }
 
-        // add the size of the vector pointer, the hash map and the strings
+        // add the size of the by_value values, the hash map itself and the empty slot vector
         size + (self.by_id.len() * std::mem::size_of::<usize>())
             + shallow_size_of_fxhashmap(&self.by_value, ops)
+            + self.empty_slots.size_of(ops)
     }
 }
 
