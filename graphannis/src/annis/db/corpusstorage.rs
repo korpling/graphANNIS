@@ -1551,7 +1551,7 @@ impl CorpusStorage {
             let db: &AnnotationGraph = get_read_or_error(&lock)?;
             let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
-            let mut known_documents = HashSet::new();
+            let mut known_documents: HashSet<SmartString> = HashSet::new();
 
             for m in plan {
                 if !m.is_empty() {
@@ -1564,7 +1564,7 @@ impl CorpusStorage {
                         // extract the document path from the node name
                         let doc_path =
                             &node_name[0..node_name.rfind('#').unwrap_or_else(|| node_name.len())];
-                        known_documents.insert(doc_path.to_owned());
+                        known_documents.insert(doc_path.into());
                     }
                 }
                 match_count += 1;

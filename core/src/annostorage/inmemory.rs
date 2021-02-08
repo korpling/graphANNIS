@@ -36,7 +36,7 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
 
     /// additional statistical information
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
-    histogram_bounds: BTreeMap<usize, Vec<String>>,
+    histogram_bounds: BTreeMap<usize, Vec<smartstring::alias::String>>,
     largest_item: Option<T>,
     total_number_of_annos: usize,
 }
