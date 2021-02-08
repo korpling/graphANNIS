@@ -219,7 +219,7 @@ pub unsafe extern "C" fn annis_cs_find(
         .map(|result| {
             let vec_result = result
                 .into_iter()
-                .map(|x| CString::new(x).unwrap_or_default())
+                .map(|x| CString::new(x.as_str()).unwrap_or_default())
                 .collect();
             Box::into_raw(Box::new(vec_result))
         })

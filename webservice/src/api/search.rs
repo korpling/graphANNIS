@@ -92,7 +92,7 @@ pub async fn find(
             .into_iter()
             .map(|mut line| -> Result<_, ServiceError> {
                 line.push('\n');
-                Ok(Bytes::from(line))
+                Ok(Bytes::from(line.to_string()))
             }),
     );
     Ok(HttpResponse::Ok()
