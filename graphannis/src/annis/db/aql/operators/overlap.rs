@@ -33,8 +33,8 @@ lazy_static! {
     static ref COMPONENT_ORDER: AnnotationComponent = {
         AnnotationComponent::new(
             AnnotationComponentType::Ordering,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         )
     };
 }

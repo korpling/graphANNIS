@@ -577,8 +577,8 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         let mut components = HashSet::default();
         components.insert(Component::new(
             AnnotationComponentType::PartOf,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         ));
         components
     }
@@ -586,8 +586,8 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let components = vec![Component::new(
             AnnotationComponentType::PartOf,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         )];
         let base = BaseEdgeOpSpec {
             op_str: Some(String::from("@")),

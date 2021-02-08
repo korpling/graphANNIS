@@ -367,8 +367,8 @@ impl<'a> NodeSearch<'a> {
                     )),
                     node_search_desc: Arc::new(NodeSearchDesc {
                         qname: (
-                            Some(NODE_TYPE_KEY.ns.clone()),
-                            Some(NODE_TYPE_KEY.name.clone()),
+                            Some(NODE_TYPE_KEY.ns.clone().into()),
+                            Some(NODE_TYPE_KEY.name.clone().into()),
                         ),
                         cond: vec![filter_func],
                         const_output: Some(NODE_TYPE_KEY.clone()),
@@ -830,7 +830,10 @@ impl<'a> NodeSearch<'a> {
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
-                qname: (Some(TOKEN_KEY.ns.clone()), Some(TOKEN_KEY.name.clone())),
+                qname: (
+                    Some(TOKEN_KEY.ns.clone().into()),
+                    Some(TOKEN_KEY.name.clone().into()),
+                ),
                 cond: filters,
                 const_output: Some(NODE_TYPE_KEY.clone()),
             }),
@@ -886,7 +889,10 @@ impl<'a> NodeSearch<'a> {
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
-                qname: (Some(TOKEN_KEY.ns.clone()), Some(TOKEN_KEY.name.clone())),
+                qname: (
+                    Some(TOKEN_KEY.ns.clone().into()),
+                    Some(TOKEN_KEY.name.clone().into()),
+                ),
                 cond: filters,
                 const_output: Some(NODE_TYPE_KEY.clone()),
             }),

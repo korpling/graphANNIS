@@ -1,7 +1,7 @@
 use num_traits::{Bounded, FromPrimitive, Num, ToPrimitive};
+use smartstring::alias::String;
 use std::fmt;
 use std::ops::AddAssign;
-use std::string::String;
 
 use std::borrow::Cow;
 use std::{convert::TryInto, str::FromStr};
@@ -242,8 +242,8 @@ impl<CT: ComponentType> std::str::FromStr for Component<CT> {
             if let Ok(ctype) = CT::from_str(splitted[0]) {
                 let result = Component {
                     ctype: ctype.into(),
-                    layer: splitted[1].to_string(),
-                    name: splitted[2].to_string(),
+                    layer: splitted[1].into(),
+                    name: splitted[2].into(),
                     phantom: std::marker::PhantomData::<CT>::default(),
                 };
                 Ok(result)

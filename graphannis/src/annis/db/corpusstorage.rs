@@ -34,6 +34,7 @@ use graphannis_core::{
 };
 use linked_hash_map::LinkedHashMap;
 use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, CONTROLS};
+use smartstring::alias::String as SmartString;
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
 use std::fs::File;
@@ -950,7 +951,7 @@ impl CorpusStorage {
                 } else {
                     CorpusConfiguration::default()
                 };
-                (orig_corpus_name, g, config)
+                (orig_corpus_name.into(), g, config)
             }
         };
 
@@ -962,7 +963,7 @@ impl CorpusStorage {
             );
         }
 
-        let corpus_name = corpus_name.unwrap_or(orig_name);
+        let corpus_name = corpus_name.unwrap_or(orig_name.into());
         let escaped_corpus_name: Cow<str> =
             utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
 
@@ -1044,8 +1045,8 @@ impl CorpusStorage {
         graph: &mut AnnotationGraph,
     ) -> Result<()> {
         let linked_file_key = AnnoKey {
-            ns: ANNIS_NS.to_string(),
-            name: "file".to_string(),
+            ns: ANNIS_NS.into(),
+            name: "file".into(),
         };
         // Find all nodes of the type "file"
         let node_annos: &mut dyn AnnotationStorage<NodeID> = graph.get_node_annos_mut();
@@ -1074,7 +1075,7 @@ impl CorpusStorage {
                             node,
                             Annotation {
                                 key: linked_file_key.clone(),
-                                val: relative_path.to_string_lossy().to_string(),
+                                val: relative_path.to_string_lossy().into(),
                             },
                         )?;
                     }
@@ -1092,8 +1093,8 @@ impl CorpusStorage {
         graph: &'a AnnotationGraph,
     ) -> Result<impl Iterator<Item = (String, PathBuf)> + 'a> {
         let linked_file_key = AnnoKey {
-            ns: ANNIS_NS.to_string(),
-            name: "file".to_string(),
+            ns: ANNIS_NS.into(),
+            name: "file".into(),
         };
 
         let base_path = self.db_dir.join(corpus_name).join("files").canonicalize()?;
@@ -1646,8 +1647,8 @@ impl CorpusStorage {
                 let token_helper = TokenHelper::new(db);
                 let component_order = Component::new(
                     AnnotationComponentType::Ordering,
-                    ANNIS_NS.to_owned(),
-                    "".to_owned(),
+                    ANNIS_NS.into(),
+                    "".into(),
                 );
 
                 let collation = if quirks_mode && !relannis_version_33 {
@@ -1715,8 +1716,8 @@ impl CorpusStorage {
         let prep = self.prepare_query(corpus_name, query.query, query.query_language, |db| {
             let mut additional_components = vec![Component::new(
                 AnnotationComponentType::Ordering,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             )];
             if order == ResultOrder::Normal || order == ResultOrder::Inverted {
                 for c in token_helper::necessary_components(db) {
@@ -2161,8 +2162,8 @@ impl CorpusStorage {
                         annokeys.push((
                             node_ref,
                             vec![AnnoKey {
-                                ns: ns.clone(),
-                                name: def.name.clone(),
+                                ns: ns.clone().into(),
+                                name: def.name.clone().into(),
                             }],
                         ));
                     } else {
@@ -2283,7 +2284,7 @@ impl CorpusStorage {
                             {
                                 result.push(Annotation {
                                     key: key.clone(),
-                                    val: val.to_string(),
+                                    val: val.into(),
                                 });
                             }
                         } else {
@@ -2291,14 +2292,14 @@ impl CorpusStorage {
                             for val in node_annos.get_all_values(&key, false) {
                                 result.push(Annotation {
                                     key: key.clone(),
-                                    val: val.to_string(),
+                                    val: val.into(),
                                 });
                             }
                         }
                     } else {
                         result.push(Annotation {
                             key: key.clone(),
-                            val: String::default(),
+                            val: SmartString::default(),
                         });
                     }
                 }
@@ -2336,7 +2337,7 @@ impl CorpusStorage {
                                 {
                                     result.push(Annotation {
                                         key: key.clone(),
-                                        val: val.to_string(),
+                                        val: val.into(),
                                     });
                                 }
                             } else {
@@ -2344,14 +2345,14 @@ impl CorpusStorage {
                                 for val in edge_annos.get_all_values(&key, false) {
                                     result.push(Annotation {
                                         key: key.clone(),
-                                        val: val.to_string(),
+                                        val: val.into(),
                                     });
                                 }
                             }
                         } else {
                             result.push(Annotation {
                                 key: key.clone(),
-                                val: String::new(),
+                                val: SmartString::new(),
                             });
                         }
                     }

@@ -111,8 +111,8 @@ fn compare_string(s1: &str, s2: &str, collation: CollationType) -> std::cmp::Ord
 
 lazy_static! {
     static ref NODE_NAME_KEY: AnnoKey = AnnoKey {
-        ns: ANNIS_NS.to_string(),
-        name: NODE_NAME.to_string(),
+        ns: ANNIS_NS.into(),
+        name: NODE_NAME.into(),
     };
 }
 
