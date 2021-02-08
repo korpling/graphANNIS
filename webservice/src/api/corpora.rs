@@ -151,8 +151,8 @@ pub async fn list_components(
         .into_iter()
         .map(|c| Component {
             ctype: c.get_type(),
-            name: c.name,
-            layer: c.layer,
+            name: c.name.into(),
+            layer: c.layer.into(),
         })
         .collect();
 
@@ -196,8 +196,8 @@ pub async fn edge_annotations(
 
     let component = graph::Component::<AnnotationComponentType>::new(
         ctype.to_owned(),
-        layer.to_string(),
-        name.to_string(),
+        layer.into(),
+        name.into(),
     );
 
     let annos = cs.list_edge_annotations(

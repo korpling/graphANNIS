@@ -34,7 +34,7 @@ impl Match {
             .to_owned();
         Some(Annotation {
             key: self.anno_key.as_ref().clone(),
-            val: val.to_string(),
+            val: val.into(),
         })
     }
 

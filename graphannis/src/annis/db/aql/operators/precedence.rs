@@ -31,15 +31,15 @@ lazy_static! {
     static ref COMPONENT_LEFT: AnnotationComponent = {
         AnnotationComponent::new(
             AnnotationComponentType::LeftToken,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         )
     };
     static ref COMPONENT_RIGHT: AnnotationComponent = {
         AnnotationComponent::new(
             AnnotationComponentType::RightToken,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         )
     };
 }
@@ -53,10 +53,8 @@ impl BinaryOperatorSpec for PrecedenceSpec {
         };
         let component_order = AnnotationComponent::new(
             AnnotationComponentType::Ordering,
-            ordering_layer,
-            self.segmentation
-                .clone()
-                .unwrap_or_else(|| String::from("")),
+            ordering_layer.into(),
+            self.segmentation.clone().unwrap_or_default().into(),
         );
 
         let mut v = HashSet::default();
@@ -96,10 +94,8 @@ impl<'a> Precedence<'a> {
         };
         let component_order = AnnotationComponent::new(
             AnnotationComponentType::Ordering,
-            ordering_layer,
-            spec.segmentation
-                .clone()
-                .unwrap_or_else(|| String::from("")),
+            ordering_layer.into(),
+            spec.segmentation.clone().unwrap_or_default().into(),
         );
 
         let gs_order = graph.get_graphstorage(&component_order)?;

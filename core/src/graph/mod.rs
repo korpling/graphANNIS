@@ -14,6 +14,7 @@ use crate::{
 };
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
+use smartstring::alias::String as SmartString;
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
@@ -33,13 +34,13 @@ pub const NODE_TYPE: &str = "node_type";
 lazy_static! {
     pub static ref DEFAULT_ANNO_KEY: Arc<AnnoKey> = Arc::from(AnnoKey::default());
     pub static ref NODE_NAME_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
-        ns: ANNIS_NS.to_owned(),
-        name: NODE_NAME.to_owned(),
+        ns: ANNIS_NS.into(),
+        name: NODE_NAME.into(),
     });
     /// Return an annotation key which is used for the special `annis::node_type` annotation which every node must have to mark its existence.
     pub static ref NODE_TYPE_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
-        ns: ANNIS_NS.to_owned(),
-        name: NODE_TYPE.to_owned(),
+        ns: ANNIS_NS.into(),
+        name: NODE_TYPE.into(),
     });
 }
 
@@ -224,7 +225,7 @@ impl<CT: ComponentType> Graph<CT> {
         } else {
             &c.layer
         });
-        p.push(&c.name);
+        p.push(c.name.as_str());
         p
     }
 
@@ -243,8 +244,8 @@ impl<CT: ComponentType> Graph<CT> {
                         // try to load the component with the empty name
                         let empty_name_component = Component::new(
                             c.clone(),
-                            layer.file_name().to_string_lossy().to_string(),
-                            String::from(""),
+                            layer.file_name().to_string_lossy().into(),
+                            SmartString::default(),
                         );
                         {
                             let cfg_file = PathBuf::from(location)
@@ -261,8 +262,8 @@ impl<CT: ComponentType> Graph<CT> {
                             let name = name?;
                             let named_component = Component::new(
                                 c.clone(),
-                                layer.file_name().to_string_lossy().to_string(),
-                                name.file_name().to_string_lossy().to_string(),
+                                layer.file_name().to_string_lossy().into(),
+                                name.file_name().to_string_lossy().into(),
                             );
                             let cfg_file = PathBuf::from(location)
                                 .join(self.component_to_relative_path(&named_component))
@@ -365,11 +366,11 @@ impl<CT: ComponentType> Graph<CT> {
 
                         let new_anno_name = Annotation {
                             key: NODE_NAME_KEY.as_ref().clone(),
-                            val: node_name.to_string(),
+                            val: node_name.into(),
                         };
                         let new_anno_type = Annotation {
                             key: NODE_TYPE_KEY.as_ref().clone(),
-                            val: node_type.to_string(),
+                            val: node_type.into(),
                         };
 
                         // add the new node (with minimum labels)
@@ -410,10 +411,10 @@ impl<CT: ComponentType> Graph<CT> {
                     {
                         let anno = Annotation {
                             key: AnnoKey {
-                                ns: anno_ns.to_string(),
-                                name: anno_name.to_string(),
+                                ns: anno_ns.into(),
+                                name: anno_name.into(),
                             },
-                            val: anno_value.to_string(),
+                            val: anno_value.into(),
                         };
                         self.node_annos.insert(existing_node_id, anno)?;
                     }
@@ -427,8 +428,8 @@ impl<CT: ComponentType> Graph<CT> {
                         self.get_cached_node_id_from_name(Cow::Borrowed(node_name), &mut node_ids)?
                     {
                         let key = AnnoKey {
-                            ns: anno_ns.to_string(),
-                            name: anno_name.to_string(),
+                            ns: anno_ns.into(),
+                            name: anno_name.into(),
                         };
                         self.node_annos
                             .remove_annotation_for_item(&existing_node_id, &key)?;
@@ -448,11 +449,7 @@ impl<CT: ComponentType> Graph<CT> {
                     // only add edge if both nodes already exist
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(&component_type) {
-                            let c = Component::new(
-                                ctype,
-                                layer.to_string(),
-                                component_name.to_string(),
-                            );
+                            let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             gs.add_edge(Edge { source, target })?;
                         }
@@ -471,11 +468,7 @@ impl<CT: ComponentType> Graph<CT> {
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(&component_type) {
-                            let c = Component::new(
-                                ctype,
-                                layer.to_string(),
-                                component_name.to_string(),
-                            );
+                            let c = Component::new(ctype, layer.into(), component_name.into());
 
                             let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target })?;
@@ -498,21 +491,17 @@ impl<CT: ComponentType> Graph<CT> {
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(&component_type) {
-                            let c = Component::new(
-                                ctype,
-                                layer.to_string(),
-                                component_name.to_string(),
-                            );
+                            let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
                             if gs.is_connected(source, target, 1, Included(1)) {
                                 let anno = Annotation {
                                     key: AnnoKey {
-                                        ns: anno_ns.to_string(),
-                                        name: anno_name.to_string(),
+                                        ns: anno_ns.into(),
+                                        name: anno_name.into(),
                                     },
-                                    val: anno_value.to_string(),
+                                    val: anno_value.into(),
                                 };
                                 gs.add_edge_annotation(e, anno)?;
                             }
@@ -534,18 +523,14 @@ impl<CT: ComponentType> Graph<CT> {
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(&component_type) {
-                            let c = Component::new(
-                                ctype,
-                                layer.to_string(),
-                                component_name.to_string(),
-                            );
+                            let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
                             if gs.is_connected(source, target, 1, Included(1)) {
                                 let key = AnnoKey {
-                                    ns: anno_ns.to_string(),
-                                    name: anno_name.to_string(),
+                                    ns: anno_ns.into(),
+                                    name: anno_name.into(),
                                 };
                                 gs.delete_edge_annotation(&e, &key)?;
                             }
@@ -911,7 +896,7 @@ impl<CT: ComponentType> Graph<CT> {
         if let (Some(ctype), Some(name)) = (&ctype, name) {
             // lookup component from sorted map
             let mut result: Vec<_> = Vec::new();
-            let ckey = Component::new(ctype.clone(), String::default(), String::from(name));
+            let ckey = Component::new(ctype.clone(), SmartString::default(), name.into());
 
             for (c, _) in self.components.range(ckey..) {
                 if c.name != name || &c.get_type() != ctype {
@@ -923,7 +908,11 @@ impl<CT: ComponentType> Graph<CT> {
         } else if let Some(ctype) = &ctype {
             // lookup component from sorted map
             let mut result: Vec<_> = Vec::new();
-            let ckey = Component::new(ctype.clone(), String::default(), String::default());
+            let ckey = Component::new(
+                ctype.clone(),
+                SmartString::default(),
+                SmartString::default(),
+            );
 
             for (c, _) in self.components.range(ckey..) {
                 if &c.get_type() != ctype {
@@ -983,16 +972,12 @@ mod tests {
         let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
 
         let anno_key = AnnoKey {
-            ns: "test".to_owned(),
-            name: "edge_anno".to_owned(),
+            ns: "test".into(),
+            name: "edge_anno".into(),
         };
-        let anno_val = "testValue".to_owned();
+        let anno_val = "testValue".into();
 
-        let component = Component::new(
-            DefaultComponentType::Edge,
-            String::from("test"),
-            String::from("dep"),
-        );
+        let component = Component::new(DefaultComponentType::Edge, "test".into(), "dep".into());
         let gs: &mut dyn WriteableGraphStorage = db.get_or_create_writable(&component).unwrap();
 
         gs.add_edge(Edge {

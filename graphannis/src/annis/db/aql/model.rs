@@ -31,8 +31,8 @@ pub const TOK_WHITESPACE_AFTER: &str = "tok-whitespace-after";
 
 lazy_static! {
     pub static ref TOKEN_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
-        ns: ANNIS_NS.to_owned(),
-        name: TOK.to_owned(),
+        ns: ANNIS_NS.into(),
+        name: TOK.into(),
     });
 }
 
@@ -145,8 +145,8 @@ impl AQLUpdateGraphIndex {
             // remove existing left/right token edges for the invalidated nodes
             let gs_left = graph.get_or_create_writable(&AnnotationComponent::new(
                 AnnotationComponentType::LeftToken,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ))?;
 
             for (n, _) in self.invalid_nodes.iter() {
@@ -155,8 +155,8 @@ impl AQLUpdateGraphIndex {
 
             let gs_right = graph.get_or_create_writable(&AnnotationComponent::new(
                 AnnotationComponentType::RightToken,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ))?;
 
             for (n, _) in self.invalid_nodes.iter() {
@@ -165,8 +165,8 @@ impl AQLUpdateGraphIndex {
 
             let gs_cov = graph.get_or_create_writable(&AnnotationComponent::new(
                 AnnotationComponentType::Coverage,
-                ANNIS_NS.to_owned(),
-                "inherited-coverage".to_owned(),
+                ANNIS_NS.into(),
+                "inherited-coverage".into(),
             ))?;
             for (n, _) in self.invalid_nodes.iter() {
                 gs_cov.delete_node(n)?;
@@ -253,8 +253,8 @@ impl AQLUpdateGraphIndex {
 
         if let Ok(gs_cov) = graph.get_or_create_writable(&AnnotationComponent::new(
             AnnotationComponentType::Coverage,
-            ANNIS_NS.to_owned(),
-            "inherited-coverage".to_owned(),
+            ANNIS_NS.into(),
+            "inherited-coverage".into(),
         )) {
             for t in covered_token.iter() {
                 gs_cov.add_edge(Edge {
@@ -277,7 +277,7 @@ impl AQLUpdateGraphIndex {
         all_dom_gs: &[Arc<dyn GraphStorage>],
     ) -> std::result::Result<Option<NodeID>, ComponentTypeError> {
         let alignment_component =
-            AnnotationComponent::new(ctype.clone(), ANNIS_NS.to_owned(), "".to_owned());
+            AnnotationComponent::new(ctype.clone(), ANNIS_NS.into(), "".into());
 
         // if this is a token, return the token itself
         if graph
@@ -372,29 +372,25 @@ impl ComponentType for AnnotationComponentType {
         vec![
             AnnotationComponent::new(
                 AnnotationComponentType::Coverage,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ),
             AnnotationComponent::new(
                 AnnotationComponentType::Ordering,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ),
             AnnotationComponent::new(
                 AnnotationComponentType::LeftToken,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ),
             AnnotationComponent::new(
                 AnnotationComponentType::RightToken,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ),
-            AnnotationComponent::new(
-                AnnotationComponentType::PartOf,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
-            ),
+            AnnotationComponent::new(AnnotationComponentType::PartOf, ANNIS_NS.into(), "".into()),
         ]
     }
 
@@ -500,7 +496,11 @@ impl ComponentType for AnnotationComponentType {
                         && component_name.is_empty()
                     {
                         // might be a new text coverage component
-                        let c = AnnotationComponent::new(ctype.clone(), layer, component_name);
+                        let c = AnnotationComponent::new(
+                            ctype.clone(),
+                            layer.into(),
+                            component_name.into(),
+                        );
                         index.text_coverage_components.insert(c);
                     }
 
@@ -540,8 +540,8 @@ impl ComponentType for AnnotationComponentType {
         // To make this operation fast, we need to optimize the order component first
         let order_component = AnnotationComponent::new(
             AnnotationComponentType::Ordering,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         );
         let order_stats_exist = graph
             .get_graphstorage(&order_component)
@@ -562,18 +562,18 @@ impl ComponentType for AnnotationComponentType {
         vec![
             AnnotationComponent::new(
                 AnnotationComponentType::LeftToken,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ),
             AnnotationComponent::new(
                 AnnotationComponentType::RightToken,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ),
             AnnotationComponent::new(
                 AnnotationComponentType::Coverage,
-                ANNIS_NS.to_owned(),
-                "inherited-coverage".to_owned(),
+                ANNIS_NS.into(),
+                "inherited-coverage".into(),
             ),
         ]
     }

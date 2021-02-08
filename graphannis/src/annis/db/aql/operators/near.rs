@@ -36,10 +36,10 @@ impl BinaryOperatorSpec for NearSpec {
     ) -> HashSet<Component<AnnotationComponentType>> {
         let component_order = Component::new(
             AnnotationComponentType::Ordering,
-            ANNIS_NS.to_owned(),
+            ANNIS_NS.into(),
             self.segmentation
-                .clone()
-                .unwrap_or_else(|| String::from("")),
+                .as_ref()
+                .map_or_else(|| smartstring::alias::String::default(), |s| s.into()),
         );
 
         let mut v = HashSet::default();
@@ -72,10 +72,8 @@ impl<'a> Near<'a> {
     pub fn new(graph: &'a AnnotationGraph, spec: NearSpec) -> Option<Near<'a>> {
         let component_order = Component::new(
             AnnotationComponentType::Ordering,
-            ANNIS_NS.to_owned(),
-            spec.segmentation
-                .clone()
-                .unwrap_or_else(|| String::from("")),
+            ANNIS_NS.into(),
+            spec.segmentation.clone().unwrap_or_default().into(),
         );
 
         let gs_order = graph.get_graphstorage(&component_order)?;

@@ -484,9 +484,9 @@ pub extern "C" fn annis_cs_list_node_annotations(
     let mut result: Matrix<CString> = Matrix::new();
     for anno in orig_vec.into_iter() {
         if let (Ok(ns), Ok(name), Ok(val)) = (
-            CString::new(anno.key.ns),
-            CString::new(anno.key.name),
-            CString::new(anno.val),
+            CString::new(anno.key.ns.as_str()),
+            CString::new(anno.key.name.as_str()),
+            CString::new(anno.val.as_str()),
         ) {
             result.push(vec![ns, name, val]);
         }
@@ -517,8 +517,8 @@ pub extern "C" fn annis_cs_list_edge_annotations(
     let corpus = cstr(corpus_name);
     let component = AnnotationComponent::new(
         component_type,
-        String::from(cstr(component_layer)),
-        String::from(cstr(component_name)),
+        cstr(component_layer).into(),
+        cstr(component_name).into(),
     );
 
     let orig_vec =
@@ -526,9 +526,9 @@ pub extern "C" fn annis_cs_list_edge_annotations(
     let mut result: Matrix<CString> = Matrix::new();
     for anno in orig_vec.into_iter() {
         if let (Ok(ns), Ok(name), Ok(val)) = (
-            CString::new(anno.key.ns),
-            CString::new(anno.key.name),
-            CString::new(anno.val),
+            CString::new(anno.key.ns.as_str()),
+            CString::new(anno.key.name.as_str()),
+            CString::new(anno.val.as_str()),
         ) {
             result.push(vec![ns, name, val]);
         }
