@@ -1841,10 +1841,10 @@ impl CorpusStorage {
         let mut result = Vec::new();
 
         // Sort corpus names
-        let mut corpus_names: Vec<String> = query
+        let mut corpus_names: Vec<SmartString> = query
             .corpus_names
             .iter()
-            .map(|c| String::from(c.as_ref()))
+            .map(|c| c.as_ref().into())
             .collect();
         if order == ResultOrder::Randomized {
             // This is still oddly ordered, because results from one corpus will always be grouped together.
