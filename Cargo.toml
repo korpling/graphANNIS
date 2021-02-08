@@ -1,5 +1,2 @@
 [workspace]
 members = ["core", "graphannis", "cli", "capi", "webservice", "examples/tutorial"]
-
-[patch.crates-io]
-graphannis-malloc_size_of = {git = 'https://github.com/korpling/graphannis-malloc_size_of.git', branch = "develop"}
