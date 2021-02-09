@@ -957,7 +957,7 @@ impl CorpusStorage {
             );
         }
 
-        let corpus_name = corpus_name.unwrap_or(orig_name.into());
+        let corpus_name = corpus_name.unwrap_or_else(|| orig_name.into());
         let escaped_corpus_name: Cow<str> =
             utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
 

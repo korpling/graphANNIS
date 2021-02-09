@@ -30,10 +30,7 @@ pub async fn count(
         corpus_names: &corpora,
         query: &params.query,
         query_language: params.query_language,
-        timeout: settings
-            .database
-            .query_timeout
-            .map(|secs| Duration::from_secs(secs)),
+        timeout: settings.database.query_timeout.map(Duration::from_secs),
     };
     let count = cs.count_extra(query)?;
     Ok(HttpResponse::Ok().json(count))
@@ -80,10 +77,7 @@ pub async fn find(
         corpus_names: &corpora,
         query: &params.query,
         query_language: params.query_language,
-        timeout: settings
-            .database
-            .query_timeout
-            .map(|secs| Duration::from_secs(secs)),
+        timeout: settings.database.query_timeout.map(Duration::from_secs),
     };
     let matches = cs.find(query, params.offset, params.limit, params.order)?;
 
@@ -92,7 +86,7 @@ pub async fn find(
             .into_iter()
             .map(|mut line| -> Result<_, ServiceError> {
                 line.push('\n');
-                Ok(Bytes::from(line.to_string()))
+                Ok(Bytes::from(line))
             }),
     );
     Ok(HttpResponse::Ok()
@@ -121,10 +115,7 @@ pub async fn frequency(
         corpus_names: &corpora,
         query: &params.query,
         query_language: params.query_language,
-        timeout: settings
-            .database
-            .query_timeout
-            .map(|secs| Duration::from_secs(secs)),
+        timeout: settings.database.query_timeout.map(Duration::from_secs),
     };
     let result = cs.frequency(query, params.definition.clone())?;
 

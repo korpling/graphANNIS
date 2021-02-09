@@ -28,7 +28,7 @@ pub fn create_query_input<M>(
     let queries = util::get_queries_from_csv(queries_file, true);
     for def in queries.into_iter() {
         let mut bench_name = def.corpus[0].clone();
-        bench_name.push_str("/");
+        bench_name.push('/');
         bench_name.push_str(&def.name);
 
         let cs = cs.clone();
