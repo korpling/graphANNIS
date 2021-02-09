@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The graphannis and core crates now use their own error type instead of the one provided by the `anyhow` crate.
 - Bundle commonly used search query parameters in `SearchQuery` struct.
 - Query execution methods now have an optional `timeout` after which an query is aborted.
+- Annotation keys and values in the `AnnoKey` and `Annotation` structs now use inlined strings from the `smartstrings` crate.
 
 ## Added
 
