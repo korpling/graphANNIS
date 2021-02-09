@@ -310,6 +310,7 @@ impl Default for CacheStrategy {
 }
 
 pub const SALT_URI_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b':').add(b'%');
+const QUIRKS_SALT_URI_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'%');
 pub const PATH_SEGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
     .add(b'"')
@@ -1812,7 +1813,17 @@ impl CorpusStorage {
                         .get_node_annos()
                         .get_value_for_item(&singlematch.node, &NODE_NAME_KEY)
                     {
-                        match_desc.push_str(&name);
+                        if quirks_mode {
+                            // Unescape and re-escape with quirks-mode compatible character encoding set
+                            let decoded_name =
+                                percent_encoding::percent_decode_str(&name).decode_utf8_lossy();
+                            let re_encoded_name: Cow<str> =
+                                utf8_percent_encode(&decoded_name, QUIRKS_SALT_URI_ENCODE_SET)
+                                    .into();
+                            match_desc.push_str(&re_encoded_name);
+                        } else {
+                            match_desc.push_str(&name);
+                        }
                     }
                 }
             }
