@@ -1711,7 +1711,7 @@ impl CorpusStorage {
         limit: Option<usize>,
         order: ResultOrder,
         timeout: TimeoutCheck,
-    ) -> Result<(Vec<SmartString>, usize)> {
+    ) -> Result<(Vec<String>, usize)> {
         let prep = self.prepare_query(corpus_name, query.query, query.query_language, |db| {
             let mut additional_components = vec![Component::new(
                 AnnotationComponentType::Ordering,
@@ -1744,7 +1744,7 @@ impl CorpusStorage {
             quirks_mode,
         )?;
 
-        let mut results: Vec<SmartString> =
+        let mut results: Vec<String> =
             if let (Some(expected_size), Some(limit)) = (expected_size, limit) {
                 let page_size = page_size::get();
                 let expected_len = std::cmp::min(expected_size, limit);
@@ -1771,8 +1771,10 @@ impl CorpusStorage {
             Box::new(base_it)
         };
 
+        let mut match_desc: Vec<String> = Vec::new();
+
         for (match_nr, m) in base_it.enumerate() {
-            let mut match_desc: Vec<SmartString> = Vec::new();
+            match_desc.clear();
             for (i, singlematch) in m.iter().enumerate() {
                 // check if query node actually should be included in quirks mode
                 let include_in_output = if quirks_mode {
@@ -1786,7 +1788,7 @@ impl CorpusStorage {
                 };
 
                 if include_in_output {
-                    let mut node_desc = SmartString::new();
+                    let mut node_desc = String::new();
                     let singlematch_anno_key = &singlematch.anno_key;
                     if singlematch_anno_key.ns != ANNIS_NS || singlematch_anno_key.name != NODE_TYPE
                     {
@@ -1840,7 +1842,7 @@ impl CorpusStorage {
         offset: usize,
         limit: Option<usize>,
         order: ResultOrder,
-    ) -> Result<Vec<SmartString>> {
+    ) -> Result<Vec<String>> {
         let timeout = TimeoutCheck::new(query.timeout);
 
         // Sort corpus names
