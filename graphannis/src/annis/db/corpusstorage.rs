@@ -1747,7 +1747,13 @@ impl CorpusStorage {
 
         let mut results: Vec<SmartString> =
             if let (Some(expected_size), Some(limit)) = (expected_size, limit) {
-                Vec::with_capacity(std::cmp::min(expected_size, limit))
+                let page_size = page_size::get();
+                let expected_len = std::cmp::min(expected_size, limit);
+                // Make sure the capacity is a multiple of the page size to avoid memory fragmentation
+                let expected_memory_size = std::mem::size_of::<SmartString>() * expected_len;
+                let aligned_memory_size =
+                    expected_memory_size + (page_size - (expected_memory_size % page_size));
+                Vec::with_capacity(aligned_memory_size / std::mem::size_of::<SmartString>())
             } else {
                 Vec::new()
             };
@@ -1838,55 +1844,77 @@ impl CorpusStorage {
     ) -> Result<Vec<SmartString>> {
         let timeout = TimeoutCheck::new(query.timeout);
 
-        let mut result = Vec::new();
-
         // Sort corpus names
         let mut corpus_names: Vec<SmartString> = query
             .corpus_names
             .iter()
             .map(|c| c.as_ref().into())
             .collect();
-        if order == ResultOrder::Randomized {
-            // This is still oddly ordered, because results from one corpus will always be grouped together.
-            // But it still better than just output the same corpus first.
-            let mut rng = rand::thread_rng();
-            corpus_names.shuffle(&mut rng);
-        } else if order == ResultOrder::Inverted {
-            corpus_names.sort();
-            corpus_names.reverse();
-        } else {
-            corpus_names.sort();
-        }
 
-        // initialize the limit/offset values for the first corpus
-        let mut offset = offset;
-        let mut limit = limit;
-        for cn in corpus_names {
-            let (single_result, skipped) =
-                self.find_in_single_corpus(&query, cn.as_ref(), offset, limit, order, timeout)?;
-
-            // Adjust limit and offset according to the found matches for the next corpus.
-            let single_result_length = single_result.len();
-            result.extend(single_result.into_iter());
-
-            if let Some(current_limit) = limit {
-                if current_limit <= single_result_length {
-                    // Searching in this corpus already yielded enough results
-                    break;
+        match corpus_names.len() {
+            0 => Ok(Vec::new()),
+            1 => self
+                .find_in_single_corpus(
+                    &query,
+                    corpus_names[0].as_str(),
+                    offset,
+                    limit,
+                    order,
+                    timeout,
+                )
+                .map(|r| r.0),
+            _ => {
+                if order == ResultOrder::Randomized {
+                    // This is still oddly ordered, because results from one corpus will always be grouped together.
+                    // But it still better than just output the same corpus first.
+                    let mut rng = rand::thread_rng();
+                    corpus_names.shuffle(&mut rng);
+                } else if order == ResultOrder::Inverted {
+                    corpus_names.sort();
+                    corpus_names.reverse();
                 } else {
-                    // Adjust the limit for the next corpora to the already found results so-far
-                    limit = Some(current_limit - single_result_length);
+                    corpus_names.sort();
                 }
-            }
-            if skipped < offset {
-                offset -= skipped;
-            } else {
-                offset = 0;
-            }
 
-            timeout.check()?;
+                // initialize the limit/offset values for the first corpus
+                let mut offset = offset;
+                let mut limit = limit;
+
+                let mut result = Vec::new();
+                for cn in corpus_names {
+                    let (single_result, skipped) = self.find_in_single_corpus(
+                        &query,
+                        cn.as_ref(),
+                        offset,
+                        limit,
+                        order,
+                        timeout,
+                    )?;
+
+                    // Adjust limit and offset according to the found matches for the next corpus.
+                    let single_result_length = single_result.len();
+                    result.extend(single_result.into_iter());
+
+                    if let Some(current_limit) = limit {
+                        if current_limit <= single_result_length {
+                            // Searching in this corpus already yielded enough results
+                            break;
+                        } else {
+                            // Adjust the limit for the next corpora to the already found results so-far
+                            limit = Some(current_limit - single_result_length);
+                        }
+                    }
+                    if skipped < offset {
+                        offset -= skipped;
+                    } else {
+                        offset = 0;
+                    }
+
+                    timeout.check()?;
+                }
+                Ok(result)
+            }
         }
-        Ok(result)
     }
 
     /// Return the copy of a subgraph which includes the given list of node annotation identifiers,
