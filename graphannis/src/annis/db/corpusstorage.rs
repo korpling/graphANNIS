@@ -1771,10 +1771,9 @@ impl CorpusStorage {
             Box::new(base_it)
         };
 
-        let mut match_desc: Vec<String> = Vec::new();
-
         for (match_nr, m) in base_it.enumerate() {
-            match_desc.clear();
+            let mut match_desc = String::new();
+
             for (i, singlematch) in m.iter().enumerate() {
                 // check if query node actually should be included in quirks mode
                 let include_in_output = if quirks_mode {
@@ -1788,7 +1787,10 @@ impl CorpusStorage {
                 };
 
                 if include_in_output {
-                    let mut node_desc = String::new();
+                    if i > 0 {
+                        match_desc.push(' ');
+                    }
+
                     let singlematch_anno_key = &singlematch.anno_key;
                     if singlematch_anno_key.ns != ANNIS_NS || singlematch_anno_key.name != NODE_TYPE
                     {
@@ -1796,27 +1798,25 @@ impl CorpusStorage {
                             let encoded_anno_ns: Cow<str> =
                                 utf8_percent_encode(&singlematch_anno_key.ns, SALT_URI_ENCODE_SET)
                                     .into();
-                            node_desc.push_str(&encoded_anno_ns);
-                            node_desc.push_str("::");
+                            match_desc.push_str(&encoded_anno_ns);
+                            match_desc.push_str("::");
                         }
                         let encoded_anno_name: Cow<str> =
                             utf8_percent_encode(&singlematch_anno_key.name, SALT_URI_ENCODE_SET)
                                 .into();
-                        node_desc.push_str(&encoded_anno_name);
-                        node_desc.push_str("::");
+                        match_desc.push_str(&encoded_anno_name);
+                        match_desc.push_str("::");
                     }
 
                     if let Some(name) = db
                         .get_node_annos()
                         .get_value_for_item(&singlematch.node, &NODE_NAME_KEY)
                     {
-                        node_desc.push_str(&name);
+                        match_desc.push_str(&name);
                     }
-
-                    match_desc.push(node_desc);
                 }
             }
-            results.push(match_desc.join(" ").into());
+            results.push(match_desc);
             if match_nr % 1_000 == 0 {
                 timeout.check()?;
             }
