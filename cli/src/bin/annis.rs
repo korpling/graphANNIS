@@ -18,7 +18,6 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use rustyline_derive::{Helper, Highlighter, Hinter, Validator};
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
-use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::{collections::BTreeSet, time::Duration};
 
@@ -375,7 +374,7 @@ impl AnnisRunner {
                 .as_ref()
                 .ok_or_else(|| anyhow!("No corpus storage location set"))?
                 .list()?;
-            let corpora = BTreeSet::from_iter(corpora.into_iter().map(|c| c.name));
+            let corpora: BTreeSet<_> = corpora.into_iter().map(|c| c.name).collect();
             let selected = args.split_ascii_whitespace();
             self.current_corpus = Vec::new();
             for s in selected {
@@ -503,7 +502,7 @@ impl AnnisRunner {
             corpus_names: &self.current_corpus,
             query_language: self.query_language,
             timeout: self.timeout,
-            query: query,
+            query,
         }
     }
 
