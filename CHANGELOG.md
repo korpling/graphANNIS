@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix memory consumption of AQL parser in repeated calls (like the webservice).
 - Limit the memory which is reserved for an internal result vector to avoid out-of-memory errors when the estimation is wrong.
 
+## Removed
+
+- Replaced the `update_statistics` function in `CorpusStorage` with the more general `reoptimize_implementation` function. 
+  The new function is available via the `re-optimize` command in the CLI.
+
 
 ## [0.30.0] - 2020-09-30
 
