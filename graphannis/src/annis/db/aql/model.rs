@@ -550,7 +550,7 @@ impl ComponentType for AnnotationComponentType {
         if !order_stats_exist {
             graph.calculate_component_statistics(&order_component)?;
         }
-        graph.optimize_impl(&order_component)?;
+        graph.optimize_gs_impl(&order_component)?;
         if let Some(gs_order) = graph.get_graphstorage(&order_component) {
             index.reindex_inherited_coverage(graph, gs_order)?;
         }

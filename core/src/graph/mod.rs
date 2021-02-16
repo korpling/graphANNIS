@@ -3,7 +3,7 @@ pub mod storage;
 pub mod update;
 
 use crate::{
-    annostorage::AnnotationStorage,
+    annostorage::{AnnotationStorage, ValueSearch},
     errors::Result,
     graph::storage::{registry, GraphStorage, WriteableGraphStorage},
     util::disk_collections::{DiskMap, EvictionStrategy},
@@ -614,18 +614,17 @@ impl<CT: ComponentType> Graph<CT> {
             // there is nothing to do since the backup already contains the last consistent version.
             // A sub-folder is used to ensure that all directories are on the same file system and moving (instead of copying)
             // is possible.
-            if !location.join("backup").exists() {
-                std::fs::rename(
-                    location.join("current"),
-                    location.join(location.join("backup")),
-                )?;
+            let backup_location = location.join("backup");
+            let current_location = location.join("current");
+            if !backup_location.exists() {
+                std::fs::rename(&current_location, &backup_location)?;
             }
 
             // Save the complete corpus without the write log to the target location
-            self.internal_save(&location.join("current"))?;
+            self.internal_save(&current_location)?;
 
-            // remove the backup folder (since the new folder was completly written)
-            std::fs::remove_dir_all(location.join("backup"))?;
+            // remove the backup folder (since the new folder was completely written)
+            std::fs::remove_dir_all(&backup_location)?;
         }
 
         Ok(())
@@ -810,7 +809,42 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    pub fn optimize_impl(&mut self, c: &Component<CT>) -> Result<()> {
+    pub fn optimize_impl(&mut self, disk_based: bool) -> Result<()> {
+        if self.disk_based != disk_based {
+            self.disk_based = disk_based;
+
+            // Change the node annotation implementation
+            let mut new_node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
+                Box::new(crate::annostorage::ondisk::AnnoStorageImpl::new(None)?)
+            } else {
+                Box::new(crate::annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
+            };
+
+            // Copy all annotations for all nodes
+            info!("Copying node annotations");
+            for m in self
+                .node_annos
+                .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Any)
+            {
+                for anno in self.node_annos.get_annotations_for_item(&m.node) {
+                    new_node_annos.insert(m.node, anno)?;
+                }
+            }
+            self.node_annos = new_node_annos;
+        }
+
+        for c in self.get_all_components(None, None) {
+            info!("Updating statistics for component {}", &c);
+            // Recalculate all statistics first, so we optimize with the correct estimations
+            self.calculate_component_statistics(&c)?;
+            // Perform the optimization if necessary
+            info!("Optimizing implementation for component {}", &c);
+            self.optimize_gs_impl(&c)?;
+        }
+        Ok(())
+    }
+
+    pub fn optimize_gs_impl(&mut self, c: &Component<CT>) -> Result<()> {
         if let Some(gs) = self.get_graphstorage(c) {
             if let Some(stats) = gs.get_statistics() {
                 let opt_info = registry::get_optimal_impl_heuristic(self, stats);

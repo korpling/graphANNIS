@@ -42,11 +42,11 @@ impl ConsoleHelper {
         known_commands.insert("set-limit".to_string());
         known_commands.insert("set-timeout".to_string());
         known_commands.insert("preload".to_string());
-        known_commands.insert("update_statistics".to_string());
         known_commands.insert("count".to_string());
         known_commands.insert("find".to_string());
         known_commands.insert("frequency".to_string());
         known_commands.insert("plan".to_string());
+        known_commands.insert("re-optimize".to_string());
         known_commands.insert("use_disk".to_string());
         known_commands.insert("use_parallel".to_string());
         known_commands.insert("quirks_mode".to_string());
@@ -205,8 +205,8 @@ impl AnnisRunner {
                 "set-limit" => self.set_limit(&args),
                 "set-timeout" => self.set_timeout(&args),
                 "preload" => self.preload(),
-                "update_statistics" => self.update_statistics(),
                 "plan" => self.plan(&args),
+                "re-optimize" => self.reoptimize(),
                 "count" => self.count(&args),
                 "find" => self.find(&args),
                 "frequency" => self.frequency(&args),
@@ -321,6 +321,17 @@ impl AnnisRunner {
         let load_time = t_before.elapsed();
         if let Ok(t) = load_time {
             info! {"exported corpora {:?} in {} ms", &self.current_corpus, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+        }
+
+        Ok(())
+    }
+
+    fn reoptimize(self) -> Result<()> {
+        for corpus in self.current_corpus.iter() {
+            self.storage
+                .as_ref()
+                .ok_or_else(|| anyhow!("No corpus storage location set"))?
+                .reoptimize_implementation(corpus, self.use_disk)?
         }
 
         Ok(())
@@ -454,26 +465,6 @@ impl AnnisRunner {
                 }
             }
         }
-        Ok(())
-    }
-
-    fn update_statistics(&mut self) -> Result<()> {
-        if self.current_corpus.is_empty() {
-            println!("You need to select a corpus first with the \"corpus\" command");
-        } else {
-            for corpus in self.current_corpus.iter() {
-                let t_before = std::time::SystemTime::now();
-                self.storage
-                    .as_ref()
-                    .ok_or_else(|| anyhow!("No corpus storage location set"))?
-                    .update_statistics(corpus)?;
-                let load_time = t_before.elapsed();
-                if let Ok(t) = load_time {
-                    info! {"Updated statistics for corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
-                }
-            }
-        }
-
         Ok(())
     }
 

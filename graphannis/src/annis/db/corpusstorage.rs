@@ -1439,19 +1439,16 @@ impl CorpusStorage {
         cache.remove(corpus_name);
     }
 
-    /// Update the graph and annotation statistics for a corpus given by `corpus_name`.
-    pub fn update_statistics(&self, corpus_name: &str) -> Result<()> {
-        let db_entry = self.get_loaded_entry(corpus_name, false)?;
-        let mut lock = db_entry.write().unwrap();
-        let db: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
+    /// Optimize the node annotation and graph storage implementations of the given corpus.
+    /// - `corpus_name` - The corpus name to optimize.
+    /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
+    #[doc(hidden)]
+    pub fn reoptimize_implementation(&self, corpus_name: &str, disk_based: bool) -> Result<()> {
+        let graph_entry = self.get_loaded_entry(corpus_name, false)?;
+        let mut lock = graph_entry.write().unwrap();
+        let graph: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
 
-        db.get_node_annos_mut().calculate_statistics();
-        for c in db.get_all_components(None, None) {
-            db.calculate_component_statistics(&c)?;
-        }
-
-        // TODO: persist changes
-
+        graph.optimize_impl(disk_based)?;
         Ok(())
     }
 

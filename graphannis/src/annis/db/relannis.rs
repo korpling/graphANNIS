@@ -380,7 +380,7 @@ where
         for c in db.get_all_components(None, None) {
             progress_callback(&format!("calculating statistics for component {}", c));
             db.calculate_component_statistics(&c)?;
-            db.optimize_impl(&c)?;
+            db.optimize_gs_impl(&c)?;
         }
 
         progress_callback(&format!(
