@@ -782,7 +782,7 @@ impl<CT: ComponentType> Graph<CT> {
             .into_par_iter()
             .map(|c| match self.component_path(&c) {
                 Some(cpath) => {
-                    debug!("Loading component {} from {}", c, &cpath.to_string_lossy());
+                    debug!("loading component {} from {}", c, &cpath.to_string_lossy());
                     (c, load_component_from_disk(&cpath))
                 }
                 None => (c, Err(GraphAnnisCoreError::EmptyComponentPath)),
@@ -810,7 +810,7 @@ impl<CT: ComponentType> Graph<CT> {
                     .component_path(c)
                     .ok_or(GraphAnnisCoreError::EmptyComponentPath)?;
                 debug!(
-                    "Loading component {} from {}",
+                    "loading component {} from {}",
                     c,
                     &component_path.to_string_lossy()
                 );
@@ -823,6 +823,8 @@ impl<CT: ComponentType> Graph<CT> {
     }
 
     pub fn optimize_impl(&mut self, disk_based: bool) -> Result<()> {
+        self.ensure_loaded_all()?;
+
         if self.disk_based != disk_based {
             self.disk_based = disk_based;
 
@@ -834,7 +836,7 @@ impl<CT: ComponentType> Graph<CT> {
             };
 
             // Copy all annotations for all nodes
-            info!("Copying node annotations");
+            info!("copying node annotations");
             for m in self
                 .node_annos
                 .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Any)
@@ -847,15 +849,15 @@ impl<CT: ComponentType> Graph<CT> {
         }
 
         for c in self.get_all_components(None, None) {
-            info!("Updating statistics for component {}", &c);
+            info!("updating statistics for component {}", &c);
             // Recalculate all statistics first, so we optimize with the correct estimations
             self.calculate_component_statistics(&c)?;
             // Perform the optimization if necessary
-            info!("Optimizing implementation for component {}", &c);
+            info!("optimizing implementation for component {}", &c);
             self.optimize_gs_impl(&c)?;
         }
         if let Some(location) = &self.location {
-            info!("Saving corpus to disk");
+            info!("saving corpus to disk");
             self.internal_save_with_backup(location)?;
         }
         Ok(())
