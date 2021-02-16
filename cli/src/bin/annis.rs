@@ -47,9 +47,9 @@ impl ConsoleHelper {
         known_commands.insert("frequency".to_string());
         known_commands.insert("plan".to_string());
         known_commands.insert("re-optimize".to_string());
-        known_commands.insert("use_disk".to_string());
-        known_commands.insert("use_parallel".to_string());
-        known_commands.insert("quirks_mode".to_string());
+        known_commands.insert("set-disk-based".to_string());
+        known_commands.insert("set-parallel-search".to_string());
+        known_commands.insert("set-quirks-mode".to_string());
         known_commands.insert("info".to_string());
 
         known_commands.insert("quit".to_string());
@@ -210,9 +210,9 @@ impl AnnisRunner {
                 "count" => self.count(&args),
                 "find" => self.find(&args),
                 "frequency" => self.frequency(&args),
-                "use_parallel" => self.use_parallel(&args),
-                "use_disk" => self.use_disk(&args),
-                "quirks_mode" => self.quirks_mode(&args),
+                "set-parallel-search" => self.use_parallel(&args),
+                "set-disk-based" => self.use_disk(&args),
+                "set-quirks-mode" => self.quirks_mode(&args),
                 "info" => self.info(&args),
                 "quit" | "exit" => return false,
                 _ => Err(anyhow!("unknown command \"{}\"", cmd)),
