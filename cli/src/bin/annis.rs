@@ -326,7 +326,7 @@ impl AnnisRunner {
         Ok(())
     }
 
-    fn reoptimize(self) -> Result<()> {
+    fn reoptimize(&self) -> Result<()> {
         for corpus in self.current_corpus.iter() {
             self.storage
                 .as_ref()

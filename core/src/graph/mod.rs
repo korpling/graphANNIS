@@ -608,25 +608,38 @@ impl<CT: ComponentType> Graph<CT> {
             // Acquire lock, so that only one thread can write background data at the same time
             let _lock = self.background_persistance.lock().unwrap();
 
-            // Move the old corpus to the backup sub-folder. When the corpus is loaded again and there is backup folder
-            // the backup will be used instead of the original possible corrupted files.
-            // The current version is only the real one if no backup folder exists. If there is a backup folder
-            // there is nothing to do since the backup already contains the last consistent version.
-            // A sub-folder is used to ensure that all directories are on the same file system and moving (instead of copying)
-            // is possible.
-            let backup_location = location.join("backup");
-            let current_location = location.join("current");
-            if !backup_location.exists() {
-                std::fs::rename(&current_location, &backup_location)?;
-            }
-
-            // Save the complete corpus without the write log to the target location
-            self.internal_save(&current_location)?;
-
-            // remove the backup folder (since the new folder was completely written)
-            std::fs::remove_dir_all(&backup_location)?;
+            self.internal_save_with_backup(location)?;
         }
 
+        Ok(())
+    }
+
+    /// Save this graph to the given location using a temporary backup folder for the old graph.
+    /// The backup folder is used to achieve some atomicity in combination with the `load_from` logic,
+    // which will load the backup folder in case saving the corpus to the "current" location was aborted.
+    fn internal_save_with_backup(&self, location: &Path) -> Result<()> {
+        // Move the old corpus to the backup sub-folder. When the corpus is loaded again and there is backup folder
+        // the backup will be used instead of the original possible corrupted files.
+        // The current version is only the real one if no backup folder exists. If there is a backup folder
+        // there is nothing to do since the backup already contains the last consistent version.
+        // A sub-folder is used to ensure that all directories are on the same file system and moving (instead of copying)
+        // is possible.
+        let backup_location = location.join("backup");
+        let current_location = location.join("current");
+        if !backup_location.exists() {
+            std::fs::rename(&current_location, &backup_location)?;
+        }
+
+        // Save the complete corpus without the write log to the target location
+        self.internal_save(&current_location)?;
+
+        // rename backup folder (renaming is atomic and deleting could leave an incomplete backup folder on disk)
+        let tmp_dir = tempfile::Builder::new()
+            .prefix("temporary-graphannis-backup")
+            .tempdir_in(location)?;
+        std::fs::rename(&backup_location, tmp_dir.path())?;
+        // remove it after renaming it, (since the new "current" folder was completely written)
+        tmp_dir.close()?;
         Ok(())
     }
 
@@ -840,6 +853,10 @@ impl<CT: ComponentType> Graph<CT> {
             // Perform the optimization if necessary
             info!("Optimizing implementation for component {}", &c);
             self.optimize_gs_impl(&c)?;
+        }
+        if let Some(location) = &self.location {
+            info!("Saving corpus to disk");
+            self.internal_save_with_backup(location)?;
         }
         Ok(())
     }
