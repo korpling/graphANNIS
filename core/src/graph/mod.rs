@@ -208,6 +208,8 @@ impl<CT: ComponentType> Graph<CT> {
             let tmp_dir = tempfile::Builder::new()
                 .prefix("temporary-graphannis-backup")
                 .tempdir_in(location)?;
+            // the target directory is created and can cause issues on windows: delete it first
+            std::fs::remove_dir(tmp_dir.path())?;
             std::fs::rename(&backup, tmp_dir.path())?;
             // remove it after renaming it
             tmp_dir.close()?;
@@ -637,6 +639,8 @@ impl<CT: ComponentType> Graph<CT> {
         let tmp_dir = tempfile::Builder::new()
             .prefix("temporary-graphannis-backup")
             .tempdir_in(location)?;
+        // the target directory is created and can cause issues on windows: delete it first
+        std::fs::remove_dir(tmp_dir.path())?;
         std::fs::rename(&backup_location, tmp_dir.path())?;
         // remove it after renaming it, (since the new "current" folder was completely written)
         tmp_dir.close()?;
