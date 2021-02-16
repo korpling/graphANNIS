@@ -845,6 +845,8 @@ impl<CT: ComponentType> Graph<CT> {
                     new_node_annos.insert(m.node, anno)?;
                 }
             }
+            info!("re-calculating node annotation statistics");
+            new_node_annos.calculate_statistics();
             self.node_annos = new_node_annos;
         }
 
