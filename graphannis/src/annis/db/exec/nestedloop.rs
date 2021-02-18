@@ -1,15 +1,17 @@
+use graphannis_core::annostorage::MatchGroup;
+
 use super::{Desc, ExecutionNode};
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
-use crate::{annis::operator::BinaryOperator, graph::Match};
+use crate::annis::operator::BinaryOperator;
 use std::iter::Peekable;
 
 pub struct NestedLoop<'a> {
-    outer: Peekable<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
-    inner: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
+    outer: Peekable<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
+    inner: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
     op: Box<dyn BinaryOperator + 'a>,
     inner_idx: usize,
     outer_idx: usize,
-    inner_cache: Vec<Vec<Match>>,
+    inner_cache: Vec<MatchGroup>,
     pos_inner_cache: Option<usize>,
 
     left_is_outer: bool,
@@ -21,8 +23,8 @@ pub struct NestedLoop<'a> {
 impl<'a> NestedLoop<'a> {
     pub fn new(
         op_entry: BinaryOperatorEntry<'a>,
-        lhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
-        rhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
+        lhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
+        rhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
     ) -> NestedLoop<'a> {
@@ -98,7 +100,7 @@ impl<'a> NestedLoop<'a> {
 }
 
 impl<'a> ExecutionNode for NestedLoop<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
         self
     }
 
@@ -108,9 +110,9 @@ impl<'a> ExecutionNode for NestedLoop<'a> {
 }
 
 impl<'a> Iterator for NestedLoop<'a> {
-    type Item = Vec<Match>;
+    type Item = MatchGroup;
 
-    fn next(&mut self) -> Option<Vec<Match>> {
+    fn next(&mut self) -> Option<MatchGroup> {
         loop {
             if let Some(m_outer) = self.outer.peek() {
                 if self.pos_inner_cache.is_some() {

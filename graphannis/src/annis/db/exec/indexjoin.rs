@@ -5,7 +5,7 @@ use crate::{
     annis::operator::{BinaryOperator, EstimationType},
     graph::Match,
 };
-use graphannis_core::types::NodeID;
+use graphannis_core::{annostorage::MatchGroup, types::NodeID};
 use std::iter::Peekable;
 use std::sync::Arc;
 
@@ -13,8 +13,8 @@ use std::sync::Arc;
 /// It then retrieves all matches as defined by the operator for each LHS element and checks
 /// if the annotation condition is true.
 pub struct IndexJoin<'a> {
-    lhs: Peekable<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
-    rhs_candidate: Option<std::iter::Peekable<std::vec::IntoIter<Match>>>,
+    lhs: Peekable<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
+    rhs_candidate: Option<std::iter::Peekable<smallvec::IntoIter<[Match; 8]>>>,
     op: Box<dyn BinaryOperator + 'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
@@ -33,7 +33,7 @@ impl<'a> IndexJoin<'a> {
     /// * `anno_qname` A pair of the annotation namespace and name (both optional) to define which annotations to fetch
     /// * `anno_cond` - A filter function to determine if a RHS candidate is included
     pub fn new(
-        lhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
+        lhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
         lhs_idx: usize,
         op_entry: BinaryOperatorEntry<'a>,
         node_search_desc: Arc<NodeSearchDesc>,
@@ -87,7 +87,7 @@ impl<'a> IndexJoin<'a> {
         }
     }
 
-    fn next_candidates(&mut self) -> Option<Vec<Match>> {
+    fn next_candidates(&mut self) -> Option<MatchGroup> {
         if let Some(m_lhs) = self.lhs.peek().cloned() {
             let it_nodes = Box::from(
                 self.op
@@ -108,7 +108,7 @@ impl<'a> IndexJoin<'a> {
 }
 
 impl<'a> ExecutionNode for IndexJoin<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
         self
     }
 
@@ -118,9 +118,9 @@ impl<'a> ExecutionNode for IndexJoin<'a> {
 }
 
 impl<'a> Iterator for IndexJoin<'a> {
-    type Item = Vec<Match>;
+    type Item = MatchGroup;
 
-    fn next(&mut self) -> Option<Vec<Match>> {
+    fn next(&mut self) -> Option<MatchGroup> {
         // lazily initialize the RHS candidates for the first LHS
         if self.rhs_candidate.is_none() {
             self.rhs_candidate = if let Some(rhs) = self.next_candidates() {
