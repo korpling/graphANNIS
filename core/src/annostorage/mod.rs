@@ -159,7 +159,7 @@ where
         ns: Option<&str>,
         name: Option<&str>,
         it: Box<dyn Iterator<Item = T>>,
-    ) -> Vec<Match>;
+    ) -> MatchGroup;
 
     /// Return the total number of annotations contained in this `AnnotationStorage`.
     fn number_of_annotations(&self) -> usize;

@@ -5,7 +5,7 @@ use crate::{
     annis::operator::{BinaryOperator, EstimationType},
     graph::Match,
 };
-use graphannis_core::types::NodeID;
+use graphannis_core::{annostorage::MatchGroup, types::NodeID};
 use rayon::prelude::*;
 use std::iter::Peekable;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -17,8 +17,8 @@ const MAX_BUFFER_SIZE: usize = 512;
 /// It then retrieves all matches as defined by the operator for each LHS element and checks
 /// if the annotation condition is true.
 pub struct IndexJoin<'a> {
-    lhs: Peekable<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
-    match_receiver: Option<Receiver<Vec<Match>>>,
+    lhs: Peekable<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
+    match_receiver: Option<Receiver<MatchGroup>>,
     op: Arc<dyn BinaryOperator + 'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
@@ -37,7 +37,7 @@ impl<'a> IndexJoin<'a> {
     /// * `anno_qname` A pair of the annotation namespace and name (both optional) to define which annotations to fetch
     /// * `anno_cond` - A filter function to determine if a RHS candidate is included
     pub fn new(
-        lhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
+        lhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
         lhs_idx: usize,
         op_entry: BinaryOperatorEntry<'a>,
         node_search_desc: Arc<NodeSearchDesc>,
@@ -93,9 +93,9 @@ impl<'a> IndexJoin<'a> {
 
     fn next_lhs_buffer(
         &mut self,
-        tx: &Sender<Vec<Match>>,
-    ) -> Vec<(Vec<Match>, Sender<Vec<Match>>)> {
-        let mut lhs_buffer: Vec<(Vec<Match>, Sender<Vec<Match>>)> =
+        tx: &Sender<MatchGroup>,
+    ) -> Vec<(MatchGroup, Sender<MatchGroup>)> {
+        let mut lhs_buffer: Vec<(MatchGroup, Sender<MatchGroup>)> =
             Vec::with_capacity(MAX_BUFFER_SIZE);
         while lhs_buffer.len() < MAX_BUFFER_SIZE {
             if let Some(lhs) = self.lhs.next() {
@@ -107,7 +107,7 @@ impl<'a> IndexJoin<'a> {
         lhs_buffer
     }
 
-    fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
+    fn next_match_receiver(&mut self) -> Option<Receiver<MatchGroup>> {
         let (tx, rx) = channel();
         let mut lhs_buffer = self.next_lhs_buffer(&tx);
 
@@ -186,7 +186,7 @@ fn next_candidates(
     lhs_idx: usize,
     node_annos: &dyn AnnotationStorage<NodeID>,
     node_search_desc: &Arc<NodeSearchDesc>,
-) -> Vec<Match> {
+) -> MatchGroup {
     let it_nodes = Box::from(op.retrieve_matches(&m_lhs[lhs_idx]).map(|m| m.node).fuse());
 
     node_annos.get_keys_for_iterator(
@@ -197,7 +197,7 @@ fn next_candidates(
 }
 
 impl<'a> ExecutionNode for IndexJoin<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
         self
     }
 
@@ -207,9 +207,9 @@ impl<'a> ExecutionNode for IndexJoin<'a> {
 }
 
 impl<'a> Iterator for IndexJoin<'a> {
-    type Item = Vec<Match>;
+    type Item = MatchGroup;
 
-    fn next(&mut self) -> Option<Vec<Match>> {
+    fn next(&mut self) -> Option<MatchGroup> {
         // lazily initialize
         if self.match_receiver.is_none() {
             self.match_receiver = if let Some(rhs) = self.next_match_receiver() {

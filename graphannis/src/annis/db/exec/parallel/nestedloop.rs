@@ -1,6 +1,7 @@
 use super::super::{Desc, ExecutionNode};
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
-use crate::{annis::operator::BinaryOperator, graph::Match};
+use crate::annis::operator::BinaryOperator;
+use graphannis_core::annostorage::MatchGroup;
 use rayon::prelude::*;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
@@ -8,16 +9,16 @@ use std::sync::Arc;
 const MAX_BUFFER_SIZE: usize = 1024;
 
 pub struct NestedLoop<'a> {
-    outer: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
-    inner: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
+    outer: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
+    inner: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
     op: Arc<dyn BinaryOperator + 'a>,
     inner_idx: usize,
     outer_idx: usize,
 
-    current_outer: Option<Arc<Vec<Match>>>,
+    current_outer: Option<Arc<MatchGroup>>,
     match_candidate_buffer: Vec<MatchCandidate>,
-    match_receiver: Option<Receiver<Vec<Match>>>,
-    inner_cache: Vec<Arc<Vec<Match>>>,
+    match_receiver: Option<Receiver<MatchGroup>>,
+    inner_cache: Vec<Arc<MatchGroup>>,
     pos_inner_cache: Option<usize>,
 
     left_is_outer: bool,
@@ -26,13 +27,13 @@ pub struct NestedLoop<'a> {
     global_reflexivity: bool,
 }
 
-type MatchCandidate = (Arc<Vec<Match>>, Arc<Vec<Match>>, Sender<Vec<Match>>);
+type MatchCandidate = (Arc<MatchGroup>, Arc<MatchGroup>, Sender<MatchGroup>);
 
 impl<'a> NestedLoop<'a> {
     pub fn new(
         op_entry: BinaryOperatorEntry<'a>,
-        lhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
-        rhs: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
+        lhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
+        rhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
     ) -> NestedLoop<'a> {
@@ -112,7 +113,7 @@ impl<'a> NestedLoop<'a> {
         }
     }
 
-    fn peek_outer(&mut self) -> Option<Arc<Vec<Match>>> {
+    fn peek_outer(&mut self) -> Option<Arc<MatchGroup>> {
         if self.current_outer.is_none() {
             if let Some(result) = self.outer.next() {
                 self.current_outer = Some(Arc::from(result));
@@ -128,7 +129,7 @@ impl<'a> NestedLoop<'a> {
         }
     }
 
-    fn next_match_buffer(&mut self, tx: &Sender<Vec<Match>>) {
+    fn next_match_buffer(&mut self, tx: &Sender<MatchGroup>) {
         self.match_candidate_buffer.clear();
 
         while self.match_candidate_buffer.len() < MAX_BUFFER_SIZE {
@@ -153,7 +154,7 @@ impl<'a> NestedLoop<'a> {
                     }
                 } else {
                     while let Some(m_inner) = self.inner.next() {
-                        let m_inner: Arc<Vec<Match>> = Arc::from(m_inner);
+                        let m_inner: Arc<MatchGroup> = Arc::from(m_inner);
 
                         self.inner_cache.push(m_inner.clone());
 
@@ -177,7 +178,7 @@ impl<'a> NestedLoop<'a> {
         }
     }
 
-    fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
+    fn next_match_receiver(&mut self) -> Option<Receiver<MatchGroup>> {
         let (tx, rx) = channel();
 
         self.next_match_buffer(&tx);
@@ -212,7 +213,7 @@ impl<'a> NestedLoop<'a> {
                         || (!global_reflexivity
                             && m_outer[outer_idx].different_to(&m_inner[inner_idx])))
                 {
-                    let mut result = Vec::with_capacity(m_outer.len() + m_inner.len());
+                    let mut result = MatchGroup::new();
                     result.extend(m_outer.iter().cloned());
                     result.extend(m_inner.iter().cloned());
 
@@ -228,7 +229,7 @@ impl<'a> NestedLoop<'a> {
 }
 
 impl<'a> ExecutionNode for NestedLoop<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
         self
     }
 
@@ -238,9 +239,9 @@ impl<'a> ExecutionNode for NestedLoop<'a> {
 }
 
 impl<'a> Iterator for NestedLoop<'a> {
-    type Item = Vec<Match>;
+    type Item = MatchGroup;
 
-    fn next(&mut self) -> Option<Vec<Match>> {
+    fn next(&mut self) -> Option<MatchGroup> {
         // lazily initialize
         if self.match_receiver.is_none() {
             self.match_receiver = if let Some(rhs) = self.next_match_receiver() {

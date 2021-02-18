@@ -1,4 +1,4 @@
-use super::{AnnotationStorage, Match};
+use super::{AnnotationStorage, Match, MatchGroup};
 use crate::annostorage::ValueSearch;
 use crate::errors::Result;
 use crate::malloc_size_of::MallocSizeOf;
@@ -413,11 +413,11 @@ where
         ns: Option<&str>,
         name: Option<&str>,
         it: Box<dyn Iterator<Item = T>>,
-    ) -> Vec<Match> {
+    ) -> MatchGroup {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // return the only possible annotation for each node
-                let mut matches: Vec<Match> = Vec::new();
+                let mut matches = MatchGroup::new();
                 let key = Arc::from(AnnoKey {
                     ns: ns.into(),
                     name: name.into(),
@@ -449,7 +449,7 @@ where
                     })
                     .collect();
                 // return all annotations with the correct name for each node
-                let mut matches: Vec<Match> = Vec::new();
+                let mut matches = MatchGroup::new();
                 for item in it {
                     for (key_symbol, key) in matching_key_symbols.iter() {
                         if let Some(all_annos) = self.by_container.get(&item) {
@@ -466,7 +466,7 @@ where
             }
         } else {
             // return all annotations for each node
-            let mut matches: Vec<Match> = Vec::new();
+            let mut matches = MatchGroup::new();
             for item in it {
                 let all_keys = self.get_all_keys_for_item(&item, None, None);
                 for anno_key in all_keys {

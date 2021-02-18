@@ -15,9 +15,9 @@ use crate::AnnotationGraph;
 use crate::{
     annis::types::{LineColumnRange, QueryAttributeDescription},
     errors::Result,
-    graph::Match,
 };
 use graphannis_core::{
+    annostorage::MatchGroup,
     graph::storage::GraphStatistic,
     types::{Component, Edge},
 };
@@ -112,11 +112,11 @@ fn create_join<'b>(
     db: &'b AnnotationGraph,
     config: &Config,
     op_entry: BinaryOperatorEntry<'b>,
-    exec_left: Box<dyn ExecutionNode<Item = Vec<Match>> + 'b>,
-    exec_right: Box<dyn ExecutionNode<Item = Vec<Match>> + 'b>,
+    exec_left: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
+    exec_right: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
     idx_left: usize,
     idx_right: usize,
-) -> Box<dyn ExecutionNode<Item = Vec<Match>> + 'b> {
+) -> Box<dyn ExecutionNode<Item = MatchGroup> + 'b> {
     if exec_right.as_nodesearch().is_some() {
         // use index join
         if config.use_parallel_joins {
@@ -484,7 +484,7 @@ impl<'a> Conjunction<'a> {
         desc: Option<&Desc>,
         op_spec_entries: Box<dyn Iterator<Item = &'a BinaryOperatorSpecEntry> + 'a>,
         db: &'a AnnotationGraph,
-    ) -> Option<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> {
+    ) -> Option<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> {
         let desc = desc?;
         // check if we can replace this node search with a generic "all nodes from either of these components" search
         let node_search_cost: &CostEstimate = desc.cost.as_ref()?;
@@ -542,7 +542,7 @@ impl<'a> Conjunction<'a> {
         db: &'a AnnotationGraph,
         config: &Config,
         operator_order: Vec<usize>,
-    ) -> Result<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> {
+    ) -> Result<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> {
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
 
         // Remember node search errors, but do not bail out of this function before the component
@@ -553,7 +553,7 @@ impl<'a> Conjunction<'a> {
 
         // Create a map where the key is the component number
         // and move all nodes with their index as component number.
-        let mut component2exec: BTreeMap<usize, Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> =
+        let mut component2exec: BTreeMap<usize, Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> =
             BTreeMap::new();
         let mut node2cost: BTreeMap<usize, CostEstimate> = BTreeMap::new();
 
@@ -619,7 +619,7 @@ impl<'a> Conjunction<'a> {
 
         // 2. add unary operators as filter to the existing node search
         for op_spec_entry in self.unary_operators.iter() {
-            let child_exec: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
+            let child_exec: Box<dyn ExecutionNode<Item = MatchGroup> + 'a> = component2exec
                 .remove(&op_spec_entry.idx)
                 .ok_or(GraphAnnisError::NoExecutionNode(op_spec_entry.idx))?;
 
@@ -683,7 +683,7 @@ impl<'a> Conjunction<'a> {
                 .ok_or_else(|| GraphAnnisError::NoComponentForNode(spec_idx_right + 1))?);
 
             // get the original execution node
-            let exec_left: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
+            let exec_left: Box<dyn ExecutionNode<Item = MatchGroup> + 'a> = component2exec
                 .remove(&component_left)
                 .ok_or(GraphAnnisError::NoExecutionNode(component_left))?;
 
@@ -694,7 +694,7 @@ impl<'a> Conjunction<'a> {
                 .get(&spec_idx_left)
                 .ok_or(GraphAnnisError::LHSOperandNotFound)?);
 
-            let new_exec: Box<dyn ExecutionNode<Item = Vec<Match>>> =
+            let new_exec: Box<dyn ExecutionNode<Item = MatchGroup>> =
                 if component_left == component_right {
                     // don't create new tuples, only filter the existing ones
                     // TODO: check if LHS or RHS is better suited as filter input iterator
@@ -807,7 +807,7 @@ impl<'a> Conjunction<'a> {
         &'a self,
         db: &'a AnnotationGraph,
         config: &Config,
-    ) -> Result<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> {
+    ) -> Result<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> {
         self.check_components_connected()?;
 
         let operator_order = self.optimize_join_order_heuristics(db, config)?;

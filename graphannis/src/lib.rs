@@ -55,6 +55,7 @@ pub type AnnotationGraph =
 pub mod graph {
     pub use graphannis_core::annostorage::AnnotationStorage;
     pub use graphannis_core::annostorage::Match;
+    pub use graphannis_core::annostorage::MatchGroup;
     pub use graphannis_core::graph::storage::GraphStatistic;
     pub use graphannis_core::graph::storage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
     pub use graphannis_core::types::{AnnoKey, Annotation, Component, Edge, NodeID};

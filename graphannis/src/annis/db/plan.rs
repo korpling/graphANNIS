@@ -3,14 +3,17 @@ use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::query::Config;
 use crate::AnnotationGraph;
 use crate::{annis::errors::*, graph::Match};
-use graphannis_core::types::{AnnoKey, NodeID};
+use graphannis_core::{
+    annostorage::MatchGroup,
+    types::{AnnoKey, NodeID},
+};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Formatter;
 use std::sync::Arc;
 
 pub struct ExecutionPlan<'a> {
-    plans: Vec<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>>,
+    plans: Vec<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
     current_plan: usize,
     descriptions: Vec<Option<Desc>>,
     inverse_node_pos: Vec<Option<Vec<usize>>>,
@@ -24,7 +27,7 @@ impl<'a> ExecutionPlan<'a> {
         db: &'a AnnotationGraph,
         config: &Config,
     ) -> Result<ExecutionPlan<'a>> {
-        let mut plans: Vec<Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();
+        let mut plans: Vec<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> = Vec::new();
         let mut descriptions = Vec::new();
         let mut inverse_node_pos = Vec::new();
         for alt in &query.alternatives {
@@ -82,14 +85,14 @@ impl<'a> ExecutionPlan<'a> {
         })
     }
 
-    fn reorder_match(&self, tmp: Vec<Match>) -> Vec<Match> {
+    fn reorder_match(&self, tmp: MatchGroup) -> MatchGroup {
         if tmp.len() <= 1 {
             // nothing to reorder
             return tmp;
         }
         if let Some(ref inverse_node_pos) = self.inverse_node_pos[self.current_plan] {
             // re-order the matched nodes by the original node position of the query
-            let mut result: Vec<Match> = Vec::with_capacity(tmp.len());
+            let mut result = MatchGroup::new();
             result.resize_with(tmp.len(), Default::default);
             for (stream_pos, m) in tmp.into_iter().enumerate() {
                 let target_pos = inverse_node_pos[stream_pos];
@@ -141,9 +144,9 @@ impl<'a> std::fmt::Display for ExecutionPlan<'a> {
 }
 
 impl<'a> Iterator for ExecutionPlan<'a> {
-    type Item = Vec<Match>;
+    type Item = MatchGroup;
 
-    fn next(&mut self) -> Option<Vec<Match>> {
+    fn next(&mut self) -> Option<MatchGroup> {
         if self.proxy_mode {
             // just act as an proxy, but make sure the order is the same as requested in the query
             if let Some(n) = self.plans[0].next() {

@@ -9,7 +9,7 @@ use crate::{
     graph::Match,
 };
 use graphannis_core::{
-    annostorage::ValueSearch,
+    annostorage::{MatchGroup, ValueSearch},
     graph::ANNIS_NS,
     types::{Component, NodeID},
 };
@@ -116,7 +116,7 @@ impl<'a> BinaryOperator for EqualValue<'a> {
             };
 
             if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
-                let rhs_candidates: Vec<Match> = self
+                let rhs_candidates: MatchGroup = self
                     .node_annos
                     .exact_anno_search(ns, name, val_search)
                     .collect();

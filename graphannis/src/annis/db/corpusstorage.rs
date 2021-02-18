@@ -25,7 +25,7 @@ use crate::{
 use fmt::Display;
 use fs2::FileExt;
 use graphannis_core::{
-    annostorage::ValueSearch,
+    annostorage::{MatchGroup, ValueSearch},
     graph::{
         storage::GraphStatistic, update::GraphUpdate, ANNIS_NS, NODE_NAME, NODE_NAME_KEY, NODE_TYPE,
     },
@@ -460,7 +460,7 @@ fn new_vector_with_memory_aligned_capacity<T>(expected_len: usize) -> Vec<T> {
     Vec::with_capacity(aligned_memory_size / std::mem::size_of::<T>())
 }
 
-type FindIterator<'a> = Box<dyn Iterator<Item = Vec<Match>> + 'a>;
+type FindIterator<'a> = Box<dyn Iterator<Item = MatchGroup> + 'a>;
 
 impl CorpusStorage {
     /// Create a new instance with a maximum size for the internal corpus cache.
@@ -1641,7 +1641,7 @@ impl CorpusStorage {
             let estimated_result_size = plan.estimated_output_size();
             // Estimations can be wrong on the upper limit, so limit the maximal reserved vector size
             let expected_len = std::cmp::min(estimated_result_size, MAX_VECTOR_RESERVATION);
-            let mut tmp_results: Vec<Vec<Match>> =
+            let mut tmp_results: Vec<MatchGroup> =
                 new_vector_with_memory_aligned_capacity(expected_len);
 
             for mgroup in plan {
@@ -1668,7 +1668,7 @@ impl CorpusStorage {
                 };
 
                 let gs_order = db.get_graphstorage_as_ref(&component_order);
-                let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
+                let order_func = |m1: &MatchGroup, m2: &MatchGroup| -> std::cmp::Ordering {
                     if order == ResultOrder::Inverted {
                         db::sort_matches::compare_matchgroup_by_text_pos(
                             m1,
@@ -1772,7 +1772,7 @@ impl CorpusStorage {
                 timeout.check()?;
             }
         }
-        let base_it: Box<dyn Iterator<Item = Vec<Match>>> = if let Some(limit) = limit {
+        let base_it: Box<dyn Iterator<Item = MatchGroup>> = if let Some(limit) = limit {
             Box::new(base_it.take(limit))
         } else {
             Box::new(base_it)

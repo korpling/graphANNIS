@@ -1,12 +1,11 @@
+use graphannis_core::annostorage::MatchGroup;
+
 use super::{CostEstimate, Desc, ExecutionNode};
 use crate::annis::db::query::conjunction::{BinaryOperatorEntry, UnaryOperatorEntry};
-use crate::{
-    annis::operator::{BinaryOperator, EstimationType, UnaryOperator},
-    graph::Match,
-};
+use crate::annis::operator::{BinaryOperator, EstimationType, UnaryOperator};
 
 pub struct Filter<'a> {
-    it: Box<dyn Iterator<Item = Vec<Match>> + 'a>,
+    it: Box<dyn Iterator<Item = MatchGroup> + 'a>,
     desc: Option<Desc>,
 }
 
@@ -40,7 +39,7 @@ fn calculate_unary_outputsize(op: &dyn UnaryOperator, num_tuples: usize) -> usiz
 
 impl<'a> Filter<'a> {
     pub fn new_binary(
-        exec: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
+        exec: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
         op_entry: BinaryOperatorEntry<'a>,
@@ -80,7 +79,7 @@ impl<'a> Filter<'a> {
     }
 
     pub fn new_unary(
-        exec: Box<dyn ExecutionNode<Item = Vec<Match>> + 'a>,
+        exec: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
         idx: usize,
         op_entry: UnaryOperatorEntry,
     ) -> Filter<'a> {
@@ -116,7 +115,7 @@ impl<'a> Filter<'a> {
 }
 
 impl<'a> ExecutionNode for Filter<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
         self
     }
 
@@ -126,9 +125,9 @@ impl<'a> ExecutionNode for Filter<'a> {
 }
 
 impl<'a> Iterator for Filter<'a> {
-    type Item = Vec<Match>;
+    type Item = MatchGroup;
 
-    fn next(&mut self) -> Option<Vec<Match>> {
+    fn next(&mut self) -> Option<MatchGroup> {
         self.it.next()
     }
 }

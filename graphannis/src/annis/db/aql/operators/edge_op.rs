@@ -5,6 +5,7 @@ use crate::annis::operator::{
 use crate::graph::{GraphStatistic, GraphStorage, Match};
 use crate::AnnotationGraph;
 use graphannis_core::{
+    annostorage::MatchGroup,
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
     types::{Component, Edge, NodeID},
 };
@@ -247,7 +248,7 @@ impl BinaryOperator for BaseEdgeOp {
             };
             Box::new(result.into_iter())
         } else {
-            let mut all: Vec<Match> = if self.inverse {
+            let mut all: MatchGroup = if self.inverse {
                 self.gs
                     .iter()
                     .flat_map(move |e| {
