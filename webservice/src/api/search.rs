@@ -1,9 +1,11 @@
+use std::time::Duration;
+
 use super::check_corpora_authorized;
-use crate::{errors::ServiceError, extractors::ClaimsFromAuth, DbPool};
+use crate::{errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool};
 use actix_web::web::{self, Bytes, HttpResponse};
 use futures::stream::iter;
 use graphannis::{
-    corpusstorage::{FrequencyDefEntry, QueryLanguage, ResultOrder},
+    corpusstorage::{FrequencyDefEntry, QueryLanguage, ResultOrder, SearchQuery},
     CorpusStorage,
 };
 use serde::Deserialize;
@@ -20,10 +22,17 @@ pub async fn count(
     params: web::Json<CountQuery>,
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
+    settings: web::Data<Settings>,
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
     let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
-    let count = cs.count_extra(&corpora, &params.query, params.query_language)?;
+    let query = SearchQuery {
+        corpus_names: &corpora,
+        query: &params.query,
+        query_language: params.query_language,
+        timeout: settings.database.query_timeout.map(Duration::from_secs),
+    };
+    let count = cs.count_extra(query)?;
     Ok(HttpResponse::Ok().json(count))
 }
 
@@ -60,18 +69,17 @@ pub async fn find(
     params: web::Json<FindQuery>,
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
+    settings: web::Data<Settings>,
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
     let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
-
-    let matches = cs.find(
-        &corpora,
-        &params.query,
-        params.query_language,
-        params.offset,
-        params.limit,
-        params.order,
-    )?;
+    let query = SearchQuery {
+        corpus_names: &corpora,
+        query: &params.query,
+        query_language: params.query_language,
+        timeout: settings.database.query_timeout.map(Duration::from_secs),
+    };
+    let matches = cs.find(query, params.offset, params.limit, params.order)?;
 
     let body = iter(
         matches
@@ -99,16 +107,17 @@ pub async fn frequency(
     params: web::Json<FrequencyQuery>,
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
+    settings: web::Data<Settings>,
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
     let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
-
-    let result = cs.frequency(
-        &corpora,
-        &params.query,
-        params.query_language,
-        params.definition.clone(),
-    )?;
+    let query = SearchQuery {
+        corpus_names: &corpora,
+        query: &params.query,
+        query_language: params.query_language,
+        timeout: settings.database.query_timeout.map(Duration::from_secs),
+    };
+    let result = cs.frequency(query, params.definition.clone())?;
 
     Ok(HttpResponse::Ok().json(result))
 }

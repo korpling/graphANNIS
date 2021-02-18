@@ -21,6 +21,10 @@ use lalrpop_util::ParseError;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 
+thread_local! {
+    static AQL_PARSER: parser::DisjunctionParser = parser::DisjunctionParser::new();
+}
+
 fn map_conjunction<'a>(
     c: Vec<ast::Literal>,
     offsets: &BTreeMap<usize, usize>,
@@ -123,6 +127,17 @@ fn map_conjunction<'a>(
                             spec.dist.clone()
                         };
                     }
+                    ast::BinaryOpSpec::Near(ref mut spec) => {
+                        // limit unspecified ^* near-by operator to 50
+                        spec.dist = if let RangeSpec::Unbound = spec.dist {
+                            RangeSpec::Bound {
+                                min_dist: 1,
+                                max_dist: 50,
+                            }
+                        } else {
+                            spec.dist.clone()
+                        };
+                    }
                     _ => {}
                 }
             }
@@ -207,10 +222,10 @@ fn calculate_node_positions(
                         pos.start + "meta::".len() - 1,
                         &offsets,
                     ));
-                    return Err(GraphAnnisError::AQLSyntaxError {
+                    return Err(GraphAnnisError::AQLSyntaxError( AQLError {
                         desc: "Legacy metadata search is no longer allowed. Use the @* operator and normal attribute search instead.".into(),
                         location: Some(LineColumnRange {start, end}),
-                    }.into());
+                    }));
                 }
             }
         };
@@ -354,7 +369,7 @@ fn get_alternatives_from_dnf(expr: ast::Expr) -> Vec<Vec<ast::Literal>> {
 }
 
 pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a>> {
-    let ast = parser::DisjunctionParser::new().parse(query_as_aql);
+    let ast = AQL_PARSER.with(|p| p.parse(query_as_aql));
     match ast {
         Ok(ast) => {
             let offsets = get_line_offsets(query_as_aql);
@@ -414,7 +429,7 @@ pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a
                     desc.push_str(&expected.join(","));
                 }
             }
-            Err(GraphAnnisError::AQLSyntaxError { desc, location }.into())
+            Err(GraphAnnisError::AQLSyntaxError(AQLError { desc, location }))
         }
     }
 }

@@ -17,9 +17,6 @@ extern crate serde_derive;
 extern crate lazy_static;
 
 #[macro_use]
-extern crate anyhow;
-
-#[macro_use]
 extern crate lalrpop_util;
 
 #[cfg(feature = "c-api")]
@@ -36,6 +33,7 @@ pub use crate::annis::db::corpusstorage::CorpusStorage;
 
 /// Types that are used by the `CorpusStorage` API.
 pub mod corpusstorage {
+    pub use crate::annis::db::corpusstorage::SearchQuery;
     pub use crate::annis::db::corpusstorage::{
         CacheStrategy, CorpusInfo, ExportFormat, FrequencyDefEntry, GraphStorageInfo, ImportFormat,
         LoadStatus, QueryLanguage, ResultOrder,
@@ -57,6 +55,7 @@ pub type AnnotationGraph =
 pub mod graph {
     pub use graphannis_core::annostorage::AnnotationStorage;
     pub use graphannis_core::annostorage::Match;
+    pub use graphannis_core::annostorage::MatchGroup;
     pub use graphannis_core::graph::storage::GraphStatistic;
     pub use graphannis_core::graph::storage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
     pub use graphannis_core::types::{AnnoKey, Annotation, Component, Edge, NodeID};

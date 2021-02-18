@@ -9,9 +9,9 @@ pub mod union;
 use crate::malloc_size_of::MallocSizeOf;
 use crate::{
     annostorage::AnnotationStorage,
+    errors::Result,
     types::{AnnoKey, Annotation, Edge, NodeID},
 };
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{self, path::Path};
 

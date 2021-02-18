@@ -1,9 +1,9 @@
 use super::*;
-use anyhow::Result;
 
 use crate::{
     annostorage::ondisk::AnnoStorageImpl,
     dfs::CycleSafeDFS,
+    errors::Result,
     util::disk_collections::{DiskMap, EvictionStrategy},
 };
 use itertools::Itertools;
@@ -31,7 +31,7 @@ fn get_fan_outs(edges: &DiskMap<Edge, bool>) -> Vec<usize> {
         }
     }
     // order the fan-outs
-    fan_outs.sort();
+    fan_outs.sort_unstable();
 
     fan_outs
 }

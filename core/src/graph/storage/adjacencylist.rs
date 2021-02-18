@@ -1,11 +1,11 @@
 use crate::{
     annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage},
     dfs::CycleSafeDFS,
+    errors::Result,
     types::{AnnoKey, Annotation, Edge, NodeID},
 };
 
 use super::{EdgeContainer, GraphStatistic, GraphStorage, WriteableGraphStorage};
-use anyhow::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Deserialize;
 use std::collections::BTreeSet;

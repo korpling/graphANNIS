@@ -1,0 +1,78 @@
+name: Automated tests
+on: push
+jobs:
+  test_linux:
+    name: Execute automated tests on Ubuntu Linux
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+      - run: cargo build --all-features --verbose
+      - run: cargo test --all-features --verbose
+      - run: misc/download-mdbook.sh 0.3.5
+        env:
+          OS_NAME: linux
+      - name: Generate the documentation
+        run: mdbook build docs/
+  test_windows:
+    name: Execute automated tests on Windows
+    runs-on: windows-2016
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+      - run: cargo build --all-features --verbose
+      - run: cargo test --all-features --verbose
+  test_mac:
+    name: Execute automated tests on OSX
+    runs-on: macos-10.15
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo build --all-features --verbose
+      - run: cargo test --all-features --verbose
+  long_running_tests:
+    name: Execute search tests
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-integration-tests-${{ hashFiles('**/Cargo.toml') }}
+      - name: Build CLI binary
+        run: cargo build --release --bin annis
+      - name: Download test corpora if necessary
+        run: test -d relannis/GUM/ -a -d relannis/pcc2.1/ || "./misc/download-test-corpora.sh"
+      - name: Import GUM corpus
+        run: ./target/release/annis data --cmd 'import relannis/GUM'
+      - name: Import pcc2.1 corpus
+        run: ./target/release/annis data --cmd 'use_disk on' --cmd 'import relannis/pcc2.1'
+      - name: Run integration tests
+        run: cargo test --release -- --ignored
+        working-directory: graphannis

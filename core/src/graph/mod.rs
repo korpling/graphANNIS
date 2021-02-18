@@ -2,15 +2,19 @@ pub mod serialization;
 pub mod storage;
 pub mod update;
 
-use crate::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use crate::{
-    annostorage::AnnotationStorage,
+    annostorage::{AnnotationStorage, ValueSearch},
+    errors::Result,
     graph::storage::{registry, GraphStorage, WriteableGraphStorage},
     util::disk_collections::{DiskMap, EvictionStrategy},
 };
-use anyhow::Result;
+use crate::{
+    errors::GraphAnnisCoreError,
+    types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID},
+};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
+use smartstring::alias::String as SmartString;
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
@@ -30,13 +34,13 @@ pub const NODE_TYPE: &str = "node_type";
 lazy_static! {
     pub static ref DEFAULT_ANNO_KEY: Arc<AnnoKey> = Arc::from(AnnoKey::default());
     pub static ref NODE_NAME_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
-        ns: ANNIS_NS.to_owned(),
-        name: NODE_NAME.to_owned(),
+        ns: ANNIS_NS.into(),
+        name: NODE_NAME.into(),
     });
     /// Return an annotation key which is used for the special `annis::node_type` annotation which every node must have to mark its existence.
     pub static ref NODE_TYPE_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
-        ns: ANNIS_NS.to_owned(),
-        name: NODE_TYPE.to_owned(),
+        ns: ANNIS_NS.into(),
+        name: NODE_TYPE.into(),
     });
 }
 
@@ -81,16 +85,14 @@ impl<CT: ComponentType> MallocSizeOf for Graph<CT> {
     }
 }
 
-fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<dyn GraphStorage>> {
-    let cpath = component_path.ok_or_else(|| anyhow!("Can't load component with empty path"))?;
-
+fn load_component_from_disk(component_path: &Path) -> Result<Arc<dyn GraphStorage>> {
     // load component into memory
-    let impl_path = PathBuf::from(&cpath).join("impl.cfg");
+    let impl_path = PathBuf::from(component_path).join("impl.cfg");
     let mut f_impl = std::fs::File::open(impl_path)?;
     let mut impl_name = String::new();
     f_impl.read_to_string(&mut impl_name)?;
 
-    let gs = registry::deserialize(&impl_name, &cpath)?;
+    let gs = registry::deserialize(&impl_name, component_path)?;
 
     Ok(gs)
 }
@@ -148,7 +150,7 @@ impl<CT: ComponentType> Graph<CT> {
     /// * `location` - The path on the disk
     /// * `preload` - If `true`, all components are loaded from disk into main memory.
     pub fn load_from(&mut self, location: &Path, preload: bool) -> Result<()> {
-        info!("Loading corpus from {}", location.to_string_lossy());
+        debug!("Loading corpus from {}", location.to_string_lossy());
         self.clear();
 
         let location = PathBuf::from(location);
@@ -206,6 +208,8 @@ impl<CT: ComponentType> Graph<CT> {
             let tmp_dir = tempfile::Builder::new()
                 .prefix("temporary-graphannis-backup")
                 .tempdir_in(location)?;
+            // the target directory is created and can cause issues on windows: delete it first
+            std::fs::remove_dir(tmp_dir.path())?;
             std::fs::rename(&backup, tmp_dir.path())?;
             // remove it after renaming it
             tmp_dir.close()?;
@@ -223,7 +227,7 @@ impl<CT: ComponentType> Graph<CT> {
         } else {
             &c.layer
         });
-        p.push(&c.name);
+        p.push(c.name.as_str());
         p
     }
 
@@ -242,8 +246,8 @@ impl<CT: ComponentType> Graph<CT> {
                         // try to load the component with the empty name
                         let empty_name_component = Component::new(
                             c.clone(),
-                            layer.file_name().to_string_lossy().to_string(),
-                            String::from(""),
+                            layer.file_name().to_string_lossy().into(),
+                            SmartString::default(),
                         );
                         {
                             let cfg_file = PathBuf::from(location)
@@ -260,8 +264,8 @@ impl<CT: ComponentType> Graph<CT> {
                             let name = name?;
                             let named_component = Component::new(
                                 c.clone(),
-                                layer.file_name().to_string_lossy().to_string(),
-                                name.file_name().to_string_lossy().to_string(),
+                                layer.file_name().to_string_lossy().into(),
+                                name.file_name().to_string_lossy().into(),
                             );
                             let cfg_file = PathBuf::from(location)
                                 .join(self.component_to_relative_path(&named_component))
@@ -364,11 +368,11 @@ impl<CT: ComponentType> Graph<CT> {
 
                         let new_anno_name = Annotation {
                             key: NODE_NAME_KEY.as_ref().clone(),
-                            val: node_name.to_string(),
+                            val: node_name.into(),
                         };
                         let new_anno_type = Annotation {
                             key: NODE_TYPE_KEY.as_ref().clone(),
-                            val: node_type.to_string(),
+                            val: node_type.into(),
                         };
 
                         // add the new node (with minimum labels)
@@ -409,10 +413,10 @@ impl<CT: ComponentType> Graph<CT> {
                     {
                         let anno = Annotation {
                             key: AnnoKey {
-                                ns: anno_ns.to_string(),
-                                name: anno_name.to_string(),
+                                ns: anno_ns.into(),
+                                name: anno_name.into(),
                             },
-                            val: anno_value.to_string(),
+                            val: anno_value.into(),
                         };
                         self.node_annos.insert(existing_node_id, anno)?;
                     }
@@ -426,8 +430,8 @@ impl<CT: ComponentType> Graph<CT> {
                         self.get_cached_node_id_from_name(Cow::Borrowed(node_name), &mut node_ids)?
                     {
                         let key = AnnoKey {
-                            ns: anno_ns.to_string(),
-                            name: anno_name.to_string(),
+                            ns: anno_ns.into(),
+                            name: anno_name.into(),
                         };
                         self.node_annos
                             .remove_annotation_for_item(&existing_node_id, &key)?;
@@ -447,11 +451,7 @@ impl<CT: ComponentType> Graph<CT> {
                     // only add edge if both nodes already exist
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(&component_type) {
-                            let c = Component::new(
-                                ctype,
-                                layer.to_string(),
-                                component_name.to_string(),
-                            );
+                            let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             gs.add_edge(Edge { source, target })?;
                         }
@@ -470,11 +470,7 @@ impl<CT: ComponentType> Graph<CT> {
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(&component_type) {
-                            let c = Component::new(
-                                ctype,
-                                layer.to_string(),
-                                component_name.to_string(),
-                            );
+                            let c = Component::new(ctype, layer.into(), component_name.into());
 
                             let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target })?;
@@ -497,21 +493,17 @@ impl<CT: ComponentType> Graph<CT> {
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(&component_type) {
-                            let c = Component::new(
-                                ctype,
-                                layer.to_string(),
-                                component_name.to_string(),
-                            );
+                            let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
                             if gs.is_connected(source, target, 1, Included(1)) {
                                 let anno = Annotation {
                                     key: AnnoKey {
-                                        ns: anno_ns.to_string(),
-                                        name: anno_name.to_string(),
+                                        ns: anno_ns.into(),
+                                        name: anno_name.into(),
                                     },
-                                    val: anno_value.to_string(),
+                                    val: anno_value.into(),
                                 };
                                 gs.add_edge_annotation(e, anno)?;
                             }
@@ -533,18 +525,14 @@ impl<CT: ComponentType> Graph<CT> {
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(&component_type) {
-                            let c = Component::new(
-                                ctype,
-                                layer.to_string(),
-                                component_name.to_string(),
-                            );
+                            let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
                             if gs.is_connected(source, target, 1, Included(1)) {
                                 let key = AnnoKey {
-                                    ns: anno_ns.to_string(),
-                                    name: anno_name.to_string(),
+                                    ns: anno_ns.into(),
+                                    name: anno_name.into(),
                                 };
                                 gs.delete_edge_annotation(&e, &key)?;
                             }
@@ -622,26 +610,40 @@ impl<CT: ComponentType> Graph<CT> {
             // Acquire lock, so that only one thread can write background data at the same time
             let _lock = self.background_persistance.lock().unwrap();
 
-            // Move the old corpus to the backup sub-folder. When the corpus is loaded again and there is backup folder
-            // the backup will be used instead of the original possible corrupted files.
-            // The current version is only the real one if no backup folder exists. If there is a backup folder
-            // there is nothing to do since the backup already contains the last consistent version.
-            // A sub-folder is used to ensure that all directories are on the same file system and moving (instead of copying)
-            // is possible.
-            if !location.join("backup").exists() {
-                std::fs::rename(
-                    location.join("current"),
-                    location.join(location.join("backup")),
-                )?;
-            }
-
-            // Save the complete corpus without the write log to the target location
-            self.internal_save(&location.join("current"))?;
-
-            // remove the backup folder (since the new folder was completly written)
-            std::fs::remove_dir_all(location.join("backup"))?;
+            self.internal_save_with_backup(location)?;
         }
 
+        Ok(())
+    }
+
+    /// Save this graph to the given location using a temporary backup folder for the old graph.
+    /// The backup folder is used to achieve some atomicity in combination with the `load_from` logic,
+    // which will load the backup folder in case saving the corpus to the "current" location was aborted.
+    fn internal_save_with_backup(&self, location: &Path) -> Result<()> {
+        // Move the old corpus to the backup sub-folder. When the corpus is loaded again and there is backup folder
+        // the backup will be used instead of the original possible corrupted files.
+        // The current version is only the real one if no backup folder exists. If there is a backup folder
+        // there is nothing to do since the backup already contains the last consistent version.
+        // A sub-folder is used to ensure that all directories are on the same file system and moving (instead of copying)
+        // is possible.
+        let backup_location = location.join("backup");
+        let current_location = location.join("current");
+        if !backup_location.exists() {
+            std::fs::rename(&current_location, &backup_location)?;
+        }
+
+        // Save the complete corpus without the write log to the target location
+        self.internal_save(&current_location)?;
+
+        // rename backup folder (renaming is atomic and deleting could leave an incomplete backup folder on disk)
+        let tmp_dir = tempfile::Builder::new()
+            .prefix("temporary-graphannis-backup")
+            .tempdir_in(location)?;
+        // the target directory is created and can cause issues on windows: delete it first
+        std::fs::remove_dir(tmp_dir.path())?;
+        std::fs::rename(&backup_location, tmp_dir.path())?;
+        // remove it after renaming it, (since the new "current" folder was completely written)
+        tmp_dir.close()?;
         Ok(())
     }
 
@@ -668,13 +670,18 @@ impl<CT: ComponentType> Graph<CT> {
             let mut loaded_comp: Arc<dyn GraphStorage> = if let Some(gs_opt) = gs_opt {
                 gs_opt
             } else {
-                load_component_from_disk(self.component_path(c))?
+                let component_path = self
+                    .component_path(c)
+                    .ok_or(GraphAnnisCoreError::EmptyComponentPath)?;
+                load_component_from_disk(&component_path)?
             };
 
             // copy to writable implementation if needed
             let is_writable = {
                 Arc::get_mut(&mut loaded_comp)
-                    .ok_or_else(|| anyhow!("Could not get mutable reference for component {}", c))?
+                    .ok_or_else(|| {
+                        GraphAnnisCoreError::NonExclusiveComponentReference(c.to_string())
+                    })?
                     .as_writeable()
                     .is_some()
             };
@@ -699,7 +706,7 @@ impl<CT: ComponentType> Graph<CT> {
         let mut entry = self
             .components
             .remove(c)
-            .ok_or_else(|| anyhow!("Component {} is missing", c.clone()))?;
+            .ok_or_else(|| GraphAnnisCoreError::MissingComponent(c.to_string()))?;
         if let Some(ref mut gs) = entry {
             if let Some(gs_mut) = Arc::get_mut(gs) {
                 // Since immutable graph storages can't change, only writable graph storage statistics need to be re-calculated
@@ -707,7 +714,9 @@ impl<CT: ComponentType> Graph<CT> {
                     writeable_gs.calculate_statistics();
                 }
             } else {
-                result = Err(anyhow!("Component {} is currently used", c.clone()));
+                result = Err(GraphAnnisCoreError::NonExclusiveComponentReference(
+                    c.to_string(),
+                ));
             }
         }
         // re-insert component entry
@@ -737,19 +746,15 @@ impl<CT: ComponentType> Graph<CT> {
         let entry: &mut Arc<dyn GraphStorage> = self
             .components
             .get_mut(c)
-            .ok_or_else(|| anyhow!("Could not get mutable reference for component {}", c))?
+            .ok_or_else(|| GraphAnnisCoreError::MissingComponent(c.to_string()))?
             .as_mut()
-            .ok_or_else(|| {
-                anyhow!(
-                    "Could not get mutable reference to optional value for component {}",
-                    c
-                )
-            })?;
+            .ok_or_else(|| GraphAnnisCoreError::ComponentNotLoaded(c.to_string()))?;
+
         let gs_mut_ref: &mut dyn GraphStorage = Arc::get_mut(entry)
-            .ok_or_else(|| anyhow!("Could not get mutable reference for component {}", c))?;
+            .ok_or_else(|| GraphAnnisCoreError::NonExclusiveComponentReference(c.to_string()))?;
         Ok(gs_mut_ref
             .as_writeable()
-            .ok_or_else(|| anyhow!("Invalid type"))?)
+            .ok_or_else(|| GraphAnnisCoreError::ReadOnlyComponent(c.to_string()))?)
     }
 
     /// Returns `true` if the graph storage for this specific component is loaded and ready to use.
@@ -779,11 +784,12 @@ impl<CT: ComponentType> Graph<CT> {
         // load missing components in parallel
         let loaded_components: Vec<(_, Result<Arc<dyn GraphStorage>>)> = components_to_load
             .into_par_iter()
-            .map(|c| {
-                info!("Loading component {} from disk", c);
-                let cpath = self.component_path(&c);
-                let loaded_component = load_component_from_disk(cpath);
-                (c, loaded_component)
+            .map(|c| match self.component_path(&c) {
+                Some(cpath) => {
+                    debug!("loading component {} from {}", c, &cpath.to_string_lossy());
+                    (c, load_component_from_disk(&cpath))
+                }
+                None => (c, Err(GraphAnnisCoreError::EmptyComponentPath)),
             })
             .collect();
 
@@ -804,8 +810,15 @@ impl<CT: ComponentType> Graph<CT> {
                 gs_opt
             } else {
                 self.reset_cached_size();
-                info!("Loading component {} from disk", c);
-                load_component_from_disk(self.component_path(c))?
+                let component_path = self
+                    .component_path(c)
+                    .ok_or(GraphAnnisCoreError::EmptyComponentPath)?;
+                debug!(
+                    "loading component {} from {}",
+                    c,
+                    &component_path.to_string_lossy()
+                );
+                load_component_from_disk(&component_path)?
             };
 
             self.components.insert(c.clone(), Some(loaded));
@@ -813,7 +826,50 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    pub fn optimize_impl(&mut self, c: &Component<CT>) -> Result<()> {
+    pub fn optimize_impl(&mut self, disk_based: bool) -> Result<()> {
+        self.ensure_loaded_all()?;
+
+        if self.disk_based != disk_based {
+            self.disk_based = disk_based;
+
+            // Change the node annotation implementation
+            let mut new_node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
+                Box::new(crate::annostorage::ondisk::AnnoStorageImpl::new(None)?)
+            } else {
+                Box::new(crate::annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
+            };
+
+            // Copy all annotations for all nodes
+            info!("copying node annotations");
+            for m in self
+                .node_annos
+                .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Any)
+            {
+                for anno in self.node_annos.get_annotations_for_item(&m.node) {
+                    new_node_annos.insert(m.node, anno)?;
+                }
+            }
+            info!("re-calculating node annotation statistics");
+            new_node_annos.calculate_statistics();
+            self.node_annos = new_node_annos;
+        }
+
+        for c in self.get_all_components(None, None) {
+            info!("updating statistics for component {}", &c);
+            // Recalculate all statistics first, so we optimize with the correct estimations
+            self.calculate_component_statistics(&c)?;
+            // Perform the optimization if necessary
+            info!("optimizing implementation for component {}", &c);
+            self.optimize_gs_impl(&c)?;
+        }
+        if let Some(location) = &self.location {
+            info!("saving corpus to disk");
+            self.internal_save_with_backup(location)?;
+        }
+        Ok(())
+    }
+
+    pub fn optimize_gs_impl(&mut self, c: &Component<CT>) -> Result<()> {
         if let Some(gs) = self.get_graphstorage(c) {
             if let Some(stats) = gs.get_statistics() {
                 let opt_info = registry::get_optimal_impl_heuristic(self, stats);
@@ -899,7 +955,7 @@ impl<CT: ComponentType> Graph<CT> {
         if let (Some(ctype), Some(name)) = (&ctype, name) {
             // lookup component from sorted map
             let mut result: Vec<_> = Vec::new();
-            let ckey = Component::new(ctype.clone(), String::default(), String::from(name));
+            let ckey = Component::new(ctype.clone(), SmartString::default(), name.into());
 
             for (c, _) in self.components.range(ckey..) {
                 if c.name != name || &c.get_type() != ctype {
@@ -911,7 +967,11 @@ impl<CT: ComponentType> Graph<CT> {
         } else if let Some(ctype) = &ctype {
             // lookup component from sorted map
             let mut result: Vec<_> = Vec::new();
-            let ckey = Component::new(ctype.clone(), String::default(), String::default());
+            let ckey = Component::new(
+                ctype.clone(),
+                SmartString::default(),
+                SmartString::default(),
+            );
 
             for (c, _) in self.components.range(ckey..) {
                 if &c.get_type() != ctype {
@@ -971,16 +1031,12 @@ mod tests {
         let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
 
         let anno_key = AnnoKey {
-            ns: "test".to_owned(),
-            name: "edge_anno".to_owned(),
+            ns: "test".into(),
+            name: "edge_anno".into(),
         };
-        let anno_val = "testValue".to_owned();
+        let anno_val = "testValue".into();
 
-        let component = Component::new(
-            DefaultComponentType::Edge,
-            String::from("test"),
-            String::from("dep"),
-        );
+        let component = Component::new(DefaultComponentType::Edge, "test".into(), "dep".into());
         let gs: &mut dyn WriteableGraphStorage = db.get_or_create_writable(&component).unwrap();
 
         gs.add_edge(Edge {

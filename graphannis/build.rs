@@ -55,7 +55,13 @@ fn search_{corpus_escaped}_{name_escaped}() {{
     if let Some(cs_mutex) = CORPUS_STORAGE.as_ref() {{
         let search_count = {{ 
             let cs = cs_mutex.lock().unwrap();
-            cs.count(&[\"{corpus}\"], aql, QueryLanguage::AQL).unwrap_or(0)
+            let search_query = graphannis::corpusstorage::SearchQuery {{
+                query: aql,
+                corpus_names: &[\"{corpus}\"],
+                query_language: QueryLanguage::AQL,
+                timeout: None,
+            }};
+            cs.count(search_query).unwrap_or(0)
         }};
         assert_eq!(
             {count}, search_count,

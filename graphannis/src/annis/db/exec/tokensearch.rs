@@ -8,11 +8,13 @@ use crate::{
     graph::Match, AnnotationGraph,
 };
 use graphannis_core::{
+    annostorage::MatchGroup,
+    errors::Result,
     graph::{storage::GraphStorage, ANNIS_NS, NODE_TYPE_KEY},
     types::{AnnoKey, Component, NodeID},
 };
 
-use anyhow::Result;
+use smallvec::smallvec;
 use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
@@ -31,8 +33,8 @@ lazy_static! {
     static ref COMPONENT_ORDER: Component<AnnotationComponentType> = {
         Component::new(
             AnnotationComponentType::Ordering,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         )
     };
 }
@@ -64,7 +66,7 @@ impl<'a> AnyTokenSearch<'a> {
             root_iterators
         } else {
             // iterate over all nodes that are token and check if they are root node nodes in the ORDERING component
-            let mut root_nodes: Vec<Match> = Vec::new();
+            let mut root_nodes = MatchGroup::new();
             for tok_candidate in
                 self.db
                     .get_node_annos()
@@ -121,7 +123,7 @@ impl<'a> fmt::Display for AnyTokenSearch<'a> {
 }
 
 impl<'a> ExecutionNode for AnyTokenSearch<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
         self
     }
 
@@ -131,9 +133,9 @@ impl<'a> ExecutionNode for AnyTokenSearch<'a> {
 }
 
 impl<'a> Iterator for AnyTokenSearch<'a> {
-    type Item = Vec<Match>;
+    type Item = MatchGroup;
 
-    fn next(&mut self) -> Option<Vec<Match>> {
+    fn next(&mut self) -> Option<MatchGroup> {
         // lazily initialize the sorted vector of iterators
         let root_iterators = self.get_root_iterators();
         // use the last iterator in the list to get the next match
@@ -142,7 +144,7 @@ impl<'a> Iterator for AnyTokenSearch<'a> {
                 let root_iterators_len = root_iterators.len();
                 let it = &mut root_iterators[root_iterators_len - 1];
                 if let Some(n) = it.next() {
-                    return Some(vec![Match {
+                    return Some(smallvec![Match {
                         node: n,
                         anno_key: self.node_type_key.clone(),
                     }]);
@@ -183,7 +185,7 @@ mod tests {
 
         g.apply_update(&mut update, |_| {}).unwrap();
 
-        let search_result: Vec<Vec<Match>> = AnyTokenSearch::new(&g).unwrap().collect();
+        let search_result: Vec<MatchGroup> = AnyTokenSearch::new(&g).unwrap().collect();
         assert_eq!(1, search_result.len());
     }
 }

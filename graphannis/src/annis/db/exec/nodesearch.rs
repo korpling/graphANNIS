@@ -12,11 +12,12 @@ use crate::{
     graph::Match,
 };
 use graphannis_core::{
-    annostorage::ValueSearch,
+    annostorage::{MatchGroup, ValueSearch},
     graph::{storage::GraphStorage, NODE_TYPE_KEY},
     types::{Component, Edge, NodeID},
 };
 use itertools::Itertools;
+use smallvec::smallvec;
 use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
@@ -24,7 +25,7 @@ use std::sync::Arc;
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps base node (annotation) searches.
 pub struct NodeSearch<'a> {
     /// The actual search implementation
-    it: Box<dyn Iterator<Item = Vec<Match>> + 'a>,
+    it: Box<dyn Iterator<Item = MatchGroup> + 'a>,
 
     desc: Option<Desc>,
     node_search_desc: Arc<NodeSearchDesc>,
@@ -336,7 +337,7 @@ impl<'a> NodeSearch<'a> {
                         &NODE_TYPE_KEY.name,
                         Some("node").into(),
                     )
-                    .map(move |n| vec![n]);
+                    .map(move |n| smallvec![n]);
 
                 let filter_func: Box<
                     dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync,
@@ -367,8 +368,8 @@ impl<'a> NodeSearch<'a> {
                     )),
                     node_search_desc: Arc::new(NodeSearchDesc {
                         qname: (
-                            Some(NODE_TYPE_KEY.ns.clone()),
-                            Some(NODE_TYPE_KEY.name.clone()),
+                            Some(NODE_TYPE_KEY.ns.clone().into()),
+                            Some(NODE_TYPE_KEY.name.clone().into()),
                         ),
                         cond: vec![filter_func],
                         const_output: Some(NODE_TYPE_KEY.clone()),
@@ -444,7 +445,7 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
-        let it = base_it.map(|n| vec![n]);
+        let it = base_it.map(|n| smallvec![n]);
 
         let mut filters: Vec<MatchFilterFunc> = Vec::new();
 
@@ -546,7 +547,7 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
-        let it = base_it.map(|n| vec![n]);
+        let it = base_it.map(|n| smallvec![n]);
 
         let mut filters: Vec<MatchFilterFunc> = Vec::new();
 
@@ -573,11 +574,10 @@ impl<'a> NodeSearch<'a> {
                 }
             }
             Err(e) => {
-                return Err(GraphAnnisError::AQLSemanticError {
+                return Err(GraphAnnisError::AQLSemanticError(AQLError {
                     desc: format!("/{}/ -> {}", pattern, e),
                     location: location_in_query,
-                }
-                .into());
+                }));
             }
         }
 
@@ -675,7 +675,7 @@ impl<'a> NodeSearch<'a> {
         };
         // map to vector
         let it = it_base.map(move |n| {
-            vec![Match {
+            smallvec![Match {
                 node: n.node,
                 anno_key: NODE_TYPE_KEY.clone(),
             }]
@@ -697,11 +697,10 @@ impl<'a> NodeSearch<'a> {
                             }
                         })),
                         Err(e) => {
-                            return Err(GraphAnnisError::AQLSemanticError {
+                            return Err(GraphAnnisError::AQLSemanticError(AQLError {
                                 desc: format!("/{}/ -> {}", val, e),
                                 location: location_in_query,
-                            }
-                            .into());
+                            }));
                         }
                     };
                 } else {
@@ -729,11 +728,10 @@ impl<'a> NodeSearch<'a> {
                             }
                         })),
                         Err(e) => {
-                            return Err(GraphAnnisError::AQLSemanticError {
+                            return Err(GraphAnnisError::AQLSemanticError(AQLError {
                                 desc: format!("/{}/ -> {}", val, e),
                                 location: location_in_query,
-                            }
-                            .into());
+                            }));
                         }
                     };
                 } else {
@@ -833,7 +831,10 @@ impl<'a> NodeSearch<'a> {
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
-                qname: (Some(TOKEN_KEY.ns.clone()), Some(TOKEN_KEY.name.clone())),
+                qname: (
+                    Some(TOKEN_KEY.ns.clone().into()),
+                    Some(TOKEN_KEY.name.clone().into()),
+                ),
                 cond: filters,
                 const_output: Some(NODE_TYPE_KEY.clone()),
             }),
@@ -846,7 +847,7 @@ impl<'a> NodeSearch<'a> {
         query_fragment: &str,
         node_nr: usize,
     ) -> Result<NodeSearch<'a>> {
-        let it: Box<dyn Iterator<Item = Vec<Match>>> = Box::from(AnyTokenSearch::new(db)?);
+        let it: Box<dyn Iterator<Item = MatchGroup>> = Box::from(AnyTokenSearch::new(db)?);
         // create filter functions
         let mut filters: Vec<MatchFilterFunc> = Vec::new();
 
@@ -889,7 +890,10 @@ impl<'a> NodeSearch<'a> {
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
-                qname: (Some(TOKEN_KEY.ns.clone()), Some(TOKEN_KEY.name.clone())),
+                qname: (
+                    Some(TOKEN_KEY.ns.clone().into()),
+                    Some(TOKEN_KEY.name.clone().into()),
+                ),
                 cond: filters,
                 const_output: Some(NODE_TYPE_KEY.clone()),
             }),
@@ -950,14 +954,14 @@ impl<'a> NodeSearch<'a> {
                     .into_iter()
                     .map(move |anno_key| Match { node, anno_key })
             })
-            .filter_map(move |m: Match| -> Option<Vec<Match>> {
+            .filter_map(move |m: Match| -> Option<MatchGroup> {
                 // only include the nodes that fullfill all original node search predicates
                 for cond in &node_search_desc_2.cond {
                     if !cond(&m, db.get_node_annos()) {
                         return None;
                     }
                 }
-                Some(vec![m])
+                Some(smallvec![m])
             });
         let mut new_desc = desc.cloned();
         if let Some(ref mut new_desc) = new_desc {
@@ -981,7 +985,7 @@ impl<'a> NodeSearch<'a> {
 }
 
 impl<'a> ExecutionNode for NodeSearch<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
         self
     }
 
@@ -999,9 +1003,9 @@ impl<'a> ExecutionNode for NodeSearch<'a> {
 }
 
 impl<'a> Iterator for NodeSearch<'a> {
-    type Item = Vec<Match>;
+    type Item = MatchGroup;
 
-    fn next(&mut self) -> Option<Vec<Match>> {
+    fn next(&mut self) -> Option<MatchGroup> {
         self.it.next()
     }
 }

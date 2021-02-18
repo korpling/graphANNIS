@@ -21,13 +21,14 @@ use graphannis_core::{
     util::disk_collections::DiskMap,
 };
 use percent_encoding::utf8_percent_encode;
-use std::borrow::Cow;
+use smartstring::alias::String;
 use std::collections::BTreeMap;
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
+use std::{borrow::Cow, collections::HashMap};
 
 lazy_static! {
     static ref DEFAULT_VISUALIZER_RULES: Vec<(i64, bool, VisualizerRule)> = vec![
@@ -109,7 +110,7 @@ lazy_static! {
 #[derive(
     Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, Serialize, Deserialize, MallocSizeOf,
 )]
-struct TextProperty {
+pub struct TextProperty {
     segmentation: String,
     corpus_id: u32,
     text_id: u32,
@@ -130,7 +131,7 @@ impl KeySerializer for TextProperty {
     fn parse_key(key: &[u8]) -> Self {
         let id_size = std::mem::size_of::<u32>();
         let mut id_offset = key.len() - id_size * 3;
-        let key_as_string = String::from_utf8_lossy(key);
+        let key_as_string: std::string::String = std::string::String::from_utf8_lossy(key).into();
         let segmentation_vector: Vec<_> = key_as_string.split_terminator('\0').collect();
 
         let corpus_id = u32::from_be_bytes(
@@ -156,7 +157,7 @@ impl KeySerializer for TextProperty {
         let segmentation = if segmentation_vector.is_empty() {
             String::from("")
         } else {
-            segmentation_vector[0].to_string()
+            segmentation_vector[0].into()
         };
 
         TextProperty {
@@ -335,7 +336,7 @@ where
         let annis_version_path = path.join("annis.version");
         let is_annis_33 = if annis_version_path.exists() {
             let mut file = File::open(&annis_version_path)?;
-            let mut version_str = String::new();
+            let mut version_str = std::string::String::new();
             file.read_to_string(&mut version_str)?;
 
             version_str == "3.3"
@@ -379,7 +380,7 @@ where
         for c in db.get_all_components(None, None) {
             progress_callback(&format!("calculating statistics for component {}", c));
             db.calculate_component_statistics(&c)?;
-            db.optimize_impl(&c)?;
+            db.optimize_gs_impl(&c)?;
         }
 
         progress_callback(&format!(
@@ -390,7 +391,7 @@ where
         return Ok((load_node_and_corpus_result.toplevel_corpus_name, db, config));
     }
 
-    Err(anyhow!("Directory {} not found", path.to_string_lossy()))
+    Err(RelAnnisError::DirectoryNotFound(path.to_string_lossy().to_string()).into())
 }
 
 fn load_node_and_corpus_tables<F>(
@@ -508,31 +509,30 @@ where
     for result in resolver_tab_csv.records() {
         let line = result?;
 
-        let layer = get_field_str(&line, 2).filter(|l| l != "NULL");
-        let element = get_field_str(&line, 3).and_then(|e| match e.as_str() {
-            "node" => Some(VisualizerRuleElement::Node),
-            "edge" => Some(VisualizerRuleElement::Edge),
-            _ => None,
-        });
-        let vis_type = get_field_str(&line, 4)
-            .ok_or_else(|| anyhow!("Missing vis_type column in resolver table"))?;
-        let display_name = get_field_str(&line, 5)
-            .ok_or_else(|| anyhow!("Missing display_name column in resolver table"))?;
+        let layer = get_field(&line, 2, "namespace", &resolver_tab_path)?;
+        let element =
+            get_field(&line, 3, "element", &resolver_tab_path)?.and_then(|e| match e.as_str() {
+                "node" => Some(VisualizerRuleElement::Node),
+                "edge" => Some(VisualizerRuleElement::Edge),
+                _ => None,
+            });
+        let vis_type = get_field_not_null(&line, 4, "vis_type", &resolver_tab_path)?;
+        let display_name = get_field_not_null(&line, 5, "display_name", &resolver_tab_path)?;
 
-        let visibility = get_field_str(&line, 6)
-            .ok_or_else(|| anyhow!("Missing visibility column in resolver table"))?;
+        let visibility = get_field_not_null(&line, 6, "visibility", &resolver_tab_path)?;
 
-        let order = get_field_str(&line, 7)
-            .ok_or_else(|| anyhow!("Missing order column in resolver table"))?;
-        let order = i64::from_str_radix(&order, 10).unwrap_or_default();
-        let mappings: BTreeMap<String, String> =
-            if let Some(mappings_field) = get_field_str(&line, 8) {
+        let order = get_field(&line, 7, "order", &resolver_tab_path)?
+            .map(|order| i64::from_str_radix(&order, 10).unwrap_or_default())
+            .unwrap_or_default();
+        let mappings: BTreeMap<std::string::String, std::string::String> =
+            if let Ok(mappings_field) = get_field(&line, 8, "mappings", &resolver_tab_path) {
                 mappings_field
+                    .unwrap_or_default()
                     .split(';')
                     .filter_map(|key_value| {
                         let splitted: Vec<_> = key_value.splitn(2, ':').collect();
                         if splitted.len() == 2 {
-                            Some((splitted[0].to_string(), splitted[1].to_string()))
+                            Some((splitted[0].into(), splitted[1].into()))
                         } else {
                             None
                         }
@@ -619,11 +619,13 @@ where
     for result in example_queries_csv.records() {
         let line = result?;
 
-        if let (Some(query), Some(description)) = (get_field_str(&line, 0), get_field_str(&line, 1))
-        {
+        if let (Some(query), Some(description)) = (
+            get_field(&line, 0, "query", &example_queries_path)?,
+            get_field(&line, 1, "description", &example_queries_path)?,
+        ) {
             config.example_queries.push(ExampleQuery {
-                query: query.to_string(),
-                description: description.to_string(),
+                query,
+                description,
                 query_language: QueryLanguage::AQL,
             });
         }
@@ -760,7 +762,7 @@ fn add_external_data_files(
                     target_node: parent_node_full_name.to_owned(),
                     layer: ANNIS_NS.to_owned(),
                     component_type: AnnotationComponentType::PartOf.to_string(),
-                    component_name: String::default(),
+                    component_name: std::string::String::default(),
                 })?;
             }
         }
@@ -777,16 +779,44 @@ fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File
         .from_path(path)
 }
 
-fn get_field_str(record: &csv::StringRecord, i: usize) -> Option<String> {
-    if let Some(r) = record.get(i) {
+fn get_field(
+    record: &csv::StringRecord,
+    i: usize,
+    column_name: &str,
+    file: &Path,
+) -> crate::errors::Result<Option<std::string::String>> {
+    let r = record.get(i).ok_or_else(|| RelAnnisError::MissingColumn {
+        pos: i,
+        name: column_name.to_string(),
+        file: file.to_string_lossy().to_string(),
+    })?;
+
+    if r == "NULL" {
+        Ok(None)
+    } else {
         // replace some known escape sequences
-        return Some(
+        Ok(Some(
             r.replace("\\t", "\t")
                 .replace("\\'", "'")
-                .replace("\\\\", "\\"),
-        );
+                .replace("\\\\", "\\")
+                .replace("\\$", "$"),
+        ))
     }
-    None
+}
+
+fn get_field_not_null(
+    record: &csv::StringRecord,
+    i: usize,
+    column_name: &str,
+    file: &Path,
+) -> crate::errors::Result<std::string::String> {
+    let result =
+        get_field(record, i, column_name, file)?.ok_or_else(|| RelAnnisError::UnexpectedNull {
+            pos: i,
+            name: column_name.to_string(),
+            file: file.to_string_lossy().to_string(),
+        })?;
+    Ok(result)
 }
 
 fn parse_corpus_tab<F>(
@@ -814,29 +844,42 @@ where
 
     let mut corpus_tab_csv = postgresql_import_reader(corpus_tab_path.as_path())?;
 
+    let mut document_names: HashMap<String, usize> = HashMap::new();
+
     for result in corpus_tab_csv.records() {
         let line = result?;
 
-        let id = line
-            .get(0)
-            .ok_or_else(|| anyhow!("Missing column"))?
-            .parse::<u32>()?;
-        let name = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
-        let pre_order = line
-            .get(4)
-            .ok_or_else(|| anyhow!("Missing column"))?
-            .parse::<u32>()?;
-        let post_order = line
-            .get(5)
-            .ok_or_else(|| anyhow!("Missing column"))?
-            .parse::<u32>()?;
+        let id = get_field_not_null(&line, 0, "id", &corpus_tab_path)?.parse::<u32>()?;
+        let mut name = get_field_not_null(&line, 1, "name", &corpus_tab_path)?;
+
+        let corpus_type = get_field_not_null(&line, 2, "type", &corpus_tab_path)?;
+        if corpus_type == "DOCUMENT" {
+            // There was always an implicit constraint that document names must be unique in the whole corpus,
+            // even when the document belongs to different sub-corpora.
+            // Some corpora violate this constraint and we change the document name in order to avoid duplicate node names later on
+            let existing_count = document_names
+                .entry(name.clone().into())
+                .and_modify(|count| *count += 1)
+                .or_insert(1);
+            if *existing_count > 1 {
+                let old_name = name.clone();
+                name = format!("{}_duplicated_document_name_{}", name, existing_count);
+                warn!(
+                    "duplicated document name \"{}\" detected: will be renamed to \"{}\"",
+                    old_name, name
+                );
+            }
+        }
+
+        let pre_order = get_field_not_null(&line, 4, "pre", &corpus_tab_path)?.parse::<u32>()?;
+        let post_order = get_field_not_null(&line, 5, "post", &corpus_tab_path)?.parse::<u32>()?;
 
         corpus_by_id.insert(
             id,
             CorpusTableEntry {
                 pre: pre_order,
                 post: post_order,
-                name: name.clone(),
+                name: name.into(),
             },
         );
 
@@ -846,12 +889,12 @@ where
     let toplevel_corpus_id = corpus_by_preorder
         .iter()
         .next()
-        .ok_or_else(|| anyhow!("Toplevel corpus not found"))?
+        .ok_or(RelAnnisError::ToplevelCorpusNotFound)?
         .1;
     Ok(ParsedCorpusTable {
         toplevel_corpus_name: corpus_by_id
             .get(toplevel_corpus_id)
-            .ok_or_else(|| anyhow!("Toplevel corpus name not found"))?
+            .ok_or_else(|| RelAnnisError::CorpusNotFound(*toplevel_corpus_id))?
             .name
             .clone(),
         corpus_by_preorder,
@@ -886,27 +929,35 @@ where
     for result in text_tab_csv.records() {
         let line = result?;
 
-        let id = line
-            .get(if is_annis_33 { 1 } else { 0 })
-            .ok_or_else(|| anyhow!("Missing column"))?
+        let id = get_field_not_null(&line, if is_annis_33 { 1 } else { 0 }, "id", &text_tab_path)?
             .parse::<u32>()?;
-        let name = get_field_str(&line, if is_annis_33 { 2 } else { 1 })
-            .ok_or_else(|| anyhow!("Missing column"))?;
+        let name = get_field_not_null(
+            &line,
+            if is_annis_33 { 2 } else { 1 },
+            "name",
+            &text_tab_path,
+        )?;
 
-        let value = get_field_str(&line, if is_annis_33 { 3 } else { 2 })
-            .ok_or_else(|| anyhow!("Missing column"))?;
+        let value = get_field_not_null(
+            &line,
+            if is_annis_33 { 3 } else { 2 },
+            "text",
+            &text_tab_path,
+        )?;
 
         let corpus_ref = if is_annis_33 {
-            Some(
-                line.get(0)
-                    .ok_or_else(|| anyhow!("Missing column"))?
-                    .parse::<u32>()?,
-            )
+            Some(get_field_not_null(&line, 0, "corpus_ref", &text_tab_path)?.parse::<u32>()?)
         } else {
             None
         };
         let key = TextKey { id, corpus_ref };
-        texts.insert(key.clone(), Text { name, val: value })?;
+        texts.insert(
+            key.clone(),
+            Text {
+                name: name.into(),
+                val: value.into(),
+            },
+        )?;
     }
 
     Ok(texts)
@@ -943,21 +994,19 @@ where
                 } else {
                     DEFAULT_NS.to_owned()
                 };
-                updates.add_event(
-                    UpdateEvent::AddEdge {
-                        source_node: id_to_node_name
-                            .try_get(&last_token)?
-                            .ok_or_else(|| anyhow!("Can't get node name for last token with ID {} in \"calculate_automatic_token_order\" function.", last_token))?
-                            .clone(),
-                        target_node: id_to_node_name
-                            .try_get(&current_token)?
-                            .ok_or_else(|| anyhow!("Can't get node name for current token with ID {} in \"calculate_automatic_token_order\" function.", current_token))?
-                            .clone(),
-                        layer: ordering_layer,
-                        component_type: AnnotationComponentType::Ordering.to_string(),
-                        component_name: current_textprop.segmentation.clone(),
-                    },
-                )?;
+                updates.add_event(UpdateEvent::AddEdge {
+                    source_node: id_to_node_name
+                        .try_get(&last_token)?
+                        .ok_or(RelAnnisError::NodeNotFound(last_token))?
+                        .into(),
+                    target_node: id_to_node_name
+                        .try_get(&current_token)?
+                        .ok_or(RelAnnisError::NodeNotFound(current_token))?
+                        .into(),
+                    layer: ordering_layer,
+                    component_type: AnnotationComponentType::Ordering.to_string(),
+                    component_name: current_textprop.segmentation.clone().into(),
+                })?;
             }
         } // end if same text
 
@@ -992,12 +1041,7 @@ fn add_automatic_cov_edge_for_node(
     let left_aligned_tok = if let Some(left_aligned_tok) = left_aligned_tok {
         left_aligned_tok
     } else {
-        right_aligned_tok.ok_or_else(|| {
-            anyhow!(
-                "Can't get both left- and right-aligned token for node {}",
-                n
-            )
-        })?
+        right_aligned_tok.ok_or(RelAnnisError::AlignedNotFound(n))?
     };
     let right_aligned_tok = if let Some(right_aligned_tok) = right_aligned_tok {
         right_aligned_tok
@@ -1009,22 +1053,12 @@ fn add_automatic_cov_edge_for_node(
         .textpos_table
         .token_to_index
         .try_get(&left_aligned_tok)?
-        .ok_or_else(|| {
-            anyhow!(
-                "Can't get position of left-aligned token {}",
-                left_aligned_tok
-            )
-        })?;
+        .ok_or(RelAnnisError::LeftAlignedNotFound(n))?;
     let right_tok_pos = load_node_and_corpus_result
         .textpos_table
         .token_to_index
         .try_get(&right_aligned_tok)?
-        .ok_or_else(|| {
-            anyhow!(
-                "Can't get position of right-aligned token {}",
-                right_aligned_tok
-            )
-        })?;
+        .ok_or(RelAnnisError::RightAlignedNotFound(n))?;
 
     for i in left_tok_pos.val..=right_tok_pos.val {
         let tok_idx = TextProperty {
@@ -1037,7 +1071,7 @@ fn add_automatic_cov_edge_for_node(
             .textpos_table
             .token_by_index
             .try_get(&tok_idx)?
-            .ok_or_else(|| anyhow!("Can't get token ID for position {:?}", tok_idx))?;
+            .ok_or(RelAnnisError::NoTokenForPosition(tok_idx))?;
         if n != tok_id {
             let edge = Edge {
                 source: n,
@@ -1066,7 +1100,7 @@ fn add_automatic_cov_edge_for_node(
                     .is_some();
                 let (component_layer, component_name) = if has_outgoing_text_coverage_edge {
                     // this is an additional auto-generated coverage edge, mark it as such
-                    (ANNIS_NS.to_owned(), "autogenerated-coverage".to_owned())
+                    (ANNIS_NS.into(), "autogenerated-coverage".into())
                 } else {
                     // Get the original component name for this target node
                     load_rank_result
@@ -1082,16 +1116,16 @@ fn add_automatic_cov_edge_for_node(
                     source_node: load_node_and_corpus_result
                         .id_to_node_name
                         .try_get(&n)?
-                        .ok_or_else(|| anyhow!("Missing node name"))?
-                        .clone(),
+                        .ok_or(RelAnnisError::NodeNotFound(n))?
+                        .into(),
                     target_node: load_node_and_corpus_result
                         .id_to_node_name
                         .try_get(&tok_id)?
-                        .ok_or_else(|| anyhow!("Missing node name"))?
-                        .clone(),
-                    layer: component_layer,
+                        .ok_or(RelAnnisError::NodeNotFound(tok_id))?
+                        .into(),
+                    layer: component_layer.into(),
                     component_type: AnnotationComponentType::Coverage.to_string(),
-                    component_name,
+                    component_name: component_name.into(),
                 })?;
             }
         }
@@ -1117,7 +1151,7 @@ where
         .node_to_left
         .try_iter()?
     {
-        if textprop.segmentation == ""
+        if textprop.segmentation.is_empty()
             && !load_node_and_corpus_result
                 .textpos_table
                 .token_to_index
@@ -1133,7 +1167,7 @@ where
                 .textpos_table
                 .node_to_right
                 .try_get(&n)?
-                .ok_or_else(|| anyhow!("Can't get right position of node {}", n))?;
+                .ok_or(RelAnnisError::NoRightPositionForNode(n))?;
             let right_pos = TextProperty {
                 segmentation: String::from(""),
                 corpus_id: textprop.corpus_id,
@@ -1182,13 +1216,13 @@ where
         let min_text_prop = TextProperty {
             corpus_id: text_key.corpus_ref.unwrap_or_default(),
             text_id: text_key.id,
-            segmentation: "".to_string(),
+            segmentation: "".into(),
             val: u32::min_value(),
         };
         let max_text_prop = TextProperty {
             corpus_id: text_key.corpus_ref.unwrap_or_default(),
             text_id: text_key.id,
-            segmentation: "".to_string(),
+            segmentation: "".into(),
             val: u32::max_value(),
         };
 
@@ -1213,7 +1247,7 @@ where
                 if previous_token_id.is_none() && current_text_offset < token_left_char {
                     // We need to add the potential whitespace before this token as label
                     let mut covered_text_before =
-                        String::with_capacity(token_left_char - current_text_offset);
+                        std::string::String::with_capacity(token_left_char - current_text_offset);
                     let mut skipped_before_token = 0;
                     for _ in current_text_offset..token_left_char {
                         if let Some(c) = text_char_it.next() {
@@ -1225,7 +1259,7 @@ where
 
                     if let Some(token_name) = id_to_node_name.try_get(&current_token_id)? {
                         updates.add_event(UpdateEvent::AddNodeLabel {
-                            node_name: token_name,
+                            node_name: token_name.into(),
                             anno_ns: ANNIS_NS.to_string(),
                             anno_name: TOK_WHITESPACE_BEFORE.to_string(),
                             anno_value: covered_text_before,
@@ -1244,6 +1278,7 @@ where
                 current_text_offset += skipped_token_characters;
 
                 // Get the token borders of the next token to determine where the whitespace after this token is
+                // The whitespace end position is non-inclusive.
                 let mut whitespace_end_pos = None;
                 if let Some((_, next_token_id)) = token_iterator.peek() {
                     if let Some(next_token_left_pos) =
@@ -1256,22 +1291,24 @@ where
                 // Get the covered text which either goes until the next token or until the end of the text if there is none
                 let mut covered_text_after = if let Some(end_pos) = whitespace_end_pos {
                     if current_text_offset < end_pos {
-                        String::with_capacity(current_text_offset - token_right_char)
+                        std::string::String::with_capacity(current_text_offset - token_right_char)
                     } else {
-                        String::default()
+                        std::string::String::default()
                     }
                 } else {
-                    String::default()
+                    std::string::String::default()
                 };
 
                 if let Some(end_pos) = whitespace_end_pos {
-                    for _ in current_text_offset..end_pos {
+                    let covered_text_start = current_text_offset;
+                    for _ in covered_text_start..end_pos {
                         if let Some(c) = text_char_it.next() {
                             covered_text_after.push(c);
+                            current_text_offset += 1;
                         }
                     }
-                    current_text_offset += end_pos - current_text_offset;
                 } else {
+                    // Add all remaining text to the "tok-whitespace-after" annotation value.
                     // We can't borrow the iterator here (would not be an iterator) and we can't own it using a for-loop
                     #[allow(clippy::while_let_on_iterator)]
                     while let Some(c) = text_char_it.next() {
@@ -1281,7 +1318,7 @@ where
                 }
                 if let Some(token_name) = id_to_node_name.try_get(&current_token_id)? {
                     updates.add_event(UpdateEvent::AddNodeLabel {
-                        node_name: token_name,
+                        node_name: token_name.into(),
                         anno_ns: ANNIS_NS.to_string(),
                         anno_name: TOK_WHITESPACE_AFTER.to_string(),
                         anno_value: covered_text_after,
@@ -1346,22 +1383,15 @@ where
         for (line_nr, result) in node_tab_csv.records().enumerate() {
             let line = result?;
 
-            let node_nr = line
-                .get(0)
-                .ok_or_else(|| anyhow!("Missing column"))?
-                .parse::<NodeID>()?;
+            let node_nr = get_field_not_null(&line, 0, "id", &node_tab_path)?.parse::<NodeID>()?;
             let has_segmentations = is_annis_33 || line.len() > 10;
-            let token_index_raw = line.get(7).ok_or_else(|| anyhow!("Missing column"))?;
-            let text_id = line
-                .get(1)
-                .ok_or_else(|| anyhow!("Missing column"))?
-                .parse::<u32>()?;
-            let corpus_id = line
-                .get(2)
-                .ok_or_else(|| anyhow!("Missing column"))?
-                .parse::<u32>()?;
-            let layer = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
-            let node_name = get_field_str(&line, 4).ok_or_else(|| anyhow!("Missing column"))?;
+            let token_index_raw = get_field(&line, 7, "token_index", &node_tab_path)?;
+            let text_id =
+                get_field_not_null(&line, 1, "text_ref", &node_tab_path)?.parse::<u32>()?;
+            let corpus_id =
+                get_field_not_null(&line, 2, "corpus_ref", &node_tab_path)?.parse::<u32>()?;
+            let layer = get_field(&line, 3, "layer", &node_tab_path)?;
+            let node_name = get_field_not_null(&line, 4, "name", &node_tab_path)?;
 
             nodes_by_text.insert(
                 NodeByTextEntry {
@@ -1397,32 +1427,30 @@ where
                 node_name: node_path.clone(),
                 node_type: "node".to_owned(),
             })?;
-            id_to_node_name.insert(node_nr, node_path.clone())?;
+            id_to_node_name.insert(node_nr, node_path.clone().into())?;
 
-            if !layer.is_empty() && layer != "NULL" {
-                updates.add_event(UpdateEvent::AddNodeLabel {
-                    node_name: node_path.clone(),
-                    anno_ns: ANNIS_NS.to_owned(),
-                    anno_name: "layer".to_owned(),
-                    anno_value: layer,
-                })?;
+            if let Some(layer) = layer {
+                if !layer.is_empty() {
+                    updates.add_event(UpdateEvent::AddNodeLabel {
+                        node_name: node_path.clone(),
+                        anno_ns: ANNIS_NS.to_owned(),
+                        anno_name: "layer".to_owned(),
+                        anno_value: layer,
+                    })?;
+                }
             }
 
             // Add the raw character offsets so it is possible to extract the text later on
-            let left_char_val = line
-                .get(5)
-                .ok_or_else(|| anyhow!("Missing column"))?
-                .parse::<u32>()?;
+            let left_char_val =
+                get_field_not_null(&line, 5, "left", &node_tab_path)?.parse::<u32>()?;
             let left_char_pos = TextProperty {
                 segmentation: String::from(""),
                 val: left_char_val,
                 corpus_id,
                 text_id,
             };
-            let right_char_val = line
-                .get(6)
-                .ok_or_else(|| anyhow!("Missing column"))?
-                .parse::<u32>()?;
+            let right_char_val =
+                get_field_not_null(&line, 6, "right", &node_tab_path)?.parse::<u32>()?;
             let right_char_pos = TextProperty {
                 segmentation: String::from(""),
                 val: right_char_val,
@@ -1442,20 +1470,18 @@ where
             let left_alignment_column = if is_annis_33 { 8 } else { 5 };
             let right_alignment_column = if is_annis_33 { 9 } else { 6 };
 
-            let left_alignment_val = line
-                .get(left_alignment_column)
-                .ok_or_else(|| anyhow!("Missing column"))?
-                .parse::<u32>()?;
+            let left_alignment_val =
+                get_field_not_null(&line, left_alignment_column, "left_token", &node_tab_path)?
+                    .parse::<u32>()?;
             let left_alignment = TextProperty {
                 segmentation: String::from(""),
                 val: left_alignment_val,
                 corpus_id,
                 text_id,
             };
-            let right_alignment_val = line
-                .get(right_alignment_column)
-                .ok_or_else(|| anyhow!("Missing column"))?
-                .parse::<u32>()?;
+            let right_alignment_val =
+                get_field_not_null(&line, right_alignment_column, "right_token", &node_tab_path)?
+                    .parse::<u32>()?;
             let right_alignment = TextProperty {
                 segmentation: String::from(""),
                 val: right_alignment_val,
@@ -1469,11 +1495,11 @@ where
                 .node_to_right
                 .insert(node_nr, right_alignment.clone())?;
 
-            if token_index_raw != "NULL" {
+            if let Some(token_index_raw) = token_index_raw {
                 let span = if has_segmentations {
-                    get_field_str(&line, 12).ok_or_else(|| anyhow!("Missing column"))?
+                    get_field_not_null(&line, 12, "span", &node_tab_path)?
                 } else {
-                    get_field_str(&line, 9).ok_or_else(|| anyhow!("Missing column"))?
+                    get_field_not_null(&line, 9, "span", &node_tab_path)?
                 };
 
                 updates.add_event(UpdateEvent::AddNodeLabel {
@@ -1501,20 +1527,17 @@ where
                     .insert(right_alignment, node_nr)?;
             } else if has_segmentations {
                 let segmentation_name = if is_annis_33 {
-                    get_field_str(&line, 11).ok_or_else(|| anyhow!("Missing column"))?
+                    get_field(&line, 11, "seg_name", &node_tab_path)?
                 } else {
-                    get_field_str(&line, 8).ok_or_else(|| anyhow!("Missing column"))?
+                    get_field(&line, 8, "seg_name", &node_tab_path)?
                 };
 
-                if segmentation_name != "NULL" {
+                if let Some(segmentation_name) = segmentation_name {
                     let seg_index = if is_annis_33 {
-                        line.get(10)
-                            .ok_or_else(|| anyhow!("Missing column"))?
+                        get_field_not_null(&line, 10, "seg_index", &node_tab_path)?
                             .parse::<u32>()?
                     } else {
-                        line.get(9)
-                            .ok_or_else(|| anyhow!("Missing column"))?
-                            .parse::<u32>()?
+                        get_field_not_null(&line, 9, "seg_index", &node_tab_path)?.parse::<u32>()?
                     };
 
                     if is_annis_33 {
@@ -1523,16 +1546,15 @@ where
                             node_name: node_path,
                             anno_ns: ANNIS_NS.to_owned(),
                             anno_name: TOK.to_owned(),
-                            anno_value: get_field_str(&line, 12)
-                                .ok_or_else(|| anyhow!("Missing column"))?,
+                            anno_value: get_field_not_null(&line, 12, "span", &node_tab_path)?,
                         })?;
                     } else {
                         // we need to get the span information from the node_annotation file later
-                        missing_seg_span.insert(node_nr, segmentation_name.clone())?;
+                        missing_seg_span.insert(node_nr, segmentation_name.clone().into())?;
                     }
                     // also add the specific segmentation index
                     let index = TextProperty {
-                        segmentation: segmentation_name,
+                        segmentation: segmentation_name.into(),
                         val: seg_index,
                         corpus_id,
                         text_id,
@@ -1612,49 +1634,38 @@ where
     for (line_nr, result) in node_anno_tab_csv.records().enumerate() {
         let line = result?;
 
-        let col_id = line.get(0).ok_or_else(|| anyhow!("Missing column"))?;
+        let col_id = get_field_not_null(&line, 0, "id", &node_anno_tab_path)?;
         let node_id: NodeID = col_id.parse()?;
         let node_name = id_to_node_name
             .try_get(&node_id)?
-            .ok_or_else(|| anyhow!("Missing node name"))?;
-        let col_ns = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
-        let col_name = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?;
-        let col_val = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
+            .ok_or(RelAnnisError::NodeNotFound(node_id))?;
+        let col_ns = get_field(&line, 1, "namespace", &node_anno_tab_path)?.unwrap_or_default();
+        let col_name = get_field_not_null(&line, 2, "name", &node_anno_tab_path)?;
+        let col_val = get_field(&line, 3, "value", &node_anno_tab_path)?;
         // we have to make some sanity checks
         if col_ns != "annis" || col_name != "tok" {
-            let anno_val: String = if col_val == "NULL" {
-                // use an "invalid" string so it can't be found by its value, but only by its annotation name
-                std::char::MAX.to_string()
-            } else {
-                col_val
-            };
+            let has_valid_value = col_val.is_some();
+            // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
+            let anno_val = col_val.unwrap_or_else(|| std::char::MAX.to_string());
 
-            let col_ns = if col_ns == "NULL" {
-                String::default()
-            } else {
-                col_ns
-            };
-
-            updates.add_event(UpdateEvent::AddNodeLabel {
-                node_name: node_name.clone(),
-                anno_ns: col_ns,
-                anno_name: col_name,
-                anno_value: anno_val.clone(),
-            })?;
-
-            // add all missing span values from the annotation, but don't add NULL values
             if let Some(seg) = missing_seg_span.try_get(&node_id)? {
-                if seg == get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?
-                    && get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))? != "NULL"
-                {
+                // add all missing span values from the annotation, but don't add NULL values
+                if seg == col_name && has_valid_value {
                     updates.add_event(UpdateEvent::AddNodeLabel {
-                        node_name: node_name.clone(),
+                        node_name: node_name.clone().into(),
                         anno_ns: ANNIS_NS.to_owned(),
                         anno_name: TOK.to_owned(),
-                        anno_value: anno_val,
+                        anno_value: anno_val.clone(),
                     })?;
                 }
             }
+
+            updates.add_event(UpdateEvent::AddNodeLabel {
+                node_name: node_name.into(),
+                anno_ns: col_ns,
+                anno_name: col_name,
+                anno_value: anno_val,
+            })?;
         }
 
         if (line_nr + 1) % 100_000 == 0 {
@@ -1695,21 +1706,12 @@ where
     for result in component_tab_csv.records() {
         let line = result?;
 
-        let cid: u32 = line
-            .get(0)
-            .ok_or_else(|| anyhow!("Missing column"))?
-            .parse()?;
-        let col_type = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
-        if col_type != "NULL" {
-            let layer = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?;
-            let name = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
-            let name = if name == "NULL" {
-                String::from("")
-            } else {
-                name
-            };
+        let cid: u32 = get_field_not_null(&line, 0, "id", &component_tab_path)?.parse()?;
+        if let Some(col_type) = get_field(&line, 1, "type", &component_tab_path)? {
+            let layer = get_field(&line, 2, "layer", &component_tab_path)?.unwrap_or_default();
+            let name = get_field(&line, 3, "name", &component_tab_path)?.unwrap_or_default();
             let ctype = component_type_from_short_name(&col_type)?;
-            component_by_id.insert(cid, Component::new(ctype, layer, name));
+            component_by_id.insert(cid, Component::new(ctype, layer.into(), name.into()));
         }
     }
     Ok(component_by_id)
@@ -1791,14 +1793,9 @@ where
     let mut pre_to_node_id: DiskMap<u32, NodeID> = DiskMap::default();
     for result in rank_tab_csv.records() {
         let line = result?;
-        let pre: u32 = line
-            .get(0)
-            .ok_or_else(|| anyhow!("Missing column"))?
-            .parse()?;
-        let node_id: NodeID = line
-            .get(pos_node_ref)
-            .ok_or_else(|| anyhow!("Missing column"))?
-            .parse()?;
+        let pre: u32 = get_field_not_null(&line, 0, "pre", &rank_tab_path)?.parse()?;
+        let node_id: NodeID =
+            get_field_not_null(&line, pos_node_ref, "node_ref", &rank_tab_path)?.parse()?;
         pre_to_node_id.insert(pre, node_id)?;
     }
 
@@ -1808,28 +1805,14 @@ where
     for result in rank_tab_csv.records() {
         let line = result?;
 
-        let component_ref: u32 = line
-            .get(pos_component_ref)
-            .ok_or_else(|| anyhow!("Missing column"))?
-            .parse()?;
+        let component_ref: u32 =
+            get_field_not_null(&line, pos_component_ref, "component_ref", &rank_tab_path)?
+                .parse()?;
 
-        let target: NodeID = line
-            .get(pos_node_ref)
-            .ok_or_else(|| anyhow!("Missing column"))?
-            .parse()?;
+        let target: NodeID =
+            get_field_not_null(&line, pos_node_ref, "node_ref", &rank_tab_path)?.parse()?;
 
-        let parent_as_str = line
-            .get(pos_parent)
-            .ok_or_else(|| anyhow!("Missing column"))?;
-        if parent_as_str == "NULL" {
-            if let Some(c) = component_by_id.get(&component_ref) {
-                if c.get_type() == AnnotationComponentType::Coverage {
-                    load_rank_result
-                        .component_for_parentless_target_node
-                        .insert(target, c.clone())?;
-                }
-            }
-        } else {
+        if let Some(parent_as_str) = get_field(&line, pos_parent, "parent", &rank_tab_path)? {
             let parent: u32 = parent_as_str.parse()?;
             if let Some(source) = pre_to_node_id.get(&parent) {
                 // find the responsible edge database by the component ID
@@ -1837,21 +1820,18 @@ where
                     updates.add_event(UpdateEvent::AddEdge {
                         source_node: id_to_node_name
                             .try_get(&source)?
-                            .ok_or_else(|| anyhow!("Missing node name"))?
-                            .to_owned(),
+                            .ok_or(RelAnnisError::NodeNotFound(source))?
+                            .into(),
                         target_node: id_to_node_name
                             .try_get(&target)?
-                            .ok_or_else(|| anyhow!("Missing node name"))?
-                            .to_owned(),
-                        layer: c.layer.clone(),
+                            .ok_or(RelAnnisError::NodeNotFound(target))?
+                            .into(),
+                        layer: c.layer.clone().into(),
                         component_type: c.get_type().to_string(),
-                        component_name: c.name.clone(),
+                        component_name: c.name.clone().into(),
                     })?;
 
-                    let pre: u32 = line
-                        .get(0)
-                        .ok_or_else(|| anyhow!("Missing column"))?
-                        .parse()?;
+                    let pre: u32 = get_field_not_null(&line, 0, "pre", &rank_tab_path)?.parse()?;
 
                     let e = Edge { source, target };
 
@@ -1863,6 +1843,12 @@ where
                     load_rank_result.components_by_pre.insert(pre, c.clone())?;
                     load_rank_result.edges_by_pre.insert(pre, e)?;
                 }
+            }
+        } else if let Some(c) = component_by_id.get(&component_ref) {
+            if c.get_type() == AnnotationComponentType::Coverage {
+                load_rank_result
+                    .component_for_parentless_target_node
+                    .insert(target, c.clone())?;
             }
         }
     }
@@ -1909,29 +1895,27 @@ where
     for result in edge_anno_tab_csv.records() {
         let line = result?;
 
-        let pre: u32 = line
-            .get(0)
-            .ok_or_else(|| anyhow!("Missing column"))?
-            .parse()?;
+        let pre = get_field_not_null(&line, 0, "pre", &edge_anno_tab_path)?.parse::<u32>()?;
         if let Some(c) = rank_result.components_by_pre.try_get(&pre)? {
             if let Some(e) = rank_result.edges_by_pre.try_get(&pre)? {
-                let ns = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
-                let ns = if ns == "NULL" { String::default() } else { ns };
-                let name = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?;
-                let val = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
+                let ns = get_field(&line, 1, "namespace", &edge_anno_tab_path)?.unwrap_or_default();
+                let name = get_field_not_null(&line, 2, "name", &edge_anno_tab_path)?;
+                // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
+                let val = get_field(&line, 3, "value", &edge_anno_tab_path)?
+                    .unwrap_or_else(|| std::char::MAX.to_string());
 
                 updates.add_event(UpdateEvent::AddEdgeLabel {
                     source_node: id_to_node_name
                         .try_get(&e.source)?
-                        .ok_or_else(|| anyhow!("Missing node name"))?
-                        .to_owned(),
+                        .ok_or(RelAnnisError::NodeNotFound(e.source))?
+                        .into(),
                     target_node: id_to_node_name
                         .try_get(&e.target)?
-                        .ok_or_else(|| anyhow!("Missing node name"))?
-                        .to_owned(),
-                    layer: c.layer.clone(),
+                        .ok_or(RelAnnisError::NodeNotFound(e.target))?
+                        .into(),
+                    layer: c.layer.clone().into(),
                     component_type: c.get_type().to_string(),
-                    component_name: c.name.clone(),
+                    component_name: c.name.into(),
                     anno_ns: ns,
                     anno_name: name,
                     anno_value: val,
@@ -1947,7 +1931,7 @@ fn load_corpus_annotation<F>(
     path: &PathBuf,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<BTreeMap<(u32, AnnoKey), String>>
+) -> Result<BTreeMap<(u32, AnnoKey), std::string::String>>
 where
     F: Fn(&str),
 {
@@ -1970,16 +1954,17 @@ where
     for result in corpus_anno_tab_csv.records() {
         let line = result?;
 
-        let id = line
-            .get(0)
-            .ok_or_else(|| anyhow!("Missing column"))?
-            .parse()?;
-        let ns = get_field_str(&line, 1).ok_or_else(|| anyhow!("Missing column"))?;
-        let ns = if ns == "NULL" { String::default() } else { ns };
-        let name = get_field_str(&line, 2).ok_or_else(|| anyhow!("Missing column"))?;
-        let val = get_field_str(&line, 3).ok_or_else(|| anyhow!("Missing column"))?;
+        let id = get_field_not_null(&line, 0, "id", &corpus_anno_tab_path)?.parse::<u32>()?;
+        let ns = get_field(&line, 1, "namespace", &corpus_anno_tab_path)?.unwrap_or_default();
+        let name = get_field_not_null(&line, 2, "name", &corpus_anno_tab_path)?;
+        // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
+        let val = get_field(&line, 3, "value", &corpus_anno_tab_path)?
+            .unwrap_or_else(|| std::char::MAX.to_string());
 
-        let anno_key = AnnoKey { ns, name };
+        let anno_key = AnnoKey {
+            ns: ns.into(),
+            name: name.into(),
+        };
 
         corpus_id_to_anno.insert((id, anno_key), val);
     }
@@ -1987,15 +1972,15 @@ where
     Ok(corpus_id_to_anno)
 }
 
-fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String> {
+fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<std::string::String> {
     let corpus = corpus_table
         .corpus_by_id
         .get(&cid)
-        .ok_or_else(|| anyhow!("Corpus with ID {} not found", cid))?;
+        .ok_or(RelAnnisError::CorpusNotFound(cid))?;
     let pre = corpus.pre;
     let post = corpus.post;
 
-    let parent_corpus_path: Vec<String> = corpus_table
+    let parent_corpus_path: Vec<std::string::String> = corpus_table
         .corpus_by_preorder
         .range(0..pre)
         .filter_map(|(_, cid)| corpus_table.corpus_by_id.get(cid))
@@ -2007,12 +1992,12 @@ fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
     Ok(parent_corpus_path.join("/"))
 }
 
-fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String> {
+fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<std::string::String> {
     let parent_path = get_parent_path(cid, corpus_table)?;
     let corpus = corpus_table
         .corpus_by_id
         .get(&cid)
-        .ok_or_else(|| anyhow!("Corpus with ID {} not found", cid))?;
+        .ok_or(RelAnnisError::CorpusNotFound(cid))?;
     let corpus_name = utf8_percent_encode(&corpus.name, SALT_URI_ENCODE_SET).to_string();
     Ok(format!("{}/{}", parent_path, &corpus_name))
 }
@@ -2022,20 +2007,20 @@ fn add_subcorpora(
     corpus_table: &ParsedCorpusTable,
     node_node_result: &LoadNodeResult,
     texts: &DiskMap<TextKey, Text>,
-    corpus_id_to_annos: &BTreeMap<(u32, AnnoKey), String>,
+    corpus_id_to_annos: &BTreeMap<(u32, AnnoKey), std::string::String>,
     is_annis_33: bool,
     path: &Path,
 ) -> Result<()> {
     // add the toplevel corpus as node
     {
         updates.add_event(UpdateEvent::AddNode {
-            node_name: corpus_table.toplevel_corpus_name.to_owned(),
-            node_type: "corpus".to_owned(),
+            node_name: corpus_table.toplevel_corpus_name.as_str().into(),
+            node_type: "corpus".into(),
         })?;
 
         // save the relANNIS version as meta data attribute on the toplevel corpus
         updates.add_event(UpdateEvent::AddNodeLabel {
-            node_name: corpus_table.toplevel_corpus_name.to_owned(),
+            node_name: corpus_table.toplevel_corpus_name.as_str().into(),
             anno_ns: ANNIS_NS.to_owned(),
             anno_name: "relannis-version".to_owned(),
             anno_value: if is_annis_33 {
@@ -2050,17 +2035,17 @@ fn add_subcorpora(
             let start_key = (
                 *cid,
                 AnnoKey {
-                    ns: "".to_string(),
-                    name: "".to_string(),
+                    ns: "".into(),
+                    name: "".into(),
                 },
             );
             for ((entry_cid, anno_key), val) in corpus_id_to_annos.range(start_key..) {
                 if entry_cid == cid {
                     updates.add_event(UpdateEvent::AddNodeLabel {
-                        node_name: corpus_table.toplevel_corpus_name.to_owned(),
-                        anno_ns: anno_key.ns.clone(),
-                        anno_name: anno_key.name.clone(),
-                        anno_value: val.clone(),
+                        node_name: corpus_table.toplevel_corpus_name.as_str().into(),
+                        anno_ns: anno_key.ns.clone().into(),
+                        anno_name: anno_key.name.clone().into(),
+                        anno_value: val.into(),
                     })?;
                 } else {
                     break;
@@ -2076,7 +2061,7 @@ fn add_subcorpora(
             let corpus = corpus_table
                 .corpus_by_id
                 .get(corpus_id)
-                .ok_or_else(|| anyhow!("Can't get name for corpus with ID {}", corpus_id))?;
+                .ok_or_else(|| RelAnnisError::CorpusNotFound(*corpus_id))?;
 
             let corpus_name = &corpus.name;
 
@@ -2091,23 +2076,23 @@ fn add_subcorpora(
                 node_name: subcorpus_full_name.clone(),
                 anno_ns: ANNIS_NS.to_owned(),
                 anno_name: "doc".to_owned(),
-                anno_value: corpus_name.to_owned(),
+                anno_value: corpus_name.as_str().into(),
             })?;
 
             // add all metadata for the document node
             let start_key = (
                 *corpus_id,
                 AnnoKey {
-                    ns: "".to_string(),
-                    name: "".to_string(),
+                    ns: "".into(),
+                    name: "".into(),
                 },
             );
             for ((entry_cid, anno_key), val) in corpus_id_to_annos.range(start_key..) {
                 if entry_cid == corpus_id {
                     updates.add_event(UpdateEvent::AddNodeLabel {
                         node_name: subcorpus_full_name.clone(),
-                        anno_ns: anno_key.ns.clone(),
-                        anno_name: anno_key.name.clone(),
+                        anno_ns: anno_key.ns.clone().into(),
+                        anno_name: anno_key.name.clone().into(),
                         anno_value: val.clone(),
                     })?;
                 } else {
@@ -2117,10 +2102,10 @@ fn add_subcorpora(
             // add an edge from the document (or sub-corpus) to the top-level corpus
             updates.add_event(UpdateEvent::AddEdge {
                 source_node: subcorpus_full_name.clone(),
-                target_node: corpus_table.toplevel_corpus_name.to_owned(),
+                target_node: corpus_table.toplevel_corpus_name.as_str().into(),
                 layer: ANNIS_NS.to_owned(),
                 component_type: AnnotationComponentType::PartOf.to_string(),
-                component_name: String::default(),
+                component_name: std::string::String::default(),
             })?;
 
             add_external_data_files(path, &subcorpus_full_name, Some(corpus_name), updates)?;
@@ -2146,7 +2131,7 @@ fn add_subcorpora(
                 target_node: subcorpus_full_name,
                 layer: ANNIS_NS.to_owned(),
                 component_type: AnnotationComponentType::PartOf.to_string(),
-                component_name: String::default(),
+                component_name: std::string::String::default(),
             })?;
 
             // find all nodes belonging to this text and add a relation
@@ -2166,12 +2151,12 @@ fn add_subcorpora(
                     source_node: node_node_result
                         .id_to_node_name
                         .try_get(&n)?
-                        .ok_or_else(|| anyhow!("Missing node name"))?
-                        .clone(),
+                        .ok_or(RelAnnisError::NodeNotFound(n))?
+                        .into(),
                     target_node: text_full_name.clone(),
                     layer: ANNIS_NS.to_owned(),
                     component_type: AnnotationComponentType::PartOf.to_string(),
-                    component_name: String::default(),
+                    component_name: std::string::String::default(),
                 })?;
             }
         }
@@ -2185,9 +2170,6 @@ fn component_type_from_short_name(short_type: &str) -> Result<AnnotationComponen
         "d" => Ok(AnnotationComponentType::Dominance),
         "p" => Ok(AnnotationComponentType::Pointing),
         "o" => Ok(AnnotationComponentType::Ordering),
-        _ => Err(anyhow!(
-            "Invalid component type short name '{}'",
-            short_type
-        )),
+        _ => Err(RelAnnisError::InvalidComponentShortName(short_type.to_string()).into()),
     }
 }

@@ -8,6 +8,7 @@ use crate::{
     AnnotationGraph,
 };
 use graphannis_core::{
+    annostorage::MatchGroup,
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
     types::Component,
 };
@@ -29,15 +30,15 @@ lazy_static! {
     static ref COMPONENT_LEFT: Component<AnnotationComponentType> = {
         Component::new(
             AnnotationComponentType::LeftToken,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         )
     };
     static ref COMPONENT_ORDER: Component<AnnotationComponentType> = {
         Component::new(
             AnnotationComponentType::Ordering,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         )
     };
 }
@@ -88,7 +89,7 @@ impl<'a> BinaryOperator for IdenticalCoverage<'a> {
         let n_left = self.tok_helper.left_token_for(lhs.node);
         let n_right = self.tok_helper.right_token_for(lhs.node);
 
-        let mut result: Vec<Match> = Vec::new();
+        let mut result = MatchGroup::new();
 
         if let (Some(n_left), Some(n_right)) = (n_left, n_right) {
             if n_left == n_right {

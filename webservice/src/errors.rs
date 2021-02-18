@@ -1,40 +1,29 @@
 use actix_rt::blocking::BlockingError;
 use actix_web::{error::ResponseError, HttpResponse};
 use graphannis::errors::GraphAnnisError;
-use std::fmt::Display;
+use graphannis_core::errors::GraphAnnisCoreError;
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ServiceError {
+    #[error("Bad Request: {0}")]
     BadRequest(String),
+    #[error("Invalid JWT Token: {0}")]
     InvalidJWTToken(String),
+    #[error("Non existing corpus/corpora {0:?}")]
     NoSuchCorpus(Vec<String>),
+    #[error("Error accessing database: {0}")]
     DatabaseError(String),
+    #[error("Internal Server Error: {0}")]
     InternalServerError(String),
-    GraphAnnisError(GraphAnnisError),
+    #[error("{0}")]
+    GraphAnnisError(String),
+    #[error("Not found")]
     NotFound,
+    #[error("User {0} is not an adminstrator")]
     NotAnAdministrator(String),
-}
-
-impl Display for ServiceError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ServiceError::BadRequest(msg) => write!(f, "Bad Request: {}", msg)?,
-            ServiceError::InvalidJWTToken(msg) => write!(f, "Invalid JWT Token: {}", msg)?,
-            ServiceError::NoSuchCorpus(corpora) => {
-                write!(f, "Non existing corpus/corpora {}", corpora.join(", "))?
-            }
-            ServiceError::DatabaseError(e) => write!(f, "Error accessing database: {}", e)?,
-            ServiceError::InternalServerError(msg) => {
-                write!(f, "Internal Server Error: {:?}", msg)?
-            }
-            ServiceError::GraphAnnisError(err) => write!(f, "{}", err)?,
-            ServiceError::NotFound => write!(f, "Not found",)?,
-            ServiceError::NotAnAdministrator(user) => {
-                write!(f, "User {} is not an adminstrator", user)?
-            }
-        }
-        Ok(())
-    }
+    #[error("Timeout")]
+    Timeout,
 }
 
 #[derive(Serialize)]
@@ -59,6 +48,7 @@ impl ResponseError for ServiceError {
             ServiceError::NotFound => HttpResponse::NotFound().finish(),
             ServiceError::NotAnAdministrator(_) => HttpResponse::Forbidden()
                 .json("You need to have administrator privilege to access this resource."),
+            ServiceError::Timeout => HttpResponse::GatewayTimeout().finish(),
         }
     }
 }
@@ -89,16 +79,7 @@ impl From<r2d2::Error> for ServiceError {
 
 impl From<anyhow::Error> for ServiceError {
     fn from(orig: anyhow::Error) -> Self {
-        if let Some(graphannis_err) = orig.downcast_ref::<GraphAnnisError>() {
-            match graphannis_err {
-                GraphAnnisError::NoSuchCorpus(corpora) => {
-                    ServiceError::NoSuchCorpus(vec![corpora.to_owned()])
-                }
-                _ => ServiceError::GraphAnnisError(graphannis_err.clone()),
-            }
-        } else {
-            ServiceError::InternalServerError(orig.to_string())
-        }
+        ServiceError::InternalServerError(orig.to_string())
     }
 }
 
@@ -150,5 +131,21 @@ impl From<zip::result::ZipError> for ServiceError {
 impl From<uuid::Error> for ServiceError {
     fn from(e: uuid::Error) -> Self {
         ServiceError::BadRequest(e.to_string())
+    }
+}
+
+impl From<GraphAnnisCoreError> for ServiceError {
+    fn from(e: GraphAnnisCoreError) -> Self {
+        ServiceError::DatabaseError(e.to_string())
+    }
+}
+
+impl From<GraphAnnisError> for ServiceError {
+    fn from(e: GraphAnnisError) -> Self {
+        match e {
+            GraphAnnisError::NoSuchCorpus(c) => ServiceError::NoSuchCorpus(vec![c]),
+            GraphAnnisError::Timeout => ServiceError::Timeout,
+            _ => ServiceError::GraphAnnisError(e.to_string()),
+        }
     }
 }

@@ -7,6 +7,8 @@ use crate::update::{GraphUpdate, UpdateEvent};
 use crate::CorpusStorage;
 use graphannis_core::{graph::DEFAULT_NS, types::NodeID};
 
+use super::SearchQuery;
+
 #[test]
 fn delete() {
     let tmp = tempfile::tempdir().unwrap();
@@ -73,12 +75,23 @@ fn apply_update_add_and_delete_nodes() {
 
     cs.apply_update("root", &mut g).unwrap();
 
-    let node_count = cs.count(&["root"], "node", QueryLanguage::AQL).unwrap();
+    let node_query = SearchQuery {
+        corpus_names: &["root"],
+        query: "node",
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+
+    let node_count = cs.count(node_query.clone()).unwrap();
     assert_eq!(22, node_count);
 
-    let edge_count = cs
-        .count(&["root"], "node ->dep node", QueryLanguage::AQL)
-        .unwrap();
+    let dep_query = SearchQuery {
+        corpus_names: &["root"],
+        query: "node ->dep node",
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+    let edge_count = cs.count(dep_query.clone()).unwrap();
     assert_eq!(1, edge_count);
 
     // delete one of the tokens
@@ -89,11 +102,9 @@ fn apply_update_add_and_delete_nodes() {
     .unwrap();
     cs.apply_update("root", &mut g).unwrap();
 
-    let node_count = cs.count(&["root"], "node", QueryLanguage::AQL).unwrap();
+    let node_count = cs.count(node_query).unwrap();
     assert_eq!(21, node_count);
-    let edge_count = cs
-        .count(&["root"], "node ->dep node", QueryLanguage::AQL)
-        .unwrap();
+    let edge_count = cs.count(dep_query).unwrap();
     assert_eq!(0, edge_count);
 }
 
@@ -162,11 +173,14 @@ fn subgraph_with_segmentation() {
 
     cs.apply_update("root", &mut g).unwrap();
 
-    assert_eq!(
-        5,
-        cs.count(&["root"], "node .seg,1,2 node", QueryLanguage::AQL)
-            .unwrap()
-    );
+    let query = SearchQuery {
+        corpus_names: &["root"],
+        query: "node .seg,1,2 node",
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+
+    assert_eq!(5, cs.count(query).unwrap());
 
     // get the subgraph with context 1 on dipl
     let graph = cs

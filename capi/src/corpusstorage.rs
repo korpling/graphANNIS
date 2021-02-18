@@ -5,7 +5,7 @@ use super::{cast_const, cast_mut, cstr, map_cerr};
 use graphannis::{
     corpusstorage::{
         CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, FrequencyTableRow,
-        ImportFormat, QueryAttributeDescription, QueryLanguage, ResultOrder,
+        ImportFormat, QueryAttributeDescription, QueryLanguage, ResultOrder, SearchQuery,
     },
     model::{AnnotationComponent, AnnotationComponentType},
     update::GraphUpdate,
@@ -126,7 +126,14 @@ pub extern "C" fn annis_cs_count(
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
 
-    map_cerr(cs.count(&corpus_names, &query, query_language), err).unwrap_or(0)
+    let search_query = SearchQuery {
+        query: &query,
+        corpus_names: &corpus_names,
+        query_language,
+        timeout: None,
+    };
+
+    map_cerr(cs.count(search_query), err).unwrap_or(0)
 }
 
 /// Count the number of results for a `query` and return both the total number of matches and also the number of documents in the result set.
@@ -151,7 +158,14 @@ pub extern "C" fn annis_cs_count_extra(
         .iter()
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
-    map_cerr(cs.count_extra(&corpus_names, &query, query_language), err).unwrap_or_default()
+
+    let search_query = SearchQuery {
+        query: &query,
+        corpus_names: &corpus_names,
+        query_language,
+        timeout: None,
+    };
+    map_cerr(cs.count_extra(search_query), err).unwrap_or_default()
 }
 
 /// Find all results for a `query` and return the match ID for each result.
@@ -192,20 +206,24 @@ pub unsafe extern "C" fn annis_cs_find(
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
 
+    let search_query = SearchQuery {
+        query: &query,
+        corpus_names: &corpus_names,
+        query_language,
+        timeout: None,
+    };
+
     let limit = if limit.is_null() { None } else { Some(*limit) };
 
-    map_cerr(
-        cs.find(&corpus_names, &query, query_language, offset, limit, order),
-        err,
-    )
-    .map(|result| {
-        let vec_result = result
-            .into_iter()
-            .map(|x| CString::new(x).unwrap_or_default())
-            .collect();
-        Box::into_raw(Box::new(vec_result))
-    })
-    .unwrap_or_else(std::ptr::null_mut)
+    map_cerr(cs.find(search_query, offset, limit, order), err)
+        .map(|result| {
+            let vec_result = result
+                .into_iter()
+                .map(|x| CString::new(x.as_str()).unwrap_or_default())
+                .collect();
+            Box::into_raw(Box::new(vec_result))
+        })
+        .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Return the copy of a subgraph which includes the given list of node annotation identifiers,
@@ -382,16 +400,21 @@ pub extern "C" fn annis_cs_frequency(
         .iter()
         .map(|cn| String::from(cn.to_string_lossy()))
         .collect();
+
+    let search_query = SearchQuery {
+        query: &query,
+        corpus_names: &corpus_names,
+        query_language,
+        timeout: None,
+    };
+
     let frequency_query_definition = cstr(frequency_query_definition);
     let table_def: Vec<FrequencyDefEntry> = frequency_query_definition
         .split(',')
         .filter_map(|d| -> Option<FrequencyDefEntry> { d.parse().ok() })
         .collect();
 
-    match map_cerr(
-        cs.frequency(&corpus_names, &query, query_language, table_def),
-        err,
-    ) {
+    match map_cerr(cs.frequency(search_query, table_def), err) {
         Some(orig_ft) => {
             let mut result: FrequencyTable<CString> = FrequencyTable::new();
 
@@ -461,9 +484,9 @@ pub extern "C" fn annis_cs_list_node_annotations(
     let mut result: Matrix<CString> = Matrix::new();
     for anno in orig_vec.into_iter() {
         if let (Ok(ns), Ok(name), Ok(val)) = (
-            CString::new(anno.key.ns),
-            CString::new(anno.key.name),
-            CString::new(anno.val),
+            CString::new(anno.key.ns.as_str()),
+            CString::new(anno.key.name.as_str()),
+            CString::new(anno.val.as_str()),
         ) {
             result.push(vec![ns, name, val]);
         }
@@ -494,8 +517,8 @@ pub extern "C" fn annis_cs_list_edge_annotations(
     let corpus = cstr(corpus_name);
     let component = AnnotationComponent::new(
         component_type,
-        String::from(cstr(component_layer)),
-        String::from(cstr(component_name)),
+        cstr(component_layer).into(),
+        cstr(component_name).into(),
     );
 
     let orig_vec =
@@ -503,9 +526,9 @@ pub extern "C" fn annis_cs_list_edge_annotations(
     let mut result: Matrix<CString> = Matrix::new();
     for anno in orig_vec.into_iter() {
         if let (Ok(ns), Ok(name), Ok(val)) = (
-            CString::new(anno.key.ns),
-            CString::new(anno.key.name),
-            CString::new(anno.val),
+            CString::new(anno.key.ns.as_str()),
+            CString::new(anno.key.name.as_str()),
+            CString::new(anno.val.as_str()),
         ) {
             result.push(vec![ns, name, val]);
         }

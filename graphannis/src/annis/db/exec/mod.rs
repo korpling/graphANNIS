@@ -4,7 +4,10 @@ use crate::{
     annis::operator::{BinaryOperator, EstimationType},
     graph::Match,
 };
-use graphannis_core::types::{AnnoKey, NodeID};
+use graphannis_core::{
+    annostorage::MatchGroup,
+    types::{AnnoKey, NodeID},
+};
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -194,7 +197,7 @@ pub struct NodeSearchDesc {
 }
 
 pub trait ExecutionNode: Iterator {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>>;
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup>;
     fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {
         None
     }
@@ -211,15 +214,15 @@ pub trait ExecutionNode: Iterator {
 pub struct EmptyResultSet;
 
 impl Iterator for EmptyResultSet {
-    type Item = Vec<Match>;
+    type Item = MatchGroup;
 
-    fn next(&mut self) -> Option<Vec<Match>> {
+    fn next(&mut self) -> Option<MatchGroup> {
         None
     }
 }
 
 impl ExecutionNode for EmptyResultSet {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Vec<Match>> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
         self
     }
     fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {

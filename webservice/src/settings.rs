@@ -1,5 +1,6 @@
 use anyhow::Result;
 use config::ConfigError;
+use graphannis::corpusstorage::CacheStrategy;
 use jsonwebtoken::DecodingKey;
 use std::ops::Deref;
 
@@ -19,6 +20,10 @@ pub struct Database {
     pub graphannis: String,
     pub sqlite: String,
     pub disk_based: bool,
+    #[serde(default)]
+    pub cache: CacheStrategy,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub query_timeout: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -1,5 +1,6 @@
 use crate::{
     annostorage::ValueSearch,
+    errors::{GraphAnnisCoreError, Result},
     graph::{
         update::{GraphUpdate, UpdateEvent},
         Graph, ANNIS_NS, NODE_NAME, NODE_NAME_KEY, NODE_TYPE, NODE_TYPE_KEY,
@@ -7,7 +8,6 @@ use crate::{
     types::{AnnoKey, Annotation, Component, ComponentType, Edge},
     util::{join_qname, split_qname},
 };
-use anyhow::Result;
 use quick_xml::{
     events::{attributes::Attributes, BytesDecl, BytesEnd, BytesStart, BytesText, Event},
     Reader, Writer,
@@ -100,12 +100,9 @@ fn write_data<W: std::io::Write>(
 ) -> Result<()> {
     let mut data_start = BytesStart::borrowed_name(b"data");
 
-    let key_id = key_id_mapping.get(&anno.key).ok_or_else(|| {
-        anyhow!(
-            "Could not find annotation key ID for {:?} when mapping to GraphML",
-            &anno.key
-        )
-    })?;
+    let key_id = key_id_mapping
+        .get(&anno.key)
+        .ok_or_else(|| GraphAnnisCoreError::GraphMLMissingAnnotationKey(anno.key.clone()))?;
 
     data_start.push_attribute(("key", key_id.as_str()));
     writer.write_event(Event::Start(data_start))?;
@@ -284,8 +281,8 @@ fn add_annotation_key(keys: &mut BTreeMap<String, AnnoKey>, attributes: Attribut
             b"attr.name" => {
                 let (ns, name) = split_qname(att_value.as_ref());
                 anno_key = Some(AnnoKey {
-                    ns: ns.unwrap_or("").to_string(),
-                    name: name.to_string(),
+                    ns: ns.unwrap_or("").into(),
+                    name: name.into(),
                 });
             }
             _ => {}
@@ -316,8 +313,8 @@ fn add_node(
         for (key, value) in data.drain() {
             node_updates.add_event(UpdateEvent::AddNodeLabel {
                 node_name: node_name.clone(),
-                anno_ns: key.ns,
-                anno_name: key.name,
+                anno_ns: key.ns.into(),
+                anno_name: key.name.into(),
                 anno_value: value,
             })?;
         }
@@ -340,9 +337,9 @@ fn add_edge<CT: ComponentType>(
             edge_updates.add_event(UpdateEvent::AddEdge {
                 source_node: source.clone(),
                 target_node: target.clone(),
-                layer: component.layer.clone(),
+                layer: component.layer.clone().into(),
                 component_type: component.get_type().to_string(),
-                component_name: component.name.clone(),
+                component_name: component.name.clone().into(),
             })?;
 
             // Add all remaining data entries as annotations
@@ -350,11 +347,11 @@ fn add_edge<CT: ComponentType>(
                 edge_updates.add_event(UpdateEvent::AddEdgeLabel {
                     source_node: source.clone(),
                     target_node: target.clone(),
-                    layer: component.layer.clone(),
+                    layer: component.layer.clone().into(),
                     component_type: component.get_type().to_string(),
-                    component_name: component.name.clone(),
-                    anno_ns: key.ns,
-                    anno_name: key.name,
+                    component_name: component.name.clone().into(),
+                    anno_ns: key.ns.into(),
+                    anno_name: key.name.into(),
                     anno_value: value,
                 })?;
             }
@@ -609,8 +606,8 @@ value = "test""#;
             g.get_node_annos().get_value_for_item(
                 &first_node_id,
                 &AnnoKey {
-                    ns: DEFAULT_NS.to_string(),
-                    name: "an_annotation".to_string(),
+                    ns: DEFAULT_NS.into(),
+                    name: "an_annotation".into(),
                 }
             )
         );

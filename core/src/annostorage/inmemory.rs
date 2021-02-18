@@ -1,14 +1,14 @@
-use super::{AnnotationStorage, Match};
-use crate::annostorage::symboltable::SymbolTable;
+use super::{AnnotationStorage, Match, MatchGroup};
 use crate::annostorage::ValueSearch;
+use crate::errors::Result;
 use crate::malloc_size_of::MallocSizeOf;
 use crate::types::{AnnoKey, Annotation, Edge};
 use crate::util::{self, memory_estimation};
-use anyhow::Context;
-use anyhow::Result;
+use crate::{annostorage::symboltable::SymbolTable, errors::GraphAnnisCoreError};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
+use smartstring::alias::String;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
@@ -32,11 +32,11 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
     anno_keys: SymbolTable<AnnoKey>,
-    anno_values: SymbolTable<String>,
+    anno_values: SymbolTable<smartstring::alias::String>,
 
     /// additional statistical information
     #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
-    histogram_bounds: BTreeMap<usize, Vec<String>>,
+    histogram_bounds: BTreeMap<usize, Vec<smartstring::alias::String>>,
     largest_item: Option<T>,
     total_number_of_annos: usize,
 }
@@ -69,6 +69,7 @@ impl<
         self.by_container.clear();
         self.by_anno.clear();
         self.anno_keys.clear();
+        self.anno_key_sizes.clear();
         self.histogram_bounds.clear();
         self.largest_item = None;
         self.anno_values.clear();
@@ -150,8 +151,8 @@ where
     ) -> Box<dyn Iterator<Item = (T, Arc<AnnoKey>)> + 'a> {
         let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
             vec![Arc::from(AnnoKey {
-                ns: ns.to_string(),
-                name: name.to_string(),
+                ns: ns.into(),
+                name: name.into(),
             })]
         } else {
             self.get_qnames(name).into_iter().map(Arc::from).collect()
@@ -171,7 +172,7 @@ where
             .collect();
 
         if let Some(value) = value {
-            let target_value_symbol = self.anno_values.get_symbol(&value.to_string());
+            let target_value_symbol = self.anno_values.get_symbol(&value.into());
 
             if let Some(target_value_symbol) = target_value_symbol {
                 let it = value_maps
@@ -319,7 +320,7 @@ where
                     result = self
                         .anno_values
                         .get_value_ref(old_value)
-                        .map(|v| Cow::Owned(v.clone()));
+                        .map(|v| Cow::Owned(v.clone().into()));
 
                     self.check_and_remove_value_symbol(old_value);
                     self.total_number_of_annos -= 1;
@@ -342,8 +343,8 @@ where
     fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
         let it = self.anno_key_sizes.range(
             AnnoKey {
-                name: name.to_owned(),
-                ns: String::default(),
+                name: name.into(),
+                ns: smartstring::alias::String::default(),
             }..,
         );
         let mut result: Vec<AnnoKey> = Vec::default();
@@ -412,14 +413,14 @@ where
         ns: Option<&str>,
         name: Option<&str>,
         it: Box<dyn Iterator<Item = T>>,
-    ) -> Vec<Match> {
+    ) -> MatchGroup {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // return the only possible annotation for each node
-                let mut matches: Vec<Match> = Vec::new();
+                let mut matches = MatchGroup::new();
                 let key = Arc::from(AnnoKey {
-                    ns: ns.to_string(),
-                    name: name.to_string(),
+                    ns: ns.into(),
+                    name: name.into(),
                 });
 
                 if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
@@ -448,7 +449,7 @@ where
                     })
                     .collect();
                 // return all annotations with the correct name for each node
-                let mut matches: Vec<Match> = Vec::new();
+                let mut matches = MatchGroup::new();
                 for item in it {
                     for (key_symbol, key) in matching_key_symbols.iter() {
                         if let Some(all_annos) = self.by_container.get(&item) {
@@ -465,7 +466,7 @@ where
             }
         } else {
             // return all annotations for each node
-            let mut matches: Vec<Match> = Vec::new();
+            let mut matches = MatchGroup::new();
             for item in it {
                 let all_keys = self.get_all_keys_for_item(&item, None, None);
                 for anno_key in all_keys {
@@ -480,21 +481,21 @@ where
         let qualified_keys = match ns {
             Some(ns) => self.anno_key_sizes.range((
                 Included(AnnoKey {
-                    name: name.to_string(),
-                    ns: ns.to_string(),
+                    name: name.into(),
+                    ns: ns.into(),
                 }),
                 Included(AnnoKey {
-                    name: name.to_string(),
-                    ns: ns.to_string(),
+                    name: name.into(),
+                    ns: ns.into(),
                 }),
             )),
             None => self.anno_key_sizes.range(
                 AnnoKey {
-                    name: name.to_string(),
+                    name: name.into(),
                     ns: String::default(),
                 }..AnnoKey {
-                    name: name.to_string(),
-                    ns: std::char::MAX.to_string(),
+                    name: name.into(),
+                    ns: std::char::MAX.to_string().into(),
                 },
             ),
         };
@@ -513,8 +514,8 @@ where
     ) -> Box<dyn Iterator<Item = Match> + 'a> {
         let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
             vec![Arc::from(AnnoKey {
-                ns: ns.to_string(),
-                name: name.to_string(),
+                ns: ns.into(),
+                name: name.into(),
             })]
         } else {
             self.get_qnames(name).into_iter().map(Arc::from).collect()
@@ -534,7 +535,7 @@ where
             .collect();
 
         if let ValueSearch::Some(value) = value {
-            let target_value_symbol = self.anno_values.get_symbol(&value.to_string());
+            let target_value_symbol = self.anno_values.get_symbol(&value.into());
 
             if let Some(target_value_symbol) = target_value_symbol {
                 let it = value_maps
@@ -629,8 +630,8 @@ where
             if let Some(ns) = ns {
                 // fully qualified search
                 let key = AnnoKey {
-                    ns: ns.to_string(),
-                    name: name.to_string(),
+                    ns: ns.into(),
+                    name: name.into(),
                 };
                 if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
                     if let Some(all_annos) = self.by_container.get(item) {
@@ -679,8 +680,8 @@ where
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
             Some(ns) => vec![AnnoKey {
-                name: name.to_string(),
-                ns: ns.to_string(),
+                name: name.into(),
+                ns: ns.into(),
             }],
             None => self.get_qnames(&name),
         };
@@ -750,8 +751,8 @@ where
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
             Some(ns) => vec![AnnoKey {
-                name: name.to_string(),
-                ns: ns.to_string(),
+                name: name.into(),
+                ns: ns.into(),
             }],
             None => self.get_qnames(&name),
         };
@@ -899,11 +900,11 @@ where
         self.clear_internal();
 
         let path = location.join("nodes_v1.bin");
-        let f = std::fs::File::open(path.clone()).with_context(|| {
-            format!(
-                "Could not load annotation storage from file {}",
-                path.to_string_lossy(),
-            )
+        let f = std::fs::File::open(path.clone()).map_err(|e| {
+            GraphAnnisCoreError::LoadingAnnotationStorage {
+                path: path.to_string_lossy().to_string(),
+                source: e,
+            }
         })?;
         let mut reader = std::io::BufReader::new(f);
         *self = bincode::deserialize_from(&mut reader)?;
@@ -940,10 +941,10 @@ mod tests {
     fn insert_same_anno() {
         let test_anno = Annotation {
             key: AnnoKey {
-                name: "anno1".to_owned(),
-                ns: "annis".to_owned(),
+                name: "anno1".into(),
+                ns: "annis".into(),
             },
-            val: "test".to_owned(),
+            val: "test".into(),
         };
         let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
         a.insert(1, test_anno.clone()).unwrap();
@@ -961,8 +962,8 @@ mod tests {
             a.get_value_for_item(
                 &3,
                 &AnnoKey {
-                    name: "anno1".to_owned(),
-                    ns: "annis".to_owned()
+                    name: "anno1".into(),
+                    ns: "annis".into()
                 }
             )
             .unwrap()
@@ -973,24 +974,24 @@ mod tests {
     fn get_all_for_node() {
         let test_anno1 = Annotation {
             key: AnnoKey {
-                name: "anno1".to_owned(),
-                ns: "annis1".to_owned(),
+                name: "anno1".into(),
+                ns: "annis1".into(),
             },
-            val: "test".to_owned(),
+            val: "test".into(),
         };
         let test_anno2 = Annotation {
             key: AnnoKey {
-                name: "anno2".to_owned(),
-                ns: "annis2".to_owned(),
+                name: "anno2".into(),
+                ns: "annis2".into(),
             },
-            val: "test".to_owned(),
+            val: "test".into(),
         };
         let test_anno3 = Annotation {
             key: AnnoKey {
-                name: "anno3".to_owned(),
-                ns: "annis1".to_owned(),
+                name: "anno3".into(),
+                ns: "annis1".into(),
             },
-            val: "test".to_owned(),
+            val: "test".into(),
         };
 
         let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
@@ -1012,10 +1013,10 @@ mod tests {
     fn remove() {
         let test_anno = Annotation {
             key: AnnoKey {
-                name: "anno1".to_owned(),
-                ns: "annis1".to_owned(),
+                name: "anno1".into(),
+                ns: "annis1".into(),
             },
-            val: "test".to_owned(),
+            val: "test".into(),
         };
         let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
         a.insert(1, test_anno.clone()).unwrap();

@@ -2,13 +2,12 @@
 extern crate anyhow;
 
 use clap::{App, Arg};
-use graphannis::corpusstorage::CorpusInfo;
 use graphannis::corpusstorage::FrequencyDefEntry;
 use graphannis::corpusstorage::LoadStatus;
 use graphannis::corpusstorage::QueryLanguage;
 use graphannis::corpusstorage::ResultOrder;
+use graphannis::corpusstorage::{CorpusInfo, SearchQuery};
 use graphannis::corpusstorage::{ExportFormat, ImportFormat};
-use graphannis::errors::*;
 use graphannis::CorpusStorage;
 use log::info;
 use prettytable::Cell;
@@ -19,9 +18,10 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use rustyline_derive::{Helper, Highlighter, Hinter, Validator};
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
-use std::collections::BTreeSet;
-use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
+use std::{collections::BTreeSet, time::Duration};
+
+use anyhow::Result;
 
 #[derive(Helper, Hinter, Highlighter, Validator)]
 struct ConsoleHelper {
@@ -40,15 +40,16 @@ impl ConsoleHelper {
         known_commands.insert("corpus".to_string());
         known_commands.insert("set-offset".to_string());
         known_commands.insert("set-limit".to_string());
+        known_commands.insert("set-timeout".to_string());
         known_commands.insert("preload".to_string());
-        known_commands.insert("update_statistics".to_string());
         known_commands.insert("count".to_string());
         known_commands.insert("find".to_string());
         known_commands.insert("frequency".to_string());
         known_commands.insert("plan".to_string());
-        known_commands.insert("use_disk".to_string());
-        known_commands.insert("use_parallel".to_string());
-        known_commands.insert("quirks_mode".to_string());
+        known_commands.insert("re-optimize".to_string());
+        known_commands.insert("set-disk-based".to_string());
+        known_commands.insert("set-parallel-search".to_string());
+        known_commands.insert("set-quirks-mode".to_string());
         known_commands.insert("info".to_string());
 
         known_commands.insert("quit".to_string());
@@ -123,6 +124,7 @@ struct AnnisRunner {
     use_parallel_joins: bool,
     use_disk: bool,
     query_language: QueryLanguage,
+    timeout: Option<Duration>,
 }
 
 impl AnnisRunner {
@@ -136,6 +138,7 @@ impl AnnisRunner {
             query_language: QueryLanguage::AQL,
             offset: 0,
             limit: None,
+            timeout: None,
         })
     }
 
@@ -200,15 +203,16 @@ impl AnnisRunner {
                 "corpus" => self.corpus(&args),
                 "set-offset" => self.set_offset(&args),
                 "set-limit" => self.set_limit(&args),
+                "set-timeout" => self.set_timeout(&args),
                 "preload" => self.preload(),
-                "update_statistics" => self.update_statistics(),
                 "plan" => self.plan(&args),
+                "re-optimize" => self.reoptimize(),
                 "count" => self.count(&args),
                 "find" => self.find(&args),
                 "frequency" => self.frequency(&args),
-                "use_parallel" => self.use_parallel(&args),
-                "use_disk" => self.use_disk(&args),
-                "quirks_mode" => self.quirks_mode(&args),
+                "set-parallel-search" => self.use_parallel(&args),
+                "set-disk-based" => self.use_disk(&args),
+                "set-quirks-mode" => self.quirks_mode(&args),
                 "info" => self.info(&args),
                 "quit" | "exit" => return false,
                 _ => Err(anyhow!("unknown command \"{}\"", cmd)),
@@ -322,6 +326,17 @@ impl AnnisRunner {
         Ok(())
     }
 
+    fn reoptimize(&self) -> Result<()> {
+        for corpus in self.current_corpus.iter() {
+            self.storage
+                .as_ref()
+                .ok_or_else(|| anyhow!("No corpus storage location set"))?
+                .reoptimize_implementation(corpus, self.use_disk)?
+        }
+
+        Ok(())
+    }
+
     fn list(&self) -> Result<()> {
         let mut corpora = self
             .storage
@@ -370,7 +385,7 @@ impl AnnisRunner {
                 .as_ref()
                 .ok_or_else(|| anyhow!("No corpus storage location set"))?
                 .list()?;
-            let corpora = BTreeSet::from_iter(corpora.into_iter().map(|c| c.name));
+            let corpora: BTreeSet<_> = corpora.into_iter().map(|c| c.name).collect();
             let selected = args.split_ascii_whitespace();
             self.current_corpus = Vec::new();
             for s in selected {
@@ -398,6 +413,18 @@ impl AnnisRunner {
             self.limit = None;
         } else {
             self.limit = Some(usize::from_str_radix(args.trim(), 10)?);
+        }
+        Ok(())
+    }
+
+    fn set_timeout(&mut self, args: &str) -> Result<()> {
+        if args.is_empty() {
+            self.timeout = None;
+            println!("Timeout disabled");
+        } else {
+            let seconds = u64::from_str_radix(args.trim(), 10)?;
+            println!("Timeout set to {} seconds", seconds);
+            self.timeout = Some(Duration::from_secs(seconds));
         }
         Ok(())
     }
@@ -441,26 +468,6 @@ impl AnnisRunner {
         Ok(())
     }
 
-    fn update_statistics(&mut self) -> Result<()> {
-        if self.current_corpus.is_empty() {
-            println!("You need to select a corpus first with the \"corpus\" command");
-        } else {
-            for corpus in self.current_corpus.iter() {
-                let t_before = std::time::SystemTime::now();
-                self.storage
-                    .as_ref()
-                    .ok_or_else(|| anyhow!("No corpus storage location set"))?
-                    .update_statistics(corpus)?;
-                let load_time = t_before.elapsed();
-                if let Ok(t) = load_time {
-                    info! {"Updated statistics for corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
-                }
-            }
-        }
-
-        Ok(())
-    }
-
     fn plan(&self, args: &str) -> Result<()> {
         if self.current_corpus.is_empty() {
             println!("You need to select a corpus first with the \"corpus\" command");
@@ -481,6 +488,15 @@ impl AnnisRunner {
         Ok(())
     }
 
+    fn create_query_from_args<'a>(&'a self, query: &'a str) -> SearchQuery<'a, String> {
+        SearchQuery {
+            corpus_names: &self.current_corpus,
+            query_language: self.query_language,
+            timeout: self.timeout,
+            query,
+        }
+    }
+
     fn count(&self, args: &str) -> Result<()> {
         if self.current_corpus.is_empty() {
             println!("You need to select a corpus first with the \"corpus\" command");
@@ -490,12 +506,15 @@ impl AnnisRunner {
                 .storage
                 .as_ref()
                 .ok_or_else(|| anyhow!("No corpus storage location set"))?
-                .count(&self.current_corpus, args, self.query_language)?;
+                .count_extra(self.create_query_from_args(args))?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
-            println!("result: {} matches", c);
+            println!(
+                "result: {} matches in {} documents",
+                c.match_count, c.document_count
+            );
         }
         Ok(())
     }
@@ -510,9 +529,7 @@ impl AnnisRunner {
                 .as_ref()
                 .ok_or_else(|| anyhow!("No corpus storage location set"))?
                 .find(
-                    &self.current_corpus[..],
-                    args,
-                    self.query_language,
+                    self.create_query_from_args(args),
                     self.offset,
                     self.limit,
                     ResultOrder::Normal,
@@ -557,12 +574,7 @@ impl AnnisRunner {
                 .storage
                 .as_ref()
                 .ok_or_else(|| anyhow!("No corpus storage location set"))?
-                .frequency(
-                    &self.current_corpus,
-                    splitted_arg[1],
-                    self.query_language,
-                    table_def,
-                )?;
+                .frequency(self.create_query_from_args(splitted_arg[1]), table_def)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info! {"Executed query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -678,6 +690,7 @@ fn main() {
                 .short("c")
                 .long("cmd")
                 .help("Executes command")
+                .multiple(true)
                 .takes_value(true),
         )
         .arg(
@@ -718,9 +731,11 @@ fn main() {
     let runner_result = AnnisRunner::new(&dir);
     match runner_result {
         Ok(mut runner) => {
-            if let Some(cmd) = matches.value_of("cmd") {
-                // execute command directly
-                runner.exec(cmd);
+            if let Some(commands) = matches.values_of("cmd") {
+                // execute commands directly
+                for single_command in commands {
+                    runner.exec(single_command);
+                }
             } else {
                 runner.start_loop();
             }

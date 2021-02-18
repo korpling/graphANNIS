@@ -1,4 +1,3 @@
-use crate::annis::db;
 use crate::annis::db::aql;
 use crate::annis::db::aql::operators;
 use crate::annis::db::aql::operators::RangeSpec;
@@ -17,14 +16,16 @@ use crate::annis::types::{
     CorpusConfiguration, FrequencyTable, FrequencyTableRow, QueryAttributeDescription,
 };
 use crate::annis::util::quicksort;
+use crate::annis::{db, util::TimeoutCheck};
 use crate::{
     graph::Match,
     malloc_size_of::{MallocSizeOf, MallocSizeOfOps},
     AnnotationGraph,
 };
+use fmt::Display;
 use fs2::FileExt;
 use graphannis_core::{
-    annostorage::ValueSearch,
+    annostorage::{MatchGroup, ValueSearch},
     graph::{
         storage::GraphStatistic, update::GraphUpdate, ANNIS_NS, NODE_NAME, NODE_NAME_KEY, NODE_TYPE,
     },
@@ -32,18 +33,18 @@ use graphannis_core::{
     util::memory_estimation,
 };
 use linked_hash_map::LinkedHashMap;
-use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
-use std::borrow::Cow;
+use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, CONTROLS};
+use smartstring::alias::String as SmartString;
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
-use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::{Arc, Condvar, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::thread;
+use std::{borrow::Cow, time::Duration};
 
 use rustc_hash::FxHashMap;
 
@@ -53,12 +54,13 @@ use std::{
     io::{BufReader, Write},
 };
 
-use anyhow::{Context, Error};
 use aql::model::AnnotationComponentType;
 use db::AnnotationStorage;
 
 #[cfg(test)]
 mod tests;
+
+const MAX_VECTOR_RESERVATION: usize = 10_000_000;
 
 enum CacheEntry {
     Loaded(AnnotationGraph),
@@ -219,14 +221,11 @@ pub struct FrequencyDefEntry {
 }
 
 impl FromStr for FrequencyDefEntry {
-    type Err = Error;
+    type Err = GraphAnnisError;
     fn from_str(s: &str) -> std::result::Result<FrequencyDefEntry, Self::Err> {
         let splitted: Vec<&str> = s.splitn(2, ':').collect();
         if splitted.len() != 2 {
-            bail!(
-                "Frequency definition must consists of two parts: \
-                 the referenced node and the annotation name or \"tok\" separated by \":\""
-            );
+            return Err(GraphAnnisError::InvalidFrequencyDefinition);
         }
         let node_ref = splitted[0];
         let anno_key = graphannis_core::util::split_qname(splitted[1]);
@@ -282,8 +281,9 @@ pub enum ExportFormat {
 }
 
 /// Different strategies how it is decided when corpora need to be removed from the cache.
+#[derive(Debug, Deserialize, Clone)]
 pub enum CacheStrategy {
-    /// Fixed maximum size of the cache in bytes.
+    /// Fixed maximum size of the cache in Megabytes.
     /// Before and after a new entry is loaded, the cache is cleared to have at maximum this given size.
     /// The loaded entry is always added to the cache, even if the single corpus is larger than the maximum size.
     FixedMaxMemory(usize),
@@ -294,7 +294,23 @@ pub enum CacheStrategy {
     PercentOfFreeMemory(f64),
 }
 
+impl Display for CacheStrategy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CacheStrategy::FixedMaxMemory(megabytes) => write!(f, "{} MB", megabytes),
+            CacheStrategy::PercentOfFreeMemory(percent) => write!(f, "{}%", percent),
+        }
+    }
+}
+
+impl Default for CacheStrategy {
+    fn default() -> Self {
+        CacheStrategy::PercentOfFreeMemory(25.0)
+    }
+}
+
 pub const SALT_URI_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b':').add(b'%');
+const QUIRKS_SALT_URI_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'%');
 pub const PATH_SEGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
     .add(b'"')
@@ -307,6 +323,19 @@ pub const PATH_SEGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b'}')
     .add(b'%')
     .add(b'/');
+
+/// Common arguments to all search queries.
+#[derive(Debug, Clone)]
+pub struct SearchQuery<'a, S: AsRef<str>> {
+    /// The name of the corpora to execute the query on.
+    pub corpus_names: &'a [S],
+    /// The query as string.
+    pub query: &'a str,
+    ///  The query language of the query (e.g. AQL).
+    pub query_language: QueryLanguage,
+    /// If not `None`, the query will be aborted after running for the given amount of time.
+    pub timeout: Option<Duration>,
+}
 
 /// A thread-safe API for managing corpora stored in a common location on the file system.
 ///
@@ -419,7 +448,19 @@ fn add_subgraph_precedence_with_segmentation(
     Ok(())
 }
 
-type FindIterator<'a> = Box<dyn Iterator<Item = Vec<Match>> + 'a>;
+/// Creates a new vector with the capacity to hold the expected number of items, but make sure the
+/// capacity is memory aligned with the page size (only full pages are allocated).
+fn new_vector_with_memory_aligned_capacity<T>(expected_len: usize) -> Vec<T> {
+    let page_size = page_size::get();
+    // Make sure the capacity is a multiple of the page size to avoid memory fragmentation
+    let expected_memory_size = std::mem::size_of::<T>() * expected_len;
+    let aligned_memory_size =
+        expected_memory_size + (page_size - (expected_memory_size % page_size));
+
+    Vec::with_capacity(aligned_memory_size / std::mem::size_of::<T>())
+}
+
+type FindIterator<'a> = Box<dyn Iterator<Item = MatchGroup> + 'a>;
 
 impl CorpusStorage {
     /// Create a new instance with a maximum size for the internal corpus cache.
@@ -498,28 +539,30 @@ impl CorpusStorage {
 
     fn list_from_disk(&self) -> Result<Vec<String>> {
         let mut corpora: Vec<String> = Vec::new();
-        let directories = self.db_dir.read_dir().with_context(|| {
-            format!(
-                "Listing directories from {} failed",
-                self.db_dir.to_string_lossy()
-            )
-        })?;
+        let directories =
+            self.db_dir
+                .read_dir()
+                .map_err(|e| CorpusStorageError::ListingDirectories {
+                    source: e,
+                    path: self.db_dir.to_string_lossy().to_string(),
+                })?;
         for c_dir in directories {
-            let c_dir = c_dir.with_context(|| {
-                format!(
-                    "Could not get directory entry of folder {}",
-                    self.db_dir.to_string_lossy()
-                )
+            let c_dir = c_dir.map_err(|e| CorpusStorageError::DirectoryEntry {
+                source: e,
+                path: self.db_dir.to_string_lossy().to_string(),
             })?;
-            let ftype = c_dir.file_type().with_context(|| {
-                format!(
-                    "Could not determine file type for {}",
-                    c_dir.path().to_string_lossy()
-                )
-            })?;
+            let ftype = c_dir
+                .file_type()
+                .map_err(|e| CorpusStorageError::FileTypeDetection {
+                    source: e,
+                    path: self.db_dir.to_string_lossy().to_string(),
+                })?;
             if ftype.is_dir() {
-                let corpus_name = c_dir.file_name().to_string_lossy().to_string();
-                corpora.push(corpus_name.clone());
+                let directory_name = c_dir.file_name();
+                let corpus_name = directory_name.to_string_lossy();
+                // Use the decoded corpus name instead of the directory name
+                let corpus_name = percent_decode_str(&corpus_name);
+                corpora.push(corpus_name.decode_utf8_lossy().to_string());
             }
         }
         Ok(corpora)
@@ -547,11 +590,9 @@ impl CorpusStorage {
         // Read configuration file or create a default one
         let config: CorpusConfiguration = self
             .get_corpus_config(corpus_name)
-            .with_context(|| {
-                format!(
-                    "Loading corpus-config.toml for corpus {} failed",
-                    corpus_name
-                )
+            .map_err(|e| CorpusStorageError::LoadingCorpusConfig {
+                corpus: corpus_name.to_string(),
+                source: Box::new(e),
             })?
             .unwrap_or_default();
 
@@ -653,11 +694,11 @@ impl CorpusStorage {
         } else if create_if_missing {
             true
         } else {
-            return Err(GraphAnnisError::NoSuchCorpus(corpus_name.to_string()).into());
+            return Err(GraphAnnisError::NoSuchCorpus(corpus_name.to_string()));
         };
 
         // make sure the cache is not too large before adding the new corpus
-        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![]);
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![], false);
 
         let db = if create_corpus {
             // create the default graph storages that are assumed to exist in every corpus
@@ -665,7 +706,10 @@ impl CorpusStorage {
 
             // save corpus to the path where it should be stored
             db.persist_to(&db_path)
-                .with_context(|| format!("Could not create corpus with name {}", corpus_name))?;
+                .map_err(|e| CorpusStorageError::CreateCorpus {
+                    corpus: corpus_name.to_string(),
+                    source: e,
+                })?;
             db
         } else {
             let mut db = AnnotationGraph::new(false)?;
@@ -677,8 +721,13 @@ impl CorpusStorage {
         // first remove entry, than add it: this ensures it is at the end of the linked hash map
         cache.remove(corpus_name);
         cache.insert(String::from(corpus_name), entry.clone());
-
-        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![corpus_name]);
+        info!("Loaded corpus {}", corpus_name,);
+        check_cache_size_and_remove_with_cache(
+            cache,
+            &self.cache_strategy,
+            vec![corpus_name],
+            true,
+        );
 
         Ok(entry)
     }
@@ -693,10 +742,7 @@ impl CorpusStorage {
         // check if basics (node annotation, strings) of the database are loaded
         let loaded = {
             let lock = cache_entry.read().unwrap();
-            match &*lock {
-                CacheEntry::Loaded(_) => true,
-                _ => false,
-            }
+            matches!(&*lock, CacheEntry::Loaded(_))
         };
 
         if loaded {
@@ -889,7 +935,7 @@ impl CorpusStorage {
             ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
                 progress_callback(status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
-                self.check_cache_size_and_remove(vec![]);
+                self.check_cache_size_and_remove(vec![], false);
             })?,
             ImportFormat::GraphML => {
                 let orig_corpus_name = if let Some(file_name) = path.file_stem() {
@@ -904,7 +950,7 @@ impl CorpusStorage {
                     |status| {
                         progress_callback(status);
                         // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
-                        self.check_cache_size_and_remove(vec![]);
+                        self.check_cache_size_and_remove(vec![], false);
                     },
                 )?;
                 let config = if let Some(config_str) = config_str {
@@ -912,7 +958,7 @@ impl CorpusStorage {
                 } else {
                     CorpusConfiguration::default()
                 };
-                (orig_corpus_name, g, config)
+                (orig_corpus_name.into(), g, config)
             }
         };
 
@@ -924,7 +970,7 @@ impl CorpusStorage {
             );
         }
 
-        let corpus_name = corpus_name.unwrap_or(orig_name);
+        let corpus_name = corpus_name.unwrap_or_else(|| orig_name.into());
         let escaped_corpus_name: Cow<str> =
             utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
 
@@ -935,7 +981,7 @@ impl CorpusStorage {
         let cache = &mut *cache_lock;
 
         // make sure the cache is not too large before adding the new corpus
-        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![]);
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![], false);
 
         // remove any possible old corpus
         if cache.contains_key(&corpus_name) {
@@ -947,7 +993,7 @@ impl CorpusStorage {
                     }
                 }
             } else {
-                return Err(GraphAnnisError::CorpusExists(corpus_name.to_string()).into());
+                return Err(GraphAnnisError::CorpusExists(corpus_name.to_string()));
             }
         }
 
@@ -994,7 +1040,12 @@ impl CorpusStorage {
             corpus_name.clone(),
             Arc::new(RwLock::new(CacheEntry::Loaded(graph))),
         );
-        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![&corpus_name]);
+        check_cache_size_and_remove_with_cache(
+            cache,
+            &self.cache_strategy,
+            vec![&corpus_name],
+            true,
+        );
 
         Ok(corpus_name)
     }
@@ -1006,8 +1057,8 @@ impl CorpusStorage {
         graph: &mut AnnotationGraph,
     ) -> Result<()> {
         let linked_file_key = AnnoKey {
-            ns: ANNIS_NS.to_string(),
-            name: "file".to_string(),
+            ns: ANNIS_NS.into(),
+            name: "file".into(),
         };
         // Find all nodes of the type "file"
         let node_annos: &mut dyn AnnotationStorage<NodeID> = graph.get_node_annos_mut();
@@ -1036,7 +1087,7 @@ impl CorpusStorage {
                             node,
                             Annotation {
                                 key: linked_file_key.clone(),
-                                val: relative_path.to_string_lossy().to_string(),
+                                val: relative_path.to_string_lossy().into(),
                             },
                         )?;
                     }
@@ -1054,8 +1105,8 @@ impl CorpusStorage {
         graph: &'a AnnotationGraph,
     ) -> Result<impl Iterator<Item = (String, PathBuf)> + 'a> {
         let linked_file_key = AnnoKey {
-            ns: ANNIS_NS.to_string(),
-            name: "file".to_string(),
+            ns: ANNIS_NS.into(),
+            name: "file".into(),
         };
 
         let base_path = self.db_dir.join(corpus_name).join("files").canonicalize()?;
@@ -1209,10 +1260,10 @@ impl CorpusStorage {
                 if corpora.len() == 1 {
                     self.export_corpus_graphml(corpora[0].as_ref(), path)?;
                 } else {
-                    return Err(anyhow!(
-                        "This format can only export one corpus but {} have been given as argument",
-                        corpora.len()
-                    ));
+                    return Err(CorpusStorageError::MultipleCorporaForSingleCorpusFormat(
+                        corpora.len(),
+                    )
+                    .into());
                 }
             }
             ExportFormat::GraphMLDirectory => {
@@ -1272,7 +1323,12 @@ impl CorpusStorage {
             let mut _lock = db_entry.write().unwrap();
 
             if db_path.is_dir() && db_path.exists() {
-                std::fs::remove_dir_all(db_path).context("Error when removing existing files")?
+                std::fs::remove_dir_all(db_path).map_err(|e| {
+                    CorpusStorageError::RemoveFileForCorpus {
+                        corpus: corpus_name.to_string(),
+                        source: e,
+                    }
+                })?
             }
 
             Ok(true)
@@ -1285,9 +1341,7 @@ impl CorpusStorage {
     ///
     /// It is ensured that the update process is atomic and that the changes are persisted to disk if the result is `Ok`.
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<()> {
-        let db_entry = self
-            .get_loaded_entry(corpus_name, true)
-            .with_context(|| format!("Could not get loaded entry for corpus {}", corpus_name))?;
+        let db_entry = self.get_loaded_entry(corpus_name, true)?;
         {
             let mut lock = db_entry.write().unwrap();
             let db: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
@@ -1346,7 +1400,7 @@ impl CorpusStorage {
 
             let necessary_components = q.necessary_components(db);
 
-            let mut missing: HashSet<_> = HashSet::from_iter(necessary_components.iter().cloned());
+            let mut missing: HashSet<_> = necessary_components.iter().cloned().collect();
 
             let additional_components = additional_components_callback(db);
 
@@ -1372,7 +1426,7 @@ impl CorpusStorage {
                     db.ensure_loaded(&c)?;
                 }
             }
-            self.check_cache_size_and_remove(vec![corpus_name]);
+            self.check_cache_size_and_remove(vec![corpus_name], true);
         };
 
         Ok(PreparationResult { query: q, db_entry })
@@ -1386,7 +1440,7 @@ impl CorpusStorage {
             let db = get_write_or_error(&mut lock)?;
             db.ensure_loaded_all()?;
         }
-        self.check_cache_size_and_remove(vec![corpus_name]);
+        self.check_cache_size_and_remove(vec![corpus_name], true);
         Ok(())
     }
 
@@ -1397,19 +1451,16 @@ impl CorpusStorage {
         cache.remove(corpus_name);
     }
 
-    /// Update the graph and annotation statistics for a corpus given by `corpus_name`.
-    pub fn update_statistics(&self, corpus_name: &str) -> Result<()> {
-        let db_entry = self.get_loaded_entry(corpus_name, false)?;
-        let mut lock = db_entry.write().unwrap();
-        let db: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
+    /// Optimize the node annotation and graph storage implementations of the given corpus.
+    /// - `corpus_name` - The corpus name to optimize.
+    /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
+    #[doc(hidden)]
+    pub fn reoptimize_implementation(&self, corpus_name: &str, disk_based: bool) -> Result<()> {
+        let graph_entry = self.get_loaded_entry(corpus_name, false)?;
+        let mut lock = graph_entry.write().unwrap();
+        let graph: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
 
-        db.get_node_annos_mut().calculate_statistics();
-        for c in db.get_all_components(None, None) {
-            db.calculate_component_statistics(&c)?;
-        }
-
-        // TODO: persist changes
-
+        graph.optimize_impl(disk_based)?;
         Ok(())
     }
 
@@ -1463,28 +1514,29 @@ impl CorpusStorage {
     }
 
     /// Count the number of results for a `query`.
-    /// - `corpus_names` - The name of the corpora to execute the query on.
-    /// - `query` - The query as string.
-    /// - `query_language` The query language of the query (e.g. AQL).
-    ///
+    /// - `query` - The search query definition.
     /// Returns the count as number.
-    pub fn count<S: AsRef<str>>(
-        &self,
-        corpus_names: &[S],
-        query: &str,
-        query_language: QueryLanguage,
-    ) -> Result<u64> {
+    pub fn count<S: AsRef<str>>(&self, query: SearchQuery<S>) -> Result<u64> {
+        let timeout = TimeoutCheck::new(query.timeout);
         let mut total_count: u64 = 0;
 
-        for cn in corpus_names {
-            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
+        for cn in query.corpus_names {
+            let prep =
+                self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
 
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
             let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
-            total_count += plan.count() as u64;
+            for _ in plan {
+                total_count += 1;
+                if total_count % 1_000 == 0 {
+                    timeout.check()?;
+                }
+            }
+
+            timeout.check()?;
         }
 
         Ok(total_count)
@@ -1492,29 +1544,25 @@ impl CorpusStorage {
 
     /// Count the number of results for a `query` and return both the total number of matches and also the number of documents in the result set.
     ///
-    /// - `corpus_names` - The name of the corpora to execute the query on.
-    /// - `query` - The query as string.
-    /// - `query_language` The query language of the query (e.g. AQL).
-    pub fn count_extra<S: AsRef<str>>(
-        &self,
-        corpus_names: &[S],
-        query: &str,
-        query_language: QueryLanguage,
-    ) -> Result<CountExtra> {
+    /// - `query` - The search query definition.
+    pub fn count_extra<S: AsRef<str>>(&self, query: SearchQuery<S>) -> Result<CountExtra> {
+        let timeout = TimeoutCheck::new(query.timeout);
+
         let mut match_count: u64 = 0;
         let mut document_count: u64 = 0;
 
-        for cn in corpus_names {
-            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
+        for cn in query.corpus_names {
+            let prep =
+                self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
 
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read().unwrap();
             let db: &AnnotationGraph = get_read_or_error(&lock)?;
             let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
-            let mut known_documents = HashSet::new();
+            let mut known_documents: HashSet<SmartString> = HashSet::new();
 
-            let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
+            for m in plan {
                 if !m.is_empty() {
                     let m: &Match = &m[0];
                     if let Some(node_name) = db
@@ -1525,14 +1573,18 @@ impl CorpusStorage {
                         // extract the document path from the node name
                         let doc_path =
                             &node_name[0..node_name.rfind('#').unwrap_or_else(|| node_name.len())];
-                        known_documents.insert(doc_path.to_owned());
+                        known_documents.insert(doc_path.into());
                     }
                 }
-                (acc.0 + 1, known_documents.len())
-            });
+                match_count += 1;
 
-            match_count += result.0;
-            document_count += result.1 as u64;
+                if match_count % 1_000 == 0 {
+                    timeout.check()?;
+                }
+            }
+            document_count += known_documents.len() as u64;
+
+            timeout.check()?;
         }
 
         Ok(CountExtra {
@@ -1587,7 +1639,10 @@ impl CorpusStorage {
             Box::from(plan)
         } else {
             let estimated_result_size = plan.estimated_output_size();
-            let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(estimated_result_size);
+            // Estimations can be wrong on the upper limit, so limit the maximal reserved vector size
+            let expected_len = std::cmp::min(estimated_result_size, MAX_VECTOR_RESERVATION);
+            let mut tmp_results: Vec<MatchGroup> =
+                new_vector_with_memory_aligned_capacity(expected_len);
 
             for mgroup in plan {
                 // add all matches to temporary vector
@@ -1602,8 +1657,8 @@ impl CorpusStorage {
                 let token_helper = TokenHelper::new(db);
                 let component_order = Component::new(
                     AnnotationComponentType::Ordering,
-                    ANNIS_NS.to_owned(),
-                    "".to_owned(),
+                    ANNIS_NS.into(),
+                    "".into(),
                 );
 
                 let collation = if quirks_mode && !relannis_version_33 {
@@ -1613,7 +1668,7 @@ impl CorpusStorage {
                 };
 
                 let gs_order = db.get_graphstorage_as_ref(&component_order);
-                let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
+                let order_func = |m1: &MatchGroup, m2: &MatchGroup| -> std::cmp::Ordering {
                     if order == ResultOrder::Inverted {
                         db::sort_matches::compare_matchgroup_by_text_pos(
                             m1,
@@ -1659,20 +1714,20 @@ impl CorpusStorage {
         Ok((base_it, expected_size))
     }
 
-    fn find_in_single_corpus(
+    fn find_in_single_corpus<S: AsRef<str>>(
         &self,
+        query: &SearchQuery<S>,
         corpus_name: &str,
-        query: &str,
-        query_language: QueryLanguage,
         offset: usize,
         limit: Option<usize>,
         order: ResultOrder,
+        timeout: TimeoutCheck,
     ) -> Result<(Vec<String>, usize)> {
-        let prep = self.prepare_query(corpus_name, query, query_language, |db| {
+        let prep = self.prepare_query(corpus_name, query.query, query.query_language, |db| {
             let mut additional_components = vec![Component::new(
                 AnnotationComponentType::Ordering,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             )];
             if order == ResultOrder::Normal || order == ResultOrder::Inverted {
                 for c in token_helper::necessary_components(db) {
@@ -1686,7 +1741,7 @@ impl CorpusStorage {
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
 
-        let quirks_mode = match query_language {
+        let quirks_mode = match query.query_language {
             QueryLanguage::AQL => false,
             QueryLanguage::AQLQuirksV3 => true,
         };
@@ -1700,24 +1755,32 @@ impl CorpusStorage {
             quirks_mode,
         )?;
 
-        let mut results: Vec<String> =
-            if let (Some(expected_size), Some(limit)) = (expected_size, limit) {
-                Vec::with_capacity(std::cmp::min(expected_size, limit))
-            } else {
-                Vec::new()
-            };
+        let mut results: Vec<String> = if let Some(expected_size) = expected_size {
+            new_vector_with_memory_aligned_capacity(expected_size)
+        } else if let Some(limit) = limit {
+            new_vector_with_memory_aligned_capacity(limit)
+        } else {
+            Vec::new()
+        };
+
         // skip the first entries
         let mut skipped = 0;
         while skipped < offset && base_it.next().is_some() {
             skipped += 1;
+
+            if skipped % 1_000 == 0 {
+                timeout.check()?;
+            }
         }
-        let base_it: Box<dyn Iterator<Item = Vec<Match>>> = if let Some(limit) = limit {
+        let base_it: Box<dyn Iterator<Item = MatchGroup>> = if let Some(limit) = limit {
             Box::new(base_it.take(limit))
         } else {
             Box::new(base_it)
         };
-        results.extend(base_it.map(|m: Vec<Match>| {
-            let mut match_desc: Vec<String> = Vec::new();
+
+        for (match_nr, m) in base_it.enumerate() {
+            let mut match_desc = String::new();
+
             for (i, singlematch) in m.iter().enumerate() {
                 // check if query node actually should be included in quirks mode
                 let include_in_output = if quirks_mode {
@@ -1731,7 +1794,10 @@ impl CorpusStorage {
                 };
 
                 if include_in_output {
-                    let mut node_desc = String::new();
+                    if i > 0 {
+                        match_desc.push(' ');
+                    }
+
                     let singlematch_anno_key = &singlematch.anno_key;
                     if singlematch_anno_key.ns != ANNIS_NS || singlematch_anno_key.name != NODE_TYPE
                     {
@@ -1739,30 +1805,39 @@ impl CorpusStorage {
                             let encoded_anno_ns: Cow<str> =
                                 utf8_percent_encode(&singlematch_anno_key.ns, SALT_URI_ENCODE_SET)
                                     .into();
-                            node_desc.push_str(&encoded_anno_ns);
-                            node_desc.push_str("::");
+                            match_desc.push_str(&encoded_anno_ns);
+                            match_desc.push_str("::");
                         }
                         let encoded_anno_name: Cow<str> =
                             utf8_percent_encode(&singlematch_anno_key.name, SALT_URI_ENCODE_SET)
                                 .into();
-                        node_desc.push_str(&encoded_anno_name);
-                        node_desc.push_str("::");
+                        match_desc.push_str(&encoded_anno_name);
+                        match_desc.push_str("::");
                     }
 
                     if let Some(name) = db
                         .get_node_annos()
                         .get_value_for_item(&singlematch.node, &NODE_NAME_KEY)
                     {
-                        node_desc.push_str(&name);
+                        if quirks_mode {
+                            // Unescape and re-escape with quirks-mode compatible character encoding set
+                            let decoded_name =
+                                percent_encoding::percent_decode_str(&name).decode_utf8_lossy();
+                            let re_encoded_name: Cow<str> =
+                                utf8_percent_encode(&decoded_name, QUIRKS_SALT_URI_ENCODE_SET)
+                                    .into();
+                            match_desc.push_str(&re_encoded_name);
+                        } else {
+                            match_desc.push_str(&name);
+                        }
                     }
-
-                    match_desc.push(node_desc);
                 }
             }
-            let mut result = String::new();
-            result.push_str(&match_desc.join(" "));
-            result
-        }));
+            results.push(match_desc);
+            if match_nr % 1_000 == 0 {
+                timeout.check()?;
+            }
+        }
 
         Ok((results, skipped))
     }
@@ -1771,9 +1846,7 @@ impl CorpusStorage {
     ///
     /// The query is paginated and an offset and limit can be specified.
     ///
-    /// - `corpus_names` - The name of the corpora to execute the query on.
-    /// - `query` - The query as string.
-    /// - `query_language` The query language of the query (e.g. AQL).
+    /// - `query` - The search query definition.
     /// - `offset` - Skip the `n` first results, where `n` is the offset.
     /// - `limit` - Return at most `n` matches, where `n` is the limit.  Use `None` to allow unlimited result sizes.
     /// - `order` - Specify the order of the matches.
@@ -1782,65 +1855,84 @@ impl CorpusStorage {
     /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
     pub fn find<S: AsRef<str>>(
         &self,
-        corpus_names: &[S],
-        query: &str,
-        query_language: QueryLanguage,
+        query: SearchQuery<S>,
         offset: usize,
         limit: Option<usize>,
         order: ResultOrder,
     ) -> Result<Vec<String>> {
-        let mut result = Vec::new();
+        let timeout = TimeoutCheck::new(query.timeout);
 
         // Sort corpus names
-        let mut corpus_names: Vec<String> = corpus_names
+        let mut corpus_names: Vec<SmartString> = query
+            .corpus_names
             .iter()
-            .map(|c| String::from(c.as_ref()))
+            .map(|c| c.as_ref().into())
             .collect();
-        if order == ResultOrder::Randomized {
-            // This is still oddly ordered, because results from one corpus will always be grouped together.
-            // But it still better than just output the same corpus first.
-            let mut rng = rand::thread_rng();
-            corpus_names.shuffle(&mut rng);
-        } else if order == ResultOrder::Inverted {
-            corpus_names.sort();
-            corpus_names.reverse();
-        } else {
-            corpus_names.sort();
-        }
 
-        // initialize the limit/offset values for the first corpus
-        let mut offset = offset;
-        let mut limit = limit;
-        for cn in corpus_names {
-            let (single_result, skipped) = self.find_in_single_corpus(
-                cn.as_ref(),
-                query,
-                query_language,
-                offset,
-                limit,
-                order,
-            )?;
-
-            // Adjust limit and offset according to the found matches for the next corpus.
-            let single_result_length = single_result.len();
-            result.extend(single_result.into_iter());
-
-            if let Some(current_limit) = limit {
-                if current_limit <= single_result_length {
-                    // Searching in this corpus already yielded enough results
-                    break;
+        match corpus_names.len() {
+            0 => Ok(Vec::new()),
+            1 => self
+                .find_in_single_corpus(
+                    &query,
+                    corpus_names[0].as_str(),
+                    offset,
+                    limit,
+                    order,
+                    timeout,
+                )
+                .map(|r| r.0),
+            _ => {
+                if order == ResultOrder::Randomized {
+                    // This is still oddly ordered, because results from one corpus will always be grouped together.
+                    // But it still better than just output the same corpus first.
+                    let mut rng = rand::thread_rng();
+                    corpus_names.shuffle(&mut rng);
+                } else if order == ResultOrder::Inverted {
+                    corpus_names.sort();
+                    corpus_names.reverse();
                 } else {
-                    // Adjust the limit for the next corpora to the already found results so-far
-                    limit = Some(current_limit - single_result_length);
+                    corpus_names.sort();
                 }
-            }
-            if skipped < offset {
-                offset -= skipped;
-            } else {
-                offset = 0;
+
+                // initialize the limit/offset values for the first corpus
+                let mut offset = offset;
+                let mut limit = limit;
+
+                let mut result = Vec::new();
+                for cn in corpus_names {
+                    let (single_result, skipped) = self.find_in_single_corpus(
+                        &query,
+                        cn.as_ref(),
+                        offset,
+                        limit,
+                        order,
+                        timeout,
+                    )?;
+
+                    // Adjust limit and offset according to the found matches for the next corpus.
+                    let single_result_length = single_result.len();
+                    result.extend(single_result.into_iter());
+
+                    if let Some(current_limit) = limit {
+                        if current_limit <= single_result_length {
+                            // Searching in this corpus already yielded enough results
+                            break;
+                        } else {
+                            // Adjust the limit for the next corpora to the already found results so-far
+                            limit = Some(current_limit - single_result_length);
+                        }
+                    }
+                    if skipped < offset {
+                        offset -= skipped;
+                    } else {
+                        offset = 0;
+                    }
+
+                    timeout.check()?;
+                }
+                Ok(result)
             }
         }
-        Ok(result)
     }
 
     /// Return the copy of a subgraph which includes the given list of node annotation identifiers,
@@ -1867,12 +1959,10 @@ impl CorpusStorage {
 
         // find all nodes covering the same token
         for source_node_id in node_ids {
-            let source_node_id: &str = if source_node_id.starts_with("salt:/") {
-                // remove the obsolete "salt:/" prefix
-                &source_node_id[6..]
-            } else {
-                &source_node_id
-            };
+            // remove the obsolete "salt:/" prefix
+            let source_node_id: &str = source_node_id
+                .strip_prefix("salt:/")
+                .unwrap_or(&source_node_id);
 
             let m = NodeSearchSpec::ExactValue {
                 ns: Some(ANNIS_NS.to_string()),
@@ -1995,12 +2085,10 @@ impl CorpusStorage {
         };
         // find all nodes that a connected with the corpus IDs
         for source_corpus_id in corpus_ids {
-            let source_corpus_id: &str = if source_corpus_id.starts_with("salt:/") {
-                // remove the obsolete "salt:/" prefix
-                &source_corpus_id[6..]
-            } else {
-                &source_corpus_id
-            };
+            // remove the obsolete "salt:/" prefix
+            let source_corpus_id: &str = source_corpus_id
+                .strip_prefix("salt:/")
+                .unwrap_or(&source_corpus_id);
             // All annotation nodes
             {
                 let mut q = Conjunction::new();
@@ -2090,23 +2178,22 @@ impl CorpusStorage {
 
     /// Execute a frequency query.
     ///
-    /// - `corpus_names` - The name of the corpora to execute the query on.
-    /// - `query` - The query as string.
-    /// - `query_language` The query language of the query (e.g. AQL).
+    /// - `query` - The search query definition.
     /// - `definition` - A list of frequency query definitions.
     ///
     /// Returns a frequency table of strings.
     pub fn frequency<S: AsRef<str>>(
         &self,
-        corpus_names: &[S],
-        query: &str,
-        query_language: QueryLanguage,
+        query: SearchQuery<S>,
         definition: Vec<FrequencyDefEntry>,
     ) -> Result<FrequencyTable<String>> {
+        let timeout = TimeoutCheck::new(query.timeout);
+
         let mut tuple_frequency: FxHashMap<Vec<String>, usize> = FxHashMap::default();
 
-        for cn in corpus_names {
-            let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
+        for cn in query.corpus_names {
+            let prep =
+                self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
 
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read().unwrap();
@@ -2121,8 +2208,8 @@ impl CorpusStorage {
                         annokeys.push((
                             node_ref,
                             vec![AnnoKey {
-                                ns: ns.clone(),
-                                name: def.name.clone(),
+                                ns: ns.clone().into(),
+                                name: def.name.clone().into(),
                             }],
                         ));
                     } else {
@@ -2152,6 +2239,10 @@ impl CorpusStorage {
                 // add the tuple to the frequency count
                 let tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
                 *tuple_count += 1;
+
+                if *tuple_count % 1_000 == 0 {
+                    timeout.check()?;
+                }
             }
         }
 
@@ -2239,7 +2330,7 @@ impl CorpusStorage {
                             {
                                 result.push(Annotation {
                                     key: key.clone(),
-                                    val: val.to_string(),
+                                    val: val.into(),
                                 });
                             }
                         } else {
@@ -2247,14 +2338,14 @@ impl CorpusStorage {
                             for val in node_annos.get_all_values(&key, false) {
                                 result.push(Annotation {
                                     key: key.clone(),
-                                    val: val.to_string(),
+                                    val: val.into(),
                                 });
                             }
                         }
                     } else {
                         result.push(Annotation {
                             key: key.clone(),
-                            val: String::default(),
+                            val: SmartString::default(),
                         });
                     }
                 }
@@ -2292,7 +2383,7 @@ impl CorpusStorage {
                                 {
                                     result.push(Annotation {
                                         key: key.clone(),
-                                        val: val.to_string(),
+                                        val: val.into(),
                                     });
                                 }
                             } else {
@@ -2300,14 +2391,14 @@ impl CorpusStorage {
                                 for val in edge_annos.get_all_values(&key, false) {
                                     result.push(Annotation {
                                         key: key.clone(),
-                                        val: val.to_string(),
+                                        val: val.into(),
                                     });
                                 }
                             }
                         } else {
                             result.push(Annotation {
                                 key: key.clone(),
-                                val: String::new(),
+                                val: SmartString::new(),
                             });
                         }
                     }
@@ -2318,10 +2409,15 @@ impl CorpusStorage {
         result
     }
 
-    fn check_cache_size_and_remove(&self, keep: Vec<&str>) {
+    fn check_cache_size_and_remove(&self, keep: Vec<&str>, report_cache_status: bool) {
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
-        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, keep);
+        check_cache_size_and_remove_with_cache(
+            cache,
+            &self.cache_strategy,
+            keep,
+            report_cache_status,
+        );
     }
 }
 
@@ -2353,8 +2449,7 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a An
     } else {
         Err(GraphAnnisError::LoadingGraphFailed {
             name: "".to_string(),
-        }
-        .into())
+        })
     }
 }
 
@@ -2364,33 +2459,29 @@ fn get_write_or_error<'a>(
     if let CacheEntry::Loaded(ref mut db) = &mut **lock {
         Ok(db)
     } else {
-        Err(anyhow!("Could get loaded graph storage entry"))
+        Err(CorpusStorageError::CorpusCacheEntryNotLoaded.into())
     }
 }
 
-fn check_cache_size_and_remove_with_cache(
-    cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
-    cache_strategy: &CacheStrategy,
-    keep: Vec<&str>,
-) {
+fn get_cache_sizes(
+    cache: &LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
+) -> LinkedHashMap<String, usize> {
     let mut mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
 
-    let keep: HashSet<&str> = keep.into_iter().collect();
-
-    // check size of each corpus and calculate the sum of used memory
-    let mut size_sum: usize = 0;
     let mut db_sizes: LinkedHashMap<String, usize> = LinkedHashMap::new();
     for (corpus, db_entry) in cache.iter() {
         let lock = db_entry.read().unwrap();
         if let CacheEntry::Loaded(ref db) = &*lock {
             let s = db.size_of_cached(&mut mem_ops);
-            size_sum += s;
             db_sizes.insert(corpus.clone(), s);
         }
     }
+    db_sizes
+}
 
-    let max_cache_size: usize = match cache_strategy {
-        CacheStrategy::FixedMaxMemory(max_size) => *max_size,
+fn get_max_cache_size(cache_strategy: &CacheStrategy, used_cache_size: usize) -> usize {
+    match cache_strategy {
+        CacheStrategy::FixedMaxMemory(max_size) => *max_size * 1_000_000,
         CacheStrategy::PercentOfFreeMemory(max_percent) => {
             // get the current free space in main memory
             if let Ok(mem) = sys_info::mem_info() {
@@ -2398,19 +2489,34 @@ fn check_cache_size_and_remove_with_cache(
                 let free_system_mem: usize = mem.avail as usize * 1024; // mem.free is in KiB
                                                                         // A part of the system memory is already used by the cache.
                                                                         // We want x percent of the overall available memory (thus not used by us), so add the cache size
-                let available_memory: usize = free_system_mem + size_sum;
+                let available_memory: usize = free_system_mem + used_cache_size;
                 ((available_memory as f64) * (max_percent / 100.0)) as usize
             } else {
                 // fallback to include only the last loaded corpus if free memory size is unknown
                 0
             }
         }
-    };
+    }
+}
+
+fn check_cache_size_and_remove_with_cache(
+    cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
+    cache_strategy: &CacheStrategy,
+    keep: Vec<&str>,
+    report_cache_status: bool,
+) {
+    let keep: HashSet<&str> = keep.into_iter().collect();
+
+    // check size of each corpus and calculate the sum of used memory
+    let db_sizes = get_cache_sizes(cache);
+    let mut size_sum: usize = db_sizes.iter().map(|(_, s)| s).sum();
+
+    let max_cache_size: usize = get_max_cache_size(cache_strategy, size_sum);
 
     debug!(
         "Current cache size is {:.2} MB / max  {:.2} MB",
-        (size_sum as f64) / (1024.0 * 1024.0),
-        (max_cache_size as f64) / (1024.0 * 1024.0)
+        (size_sum as f64) / 1_000_000.0,
+        (max_cache_size as f64) / 1_000_000.0
     );
 
     // remove older entries (at the beginning) until cache size requirements are met,
@@ -2418,19 +2524,51 @@ fn check_cache_size_and_remove_with_cache(
     for (corpus_name, corpus_size) in db_sizes.iter() {
         if size_sum > max_cache_size {
             if !keep.contains(corpus_name.as_str()) {
-                info!("Removing corpus {} from cache", corpus_name);
                 cache.remove(corpus_name);
                 size_sum -= corpus_size;
                 debug!(
-                    "Current cache size is {:.2} MB / max  {:.2} MB",
-                    (size_sum as f64) / (1024.0 * 1024.0),
-                    (max_cache_size as f64) / (1024.0 * 1024.0)
+                    "Removing corpus {} from cache. {}",
+                    corpus_name,
+                    get_corpus_cache_info_as_string(cache, max_cache_size),
                 );
             }
         } else {
             // cache size is smaller, nothing to do
             break;
         }
+    }
+
+    if report_cache_status {
+        info!("{}", get_corpus_cache_info_as_string(cache, max_cache_size));
+    }
+}
+
+/// Return the current size and loaded corpora as debug string.
+fn get_corpus_cache_info_as_string(
+    cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
+    max_cache_size: usize,
+) -> String {
+    let cache_sizes = get_cache_sizes(cache);
+    if cache_sizes.is_empty() {
+        "Corpus cache is currently empty".to_string()
+    } else {
+        let corpus_memory_as_string: Vec<String> = cache_sizes
+            .iter()
+            .map(|(corpus_name, corpus_size)| {
+                format!(
+                    "{} ({:.2} MB)",
+                    corpus_name,
+                    (*corpus_size as f64) / 1_000_000.0
+                )
+            })
+            .collect();
+        let size_sum: usize = cache_sizes.iter().map(|(_, s)| s).sum();
+        format!(
+            "Total cache size is {:.2} MB / {:.2} MB and loaded corpora are: {}.",
+            (size_sum as f64) / 1_000_000.0,
+            (max_cache_size as f64) / 1_000_000.0,
+            corpus_memory_as_string.join(", ")
+        )
     }
 }
 
@@ -2500,7 +2638,9 @@ fn create_subgraph_edge(
     for c in components {
         // don't include index components
         let ctype = c.get_type();
-        if !((ctype == AnnotationComponentType::Coverage && c.layer == "annis" && c.name != "")
+        if !((ctype == AnnotationComponentType::Coverage
+            && c.layer == "annis"
+            && !c.name.is_empty())
             || ctype == AnnotationComponentType::RightToken
             || ctype == AnnotationComponentType::LeftToken)
         {
@@ -2537,8 +2677,10 @@ fn create_subgraph_edge(
 }
 
 fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
-    std::fs::create_dir_all(&db_dir)
-        .with_context(|| format!("Could not create directory {}", db_dir.to_string_lossy()))?;
+    std::fs::create_dir_all(&db_dir).map_err(|e| CorpusStorageError::LockCorpusDirectory {
+        path: db_dir.to_string_lossy().to_string(),
+        source: e,
+    })?;
     let lock_file_path = db_dir.join("db.lock");
     // check if we can get the file lock
     let lock_file = OpenOptions::new()
@@ -2546,18 +2688,16 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
         .write(true)
         .create(true)
         .open(lock_file_path.as_path())
-        .with_context(|| {
-            format!(
-                "Could not open or create lockfile {}",
-                lock_file_path.to_string_lossy()
-            )
+        .map_err(|e| CorpusStorageError::LockCorpusDirectory {
+            path: db_dir.to_string_lossy().to_string(),
+            source: e,
         })?;
-    lock_file.try_lock_exclusive().with_context(|| {
-        format!(
-            "Could not acquire lock for directory {}",
-            db_dir.to_string_lossy()
-        )
-    })?;
+    lock_file
+        .try_lock_exclusive()
+        .map_err(|e| CorpusStorageError::LockCorpusDirectory {
+            path: db_dir.to_string_lossy().to_string(),
+            source: e,
+        })?;
 
     Ok(lock_file)
 }

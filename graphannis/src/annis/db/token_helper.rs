@@ -26,15 +26,15 @@ lazy_static! {
     static ref COMPONENT_LEFT: Component<AnnotationComponentType> = {
         Component::new(
             AnnotationComponentType::LeftToken,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         )
     };
     static ref COMPONENT_RIGHT: Component<AnnotationComponentType> = {
         Component::new(
             AnnotationComponentType::RightToken,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         )
     };
 }

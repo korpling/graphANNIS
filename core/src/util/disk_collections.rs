@@ -1,11 +1,10 @@
 use super::memory_estimation;
-use anyhow::Result;
 use bincode::config::Options;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 
-use crate::serializer::KeySerializer;
+use crate::{errors::Result, serializer::KeySerializer};
 use std::collections::BTreeMap;
 use std::iter::Peekable;
 use std::ops::{Bound, RangeBounds};

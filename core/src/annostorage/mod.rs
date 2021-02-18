@@ -2,8 +2,12 @@ pub mod inmemory;
 pub mod ondisk;
 pub mod symboltable;
 
-use crate::types::{AnnoKey, Annotation, Edge, NodeID};
-use anyhow::Result;
+use smallvec::SmallVec;
+
+use crate::{
+    errors::Result,
+    types::{AnnoKey, Annotation, Edge, NodeID},
+};
 use std::borrow::Cow;
 use std::path::Path;
 use std::sync::Arc;
@@ -20,6 +24,9 @@ pub struct Match {
     pub anno_key: Arc<AnnoKey>,
 }
 
+/// A group of single matched nodes.
+pub type MatchGroup = SmallVec<[Match; 8]>;
+
 impl Match {
     /// Extract the annotation for this match . The annotation value
     /// is retrieved from the `node_annos` given as argument.
@@ -32,7 +39,7 @@ impl Match {
             .to_owned();
         Some(Annotation {
             key: self.anno_key.as_ref().clone(),
-            val: val.to_string(),
+            val: val.into(),
         })
     }
 
@@ -153,7 +160,7 @@ where
         ns: Option<&str>,
         name: Option<&str>,
         it: Box<dyn Iterator<Item = T>>,
-    ) -> Vec<Match>;
+    ) -> MatchGroup;
 
     /// Return the total number of annotations contained in this `AnnotationStorage`.
     fn number_of_annotations(&self) -> usize;

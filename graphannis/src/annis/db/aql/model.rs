@@ -1,12 +1,15 @@
-use crate::graph::{Edge, EdgeContainer, GraphStorage, NodeID};
+use crate::{
+    errors::GraphAnnisError,
+    graph::{Edge, EdgeContainer, GraphStorage, NodeID},
+};
 use graphannis_core::{
     dfs::CycleSafeDFS,
+    errors::ComponentTypeError,
     graph::{storage::union::UnionEdgeContainer, ANNIS_NS},
     types::ComponentType,
     util::disk_collections::{DiskMap, EvictionStrategy},
 };
 use std::fmt;
-use std::iter::FromIterator;
 
 use std::borrow::Cow;
 use std::{str::FromStr, sync::Arc};
@@ -14,7 +17,6 @@ use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, EnumString};
 
 use crate::{update::UpdateEvent, AnnotationGraph};
-use anyhow::Result;
 use rustc_hash::FxHashSet;
 
 use crate::{
@@ -29,8 +31,8 @@ pub const TOK_WHITESPACE_AFTER: &str = "tok-whitespace-after";
 
 lazy_static! {
     pub static ref TOKEN_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
-        ns: ANNIS_NS.to_owned(),
-        name: TOK.to_owned(),
+        ns: ANNIS_NS.into(),
+        name: TOK.into(),
     });
 }
 
@@ -100,16 +102,15 @@ impl AQLUpdateGraphIndex {
         &mut self,
         node_name: Cow<String>,
         graph: &AnnotationGraph,
-    ) -> Result<NodeID> {
+    ) -> std::result::Result<NodeID, ComponentTypeError> {
         if let Some(id) = self.node_ids.try_get(&node_name)? {
             return Ok(id);
         } else if let Some(id) = graph.get_node_id_from_name(&node_name) {
             self.node_ids.insert(node_name.to_string(), id)?;
             return Ok(id);
         }
-        Err(anyhow!(
-            "Could not get internal node ID for node {} when processing graph update",
-            node_name
+        Err(ComponentTypeError(
+            GraphAnnisError::NoSuchNodeID(node_name.to_string()).into(),
         ))
     }
 
@@ -117,7 +118,7 @@ impl AQLUpdateGraphIndex {
         &mut self,
         graph: &AnnotationGraph,
         node: NodeID,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), ComponentTypeError> {
         let containers: Vec<&dyn EdgeContainer> = self
             .text_coverage_components
             .iter()
@@ -139,13 +140,13 @@ impl AQLUpdateGraphIndex {
         &self,
         graph: &mut AnnotationGraph,
         gs_order: Arc<dyn GraphStorage>,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), ComponentTypeError> {
         {
             // remove existing left/right token edges for the invalidated nodes
             let gs_left = graph.get_or_create_writable(&AnnotationComponent::new(
                 AnnotationComponentType::LeftToken,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ))?;
 
             for (n, _) in self.invalid_nodes.iter() {
@@ -154,8 +155,8 @@ impl AQLUpdateGraphIndex {
 
             let gs_right = graph.get_or_create_writable(&AnnotationComponent::new(
                 AnnotationComponentType::RightToken,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ))?;
 
             for (n, _) in self.invalid_nodes.iter() {
@@ -164,8 +165,8 @@ impl AQLUpdateGraphIndex {
 
             let gs_cov = graph.get_or_create_writable(&AnnotationComponent::new(
                 AnnotationComponentType::Coverage,
-                ANNIS_NS.to_owned(),
-                "inherited-coverage".to_owned(),
+                ANNIS_NS.into(),
+                "inherited-coverage".into(),
             ))?;
             for (n, _) in self.invalid_nodes.iter() {
                 gs_cov.delete_node(n)?;
@@ -220,7 +221,7 @@ impl AQLUpdateGraphIndex {
         n: NodeID,
         all_cov_components: &[AnnotationComponent],
         all_dom_gs: &[Arc<dyn GraphStorage>],
-    ) -> Result<FxHashSet<NodeID>> {
+    ) -> std::result::Result<FxHashSet<NodeID>, ComponentTypeError> {
         let mut covered_token = FxHashSet::default();
         for c in all_cov_components.iter() {
             if let Some(gs) = graph.get_graphstorage_as_ref(c) {
@@ -252,8 +253,8 @@ impl AQLUpdateGraphIndex {
 
         if let Ok(gs_cov) = graph.get_or_create_writable(&AnnotationComponent::new(
             AnnotationComponentType::Coverage,
-            ANNIS_NS.to_owned(),
-            "inherited-coverage".to_owned(),
+            ANNIS_NS.into(),
+            "inherited-coverage".into(),
         )) {
             for t in covered_token.iter() {
                 gs_cov.add_edge(Edge {
@@ -274,9 +275,9 @@ impl AQLUpdateGraphIndex {
         gs_order: &dyn GraphStorage,
         all_cov_gs: &[Arc<dyn GraphStorage>],
         all_dom_gs: &[Arc<dyn GraphStorage>],
-    ) -> Result<Option<NodeID>> {
+    ) -> std::result::Result<Option<NodeID>, ComponentTypeError> {
         let alignment_component =
-            AnnotationComponent::new(ctype.clone(), ANNIS_NS.to_owned(), "".to_owned());
+            AnnotationComponent::new(ctype.clone(), ANNIS_NS.into(), "".into());
 
         // if this is a token, return the token itself
         if graph
@@ -326,7 +327,7 @@ impl AQLUpdateGraphIndex {
         }
 
         // order the candidate token by their position in the order chain
-        let mut candidates = Vec::from_iter(candidates.into_iter());
+        let mut candidates: Vec<_> = candidates.into_iter().collect();
         candidates.sort_unstable_by(move |a, b| {
             if a == b {
                 return std::cmp::Ordering::Equal;
@@ -371,33 +372,31 @@ impl ComponentType for AnnotationComponentType {
         vec![
             AnnotationComponent::new(
                 AnnotationComponentType::Coverage,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ),
             AnnotationComponent::new(
                 AnnotationComponentType::Ordering,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ),
             AnnotationComponent::new(
                 AnnotationComponentType::LeftToken,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ),
             AnnotationComponent::new(
                 AnnotationComponentType::RightToken,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ),
-            AnnotationComponent::new(
-                AnnotationComponentType::PartOf,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
-            ),
+            AnnotationComponent::new(AnnotationComponentType::PartOf, ANNIS_NS.into(), "".into()),
         ]
     }
 
-    fn init_update_graph_index(graph: &AnnotationGraph) -> Result<Self::UpdateGraphIndex> {
+    fn init_update_graph_index(
+        graph: &AnnotationGraph,
+    ) -> std::result::Result<Self::UpdateGraphIndex, ComponentTypeError> {
         // Cache the expensive mapping of node names to IDs
         let node_ids = DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000))?;
 
@@ -425,7 +424,7 @@ impl ComponentType for AnnotationComponentType {
         update: &UpdateEvent,
         graph: &AnnotationGraph,
         index: &mut Self::UpdateGraphIndex,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), ComponentTypeError> {
         match update {
             UpdateEvent::DeleteNode { node_name } => {
                 let existing_node_id =
@@ -473,7 +472,7 @@ impl ComponentType for AnnotationComponentType {
         update: UpdateEvent,
         graph: &AnnotationGraph,
         index: &mut Self::UpdateGraphIndex,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), ComponentTypeError> {
         match update {
             UpdateEvent::AddNode { node_name, .. } => {
                 if !index.calculate_invalid_nodes {
@@ -497,7 +496,11 @@ impl ComponentType for AnnotationComponentType {
                         && component_name.is_empty()
                     {
                         // might be a new text coverage component
-                        let c = AnnotationComponent::new(ctype.clone(), layer, component_name);
+                        let c = AnnotationComponent::new(
+                            ctype.clone(),
+                            layer.into(),
+                            component_name.into(),
+                        );
                         index.text_coverage_components.insert(c);
                     }
 
@@ -530,15 +533,15 @@ impl ComponentType for AnnotationComponentType {
     fn apply_update_graph_index(
         mut index: Self::UpdateGraphIndex,
         graph: &mut AnnotationGraph,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), ComponentTypeError> {
         index.invalid_nodes.compact()?;
 
         // Re-index the inherited coverage component.
         // To make this operation fast, we need to optimize the order component first
         let order_component = AnnotationComponent::new(
             AnnotationComponentType::Ordering,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         );
         let order_stats_exist = graph
             .get_graphstorage(&order_component)
@@ -547,7 +550,7 @@ impl ComponentType for AnnotationComponentType {
         if !order_stats_exist {
             graph.calculate_component_statistics(&order_component)?;
         }
-        graph.optimize_impl(&order_component)?;
+        graph.optimize_gs_impl(&order_component)?;
         if let Some(gs_order) = graph.get_graphstorage(&order_component) {
             index.reindex_inherited_coverage(graph, gs_order)?;
         }
@@ -559,18 +562,18 @@ impl ComponentType for AnnotationComponentType {
         vec![
             AnnotationComponent::new(
                 AnnotationComponentType::LeftToken,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ),
             AnnotationComponent::new(
                 AnnotationComponentType::RightToken,
-                ANNIS_NS.to_owned(),
-                "".to_owned(),
+                ANNIS_NS.into(),
+                "".into(),
             ),
             AnnotationComponent::new(
                 AnnotationComponentType::Coverage,
-                ANNIS_NS.to_owned(),
-                "inherited-coverage".to_owned(),
+                ANNIS_NS.into(),
+                "inherited-coverage".into(),
             ),
         ]
     }

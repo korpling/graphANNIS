@@ -5,6 +5,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.31.0] - 2021-02-18
+
+## Changed
+
+- Using the new `SmallVec`-based `MatchGroup` type instead of `Vec<Match>`.
+- The `FixedMaxMemory` `CacheStrategy` now uses Megabytes instead of bytes.
+- The graphannis and core crates now use their own error type instead of the one provided by the `anyhow` crate.
+- Bundle commonly used search query parameters in `SearchQuery` struct.
+- Query execution methods now have an optional `timeout` after which an query is aborted.
+- Annotation keys and values in the `AnnoKey` and `Annotation` structs now use inlined strings from the `smartstrings` crate.
+
+## Added
+
+- The webservice configuration now allows to configure the size of the in-memory corpus cache.
+- There can be multiple `--cmd` arguments for the CLI, which are executed in the order they are given.
+
+
+## Fixed
+
+- Importing a relANNIS corpus could fail because the integer would wrap around from negative to a large value when calculating the `tok-whitespace-after` annotation value. This large value would then be used to allocate memory, which will fail. 
+- Adding `\$` to the escaped input sequence in the relANNIS import, fixing issues with some old SFB 632 corpora
+- Unbound near-by-operator (`^*`) was not limited to 50 in quirks mode
+- Workaround for duplicated document names when importing invalid relANNIS corpora
+- Corpus names with non-ASCII characters where not listed with their decoded name
+- Fix memory consumption of AQL parser in repeated calls (like the webservice).
+- Limit the memory which is reserved for an internal result vector to avoid out-of-memory errors when the estimation is wrong.
+
+## Removed
+
+- Replaced the `update_statistics` function in `CorpusStorage` with the more general `reoptimize_implementation` function. 
+  The new function is available via the `re-optimize` command in the CLI.
+
+
 ## [0.30.0] - 2020-09-30
 
 ### Changed

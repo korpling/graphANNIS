@@ -1,7 +1,6 @@
 //! Types used to describe updates on graphs.
 
-use crate::util::disk_collections::DiskMap;
-use anyhow::Result;
+use crate::{errors::Result, util::disk_collections::DiskMap};
 use serde::de::Error as DeserializeError;
 use serde::de::{MapAccess, Visitor};
 use serde::ser::Error as SerializeError;
@@ -94,7 +93,7 @@ impl GraphUpdate {
     }
 
     /// Get all changes
-    pub fn iter<'a>(&'a self) -> Result<GraphUpdateIterator<'a>> {
+    pub fn iter(&self) -> Result<GraphUpdateIterator> {
         let it = GraphUpdateIterator::new(self)?;
         Ok(it)
     }

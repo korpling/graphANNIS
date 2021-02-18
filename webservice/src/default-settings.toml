@@ -7,8 +7,9 @@ disk_based = false
 graphannis = "data/"
 sqlite = "service.sqlite"
 
-[auth]
-token_verification = {HS256 = "not-a-random-secret"}
+[auth.token_verification]
+secret = "not-a-random-secret"
+type = "HS256"
 
 [logging]
 debug = false

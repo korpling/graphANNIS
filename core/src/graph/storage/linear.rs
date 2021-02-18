@@ -2,10 +2,10 @@ use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use crate::{
     annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage, Match},
     dfs::{CycleSafeDFS, DFSStep},
+    errors::Result,
     graph::NODE_NAME_KEY,
     types::{Edge, NodeID, NumValue},
 };
-use anyhow::Result;
 use rustc_hash::FxHashMap;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};

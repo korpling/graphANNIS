@@ -5,6 +5,7 @@ use crate::annis::operator::{
 use crate::graph::{GraphStatistic, GraphStorage, Match};
 use crate::AnnotationGraph;
 use graphannis_core::{
+    annostorage::MatchGroup,
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
     types::{Component, Edge, NodeID},
 };
@@ -247,7 +248,7 @@ impl BinaryOperator for BaseEdgeOp {
             };
             Box::new(result.into_iter())
         } else {
-            let mut all: Vec<Match> = if self.inverse {
+            let mut all: MatchGroup = if self.inverse {
                 self.gs
                     .iter()
                     .flat_map(move |e| {
@@ -337,10 +338,7 @@ impl BinaryOperator for BaseEdgeOp {
         self.spec.is_reflexive
     }
 
-    fn get_inverse_operator<'a>(
-        &self,
-        _graph: &'a AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator>> {
+    fn get_inverse_operator(&self, _graph: &AnnotationGraph) -> Option<Box<dyn BinaryOperator>> {
         // Check if all graph storages have the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         for g in &self.gs {
@@ -580,8 +578,8 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         let mut components = HashSet::default();
         components.insert(Component::new(
             AnnotationComponentType::PartOf,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         ));
         components
     }
@@ -589,8 +587,8 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
         let components = vec![Component::new(
             AnnotationComponentType::PartOf,
-            ANNIS_NS.to_owned(),
-            "".to_owned(),
+            ANNIS_NS.into(),
+            "".into(),
         )];
         let base = BaseEdgeOpSpec {
             op_str: Some(String::from("@")),

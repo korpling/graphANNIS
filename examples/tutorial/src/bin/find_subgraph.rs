@@ -1,19 +1,19 @@
-use graphannis::corpusstorage::{QueryLanguage, ResultOrder};
+use graphannis::corpusstorage::{QueryLanguage, ResultOrder, SearchQuery};
 use graphannis::util;
 use graphannis::CorpusStorage;
 use std::path::PathBuf;
 
 fn main() {
     let cs = CorpusStorage::with_auto_cache_size(&PathBuf::from("data"), true).unwrap();
+    let search_query = SearchQuery {
+        corpus_names: &["tutorial"],
+        query: "tok . tok",
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+
     let matches = cs
-        .find(
-            &["tutorial"],
-            "tok . tok",
-            QueryLanguage::AQL,
-            0,
-            Some(100),
-            ResultOrder::Normal,
-        )
+        .find(search_query, 0, Some(100), ResultOrder::Normal)
         .unwrap();
     for m in matches {
         println!("{}", m);

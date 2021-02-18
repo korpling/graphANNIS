@@ -1,55 +1,58 @@
 [package]
-name = "graphannis"
-version = "0.30.0"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
-license = "Apache-2.0"
-description = "This is a new backend implementation of the ANNIS linguistic search and visualization system."
-repository = "https://github.com/korpling/graphANNIS"
-readme = "crate-info.md"
 build = "build.rs"
+description = "This is a new backend implementation of the ANNIS linguistic search and visualization system."
 edition = "2018"
+license = "Apache-2.0"
+name = "graphannis"
+readme = "crate-info.md"
+repository = "https://github.com/korpling/graphANNIS"
+version = "0.31.0"
 
 [lib]
 crate-type = ["lib"]
 
 [build-dependencies]
-lalrpop = { version = "0.18", features = ["lexer"] }
 csv = "1"
-regex = "1"
 file_diff = "1"
+lalrpop = {version = "0.19", features = ["lexer"]}
+regex = "1"
 
 [dependencies]
-graphannis-core = { path = "../core/", version = "^0.30"}
-regex = "1"
-regex-syntax = "0.6"
-serde = { version = "1.0", features = ["rc"] }
-serde_derive = "1.0"
-rand = { version = "0.7", features = ["small_rng"] }
-csv = "1"
-log = "0.4"
-lazy_static = "1.4"
-linked-hash-map = "0.5"
-itertools = "0.9"
-rustc-hash = "1.0"
-rayon = { version = "1.3", default-features = false }
-sys-info = ">= 0.5.8, < 0.5.9"
-fs2 = "0.4"
-lalrpop-util = "0.18"
 boolean_expression = "0.3"
-percent-encoding = "2.1"
-libc = "0.2"
-anyhow = "1"
+csv = "1"
+fs2 = "0.4"
+graphannis-core = {path = "../core/", version = "^0.31"}
 graphannis-malloc_size_of = "1.0"
 graphannis-malloc_size_of_derive = "2.0"
-strum = "0.18"
-strum_macros = "0.18"
-zip = "0.5"
-toml = "0.5"
+itertools = "0.9"
+lalrpop-util = "0.19"
+lazy_static = "1.4"
+libc = "0.2"
+linked-hash-map = "0.5"
+log = "0.4"
+page_size = "0.4"
+percent-encoding = "2.1"
+rand = {version = "0.7", features = ["small_rng"]}
+rayon = {version = "1.3", default-features = false}
+regex = "1"
+regex-syntax = "0.6"
+rustc-hash = "1.0"
+serde = {version = "1.0", features = ["rc"]}
+serde_derive = "1.0"
+smallvec = "1.6"
+smartstring = {version = "0.2", features = ["serde"]}
+strum = "0.20"
+strum_macros = "0.20"
+sys-info = ">= 0.5.8, < 0.5.9"
 tempfile = "3"
+thiserror = "1"
+toml = "0.5"
+zip = "0.5"
 
 [dev-dependencies]
 criterion = "0.3"
 
 [[bench]]
-name = "graphannis"
 harness = false
+name = "graphannis"

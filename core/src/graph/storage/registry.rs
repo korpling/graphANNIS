@@ -4,9 +4,11 @@ use super::disk_adjacency;
 use super::disk_adjacency::DiskAdjacencyListStorage;
 use super::linear::LinearGraphStorage;
 use super::{prepost::PrePostOrderStorage, GraphStatistic, GraphStorage};
-use crate::{graph::Graph, types::ComponentType};
-use anyhow::Context;
-use anyhow::Result;
+use crate::{
+    errors::{GraphAnnisCoreError, Result},
+    graph::Graph,
+    types::ComponentType,
+};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::{path::Path, sync::Arc};
@@ -180,11 +182,8 @@ pub fn create_from_info(info: &GSInfo) -> Result<Arc<dyn GraphStorage>> {
 }
 
 pub fn deserialize(impl_name: &str, location: &Path) -> Result<Arc<dyn GraphStorage>> {
-    let info = REGISTRY.get(impl_name).with_context(|| {
-        format!(
-            "Could not find implementation for graph storage with name '{}'",
-            impl_name
-        )
-    })?;
+    let info = REGISTRY
+        .get(impl_name)
+        .ok_or_else(|| GraphAnnisCoreError::UnknownGraphStorageImpl(impl_name.to_string()))?;
     (info.deserialize_func)(location)
 }

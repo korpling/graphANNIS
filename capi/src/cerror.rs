@@ -37,14 +37,7 @@ impl<'a> std::iter::Iterator for CauseIterator<'a> {
 #[allow(clippy::borrowed_box)]
 fn error_kind(e: &Box<dyn StdError>) -> &'static str {
     if let Some(annis_err) = e.downcast_ref::<errors::GraphAnnisError>() {
-        match annis_err {
-            errors::GraphAnnisError::AQLSyntaxError { .. } => "AQLSyntaxError",
-            errors::GraphAnnisError::AQLSemanticError { .. } => "AQLSemanticError",
-            errors::GraphAnnisError::LoadingGraphFailed { .. } => "LoadingGraphFailed",
-            errors::GraphAnnisError::ImpossibleSearch(_) => "ImpossibleSearch",
-            errors::GraphAnnisError::NoSuchCorpus(_) => "NoSuchCorpus",
-            errors::GraphAnnisError::CorpusExists(_) => "CorpusExists",
-        }
+        annis_err.into()
     } else {
         // Check for several known types
         if e.is::<std::io::Error>() {

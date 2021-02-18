@@ -29,7 +29,10 @@ fn cstr<'a>(orig: *const libc::c_char) -> Cow<'a, str> {
     }
 }
 
-fn map_cerr<T>(x: Result<T, anyhow::Error>, err_ptr: *mut *mut ErrorList) -> Option<T> {
+fn map_cerr<T, E: Into<Box<dyn std::error::Error>>>(
+    x: Result<T, E>,
+    err_ptr: *mut *mut ErrorList,
+) -> Option<T> {
     match x {
         Ok(v) => Some(v),
         Err(err) => {

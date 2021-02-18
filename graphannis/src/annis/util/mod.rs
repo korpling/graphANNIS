@@ -1,6 +1,11 @@
 pub mod quicksort;
 
-use std::path::Path;
+use crate::errors::{GraphAnnisError, Result};
+
+use std::{
+    path::Path,
+    time::{Duration, Instant},
+};
 
 pub fn contains_regex_metacharacters(pattern: &str) -> bool {
     for c in pattern.chars() {
@@ -27,7 +32,7 @@ pub fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
 }
 
 /// Defines a definition of a query including its number of expected results.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct SearchDef {
     pub aql: String,
     pub count: u64,
@@ -90,6 +95,31 @@ pub fn node_names_from_match(match_line: &str) -> Vec<String> {
     }
 
     result
+}
+
+#[derive(Clone, Copy)]
+pub struct TimeoutCheck {
+    start_time: Instant,
+    timeout: Option<Duration>,
+}
+
+impl TimeoutCheck {
+    pub fn new(timeout: Option<Duration>) -> TimeoutCheck {
+        TimeoutCheck {
+            start_time: Instant::now(),
+            timeout,
+        }
+    }
+
+    /// Check if too much time was used and return an error if this is the case.
+    pub fn check(&self) -> Result<()> {
+        if let Some(timeout) = self.timeout {
+            if self.start_time.elapsed() > timeout {
+                return Err(GraphAnnisError::Timeout);
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
