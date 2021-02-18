@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.31.0] - 2021-02-18
 
-## Changed
+### Changed
 
 - Using the new `SmallVec`-based `MatchGroup` type instead of `Vec<Match>`.
 - The `FixedMaxMemory` `CacheStrategy` now uses Megabytes instead of bytes.
@@ -16,17 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Query execution methods now have an optional `timeout` after which an query is aborted.
 - Annotation keys and values in the `AnnoKey` and `Annotation` structs now use inlined strings from the `smartstrings` crate.
 
-## Removed
+### Removed
 
 - Replaced the `update_statistics` function in `CorpusStorage` with the more general `reoptimize_implementation` function. 
   The new function is available via the `re-optimize` command in the CLI.
 
-## Added
+### Added
 
 - The webservice configuration now allows to configure the size of the in-memory corpus cache.
 - There can be multiple `--cmd` arguments for the CLI, which are executed in the order they are given.
 
-## Fixed
+### Fixed
 
 - Importing a relANNIS corpus could fail because the integer would wrap around from negative to a large value when calculating the `tok-whitespace-after` annotation value. This large value would then be used to allocate memory, which will fail. 
 - Adding `\$` to the escaped input sequence in the relANNIS import, fixing issues with some old SFB 632 corpora
