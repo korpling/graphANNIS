@@ -448,6 +448,18 @@ fn add_subgraph_precedence_with_segmentation(
     Ok(())
 }
 
+/// Creates a new vector with the capacity to hold the expected number of items, but make sure the
+/// capacity is memory aligned with the page size (only full pages are allocated).
+fn new_vector_with_memory_aligned_capacity<T>(expected_len: usize) -> Vec<T> {
+    let page_size = page_size::get();
+    // Make sure the capacity is a multiple of the page size to avoid memory fragmentation
+    let expected_memory_size = std::mem::size_of::<T>() * expected_len;
+    let aligned_memory_size =
+        expected_memory_size + (page_size - (expected_memory_size % page_size));
+
+    Vec::with_capacity(aligned_memory_size / std::mem::size_of::<T>())
+}
+
 type FindIterator<'a> = Box<dyn Iterator<Item = Vec<Match>> + 'a>;
 
 impl CorpusStorage {
@@ -1628,8 +1640,9 @@ impl CorpusStorage {
         } else {
             let estimated_result_size = plan.estimated_output_size();
             // Estimations can be wrong on the upper limit, so limit the maximal reserved vector size
+            let expected_len = std::cmp::min(estimated_result_size, MAX_VECTOR_RESERVATION);
             let mut tmp_results: Vec<Vec<Match>> =
-                Vec::with_capacity(std::cmp::min(estimated_result_size, MAX_VECTOR_RESERVATION));
+                new_vector_with_memory_aligned_capacity(expected_len);
 
             for mgroup in plan {
                 // add all matches to temporary vector
@@ -1742,18 +1755,14 @@ impl CorpusStorage {
             quirks_mode,
         )?;
 
-        let mut results: Vec<String> =
-            if let (Some(expected_size), Some(limit)) = (expected_size, limit) {
-                let page_size = page_size::get();
-                let expected_len = std::cmp::min(expected_size, limit);
-                // Make sure the capacity is a multiple of the page size to avoid memory fragmentation
-                let expected_memory_size = std::mem::size_of::<SmartString>() * expected_len;
-                let aligned_memory_size =
-                    expected_memory_size + (page_size - (expected_memory_size % page_size));
-                Vec::with_capacity(aligned_memory_size / std::mem::size_of::<SmartString>())
-            } else {
-                Vec::new()
-            };
+        let mut results: Vec<String> = if let Some(expected_size) = expected_size {
+            new_vector_with_memory_aligned_capacity(expected_size)
+        } else if let Some(limit) = limit {
+            new_vector_with_memory_aligned_capacity(limit)
+        } else {
+            Vec::new()
+        };
+
         // skip the first entries
         let mut skipped = 0;
         while skipped < offset && base_it.next().is_some() {
