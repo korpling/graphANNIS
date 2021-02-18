@@ -24,6 +24,7 @@ pub struct Match {
     pub anno_key: Arc<AnnoKey>,
 }
 
+/// A group of single matched nodes.
 pub type MatchGroup = SmallVec<[Match; 8]>;
 
 impl Match {

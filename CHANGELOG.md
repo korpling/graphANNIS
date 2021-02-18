@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changed
 
+- Using the new `SmallVec`-based `MatchGroup` type instead of `Vec<Match>`.
 - The `FixedMaxMemory` `CacheStrategy` now uses Megabytes instead of bytes.
 - The graphannis and core crates now use their own error type instead of the one provided by the `anyhow` crate.
 - Bundle commonly used search query parameters in `SearchQuery` struct.
