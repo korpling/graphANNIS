@@ -7,7 +7,7 @@ license = "Apache-2.0"
 name = "graphannis"
 readme = "crate-info.md"
 repository = "https://github.com/korpling/graphANNIS"
-version = "0.31.0"
+version = "0.31.1"
 
 [lib]
 crate-type = ["lib"]
