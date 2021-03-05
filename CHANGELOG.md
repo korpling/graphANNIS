@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix compilation issues in interaction with lalrpop v0.19.5
+
 ## [0.31.0] - 2021-02-18
 
 ## Changed
