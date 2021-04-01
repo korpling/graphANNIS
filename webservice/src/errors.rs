@@ -1,54 +1,75 @@
 use actix_rt::blocking::BlockingError;
 use actix_web::{error::ResponseError, HttpResponse};
-use graphannis::errors::GraphAnnisError;
+use graphannis::errors::{AQLError, GraphAnnisError};
 use graphannis_core::errors::GraphAnnisCoreError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ServiceError {
-    #[error("Bad Request: {0}")]
-    BadRequest(String),
     #[error("Invalid JWT Token: {0}")]
     InvalidJWTToken(String),
-    #[error("Non existing corpus/corpora {0:?}")]
-    NoSuchCorpus(Vec<String>),
+    #[error("Not authorized to access corpus/corpora {0:?}")]
+    NonAuthorizedCorpus(Vec<String>),
     #[error("Error accessing database: {0}")]
     DatabaseError(String),
     #[error("Internal Server Error: {0}")]
     InternalServerError(String),
-    #[error("{0}")]
-    GraphAnnisError(String),
+    #[error(transparent)]
+    GraphAnnisError(#[from] GraphAnnisError),
     #[error("Not found")]
     NotFound,
     #[error("User {0} is not an adminstrator")]
     NotAnAdministrator(String),
-    #[error("Timeout")]
-    Timeout,
+    #[error(transparent)]
+    UUID(#[from] uuid::Error),
+    #[error("{0}")]
+    IllegalNodePath(String),
 }
 
 #[derive(Serialize)]
-pub struct AQLErrorBody {}
+enum BadRequestError {
+    AQLSyntaxError(AQLError),
+    AQLSemanticError(AQLError),
+    ImpossibleSearch(String),
+    UUID(String),
+    IllegalNodePath(String),
+}
 
 impl ResponseError for ServiceError {
     fn error_response(&self) -> HttpResponse {
         match self {
-            ServiceError::BadRequest(ref message) => HttpResponse::BadRequest().json(message),
             ServiceError::InvalidJWTToken(ref message) => {
                 HttpResponse::Unauthorized().json(message)
             }
-            ServiceError::NoSuchCorpus(corpora) => HttpResponse::NotFound().json(format!(
-                "Non existing corpus/corpora {}",
-                corpora.join(", ")
-            )),
+            ServiceError::NonAuthorizedCorpus(corpora) => {
+                HttpResponse::Unauthorized().json(format!(
+                    "Not authorized to access corpus/corpora {}",
+                    corpora.join(", ")
+                ))
+            }
             ServiceError::DatabaseError(_) => {
                 HttpResponse::BadGateway().json("Error accessing database")
             }
             ServiceError::InternalServerError(_) => HttpResponse::InternalServerError().finish(),
-            ServiceError::GraphAnnisError(err) => HttpResponse::BadRequest().json(err),
+            ServiceError::UUID(err) => {
+                HttpResponse::BadRequest().json(BadRequestError::UUID(err.to_string()))
+            }
+            ServiceError::IllegalNodePath(err) => {
+                HttpResponse::BadRequest().json(BadRequestError::IllegalNodePath(err.to_string()))
+            }
+            ServiceError::GraphAnnisError(err) => match err {
+                GraphAnnisError::Timeout => HttpResponse::GatewayTimeout().finish(),
+                GraphAnnisError::AQLSemanticError(aql_error) => HttpResponse::BadRequest()
+                    .json(BadRequestError::AQLSemanticError(aql_error.clone())),
+                GraphAnnisError::AQLSyntaxError(aql_error) => HttpResponse::BadRequest()
+                    .json(BadRequestError::AQLSyntaxError(aql_error.clone())),
+                GraphAnnisError::ImpossibleSearch(aql_error) => HttpResponse::BadRequest()
+                    .json(BadRequestError::ImpossibleSearch(aql_error.clone())),
+                _ => HttpResponse::InternalServerError().json(err.to_string()),
+            },
             ServiceError::NotFound => HttpResponse::NotFound().finish(),
             ServiceError::NotAnAdministrator(_) => HttpResponse::Forbidden()
                 .json("You need to have administrator privilege to access this resource."),
-            ServiceError::Timeout => HttpResponse::GatewayTimeout().finish(),
         }
     }
 }
@@ -128,24 +149,8 @@ impl From<zip::result::ZipError> for ServiceError {
     }
 }
 
-impl From<uuid::Error> for ServiceError {
-    fn from(e: uuid::Error) -> Self {
-        ServiceError::BadRequest(e.to_string())
-    }
-}
-
 impl From<GraphAnnisCoreError> for ServiceError {
     fn from(e: GraphAnnisCoreError) -> Self {
         ServiceError::DatabaseError(e.to_string())
-    }
-}
-
-impl From<GraphAnnisError> for ServiceError {
-    fn from(e: GraphAnnisError) -> Self {
-        match e {
-            GraphAnnisError::NoSuchCorpus(c) => ServiceError::NoSuchCorpus(vec![c]),
-            GraphAnnisError::Timeout => ServiceError::Timeout,
-            _ => ServiceError::GraphAnnisError(e.to_string()),
-        }
     }
 }

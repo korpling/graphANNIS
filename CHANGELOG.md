@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Synchronize REST API error output for bad AQL requests with the OpenAPI specification.
+
 ## [0.31.1] - 2021-03-05
 
 ### Fixed
