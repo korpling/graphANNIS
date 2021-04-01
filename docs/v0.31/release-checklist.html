@@ -156,7 +156,7 @@
 <p>GraphANNIS uses <a href="https://semver.org/">semantic versioning</a>.
 Language bindings can have their own version number, but should state which core version is used in its documentation.</p>
 <ol>
-<li>Create and push a new <strong>release branch</strong> <code>release/&lt;version&gt;</code> from the <code>develop</code> branch for feature releases. If you make a bug-fix release, create a branch named <code>hotfix/&lt;version&gt;</code> from the <code>master</code> branch.</li>
+<li>Create and push a new <strong>release branch</strong> <code>release/&lt;version&gt;</code> (e.g. <code>release/0.31.0</code>) from the <code>develop</code> branch for feature releases. If you make a bug-fix release, create a branch named <code>hotfix/&lt;version&gt;</code> (e.g. <code>hotfix/0.31.1</code>) from the <code>master</code> branch. Do not prefix <code>&lt;version&gt;</code> with <code>v</code>.</li>
 <li>If this is a major or minor release, <strong>update the link to the Developer Guide</strong> documentation in the <code>README.md</code> to point to the new version short version, omitting the patch level and with adding a “v” prefix (e.g. https://korpling.github.io/graphANNIS/docs/v1.0/)</li>
 <li><strong>Release</strong> the branch with the <a href="https://crates.io/crates/cargo-release">cargo-release plugin</a>
 <ul>
