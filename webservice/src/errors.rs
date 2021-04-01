@@ -41,12 +41,10 @@ impl ResponseError for ServiceError {
             ServiceError::InvalidJWTToken(ref message) => {
                 HttpResponse::Unauthorized().json(message)
             }
-            ServiceError::NonAuthorizedCorpus(corpora) => {
-                HttpResponse::Unauthorized().json(format!(
-                    "Not authorized to access corpus/corpora {}",
-                    corpora.join(", ")
-                ))
-            }
+            ServiceError::NonAuthorizedCorpus(corpora) => HttpResponse::Forbidden().json(format!(
+                "Not authorized to access corpus/corpora {}",
+                corpora.join(", ")
+            )),
             ServiceError::DatabaseError(_) => {
                 HttpResponse::BadGateway().json("Error accessing database")
             }
