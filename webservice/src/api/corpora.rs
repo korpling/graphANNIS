@@ -236,11 +236,11 @@ pub async fn list_files(
         // Perform some sanity checks to make sure only the relative sub-folder is used
         let file_path = node.trim();
         if file_path.contains("..") {
-            return Err(ServiceError::BadRequest(
+            return Err(ServiceError::IllegalNodePath(
                 "No .. allowed in file name".to_string(),
             ));
         } else if file_path.starts_with('/') {
-            return Err(ServiceError::BadRequest(
+            return Err(ServiceError::IllegalNodePath(
                 "No absolute path allowed in file name".to_string(),
             ));
         };
@@ -279,11 +279,11 @@ pub async fn file_content(
     // Perform some sanity checks to make sure only the relative sub-folder is used
     let file_path = name.trim();
     if file_path.contains("..") {
-        return Err(ServiceError::BadRequest(
+        return Err(ServiceError::IllegalNodePath(
             "No .. allowed in file name".to_string(),
         ));
     } else if file_path.starts_with('/') {
-        return Err(ServiceError::BadRequest(
+        return Err(ServiceError::IllegalNodePath(
             "No absolute path allowed in file name".to_string(),
         ));
     }

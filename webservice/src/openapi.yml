@@ -175,7 +175,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GraphAnnisError"
+                $ref: "#/components/schemas/BadRequestError"
 
   /search/find:
     post:
@@ -207,7 +207,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GraphAnnisError"
+                $ref: "#/components/schemas/BadRequestError"
 
   /search/frequency:
     post:
@@ -234,7 +234,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GraphAnnisError"
+                $ref: "#/components/schemas/BadRequestError"
 
   /search/node-descriptions:
     get:
@@ -277,7 +277,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GraphAnnisError"
+                $ref: "#/components/schemas/BadRequestError"
 
   /corpora/{corpus}/subgraph:
     post:
@@ -904,7 +904,7 @@ components:
       required:
         - start
 
-    GraphAnnisError:
+    BadRequestError:
       type: object
       properties:
         AQLSyntaxError:
@@ -927,14 +927,9 @@ components:
             - desc
         ImpossibleSearch:
           type: string
-        LoadingGraphFailed:
-          type: object
-          properties:
-            name:
-              type: string
-        NoSuchCorpus:
+        UUID:
           type: string
-        CorpusExists:
+        IllegalNodePath:
           type: string
 
     FrequencyTable:

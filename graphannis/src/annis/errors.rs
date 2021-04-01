@@ -147,7 +147,7 @@ pub enum RelAnnisError {
     InvalidComponentShortName(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct AQLError {
     pub desc: String,
     pub location: Option<LineColumnRange>,

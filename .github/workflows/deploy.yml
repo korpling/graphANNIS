@@ -156,13 +156,13 @@ jobs:
         env:
           OS_NAME: linux
       - name: Generate the documentation
-        run: mdbook build --dest-dir book/${SHORT_VERSION} docs/
+        run: mdbook build --dest-dir book/v${SHORT_VERSION} docs/
       - run: git clone -q  -b gh-pages https://github.com/$GITHUB_REPOSITORY gh-pages
       - name: Remove old files for this version
-        run: rm -Rf gh-pages/docs/$SHORT_VERSION
+        run: rm -Rf gh-pages/docs/v$SHORT_VERSION
       - name: copy the documentation content
         run: cp -R docs/book/* gh-pages/docs/
-      - run: git add docs/$SHORT_VERSION
+      - run: git add docs/v$SHORT_VERSION
         working-directory: gh-pages
       - run: git -c user.name='gh-actions' -c user.email='gh-actions' commit --allow-empty -m "add documentation for version $SHORT_VERSION"
         working-directory: gh-pages
