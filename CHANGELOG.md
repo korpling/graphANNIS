@@ -5,6 +5,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- C-API now implements exporting corpora
+
+### Changed
+
+- Renamed (public) function `export_corpus_zip` in `CorpusStorage` to `export_to_zip` to align with the other export function name.
+
+
 ## [0.31.2] - 2021-04-01
 
 ### Fixed
