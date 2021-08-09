@@ -64,20 +64,20 @@ impl Match {
     }
 }
 
-impl Into<Match> for (Edge, Arc<AnnoKey>) {
-    fn into(self) -> Match {
+impl From<(Edge, Arc<AnnoKey>)> for Match {
+    fn from(t: (Edge, Arc<AnnoKey>)) -> Self {
         Match {
-            node: self.0.source,
-            anno_key: self.1,
+            node: t.0.source,
+            anno_key: t.1,
         }
     }
 }
 
-impl Into<Match> for (NodeID, Arc<AnnoKey>) {
-    fn into(self) -> Match {
+impl From<(NodeID, Arc<AnnoKey>)> for Match {
+    fn from(t: (NodeID, Arc<AnnoKey>)) -> Self {
         Match {
-            node: self.0,
-            anno_key: self.1,
+            node: t.0,
+            anno_key: t.1,
         }
     }
 }
