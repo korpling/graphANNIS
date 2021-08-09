@@ -1102,33 +1102,39 @@ impl CorpusStorage {
         &'a self,
         corpus_name: &'a str,
         graph: &'a AnnotationGraph,
-    ) -> Result<impl Iterator<Item = (String, PathBuf)> + 'a> {
+    ) -> Result<Option<impl Iterator<Item = (String, PathBuf)> + 'a>> {
         let linked_file_key = AnnoKey {
             ns: ANNIS_NS.into(),
             name: "file".into(),
         };
 
-        let base_path = self.db_dir.join(corpus_name).join("files").canonicalize()?;
+        let base_path = self.db_dir.join(corpus_name).join("files");
+        if base_path.is_dir() {
+            let base_path = base_path.canonicalize()?;
 
-        // Find all nodes of the type "file"
-        let node_annos: &dyn AnnotationStorage<NodeID> = graph.get_node_annos();
-        let it = node_annos
-            .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
-            // Get the linked file for this node
-            .filter_map(move |m| {
-                if let Some(node_name) = node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY) {
-                    if let Some(file_path_value) =
-                        node_annos.get_value_for_item(&m.node, &linked_file_key)
+            // Find all nodes of the type "file"
+            let node_annos: &dyn AnnotationStorage<NodeID> = graph.get_node_annos();
+            let it = node_annos
+                .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
+                // Get the linked file for this node
+                .filter_map(move |m| {
+                    if let Some(node_name) = node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY)
                     {
-                        return Some((
-                            node_name.to_string(),
-                            base_path.join(file_path_value.to_string()),
-                        ));
+                        if let Some(file_path_value) =
+                            node_annos.get_value_for_item(&m.node, &linked_file_key)
+                        {
+                            return Some((
+                                node_name.to_string(),
+                                base_path.join(file_path_value.to_string()),
+                            ));
+                        }
                     }
-                }
-                None
-            });
-        Ok(it)
+                    None
+                });
+            Ok(Some(it))
+        } else {
+            Ok(None)
+        }
     }
 
     fn copy_linked_files_to_disk(
@@ -1137,17 +1143,20 @@ impl CorpusStorage {
         new_base_path: &Path,
         graph: &AnnotationGraph,
     ) -> Result<()> {
-        for (node_name, original_path) in self.get_linked_files(corpus_name, graph)? {
-            let node_name: String = node_name;
-            if original_path.is_file() {
-                // Create a new file name based on the node name and copy the file
-                let new_path = new_base_path.join(&node_name);
-                if let Some(parent) = new_path.parent() {
-                    std::fs::create_dir_all(parent)?;
+        if let Some(it_files) = self.get_linked_files(corpus_name, graph)? {
+            for (node_name, original_path) in it_files {
+                let node_name: String = node_name;
+                if original_path.is_file() {
+                    // Create a new file name based on the node name and copy the file
+                    let new_path = new_base_path.join(&node_name);
+                    if let Some(parent) = new_path.parent() {
+                        std::fs::create_dir_all(parent)?;
+                    }
+                    std::fs::copy(&original_path, &new_path)?;
                 }
-                std::fs::copy(&original_path, &new_path)?;
             }
         }
+
         Ok(())
     }
 
@@ -1246,13 +1255,15 @@ impl CorpusStorage {
         )?;
 
         // Insert all linked files into the ZIP file
-        for (node_name, original_path) in self.get_linked_files(corpus_name.as_ref(), graph)? {
-            let node_name: String = node_name;
+        if let Some(it_files) = self.get_linked_files(corpus_name.as_ref(), graph)? {
+            for (node_name, original_path) in it_files {
+                let node_name: String = node_name;
 
-            zip.start_file(base_path.join(&node_name).to_string_lossy(), options)?;
-            let file_to_copy = File::open(original_path)?;
-            let mut reader = BufReader::new(file_to_copy);
-            std::io::copy(&mut reader, zip)?;
+                zip.start_file(base_path.join(&node_name).to_string_lossy(), options)?;
+                let file_to_copy = File::open(original_path)?;
+                let mut reader = BufReader::new(file_to_copy);
+                std::io::copy(&mut reader, zip)?;
+            }
         }
 
         Ok(())
