@@ -70,7 +70,6 @@ pub enum UpdateEvent {
 
 /// A list of changes to apply to an graph.
 #[derive(Default)]
-#[repr(C)]
 pub struct GraphUpdate {
     diffs: DiskMap<u64, UpdateEvent>,
     event_counter: u64,
