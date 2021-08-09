@@ -1189,7 +1189,17 @@ impl CorpusStorage {
         Ok(())
     }
 
-    pub fn export_corpus_zip<W, F>(
+    /// Export a corpus to a ZIP file.
+    ///
+    /// In comparison to [`CorpusStorage::export_to_fs`] this allows to give the [zip file writer](zip::ZipWriter) as argument
+    /// and to have a custom progress callback function.
+    ///
+    /// - `corpus_name` - The name of the corpus to write to the ZIP file.
+    /// - `use_corpus_subdirectory` - If true, the corpus is written into a sub-directory inside the ZIP file.
+    ///                               This is useful when storing multiple corpora inside the same file.
+    /// - `zip` - A [writer](zip::ZipWriter)  for the already created ZIP file.
+    /// - `progress_callback` - A callback function to which the export progress is reported to.
+    pub fn export_to_zip<W, F>(
         &self,
         corpus_name: &str,
         use_corpus_subdirectory: bool,
@@ -1249,6 +1259,11 @@ impl CorpusStorage {
         Ok(())
     }
 
+    /// Export a corpus to an external location on the file system using the given format.
+    ///
+    /// - `corpora` - The corpora to include in the exported file(s).
+    /// - `path` - The location on the file system where the corpus data should be written to.
+    /// - `format` - The format in which this corpus data will be stored stored.
     pub fn export_to_fs<S: AsRef<str>>(
         &self,
         corpora: &[S],
@@ -1289,14 +1304,9 @@ impl CorpusStorage {
                 for corpus_name in corpora {
                     // Add the GraphML file to the ZIP file
                     let corpus_name: &str = corpus_name.as_ref();
-                    self.export_corpus_zip(
-                        corpus_name,
-                        use_corpus_subdirectory,
-                        &mut zip,
-                        |status| {
-                            info!("{}", status);
-                        },
-                    )?;
+                    self.export_to_zip(corpus_name, use_corpus_subdirectory, &mut zip, |status| {
+                        info!("{}", status);
+                    })?;
                 }
 
                 zip.finish()?;

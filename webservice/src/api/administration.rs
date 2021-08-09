@@ -196,7 +196,7 @@ fn export_corpus_background_taks(
     for corpus_name in corpora {
         // Add the GraphML file to the ZIP file
         let corpus_name: &str = corpus_name.as_ref();
-        cs.export_corpus_zip(corpus_name, use_corpus_subdirectory, &mut zip, |status| {
+        cs.export_to_zip(corpus_name, use_corpus_subdirectory, &mut zip, |status| {
             info!("Job {} update: {}", &id_as_string, status);
             // Add status report to background job messages
             let mut jobs = background_jobs.jobs.lock().expect("Lock was poisoned");
