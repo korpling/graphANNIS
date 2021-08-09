@@ -684,7 +684,7 @@ impl CorpusStorage {
 
         // if not loaded yet, get write-lock and load entry
         let escaped_corpus_name: Cow<str> =
-            utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
+            utf8_percent_encode(corpus_name, PATH_SEGMENT_ENCODE_SET).into();
         let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &escaped_corpus_name]
             .iter()
             .collect();
@@ -1182,7 +1182,7 @@ impl CorpusStorage {
         )?;
 
         if let Some(parent_dir) = path.parent() {
-            self.copy_linked_files_to_disk(corpus_name, &parent_dir, &graph)?;
+            self.copy_linked_files_to_disk(corpus_name, parent_dir, graph)?;
         }
 
         Ok(())
@@ -1492,7 +1492,7 @@ impl CorpusStorage {
             // also get the semantic errors by creating an execution plan on the actual Graph
             let lock = prep.db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+            ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
         }
         Ok(true)
     }
@@ -1515,7 +1515,7 @@ impl CorpusStorage {
             // acquire read-only lock and plan
             let lock = prep.db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
             all_plans.push(format!("{}:\n{}", cn.as_ref(), plan));
         }
@@ -1536,7 +1536,7 @@ impl CorpusStorage {
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
             for _ in plan {
                 total_count += 1;
@@ -1567,7 +1567,7 @@ impl CorpusStorage {
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read().unwrap();
             let db: &AnnotationGraph = get_read_or_error(&lock)?;
-            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
             let mut known_documents: HashSet<SmartString> = HashSet::new();
 
@@ -1619,7 +1619,7 @@ impl CorpusStorage {
             query_config.use_parallel_joins = false;
         }
 
-        let plan = ExecutionPlan::from_disjunction(query, &db, &query_config)?;
+        let plan = ExecutionPlan::from_disjunction(query, db, &query_config)?;
 
         // Try to find the relANNIS version by getting the attribute value which should be attached to the
         // toplevel corpus node.
@@ -2228,7 +2228,7 @@ impl CorpusStorage {
                 }
             }
 
-            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
             for mgroup in plan {
                 // for each match, extract the defined annotation (by its key) from the result node
@@ -2381,7 +2381,7 @@ impl CorpusStorage {
         {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
-                if let Some(gs) = db.get_graphstorage(&component) {
+                if let Some(gs) = db.get_graphstorage(component) {
                     let edge_annos = gs.get_anno_storage();
                     for key in edge_annos.annotation_keys() {
                         if list_values {
@@ -2592,7 +2592,7 @@ fn extract_subgraph_by_query(
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
 
-    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config)?;
+    let plan = ExecutionPlan::from_disjunction(query, orig_db, query_config)?;
 
     debug!("executing subgraph query\n{}", plan);
 
@@ -2664,7 +2664,7 @@ fn create_subgraph_edge(
                             source: source_id,
                             target,
                         };
-                        if let Ok(new_gs) = db.get_or_create_writable(&c) {
+                        if let Ok(new_gs) = db.get_or_create_writable(c) {
                             new_gs.add_edge(e.clone())?;
                         }
 
@@ -2672,7 +2672,7 @@ fn create_subgraph_edge(
                             source: source_id,
                             target,
                         }) {
-                            if let Ok(new_gs) = db.get_or_create_writable(&c) {
+                            if let Ok(new_gs) = db.get_or_create_writable(c) {
                                 new_gs.add_edge_annotation(e.clone(), a)?;
                             }
                         }
