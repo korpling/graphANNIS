@@ -21,3 +21,6 @@ include = ["graphannis-core", "graphannis"]
 
 [export]
 prefix = "Annis"
+
+[enum]
+prefix_with_name = true

@@ -29,31 +29,31 @@ typedef enum AnnisAnnotationComponentType {
   /**
    * Edges between a span node and its tokens. Implies text coverage.
    */
-  Coverage,
+  AnnisAnnotationComponentType_Coverage,
   /**
    * Edges between a structural node and any other structural node, span or token. Implies text coverage.
    */
-  Dominance = 2,
+  AnnisAnnotationComponentType_Dominance = 2,
   /**
    * Edge between any node.
    */
-  Pointing,
+  AnnisAnnotationComponentType_Pointing,
   /**
    * Edge between two tokens implying that the source node comes before the target node in the textflow.
    */
-  Ordering,
+  AnnisAnnotationComponentType_Ordering,
   /**
    * Explicit edge between any non-token node and the left-most token it covers.
    */
-  LeftToken,
+  AnnisAnnotationComponentType_LeftToken,
   /**
    * Explicit edge between any non-token node and the right-most token it covers.
    */
-  RightToken,
+  AnnisAnnotationComponentType_RightToken,
   /**
    * Implies that the source node belongs to the parent corpus/subcorpus/document/datasource node.
    */
-  PartOf,
+  AnnisAnnotationComponentType_PartOf,
 } AnnisAnnotationComponentType;
 
 /**
@@ -64,15 +64,15 @@ typedef enum AnnisExportFormat {
    * [GraphML](http://graphml.graphdrawing.org/) based export-format, suitable to be imported into other graph databases.
    * This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/docs/labs/apoc/current/import/graphml/).
    */
-  GraphML,
+  AnnisExportFormat_GraphML,
   /**
    * Like `GraphML`, but compressed as ZIP file. Linked files are also copied into the ZIP file.
    */
-  GraphMLZip,
+  AnnisExportFormat_GraphMLZip,
   /**
    * Like `GraphML`, but using a directory with multiple GraphML files, each for one corpus.
    */
-  GraphMLDirectory,
+  AnnisExportFormat_GraphMLDirectory,
 } AnnisExportFormat;
 
 /**
@@ -82,24 +82,24 @@ typedef enum AnnisImportFormat {
   /**
    * Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/4.0/developer-guide/annisimportformat.html)
    */
-  RelANNIS,
+  AnnisImportFormat_RelANNIS,
   /**
    * [GraphML](http://graphml.graphdrawing.org/) based export-format, suitable to be imported from other graph databases.
    * This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/docs/labs/apoc/current/import/graphml/).
    */
-  GraphML,
+  AnnisImportFormat_GraphML,
 } AnnisImportFormat;
 
 /**
  * Different levels of logging. Higher levels activate logging of events of lower levels as well.
  */
 typedef enum AnnisLogLevel {
-  Off,
-  Error,
-  Warn,
-  Info,
-  Debug,
-  Trace,
+  AnnisLogLevel_Off,
+  AnnisLogLevel_Error,
+  AnnisLogLevel_Warn,
+  AnnisLogLevel_Info,
+  AnnisLogLevel_Debug,
+  AnnisLogLevel_Trace,
 } AnnisLogLevel;
 
 /**
@@ -109,11 +109,11 @@ typedef enum AnnisLogLevel {
  * or completely new query languages.
  */
 typedef enum AnnisQueryLanguage {
-  AQL,
+  AnnisQueryLanguage_AQL,
   /**
    * Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3
    */
-  AQLQuirksV3,
+  AnnisQueryLanguage_AQLQuirksV3,
 } AnnisQueryLanguage;
 
 /**
@@ -123,20 +123,20 @@ typedef enum AnnisResultOrder {
   /**
    * Order results by their document name and the the text position of the match.
    */
-  Normal,
+  AnnisResultOrder_Normal,
   /**
    * Inverted the order of `Normal`.
    */
-  Inverted,
+  AnnisResultOrder_Inverted,
   /**
    * A random ordering which is **not stable**. Each new query will result in a different order.
    */
-  Randomized,
+  AnnisResultOrder_Randomized,
   /**
    * Results are not ordered at all, but also not actively randomized
    * Each new query *might* result in a different order.
    */
-  NotSorted,
+  AnnisResultOrder_NotSorted,
 } AnnisResultOrder;
 
 /**
