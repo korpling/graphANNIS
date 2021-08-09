@@ -843,30 +843,29 @@ impl CorpusStorage {
 
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
-            let output_path = tmp_dir.path().join(file.sanitized_name());
+            if let Some(file_path) = file.enclosed_name() {
+                let output_path = tmp_dir.path().join(file_path);
 
-            if let Some(file_name) = output_path.file_name() {
-                if file_name == "corpus.annis" || file_name == "corpus.tab" {
-                    if let Some(relannis_root) = output_path.parent() {
-                        relannis_files.push(relannis_root.to_owned())
-                    }
-                } else if let Some(ext) = output_path.extension() {
-                    if ext.to_string_lossy().to_ascii_lowercase() == "graphml" {
-                        graphannis_files.push(output_path.clone());
+                if let Some(file_name) = output_path.file_name() {
+                    if file_name == "corpus.annis" || file_name == "corpus.tab" {
+                        if let Some(relannis_root) = output_path.parent() {
+                            relannis_files.push(relannis_root.to_owned())
+                        }
+                    } else if let Some(ext) = output_path.extension() {
+                        if ext.to_string_lossy().to_ascii_lowercase() == "graphml" {
+                            graphannis_files.push(output_path.clone());
+                        }
                     }
                 }
-            }
 
-            debug!(
-                "copying ZIP file content {}",
-                file.sanitized_name().to_string_lossy(),
-            );
-            if file.is_dir() {
-                std::fs::create_dir_all(output_path)?;
-            } else if let Some(parent) = output_path.parent() {
-                std::fs::create_dir_all(parent)?;
-                let mut output_file = std::fs::File::create(&output_path)?;
-                std::io::copy(&mut file, &mut output_file)?;
+                debug!("copying ZIP file content {}", file_path.to_string_lossy(),);
+                if file.is_dir() {
+                    std::fs::create_dir_all(output_path)?;
+                } else if let Some(parent) = output_path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                    let mut output_file = std::fs::File::create(&output_path)?;
+                    std::io::copy(&mut file, &mut output_file)?;
+                }
             }
         }
 
@@ -1218,7 +1217,7 @@ impl CorpusStorage {
             base_path.push(corpus_name);
         }
         let path_in_zip = base_path.join(format!("{}.graphml", corpus_name));
-        zip.start_file_from_path(&path_in_zip, options)?;
+        zip.start_file(path_in_zip.to_string_lossy(), options)?;
 
         let entry = self.get_loaded_entry(corpus_name, false)?;
 
@@ -1250,7 +1249,7 @@ impl CorpusStorage {
         for (node_name, original_path) in self.get_linked_files(corpus_name.as_ref(), graph)? {
             let node_name: String = node_name;
 
-            zip.start_file_from_path(&base_path.join(&node_name), options)?;
+            zip.start_file(base_path.join(&node_name).to_string_lossy(), options)?;
             let file_to_copy = File::open(original_path)?;
             let mut reader = BufReader::new(file_to_copy);
             std::io::copy(&mut reader, zip)?;
