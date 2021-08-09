@@ -158,7 +158,10 @@ typedef struct AnnisComponent_AnnotationComponentType AnnisComponent_AnnotationC
  */
 typedef struct AnnisCorpusStorage AnnisCorpusStorage;
 
-typedef struct AnnisDiskMap_u64__UpdateEvent AnnisDiskMap_u64__UpdateEvent;
+/**
+ * A list of changes to apply to an graph.
+ */
+typedef struct AnnisGraphUpdate AnnisGraphUpdate;
 
 /**
  * A representation of a graph including node annotations and edges.
@@ -221,14 +224,6 @@ typedef struct AnnisVec_FrequencyTableRow_CString AnnisFrequencyTable_CString;
  * Simple definition of a matrix from a single data type.
  */
 typedef struct AnnisVec_Vec_CString AnnisMatrix_CString;
-
-/**
- * A list of changes to apply to an graph.
- */
-typedef struct AnnisGraphUpdate {
-  struct AnnisDiskMap_u64__UpdateEvent diffs;
-  uint64_t event_counter;
-} AnnisGraphUpdate;
 
 /**
  * Unique internal identifier for a single node.
