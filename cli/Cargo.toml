@@ -1,6 +1,6 @@
 [package]
 name = "graphannis-cli"
-version = "0.31.2"
+version = "0.32.0"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 license = "Apache-2.0"
 description = "This is a command-line interface to the new backend implementation of the ANNIS linguistic search and visualization system."
@@ -10,7 +10,7 @@ autobins = true
 edition = "2018"
 
 [dependencies]
-graphannis= {path = "../graphannis/", version= "^0.31"}
+graphannis= {path = "../graphannis/", version= "^0.32"}
 rustyline = "6.1"
 rustyline-derive = "0.3"
 simplelog = "0.7"
