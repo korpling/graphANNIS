@@ -2,6 +2,7 @@ use super::cerror;
 use super::cerror::ErrorList;
 use super::Matrix;
 use super::{cast_const, cast_mut, cstr, map_cerr};
+use graphannis::corpusstorage::ExportFormat;
 use graphannis::{
     corpusstorage::{
         CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, FrequencyTableRow,
@@ -636,6 +637,33 @@ pub extern "C" fn annis_cs_import_from_fs(
             .into_raw()
     })
     .unwrap_or(std::ptr::null_mut())
+}
+
+/// Export a corpus to an external location on the file system using the given format.
+///
+/// - `ptr` - The corpus storage object.
+/// - `corpus_names` - The corpora to include in the exported file(s).
+/// - `path` - The location on the file system where the corpus data should be written to.
+/// - `format` - The format in which this corpus data will be stored stored.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+#[no_mangle]
+pub extern "C" fn annis_cs_export_to_fs(
+    ptr: *mut CorpusStorage,
+    corpus_names: *const Vec<CString>,
+    path: *const libc::c_char,
+    format: ExportFormat,
+    err: *mut *mut ErrorList,
+) {
+    let cs: &mut CorpusStorage = cast_mut(ptr);
+    let corpus_names: Vec<String> = cast_const(corpus_names)
+        .iter()
+        .map(|cn| String::from(cn.to_string_lossy()))
+        .collect();
+    let path: &str = &cstr(path);
+    map_cerr(
+        cs.export_to_fs(&corpus_names, &PathBuf::from(path), format),
+        err,
+    );
 }
 
 /// Returns a list of all components of a corpus given by `corpus_name` and the component type.
