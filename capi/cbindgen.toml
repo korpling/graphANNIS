@@ -1,5 +1,4 @@
 language = "C"
-
 header = """/* SPDX-License-Identifier:  Apache-2.0
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,9 +12,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.s 
 */"""
-
-include_guard="graphannis_capi_h"
-include_version=true
+include_guard = "graphannis_capi_h"
+include_version = true
 
 [parse]
 parse_deps = true
@@ -23,4 +21,6 @@ include = ["graphannis-core", "graphannis"]
 
 [export]
 prefix = "Annis"
-exclude = ["MAX_BUFFER_SIZE", "malloc_usable_size", "Expr", "TOK"]
+
+[enum]
+prefix_with_name = true

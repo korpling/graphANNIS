@@ -684,7 +684,7 @@ impl CorpusStorage {
 
         // if not loaded yet, get write-lock and load entry
         let escaped_corpus_name: Cow<str> =
-            utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
+            utf8_percent_encode(corpus_name, PATH_SEGMENT_ENCODE_SET).into();
         let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &escaped_corpus_name]
             .iter()
             .collect();
@@ -843,30 +843,29 @@ impl CorpusStorage {
 
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
-            let output_path = tmp_dir.path().join(file.sanitized_name());
+            if let Some(file_path) = file.enclosed_name() {
+                let output_path = tmp_dir.path().join(file_path);
 
-            if let Some(file_name) = output_path.file_name() {
-                if file_name == "corpus.annis" || file_name == "corpus.tab" {
-                    if let Some(relannis_root) = output_path.parent() {
-                        relannis_files.push(relannis_root.to_owned())
-                    }
-                } else if let Some(ext) = output_path.extension() {
-                    if ext.to_string_lossy().to_ascii_lowercase() == "graphml" {
-                        graphannis_files.push(output_path.clone());
+                if let Some(file_name) = output_path.file_name() {
+                    if file_name == "corpus.annis" || file_name == "corpus.tab" {
+                        if let Some(relannis_root) = output_path.parent() {
+                            relannis_files.push(relannis_root.to_owned())
+                        }
+                    } else if let Some(ext) = output_path.extension() {
+                        if ext.to_string_lossy().to_ascii_lowercase() == "graphml" {
+                            graphannis_files.push(output_path.clone());
+                        }
                     }
                 }
-            }
 
-            debug!(
-                "copying ZIP file content {}",
-                file.sanitized_name().to_string_lossy(),
-            );
-            if file.is_dir() {
-                std::fs::create_dir_all(output_path)?;
-            } else if let Some(parent) = output_path.parent() {
-                std::fs::create_dir_all(parent)?;
-                let mut output_file = std::fs::File::create(&output_path)?;
-                std::io::copy(&mut file, &mut output_file)?;
+                debug!("copying ZIP file content {}", file_path.to_string_lossy(),);
+                if file.is_dir() {
+                    std::fs::create_dir_all(output_path)?;
+                } else if let Some(parent) = output_path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                    let mut output_file = std::fs::File::create(&output_path)?;
+                    std::io::copy(&mut file, &mut output_file)?;
+                }
             }
         }
 
@@ -1103,33 +1102,39 @@ impl CorpusStorage {
         &'a self,
         corpus_name: &'a str,
         graph: &'a AnnotationGraph,
-    ) -> Result<impl Iterator<Item = (String, PathBuf)> + 'a> {
+    ) -> Result<Option<impl Iterator<Item = (String, PathBuf)> + 'a>> {
         let linked_file_key = AnnoKey {
             ns: ANNIS_NS.into(),
             name: "file".into(),
         };
 
-        let base_path = self.db_dir.join(corpus_name).join("files").canonicalize()?;
+        let base_path = self.db_dir.join(corpus_name).join("files");
+        if base_path.is_dir() {
+            let base_path = base_path.canonicalize()?;
 
-        // Find all nodes of the type "file"
-        let node_annos: &dyn AnnotationStorage<NodeID> = graph.get_node_annos();
-        let it = node_annos
-            .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
-            // Get the linked file for this node
-            .filter_map(move |m| {
-                if let Some(node_name) = node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY) {
-                    if let Some(file_path_value) =
-                        node_annos.get_value_for_item(&m.node, &linked_file_key)
+            // Find all nodes of the type "file"
+            let node_annos: &dyn AnnotationStorage<NodeID> = graph.get_node_annos();
+            let it = node_annos
+                .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
+                // Get the linked file for this node
+                .filter_map(move |m| {
+                    if let Some(node_name) = node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY)
                     {
-                        return Some((
-                            node_name.to_string(),
-                            base_path.join(file_path_value.to_string()),
-                        ));
+                        if let Some(file_path_value) =
+                            node_annos.get_value_for_item(&m.node, &linked_file_key)
+                        {
+                            return Some((
+                                node_name.to_string(),
+                                base_path.join(file_path_value.to_string()),
+                            ));
+                        }
                     }
-                }
-                None
-            });
-        Ok(it)
+                    None
+                });
+            Ok(Some(it))
+        } else {
+            Ok(None)
+        }
     }
 
     fn copy_linked_files_to_disk(
@@ -1138,17 +1143,20 @@ impl CorpusStorage {
         new_base_path: &Path,
         graph: &AnnotationGraph,
     ) -> Result<()> {
-        for (node_name, original_path) in self.get_linked_files(corpus_name, graph)? {
-            let node_name: String = node_name;
-            if original_path.is_file() {
-                // Create a new file name based on the node name and copy the file
-                let new_path = new_base_path.join(&node_name);
-                if let Some(parent) = new_path.parent() {
-                    std::fs::create_dir_all(parent)?;
+        if let Some(it_files) = self.get_linked_files(corpus_name, graph)? {
+            for (node_name, original_path) in it_files {
+                let node_name: String = node_name;
+                if original_path.is_file() {
+                    // Create a new file name based on the node name and copy the file
+                    let new_path = new_base_path.join(&node_name);
+                    if let Some(parent) = new_path.parent() {
+                        std::fs::create_dir_all(parent)?;
+                    }
+                    std::fs::copy(&original_path, &new_path)?;
                 }
-                std::fs::copy(&original_path, &new_path)?;
             }
         }
+
         Ok(())
     }
 
@@ -1183,13 +1191,23 @@ impl CorpusStorage {
         )?;
 
         if let Some(parent_dir) = path.parent() {
-            self.copy_linked_files_to_disk(corpus_name, &parent_dir, &graph)?;
+            self.copy_linked_files_to_disk(corpus_name, parent_dir, graph)?;
         }
 
         Ok(())
     }
 
-    pub fn export_corpus_zip<W, F>(
+    /// Export a corpus to a ZIP file.
+    ///
+    /// In comparison to [`CorpusStorage::export_to_fs`] this allows to give the [zip file writer](zip::ZipWriter) as argument
+    /// and to have a custom progress callback function.
+    ///
+    /// - `corpus_name` - The name of the corpus to write to the ZIP file.
+    /// - `use_corpus_subdirectory` - If true, the corpus is written into a sub-directory inside the ZIP file.
+    ///                               This is useful when storing multiple corpora inside the same file.
+    /// - `zip` - A [writer](zip::ZipWriter)  for the already created ZIP file.
+    /// - `progress_callback` - A callback function to which the export progress is reported to.
+    pub fn export_to_zip<W, F>(
         &self,
         corpus_name: &str,
         use_corpus_subdirectory: bool,
@@ -1208,7 +1226,7 @@ impl CorpusStorage {
             base_path.push(corpus_name);
         }
         let path_in_zip = base_path.join(format!("{}.graphml", corpus_name));
-        zip.start_file_from_path(&path_in_zip, options)?;
+        zip.start_file(path_in_zip.to_string_lossy(), options)?;
 
         let entry = self.get_loaded_entry(corpus_name, false)?;
 
@@ -1237,18 +1255,25 @@ impl CorpusStorage {
         )?;
 
         // Insert all linked files into the ZIP file
-        for (node_name, original_path) in self.get_linked_files(corpus_name.as_ref(), graph)? {
-            let node_name: String = node_name;
+        if let Some(it_files) = self.get_linked_files(corpus_name.as_ref(), graph)? {
+            for (node_name, original_path) in it_files {
+                let node_name: String = node_name;
 
-            zip.start_file_from_path(&base_path.join(&node_name), options)?;
-            let file_to_copy = File::open(original_path)?;
-            let mut reader = BufReader::new(file_to_copy);
-            std::io::copy(&mut reader, zip)?;
+                zip.start_file(base_path.join(&node_name).to_string_lossy(), options)?;
+                let file_to_copy = File::open(original_path)?;
+                let mut reader = BufReader::new(file_to_copy);
+                std::io::copy(&mut reader, zip)?;
+            }
         }
 
         Ok(())
     }
 
+    /// Export a corpus to an external location on the file system using the given format.
+    ///
+    /// - `corpora` - The corpora to include in the exported file(s).
+    /// - `path` - The location on the file system where the corpus data should be written to.
+    /// - `format` - The format in which this corpus data will be stored stored.
     pub fn export_to_fs<S: AsRef<str>>(
         &self,
         corpora: &[S],
@@ -1289,14 +1314,9 @@ impl CorpusStorage {
                 for corpus_name in corpora {
                     // Add the GraphML file to the ZIP file
                     let corpus_name: &str = corpus_name.as_ref();
-                    self.export_corpus_zip(
-                        corpus_name,
-                        use_corpus_subdirectory,
-                        &mut zip,
-                        |status| {
-                            info!("{}", status);
-                        },
-                    )?;
+                    self.export_to_zip(corpus_name, use_corpus_subdirectory, &mut zip, |status| {
+                        info!("{}", status);
+                    })?;
                 }
 
                 zip.finish()?;
@@ -1483,7 +1503,7 @@ impl CorpusStorage {
             // also get the semantic errors by creating an execution plan on the actual Graph
             let lock = prep.db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+            ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
         }
         Ok(true)
     }
@@ -1506,7 +1526,7 @@ impl CorpusStorage {
             // acquire read-only lock and plan
             let lock = prep.db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
             all_plans.push(format!("{}:\n{}", cn.as_ref(), plan));
         }
@@ -1527,7 +1547,7 @@ impl CorpusStorage {
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
             for _ in plan {
                 total_count += 1;
@@ -1558,7 +1578,7 @@ impl CorpusStorage {
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read().unwrap();
             let db: &AnnotationGraph = get_read_or_error(&lock)?;
-            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
             let mut known_documents: HashSet<SmartString> = HashSet::new();
 
@@ -1610,7 +1630,7 @@ impl CorpusStorage {
             query_config.use_parallel_joins = false;
         }
 
-        let plan = ExecutionPlan::from_disjunction(query, &db, &query_config)?;
+        let plan = ExecutionPlan::from_disjunction(query, db, &query_config)?;
 
         // Try to find the relANNIS version by getting the attribute value which should be attached to the
         // toplevel corpus node.
@@ -2219,7 +2239,7 @@ impl CorpusStorage {
                 }
             }
 
-            let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+            let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
             for mgroup in plan {
                 // for each match, extract the defined annotation (by its key) from the result node
@@ -2372,7 +2392,7 @@ impl CorpusStorage {
         {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
-                if let Some(gs) = db.get_graphstorage(&component) {
+                if let Some(gs) = db.get_graphstorage(component) {
                     let edge_annos = gs.get_anno_storage();
                     for key in edge_annos.annotation_keys() {
                         if list_values {
@@ -2583,7 +2603,7 @@ fn extract_subgraph_by_query(
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
 
-    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config)?;
+    let plan = ExecutionPlan::from_disjunction(query, orig_db, query_config)?;
 
     debug!("executing subgraph query\n{}", plan);
 
@@ -2655,7 +2675,7 @@ fn create_subgraph_edge(
                             source: source_id,
                             target,
                         };
-                        if let Ok(new_gs) = db.get_or_create_writable(&c) {
+                        if let Ok(new_gs) = db.get_or_create_writable(c) {
                             new_gs.add_edge(e.clone())?;
                         }
 
@@ -2663,7 +2683,7 @@ fn create_subgraph_edge(
                             source: source_id,
                             target,
                         }) {
-                            if let Ok(new_gs) = db.get_or_create_writable(&c) {
+                            if let Ok(new_gs) = db.get_or_create_writable(c) {
                                 new_gs.add_edge_annotation(e.clone(), a)?;
                             }
                         }

@@ -6,7 +6,7 @@ license = "Apache-2.0"
 name = "graphannis-webservice"
 readme = "crate-info.md"
 repository = "https://github.com/korpling/graphANNIS"
-version = "0.31.2"
+version = "0.32.0"
 
 [dependencies]
 actix-cors = "0.3"
@@ -19,21 +19,21 @@ bcrypt = "0.8"
 chrono = "0.4"
 clap = "2"
 config = "0.10"
-diesel = {version = "1.4.5", features = ["sqlite", "r2d2"]}
+diesel = { version = "1.4", features = ["sqlite", "r2d2"] }
 diesel_migrations = "1.4"
 futures = "0.3"
-graphannis = {path = "../graphannis/", version = "^0.31"}
-graphannis-core = {path = "../core/", version = "^0.31"}
+graphannis = { path = "../graphannis/", version = "^0.32"}
+graphannis-core = { path = "../core/", version = "^0.32"}
 jsonwebtoken = "7.2"
-libsqlite3-sys = {version = "0.17.3", features = ["bundled"]}
+libsqlite3-sys = { version = "0.22", features = ["bundled"] }
 log = "0.4"
 percent-encoding = "2.1"
 r2d2 = "0.8"
-serde = {version = "1.0", features = ["rc"]}
+serde = { version = "1.0", features = ["rc"] }
 serde_derive = "1.0"
 simplelog = "0.7"
 tempfile = "3"
 thiserror = "1"
-uuid = {version = "0.8", features = ["v4"]}
+uuid = { version = "0.8", features = ["v4"] }
 walkdir = "2"
 zip = "0.5"

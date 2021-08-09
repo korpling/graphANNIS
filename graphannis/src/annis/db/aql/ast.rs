@@ -28,6 +28,7 @@ impl From<std::ops::Range<usize>> for Pos {
     }
 }
 
+/// cbindgen:ignore
 pub type Expr = boolean_expression::Expr<Literal>;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]

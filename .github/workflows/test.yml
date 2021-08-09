@@ -15,7 +15,8 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+      - run: cargo update
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
       - run: misc/download-mdbook.sh 0.3.5
@@ -37,7 +38,8 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+      - run: cargo update
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
   test_mac:
@@ -48,6 +50,14 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+      - run: cargo update
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
   long_running_tests:
@@ -64,7 +74,8 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-integration-tests-${{ hashFiles('**/Cargo.toml') }}
+          key: ${{ runner.os }}-integration-tests-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+      - run: cargo update
       - name: Build CLI binary
         run: cargo build --release --bin annis
       - name: Download test corpora if necessary

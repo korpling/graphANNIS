@@ -5,6 +5,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.32.0] - 2021-08-09
+
+### Added
+
+- C-API now implements exporting corpora
+
+### Changed
+
+- Renamed (public) function `export_corpus_zip` in `CorpusStorage` to `export_to_zip` to align with the other export function name.
+
+### Fixed
+
+- Exporting a corpus without a "files" directory failed
+
 ## [0.31.2] - 2021-04-01
 
 ### Fixed

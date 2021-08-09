@@ -16,7 +16,6 @@ use crate::malloc_size_of::MallocSizeOf;
 
 /// A match is the result of a query on an annotation storage.
 #[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
-#[repr(C)]
 pub struct Match {
     /// The node identifier this match refers to.
     pub node: NodeID,
@@ -25,6 +24,8 @@ pub struct Match {
 }
 
 /// A group of single matched nodes.
+///
+/// cbindgen:ignore
 pub type MatchGroup = SmallVec<[Match; 8]>;
 
 impl Match {
@@ -63,20 +64,20 @@ impl Match {
     }
 }
 
-impl Into<Match> for (Edge, Arc<AnnoKey>) {
-    fn into(self) -> Match {
+impl From<(Edge, Arc<AnnoKey>)> for Match {
+    fn from(t: (Edge, Arc<AnnoKey>)) -> Self {
         Match {
-            node: self.0.source,
-            anno_key: self.1,
+            node: t.0.source,
+            anno_key: t.1,
         }
     }
 }
 
-impl Into<Match> for (NodeID, Arc<AnnoKey>) {
-    fn into(self) -> Match {
+impl From<(NodeID, Arc<AnnoKey>)> for Match {
+    fn from(t: (NodeID, Arc<AnnoKey>)) -> Self {
         Match {
-            node: self.0,
-            anno_key: self.1,
+            node: t.0,
+            anno_key: t.1,
         }
     }
 }
