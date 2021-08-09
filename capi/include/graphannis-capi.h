@@ -57,6 +57,25 @@ typedef enum AnnisAnnotationComponentType {
 } AnnisAnnotationComponentType;
 
 /**
+ * An enum of all supported output formats of graphANNIS.
+ */
+typedef enum AnnisExportFormat {
+  /**
+   * [GraphML](http://graphml.graphdrawing.org/) based export-format, suitable to be imported into other graph databases.
+   * This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/docs/labs/apoc/current/import/graphml/).
+   */
+  GraphML,
+  /**
+   * Like `GraphML`, but compressed as ZIP file. Linked files are also copied into the ZIP file.
+   */
+  GraphMLZip,
+  /**
+   * Like `GraphML`, but using a directory with multiple GraphML files, each for one corpus.
+   */
+  GraphMLDirectory,
+} AnnisExportFormat;
+
+/**
  * An enum of all supported input formats of graphANNIS.
  */
 typedef enum AnnisImportFormat {
@@ -539,6 +558,21 @@ char *annis_cs_import_from_fs(struct AnnisCorpusStorage *ptr,
                               bool disk_based,
                               bool overwrite_existing,
                               AnnisErrorList **err);
+
+/**
+ * Export a corpus to an external location on the file system using the given format.
+ *
+ * - `ptr` - The corpus storage object.
+ * - `corpus_names` - The corpora to include in the exported file(s).
+ * - `path` - The location on the file system where the corpus data should be written to.
+ * - `format` - The format in which this corpus data will be stored stored.
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ */
+void annis_cs_export_to_fs(struct AnnisCorpusStorage *ptr,
+                           const struct AnnisVec_CString *corpus_names,
+                           const char *path,
+                           enum AnnisExportFormat format,
+                           AnnisErrorList **err);
 
 /**
  * Returns a list of all components of a corpus given by `corpus_name` and the component type.
