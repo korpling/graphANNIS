@@ -43,15 +43,3 @@ This software depends on several 3rd party libraries. These are documented in th
 ## Author(s)
 
 - Thomas Krause (thomaskrause@posteo.de)
-
-## How to cite
-
-```
-@phdthesis{Krause2019ANNIS:,
-author = {Krause, Thomas},
-title = {ANNIS: A graph-based query system for deeply annotated text corpora},
-school = {Humboldt-Universität zu Berlin, Mathematisch-Naturwissenschaftliche Fakultät},
-year = {2019},
-doi = {http://dx.doi.org/10.18452/19659}
-}
-```
