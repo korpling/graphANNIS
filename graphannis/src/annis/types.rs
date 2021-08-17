@@ -103,7 +103,7 @@ impl Default for ContextConfiguration {
             default: 5,
             segmentation: None,
             max: None,
-            sizes: vec![1, 2, 5, 10],
+            sizes: vec![0, 1, 2, 5, 10],
         }
     }
 }
