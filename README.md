@@ -2,8 +2,8 @@
 
 This is a new backend implementation of the ANNIS linguistic search and visualization system (http://corpus-tools.org/annis/).
 
-**Only a sub-set of the ANNIS Query Langugage (AQL) is supported yet compared to ANNIS 3.x.**
-More operators can be added in the feature, but the ones missing are the ones which have been used less frequent.
+**Only a sub-set of the ANNIS Query Langugage (AQL) from ANNIS version 3 (based on PostgreSQL) is supported yet**
+More operators can be added in the future, but the ones missing are the ones which have been used less frequent.
 Integration with ANNIS is currently implemented in [the development version](https://github.com/korpling/ANNIS/tree/develop) and [released as a beta version](http://corpus-tools.org/annis/download.html).
 There is a tutorial in the Developer Guide on how to embedd graphANNIS in your own application.
 
