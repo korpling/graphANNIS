@@ -11,6 +11,7 @@ use crate::{
     annis::{db::aql::model::TOKEN_KEY, util},
     graph::Match,
 };
+use graphannis_core::graph::{ANNIS_NS, NODE_NAME};
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
     graph::{storage::GraphStorage, NODE_TYPE_KEY},
@@ -426,8 +427,13 @@ impl<'a> NodeSearch<'a> {
 
         let est_output = match val {
             ValueSearch::Some(ref val) => {
-                db.get_node_annos()
-                    .guess_max_count(qname.0.as_deref(), &qname.1, &val, &val)
+                if qname.0.as_deref() == Some(ANNIS_NS) && qname.1 == NODE_NAME {
+                    // Our data model assumes that annis::node_name annotations are unique
+                    1
+                } else {
+                    db.get_node_annos()
+                        .guess_max_count(qname.0.as_deref(), &qname.1, &val, &val)
+                }
             }
             ValueSearch::NotSome(ref val) => {
                 let total = db
