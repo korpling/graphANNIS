@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Fixed
+
+- Assume that the annis::node_name annotation is unique when estimating match size.
+  This should improve e.g. subgraph-queries, where the intermediate result sizes are now better estimated.
+
+
 ## [1.0.0] - 2021-08-17
 
 ### Changed
