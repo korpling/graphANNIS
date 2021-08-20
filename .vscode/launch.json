@@ -34,7 +34,7 @@
             "program": "${workspaceRoot}/target/debug/graphannis-webservice",
             "args": [
                 "--config",
-                "tmp/test.toml"
+                "${workspaceRoot}/tmp/test.toml"
             ],
             "cwd": "${workspaceRoot}/webservice/",
             "terminal": "integrated",
