@@ -1,12 +1,12 @@
 openapi: "3.0.2"
 info:
   title: graphANNIS
-  version: "0"
+  version: "1"
   description: >
     Access the graphANNIS corpora and execute AQL queries with this service.
 servers:
   - description: Your local developer service
-    url: http://localhost:5711/v0
+    url: http://localhost:5711/v1
 
 security:
   - bearerAuth: []
