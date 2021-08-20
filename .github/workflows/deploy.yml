@@ -1,4 +1,6 @@
-on: release
+on:
+  release:
+    types: [created]
 name: Deploy released binaries
 jobs:
   deploy_linux_binaries:

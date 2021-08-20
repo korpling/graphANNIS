@@ -2599,6 +2599,7 @@ fn extract_subgraph_by_query(
     query_config: &query::Config,
     component_type_filter: Option<AnnotationComponentType>,
 ) -> Result<AnnotationGraph> {
+    let t_before = std::time::SystemTime::now();
     // acquire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
@@ -2632,6 +2633,11 @@ fn extract_subgraph_by_query(
 
     for m in &match_result {
         create_subgraph_edge(m.node, &mut result, orig_db, &components)?;
+    }
+
+    let load_time = t_before.elapsed();
+    if let Ok(t) = load_time {
+        debug! {"Extracted subgraph in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
     }
 
     Ok(result)

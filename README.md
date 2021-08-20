@@ -2,8 +2,8 @@
 
 This is a new backend implementation of the ANNIS linguistic search and visualization system (http://corpus-tools.org/annis/).
 
-While there are test cases, this project is still in a pre-release beta phase.
-**Only a sub-set of the ANNIS Query Langugage (AQL) is supported yet (full support is planned).**
+**Only a sub-set of the ANNIS Query Langugage (AQL) from ANNIS version 3 (based on PostgreSQL) is supported yet.**
+More operators can be added in the future, but the ones missing are the ones which have been used less frequent.
 Integration with ANNIS is currently implemented in [the development version](https://github.com/korpling/ANNIS/tree/develop) and [released as a beta version](http://corpus-tools.org/annis/download.html).
 There is a tutorial in the Developer Guide on how to embedd graphANNIS in your own application.
 
@@ -43,15 +43,3 @@ This software depends on several 3rd party libraries. These are documented in th
 ## Author(s)
 
 - Thomas Krause (thomaskrause@posteo.de)
-
-## How to cite
-
-```
-@phdthesis{Krause2019ANNIS:,
-author = {Krause, Thomas},
-title = {ANNIS: A graph-based query system for deeply annotated text corpora},
-school = {Humboldt-Universität zu Berlin, Mathematisch-Naturwissenschaftliche Fakultät},
-year = {2019},
-doi = {http://dx.doi.org/10.18452/19659}
-}
-```
