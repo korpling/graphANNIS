@@ -3,7 +3,7 @@ use std::fmt::Display;
 use crate::{
     annis::{
         db::exec::nodesearch::NodeSearchSpec,
-        operator::{BinaryOperator, BinaryOperatorSpec},
+        operator::{BinaryOperator, BinaryOperatorSpec, EstimationType},
     },
     AnnotationGraph,
 };
@@ -78,5 +78,16 @@ impl<'a> BinaryOperator for NegatedOp<'a> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         // Invert the filtered logic by the actual operator
         !self.negated_op.filter_match(lhs, rhs)
+    }
+
+    fn is_reflexive(&self) -> bool {
+        self.negated_op.is_reflexive()
+    }
+
+    fn estimation_type(&self) -> EstimationType {
+        match self.negated_op.estimation_type() {
+            EstimationType::SELECTIVITY(orig_sel) => EstimationType::SELECTIVITY(1.0 - orig_sel),
+            EstimationType::MIN => EstimationType::MIN,
+        }
     }
 }

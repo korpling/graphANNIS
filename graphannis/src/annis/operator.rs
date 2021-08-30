@@ -134,8 +134,12 @@ impl EdgeAnnoSearchSpec {
     }
 }
 
+/// Represents the different strategies to estimate the output of size of applying an operator.
 pub enum EstimationType {
+    /// Estimate using the given selectivity.
+    /// This means the cross product of the input sizes is multiplied with this factor to get the output size.
     SELECTIVITY(f64),
+    /// Use the smallest one of the input sizes to estimate the output size.
     MIN,
 }
 
