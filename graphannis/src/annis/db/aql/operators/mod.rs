@@ -45,6 +45,7 @@ mod identical_node;
 mod inclusion;
 mod leftalignment;
 mod near;
+mod negated_op;
 mod overlap;
 mod precedence;
 mod rightalignment;
