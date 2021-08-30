@@ -1,14 +1,16 @@
-use std::{fmt::Display, marker::PhantomData};
-
-use graphannis_core::annostorage::Match;
-use libc::write;
+use std::fmt::Display;
 
 use crate::{
     annis::{
-        db::{aql::ast::BinaryOpSpec, exec::nodesearch::NodeSearchSpec},
+        db::exec::nodesearch::NodeSearchSpec,
         operator::{BinaryOperator, BinaryOperatorSpec},
     },
     AnnotationGraph,
+};
+use graphannis_core::{
+    annostorage::{AnnotationStorage, Match, ValueSearch},
+    graph::NODE_TYPE_KEY,
+    types::NodeID,
 };
 
 #[derive(Debug)]
@@ -34,7 +36,10 @@ impl BinaryOperatorSpec for NegatedOpSpec {
 
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
         if let Some(negated_op) = self.negated_op.create_operator(db) {
-            let op = NegatedOp { negated_op };
+            let op = NegatedOp {
+                negated_op,
+                node_annos: db.get_node_annos(),
+            };
             Some(Box::new(op))
         } else {
             None
@@ -44,6 +49,7 @@ impl BinaryOperatorSpec for NegatedOpSpec {
 
 pub struct NegatedOp<'a> {
     negated_op: Box<dyn BinaryOperator + 'a>,
+    node_annos: &'a dyn AnnotationStorage<NodeID>,
 }
 
 impl<'a> Display for NegatedOp<'a> {
@@ -56,7 +62,17 @@ impl<'a> Display for NegatedOp<'a> {
 
 impl<'a> BinaryOperator for NegatedOp<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        todo!()
+        // Brute force search for all possible matches and filter using the wrapped operator
+        let matched: Vec<_> = self
+            .node_annos
+            .exact_anno_search(
+                Some(&NODE_TYPE_KEY.ns),
+                &NODE_TYPE_KEY.name,
+                ValueSearch::Some("node"),
+            )
+            .filter(|rhs| !self.negated_op.filter_match(lhs, rhs))
+            .collect();
+        Box::new(matched.into_iter())
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
