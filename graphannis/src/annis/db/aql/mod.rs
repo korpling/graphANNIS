@@ -95,8 +95,8 @@ fn map_conjunction<'a>(
 
             let op_pos: Option<LineColumnRange> = if let Some(pos) = pos {
                 Some(LineColumnRange {
-                    start: get_line_and_column_for_pos(pos.start, &offsets),
-                    end: Some(get_line_and_column_for_pos(pos.end, &offsets)),
+                    start: get_line_and_column_for_pos(pos.start, offsets),
+                    end: Some(get_line_and_column_for_pos(pos.end, offsets)),
                 })
             } else {
                 None
@@ -162,9 +162,9 @@ fn map_conjunction<'a>(
             let num_joins = num_pointing_or_dominance_joins.get(orig_var).unwrap_or(&0);
             // add an additional node for each extra join and join this artificial node with identity relation
             for _ in 1..*num_joins {
-                if let Ok(node_spec) = q.resolve_variable(&orig_var, None) {
+                if let Ok(node_spec) = q.resolve_variable(orig_var, None) {
                     let new_var = q.add_node(node_spec, None);
-                    q.add_operator(Box::new(IdenticalNodeSpec {}), &orig_var, &new_var, false)?;
+                    q.add_operator(Box::new(IdenticalNodeSpec {}), orig_var, &new_var, false)?;
                 }
             }
         }
@@ -225,10 +225,10 @@ fn calculate_node_positions(
             }
             ast::Literal::LegacyMetaSearch { pos, .. } => {
                 if !quirks_mode {
-                    let start = get_line_and_column_for_pos(pos.start, &offsets);
+                    let start = get_line_and_column_for_pos(pos.start, offsets);
                     let end = Some(get_line_and_column_for_pos(
                         pos.start + "meta::".len() - 1,
-                        &offsets,
+                        offsets,
                     ));
                     return Err(GraphAnnisError::AQLSyntaxError( AQLError {
                         desc: "Legacy metadata search is no longer allowed. Use the @* operator and normal attribute search instead.".into(),
@@ -250,12 +250,10 @@ fn add_node_specs_by_start<'a>(
 ) -> Result<BTreeMap<usize, String>> {
     let mut pos_to_node_id: BTreeMap<usize, String> = BTreeMap::default();
     for (start_pos, (node_spec, variable)) in pos_to_node {
-        let start = get_line_and_column_for_pos(start_pos, &offsets);
-        let end = if let Some(end_pos) = pos_to_endpos.get(&start_pos) {
-            Some(get_line_and_column_for_pos(*end_pos, &offsets))
-        } else {
-            None
-        };
+        let start = get_line_and_column_for_pos(start_pos, offsets);
+        let end = pos_to_endpos
+            .get(&start_pos)
+            .map(|end_pos| get_line_and_column_for_pos(*end_pos, offsets));
 
         let idx = q.add_node_from_query(
             node_spec,
