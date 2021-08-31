@@ -60,11 +60,7 @@ impl BinaryOperatorSpec for BaseEdgeOpSpec {
 
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = BaseEdgeOp::new(db, self.clone());
-        if let Some(op) = optional_op {
-            Some(BinaryOperator::Index(Box::new(op)))
-        } else {
-            None
-        }
+        optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {

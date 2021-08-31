@@ -122,11 +122,7 @@ impl<'a> NestedLoop<'a> {
             }
         }
 
-        if let Some(result) = &self.current_outer {
-            Some(result.clone())
-        } else {
-            None
-        }
+        self.current_outer.as_ref().map(|result| result.clone())
     }
 
     fn next_match_buffer(&mut self, tx: &Sender<MatchGroup>) {

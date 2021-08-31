@@ -50,11 +50,7 @@ impl BinaryOperatorSpec for NearSpec {
 
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = Near::new(db, self.clone());
-        if let Some(op) = optional_op {
-            Some(BinaryOperator::Index(Box::new(op)))
-        } else {
-            None
-        }
+        optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
 }
 

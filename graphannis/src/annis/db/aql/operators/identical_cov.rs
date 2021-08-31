@@ -57,11 +57,7 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
 
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = IdenticalCoverage::new(db);
-        if let Some(op) = optional_op {
-            Some(BinaryOperator::Index(Box::new(op)))
-        } else {
-            None
-        }
+        optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
 }
 

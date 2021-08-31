@@ -179,11 +179,7 @@ impl<'a> Iterator for IndexJoin<'a> {
             self.lhs.next()?;
 
             // inner was completed once, get new candidates
-            self.rhs_candidate = if let Some(rhs) = self.next_candidates() {
-                Some(rhs.into_iter().peekable())
-            } else {
-                None
-            };
+            self.rhs_candidate = self.next_candidates().map(|rhs| rhs.into_iter().peekable());
         }
     }
 }

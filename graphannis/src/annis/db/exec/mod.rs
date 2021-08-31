@@ -61,15 +61,11 @@ impl Desc {
         let mut node_pos = BTreeMap::new();
         node_pos.insert(node_desc_arg.node_nr, 0);
 
-        let cost = if let Some(output) = est_size {
-            Some(CostEstimate {
-                output,
-                intermediate_sum: 0,
-                processed_in_step: 0,
-            })
-        } else {
-            None
-        };
+        let cost = est_size.map(|output| CostEstimate {
+            output,
+            intermediate_sum: 0,
+            processed_in_step: 0,
+        });
 
         Desc {
             component_nr: 0,
