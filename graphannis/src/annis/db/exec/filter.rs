@@ -47,7 +47,7 @@ impl<'a> Filter<'a> {
         let desc = if let Some(orig_desc) = exec.get_desc() {
             let cost_est = if let Some(ref orig_cost) = orig_desc.cost {
                 Some(CostEstimate {
-                    output: calculate_binary_outputsize(op_entry.op.as_ref(), orig_cost.output),
+                    output: calculate_binary_outputsize(&op_entry.op, orig_cost.output),
                     processed_in_step: orig_cost.processed_in_step,
                     intermediate_sum: orig_cost.intermediate_sum + orig_cost.processed_in_step,
                 })

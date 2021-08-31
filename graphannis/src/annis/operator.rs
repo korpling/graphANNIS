@@ -1,7 +1,7 @@
 use super::db::aql::model::AnnotationComponentType;
 use crate::{annis::db::AnnotationStorage, graph::Match, AnnotationGraph};
 use graphannis_core::types::{Component, Edge};
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum EdgeAnnoSearchSpec {
@@ -167,6 +167,83 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
 
     fn as_index_operator(&self) -> Option<&dyn BinaryIndexOperator> {
         None
+    }
+}
+
+pub enum BinaryOperatorImpl<'a> {
+    Base(Box<dyn BinaryOperator + 'a>),
+    Index(Box<dyn BinaryIndexOperator + 'a>),
+}
+
+impl<'a> Display for BinaryOperatorImpl<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BinaryOperatorImpl::Base(op) => op.fmt(f),
+            BinaryOperatorImpl::Index(op) => op.fmt(f),
+        }
+    }
+}
+
+impl<'a> BinaryOperator for BinaryOperatorImpl<'a> {
+    fn filter_match(
+        &self,
+        lhs: &graphannis_core::annostorage::Match,
+        rhs: &graphannis_core::annostorage::Match,
+    ) -> bool {
+        match self {
+            BinaryOperatorImpl::Base(op) => op.filter_match(lhs, rhs),
+            BinaryOperatorImpl::Index(op) => op.filter_match(lhs, rhs),
+        }
+    }
+
+    fn is_reflexive(&self) -> bool {
+        match self {
+            BinaryOperatorImpl::Base(op) => op.is_reflexive(),
+            BinaryOperatorImpl::Index(op) => op.is_reflexive(),
+        }
+    }
+
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Option<Box<dyn BinaryOperator + 'b>> {
+        match self {
+            BinaryOperatorImpl::Base(op) => op.get_inverse_operator(graph),
+            BinaryOperatorImpl::Index(op) => op.get_inverse_operator(graph),
+        }
+    }
+
+    fn estimation_type(&self) -> EstimationType {
+        match self {
+            BinaryOperatorImpl::Base(op) => op.estimation_type(),
+            BinaryOperatorImpl::Index(op) => op.estimation_type(),
+        }
+    }
+
+    fn edge_anno_selectivity(&self) -> Option<f64> {
+        match self {
+            BinaryOperatorImpl::Base(op) => op.edge_anno_selectivity(),
+            BinaryOperatorImpl::Index(op) => op.edge_anno_selectivity(),
+        }
+    }
+
+    fn as_index_operator(&self) -> Option<&dyn BinaryIndexOperator> {
+        match self {
+            BinaryOperatorImpl::Base(op) => op.as_index_operator(),
+            BinaryOperatorImpl::Index(op) => op.as_index_operator(),
+        }
+    }
+}
+
+impl<'a> From<Box<dyn BinaryOperator + 'a>> for BinaryOperatorImpl<'a> {
+    fn from(op: Box<dyn BinaryOperator + 'a>) -> Self {
+        BinaryOperatorImpl::Base(op)
+    }
+}
+
+impl<'a> From<Box<dyn BinaryIndexOperator + 'a>> for BinaryOperatorImpl<'a> {
+    fn from(op: Box<dyn BinaryIndexOperator + 'a>) -> Self {
+        BinaryOperatorImpl::Index(op)
     }
 }
 

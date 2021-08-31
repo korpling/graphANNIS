@@ -1,7 +1,7 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::AnnotationStorage;
-use crate::annis::operator::BinaryOperator;
+use crate::annis::operator::{BinaryOperator, BinaryOperatorImpl};
 use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
 use std::boxed::Box;
@@ -14,7 +14,7 @@ use std::sync::Arc;
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
     rhs_candidate: Option<std::iter::Peekable<smallvec::IntoIter<[Match; 8]>>>,
-    op: Box<dyn BinaryOperator + 'a>,
+    op: BinaryOperatorImpl<'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: &'a dyn AnnotationStorage<NodeID>,
@@ -65,7 +65,7 @@ impl<'a> IndexJoin<'a> {
 
         IndexJoin {
             desc: Desc::join(
-                op_entry.op.as_ref(),
+                &op_entry.op,
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin",

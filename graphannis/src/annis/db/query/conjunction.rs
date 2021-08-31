@@ -9,7 +9,7 @@ use crate::annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::{aql::model::AnnotationComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::{
-    BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
+    BinaryOperator, BinaryOperatorImpl, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
 };
 use crate::AnnotationGraph;
 use crate::{
@@ -48,7 +48,7 @@ struct UnaryOperatorSpecEntry<'a> {
 }
 
 pub struct BinaryOperatorEntry<'a> {
-    pub op: Box<dyn BinaryOperator + 'a>,
+    pub op: BinaryOperatorImpl<'a>,
     pub args: BinaryOperatorArguments,
 }
 
@@ -157,7 +157,7 @@ fn create_join<'b>(
                                 right: op_entry.args.left,
                                 global_reflexivity: op_entry.args.global_reflexivity,
                             },
-                            op: inverse_op,
+                            op: inverse_op.into(),
                         },
                         exec_left.as_nodesearch().unwrap().get_node_search_desc(),
                         db.get_node_annos(),
@@ -174,7 +174,7 @@ fn create_join<'b>(
                                 right: op_entry.args.left,
                                 global_reflexivity: op_entry.args.global_reflexivity,
                             },
-                            op: inverse_op,
+                            op: inverse_op.into(),
                         },
                         exec_left.as_nodesearch().unwrap().get_node_search_desc(),
                         db.get_node_annos(),
@@ -680,7 +680,7 @@ impl<'a> Conjunction<'a> {
             spec_idx_right -= self.var_idx_offset;
 
             let op_entry = BinaryOperatorEntry {
-                op,
+                op: op.into(),
                 args: BinaryOperatorArguments {
                     left: spec_idx_left + 1,
                     right: spec_idx_right + 1,

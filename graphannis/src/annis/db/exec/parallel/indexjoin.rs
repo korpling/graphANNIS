@@ -68,7 +68,7 @@ impl<'a> IndexJoin<'a> {
 
         IndexJoin {
             desc: Desc::join(
-                op_entry.op.as_ref(),
+                &op_entry.op,
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin (parallel)",
