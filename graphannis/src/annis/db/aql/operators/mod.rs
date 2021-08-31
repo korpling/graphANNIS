@@ -58,6 +58,7 @@ pub use self::identical_node::IdenticalNodeSpec;
 pub use self::inclusion::InclusionSpec;
 pub use self::leftalignment::LeftAlignmentSpec;
 pub use self::near::NearSpec;
+pub use self::negated_op::NegatedOpSpec;
 pub use self::overlap::OverlapSpec;
 pub use self::precedence::PrecedenceSpec;
 pub use self::rightalignment::RightAlignmentSpec;

@@ -43,6 +43,7 @@ pub enum Literal {
         op: BinaryOpSpec,
         rhs: Operand,
         pos: Option<Pos>,
+        negated: bool,
     },
     UnaryOp {
         node_ref: NodeRef,

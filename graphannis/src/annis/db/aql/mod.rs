@@ -9,7 +9,7 @@ lalrpop_mod!(
 );
 
 use crate::annis::db::aql::operators::{
-    EqualValueSpec, IdenticalNodeSpec, PartOfSubCorpusSpec, RangeSpec,
+    EqualValueSpec, IdenticalNodeSpec, NegatedOpSpec, PartOfSubCorpusSpec, RangeSpec,
 };
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::query::conjunction::Conjunction;
@@ -68,6 +68,7 @@ fn map_conjunction<'a>(
             mut op,
             rhs,
             pos,
+            negated,
         } = literal
         {
             let var_left = match lhs {
@@ -141,7 +142,14 @@ fn map_conjunction<'a>(
                     _ => {}
                 }
             }
-            let op_spec = make_binary_operator_spec(op, spec_left, spec_right)?;
+            let mut op_spec = make_binary_operator_spec(op, spec_left.clone(), spec_right.clone())?;
+            if negated {
+                op_spec = Box::new(NegatedOpSpec {
+                    spec_left,
+                    spec_right,
+                    negated_op: op_spec,
+                });
+            }
             q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?;
         }
     }
