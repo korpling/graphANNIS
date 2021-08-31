@@ -1,7 +1,7 @@
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::EstimationType;
+use crate::annis::operator::{BinaryIndexOperator, EstimationType};
 use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
@@ -121,40 +121,6 @@ impl<'a> std::fmt::Display for Precedence<'a> {
 }
 
 impl<'a> BinaryOperator for Precedence<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        let start = if self.spec.segmentation.is_some() {
-            Some(lhs.node)
-        } else {
-            self.tok_helper.right_token_for(lhs.node)
-        };
-
-        if start.is_none() {
-            return Box::new(std::iter::empty::<Match>());
-        }
-
-        let start = start.unwrap();
-
-        // materialize a list of all matches
-        let result: VecDeque<Match> = self
-            .gs_order
-            // get all token in the range
-            .find_connected(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
-            .fuse()
-            // find all left aligned nodes for this token and add it together with the token itself
-            .flat_map(move |t| {
-                let it_aligned = self.gs_left.get_ingoing_edges(t);
-                std::iter::once(t).chain(it_aligned)
-            })
-            // map the result as match
-            .map(|n| Match {
-                node: n,
-                anno_key: DEFAULT_ANNO_KEY.clone(),
-            })
-            .collect();
-
-        Box::new(result.into_iter())
-    }
-
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
@@ -214,6 +180,42 @@ impl<'a> BinaryOperator for Precedence<'a> {
     }
 }
 
+impl<'a> BinaryIndexOperator for Precedence<'a> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+        let start = if self.spec.segmentation.is_some() {
+            Some(lhs.node)
+        } else {
+            self.tok_helper.right_token_for(lhs.node)
+        };
+
+        if start.is_none() {
+            return Box::new(std::iter::empty::<Match>());
+        }
+
+        let start = start.unwrap();
+
+        // materialize a list of all matches
+        let result: VecDeque<Match> = self
+            .gs_order
+            // get all token in the range
+            .find_connected(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
+            .fuse()
+            // find all left aligned nodes for this token and add it together with the token itself
+            .flat_map(move |t| {
+                let it_aligned = self.gs_left.get_ingoing_edges(t);
+                std::iter::once(t).chain(it_aligned)
+            })
+            // map the result as match
+            .map(|n| Match {
+                node: n,
+                anno_key: DEFAULT_ANNO_KEY.clone(),
+            })
+            .collect();
+
+        Box::new(result.into_iter())
+    }
+}
+
 pub struct InversePrecedence<'a> {
     gs_order: Arc<dyn GraphStorage>,
     gs_left: Arc<dyn GraphStorage>,
@@ -229,40 +231,6 @@ impl<'a> std::fmt::Display for InversePrecedence<'a> {
 }
 
 impl<'a> BinaryOperator for InversePrecedence<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        let start = if self.spec.segmentation.is_some() {
-            Some(lhs.node)
-        } else {
-            self.tok_helper.left_token_for(lhs.node)
-        };
-
-        if start.is_none() {
-            return Box::new(std::iter::empty::<Match>());
-        }
-
-        let start = start.unwrap();
-
-        // materialize a list of all matches
-        let result: VecDeque<Match> = self
-            .gs_order
-            // get all token in the range
-            .find_connected_inverse(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
-            .fuse()
-            // find all right aligned nodes for this token and add it together with the token itself
-            .flat_map(move |t| {
-                let it_aligned = self.gs_right.get_ingoing_edges(t);
-                std::iter::once(t).chain(it_aligned)
-            })
-            // map the result as match
-            .map(|n| Match {
-                node: n,
-                anno_key: DEFAULT_ANNO_KEY.clone(),
-            })
-            .collect();
-
-        Box::new(result.into_iter())
-    }
-
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
@@ -313,5 +281,41 @@ impl<'a> BinaryOperator for InversePrecedence<'a> {
         }
 
         EstimationType::SELECTIVITY(0.1)
+    }
+}
+
+impl<'a> BinaryIndexOperator for InversePrecedence<'a> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+        let start = if self.spec.segmentation.is_some() {
+            Some(lhs.node)
+        } else {
+            self.tok_helper.left_token_for(lhs.node)
+        };
+
+        if start.is_none() {
+            return Box::new(std::iter::empty::<Match>());
+        }
+
+        let start = start.unwrap();
+
+        // materialize a list of all matches
+        let result: VecDeque<Match> = self
+            .gs_order
+            // get all token in the range
+            .find_connected_inverse(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
+            .fuse()
+            // find all right aligned nodes for this token and add it together with the token itself
+            .flat_map(move |t| {
+                let it_aligned = self.gs_right.get_ingoing_edges(t);
+                std::iter::once(t).chain(it_aligned)
+            })
+            // map the result as match
+            .map(|n| Match {
+                node: n,
+                anno_key: DEFAULT_ANNO_KEY.clone(),
+            })
+            .collect();
+
+        Box::new(result.into_iter())
     }
 }

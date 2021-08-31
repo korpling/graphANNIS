@@ -1,5 +1,6 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::operator::BinaryIndexOperator;
 use crate::annis::operator::BinaryOperator;
 use crate::annis::operator::BinaryOperatorSpec;
 use crate::AnnotationGraph;
@@ -47,28 +48,6 @@ impl<'a> std::fmt::Display for RightAlignment<'a> {
 }
 
 impl<'a> BinaryOperator for RightAlignment<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        let mut aligned = Vec::default();
-
-        if let Some(lhs_token) = self.tok_helper.right_token_for(lhs.node) {
-            aligned.push(Match {
-                node: lhs_token,
-                anno_key: DEFAULT_ANNO_KEY.clone(),
-            });
-            aligned.extend(
-                self.tok_helper
-                    .get_gs_right_token_()
-                    .get_ingoing_edges(lhs_token)
-                    .map(|n| Match {
-                        node: n,
-                        anno_key: DEFAULT_ANNO_KEY.clone(),
-                    }),
-            );
-        }
-
-        Box::from(aligned.into_iter())
-    }
-
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         if let (Some(lhs_token), Some(rhs_token)) = (
             self.tok_helper.right_token_for(lhs.node),
@@ -102,5 +81,29 @@ impl<'a> BinaryOperator for RightAlignment<'a> {
         }
 
         EstimationType::SELECTIVITY(0.1)
+    }
+}
+
+impl<'a> BinaryIndexOperator for RightAlignment<'a> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+        let mut aligned = Vec::default();
+
+        if let Some(lhs_token) = self.tok_helper.right_token_for(lhs.node) {
+            aligned.push(Match {
+                node: lhs_token,
+                anno_key: DEFAULT_ANNO_KEY.clone(),
+            });
+            aligned.extend(
+                self.tok_helper
+                    .get_gs_right_token_()
+                    .get_ingoing_edges(lhs_token)
+                    .map(|n| Match {
+                        node: n,
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
+                    }),
+            );
+        }
+
+        Box::from(aligned.into_iter())
     }
 }

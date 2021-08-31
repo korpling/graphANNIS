@@ -1,6 +1,6 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::EstimationType;
+use crate::annis::operator::{BinaryIndexOperator, EstimationType};
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
@@ -85,39 +85,6 @@ impl<'a> std::fmt::Display for IdenticalCoverage<'a> {
 }
 
 impl<'a> BinaryOperator for IdenticalCoverage<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        let n_left = self.tok_helper.left_token_for(lhs.node);
-        let n_right = self.tok_helper.right_token_for(lhs.node);
-
-        let mut result = MatchGroup::new();
-
-        if let (Some(n_left), Some(n_right)) = (n_left, n_right) {
-            if n_left == n_right {
-                // covered range is exactly one token, add token itself
-                result.push(Match {
-                    node: n_left,
-                    anno_key: DEFAULT_ANNO_KEY.clone(),
-                });
-            }
-
-            // find left-aligned non-token
-            let v = self.gs_left.get_ingoing_edges(n_left);
-            for c in v {
-                // check if also right-aligned
-                if let Some(c_right) = self.tok_helper.right_token_for(c) {
-                    if n_right == c_right {
-                        result.push(Match {
-                            node: c,
-                            anno_key: DEFAULT_ANNO_KEY.clone(),
-                        });
-                    }
-                }
-            }
-        }
-
-        Box::new(result.into_iter())
-    }
-
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let start_lhs = self.tok_helper.left_token_for(lhs.node);
         let end_lhs = self.tok_helper.right_token_for(lhs.node);
@@ -161,5 +128,40 @@ impl<'a> BinaryOperator for IdenticalCoverage<'a> {
         } else {
             EstimationType::SELECTIVITY(0.1)
         }
+    }
+}
+
+impl<'a> BinaryIndexOperator for IdenticalCoverage<'a> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+        let n_left = self.tok_helper.left_token_for(lhs.node);
+        let n_right = self.tok_helper.right_token_for(lhs.node);
+
+        let mut result = MatchGroup::new();
+
+        if let (Some(n_left), Some(n_right)) = (n_left, n_right) {
+            if n_left == n_right {
+                // covered range is exactly one token, add token itself
+                result.push(Match {
+                    node: n_left,
+                    anno_key: DEFAULT_ANNO_KEY.clone(),
+                });
+            }
+
+            // find left-aligned non-token
+            let v = self.gs_left.get_ingoing_edges(n_left);
+            for c in v {
+                // check if also right-aligned
+                if let Some(c_right) = self.tok_helper.right_token_for(c) {
+                    if n_right == c_right {
+                        result.push(Match {
+                            node: c,
+                            anno_key: DEFAULT_ANNO_KEY.clone(),
+                        });
+                    }
+                }
+            }
+        }
+
+        Box::new(result.into_iter())
     }
 }

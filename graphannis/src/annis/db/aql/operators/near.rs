@@ -1,7 +1,7 @@
 use crate::annis::db::aql::{model::AnnotationComponentType, operators::RangeSpec};
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::EstimationType;
+use crate::annis::operator::{BinaryIndexOperator, EstimationType};
 use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
@@ -95,64 +95,6 @@ impl<'a> std::fmt::Display for Near<'a> {
 }
 
 impl<'a> BinaryOperator for Near<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        let start_forward = if self.spec.segmentation.is_some() {
-            Some(lhs.node)
-        } else {
-            self.tok_helper.right_token_for(lhs.node)
-        };
-
-        let start_backward = if self.spec.segmentation.is_some() {
-            Some(lhs.node)
-        } else {
-            self.tok_helper.left_token_for(lhs.node)
-        };
-
-        let it_forward: Box<dyn Iterator<Item = u64>> = if let Some(start) = start_forward {
-            let it = self
-                .gs_order
-                // get all token in the range
-                .find_connected(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
-                .fuse()
-                // find all left aligned nodes for this token and add it together with the token itself
-                .flat_map(move |t| {
-                    let it_aligned = self.tok_helper.get_gs_left_token().get_ingoing_edges(t);
-                    std::iter::once(t).chain(it_aligned)
-                });
-            Box::new(it)
-        } else {
-            Box::new(std::iter::empty::<u64>())
-        };
-
-        let it_backward: Box<dyn Iterator<Item = u64>> = if let Some(start) = start_backward {
-            let it = self
-                .gs_order
-                // get all token in the range
-                .find_connected_inverse(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
-                .fuse()
-                // find all right aligned nodes for this token and add it together with the token itself
-                .flat_map(move |t| {
-                    let it_aligned = self.tok_helper.get_gs_right_token_().get_ingoing_edges(t);
-                    std::iter::once(t).chain(it_aligned)
-                });
-            Box::new(it)
-        } else {
-            Box::new(std::iter::empty::<u64>())
-        };
-
-        // materialize a set of all matches
-        let result: FxHashSet<Match> = it_forward
-            .chain(it_backward)
-            // map the result as match
-            .map(|n| Match {
-                node: n,
-                anno_key: DEFAULT_ANNO_KEY.clone(),
-            })
-            .collect();
-
-        Box::new(result.into_iter())
-    }
-
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let start_end_forward = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
@@ -215,5 +157,65 @@ impl<'a> BinaryOperator for Near<'a> {
             tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
         }))
+    }
+}
+
+impl<'a> BinaryIndexOperator for Near<'a> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+        let start_forward = if self.spec.segmentation.is_some() {
+            Some(lhs.node)
+        } else {
+            self.tok_helper.right_token_for(lhs.node)
+        };
+
+        let start_backward = if self.spec.segmentation.is_some() {
+            Some(lhs.node)
+        } else {
+            self.tok_helper.left_token_for(lhs.node)
+        };
+
+        let it_forward: Box<dyn Iterator<Item = u64>> = if let Some(start) = start_forward {
+            let it = self
+                .gs_order
+                // get all token in the range
+                .find_connected(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
+                .fuse()
+                // find all left aligned nodes for this token and add it together with the token itself
+                .flat_map(move |t| {
+                    let it_aligned = self.tok_helper.get_gs_left_token().get_ingoing_edges(t);
+                    std::iter::once(t).chain(it_aligned)
+                });
+            Box::new(it)
+        } else {
+            Box::new(std::iter::empty::<u64>())
+        };
+
+        let it_backward: Box<dyn Iterator<Item = u64>> = if let Some(start) = start_backward {
+            let it = self
+                .gs_order
+                // get all token in the range
+                .find_connected_inverse(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
+                .fuse()
+                // find all right aligned nodes for this token and add it together with the token itself
+                .flat_map(move |t| {
+                    let it_aligned = self.tok_helper.get_gs_right_token_().get_ingoing_edges(t);
+                    std::iter::once(t).chain(it_aligned)
+                });
+            Box::new(it)
+        } else {
+            Box::new(std::iter::empty::<u64>())
+        };
+
+        // materialize a set of all matches
+        let result: FxHashSet<Match> = it_forward
+            .chain(it_backward)
+            // map the result as match
+            .map(|n| Match {
+                node: n,
+                anno_key: DEFAULT_ANNO_KEY.clone(),
+            })
+            .collect();
+
+        Box::new(result.into_iter())
     }
 }

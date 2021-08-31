@@ -1,6 +1,6 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::EstimationType;
+use crate::annis::operator::{BinaryIndexOperator, EstimationType};
 use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
@@ -81,53 +81,6 @@ impl<'a> std::fmt::Display for Overlap<'a> {
 }
 
 impl<'a> BinaryOperator for Overlap<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        // use set to filter out duplicates
-        let mut result = FxHashSet::default();
-
-        if self.reflexive {
-            // add LHS  itself
-            result.insert(lhs.node);
-        }
-
-        let lhs_is_token = self.tok_helper.is_token(lhs.node);
-        let coverage_gs = self.tok_helper.get_gs_coverage();
-        if lhs_is_token && coverage_gs.is_empty() {
-            // There are only token in this corpus and an thus the only covered node is the LHS itself
-            result.insert(lhs.node);
-        } else {
-            // Find covered nodes in all Coverage graph storages
-            for gs_cov in coverage_gs.iter() {
-                let covered: Box<dyn Iterator<Item = NodeID>> = if lhs_is_token {
-                    Box::new(std::iter::once(lhs.node))
-                } else {
-                    // all covered token
-                    Box::new(
-                        gs_cov
-                            .find_connected(lhs.node, 1, std::ops::Bound::Included(1))
-                            .fuse(),
-                    )
-                };
-
-                for t in covered {
-                    // get all nodes that are covering the token (in all coverage components)
-                    for gs_cov in self.tok_helper.get_gs_coverage().iter() {
-                        for n in gs_cov.get_ingoing_edges(t) {
-                            result.insert(n);
-                        }
-                    }
-                    // also add the token itself
-                    result.insert(t);
-                }
-            }
-        }
-
-        Box::new(result.into_iter().map(|n| Match {
-            node: n,
-            anno_key: DEFAULT_ANNO_KEY.clone(),
-        }))
-    }
-
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         if self.reflexive && lhs == rhs {
             return true;
@@ -197,5 +150,54 @@ impl<'a> BinaryOperator for Overlap<'a> {
         }
 
         EstimationType::SELECTIVITY(0.1)
+    }
+}
+
+impl<'a> BinaryIndexOperator for Overlap<'a> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+        // use set to filter out duplicates
+        let mut result = FxHashSet::default();
+
+        if self.reflexive {
+            // add LHS  itself
+            result.insert(lhs.node);
+        }
+
+        let lhs_is_token = self.tok_helper.is_token(lhs.node);
+        let coverage_gs = self.tok_helper.get_gs_coverage();
+        if lhs_is_token && coverage_gs.is_empty() {
+            // There are only token in this corpus and an thus the only covered node is the LHS itself
+            result.insert(lhs.node);
+        } else {
+            // Find covered nodes in all Coverage graph storages
+            for gs_cov in coverage_gs.iter() {
+                let covered: Box<dyn Iterator<Item = NodeID>> = if lhs_is_token {
+                    Box::new(std::iter::once(lhs.node))
+                } else {
+                    // all covered token
+                    Box::new(
+                        gs_cov
+                            .find_connected(lhs.node, 1, std::ops::Bound::Included(1))
+                            .fuse(),
+                    )
+                };
+
+                for t in covered {
+                    // get all nodes that are covering the token (in all coverage components)
+                    for gs_cov in self.tok_helper.get_gs_coverage().iter() {
+                        for n in gs_cov.get_ingoing_edges(t) {
+                            result.insert(n);
+                        }
+                    }
+                    // also add the token itself
+                    result.insert(t);
+                }
+            }
+        }
+
+        Box::new(result.into_iter().map(|n| Match {
+            node: n,
+            anno_key: DEFAULT_ANNO_KEY.clone(),
+        }))
     }
 }

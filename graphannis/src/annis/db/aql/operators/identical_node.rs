@@ -35,13 +35,6 @@ impl std::fmt::Display for IdenticalNode {
 }
 
 impl BinaryOperator for IdenticalNode {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        Box::new(std::iter::once(Match {
-            node: lhs.node,
-            anno_key: DEFAULT_ANNO_KEY.clone(),
-        }))
-    }
-
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         lhs.node == rhs.node
     }
@@ -55,5 +48,14 @@ impl BinaryOperator for IdenticalNode {
         _graph: &'a AnnotationGraph,
     ) -> Option<Box<dyn BinaryOperator + 'a>> {
         Some(Box::new(self.clone()))
+    }
+}
+
+impl BinaryIndexOperator for IdenticalNode {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+        Box::new(std::iter::once(Match {
+            node: lhs.node,
+            anno_key: DEFAULT_ANNO_KEY.clone(),
+        }))
     }
 }

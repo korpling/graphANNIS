@@ -1,10 +1,8 @@
 use super::super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::AnnotationStorage;
-use crate::{
-    annis::operator::{BinaryOperator, EstimationType},
-    graph::Match,
-};
+use crate::annis::operator::{BinaryIndexOperator, BinaryOperator};
+use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
 use rayon::prelude::*;
 use std::iter::Peekable;
@@ -119,7 +117,7 @@ impl<'a> IndexJoin<'a> {
         let lhs_idx = self.lhs_idx;
         let node_annos = self.node_annos;
 
-        let op: &dyn BinaryOperator = op.as_ref();
+        let op: &dyn BinaryIndexOperator = op.as_ref().as_index_operator()?;
         let global_reflexivity = self.global_reflexivity;
 
         // find all RHS in parallel
@@ -181,7 +179,7 @@ impl<'a> IndexJoin<'a> {
 
 fn next_candidates(
     m_lhs: &[Match],
-    op: &dyn BinaryOperator,
+    op: &dyn BinaryIndexOperator,
     lhs_idx: usize,
     node_annos: &dyn AnnotationStorage<NodeID>,
     node_search_desc: &Arc<NodeSearchDesc>,

@@ -106,26 +106,6 @@ impl<'a> EqualValue<'a> {
 }
 
 impl<'a> BinaryOperator for EqualValue<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        let lhs = lhs.clone();
-        if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
-            let val_search: ValueSearch<&str> = if self.negated {
-                ValueSearch::NotSome(&lhs_val)
-            } else {
-                ValueSearch::Some(&lhs_val)
-            };
-
-            if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
-                let rhs_candidates: MatchGroup = self
-                    .node_annos
-                    .exact_anno_search(ns, name, val_search)
-                    .collect();
-                return Box::new(rhs_candidates.into_iter());
-            }
-        }
-        Box::new(std::iter::empty())
-    }
-
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let lhs_val = self.value_for_match(lhs, &self.spec_left);
         let rhs_val = self.value_for_match(rhs, &self.spec_right);
@@ -178,5 +158,27 @@ impl<'a> BinaryOperator for EqualValue<'a> {
             spec_right: self.spec_right.clone(),
             negated: self.negated,
         }))
+    }
+}
+
+impl<'a> BinaryIndexOperator for EqualValue<'a> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+        let lhs = lhs.clone();
+        if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
+            let val_search: ValueSearch<&str> = if self.negated {
+                ValueSearch::NotSome(&lhs_val)
+            } else {
+                ValueSearch::Some(&lhs_val)
+            };
+
+            if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
+                let rhs_candidates: MatchGroup = self
+                    .node_annos
+                    .exact_anno_search(ns, name, val_search)
+                    .collect();
+                return Box::new(rhs_candidates.into_iter());
+            }
+        }
+        Box::new(std::iter::empty())
     }
 }

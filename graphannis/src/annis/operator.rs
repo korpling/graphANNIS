@@ -144,8 +144,6 @@ pub enum EstimationType {
 }
 
 pub trait BinaryOperator: std::fmt::Display + Send + Sync {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>>;
-
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool;
 
     fn is_reflexive(&self) -> bool {
@@ -166,6 +164,15 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
     fn edge_anno_selectivity(&self) -> Option<f64> {
         None
     }
+
+    fn as_index_operator(&self) -> Option<&dyn BinaryIndexOperator> {
+        None
+    }
+}
+
+/// A binary operator that can be used in an [`IndexJoin`](crate::annis::db::exec::indexjoin::IndexJoin).
+pub trait BinaryIndexOperator: BinaryOperator {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>>;
 }
 
 pub trait BinaryOperatorSpec: std::fmt::Debug {

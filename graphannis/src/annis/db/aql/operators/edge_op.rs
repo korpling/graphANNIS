@@ -1,6 +1,6 @@
 use crate::annis::db::aql::{model::AnnotationComponentType, operators::RangeSpec};
 use crate::annis::operator::{
-    BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
+    BinaryIndexOperator, BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
 };
 use crate::graph::{GraphStatistic, GraphStorage, Match};
 use crate::AnnotationGraph;
@@ -204,107 +204,6 @@ impl std::fmt::Display for BaseEdgeOp {
 }
 
 impl BinaryOperator for BaseEdgeOp {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        let lhs = lhs.clone();
-        let spec = self.spec.clone();
-
-        if self.gs.len() == 1 {
-            // directly return all matched nodes since when having only one component
-            // no duplicates are possible
-            let result: VecDeque<Match> = if self.inverse {
-                self.gs[0]
-                    .find_connected_inverse(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
-                    .fuse()
-                    .filter(move |candidate| {
-                        check_edge_annotation(
-                            &self.spec.edge_anno,
-                            self.gs[0].as_ref(),
-                            *candidate,
-                            lhs.clone().node,
-                        )
-                    })
-                    .map(|n| Match {
-                        node: n,
-                        anno_key: DEFAULT_ANNO_KEY.clone(),
-                    })
-                    .collect()
-            } else {
-                self.gs[0]
-                    .find_connected(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
-                    .fuse()
-                    .filter(move |candidate| {
-                        check_edge_annotation(
-                            &self.spec.edge_anno,
-                            self.gs[0].as_ref(),
-                            lhs.clone().node,
-                            *candidate,
-                        )
-                    })
-                    .map(|n| Match {
-                        node: n,
-                        anno_key: DEFAULT_ANNO_KEY.clone(),
-                    })
-                    .collect()
-            };
-            Box::new(result.into_iter())
-        } else {
-            let mut all: MatchGroup = if self.inverse {
-                self.gs
-                    .iter()
-                    .flat_map(move |e| {
-                        let lhs = lhs.clone();
-
-                        e.as_ref()
-                            .find_connected_inverse(
-                                lhs.node,
-                                spec.dist.min_dist(),
-                                spec.dist.max_dist(),
-                            )
-                            .fuse()
-                            .filter(move |candidate| {
-                                check_edge_annotation(
-                                    &self.spec.edge_anno,
-                                    e.as_ref(),
-                                    *candidate,
-                                    lhs.clone().node,
-                                )
-                            })
-                            .map(|n| Match {
-                                node: n,
-                                anno_key: DEFAULT_ANNO_KEY.clone(),
-                            })
-                    })
-                    .collect()
-            } else {
-                self.gs
-                    .iter()
-                    .flat_map(move |e| {
-                        let lhs = lhs.clone();
-
-                        e.as_ref()
-                            .find_connected(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
-                            .fuse()
-                            .filter(move |candidate| {
-                                check_edge_annotation(
-                                    &self.spec.edge_anno,
-                                    e.as_ref(),
-                                    lhs.clone().node,
-                                    *candidate,
-                                )
-                            })
-                            .map(|n| Match {
-                                node: n,
-                                anno_key: DEFAULT_ANNO_KEY.clone(),
-                            })
-                    })
-                    .collect()
-            };
-            all.sort_unstable();
-            all.dedup();
-            Box::new(all.into_iter())
-        }
-    }
-
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         for e in &self.gs {
             if self.inverse {
@@ -488,6 +387,109 @@ impl BinaryOperator for BaseEdgeOp {
             Some(worst_sel)
         } else {
             Some(1.0)
+        }
+    }
+}
+
+impl BinaryIndexOperator for BaseEdgeOp {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+        let lhs = lhs.clone();
+        let spec = self.spec.clone();
+
+        if self.gs.len() == 1 {
+            // directly return all matched nodes since when having only one component
+            // no duplicates are possible
+            let result: VecDeque<Match> = if self.inverse {
+                self.gs[0]
+                    .find_connected_inverse(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
+                    .fuse()
+                    .filter(move |candidate| {
+                        check_edge_annotation(
+                            &self.spec.edge_anno,
+                            self.gs[0].as_ref(),
+                            *candidate,
+                            lhs.clone().node,
+                        )
+                    })
+                    .map(|n| Match {
+                        node: n,
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
+                    })
+                    .collect()
+            } else {
+                self.gs[0]
+                    .find_connected(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
+                    .fuse()
+                    .filter(move |candidate| {
+                        check_edge_annotation(
+                            &self.spec.edge_anno,
+                            self.gs[0].as_ref(),
+                            lhs.clone().node,
+                            *candidate,
+                        )
+                    })
+                    .map(|n| Match {
+                        node: n,
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
+                    })
+                    .collect()
+            };
+            Box::new(result.into_iter())
+        } else {
+            let mut all: MatchGroup = if self.inverse {
+                self.gs
+                    .iter()
+                    .flat_map(move |e| {
+                        let lhs = lhs.clone();
+
+                        e.as_ref()
+                            .find_connected_inverse(
+                                lhs.node,
+                                spec.dist.min_dist(),
+                                spec.dist.max_dist(),
+                            )
+                            .fuse()
+                            .filter(move |candidate| {
+                                check_edge_annotation(
+                                    &self.spec.edge_anno,
+                                    e.as_ref(),
+                                    *candidate,
+                                    lhs.clone().node,
+                                )
+                            })
+                            .map(|n| Match {
+                                node: n,
+                                anno_key: DEFAULT_ANNO_KEY.clone(),
+                            })
+                    })
+                    .collect()
+            } else {
+                self.gs
+                    .iter()
+                    .flat_map(move |e| {
+                        let lhs = lhs.clone();
+
+                        e.as_ref()
+                            .find_connected(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
+                            .fuse()
+                            .filter(move |candidate| {
+                                check_edge_annotation(
+                                    &self.spec.edge_anno,
+                                    e.as_ref(),
+                                    lhs.clone().node,
+                                    *candidate,
+                                )
+                            })
+                            .map(|n| Match {
+                                node: n,
+                                anno_key: DEFAULT_ANNO_KEY.clone(),
+                            })
+                    })
+                    .collect()
+            };
+            all.sort_unstable();
+            all.dedup();
+            Box::new(all.into_iter())
         }
     }
 }

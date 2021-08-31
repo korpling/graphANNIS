@@ -1,7 +1,7 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::{aql::model::AnnotationComponentType, token_helper::TokenHelper};
-use crate::annis::operator::BinaryOperator;
 use crate::annis::operator::BinaryOperatorSpec;
+use crate::annis::operator::{BinaryIndexOperator, BinaryOperator};
 use crate::AnnotationGraph;
 use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
@@ -50,28 +50,6 @@ impl<'a> std::fmt::Display for LeftAlignment<'a> {
 }
 
 impl<'a> BinaryOperator for LeftAlignment<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        let mut aligned = Vec::default();
-
-        if let Some(lhs_token) = self.tok_helper.left_token_for(lhs.node) {
-            aligned.push(Match {
-                node: lhs_token,
-                anno_key: DEFAULT_ANNO_KEY.clone(),
-            });
-            aligned.extend(
-                self.tok_helper
-                    .get_gs_left_token()
-                    .get_ingoing_edges(lhs_token)
-                    .map(|n| Match {
-                        node: n,
-                        anno_key: DEFAULT_ANNO_KEY.clone(),
-                    }),
-            );
-        }
-
-        Box::from(aligned.into_iter())
-    }
-
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         if let (Some(lhs_token), Some(rhs_token)) = (
             self.tok_helper.left_token_for(lhs.node),
@@ -105,5 +83,29 @@ impl<'a> BinaryOperator for LeftAlignment<'a> {
         }
 
         EstimationType::SELECTIVITY(0.1)
+    }
+}
+
+impl<'a> BinaryIndexOperator for LeftAlignment<'a> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+        let mut aligned = Vec::default();
+
+        if let Some(lhs_token) = self.tok_helper.left_token_for(lhs.node) {
+            aligned.push(Match {
+                node: lhs_token,
+                anno_key: DEFAULT_ANNO_KEY.clone(),
+            });
+            aligned.extend(
+                self.tok_helper
+                    .get_gs_left_token()
+                    .get_ingoing_edges(lhs_token)
+                    .map(|n| Match {
+                        node: n,
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
+                    }),
+            );
+        }
+
+        Box::from(aligned.into_iter())
     }
 }

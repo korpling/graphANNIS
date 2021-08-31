@@ -1,11 +1,10 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::AnnotationStorage;
-use crate::{
-    annis::operator::{BinaryOperator, EstimationType},
-    graph::Match,
-};
+use crate::annis::operator::BinaryOperator;
+use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
+use std::boxed::Box;
 use std::iter::Peekable;
 use std::sync::Arc;
 
@@ -88,20 +87,20 @@ impl<'a> IndexJoin<'a> {
 
     fn next_candidates(&mut self) -> Option<MatchGroup> {
         if let Some(m_lhs) = self.lhs.peek().cloned() {
-            let it_nodes = Box::from(
-                self.op
-                    .retrieve_matches(&m_lhs[self.lhs_idx])
-                    .map(|m| m.node)
-                    .fuse(),
-            );
+            if let Some(op) = self.op.as_index_operator() {
+                let it_nodes = Box::from(
+                    op.retrieve_matches(&m_lhs[self.lhs_idx])
+                        .map(|m| m.node)
+                        .fuse(),
+                );
 
-            return Some(self.node_annos.get_keys_for_iterator(
-                self.node_search_desc.qname.0.as_deref(),
-                self.node_search_desc.qname.1.as_deref(),
-                it_nodes,
-            ));
+                return Some(self.node_annos.get_keys_for_iterator(
+                    self.node_search_desc.qname.0.as_deref(),
+                    self.node_search_desc.qname.1.as_deref(),
+                    it_nodes,
+                ));
+            }
         }
-
         None
     }
 }
