@@ -250,6 +250,8 @@ impl<'a> From<Box<dyn BinaryIndexOperator + 'a>> for BinaryOperatorImpl<'a> {
 /// A binary operator that can be used in an [`IndexJoin`](crate::annis::db::exec::indexjoin::IndexJoin).
 pub trait BinaryIndexOperator: BinaryOperator {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>>;
+
+    fn as_binary_operator(&self) -> &dyn BinaryOperator;
 }
 
 pub trait BinaryOperatorSpec: std::fmt::Debug {

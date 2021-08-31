@@ -204,4 +204,8 @@ impl<'a> BinaryIndexOperator for Overlap<'a> {
             anno_key: DEFAULT_ANNO_KEY.clone(),
         }))
     }
+
+    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+        self
+    }
 }

@@ -218,6 +218,10 @@ impl<'a> BinaryIndexOperator for Precedence<'a> {
 
         Box::new(result.into_iter())
     }
+
+    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+        self
+    }
 }
 
 pub struct InversePrecedence<'a> {
@@ -325,5 +329,9 @@ impl<'a> BinaryIndexOperator for InversePrecedence<'a> {
             .collect();
 
         Box::new(result.into_iter())
+    }
+
+    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+        self
     }
 }

@@ -183,4 +183,8 @@ impl<'a> BinaryIndexOperator for Inclusion<'a> {
 
         Box::new(std::iter::empty())
     }
+
+    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+        self
+    }
 }

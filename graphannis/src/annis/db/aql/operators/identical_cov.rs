@@ -168,4 +168,8 @@ impl<'a> BinaryIndexOperator for IdenticalCoverage<'a> {
 
         Box::new(result.into_iter())
     }
+
+    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+        self
+    }
 }

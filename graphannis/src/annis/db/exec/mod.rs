@@ -31,8 +31,8 @@ pub struct Desc {
     pub cost: Option<CostEstimate>,
 }
 
-fn calculate_outputsize(
-    op: &dyn BinaryOperator,
+fn calculate_outputsize<Op: BinaryOperator + ?Sized>(
+    op: &Op,
     cost_lhs: &CostEstimate,
     cost_rhs: &CostEstimate,
 ) -> usize {
@@ -82,8 +82,8 @@ impl Desc {
         }
     }
 
-    pub fn join(
-        op: &dyn BinaryOperator,
+    pub fn join<Op: BinaryOperator + ?Sized>(
+        op: &Op,
         lhs: Option<&Desc>,
         rhs: Option<&Desc>,
         impl_description: &str,

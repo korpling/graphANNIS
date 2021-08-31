@@ -496,6 +496,10 @@ impl BinaryIndexOperator for BaseEdgeOp {
             Box::new(all.into_iter())
         }
     }
+
+    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+        self
+    }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]

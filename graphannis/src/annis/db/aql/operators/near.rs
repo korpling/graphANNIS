@@ -222,4 +222,8 @@ impl<'a> BinaryIndexOperator for Near<'a> {
 
         Box::new(result.into_iter())
     }
+
+    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+        self
+    }
 }

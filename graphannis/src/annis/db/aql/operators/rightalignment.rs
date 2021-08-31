@@ -110,4 +110,8 @@ impl<'a> BinaryIndexOperator for RightAlignment<'a> {
 
         Box::from(aligned.into_iter())
     }
+
+    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+        self
+    }
 }

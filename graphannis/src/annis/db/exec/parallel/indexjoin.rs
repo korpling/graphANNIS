@@ -1,7 +1,7 @@
 use super::super::{Desc, ExecutionNode, NodeSearchDesc};
-use crate::annis::db::query::conjunction::BinaryOperatorEntry;
+use crate::annis::db::query::conjunction::BinaryOperatorArguments;
 use crate::annis::db::AnnotationStorage;
-use crate::annis::operator::{BinaryIndexOperator, BinaryOperator};
+use crate::annis::operator::BinaryIndexOperator;
 use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
 use rayon::prelude::*;
@@ -17,7 +17,7 @@ const MAX_BUFFER_SIZE: usize = 512;
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
     match_receiver: Option<Receiver<MatchGroup>>,
-    op: Arc<dyn BinaryOperator + 'a>,
+    op: Arc<dyn BinaryIndexOperator + 'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: &'a dyn AnnotationStorage<NodeID>,
@@ -37,7 +37,8 @@ impl<'a> IndexJoin<'a> {
     pub fn new(
         lhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
         lhs_idx: usize,
-        op_entry: BinaryOperatorEntry<'a>,
+        op: Box<dyn BinaryIndexOperator + 'a>,
+        op_args: &BinaryOperatorArguments,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: &'a dyn AnnotationStorage<NodeID>,
         rhs_desc: Option<&Desc>,
@@ -68,23 +69,20 @@ impl<'a> IndexJoin<'a> {
 
         IndexJoin {
             desc: Desc::join(
-                &op_entry.op,
+                op.as_binary_operator(),
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin (parallel)",
-                &format!(
-                    "#{} {} #{}",
-                    op_entry.args.left, op_entry.op, op_entry.args.right
-                ),
+                &format!("#{} {} #{}", op_args.left, &op, op_args.right),
                 &processed_func,
             ),
             lhs: lhs_peek,
             lhs_idx,
-            op: Arc::from(op_entry.op),
+            op: Arc::from(op),
             node_search_desc,
             node_annos,
             match_receiver: None,
-            global_reflexivity: op_entry.args.global_reflexivity,
+            global_reflexivity: op_args.global_reflexivity,
         }
     }
 
@@ -113,11 +111,11 @@ impl<'a> IndexJoin<'a> {
         }
 
         let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
-        let op: Arc<dyn BinaryOperator> = self.op.clone();
+        let op: Arc<dyn BinaryIndexOperator> = self.op.clone();
         let lhs_idx = self.lhs_idx;
         let node_annos = self.node_annos;
 
-        let op: &dyn BinaryIndexOperator = op.as_ref().as_index_operator()?;
+        let op: &dyn BinaryIndexOperator = op.as_ref();
         let global_reflexivity = self.global_reflexivity;
 
         // find all RHS in parallel

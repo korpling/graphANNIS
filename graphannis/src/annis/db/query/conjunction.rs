@@ -9,7 +9,8 @@ use crate::annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::{aql::model::AnnotationComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::{
-    BinaryOperator, BinaryOperatorImpl, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
+    BinaryIndexOperator, BinaryOperator, BinaryOperatorImpl, BinaryOperatorSpec, UnaryOperator,
+    UnaryOperatorSpec,
 };
 use crate::AnnotationGraph;
 use crate::{
@@ -111,6 +112,40 @@ fn should_switch_operand_order(
     false
 }
 
+fn create_index_join<'b>(
+    db: &'b AnnotationGraph,
+    config: &Config,
+    op: Box<dyn BinaryIndexOperator + 'b>,
+    op_args: &BinaryOperatorArguments,
+    exec_left: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
+    exec_right: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
+    idx_left: usize,
+) -> Box<dyn ExecutionNode<Item = MatchGroup> + 'b> {
+    if config.use_parallel_joins {
+        let join = parallel::indexjoin::IndexJoin::new(
+            exec_left,
+            idx_left,
+            op,
+            op_args,
+            exec_right.as_nodesearch().unwrap().get_node_search_desc(),
+            db.get_node_annos(),
+            exec_right.get_desc(),
+        );
+        return Box::new(join);
+    } else {
+        let join = IndexJoin::new(
+            exec_left,
+            idx_left,
+            op,
+            op_args,
+            exec_right.as_nodesearch().unwrap().get_node_search_desc(),
+            db.get_node_annos(),
+            exec_right.get_desc(),
+        );
+        return Box::new(join);
+    }
+}
+
 fn create_join<'b>(
     db: &'b AnnotationGraph,
     config: &Config,
@@ -120,68 +155,38 @@ fn create_join<'b>(
     idx_left: usize,
     idx_right: usize,
 ) -> Box<dyn ExecutionNode<Item = MatchGroup> + 'b> {
-    if op_entry.op.as_index_operator().is_some() {
-        if exec_right.as_nodesearch().is_some() {
-            // use index join
-            if config.use_parallel_joins {
-                let join = parallel::indexjoin::IndexJoin::new(
+    if exec_right.as_nodesearch().is_some() {
+        if let BinaryOperatorImpl::Index(op) = op_entry.op {
+            // we can use directly use an index join
+            return create_index_join(
+                db,
+                config,
+                op,
+                &op_entry.args,
+                exec_left,
+                exec_right,
+                idx_left,
+            );
+        }
+    } else if exec_left.as_nodesearch().is_some() {
+        // avoid a nested loop join by switching the operand and using and index join when possible
+        if let Some(inverse_op) = op_entry.op.get_inverse_operator(db) {
+            if let BinaryOperatorImpl::Index(inverse_op) = inverse_op.into() {
+                let inverse_args = BinaryOperatorArguments {
+                    left: op_entry.args.right,
+                    right: op_entry.args.left,
+                    global_reflexivity: op_entry.args.global_reflexivity,
+                };
+
+                return create_index_join(
+                    db,
+                    config,
+                    inverse_op,
+                    &inverse_args,
+                    exec_right,
                     exec_left,
-                    idx_left,
-                    op_entry,
-                    exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.get_node_annos(),
-                    exec_right.get_desc(),
+                    idx_right,
                 );
-                return Box::new(join);
-            } else {
-                let join = IndexJoin::new(
-                    exec_left,
-                    idx_left,
-                    op_entry,
-                    exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.get_node_annos(),
-                    exec_right.get_desc(),
-                );
-                return Box::new(join);
-            }
-        } else if exec_left.as_nodesearch().is_some() {
-            // avoid a nested loop join by switching the operand and using and index join
-            if let Some(inverse_op) = op_entry.op.get_inverse_operator(db) {
-                if config.use_parallel_joins {
-                    let join = parallel::indexjoin::IndexJoin::new(
-                        exec_right,
-                        idx_right,
-                        BinaryOperatorEntry {
-                            args: BinaryOperatorArguments {
-                                left: op_entry.args.right,
-                                right: op_entry.args.left,
-                                global_reflexivity: op_entry.args.global_reflexivity,
-                            },
-                            op: inverse_op.into(),
-                        },
-                        exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                        db.get_node_annos(),
-                        exec_left.get_desc(),
-                    );
-                    return Box::new(join);
-                } else {
-                    let join = IndexJoin::new(
-                        exec_right,
-                        idx_right,
-                        BinaryOperatorEntry {
-                            args: BinaryOperatorArguments {
-                                left: op_entry.args.right,
-                                right: op_entry.args.left,
-                                global_reflexivity: op_entry.args.global_reflexivity,
-                            },
-                            op: inverse_op.into(),
-                        },
-                        exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                        db.get_node_annos(),
-                        exec_left.get_desc(),
-                    );
-                    return Box::new(join);
-                }
             }
         }
     }

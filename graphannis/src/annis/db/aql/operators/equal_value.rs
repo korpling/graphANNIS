@@ -185,4 +185,7 @@ impl<'a> BinaryIndexOperator for EqualValue<'a> {
         }
         Box::new(std::iter::empty())
     }
+    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+        self
+    }
 }
