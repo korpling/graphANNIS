@@ -117,62 +117,64 @@ fn create_join<'b>(
     idx_left: usize,
     idx_right: usize,
 ) -> Box<dyn ExecutionNode<Item = MatchGroup> + 'b> {
-    if exec_right.as_nodesearch().is_some() {
-        // use index join
-        if config.use_parallel_joins {
-            let join = parallel::indexjoin::IndexJoin::new(
-                exec_left,
-                idx_left,
-                op_entry,
-                exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                db.get_node_annos(),
-                exec_right.get_desc(),
-            );
-            return Box::new(join);
-        } else {
-            let join = IndexJoin::new(
-                exec_left,
-                idx_left,
-                op_entry,
-                exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                db.get_node_annos(),
-                exec_right.get_desc(),
-            );
-            return Box::new(join);
-        }
-    } else if exec_left.as_nodesearch().is_some() {
-        // avoid a nested loop join by switching the operand and using and index join
-        if let Some(inverse_op) = op_entry.op.get_inverse_operator(db) {
+    if op_entry.op.as_index_operator().is_some() {
+        if exec_right.as_nodesearch().is_some() {
+            // use index join
             if config.use_parallel_joins {
                 let join = parallel::indexjoin::IndexJoin::new(
-                    exec_right,
-                    idx_right,
-                    BinaryOperatorEntry {
-                        node_nr_left: op_entry.node_nr_right,
-                        node_nr_right: op_entry.node_nr_left,
-                        op: inverse_op,
-                        global_reflexivity: op_entry.global_reflexivity,
-                    },
-                    exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                    exec_left,
+                    idx_left,
+                    op_entry,
+                    exec_right.as_nodesearch().unwrap().get_node_search_desc(),
                     db.get_node_annos(),
-                    exec_left.get_desc(),
+                    exec_right.get_desc(),
                 );
                 return Box::new(join);
             } else {
                 let join = IndexJoin::new(
-                    exec_right,
-                    idx_right,
-                    BinaryOperatorEntry {
-                        node_nr_left: op_entry.node_nr_right,
-                        node_nr_right: op_entry.node_nr_left,
-                        op: inverse_op,
-                        global_reflexivity: op_entry.global_reflexivity,
-                    },
-                    exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                    exec_left,
+                    idx_left,
+                    op_entry,
+                    exec_right.as_nodesearch().unwrap().get_node_search_desc(),
                     db.get_node_annos(),
-                    exec_left.get_desc(),
+                    exec_right.get_desc(),
                 );
                 return Box::new(join);
+            }
+        } else if exec_left.as_nodesearch().is_some() {
+            // avoid a nested loop join by switching the operand and using and index join
+            if let Some(inverse_op) = op_entry.op.get_inverse_operator(db) {
+                if config.use_parallel_joins {
+                    let join = parallel::indexjoin::IndexJoin::new(
+                        exec_right,
+                        idx_right,
+                        BinaryOperatorEntry {
+                            node_nr_left: op_entry.node_nr_right,
+                            node_nr_right: op_entry.node_nr_left,
+                            op: inverse_op,
+                            global_reflexivity: op_entry.global_reflexivity,
+                        },
+                        exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                        db.get_node_annos(),
+                        exec_left.get_desc(),
+                    );
+                    return Box::new(join);
+                } else {
+                    let join = IndexJoin::new(
+                        exec_right,
+                        idx_right,
+                        BinaryOperatorEntry {
+                            node_nr_left: op_entry.node_nr_right,
+                            node_nr_right: op_entry.node_nr_left,
+                            op: inverse_op,
+                            global_reflexivity: op_entry.global_reflexivity,
+                        },
+                        exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                        db.get_node_annos(),
+                        exec_left.get_desc(),
+                    );
+                    return Box::new(join);
+                }
             }
         }
     }
