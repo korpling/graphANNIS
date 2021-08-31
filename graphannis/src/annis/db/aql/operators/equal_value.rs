@@ -89,7 +89,7 @@ impl<'a> EqualValue<'a> {
             | NodeSearchSpec::NotExactValue { ns, name, .. }
             | NodeSearchSpec::RegexValue { ns, name, .. }
             | NodeSearchSpec::NotRegexValue { ns, name, .. } => {
-                Some((ns.as_ref().map(String::as_str), &name))
+                Some((ns.as_ref().map(String::as_str), name))
             }
             NodeSearchSpec::AnyToken
             | NodeSearchSpec::ExactTokenValue { .. }

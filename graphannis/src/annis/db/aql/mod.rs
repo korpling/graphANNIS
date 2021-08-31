@@ -46,14 +46,10 @@ fn map_conjunction<'a>(
                 ast::NodeRef::Name(name) => name.clone(),
             };
 
-            let op_pos: Option<LineColumnRange> = if let Some(pos) = pos {
-                Some(LineColumnRange {
-                    start: get_line_and_column_for_pos(pos.start, offsets),
-                    end: Some(get_line_and_column_for_pos(pos.end, offsets)),
-                })
-            } else {
-                None
-            };
+            let op_pos: Option<LineColumnRange> = pos.as_ref().map(|pos| LineColumnRange {
+                start: get_line_and_column_for_pos(pos.start, offsets),
+                end: Some(get_line_and_column_for_pos(pos.end, offsets)),
+            });
 
             q.add_unary_operator_from_query(make_unary_operator_spec(op.clone()), &var, op_pos)?;
         }

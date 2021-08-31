@@ -121,7 +121,7 @@ fn check_edge_annotation(
             false
         }
         Some(EdgeAnnoSearchSpec::RegexValue { ns, name, val }) => {
-            let full_match_pattern = graphannis_core::util::regex_full_match(&val);
+            let full_match_pattern = graphannis_core::util::regex_full_match(val);
             let re = regex::Regex::new(&full_match_pattern);
             if let Ok(re) = re {
                 for a in gs
@@ -148,7 +148,7 @@ fn check_edge_annotation(
             false
         }
         Some(EdgeAnnoSearchSpec::NotRegexValue { ns, name, val }) => {
-            let full_match_pattern = graphannis_core::util::regex_full_match(&val);
+            let full_match_pattern = graphannis_core::util::regex_full_match(val);
             let re = regex::Regex::new(&full_match_pattern);
             if let Ok(re) = re {
                 for a in gs
@@ -343,25 +343,25 @@ impl BinaryOperatorBase for BaseEdgeOp {
                             } else {
                                 anno_storage.number_of_annotations_by_name(
                                     ns.as_ref().map(String::as_str),
-                                    &name,
+                                    name,
                                 )
                             }
                         }
                         EdgeAnnoSearchSpec::NotExactValue { val, ns, name } => {
                             let total = anno_storage.number_of_annotations_by_name(
                                 ns.as_ref().map(String::as_str),
-                                &name,
+                                name,
                             );
                             total
                                 - anno_storage.guess_max_count(
                                     ns.as_ref().map(String::as_str),
-                                    &name,
+                                    name,
                                     val,
                                     val,
                                 )
                         }
                         EdgeAnnoSearchSpec::RegexValue { val, ns, name } => anno_storage
-                            .guess_max_count_regex(ns.as_ref().map(String::as_str), &name, val),
+                            .guess_max_count_regex(ns.as_ref().map(String::as_str), name, val),
                         EdgeAnnoSearchSpec::NotRegexValue { val, ns, name } => {
                             let total = anno_storage.number_of_annotations_by_name(
                                 ns.as_ref().map(String::as_str),
@@ -370,7 +370,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                             total
                                 - anno_storage.guess_max_count_regex(
                                     ns.as_ref().map(String::as_str),
-                                    &name,
+                                    name,
                                     val,
                                 )
                         }
