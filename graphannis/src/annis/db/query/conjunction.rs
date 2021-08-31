@@ -173,7 +173,7 @@ fn create_join<'b>(
     if exec_left.as_nodesearch().is_some() {
         // avoid a nested loop join by switching the operand and using and index join when possible
         if let Some(inverse_op) = op_entry.op.get_inverse_operator(db) {
-            if let BinaryOperator::Index(inverse_op) = inverse_op.into() {
+            if let BinaryOperator::Index(inverse_op) = inverse_op {
                 let inverse_args = BinaryOperatorArguments {
                     left: op_entry.args.right,
                     right: op_entry.args.left,

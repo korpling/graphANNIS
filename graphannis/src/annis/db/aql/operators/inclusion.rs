@@ -120,13 +120,13 @@ impl<'a> BinaryOperatorBase for Inclusion<'a> {
             }
             if sum_cov_nodes == 0 {
                 // only token in this corpus
-                return EstimationType::SELECTIVITY(1.0 / num_of_token);
+                return EstimationType::Selectivity(1.0 / num_of_token);
             } else {
-                return EstimationType::SELECTIVITY((sum_included as f64) / (sum_cov_nodes as f64));
+                return EstimationType::Selectivity((sum_included as f64) / (sum_cov_nodes as f64));
             }
         }
 
-        EstimationType::SELECTIVITY(0.1)
+        EstimationType::Selectivity(0.1)
     }
 }
 

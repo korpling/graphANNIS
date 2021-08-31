@@ -29,7 +29,7 @@ impl<'a> NestedLoop<'a> {
         rhs_idx: usize,
     ) -> NestedLoop<'a> {
         let mut left_is_outer = true;
-        if let (Some(ref desc_lhs), Some(ref desc_rhs)) = (lhs.get_desc(), rhs.get_desc()) {
+        if let (Some(desc_lhs), Some(desc_rhs)) = (lhs.get_desc(), rhs.get_desc()) {
             if let (&Some(ref cost_lhs), &Some(ref cost_rhs)) = (&desc_lhs.cost, &desc_rhs.cost) {
                 if cost_lhs.output > cost_rhs.output {
                     left_is_outer = false;
@@ -133,8 +133,8 @@ impl<'a> Iterator for NestedLoop<'a> {
                         if filter_true
                             && (self.op.is_reflexive()
                                 || (self.global_reflexivity
-                                    && m_outer[self.outer_idx].different_to_all(&m_inner)
-                                    && m_inner[self.inner_idx].different_to_all(&m_outer))
+                                    && m_outer[self.outer_idx].different_to_all(m_inner)
+                                    && m_inner[self.inner_idx].different_to_all(m_outer))
                                 || (!self.global_reflexivity
                                     && m_outer[self.outer_idx]
                                         .different_to(&m_inner[self.inner_idx])))
@@ -145,7 +145,7 @@ impl<'a> Iterator for NestedLoop<'a> {
                         }
                     }
                 } else {
-                    while let Some(mut m_inner) = self.inner.next() {
+                    for mut m_inner in &mut self.inner {
                         self.inner_cache.push(m_inner.clone());
 
                         let filter_true = if self.left_is_outer {

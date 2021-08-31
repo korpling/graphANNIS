@@ -115,17 +115,17 @@ impl UnaryOperator for ArityOperator {
 
             if min_matches_any {
                 if max_sel >= 1.0 {
-                    EstimationType::SELECTIVITY(1.0)
+                    EstimationType::Selectivity(1.0)
                 } else {
-                    EstimationType::SELECTIVITY(max_sel)
+                    EstimationType::Selectivity(max_sel)
                 }
             } else {
                 // no graph storages has the minimum required amount of outgoing edges
-                EstimationType::SELECTIVITY(0.0)
+                EstimationType::Selectivity(0.0)
             }
         } else {
             // this range spec allows any number of outgoing edges
-            EstimationType::SELECTIVITY(1.0)
+            EstimationType::Selectivity(1.0)
         }
     }
 }

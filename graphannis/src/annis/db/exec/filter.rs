@@ -11,7 +11,7 @@ pub struct Filter<'a> {
 
 fn calculate_binary_outputsize(op: &dyn BinaryOperatorBase, num_tuples: usize) -> usize {
     let output = match op.estimation_type() {
-        EstimationType::SELECTIVITY(selectivity) => {
+        EstimationType::Selectivity(selectivity) => {
             let num_tuples = num_tuples as f64;
             if let Some(edge_sel) = op.edge_anno_selectivity() {
                 (num_tuples * selectivity * edge_sel).round() as usize
@@ -19,7 +19,7 @@ fn calculate_binary_outputsize(op: &dyn BinaryOperatorBase, num_tuples: usize) -
                 (num_tuples * selectivity).round() as usize
             }
         }
-        EstimationType::MIN => num_tuples,
+        EstimationType::Min => num_tuples,
     };
     // always assume at least one output item otherwise very small selectivity can fool the planner
     std::cmp::max(output, 1)
@@ -27,11 +27,11 @@ fn calculate_binary_outputsize(op: &dyn BinaryOperatorBase, num_tuples: usize) -
 
 fn calculate_unary_outputsize(op: &dyn UnaryOperator, num_tuples: usize) -> usize {
     let output = match op.estimation_type() {
-        EstimationType::SELECTIVITY(selectivity) => {
+        EstimationType::Selectivity(selectivity) => {
             let num_tuples = num_tuples as f64;
             (num_tuples * selectivity).round() as usize
         }
-        EstimationType::MIN => num_tuples,
+        EstimationType::Min => num_tuples,
     };
     // always assume at least one output item otherwise very small selectivity can fool the planner
     std::cmp::max(output, 1)

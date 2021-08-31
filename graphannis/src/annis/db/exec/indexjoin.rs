@@ -45,7 +45,7 @@ impl<'a> IndexJoin<'a> {
 
         let processed_func = |est_type: EstimationType, out_lhs: usize, out_rhs: usize| {
             match est_type {
-                EstimationType::SELECTIVITY(op_sel) => {
+                EstimationType::Selectivity(op_sel) => {
                     // A index join processes each LHS and for each LHS the number of reachable nodes given by the operator.
                     // The selectivity of the operator itself an estimation how many nodes are filtered out by the cross product.
                     // We can use this number (without the edge annotation selectivity) to re-construct the number of reachable nodes.
@@ -60,7 +60,7 @@ impl<'a> IndexJoin<'a> {
 
                     result.round() as usize
                 }
-                EstimationType::MIN => out_lhs,
+                EstimationType::Min => out_lhs,
             }
         };
 
@@ -146,7 +146,7 @@ impl<'a> Iterator for IndexJoin<'a> {
 
                         // check if lhs and rhs are equal and if this is allowed in this query
                         if self.op.is_reflexive()
-                            || (self.global_reflexivity && m_rhs.different_to_all(&m_lhs)
+                            || (self.global_reflexivity && m_rhs.different_to_all(m_lhs)
                                 || (!self.global_reflexivity
                                     && m_rhs.different_to(&m_lhs[self.lhs_idx])))
                         {

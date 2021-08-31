@@ -137,15 +137,15 @@ impl<'a> BinaryOperatorBase for EqualValue<'a> {
                     let total_annos = self.node_annos.number_of_annotations_by_name(ns, name);
                     let sel = guessed_count_right as f64 / total_annos as f64;
                     if self.negated {
-                        return EstimationType::SELECTIVITY(1.0 - sel);
+                        return EstimationType::Selectivity(1.0 - sel);
                     } else {
-                        return EstimationType::SELECTIVITY(sel);
+                        return EstimationType::Selectivity(sel);
                     }
                 }
             }
         }
         // fallback to default
-        EstimationType::SELECTIVITY(0.5)
+        EstimationType::Selectivity(0.5)
     }
 
     fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {

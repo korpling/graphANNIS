@@ -71,12 +71,12 @@ impl<'a> BinaryOperatorBase for RightAlignment<'a> {
     fn estimation_type(&self) -> EstimationType {
         if let Some(stats_right) = self.tok_helper.get_gs_right_token_().get_statistics() {
             let aligned_nodes_per_token: f64 = stats_right.inverse_fan_out_99_percentile as f64;
-            return EstimationType::SELECTIVITY(
+            return EstimationType::Selectivity(
                 aligned_nodes_per_token / (stats_right.nodes as f64),
             );
         }
 
-        EstimationType::SELECTIVITY(0.1)
+        EstimationType::Selectivity(0.1)
     }
 }
 

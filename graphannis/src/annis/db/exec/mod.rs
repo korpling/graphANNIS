@@ -37,7 +37,7 @@ fn calculate_outputsize<Op: BinaryOperatorBase + ?Sized>(
     cost_rhs: &CostEstimate,
 ) -> usize {
     let output = match op.estimation_type() {
-        EstimationType::SELECTIVITY(selectivity) => {
+        EstimationType::Selectivity(selectivity) => {
             let num_tuples = (cost_lhs.output * cost_rhs.output) as f64;
             if let Some(edge_sel) = op.edge_anno_selectivity() {
                 (num_tuples * selectivity * edge_sel).round() as usize
@@ -45,7 +45,7 @@ fn calculate_outputsize<Op: BinaryOperatorBase + ?Sized>(
                 (num_tuples * selectivity).round() as usize
             }
         }
-        EstimationType::MIN => std::cmp::min(cost_lhs.output, cost_rhs.output),
+        EstimationType::Min => std::cmp::min(cost_lhs.output, cost_rhs.output),
     };
     // always assume at least one output item otherwise very small selectivity can fool the planner
     std::cmp::max(output, 1)
@@ -96,13 +96,13 @@ impl Desc {
 
         // merge both node positions
         let mut node_pos = BTreeMap::new();
-        let offset = if let Some(ref lhs) = lhs {
+        let offset = if let Some(lhs) = lhs {
             node_pos = lhs.node_pos.clone();
             node_pos.len()
         } else {
             0
         };
-        if let Some(ref rhs) = rhs {
+        if let Some(rhs) = rhs {
             for e in &rhs.node_pos {
                 // the RHS has an offset after the join
                 node_pos.insert(*e.0, e.1 + offset);
@@ -110,7 +110,7 @@ impl Desc {
         }
 
         // merge costs
-        let cost = if let (Some(ref lhs), Some(ref rhs)) = (lhs, rhs) {
+        let cost = if let (Some(lhs), Some(rhs)) = (lhs, rhs) {
             if let (&Some(ref cost_lhs), &Some(ref cost_rhs)) = (&lhs.cost, &rhs.cost) {
                 // estimate output size using the operator
                 let output = calculate_outputsize(op, cost_lhs, cost_rhs);

@@ -38,7 +38,7 @@ impl<'a> NestedLoop<'a> {
         rhs_idx: usize,
     ) -> NestedLoop<'a> {
         let mut left_is_outer = true;
-        if let (Some(ref desc_lhs), Some(ref desc_rhs)) = (lhs.get_desc(), rhs.get_desc()) {
+        if let (Some(desc_lhs), Some(desc_rhs)) = (lhs.get_desc(), rhs.get_desc()) {
             if let (&Some(ref cost_lhs), &Some(ref cost_rhs)) = (&desc_lhs.cost, &desc_rhs.cost) {
                 if cost_lhs.output > cost_rhs.output {
                     left_is_outer = false;
@@ -121,8 +121,7 @@ impl<'a> NestedLoop<'a> {
                 self.current_outer = None;
             }
         }
-
-        self.current_outer.as_ref().map(|result| result.clone())
+        self.current_outer.as_ref().cloned()
     }
 
     fn next_match_buffer(&mut self, tx: &Sender<MatchGroup>) {
@@ -149,7 +148,7 @@ impl<'a> NestedLoop<'a> {
                         }
                     }
                 } else {
-                    while let Some(m_inner) = self.inner.next() {
+                    for m_inner in &mut self.inner {
                         let m_inner: Arc<MatchGroup> = Arc::from(m_inner);
 
                         self.inner_cache.push(m_inner.clone());
@@ -199,13 +198,13 @@ impl<'a> NestedLoop<'a> {
                 } else {
                     op.filter_match(&m_inner[inner_idx], &m_outer[outer_idx])
                 };
-                // filter by reflexivity if necessary
 
+                // filter by reflexivity if necessary
                 if filter_true
                     && (op.is_reflexive()
                         || (global_reflexivity
-                            && m_outer[outer_idx].different_to_all(&m_inner)
-                            && m_inner[inner_idx].different_to_all(&m_outer))
+                            && m_outer[outer_idx].different_to_all(m_inner)
+                            && m_inner[inner_idx].different_to_all(m_outer))
                         || (!global_reflexivity
                             && m_outer[outer_idx].different_to(&m_inner[inner_idx])))
                 {
@@ -213,8 +212,8 @@ impl<'a> NestedLoop<'a> {
                     result.extend(m_outer.iter().cloned());
                     result.extend(m_inner.iter().cloned());
 
-                    if tx.send(result).is_err() {
-                        return;
+                    if let Err(err) = tx.send(result) {
+                        trace!("Could not send match in nested loop: {}", err);
                     }
                 }
             });

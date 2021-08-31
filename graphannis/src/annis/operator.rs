@@ -138,9 +138,9 @@ impl EdgeAnnoSearchSpec {
 pub enum EstimationType {
     /// Estimate using the given selectivity.
     /// This means the cross product of the input sizes is multiplied with this factor to get the output size.
-    SELECTIVITY(f64),
+    Selectivity(f64),
     /// Use the smallest one of the input sizes to estimate the output size.
-    MIN,
+    Min,
 }
 
 pub trait BinaryOperatorBase: std::fmt::Display + Send + Sync {
@@ -155,7 +155,7 @@ pub trait BinaryOperatorBase: std::fmt::Display + Send + Sync {
     }
 
     fn estimation_type(&self) -> EstimationType {
-        EstimationType::SELECTIVITY(0.1)
+        EstimationType::Selectivity(0.1)
     }
 
     fn edge_anno_selectivity(&self) -> Option<f64> {
@@ -258,6 +258,6 @@ pub trait UnaryOperator: std::fmt::Display + Send + Sync {
     fn filter_match(&self, m: &Match) -> bool;
 
     fn estimation_type(&self) -> EstimationType {
-        EstimationType::SELECTIVITY(0.1)
+        EstimationType::Selectivity(0.1)
     }
 }

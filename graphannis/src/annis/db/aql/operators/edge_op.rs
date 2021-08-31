@@ -260,7 +260,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
     fn estimation_type(&self) -> EstimationType {
         if self.gs.is_empty() {
             // will not find anything
-            return EstimationType::SELECTIVITY(0.0);
+            return EstimationType::Selectivity(0.0);
         }
 
         let max_nodes: f64 = self.max_nodes_estimate as f64;
@@ -276,7 +276,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                 let stats: &GraphStatistic = stats;
                 if stats.cyclic {
                     // can get all other nodes
-                    return EstimationType::SELECTIVITY(1.0);
+                    return EstimationType::Selectivity(1.0);
                 }
                 // get number of nodes reachable from min to max distance
                 let max_dist = match self.spec.dist.max_dist() {
@@ -317,7 +317,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
             }
         } // end for
 
-        EstimationType::SELECTIVITY(worst_sel)
+        EstimationType::Selectivity(worst_sel)
     }
 
     fn edge_anno_selectivity(&self) -> Option<f64> {
@@ -365,7 +365,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                         EdgeAnnoSearchSpec::NotRegexValue { val, ns, name } => {
                             let total = anno_storage.number_of_annotations_by_name(
                                 ns.as_ref().map(String::as_str),
-                                &name,
+                                name,
                             );
                             total
                                 - anno_storage.guess_max_count_regex(

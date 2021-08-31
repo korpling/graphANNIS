@@ -136,12 +136,12 @@ impl<'a> BinaryOperatorBase for Near<'a> {
             let max_possible_dist = std::cmp::min(max_dist, stats_order.max_depth);
             let num_of_descendants = 2 * (max_possible_dist - self.spec.dist.min_dist() + 1);
 
-            return EstimationType::SELECTIVITY(
+            return EstimationType::Selectivity(
                 (num_of_descendants as f64) / (stats_order.nodes as f64 / 2.0),
             );
         }
 
-        EstimationType::SELECTIVITY(0.1)
+        EstimationType::Selectivity(0.1)
     }
 
     fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {

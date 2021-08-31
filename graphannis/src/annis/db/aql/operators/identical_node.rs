@@ -37,7 +37,7 @@ impl BinaryOperatorBase for IdenticalNode {
     }
 
     fn estimation_type(&self) -> EstimationType {
-        EstimationType::MIN
+        EstimationType::Min
     }
 
     fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {

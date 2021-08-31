@@ -117,9 +117,9 @@ impl<'a> BinaryOperatorBase for IdenticalCoverage<'a> {
             // The probability for the same length is taken is assumed to be 1.0, histograms
             // of the distribution would help here.
 
-            EstimationType::SELECTIVITY(1.0 / num_of_token)
+            EstimationType::Selectivity(1.0 / num_of_token)
         } else {
-            EstimationType::SELECTIVITY(0.1)
+            EstimationType::Selectivity(0.1)
         }
     }
 }

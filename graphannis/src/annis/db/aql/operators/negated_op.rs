@@ -64,8 +64,8 @@ impl<'a> BinaryOperatorBase for NegatedOp<'a> {
 
     fn estimation_type(&self) -> EstimationType {
         match self.negated_op.estimation_type() {
-            EstimationType::SELECTIVITY(orig_sel) => EstimationType::SELECTIVITY(1.0 - orig_sel),
-            EstimationType::MIN => EstimationType::MIN,
+            EstimationType::Selectivity(orig_sel) => EstimationType::Selectivity(1.0 - orig_sel),
+            EstimationType::Min => EstimationType::Min,
         }
     }
 }
