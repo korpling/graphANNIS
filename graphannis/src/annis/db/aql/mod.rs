@@ -48,8 +48,8 @@ fn map_conjunction<'a>(
 
             let op_pos: Option<LineColumnRange> = if let Some(pos) = pos {
                 Some(LineColumnRange {
-                    start: get_line_and_column_for_pos(pos.start, &offsets),
-                    end: Some(get_line_and_column_for_pos(pos.end, &offsets)),
+                    start: get_line_and_column_for_pos(pos.start, offsets),
+                    end: Some(get_line_and_column_for_pos(pos.end, offsets)),
                 })
             } else {
                 None
@@ -93,14 +93,10 @@ fn map_conjunction<'a>(
                 },
             };
 
-            let op_pos: Option<LineColumnRange> = if let Some(pos) = pos {
-                Some(LineColumnRange {
-                    start: get_line_and_column_for_pos(pos.start, offsets),
-                    end: Some(get_line_and_column_for_pos(pos.end, offsets)),
-                })
-            } else {
-                None
-            };
+            let op_pos: Option<LineColumnRange> = pos.map(|pos| LineColumnRange {
+                start: get_line_and_column_for_pos(pos.start, offsets),
+                end: Some(get_line_and_column_for_pos(pos.end, offsets)),
+            });
 
             let spec_left = q.resolve_variable(&var_left, op_pos.clone())?;
             let spec_right = q.resolve_variable(&var_right, op_pos.clone())?;
