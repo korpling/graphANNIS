@@ -131,7 +131,7 @@ fn create_index_join<'b>(
             db.get_node_annos(),
             exec_right.get_desc(),
         );
-        return Box::new(join);
+        Box::new(join)
     } else {
         let join = IndexJoin::new(
             exec_left,
@@ -142,7 +142,7 @@ fn create_index_join<'b>(
             db.get_node_annos(),
             exec_right.get_desc(),
         );
-        return Box::new(join);
+        Box::new(join)
     }
 }
 
@@ -687,7 +687,7 @@ impl<'a> Conjunction<'a> {
             spec_idx_right -= self.var_idx_offset;
 
             let op_entry = BinaryOperatorEntry {
-                op: op.into(),
+                op,
                 args: BinaryOperatorArguments {
                     left: spec_idx_left + 1,
                     right: spec_idx_right + 1,
