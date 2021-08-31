@@ -1,7 +1,7 @@
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::{BinaryIndexOperator, EstimationType};
+use crate::annis::operator::{BinaryIndexOperator, BinaryOperatorImpl, EstimationType};
 use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
@@ -65,10 +65,10 @@ impl BinaryOperatorSpec for PrecedenceSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
         let optional_op = Precedence::new(db, self.clone());
         if let Some(op) = optional_op {
-            Some(Box::new(op))
+            Some(BinaryOperatorImpl::Index(Box::new(op)))
         } else {
             None
         }
@@ -162,7 +162,7 @@ impl<'a> BinaryOperator for Precedence<'a> {
     fn get_inverse_operator<'b>(
         &self,
         graph: &'b AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'b>> {
+    ) -> Option<BinaryOperatorImpl<'b>> {
         // Check if order graph storages has the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         if !self.gs_order.inverse_has_same_cost() {
@@ -176,7 +176,7 @@ impl<'a> BinaryOperator for Precedence<'a> {
             tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
         };
-        Some(Box::new(inv_precedence))
+        Some(BinaryOperatorImpl::Index(Box::new(inv_precedence)))
     }
 }
 
@@ -258,7 +258,7 @@ impl<'a> BinaryOperator for InversePrecedence<'a> {
     fn get_inverse_operator<'b>(
         &self,
         graph: &'b AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'b>> {
+    ) -> Option<BinaryOperatorImpl<'b>> {
         let prec = Precedence {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),
@@ -266,7 +266,7 @@ impl<'a> BinaryOperator for InversePrecedence<'a> {
             tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
         };
-        Some(Box::new(prec))
+        Some(BinaryOperatorImpl::Index(Box::new(prec)))
     }
 
     fn estimation_type(&self) -> EstimationType {

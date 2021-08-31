@@ -1,6 +1,6 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::{BinaryIndexOperator, EstimationType};
+use crate::annis::operator::{BinaryIndexOperator, BinaryOperatorImpl, EstimationType};
 use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
@@ -44,10 +44,10 @@ impl BinaryOperatorSpec for InclusionSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
         let optional_op = Inclusion::new(db);
         if let Some(op) = optional_op {
-            Some(Box::new(op))
+            Some(BinaryOperatorImpl::Index(Box::new(op)))
         } else {
             None
         }

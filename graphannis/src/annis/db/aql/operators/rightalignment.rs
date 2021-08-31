@@ -2,6 +2,7 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::BinaryIndexOperator;
 use crate::annis::operator::BinaryOperator;
+use crate::annis::operator::BinaryOperatorImpl;
 use crate::annis::operator::BinaryOperatorSpec;
 use crate::AnnotationGraph;
 use crate::{annis::operator::EstimationType, graph::Match, model::AnnotationComponent};
@@ -23,10 +24,10 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
         let optional_op = RightAlignment::new(db);
         if let Some(op) = optional_op {
-            Some(Box::new(op))
+            Some(BinaryOperatorImpl::Index(Box::new(op)))
         } else {
             None
         }
@@ -66,10 +67,12 @@ impl<'a> BinaryOperator for RightAlignment<'a> {
     fn get_inverse_operator<'b>(
         &self,
         graph: &'b AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'b>> {
+    ) -> Option<BinaryOperatorImpl<'b>> {
         let tok_helper = TokenHelper::new(graph)?;
 
-        Some(Box::new(RightAlignment { tok_helper }))
+        Some(BinaryOperatorImpl::Index(Box::new(RightAlignment {
+            tok_helper,
+        })))
     }
 
     fn estimation_type(&self) -> EstimationType {

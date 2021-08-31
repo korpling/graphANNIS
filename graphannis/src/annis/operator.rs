@@ -153,7 +153,7 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
     fn get_inverse_operator<'a>(
         &self,
         _graph: &'a AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'a>> {
+    ) -> Option<BinaryOperatorImpl<'a>> {
         None
     }
 
@@ -202,7 +202,7 @@ impl<'a> BinaryOperator for BinaryOperatorImpl<'a> {
     fn get_inverse_operator<'b>(
         &self,
         graph: &'b AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'b>> {
+    ) -> Option<BinaryOperatorImpl<'b>> {
         match self {
             BinaryOperatorImpl::Base(op) => op.get_inverse_operator(graph),
             BinaryOperatorImpl::Index(op) => op.get_inverse_operator(graph),
@@ -224,18 +224,6 @@ impl<'a> BinaryOperator for BinaryOperatorImpl<'a> {
     }
 }
 
-impl<'a> From<Box<dyn BinaryOperator + 'a>> for BinaryOperatorImpl<'a> {
-    fn from(op: Box<dyn BinaryOperator + 'a>) -> Self {
-        BinaryOperatorImpl::Base(op)
-    }
-}
-
-impl<'a> From<Box<dyn BinaryIndexOperator + 'a>> for BinaryOperatorImpl<'a> {
-    fn from(op: Box<dyn BinaryIndexOperator + 'a>) -> Self {
-        BinaryOperatorImpl::Index(op)
-    }
-}
-
 /// A binary operator that can be used in an [`IndexJoin`](crate::annis::db::exec::indexjoin::IndexJoin).
 pub trait BinaryIndexOperator: BinaryOperator {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>>;
@@ -249,7 +237,7 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
         db: &AnnotationGraph,
     ) -> HashSet<Component<AnnotationComponentType>>;
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>>;
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>>;
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         None

@@ -1,6 +1,6 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::{BinaryIndexOperator, EstimationType};
+use crate::annis::operator::{BinaryIndexOperator, BinaryOperatorImpl, EstimationType};
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
@@ -55,10 +55,10 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
         let optional_op = IdenticalCoverage::new(db);
         if let Some(op) = optional_op {
-            Some(Box::new(op))
+            Some(BinaryOperatorImpl::Index(Box::new(op)))
         } else {
             None
         }
@@ -106,12 +106,12 @@ impl<'a> BinaryOperator for IdenticalCoverage<'a> {
     fn get_inverse_operator<'b>(
         &self,
         graph: &'b AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'b>> {
-        Some(Box::new(IdenticalCoverage {
+    ) -> Option<BinaryOperatorImpl<'b>> {
+        Some(BinaryOperatorImpl::Index(Box::new(IdenticalCoverage {
             gs_left: self.gs_left.clone(),
             gs_order: self.gs_order.clone(),
             tok_helper: TokenHelper::new(graph)?,
-        }))
+        })))
     }
 
     fn estimation_type(&self) -> EstimationType {

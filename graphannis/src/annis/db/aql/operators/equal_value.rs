@@ -31,13 +31,13 @@ impl BinaryOperatorSpec for EqualValueSpec {
         HashSet::default()
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
-        Some(Box::new(EqualValue {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
+        Some(BinaryOperatorImpl::Index(Box::new(EqualValue {
             node_annos: db.get_node_annos(),
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
             negated: self.negated,
-        }))
+        })))
     }
 
     fn is_binding(&self) -> bool {
@@ -151,13 +151,13 @@ impl<'a> BinaryOperator for EqualValue<'a> {
     fn get_inverse_operator<'b>(
         &self,
         graph: &'b AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'b>> {
-        Some(Box::from(EqualValue {
+    ) -> Option<BinaryOperatorImpl<'b>> {
+        Some(BinaryOperatorImpl::Index(Box::from(EqualValue {
             node_annos: graph.get_node_annos(),
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
             negated: self.negated,
-        }))
+        })))
     }
 }
 

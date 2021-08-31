@@ -1,6 +1,7 @@
 use crate::annis::db::aql::{model::AnnotationComponentType, operators::RangeSpec};
 use crate::annis::operator::{
-    BinaryIndexOperator, BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
+    BinaryIndexOperator, BinaryOperator, BinaryOperatorImpl, BinaryOperatorSpec,
+    EdgeAnnoSearchSpec, EstimationType,
 };
 use crate::graph::{GraphStatistic, GraphStorage, Match};
 use crate::AnnotationGraph;
@@ -57,10 +58,10 @@ impl BinaryOperatorSpec for BaseEdgeOpSpec {
         HashSet::from_iter(self.components.clone())
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
         let optional_op = BaseEdgeOp::new(db, self.clone());
         if let Some(op) = optional_op {
-            Some(Box::new(op))
+            Some(BinaryOperatorImpl::Index(Box::new(op)))
         } else {
             None
         }
@@ -237,7 +238,10 @@ impl BinaryOperator for BaseEdgeOp {
         self.spec.is_reflexive
     }
 
-    fn get_inverse_operator(&self, _graph: &AnnotationGraph) -> Option<Box<dyn BinaryOperator>> {
+    fn get_inverse_operator<'a>(
+        &self,
+        _graph: &'a AnnotationGraph,
+    ) -> Option<BinaryOperatorImpl<'a>> {
         // Check if all graph storages have the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         for g in &self.gs {
@@ -257,7 +261,7 @@ impl BinaryOperator for BaseEdgeOp {
             max_nodes_estimate: self.max_nodes_estimate,
             inverse: !self.inverse,
         };
-        Some(Box::new(edge_op))
+        Some(BinaryOperatorImpl::Index(Box::new(edge_op)))
     }
 
     fn estimation_type(&self) -> EstimationType {
@@ -515,7 +519,7 @@ impl BinaryOperatorSpec for DominanceSpec {
         )
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
         let components =
             db.get_all_components(Some(AnnotationComponentType::Dominance), Some(&self.name));
         let op_str = if self.name.is_empty() {
@@ -551,7 +555,7 @@ impl BinaryOperatorSpec for PointingSpec {
         )
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
         let components =
             db.get_all_components(Some(AnnotationComponentType::Pointing), Some(&self.name));
         let op_str = if self.name.is_empty() {
@@ -590,7 +594,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         components
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
         let components = vec![Component::new(
             AnnotationComponentType::PartOf,
             ANNIS_NS.into(),

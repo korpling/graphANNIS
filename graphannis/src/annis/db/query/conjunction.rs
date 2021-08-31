@@ -168,7 +168,9 @@ fn create_join<'b>(
                 idx_left,
             );
         }
-    } else if exec_left.as_nodesearch().is_some() {
+    }
+
+    if exec_left.as_nodesearch().is_some() {
         // avoid a nested loop join by switching the operand and using and index join when possible
         if let Some(inverse_op) = op_entry.op.get_inverse_operator(db) {
             if let BinaryOperatorImpl::Index(inverse_op) = inverse_op.into() {
@@ -659,7 +661,7 @@ impl<'a> Conjunction<'a> {
         for i in operator_order {
             let op_spec_entry: &BinaryOperatorSpecEntry<'a> = &self.binary_operators[i];
 
-            let mut op: Box<dyn BinaryOperator + 'a> =
+            let mut op: BinaryOperatorImpl<'a> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
                     GraphAnnisError::ImpossibleSearch(format!(
                         "could not create operator {:?}",

@@ -1,6 +1,6 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::{BinaryIndexOperator, EstimationType};
+use crate::annis::operator::{BinaryIndexOperator, BinaryOperatorImpl, EstimationType};
 use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperator, BinaryOperatorSpec},
@@ -47,10 +47,10 @@ impl BinaryOperatorSpec for OverlapSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
         let optional_op = Overlap::new(db, self.reflexive);
         if let Some(op) = optional_op {
-            Some(Box::new(op))
+            Some(BinaryOperatorImpl::Index(Box::new(op)))
         } else {
             None
         }
@@ -111,12 +111,12 @@ impl<'a> BinaryOperator for Overlap<'a> {
     fn get_inverse_operator<'b>(
         &self,
         graph: &'b AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'b>> {
-        Some(Box::new(Overlap {
+    ) -> Option<BinaryOperatorImpl<'b>> {
+        Some(BinaryOperatorImpl::Index(Box::new(Overlap {
             gs_order: self.gs_order.clone(),
             tok_helper: TokenHelper::new(graph)?,
             reflexive: self.reflexive,
-        }))
+        })))
     }
 
     fn estimation_type(&self) -> EstimationType {

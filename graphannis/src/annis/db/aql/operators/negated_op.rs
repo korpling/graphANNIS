@@ -3,7 +3,7 @@ use std::fmt::Display;
 use crate::{
     annis::{
         db::exec::nodesearch::NodeSearchSpec,
-        operator::{BinaryOperator, BinaryOperatorSpec, EstimationType},
+        operator::{BinaryOperator, BinaryOperatorImpl, BinaryOperatorSpec, EstimationType},
     },
     AnnotationGraph,
 };
@@ -30,10 +30,10 @@ impl BinaryOperatorSpec for NegatedOpSpec {
         self.negated_op.necessary_components(db)
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
         if let Some(negated_op) = self.negated_op.create_operator(db) {
             let op = NegatedOp { negated_op };
-            Some(Box::new(op))
+            Some(BinaryOperatorImpl::Base(Box::new(op)))
         } else {
             None
         }
@@ -41,7 +41,7 @@ impl BinaryOperatorSpec for NegatedOpSpec {
 }
 
 pub struct NegatedOp<'a> {
-    negated_op: Box<dyn BinaryOperator + 'a>,
+    negated_op: BinaryOperatorImpl<'a>,
 }
 
 impl<'a> Display for NegatedOp<'a> {
