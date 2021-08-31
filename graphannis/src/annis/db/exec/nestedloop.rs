@@ -56,7 +56,7 @@ impl<'a> NestedLoop<'a> {
                     "nestedloop L-R",
                     &format!(
                         "#{} {} #{}",
-                        op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                        op_entry.args.left, op_entry.op, op_entry.args.right
                     ),
                     &processed_func,
                 ),
@@ -69,7 +69,7 @@ impl<'a> NestedLoop<'a> {
                 inner_cache: Vec::new(),
                 pos_inner_cache: None,
                 left_is_outer,
-                global_reflexivity: op_entry.global_reflexivity,
+                global_reflexivity: op_entry.args.global_reflexivity,
             }
         } else {
             NestedLoop {
@@ -80,7 +80,7 @@ impl<'a> NestedLoop<'a> {
                     "nestedloop R-L",
                     &format!(
                         "#{} {} #{}",
-                        op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                        op_entry.args.left, op_entry.op, op_entry.args.right
                     ),
                     &processed_func,
                 ),
@@ -93,7 +93,7 @@ impl<'a> NestedLoop<'a> {
                 inner_cache: Vec::new(),
                 pos_inner_cache: None,
                 left_is_outer,
-                global_reflexivity: op_entry.global_reflexivity,
+                global_reflexivity: op_entry.args.global_reflexivity,
             }
         }
     }

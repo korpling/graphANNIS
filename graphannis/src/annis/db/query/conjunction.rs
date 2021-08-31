@@ -29,10 +29,10 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
 #[derive(Debug)]
-struct BinaryOperatorArguments {
-    idx_left: usize,
-    idx_right: usize,
-    global_reflexivity: bool,
+pub struct BinaryOperatorArguments {
+    pub left: usize,
+    pub right: usize,
+    pub global_reflexivity: bool,
 }
 
 #[derive(Debug)]
@@ -49,9 +49,7 @@ struct UnaryOperatorSpecEntry<'a> {
 
 pub struct BinaryOperatorEntry<'a> {
     pub op: Box<dyn BinaryOperator + 'a>,
-    pub node_nr_left: usize,
-    pub node_nr_right: usize,
-    pub global_reflexivity: bool,
+    pub args: BinaryOperatorArguments,
 }
 
 pub struct UnaryOperatorEntry {
@@ -98,8 +96,8 @@ fn should_switch_operand_order(
     node2cost: &BTreeMap<usize, CostEstimate>,
 ) -> bool {
     if let (Some(cost_lhs), Some(cost_rhs)) = (
-        node2cost.get(&op_spec.args.idx_left),
-        node2cost.get(&op_spec.args.idx_right),
+        node2cost.get(&op_spec.args.left),
+        node2cost.get(&op_spec.args.right),
     ) {
         let cost_lhs: &CostEstimate = cost_lhs;
         let cost_rhs: &CostEstimate = cost_rhs;
@@ -154,10 +152,12 @@ fn create_join<'b>(
                         exec_right,
                         idx_right,
                         BinaryOperatorEntry {
-                            node_nr_left: op_entry.node_nr_right,
-                            node_nr_right: op_entry.node_nr_left,
+                            args: BinaryOperatorArguments {
+                                left: op_entry.args.right,
+                                right: op_entry.args.left,
+                                global_reflexivity: op_entry.args.global_reflexivity,
+                            },
                             op: inverse_op,
-                            global_reflexivity: op_entry.global_reflexivity,
                         },
                         exec_left.as_nodesearch().unwrap().get_node_search_desc(),
                         db.get_node_annos(),
@@ -169,10 +169,12 @@ fn create_join<'b>(
                         exec_right,
                         idx_right,
                         BinaryOperatorEntry {
-                            node_nr_left: op_entry.node_nr_right,
-                            node_nr_right: op_entry.node_nr_left,
+                            args: BinaryOperatorArguments {
+                                left: op_entry.args.right,
+                                right: op_entry.args.left,
+                                global_reflexivity: op_entry.args.global_reflexivity,
+                            },
                             op: inverse_op,
-                            global_reflexivity: op_entry.global_reflexivity,
                         },
                         exec_left.as_nodesearch().unwrap().get_node_search_desc(),
                         db.get_node_annos(),
@@ -315,8 +317,8 @@ impl<'a> Conjunction<'a> {
         self.binary_operators.push(BinaryOperatorSpecEntry {
             op,
             args: BinaryOperatorArguments {
-                idx_left,
-                idx_right,
+                left: idx_left,
+                right: idx_right,
                 global_reflexivity,
             },
         });
@@ -500,7 +502,7 @@ impl<'a> Conjunction<'a> {
 
         for e in op_spec_entries {
             let op_spec = &e.op;
-            if e.args.idx_left == desc.component_nr {
+            if e.args.left == desc.component_nr {
                 // get the necessary components and count the number of nodes in these components
                 let components = op_spec.necessary_components(db);
                 if !components.is_empty() {
@@ -660,14 +662,14 @@ impl<'a> Conjunction<'a> {
                     ))
                 })?;
 
-            let mut spec_idx_left = op_spec_entry.args.idx_left;
-            let mut spec_idx_right = op_spec_entry.args.idx_right;
+            let mut spec_idx_left = op_spec_entry.args.left;
+            let mut spec_idx_right = op_spec_entry.args.right;
 
             let inverse_op = op.get_inverse_operator(db);
             if let Some(inverse_op) = inverse_op {
                 if should_switch_operand_order(op_spec_entry, &node2cost) {
-                    spec_idx_left = op_spec_entry.args.idx_right;
-                    spec_idx_right = op_spec_entry.args.idx_left;
+                    spec_idx_left = op_spec_entry.args.right;
+                    spec_idx_right = op_spec_entry.args.left;
 
                     op = inverse_op;
                 }
@@ -679,9 +681,11 @@ impl<'a> Conjunction<'a> {
 
             let op_entry = BinaryOperatorEntry {
                 op,
-                node_nr_left: spec_idx_left + 1,
-                node_nr_right: spec_idx_right + 1,
-                global_reflexivity: op_spec_entry.args.global_reflexivity,
+                args: BinaryOperatorArguments {
+                    left: spec_idx_left + 1,
+                    right: spec_idx_right + 1,
+                    global_reflexivity: op_spec_entry.args.global_reflexivity,
+                },
             };
 
             let component_left: usize = *(node2component
@@ -767,8 +771,8 @@ impl<'a> Conjunction<'a> {
             if op_entry.op.is_binding() {
                 // merge both operands to the same component
                 if let (Some(component_left), Some(component_right)) = (
-                    node2component.get(&op_entry.args.idx_left),
-                    node2component.get(&op_entry.args.idx_right),
+                    node2component.get(&op_entry.args.left),
+                    node2component.get(&op_entry.args.right),
                 ) {
                     let component_left = *component_left;
                     let component_right = *component_right;

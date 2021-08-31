@@ -61,7 +61,7 @@ impl<'a> Filter<'a> {
                 impl_description: String::from("filter"),
                 query_fragment: format!(
                     "#{} {} #{}",
-                    op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                    op_entry.args.left, op_entry.op, op_entry.args.right
                 ),
                 cost: cost_est,
                 lhs: Some(Box::new(orig_desc.clone())),

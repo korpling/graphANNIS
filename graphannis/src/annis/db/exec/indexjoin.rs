@@ -71,7 +71,7 @@ impl<'a> IndexJoin<'a> {
                 "indexjoin",
                 &format!(
                     "#{} {} #{}",
-                    op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                    op_entry.args.left, op_entry.op, op_entry.args.right
                 ),
                 &processed_func,
             ),
@@ -81,7 +81,7 @@ impl<'a> IndexJoin<'a> {
             node_search_desc,
             node_annos,
             rhs_candidate: None,
-            global_reflexivity: op_entry.global_reflexivity,
+            global_reflexivity: op_entry.args.global_reflexivity,
         }
     }
 
