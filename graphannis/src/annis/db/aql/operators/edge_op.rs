@@ -389,6 +389,10 @@ impl BinaryOperator for BaseEdgeOp {
             Some(1.0)
         }
     }
+
+    fn as_index_operator(&self) -> Option<&dyn BinaryIndexOperator> {
+        Some(self)
+    }
 }
 
 impl BinaryIndexOperator for BaseEdgeOp {

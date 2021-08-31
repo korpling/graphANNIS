@@ -178,6 +178,10 @@ impl<'a> BinaryOperator for Precedence<'a> {
         };
         Some(Box::new(inv_precedence))
     }
+
+    fn as_index_operator(&self) -> Option<&dyn BinaryIndexOperator> {
+        Some(self)
+    }
 }
 
 impl<'a> BinaryIndexOperator for Precedence<'a> {
@@ -281,6 +285,10 @@ impl<'a> BinaryOperator for InversePrecedence<'a> {
         }
 
         EstimationType::SELECTIVITY(0.1)
+    }
+
+    fn as_index_operator(&self) -> Option<&dyn BinaryIndexOperator> {
+        Some(self)
     }
 }
 
