@@ -9,7 +9,7 @@ use crate::annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::{aql::model::AnnotationComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::{
-    BinaryIndexOperator, BinaryOperator, BinaryOperatorImpl, BinaryOperatorSpec, UnaryOperator,
+    BinaryOperator, BinaryOperatorBase, BinaryOperatorIndex, BinaryOperatorSpec, UnaryOperator,
     UnaryOperatorSpec,
 };
 use crate::AnnotationGraph;
@@ -49,7 +49,7 @@ struct UnaryOperatorSpecEntry<'a> {
 }
 
 pub struct BinaryOperatorEntry<'a> {
-    pub op: BinaryOperatorImpl<'a>,
+    pub op: BinaryOperator<'a>,
     pub args: BinaryOperatorArguments,
 }
 
@@ -115,7 +115,7 @@ fn should_switch_operand_order(
 fn create_index_join<'b>(
     db: &'b AnnotationGraph,
     config: &Config,
-    op: Box<dyn BinaryIndexOperator + 'b>,
+    op: Box<dyn BinaryOperatorIndex + 'b>,
     op_args: &BinaryOperatorArguments,
     exec_left: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
     exec_right: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
@@ -156,7 +156,7 @@ fn create_join<'b>(
     idx_right: usize,
 ) -> Box<dyn ExecutionNode<Item = MatchGroup> + 'b> {
     if exec_right.as_nodesearch().is_some() {
-        if let BinaryOperatorImpl::Index(op) = op_entry.op {
+        if let BinaryOperator::Index(op) = op_entry.op {
             // we can use directly use an index join
             return create_index_join(
                 db,
@@ -173,7 +173,7 @@ fn create_join<'b>(
     if exec_left.as_nodesearch().is_some() {
         // avoid a nested loop join by switching the operand and using and index join when possible
         if let Some(inverse_op) = op_entry.op.get_inverse_operator(db) {
-            if let BinaryOperatorImpl::Index(inverse_op) = inverse_op.into() {
+            if let BinaryOperator::Index(inverse_op) = inverse_op.into() {
                 let inverse_args = BinaryOperatorArguments {
                     left: op_entry.args.right,
                     right: op_entry.args.left,
@@ -661,7 +661,7 @@ impl<'a> Conjunction<'a> {
         for i in operator_order {
             let op_spec_entry: &BinaryOperatorSpecEntry<'a> = &self.binary_operators[i];
 
-            let mut op: BinaryOperatorImpl<'a> =
+            let mut op: BinaryOperator<'a> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
                     GraphAnnisError::ImpossibleSearch(format!(
                         "could not create operator {:?}",

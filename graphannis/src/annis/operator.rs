@@ -143,17 +143,14 @@ pub enum EstimationType {
     MIN,
 }
 
-pub trait BinaryOperator: std::fmt::Display + Send + Sync {
+pub trait BinaryOperatorBase: std::fmt::Display + Send + Sync {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool;
 
     fn is_reflexive(&self) -> bool {
         true
     }
 
-    fn get_inverse_operator<'a>(
-        &self,
-        _graph: &'a AnnotationGraph,
-    ) -> Option<BinaryOperatorImpl<'a>> {
+    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         None
     }
 
@@ -166,69 +163,69 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
     }
 }
 
-pub enum BinaryOperatorImpl<'a> {
-    Base(Box<dyn BinaryOperator + 'a>),
-    Index(Box<dyn BinaryIndexOperator + 'a>),
+/// Holds an instance of one of the possibly binary operator types.
+pub enum BinaryOperator<'a> {
+    /// Base implementation, usable with as filter and for nested loop joins
+    Base(Box<dyn BinaryOperatorBase + 'a>),
+    /// Implementation that can be used in an index join
+    Index(Box<dyn BinaryOperatorIndex + 'a>),
 }
 
-impl<'a> Display for BinaryOperatorImpl<'a> {
+impl<'a> Display for BinaryOperator<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BinaryOperatorImpl::Base(op) => op.fmt(f),
-            BinaryOperatorImpl::Index(op) => op.fmt(f),
+            BinaryOperator::Base(op) => op.fmt(f),
+            BinaryOperator::Index(op) => op.fmt(f),
         }
     }
 }
 
-impl<'a> BinaryOperator for BinaryOperatorImpl<'a> {
+impl<'a> BinaryOperatorBase for BinaryOperator<'a> {
     fn filter_match(
         &self,
         lhs: &graphannis_core::annostorage::Match,
         rhs: &graphannis_core::annostorage::Match,
     ) -> bool {
         match self {
-            BinaryOperatorImpl::Base(op) => op.filter_match(lhs, rhs),
-            BinaryOperatorImpl::Index(op) => op.filter_match(lhs, rhs),
+            BinaryOperator::Base(op) => op.filter_match(lhs, rhs),
+            BinaryOperator::Index(op) => op.filter_match(lhs, rhs),
         }
     }
 
     fn is_reflexive(&self) -> bool {
         match self {
-            BinaryOperatorImpl::Base(op) => op.is_reflexive(),
-            BinaryOperatorImpl::Index(op) => op.is_reflexive(),
+            BinaryOperator::Base(op) => op.is_reflexive(),
+            BinaryOperator::Index(op) => op.is_reflexive(),
         }
     }
 
-    fn get_inverse_operator<'b>(
-        &self,
-        graph: &'b AnnotationGraph,
-    ) -> Option<BinaryOperatorImpl<'b>> {
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
         match self {
-            BinaryOperatorImpl::Base(op) => op.get_inverse_operator(graph),
-            BinaryOperatorImpl::Index(op) => op.get_inverse_operator(graph),
+            BinaryOperator::Base(op) => op.get_inverse_operator(graph),
+            BinaryOperator::Index(op) => op.get_inverse_operator(graph),
         }
     }
 
     fn estimation_type(&self) -> EstimationType {
         match self {
-            BinaryOperatorImpl::Base(op) => op.estimation_type(),
-            BinaryOperatorImpl::Index(op) => op.estimation_type(),
+            BinaryOperator::Base(op) => op.estimation_type(),
+            BinaryOperator::Index(op) => op.estimation_type(),
         }
     }
 
     fn edge_anno_selectivity(&self) -> Option<f64> {
         match self {
-            BinaryOperatorImpl::Base(op) => op.edge_anno_selectivity(),
-            BinaryOperatorImpl::Index(op) => op.edge_anno_selectivity(),
+            BinaryOperator::Base(op) => op.edge_anno_selectivity(),
+            BinaryOperator::Index(op) => op.edge_anno_selectivity(),
         }
     }
 }
 
 /// A binary operator that can be used in an [`IndexJoin`](crate::annis::db::exec::indexjoin::IndexJoin).
-pub trait BinaryIndexOperator: BinaryOperator {
+pub trait BinaryOperatorIndex: BinaryOperatorBase {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>>;
 
-    fn as_binary_operator(&self) -> &dyn BinaryOperator;
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase;
 }
 
 pub trait BinaryOperatorSpec: std::fmt::Debug {
@@ -237,7 +234,7 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
         db: &AnnotationGraph,
     ) -> HashSet<Component<AnnotationComponentType>>;
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>>;
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>>;
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         None

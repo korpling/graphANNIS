@@ -2,13 +2,13 @@ use graphannis_core::annostorage::MatchGroup;
 
 use super::{Desc, ExecutionNode};
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
-use crate::annis::operator::{BinaryOperator, BinaryOperatorImpl};
+use crate::annis::operator::{BinaryOperator, BinaryOperatorBase};
 use std::iter::Peekable;
 
 pub struct NestedLoop<'a> {
     outer: Peekable<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
     inner: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
-    op: BinaryOperatorImpl<'a>,
+    op: BinaryOperator<'a>,
     inner_idx: usize,
     outer_idx: usize,
     inner_cache: Vec<MatchGroup>,

@@ -1,10 +1,10 @@
 use crate::annis::db::aql::{model::AnnotationComponentType, operators::RangeSpec};
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::{BinaryIndexOperator, BinaryOperatorImpl, EstimationType};
+use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
 use crate::AnnotationGraph;
 use crate::{
-    annis::operator::{BinaryOperator, BinaryOperatorSpec},
+    annis::operator::{BinaryOperatorBase, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
 };
 use graphannis_core::{
@@ -48,10 +48,10 @@ impl BinaryOperatorSpec for NearSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = Near::new(db, self.clone());
         if let Some(op) = optional_op {
-            Some(BinaryOperatorImpl::Index(Box::new(op)))
+            Some(BinaryOperator::Index(Box::new(op)))
         } else {
             None
         }
@@ -94,7 +94,7 @@ impl<'a> std::fmt::Display for Near<'a> {
     }
 }
 
-impl<'a> BinaryOperator for Near<'a> {
+impl<'a> BinaryOperatorBase for Near<'a> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let start_end_forward = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
@@ -148,11 +148,8 @@ impl<'a> BinaryOperator for Near<'a> {
         EstimationType::SELECTIVITY(0.1)
     }
 
-    fn get_inverse_operator<'b>(
-        &self,
-        graph: &'b AnnotationGraph,
-    ) -> Option<BinaryOperatorImpl<'b>> {
-        Some(BinaryOperatorImpl::Index(Box::new(Near {
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+        Some(BinaryOperator::Index(Box::new(Near {
             gs_order: self.gs_order.clone(),
             tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
@@ -160,7 +157,7 @@ impl<'a> BinaryOperator for Near<'a> {
     }
 }
 
-impl<'a> BinaryIndexOperator for Near<'a> {
+impl<'a> BinaryOperatorIndex for Near<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let start_forward = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -219,7 +216,7 @@ impl<'a> BinaryIndexOperator for Near<'a> {
         Box::new(result.into_iter())
     }
 
-    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
         self
     }
 }

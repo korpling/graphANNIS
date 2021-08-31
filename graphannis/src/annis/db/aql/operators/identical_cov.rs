@@ -1,8 +1,8 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::{BinaryIndexOperator, BinaryOperatorImpl, EstimationType};
+use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
 use crate::{
-    annis::operator::{BinaryOperator, BinaryOperatorSpec},
+    annis::operator::{BinaryOperatorBase, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
     model::AnnotationComponentType,
     AnnotationGraph,
@@ -55,10 +55,10 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = IdenticalCoverage::new(db);
         if let Some(op) = optional_op {
-            Some(BinaryOperatorImpl::Index(Box::new(op)))
+            Some(BinaryOperator::Index(Box::new(op)))
         } else {
             None
         }
@@ -84,7 +84,7 @@ impl<'a> std::fmt::Display for IdenticalCoverage<'a> {
     }
 }
 
-impl<'a> BinaryOperator for IdenticalCoverage<'a> {
+impl<'a> BinaryOperatorBase for IdenticalCoverage<'a> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let start_lhs = self.tok_helper.left_token_for(lhs.node);
         let end_lhs = self.tok_helper.right_token_for(lhs.node);
@@ -103,11 +103,8 @@ impl<'a> BinaryOperator for IdenticalCoverage<'a> {
         false
     }
 
-    fn get_inverse_operator<'b>(
-        &self,
-        graph: &'b AnnotationGraph,
-    ) -> Option<BinaryOperatorImpl<'b>> {
-        Some(BinaryOperatorImpl::Index(Box::new(IdenticalCoverage {
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+        Some(BinaryOperator::Index(Box::new(IdenticalCoverage {
             gs_left: self.gs_left.clone(),
             gs_order: self.gs_order.clone(),
             tok_helper: TokenHelper::new(graph)?,
@@ -131,7 +128,7 @@ impl<'a> BinaryOperator for IdenticalCoverage<'a> {
     }
 }
 
-impl<'a> BinaryIndexOperator for IdenticalCoverage<'a> {
+impl<'a> BinaryOperatorIndex for IdenticalCoverage<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let n_left = self.tok_helper.left_token_for(lhs.node);
         let n_right = self.tok_helper.right_token_for(lhs.node);
@@ -165,7 +162,7 @@ impl<'a> BinaryIndexOperator for IdenticalCoverage<'a> {
         Box::new(result.into_iter())
     }
 
-    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
         self
     }
 }

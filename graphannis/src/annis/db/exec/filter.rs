@@ -2,14 +2,14 @@ use graphannis_core::annostorage::MatchGroup;
 
 use super::{CostEstimate, Desc, ExecutionNode};
 use crate::annis::db::query::conjunction::{BinaryOperatorEntry, UnaryOperatorEntry};
-use crate::annis::operator::{BinaryOperator, EstimationType, UnaryOperator};
+use crate::annis::operator::{BinaryOperatorBase, EstimationType, UnaryOperator};
 
 pub struct Filter<'a> {
     it: Box<dyn Iterator<Item = MatchGroup> + 'a>,
     desc: Option<Desc>,
 }
 
-fn calculate_binary_outputsize(op: &dyn BinaryOperator, num_tuples: usize) -> usize {
+fn calculate_binary_outputsize(op: &dyn BinaryOperatorBase, num_tuples: usize) -> usize {
     let output = match op.estimation_type() {
         EstimationType::SELECTIVITY(selectivity) => {
             let num_tuples = num_tuples as f64;

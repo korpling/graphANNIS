@@ -1,7 +1,7 @@
 use super::super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::query::conjunction::BinaryOperatorArguments;
 use crate::annis::db::AnnotationStorage;
-use crate::annis::operator::BinaryIndexOperator;
+use crate::annis::operator::BinaryOperatorIndex;
 use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
 use rayon::prelude::*;
@@ -17,7 +17,7 @@ const MAX_BUFFER_SIZE: usize = 512;
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
     match_receiver: Option<Receiver<MatchGroup>>,
-    op: Arc<dyn BinaryIndexOperator + 'a>,
+    op: Arc<dyn BinaryOperatorIndex + 'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: &'a dyn AnnotationStorage<NodeID>,
@@ -37,7 +37,7 @@ impl<'a> IndexJoin<'a> {
     pub fn new(
         lhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
         lhs_idx: usize,
-        op: Box<dyn BinaryIndexOperator + 'a>,
+        op: Box<dyn BinaryOperatorIndex + 'a>,
         op_args: &BinaryOperatorArguments,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: &'a dyn AnnotationStorage<NodeID>,
@@ -111,11 +111,11 @@ impl<'a> IndexJoin<'a> {
         }
 
         let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
-        let op: Arc<dyn BinaryIndexOperator> = self.op.clone();
+        let op: Arc<dyn BinaryOperatorIndex> = self.op.clone();
         let lhs_idx = self.lhs_idx;
         let node_annos = self.node_annos;
 
-        let op: &dyn BinaryIndexOperator = op.as_ref();
+        let op: &dyn BinaryOperatorIndex = op.as_ref();
         let global_reflexivity = self.global_reflexivity;
 
         // find all RHS in parallel
@@ -177,7 +177,7 @@ impl<'a> IndexJoin<'a> {
 
 fn next_candidates(
     m_lhs: &[Match],
-    op: &dyn BinaryIndexOperator,
+    op: &dyn BinaryOperatorIndex,
     lhs_idx: usize,
     node_annos: &dyn AnnotationStorage<NodeID>,
     node_search_desc: &Arc<NodeSearchDesc>,

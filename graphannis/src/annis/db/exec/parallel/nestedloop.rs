@@ -1,6 +1,6 @@
 use super::super::{Desc, ExecutionNode};
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
-use crate::annis::operator::BinaryOperator;
+use crate::annis::operator::BinaryOperatorBase;
 use graphannis_core::annostorage::MatchGroup;
 use rayon::prelude::*;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -11,7 +11,7 @@ const MAX_BUFFER_SIZE: usize = 1024;
 pub struct NestedLoop<'a> {
     outer: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
     inner: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
-    op: Arc<dyn BinaryOperator + 'a>,
+    op: Arc<dyn BinaryOperatorBase + 'a>,
     inner_idx: usize,
     outer_idx: usize,
 
@@ -192,7 +192,7 @@ impl<'a> NestedLoop<'a> {
         let inner_idx = self.inner_idx;
         let op = self.op.clone();
 
-        let op: &dyn BinaryOperator = op.as_ref();
+        let op: &dyn BinaryOperatorBase = op.as_ref();
         let global_reflexivity = self.global_reflexivity;
 
         self.match_candidate_buffer

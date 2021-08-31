@@ -31,8 +31,8 @@ impl BinaryOperatorSpec for EqualValueSpec {
         HashSet::default()
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
-        Some(BinaryOperatorImpl::Index(Box::new(EqualValue {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+        Some(BinaryOperator::Index(Box::new(EqualValue {
             node_annos: db.get_node_annos(),
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
@@ -105,7 +105,7 @@ impl<'a> EqualValue<'a> {
     }
 }
 
-impl<'a> BinaryOperator for EqualValue<'a> {
+impl<'a> BinaryOperatorBase for EqualValue<'a> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let lhs_val = self.value_for_match(lhs, &self.spec_left);
         let rhs_val = self.value_for_match(rhs, &self.spec_right);
@@ -148,11 +148,8 @@ impl<'a> BinaryOperator for EqualValue<'a> {
         EstimationType::SELECTIVITY(0.5)
     }
 
-    fn get_inverse_operator<'b>(
-        &self,
-        graph: &'b AnnotationGraph,
-    ) -> Option<BinaryOperatorImpl<'b>> {
-        Some(BinaryOperatorImpl::Index(Box::from(EqualValue {
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+        Some(BinaryOperator::Index(Box::from(EqualValue {
             node_annos: graph.get_node_annos(),
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
@@ -161,7 +158,7 @@ impl<'a> BinaryOperator for EqualValue<'a> {
     }
 }
 
-impl<'a> BinaryIndexOperator for EqualValue<'a> {
+impl<'a> BinaryOperatorIndex for EqualValue<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let lhs = lhs.clone();
         if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
@@ -181,7 +178,7 @@ impl<'a> BinaryIndexOperator for EqualValue<'a> {
         }
         Box::new(std::iter::empty())
     }
-    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
         self
     }
 }

@@ -1,7 +1,7 @@
 use self::nodesearch::NodeSearch;
 use crate::annis::db::AnnotationStorage;
 use crate::{
-    annis::operator::{BinaryOperator, EstimationType},
+    annis::operator::{BinaryOperatorBase, EstimationType},
     graph::Match,
 };
 use graphannis_core::{
@@ -31,7 +31,7 @@ pub struct Desc {
     pub cost: Option<CostEstimate>,
 }
 
-fn calculate_outputsize<Op: BinaryOperator + ?Sized>(
+fn calculate_outputsize<Op: BinaryOperatorBase + ?Sized>(
     op: &Op,
     cost_lhs: &CostEstimate,
     cost_rhs: &CostEstimate,
@@ -82,7 +82,7 @@ impl Desc {
         }
     }
 
-    pub fn join<Op: BinaryOperator + ?Sized>(
+    pub fn join<Op: BinaryOperatorBase + ?Sized>(
         op: &Op,
         lhs: Option<&Desc>,
         rhs: Option<&Desc>,

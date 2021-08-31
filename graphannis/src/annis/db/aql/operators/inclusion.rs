@@ -1,9 +1,9 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::{BinaryIndexOperator, BinaryOperatorImpl, EstimationType};
+use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
 use crate::AnnotationGraph;
 use crate::{
-    annis::operator::{BinaryOperator, BinaryOperatorSpec},
+    annis::operator::{BinaryOperatorBase, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
     model::AnnotationComponentType,
 };
@@ -44,10 +44,10 @@ impl BinaryOperatorSpec for InclusionSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = Inclusion::new(db);
         if let Some(op) = optional_op {
-            Some(BinaryOperatorImpl::Index(Box::new(op)))
+            Some(BinaryOperator::Index(Box::new(op)))
         } else {
             None
         }
@@ -73,7 +73,7 @@ impl<'a> std::fmt::Display for Inclusion<'a> {
     }
 }
 
-impl<'a> BinaryOperator for Inclusion<'a> {
+impl<'a> BinaryOperatorBase for Inclusion<'a> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let left_right_lhs = self.tok_helper.left_right_token_for(lhs.node);
         let left_right_rhs = self.tok_helper.left_right_token_for(rhs.node);
@@ -134,7 +134,7 @@ impl<'a> BinaryOperator for Inclusion<'a> {
     }
 }
 
-impl<'a> BinaryIndexOperator for Inclusion<'a> {
+impl<'a> BinaryOperatorIndex for Inclusion<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         if let (Some(start_lhs), Some(end_lhs)) = self.tok_helper.left_right_token_for(lhs.node) {
             // span length of LHS
@@ -180,7 +180,7 @@ impl<'a> BinaryIndexOperator for Inclusion<'a> {
         Box::new(std::iter::empty())
     }
 
-    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
         self
     }
 }

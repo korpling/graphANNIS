@@ -17,8 +17,8 @@ impl BinaryOperatorSpec for IdenticalNodeSpec {
         HashSet::default()
     }
 
-    fn create_operator<'a>(&self, _db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
-        Some(BinaryOperatorImpl::Index(Box::new(IdenticalNode {})))
+    fn create_operator<'a>(&self, _db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+        Some(BinaryOperator::Index(Box::new(IdenticalNode {})))
     }
 }
 
@@ -31,7 +31,7 @@ impl std::fmt::Display for IdenticalNode {
     }
 }
 
-impl BinaryOperator for IdenticalNode {
+impl BinaryOperatorBase for IdenticalNode {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         lhs.node == rhs.node
     }
@@ -40,15 +40,12 @@ impl BinaryOperator for IdenticalNode {
         EstimationType::MIN
     }
 
-    fn get_inverse_operator<'a>(
-        &self,
-        _graph: &'a AnnotationGraph,
-    ) -> Option<BinaryOperatorImpl<'a>> {
-        Some(BinaryOperatorImpl::Index(Box::new(self.clone())))
+    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+        Some(BinaryOperator::Index(Box::new(self.clone())))
     }
 }
 
-impl BinaryIndexOperator for IdenticalNode {
+impl BinaryOperatorIndex for IdenticalNode {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         Box::new(std::iter::once(Match {
             node: lhs.node,
@@ -56,7 +53,7 @@ impl BinaryIndexOperator for IdenticalNode {
         }))
     }
 
-    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
         self
     }
 }

@@ -1,10 +1,10 @@
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::{BinaryIndexOperator, BinaryOperatorImpl, EstimationType};
+use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
 use crate::AnnotationGraph;
 use crate::{
-    annis::operator::{BinaryOperator, BinaryOperatorSpec},
+    annis::operator::{BinaryOperatorBase, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
     model::{AnnotationComponent, AnnotationComponentType},
 };
@@ -65,10 +65,10 @@ impl BinaryOperatorSpec for PrecedenceSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = Precedence::new(db, self.clone());
         if let Some(op) = optional_op {
-            Some(BinaryOperatorImpl::Index(Box::new(op)))
+            Some(BinaryOperator::Index(Box::new(op)))
         } else {
             None
         }
@@ -120,7 +120,7 @@ impl<'a> std::fmt::Display for Precedence<'a> {
     }
 }
 
-impl<'a> BinaryOperator for Precedence<'a> {
+impl<'a> BinaryOperatorBase for Precedence<'a> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
@@ -159,10 +159,7 @@ impl<'a> BinaryOperator for Precedence<'a> {
         EstimationType::SELECTIVITY(0.1)
     }
 
-    fn get_inverse_operator<'b>(
-        &self,
-        graph: &'b AnnotationGraph,
-    ) -> Option<BinaryOperatorImpl<'b>> {
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
         // Check if order graph storages has the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         if !self.gs_order.inverse_has_same_cost() {
@@ -176,11 +173,11 @@ impl<'a> BinaryOperator for Precedence<'a> {
             tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
         };
-        Some(BinaryOperatorImpl::Index(Box::new(inv_precedence)))
+        Some(BinaryOperator::Index(Box::new(inv_precedence)))
     }
 }
 
-impl<'a> BinaryIndexOperator for Precedence<'a> {
+impl<'a> BinaryOperatorIndex for Precedence<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -215,7 +212,7 @@ impl<'a> BinaryIndexOperator for Precedence<'a> {
         Box::new(result.into_iter())
     }
 
-    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
         self
     }
 }
@@ -234,7 +231,7 @@ impl<'a> std::fmt::Display for InversePrecedence<'a> {
     }
 }
 
-impl<'a> BinaryOperator for InversePrecedence<'a> {
+impl<'a> BinaryOperatorBase for InversePrecedence<'a> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
@@ -255,10 +252,7 @@ impl<'a> BinaryOperator for InversePrecedence<'a> {
         )
     }
 
-    fn get_inverse_operator<'b>(
-        &self,
-        graph: &'b AnnotationGraph,
-    ) -> Option<BinaryOperatorImpl<'b>> {
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
         let prec = Precedence {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),
@@ -266,7 +260,7 @@ impl<'a> BinaryOperator for InversePrecedence<'a> {
             tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
         };
-        Some(BinaryOperatorImpl::Index(Box::new(prec)))
+        Some(BinaryOperator::Index(Box::new(prec)))
     }
 
     fn estimation_type(&self) -> EstimationType {
@@ -288,7 +282,7 @@ impl<'a> BinaryOperator for InversePrecedence<'a> {
     }
 }
 
-impl<'a> BinaryIndexOperator for InversePrecedence<'a> {
+impl<'a> BinaryOperatorIndex for InversePrecedence<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -323,7 +317,7 @@ impl<'a> BinaryIndexOperator for InversePrecedence<'a> {
         Box::new(result.into_iter())
     }
 
-    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
         self
     }
 }

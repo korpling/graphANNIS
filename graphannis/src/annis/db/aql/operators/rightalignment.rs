@@ -1,8 +1,8 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::BinaryIndexOperator;
 use crate::annis::operator::BinaryOperator;
-use crate::annis::operator::BinaryOperatorImpl;
+use crate::annis::operator::BinaryOperatorBase;
+use crate::annis::operator::BinaryOperatorIndex;
 use crate::annis::operator::BinaryOperatorSpec;
 use crate::AnnotationGraph;
 use crate::{annis::operator::EstimationType, graph::Match, model::AnnotationComponent};
@@ -24,10 +24,10 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperatorImpl<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = RightAlignment::new(db);
         if let Some(op) = optional_op {
-            Some(BinaryOperatorImpl::Index(Box::new(op)))
+            Some(BinaryOperator::Index(Box::new(op)))
         } else {
             None
         }
@@ -48,7 +48,7 @@ impl<'a> std::fmt::Display for RightAlignment<'a> {
     }
 }
 
-impl<'a> BinaryOperator for RightAlignment<'a> {
+impl<'a> BinaryOperatorBase for RightAlignment<'a> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         if let (Some(lhs_token), Some(rhs_token)) = (
             self.tok_helper.right_token_for(lhs.node),
@@ -64,13 +64,10 @@ impl<'a> BinaryOperator for RightAlignment<'a> {
         false
     }
 
-    fn get_inverse_operator<'b>(
-        &self,
-        graph: &'b AnnotationGraph,
-    ) -> Option<BinaryOperatorImpl<'b>> {
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
         let tok_helper = TokenHelper::new(graph)?;
 
-        Some(BinaryOperatorImpl::Index(Box::new(RightAlignment {
+        Some(BinaryOperator::Index(Box::new(RightAlignment {
             tok_helper,
         })))
     }
@@ -87,7 +84,7 @@ impl<'a> BinaryOperator for RightAlignment<'a> {
     }
 }
 
-impl<'a> BinaryIndexOperator for RightAlignment<'a> {
+impl<'a> BinaryOperatorIndex for RightAlignment<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let mut aligned = Vec::default();
 
@@ -110,7 +107,7 @@ impl<'a> BinaryIndexOperator for RightAlignment<'a> {
         Box::from(aligned.into_iter())
     }
 
-    fn as_binary_operator(&self) -> &dyn BinaryOperator {
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
         self
     }
 }
