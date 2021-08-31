@@ -151,10 +151,6 @@ impl<'a> BinaryOperator for Overlap<'a> {
 
         EstimationType::SELECTIVITY(0.1)
     }
-
-    fn as_index_operator(&self) -> Option<&dyn BinaryIndexOperator> {
-        Some(self)
-    }
 }
 
 impl<'a> BinaryIndexOperator for Overlap<'a> {

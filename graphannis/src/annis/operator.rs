@@ -164,10 +164,6 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
     fn edge_anno_selectivity(&self) -> Option<f64> {
         None
     }
-
-    fn as_index_operator(&self) -> Option<&dyn BinaryIndexOperator> {
-        None
-    }
 }
 
 pub enum BinaryOperatorImpl<'a> {
@@ -224,13 +220,6 @@ impl<'a> BinaryOperator for BinaryOperatorImpl<'a> {
         match self {
             BinaryOperatorImpl::Base(op) => op.edge_anno_selectivity(),
             BinaryOperatorImpl::Index(op) => op.edge_anno_selectivity(),
-        }
-    }
-
-    fn as_index_operator(&self) -> Option<&dyn BinaryIndexOperator> {
-        match self {
-            BinaryOperatorImpl::Base(op) => op.as_index_operator(),
-            BinaryOperatorImpl::Index(op) => op.as_index_operator(),
         }
     }
 }

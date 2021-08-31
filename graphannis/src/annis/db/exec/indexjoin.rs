@@ -85,19 +85,18 @@ impl<'a> IndexJoin<'a> {
 
     fn next_candidates(&mut self) -> Option<MatchGroup> {
         if let Some(m_lhs) = self.lhs.peek().cloned() {
-            if let Some(op) = self.op.as_index_operator() {
-                let it_nodes = Box::from(
-                    op.retrieve_matches(&m_lhs[self.lhs_idx])
-                        .map(|m| m.node)
-                        .fuse(),
-                );
+            let it_nodes = Box::from(
+                self.op
+                    .retrieve_matches(&m_lhs[self.lhs_idx])
+                    .map(|m| m.node)
+                    .fuse(),
+            );
 
-                return Some(self.node_annos.get_keys_for_iterator(
-                    self.node_search_desc.qname.0.as_deref(),
-                    self.node_search_desc.qname.1.as_deref(),
-                    it_nodes,
-                ));
-            }
+            return Some(self.node_annos.get_keys_for_iterator(
+                self.node_search_desc.qname.0.as_deref(),
+                self.node_search_desc.qname.1.as_deref(),
+                it_nodes,
+            ));
         }
         None
     }

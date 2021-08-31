@@ -158,10 +158,6 @@ impl<'a> BinaryOperator for Near<'a> {
             spec: self.spec.clone(),
         }))
     }
-
-    fn as_index_operator(&self) -> Option<&dyn BinaryIndexOperator> {
-        Some(self)
-    }
 }
 
 impl<'a> BinaryIndexOperator for Near<'a> {

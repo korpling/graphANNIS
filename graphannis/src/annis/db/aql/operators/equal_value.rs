@@ -159,10 +159,6 @@ impl<'a> BinaryOperator for EqualValue<'a> {
             negated: self.negated,
         }))
     }
-
-    fn as_index_operator(&self) -> Option<&dyn BinaryIndexOperator> {
-        Some(self)
-    }
 }
 
 impl<'a> BinaryIndexOperator for EqualValue<'a> {

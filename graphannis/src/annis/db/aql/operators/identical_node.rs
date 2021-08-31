@@ -49,10 +49,6 @@ impl BinaryOperator for IdenticalNode {
     ) -> Option<Box<dyn BinaryOperator + 'a>> {
         Some(Box::new(self.clone()))
     }
-
-    fn as_index_operator(&self) -> Option<&dyn BinaryIndexOperator> {
-        Some(self)
-    }
 }
 
 impl BinaryIndexOperator for IdenticalNode {
