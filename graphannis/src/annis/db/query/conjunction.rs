@@ -29,11 +29,16 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
 #[derive(Debug)]
-struct BinaryOperatorSpecEntry<'a> {
-    op: Box<dyn BinaryOperatorSpec + 'a>,
+struct BinaryOperatorArguments {
     idx_left: usize,
     idx_right: usize,
     global_reflexivity: bool,
+}
+
+#[derive(Debug)]
+struct BinaryOperatorSpecEntry<'a> {
+    op: Box<dyn BinaryOperatorSpec + 'a>,
+    args: BinaryOperatorArguments,
 }
 
 #[derive(Debug)]
@@ -93,8 +98,8 @@ fn should_switch_operand_order(
     node2cost: &BTreeMap<usize, CostEstimate>,
 ) -> bool {
     if let (Some(cost_lhs), Some(cost_rhs)) = (
-        node2cost.get(&op_spec.idx_left),
-        node2cost.get(&op_spec.idx_right),
+        node2cost.get(&op_spec.args.idx_left),
+        node2cost.get(&op_spec.args.idx_right),
     ) {
         let cost_lhs: &CostEstimate = cost_lhs;
         let cost_rhs: &CostEstimate = cost_rhs;
@@ -309,9 +314,11 @@ impl<'a> Conjunction<'a> {
 
         self.binary_operators.push(BinaryOperatorSpecEntry {
             op,
-            idx_left,
-            idx_right,
-            global_reflexivity,
+            args: BinaryOperatorArguments {
+                idx_left,
+                idx_right,
+                global_reflexivity,
+            },
         });
         Ok(())
     }
@@ -493,7 +500,7 @@ impl<'a> Conjunction<'a> {
 
         for e in op_spec_entries {
             let op_spec = &e.op;
-            if e.idx_left == desc.component_nr {
+            if e.args.idx_left == desc.component_nr {
                 // get the necessary components and count the number of nodes in these components
                 let components = op_spec.necessary_components(db);
                 if !components.is_empty() {
@@ -653,14 +660,14 @@ impl<'a> Conjunction<'a> {
                     ))
                 })?;
 
-            let mut spec_idx_left = op_spec_entry.idx_left;
-            let mut spec_idx_right = op_spec_entry.idx_right;
+            let mut spec_idx_left = op_spec_entry.args.idx_left;
+            let mut spec_idx_right = op_spec_entry.args.idx_right;
 
             let inverse_op = op.get_inverse_operator(db);
             if let Some(inverse_op) = inverse_op {
                 if should_switch_operand_order(op_spec_entry, &node2cost) {
-                    spec_idx_left = op_spec_entry.idx_right;
-                    spec_idx_right = op_spec_entry.idx_left;
+                    spec_idx_left = op_spec_entry.args.idx_right;
+                    spec_idx_right = op_spec_entry.args.idx_left;
 
                     op = inverse_op;
                 }
@@ -674,7 +681,7 @@ impl<'a> Conjunction<'a> {
                 op,
                 node_nr_left: spec_idx_left + 1,
                 node_nr_right: spec_idx_right + 1,
-                global_reflexivity: op_spec_entry.global_reflexivity,
+                global_reflexivity: op_spec_entry.args.global_reflexivity,
             };
 
             let component_left: usize = *(node2component
@@ -760,8 +767,8 @@ impl<'a> Conjunction<'a> {
             if op_entry.op.is_binding() {
                 // merge both operands to the same component
                 if let (Some(component_left), Some(component_right)) = (
-                    node2component.get(&op_entry.idx_left),
-                    node2component.get(&op_entry.idx_right),
+                    node2component.get(&op_entry.args.idx_left),
+                    node2component.get(&op_entry.args.idx_right),
                 ) {
                     let component_left = *component_left;
                     let component_right = *component_right;
