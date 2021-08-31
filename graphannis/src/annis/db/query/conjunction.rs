@@ -457,7 +457,7 @@ impl<'a> Conjunction<'a> {
                     .intermediate_sum;
                 trace!(
                     "alternatives plan: \n{}",
-                    initial_plan
+                    alt_plan
                         .get_desc()
                         .ok_or(GraphAnnisError::PlanDescriptionMissing)?
                         .debug_string("  ")
