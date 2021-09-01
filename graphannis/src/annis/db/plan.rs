@@ -23,7 +23,7 @@ pub struct ExecutionPlan<'a> {
 
 impl<'a> ExecutionPlan<'a> {
     pub fn from_disjunction(
-        query: &'a Disjunction<'a>,
+        query: &'a Disjunction,
         db: &'a AnnotationGraph,
         config: &Config,
     ) -> Result<ExecutionPlan<'a>> {

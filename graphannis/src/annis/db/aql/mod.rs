@@ -33,12 +33,12 @@ pub struct Config {
     pub use_parallel_joins: bool,
 }
 
-fn map_conjunction<'a>(
+fn map_conjunction(
     c: Vec<ast::Literal>,
     offsets: &BTreeMap<usize, usize>,
     var_idx_offset: usize,
     quirks_mode: bool,
-) -> Result<Conjunction<'a>> {
+) -> Result<Conjunction> {
     let mut q = Conjunction::with_offset(var_idx_offset);
     // collect and sort all node searches according to their start position in the text
     let (pos_to_node, pos_to_endpos) = calculate_node_positions(&c, offsets, quirks_mode)?;
@@ -242,8 +242,8 @@ fn calculate_node_positions(
     Ok((pos_to_node, pos_to_endpos))
 }
 
-fn add_node_specs_by_start<'a>(
-    q: &mut Conjunction<'a>,
+fn add_node_specs_by_start(
+    q: &mut Conjunction,
     pos_to_node: BTreeMap<usize, (NodeSearchSpec, Option<String>)>,
     pos_to_endpos: BTreeMap<usize, usize>,
     offsets: &BTreeMap<usize, usize>,
@@ -374,7 +374,7 @@ fn get_alternatives_from_dnf(expr: ast::Expr) -> Vec<Vec<ast::Literal>> {
     vec![]
 }
 
-pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a>> {
+pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction> {
     let ast = AQL_PARSER.with(|p| p.parse(query_as_aql));
     match ast {
         Ok(ast) => {

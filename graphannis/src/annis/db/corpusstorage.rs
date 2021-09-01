@@ -202,8 +202,8 @@ impl Default for ResultOrder {
     }
 }
 
-struct PreparationResult<'a> {
-    query: Disjunction<'a>,
+struct PreparationResult {
+    query: Disjunction,
     db_entry: Arc<RwLock<CacheEntry>>,
 }
 
@@ -1395,13 +1395,13 @@ impl CorpusStorage {
         Ok(())
     }
 
-    fn prepare_query<'a, F>(
+    fn prepare_query<F>(
         &self,
         corpus_name: &str,
-        query: &'a str,
+        query: &str,
         query_language: QueryLanguage,
         additional_components_callback: F,
-    ) -> Result<PreparationResult<'a>>
+    ) -> Result<PreparationResult>
     where
         F: FnOnce(&AnnotationGraph) -> Vec<Component<AnnotationComponentType>>,
     {

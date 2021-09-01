@@ -3,12 +3,12 @@ use crate::{annis::db::aql::model::AnnotationComponentType, AnnotationGraph};
 use graphannis_core::types::Component;
 use std::collections::HashSet;
 
-pub struct Disjunction<'a> {
-    pub alternatives: Vec<Conjunction<'a>>,
+pub struct Disjunction {
+    pub alternatives: Vec<Conjunction>,
 }
 
-impl<'a> Disjunction<'a> {
-    pub fn new(alternatives: Vec<Conjunction<'a>>) -> Disjunction<'a> {
+impl Disjunction {
+    pub fn new(alternatives: Vec<Conjunction>) -> Disjunction {
         Disjunction { alternatives }
     }
 

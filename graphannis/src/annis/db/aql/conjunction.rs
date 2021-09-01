@@ -40,14 +40,14 @@ pub struct BinaryOperatorArguments {
 }
 
 #[derive(Debug)]
-struct BinaryOperatorSpecEntry<'a> {
-    op: Box<dyn BinaryOperatorSpec + 'a>,
+struct BinaryOperatorSpecEntry {
+    op: Box<dyn BinaryOperatorSpec>,
     args: BinaryOperatorArguments,
 }
 
 #[derive(Debug)]
-struct UnaryOperatorSpecEntry<'a> {
-    op: Box<dyn UnaryOperatorSpec + 'a>,
+struct UnaryOperatorSpecEntry {
+    op: Box<dyn UnaryOperatorSpec>,
     idx: usize,
 }
 
@@ -62,10 +62,10 @@ pub struct UnaryOperatorEntry {
 }
 
 #[derive(Debug)]
-pub struct Conjunction<'a> {
+pub struct Conjunction {
     nodes: Vec<(String, NodeSearchSpec)>,
-    binary_operators: Vec<BinaryOperatorSpecEntry<'a>>,
-    unary_operators: Vec<UnaryOperatorSpecEntry<'a>>,
+    binary_operators: Vec<BinaryOperatorSpecEntry>,
+    unary_operators: Vec<UnaryOperatorSpecEntry>,
     variables: HashMap<String, usize>,
     location_in_query: HashMap<String, LineColumnRange>,
     include_in_output: HashSet<String>,
@@ -208,8 +208,8 @@ fn create_join<'b>(
     }
 }
 
-impl<'a> Conjunction<'a> {
-    pub fn new() -> Conjunction<'a> {
+impl Conjunction {
+    pub fn new() -> Conjunction {
         Conjunction {
             nodes: vec![],
             binary_operators: vec![],
@@ -221,7 +221,7 @@ impl<'a> Conjunction<'a> {
         }
     }
 
-    pub fn with_offset(var_idx_offset: usize) -> Conjunction<'a> {
+    pub fn with_offset(var_idx_offset: usize) -> Conjunction {
         Conjunction {
             nodes: vec![],
             binary_operators: vec![],
@@ -233,7 +233,7 @@ impl<'a> Conjunction<'a> {
         }
     }
 
-    pub fn into_disjunction(self) -> Disjunction<'a> {
+    pub fn into_disjunction(self) -> Disjunction {
         Disjunction::new(vec![self])
     }
 
@@ -406,7 +406,7 @@ impl<'a> Conjunction<'a> {
 
     fn optimize_join_order_heuristics(
         &self,
-        db: &'a AnnotationGraph,
+        db: &AnnotationGraph,
         config: &Config,
     ) -> Result<Vec<usize>> {
         // check if there is something to optimize
@@ -499,7 +499,7 @@ impl<'a> Conjunction<'a> {
         Ok(best_operator_order)
     }
 
-    fn optimize_node_search_by_operator(
+    fn optimize_node_search_by_operator<'a>(
         &'a self,
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
@@ -558,7 +558,7 @@ impl<'a> Conjunction<'a> {
         None
     }
 
-    fn make_exec_plan_with_order(
+    fn make_exec_plan_with_order<'a>(
         &'a self,
         db: &'a AnnotationGraph,
         config: &Config,
@@ -662,7 +662,7 @@ impl<'a> Conjunction<'a> {
 
         // 3. add the joins which produce the results in operand order
         for i in operator_order {
-            let op_spec_entry: &BinaryOperatorSpecEntry<'a> = &self.binary_operators[i];
+            let op_spec_entry: &BinaryOperatorSpecEntry = &self.binary_operators[i];
 
             let mut op: BinaryOperator<'a> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
@@ -826,7 +826,7 @@ impl<'a> Conjunction<'a> {
         Ok(())
     }
 
-    pub fn make_exec_node(
+    pub fn make_exec_node<'a>(
         &'a self,
         db: &'a AnnotationGraph,
         config: &Config,
