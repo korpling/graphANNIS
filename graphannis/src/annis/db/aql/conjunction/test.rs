@@ -72,3 +72,55 @@ fn parse_negation_between_ops_expression() {
 
     assert_eq!(true, op2.is::<DominanceSpec>());
 }
+
+#[test]
+fn parse_invalid_negation() {
+    assert_eq!(
+        true,
+        aql::parse("node !. node", false).unwrap().alternatives[0]
+            .check_components_connected()
+            .is_err()
+    );
+    assert_eq!(
+        true,
+        aql::parse("node !->dep node", false).unwrap().alternatives[0]
+            .check_components_connected()
+            .is_err()
+    );
+    assert_eq!(
+        true,
+        aql::parse("node !> node", false).unwrap().alternatives[0]
+            .check_components_connected()
+            .is_err()
+    );
+    assert_eq!(
+        true,
+        aql::parse("node !_=_ node", false).unwrap().alternatives[0]
+            .check_components_connected()
+            .is_err()
+    );
+    assert_eq!(
+        true,
+        aql::parse("node !_i_ node", false).unwrap().alternatives[0]
+            .check_components_connected()
+            .is_err()
+    );
+    assert_eq!(
+        true,
+        aql::parse("node !_o_ node", false).unwrap().alternatives[0]
+            .check_components_connected()
+            .is_err()
+    );
+    assert_eq!(
+        true,
+        aql::parse("node !_l_ node", false).unwrap().alternatives[0]
+            .check_components_connected()
+            .is_err()
+    );
+    assert_eq!(
+        true,
+        aql::parse("node !_r_ node", false).unwrap().alternatives[0]
+            .check_components_connected()
+            .is_err()
+    );
+}
