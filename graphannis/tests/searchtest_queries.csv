@@ -17,6 +17,8 @@ dep_xcomp,"""easy"" & ""measure"" & #1 ->dep[func=""xcomp""] #2",GUM,1
 meta_interview,"pos=""RB"" @* type=""interview""",GUM,522
 Profile,"node ->dep[func=""nsubj""] node",GUM,3070
 DirectPointingWithAnno,"pos=""JJ"" ->dep[func=""cop""] ""is""",GUM,112
+NegationDominance,""challenges"" . ""facing"" & cat & #3 >* #2 & #3 !>* #1,GUM,1
+NegationDominanceMultiple,"""challenges"" . ""facing"" .1,5 cat & #3 !>* #1",GUM,4
 NotDocument,"tok @* doc!=""maz-11299""",pcc2.1,34709
 StructureInclusionSeed,"cat=""S"" _i_ cat=""AP""",pcc2.1,726
 IsConnectedRange,"""Jugendlichen"" .3,10 ""Musikcafé""",pcc2.1,1
