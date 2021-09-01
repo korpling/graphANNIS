@@ -1,7 +1,7 @@
 use graphannis_core::annostorage::MatchGroup;
 
 use super::{CostEstimate, Desc, ExecutionNode};
-use crate::annis::db::query::conjunction::{BinaryOperatorEntry, UnaryOperatorEntry};
+use crate::annis::db::aql::conjunction::{BinaryOperatorEntry, UnaryOperatorEntry};
 use crate::annis::operator::{BinaryOperatorBase, EstimationType, UnaryOperator};
 
 pub struct Filter<'a> {

@@ -1,5 +1,5 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
-use crate::annis::db::query::conjunction::BinaryOperatorArguments;
+use crate::annis::db::aql::conjunction::BinaryOperatorArguments;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::operator::BinaryOperatorIndex;
 use crate::{annis::operator::EstimationType, graph::Match};

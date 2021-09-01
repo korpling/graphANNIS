@@ -1,7 +1,7 @@
 use graphannis_core::annostorage::MatchGroup;
 
 use super::{Desc, ExecutionNode};
-use crate::annis::db::query::conjunction::BinaryOperatorEntry;
+use crate::annis::db::aql::conjunction::BinaryOperatorEntry;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorBase};
 use std::iter::Peekable;
 

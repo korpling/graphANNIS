@@ -1,6 +1,12 @@
 mod ast;
+pub mod conjunction;
+pub mod disjunction;
 pub mod model;
 pub mod operators;
+
+#[cfg(test)]
+mod test;
+
 use boolean_expression::Expr;
 lalrpop_mod!(
     #[allow(clippy::all)]
@@ -8,12 +14,12 @@ lalrpop_mod!(
     "/annis/db/aql/parser.rs"
 );
 
+use crate::annis::db::aql::conjunction::Conjunction;
+use crate::annis::db::aql::disjunction::Disjunction;
 use crate::annis::db::aql::operators::{
     EqualValueSpec, IdenticalNodeSpec, NegatedOpSpec, PartOfSubCorpusSpec, RangeSpec,
 };
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
-use crate::annis::db::query::conjunction::Conjunction;
-use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::errors::*;
 use crate::annis::operator::{BinaryOperatorSpec, UnaryOperatorSpec};
 use crate::annis::types::{LineColumn, LineColumnRange};
@@ -23,6 +29,11 @@ use std::collections::HashMap;
 
 thread_local! {
     static AQL_PARSER: parser::DisjunctionParser = parser::DisjunctionParser::new();
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct Config {
+    pub use_parallel_joins: bool,
 }
 
 fn map_conjunction<'a>(

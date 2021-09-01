@@ -1,6 +1,6 @@
+use crate::annis::db::aql::disjunction::Disjunction;
+use crate::annis::db::aql::Config;
 use crate::annis::db::exec::{Desc, EmptyResultSet, ExecutionNode};
-use crate::annis::db::query::disjunction::Disjunction;
-use crate::annis::db::query::Config;
 use crate::AnnotationGraph;
 use crate::{annis::errors::*, graph::Match};
 use graphannis_core::{

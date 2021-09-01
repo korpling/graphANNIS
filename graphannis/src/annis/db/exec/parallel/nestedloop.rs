@@ -1,5 +1,5 @@
 use super::super::{Desc, ExecutionNode};
-use crate::annis::db::query::conjunction::BinaryOperatorEntry;
+use crate::annis::db::aql::conjunction::BinaryOperatorEntry;
 use crate::annis::operator::BinaryOperatorBase;
 use graphannis_core::annostorage::MatchGroup;
 use rayon::prelude::*;
