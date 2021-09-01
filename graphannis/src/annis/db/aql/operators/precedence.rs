@@ -10,6 +10,7 @@ use crate::{
 };
 use graphannis_core::graph::{ANNIS_NS, DEFAULT_ANNO_KEY, DEFAULT_NS};
 
+use std::any::Any;
 use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
 
@@ -68,6 +69,10 @@ impl BinaryOperatorSpec for PrecedenceSpec {
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = Precedence::new(db, self.clone());
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 

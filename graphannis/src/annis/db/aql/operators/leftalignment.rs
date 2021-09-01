@@ -5,6 +5,7 @@ use crate::annis::operator::{BinaryOperatorBase, BinaryOperatorIndex};
 use crate::AnnotationGraph;
 use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
+use std::any::Any;
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
@@ -28,6 +29,10 @@ impl BinaryOperatorSpec for LeftAlignmentSpec {
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = LeftAlignment::new(db);
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 

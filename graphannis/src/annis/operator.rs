@@ -1,7 +1,7 @@
 use super::db::aql::model::AnnotationComponentType;
 use crate::{annis::db::AnnotationStorage, graph::Match, AnnotationGraph};
 use graphannis_core::types::{Component, Edge};
-use std::{collections::HashSet, fmt::Display};
+use std::{any::Any, collections::HashSet, fmt::Display};
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum EdgeAnnoSearchSpec {
@@ -243,6 +243,7 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
     fn is_binding(&self) -> bool {
         true
     }
+    fn into_any(self: Box<Self>) -> Box<dyn Any>;
 }
 
 pub trait UnaryOperatorSpec: std::fmt::Debug {

@@ -10,6 +10,7 @@ use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
     types::{Component, Edge, NodeID},
 };
+use std::any::Any;
 use std::collections::{HashSet, VecDeque};
 use std::iter::FromIterator;
 use std::sync::Arc;
@@ -65,6 +66,10 @@ impl BinaryOperatorSpec for BaseEdgeOpSpec {
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         self.edge_anno.clone()
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 
@@ -529,6 +534,10 @@ impl BinaryOperatorSpec for DominanceSpec {
         };
         base.create_operator(db)
     }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -566,6 +575,10 @@ impl BinaryOperatorSpec for PointingSpec {
         };
         base.create_operator(db)
     }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -602,5 +615,9 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         };
 
         base.create_operator(db)
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }

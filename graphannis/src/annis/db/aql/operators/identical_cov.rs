@@ -13,6 +13,7 @@ use graphannis_core::{
     types::Component,
 };
 
+use std::any::Any;
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -58,6 +59,10 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = IdenticalCoverage::new(db);
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 

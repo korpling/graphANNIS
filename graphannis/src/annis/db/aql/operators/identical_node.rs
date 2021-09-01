@@ -4,6 +4,7 @@ use crate::{
     graph::Match,
 };
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
+use std::any::Any;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
@@ -19,6 +20,10 @@ impl BinaryOperatorSpec for IdenticalNodeSpec {
 
     fn create_operator<'a>(&self, _db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         Some(BinaryOperator::Index(Box::new(IdenticalNode {})))
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 

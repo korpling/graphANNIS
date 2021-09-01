@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{any::Any, fmt::Display};
 
 use crate::{
     annis::{
@@ -37,6 +37,10 @@ impl BinaryOperatorSpec for NegatedOpSpec {
         } else {
             None
         }
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 

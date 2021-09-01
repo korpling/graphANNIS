@@ -13,6 +13,7 @@ use graphannis_core::{
 };
 
 use rustc_hash::FxHashSet;
+use std::any::Any;
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -51,6 +52,10 @@ impl BinaryOperatorSpec for NearSpec {
     fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = Near::new(db, self.clone());
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 

@@ -13,6 +13,7 @@ use graphannis_core::{
     graph::ANNIS_NS,
     types::{Component, NodeID},
 };
+use std::any::Any;
 use std::borrow::Cow;
 use std::collections::HashSet;
 
@@ -42,6 +43,10 @@ impl BinaryOperatorSpec for EqualValueSpec {
 
     fn is_binding(&self) -> bool {
         false
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 
