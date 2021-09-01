@@ -4,9 +4,6 @@ pub mod disjunction;
 pub mod model;
 pub mod operators;
 
-#[cfg(test)]
-mod test;
-
 use boolean_expression::Expr;
 lalrpop_mod!(
     #[allow(clippy::all)]

@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod test;
+
 use super::disjunction::Disjunction;
 use super::Config;
 use crate::annis::db::exec::filter::Filter;
