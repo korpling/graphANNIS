@@ -1,0 +1,6 @@
+status = [
+  "Execute automated tests on Ubuntu Linux",
+  "Execute automated tests on Windows",
+  "Execute automated tests on OSX",
+  "Execute search tests",
+]
