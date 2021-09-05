@@ -89,7 +89,7 @@ where
         0
     } else {
         let mut rng = rand::thread_rng();
-        let i = rng.gen_range(0, items_len);
+        let i = rng.gen_range(0..items_len);
         items.swap(items_len - 1, i);
         partition(items, order_func)
     }
