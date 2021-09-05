@@ -1,22 +1,22 @@
 name: Automated tests
-on: push
+on:
+  push:
+    branches: [master, develop, staging, trying]
+  pull_request:
+    branches: [master, develop]
+env:
+  RUSTFLAGS: "-C debuginfo=0"
 jobs:
   test_linux:
     name: Execute automated tests on Ubuntu Linux
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: stable
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
-      - run: cargo update
+          profile: minimal
+      - uses: Swatinem/rust-cache@v1.3.0
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
       - run: misc/download-mdbook.sh 0.3.5
@@ -29,17 +29,11 @@ jobs:
     runs-on: windows-2016
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: stable
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
-      - run: cargo update
+          profile: minimal
+      - uses: Swatinem/rust-cache@v1.3.0
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
   test_mac:
@@ -47,17 +41,11 @@ jobs:
     runs-on: macos-10.15
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: stable
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
-      - run: cargo update
+          profile: minimal
+      - uses: Swatinem/rust-cache@v1.3.0
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
   long_running_tests:
@@ -65,25 +53,25 @@ jobs:
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: stable
+          profile: minimal
+      - uses: Swatinem/rust-cache@v1.3.0
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-integration-tests-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
-      - run: cargo update
-      - name: Build CLI binary
-        run: cargo build --release --bin annis
+            relannis
+            data
+          key: search-tests-${{ hashFiles('**/Cargo.toml')}}
       - name: Download test corpora if necessary
         run: test -d relannis/GUM/ -a -d relannis/pcc2.1/ || "./misc/download-test-corpora.sh"
-      - name: Import GUM corpus
-        run: ./target/release/annis data --cmd 'import relannis/GUM'
-      - name: Import pcc2.1 corpus
-        run: ./target/release/annis data --cmd 'use_disk on' --cmd 'import relannis/pcc2.1'
+      - name: Build CLI binary (if one of the data directories is missing)
+        run: test -d data/GUM/current -a -d data/pcc2.1/current || cargo build --release --bin annis
+      - name: Import GUM corpus if necessary
+        run: test -d data/GUM/current || ./target/release/annis data --cmd 'import relannis/GUM'
+      - name: Import pcc2.1 corpus if necessary
+        run: test -d data/pcc2.1/current || ./target/release/annis data --cmd 'set-disk-based on' --cmd 'import relannis/pcc2.1'
       - name: Run integration tests
         run: cargo test --release -- --ignored
         working-directory: graphannis

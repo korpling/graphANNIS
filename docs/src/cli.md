@@ -18,7 +18,7 @@ The interactive CLI supports auto-completion by pressing the <kbd>Tab</kbd> key 
 You can also use the `-c` argument at startup to execute a single command instead of starting the interactive command line.
 This is useful for e.g. importing or exporting corpora from a script.
 More than one `-c` argument can be given: multiple arguments are executed in the order they where given.
-E.g., `annis data -c 'use_disk on' -c 'import relannis/pcc2.1'` would first set the "use the disk" mode and then import the corpus with this setting.
+E.g., `annis data -c 'set-disk-based on' -c 'import relannis/pcc2.1'` would first set the "use the disk" mode and then import the corpus with this setting.
 
 ## Commands
 

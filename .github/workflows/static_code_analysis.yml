@@ -1,18 +1,20 @@
-on: push
+on:
+  push:
+    branches: [master, develop, staging, trying]
+  pull_request:
+    branches: [master, develop]
 name: Static code analysis
 jobs:
   static_code_analysis:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: rustup component add clippy rustfmt
-      - uses: actions/cache@v2
+      - uses: actions-rs/toolchain@v1.0.6
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+          toolchain: stable
+          profile: minimal
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v1.3.0
       - uses: actions-rs/cargo@v1.0.1
         with:
           command: fmt
