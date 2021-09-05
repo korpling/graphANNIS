@@ -62,7 +62,6 @@ jobs:
         with:
           path: |
             relannis
-            data
           key: search-tests-${{ hashFiles('**/Cargo.toml')}}
       - name: Download test corpora if necessary
         run: test -d relannis/GUM/ -a -d relannis/pcc2.1/ || "./misc/download-test-corpora.sh"
