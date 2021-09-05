@@ -9,8 +9,8 @@ jobs:
         with:
           toolchain: stable
           profile: minimal
+          components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v1.3.0
-      - run: rustup component add clippy rustfmt
       - uses: actions-rs/cargo@v1.0.1
         with:
           command: fmt
