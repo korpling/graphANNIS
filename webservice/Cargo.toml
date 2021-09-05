@@ -16,7 +16,7 @@ actix-web = {version = "3", default-features = false}
 anyhow = "1"
 bcrypt = "0.10"
 chrono = "0.4"
-clap = "2"
+clap = {version = "2", default-features = false}
 config = "0.11"
 diesel = {version = "1.4", features = ["sqlite", "r2d2"]}
 diesel_migrations = "1.4"

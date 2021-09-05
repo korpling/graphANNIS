@@ -1,28 +1,28 @@
 [package]
-name = "graphannis-cli"
-version = "1.0.2"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
-license = "Apache-2.0"
-description = "This is a command-line interface to the new backend implementation of the ANNIS linguistic search and visualization system."
-repository = "https://github.com/korpling/graphANNIS"
-readme = "crate-info.md"
 autobins = true
+description = "This is a command-line interface to the new backend implementation of the ANNIS linguistic search and visualization system."
 edition = "2018"
+license = "Apache-2.0"
+name = "graphannis-cli"
+readme = "crate-info.md"
+repository = "https://github.com/korpling/graphANNIS"
+version = "1.0.2"
 
 [dependencies]
-graphannis= {path = "../graphannis/", version= "^1.0"}
+anyhow = "1"
+clap = {version = "2", default-features = false}
+criterion = "0.3"
+graphannis = {path = "../graphannis/", version = "^1.0"}
+log = "0.4"
+prettytable-rs = "0.8"
 rustyline = "6.1"
 rustyline-derive = "0.3"
 simplelog = "0.7"
-clap = "2"
-criterion = "0.3"
-prettytable-rs = "0.8"
-anyhow = "1"
-log = "0.4"
 toml = "0.5"
 
 [[bin]]
-name="annis"
+name = "annis"
 
 [[bin]]
-name="bench_annisqueries"
+name = "bench_annisqueries"
