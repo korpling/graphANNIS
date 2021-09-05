@@ -1,5 +1,7 @@
-use actix_rt::blocking::BlockingError;
-use actix_web::{error::ResponseError, HttpResponse};
+use actix_web::{
+    error::{BlockingError, ResponseError},
+    HttpResponse,
+};
 use graphannis::errors::{AQLError, GraphAnnisError};
 use graphannis_core::errors::GraphAnnisCoreError;
 use thiserror::Error;

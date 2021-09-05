@@ -74,6 +74,7 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
         log_filter,
         log_config.clone(),
         simplelog::TerminalMode::Mixed,
+        simplelog::ColorChoice::Auto,
     ) {
         println!("Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger", e);
         if let Err(e_simple) = SimpleLogger::init(log_filter, log_config) {
@@ -151,10 +152,9 @@ async fn main() -> Result<()> {
 
         App::new()
             .wrap(
-                Cors::new()
+                Cors::default()
                     .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-                    .allowed_header(http::header::CONTENT_TYPE)
-                    .finish(),
+                    .allowed_header(http::header::CONTENT_TYPE),
             )
             .app_data(cs.clone())
             .app_data(settings.clone())
