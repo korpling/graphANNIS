@@ -715,6 +715,7 @@ fn main() {
         log_filter,
         log_config.clone(),
         simplelog::TerminalMode::Mixed,
+        simplelog::ColorChoice::Auto,
     ) {
         println!("Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger", e);
         if let Err(e_simple) = SimpleLogger::init(log_filter, log_config) {

@@ -18,7 +18,7 @@ log = "0.4"
 prettytable-rs = "0.8"
 rustyline = "6.1"
 rustyline-derive = "0.3"
-simplelog = "0.7"
+simplelog = "0.10"
 toml = "0.5"
 
 [[bin]]

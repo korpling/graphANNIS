@@ -18,8 +18,8 @@ bcrypt = "0.10"
 chrono = "0.4"
 clap = {version = "2", default-features = false}
 config = "0.11"
-diesel = {version = "1.4", features = ["sqlite", "r2d2"]}
-diesel_migrations = "1.4"
+diesel = {version = "1.4", default-features = false, features = ["sqlite", "r2d2"]}
+diesel_migrations = {version = " 1.4", default-features = false}
 futures = "0.3"
 graphannis = {path = "../graphannis/", version = "^1.0"}
 graphannis-core = {path = "../core/", version = "^1.0"}
