@@ -16,8 +16,8 @@ criterion = "0.3"
 graphannis = {path = "../graphannis/", version = "^1.0"}
 log = "0.4"
 prettytable-rs = "0.8"
-rustyline = "6.1"
-rustyline-derive = "0.3"
+rustyline = "9"
+rustyline-derive = "0.5"
 simplelog = "0.10"
 toml = "0.5"
 
