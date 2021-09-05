@@ -89,7 +89,7 @@ where
         0
     } else {
         let mut rng = rand::thread_rng();
-        let i = rng.gen_range(0, items_len);
+        let i = rng.gen_range(0..items_len);
         items.swap(items_len - 1, i);
         partition(items, order_func)
     }
@@ -192,7 +192,7 @@ mod test {
 
         for _i in 0..100 {
             // the arrays should have a size from 10 to 50
-            let items_size = rng.gen_range(10, 51);
+            let items_size = rng.gen_range(10..51);
             let mut items = Vec::with_capacity(items_size);
             for _j in 0..items_size {
                 items.push(random_item_gen.sample(&mut rng));
@@ -213,7 +213,7 @@ mod test {
 
         for _i in 0..100 {
             // the arrays should have a size from 10 to 50
-            let items_size = rng.gen_range(10, 51);
+            let items_size = rng.gen_range(10..51);
             let mut items = Vec::with_capacity(items_size);
             for _j in 0..items_size {
                 items.push(random_item_gen.sample(&mut rng));

@@ -403,7 +403,7 @@ impl AnnisRunner {
         if args.is_empty() {
             self.offset = 0;
         } else {
-            self.offset = usize::from_str_radix(args.trim(), 10)?;
+            self.offset = args.trim().parse::<usize>()?;
         }
         Ok(())
     }
@@ -412,7 +412,7 @@ impl AnnisRunner {
         if args.is_empty() {
             self.limit = None;
         } else {
-            self.limit = Some(usize::from_str_radix(args.trim(), 10)?);
+            self.limit = Some(args.trim().parse::<usize>()?);
         }
         Ok(())
     }
@@ -422,7 +422,7 @@ impl AnnisRunner {
             self.timeout = None;
             println!("Timeout disabled");
         } else {
-            let seconds = u64::from_str_radix(args.trim(), 10)?;
+            let seconds = args.trim().parse::<u64>()?;
             println!("Timeout set to {} seconds", seconds);
             self.timeout = Some(Duration::from_secs(seconds));
         }
@@ -715,6 +715,7 @@ fn main() {
         log_filter,
         log_config.clone(),
         simplelog::TerminalMode::Mixed,
+        simplelog::ColorChoice::Auto,
     ) {
         println!("Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger", e);
         if let Err(e_simple) = SimpleLogger::init(log_filter, log_config) {

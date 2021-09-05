@@ -5,9 +5,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated dependencies
+- Improved compile time by disabling some dependency features.
+  This also removes some optional features from the command line parser
+  (used in webservice and CLI binaries).
+- Compile releases on Ubuntu 18.04 instead of 16.04, which means the minimal GLIBC version is 2.27
+
 ### Fixed
 
-- Use the correct `set-disk-based on` command in the documentation for the CLI 
+- Use the correct `set-disk-based on` command in the documentation for the CLI
 
 ## [1.0.2] - 2021-08-20
 
