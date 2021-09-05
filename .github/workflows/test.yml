@@ -6,16 +6,11 @@ jobs:
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: stable
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+          profile: minimal
+      - uses: Swatinem/rust-cache@v1.3.0
       - run: cargo update
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
@@ -29,16 +24,11 @@ jobs:
     runs-on: windows-2016
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: stable
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+          profile: minimal
+      - uses: Swatinem/rust-cache@v1.3.0
       - run: cargo update
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
@@ -47,16 +37,11 @@ jobs:
     runs-on: macos-10.15
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: stable
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+          profile: minimal
+      - uses: Swatinem/rust-cache@v1.3.0
       - run: cargo update
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
@@ -65,16 +50,11 @@ jobs:
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: stable
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-integration-tests-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+          profile: minimal
+      - uses: Swatinem/rust-cache@v1.3.0
       - run: cargo update
       - name: Build CLI binary
         run: cargo build --release --bin annis
