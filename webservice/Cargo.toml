@@ -11,9 +11,8 @@ version = "1.0.2"
 [dependencies]
 actix-cors = "0.5"
 actix-files = "0.5"
-actix-rt = "2.2.0"
-actix-service = "2.0.0"
-actix-web = "3"
+actix-rt = "1.1.1"
+actix-web = {version = "3", default-features = false}
 anyhow = "1"
 bcrypt = "0.10"
 chrono = "0.4"

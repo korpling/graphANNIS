@@ -8,11 +8,7 @@ extern crate diesel;
 extern crate diesel_migrations;
 
 use actix_cors::Cors;
-use actix_web::{
-    http::{self, ContentEncoding},
-    middleware::{Compress, Logger},
-    web, App, HttpRequest, HttpServer,
-};
+use actix_web::{http, middleware::Logger, web, App, HttpRequest, HttpServer};
 use administration::BackgroundJobs;
 use api::administration;
 use clap::Arg;
@@ -161,7 +157,6 @@ async fn main() -> Result<()> {
             .app_data(db_pool.clone())
             .app_data(background_jobs.clone())
             .wrap(logger)
-            .wrap(Compress::new(ContentEncoding::Gzip))
             .service(
                 web::scope(&api_version)
                     .route("openapi.yml", web::get().to(get_api_spec))
