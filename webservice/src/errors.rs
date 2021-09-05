@@ -1,5 +1,7 @@
-use actix_rt::blocking::BlockingError;
-use actix_web::{error::ResponseError, HttpResponse};
+use actix_web::{
+    error::{BlockingError, ResponseError},
+    HttpResponse,
+};
 use graphannis::errors::{AQLError, GraphAnnisError};
 use graphannis_core::errors::GraphAnnisCoreError;
 use thiserror::Error;
@@ -18,10 +20,10 @@ pub enum ServiceError {
     GraphAnnisError(#[from] GraphAnnisError),
     #[error("Not found")]
     NotFound,
-    #[error("User {0} is not an adminstrator")]
+    #[error("User {0} is not an administrator")]
     NotAnAdministrator(String),
     #[error(transparent)]
-    UUID(#[from] uuid::Error),
+    Uuid(#[from] uuid::Error),
     #[error("{0}")]
     IllegalNodePath(String),
 }
@@ -31,7 +33,7 @@ enum BadRequestError {
     AQLSyntaxError(AQLError),
     AQLSemanticError(AQLError),
     ImpossibleSearch(String),
-    UUID(String),
+    Uuid(String),
     IllegalNodePath(String),
 }
 
@@ -49,8 +51,8 @@ impl ResponseError for ServiceError {
                 HttpResponse::BadGateway().json("Error accessing database")
             }
             ServiceError::InternalServerError(_) => HttpResponse::InternalServerError().finish(),
-            ServiceError::UUID(err) => {
-                HttpResponse::BadRequest().json(BadRequestError::UUID(err.to_string()))
+            ServiceError::Uuid(err) => {
+                HttpResponse::BadRequest().json(BadRequestError::Uuid(err.to_string()))
             }
             ServiceError::IllegalNodePath(err) => {
                 HttpResponse::BadRequest().json(BadRequestError::IllegalNodePath(err.to_string()))

@@ -5,7 +5,7 @@ on:
 name: Deploy released binaries
 jobs:
   deploy_linux_binaries:
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1.0.6

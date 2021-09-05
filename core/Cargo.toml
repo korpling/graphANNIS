@@ -15,13 +15,13 @@ repository = "https://github.com/korpling/graphANNIS"
 bincode = "1.2"
 graphannis-malloc_size_of = {version = "1.1", features = ["smartstring"]}
 graphannis-malloc_size_of_derive = "2.0"
-itertools = "0.9"
+itertools = "0.10"
 lazy_static = "1.4"
 log = "0.4"
 num-traits = "0.2"
 percent-encoding = "2.1"
 quick-xml = "0.18"
-rand = {version = "0.7", features = ["small_rng"]}
+rand = {version = "0.8", features = ["small_rng"]}
 rayon = {version = "1.3", default-features = false}
 regex = "1"
 regex-syntax = "0.6"
@@ -31,8 +31,8 @@ serde_derive = "1.0"
 smallvec = "1.6"
 smartstring = {version = "0.2", features = ["serde"]}
 sstable = "0.8.2"
-strum = "0.20"
-strum_macros = "0.20"
+strum = "0.21"
+strum_macros = "0.21"
 tempfile = "3.1"
 thiserror = "1"
 
@@ -40,5 +40,5 @@ thiserror = "1"
 winapi = {version = "0.3", features = ["heapapi"]}
 
 [dev-dependencies]
-env_logger = "0.7"
+env_logger = "0.9"
 fake = "2.2"
