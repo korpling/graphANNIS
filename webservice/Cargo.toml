@@ -17,7 +17,7 @@ anyhow = "1"
 bcrypt = "0.10"
 chrono = "0.4"
 clap = {version = "2", default-features = false}
-config = "0.11"
+config = {version = "0.11", default-features = false, features = ["toml"]}
 diesel = {version = "1.4", default-features = false, features = ["sqlite", "r2d2"]}
 diesel_migrations = {version = " 1.4", default-features = false}
 futures = "0.3"
