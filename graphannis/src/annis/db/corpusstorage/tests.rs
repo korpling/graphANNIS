@@ -276,4 +276,16 @@ fn import_salt_sample() {
         annos2.sort();
         assert_eq!(annos1, annos2);
     }
+
+    // Check that the graphs have the same edges
+    let mut components1 = db1.get_all_components(None, None);
+    components1.sort();
+    let mut components2 = db2.get_all_components(None, None);
+    // Remove the special annis coverage component created during relANNIS import
+    components2.retain(|c| {
+        c.get_type() != AnnotationComponentType::Coverage || c.name != "" || c.layer != "annis"
+    });
+    components2.sort();
+
+    assert_eq!(components1, components2);
 }
