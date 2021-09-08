@@ -24,8 +24,11 @@ NegationDepAnno,"""issues"" .2 ""challenges"" & tok & #1 !->dep[func=""conj""] #
 NegationPrecedence,"cat=""ROOT"" ^ cat=""ROOT"" >* ""challenges"" & #1 !. #2",GUM,1
 NegationNear,"cat=""ROOT"" .1,30 cat=""ROOT"" >* ""challenges"" & #1 !^ #2",GUM,1
 NegationPartOf,"type=""interview"" @ shortName=""GUM"" & /[bB]io.*/ @* #2 & #3 !@* #1",GUM,66
-NegationIdentCoverage,"cat >* cat >* ""modern"" . ""campaigns"" & #1 !_=_ #2",GUM,54
+NegationIdentCoverage,"cat=""ROOT"" >* cat >* ""modern"" . ""campaigns"" & #1 !_=_ #2",GUM,9
 NegationInclusion,"t#tok & m#""modern"" & ((#t ->dep #m)|(#m ->dep #t)) & r#ref _o_ #t & #r !_i_ #m",GUM,1
+NegationOverlap,"t#tok & m#""modern"" & ((#t ->dep #m)|(#m ->dep #t)) & r#ref _o_ #t & #r !_o_ #m",GUM,1
+NegationLeftAligned,"cat=""ROOT"" >* cat >* ""modern"" . ""campaigns"" & #1 !_l_ #2",GUM,9
+NegationRightAligned,"cat=""ROOT"" >* cat >* ""modern"" . ""campaigns"" & #1 !_r_ #2",GUM,9
 NotDocument,"tok @* doc!=""maz-11299""",pcc2.1,34709
 StructureInclusionSeed,"cat=""S"" _i_ cat=""AP""",pcc2.1,726
 IsConnectedRange,"""Jugendlichen"" .3,10 ""Musikcafé""",pcc2.1,1
