@@ -1,11 +1,16 @@
 extern crate log;
 extern crate tempfile;
 
+use std::path::PathBuf;
+
+use crate::annis::db::corpusstorage::get_read_or_error;
 use crate::annis::db::{aql::model::AnnotationComponentType, example_generator};
-use crate::corpusstorage::QueryLanguage;
+use crate::corpusstorage::{ImportFormat, QueryLanguage, ResultOrder};
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::CorpusStorage;
+use graphannis_core::annostorage::ValueSearch;
 use graphannis_core::{graph::DEFAULT_NS, types::NodeID};
+use itertools::Itertools;
 
 use super::SearchQuery;
 
@@ -211,4 +216,54 @@ fn subgraph_with_segmentation() {
     assert_eq!(5, seg2_out.len());
 
     assert_eq!(None, graph.get_node_id_from_name("root/doc1#seg3"));
+}
+
+#[test]
+fn import_salt_sample() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    // Import both the GraphML and the relANNIS files as corpus
+    cs.import_from_fs(
+        &PathBuf::from("tests/SaltSampleCorpus"),
+        ImportFormat::RelANNIS,
+        Some("test-relannis".into()),
+        false,
+        true,
+        |_| {},
+    )
+    .unwrap();
+    cs.import_from_fs(
+        &PathBuf::from("tests/SaltSampleCorpus.graphml"),
+        ImportFormat::GraphML,
+        Some("test-graphml".into()),
+        false,
+        true,
+        |_| {},
+    )
+    .unwrap();
+
+    // compare both corpora, they should be exactly equal
+    let e1 = cs.get_fully_loaded_entry("test-graphml").unwrap();
+    let lock1 = e1.read().unwrap();
+    let db1 = get_read_or_error(&lock1).unwrap();
+
+    let e2 = cs.get_fully_loaded_entry("test-relannis").unwrap();
+    let lock2 = e2.read().unwrap();
+    let db2 = get_read_or_error(&lock2).unwrap();
+
+    // Check all nodes and node annotations exist in both corpora
+    let nodes1: Vec<NodeID> = db1
+        .get_node_annos()
+        .exact_anno_search(Some("annis"), "node_name", ValueSearch::Any)
+        .map(|m| m.node)
+        .sorted()
+        .collect();
+    let nodes2: Vec<NodeID> = db2
+        .get_node_annos()
+        .exact_anno_search(Some("annis"), "node_name", ValueSearch::Any)
+        .map(|m| m.node)
+        .sorted()
+        .collect();
+
+    assert_eq!(&nodes1, &nodes2);
 }
