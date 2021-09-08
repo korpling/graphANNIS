@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use crate::annis::db::corpusstorage::get_read_or_error;
 use crate::annis::db::{aql::model::AnnotationComponentType, example_generator};
-use crate::corpusstorage::{ImportFormat, QueryLanguage, ResultOrder};
+use crate::corpusstorage::{ImportFormat, QueryLanguage};
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::CorpusStorage;
 use graphannis_core::annostorage::ValueSearch;
@@ -252,18 +252,28 @@ fn import_salt_sample() {
     let db2 = get_read_or_error(&lock2).unwrap();
 
     // Check all nodes and node annotations exist in both corpora
-    let nodes1: Vec<NodeID> = db1
+    let nodes1: Vec<String> = db1
         .get_node_annos()
         .exact_anno_search(Some("annis"), "node_name", ValueSearch::Any)
-        .map(|m| m.node)
+        .filter_map(|m| m.extract_annotation(db1.get_node_annos()))
+        .map(|a| a.val.into())
         .sorted()
         .collect();
-    let nodes2: Vec<NodeID> = db2
+    let nodes2: Vec<String> = db2
         .get_node_annos()
         .exact_anno_search(Some("annis"), "node_name", ValueSearch::Any)
-        .map(|m| m.node)
+        .filter_map(|m| m.extract_annotation(db1.get_node_annos()))
+        .map(|a| a.val.into())
         .sorted()
         .collect();
-
     assert_eq!(&nodes1, &nodes2);
+    for n in &nodes1 {
+        let id1 = db1.get_node_id_from_name(n).unwrap();
+        let id2 = db2.get_node_id_from_name(n).unwrap();
+        let mut annos1 = db1.get_node_annos().get_annotations_for_item(&id1);
+        annos1.sort();
+        let mut annos2 = db2.get_node_annos().get_annotations_for_item(&id2);
+        annos2.sort();
+        assert_eq!(annos1, annos2);
+    }
 }
