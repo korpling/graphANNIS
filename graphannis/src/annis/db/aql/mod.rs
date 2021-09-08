@@ -1,6 +1,9 @@
 mod ast;
+pub mod conjunction;
+pub mod disjunction;
 pub mod model;
 pub mod operators;
+
 use boolean_expression::Expr;
 lalrpop_mod!(
     #[allow(clippy::all)]
@@ -8,12 +11,12 @@ lalrpop_mod!(
     "/annis/db/aql/parser.rs"
 );
 
+use crate::annis::db::aql::conjunction::Conjunction;
+use crate::annis::db::aql::disjunction::Disjunction;
 use crate::annis::db::aql::operators::{
-    EqualValueSpec, IdenticalNodeSpec, PartOfSubCorpusSpec, RangeSpec,
+    EqualValueSpec, IdenticalNodeSpec, NegatedOpSpec, PartOfSubCorpusSpec, RangeSpec,
 };
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
-use crate::annis::db::query::conjunction::Conjunction;
-use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::errors::*;
 use crate::annis::operator::{BinaryOperatorSpec, UnaryOperatorSpec};
 use crate::annis::types::{LineColumn, LineColumnRange};
@@ -25,12 +28,17 @@ thread_local! {
     static AQL_PARSER: parser::DisjunctionParser = parser::DisjunctionParser::new();
 }
 
-fn map_conjunction<'a>(
+#[derive(Clone, Default, Debug)]
+pub struct Config {
+    pub use_parallel_joins: bool,
+}
+
+fn map_conjunction(
     c: Vec<ast::Literal>,
     offsets: &BTreeMap<usize, usize>,
     var_idx_offset: usize,
     quirks_mode: bool,
-) -> Result<Conjunction<'a>> {
+) -> Result<Conjunction> {
     let mut q = Conjunction::with_offset(var_idx_offset);
     // collect and sort all node searches according to their start position in the text
     let (pos_to_node, pos_to_endpos) = calculate_node_positions(&c, offsets, quirks_mode)?;
@@ -46,14 +54,10 @@ fn map_conjunction<'a>(
                 ast::NodeRef::Name(name) => name.clone(),
             };
 
-            let op_pos: Option<LineColumnRange> = if let Some(pos) = pos {
-                Some(LineColumnRange {
-                    start: get_line_and_column_for_pos(pos.start, &offsets),
-                    end: Some(get_line_and_column_for_pos(pos.end, &offsets)),
-                })
-            } else {
-                None
-            };
+            let op_pos: Option<LineColumnRange> = pos.as_ref().map(|pos| LineColumnRange {
+                start: get_line_and_column_for_pos(pos.start, offsets),
+                end: Some(get_line_and_column_for_pos(pos.end, offsets)),
+            });
 
             q.add_unary_operator_from_query(make_unary_operator_spec(op.clone()), &var, op_pos)?;
         }
@@ -68,6 +72,7 @@ fn map_conjunction<'a>(
             mut op,
             rhs,
             pos,
+            negated,
         } = literal
         {
             let var_left = match lhs {
@@ -92,14 +97,10 @@ fn map_conjunction<'a>(
                 },
             };
 
-            let op_pos: Option<LineColumnRange> = if let Some(pos) = pos {
-                Some(LineColumnRange {
-                    start: get_line_and_column_for_pos(pos.start, &offsets),
-                    end: Some(get_line_and_column_for_pos(pos.end, &offsets)),
-                })
-            } else {
-                None
-            };
+            let op_pos: Option<LineColumnRange> = pos.map(|pos| LineColumnRange {
+                start: get_line_and_column_for_pos(pos.start, offsets),
+                end: Some(get_line_and_column_for_pos(pos.end, offsets)),
+            });
 
             let spec_left = q.resolve_variable(&var_left, op_pos.clone())?;
             let spec_right = q.resolve_variable(&var_right, op_pos.clone())?;
@@ -141,7 +142,14 @@ fn map_conjunction<'a>(
                     _ => {}
                 }
             }
-            let op_spec = make_binary_operator_spec(op, spec_left, spec_right)?;
+            let mut op_spec = make_binary_operator_spec(op, spec_left.clone(), spec_right.clone())?;
+            if negated {
+                op_spec = Box::new(NegatedOpSpec {
+                    spec_left,
+                    spec_right,
+                    negated_op: op_spec,
+                });
+            }
             q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?;
         }
     }
@@ -154,9 +162,9 @@ fn map_conjunction<'a>(
             let num_joins = num_pointing_or_dominance_joins.get(orig_var).unwrap_or(&0);
             // add an additional node for each extra join and join this artificial node with identity relation
             for _ in 1..*num_joins {
-                if let Ok(node_spec) = q.resolve_variable(&orig_var, None) {
+                if let Ok(node_spec) = q.resolve_variable(orig_var, None) {
                     let new_var = q.add_node(node_spec, None);
-                    q.add_operator(Box::new(IdenticalNodeSpec {}), &orig_var, &new_var, false)?;
+                    q.add_operator(Box::new(IdenticalNodeSpec {}), orig_var, &new_var, false)?;
                 }
             }
         }
@@ -217,10 +225,10 @@ fn calculate_node_positions(
             }
             ast::Literal::LegacyMetaSearch { pos, .. } => {
                 if !quirks_mode {
-                    let start = get_line_and_column_for_pos(pos.start, &offsets);
+                    let start = get_line_and_column_for_pos(pos.start, offsets);
                     let end = Some(get_line_and_column_for_pos(
                         pos.start + "meta::".len() - 1,
-                        &offsets,
+                        offsets,
                     ));
                     return Err(GraphAnnisError::AQLSyntaxError( AQLError {
                         desc: "Legacy metadata search is no longer allowed. Use the @* operator and normal attribute search instead.".into(),
@@ -234,20 +242,18 @@ fn calculate_node_positions(
     Ok((pos_to_node, pos_to_endpos))
 }
 
-fn add_node_specs_by_start<'a>(
-    q: &mut Conjunction<'a>,
+fn add_node_specs_by_start(
+    q: &mut Conjunction,
     pos_to_node: BTreeMap<usize, (NodeSearchSpec, Option<String>)>,
     pos_to_endpos: BTreeMap<usize, usize>,
     offsets: &BTreeMap<usize, usize>,
 ) -> Result<BTreeMap<usize, String>> {
     let mut pos_to_node_id: BTreeMap<usize, String> = BTreeMap::default();
     for (start_pos, (node_spec, variable)) in pos_to_node {
-        let start = get_line_and_column_for_pos(start_pos, &offsets);
-        let end = if let Some(end_pos) = pos_to_endpos.get(&start_pos) {
-            Some(get_line_and_column_for_pos(*end_pos, &offsets))
-        } else {
-            None
-        };
+        let start = get_line_and_column_for_pos(start_pos, offsets);
+        let end = pos_to_endpos
+            .get(&start_pos)
+            .map(|end_pos| get_line_and_column_for_pos(*end_pos, offsets));
 
         let idx = q.add_node_from_query(
             node_spec,
@@ -368,7 +374,7 @@ fn get_alternatives_from_dnf(expr: ast::Expr) -> Vec<Vec<ast::Literal>> {
     vec![]
 }
 
-pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a>> {
+pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction> {
     let ast = AQL_PARSER.with(|p| p.parse(query_as_aql));
     match ast {
         Ok(ast) => {

@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added generic operator negation with existance assumption by adding `!` before the binary operator (#186)
+
 ### Changed
 
 - Updated dependencies

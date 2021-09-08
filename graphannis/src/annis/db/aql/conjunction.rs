@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod test;
+
 use super::disjunction::Disjunction;
 use super::Config;
 use crate::annis::db::exec::filter::Filter;
@@ -9,7 +12,8 @@ use crate::annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::{aql::model::AnnotationComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::{
-    BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
+    BinaryOperator, BinaryOperatorBase, BinaryOperatorIndex, BinaryOperatorSpec, UnaryOperator,
+    UnaryOperatorSpec,
 };
 use crate::AnnotationGraph;
 use crate::{
@@ -29,24 +33,27 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
 #[derive(Debug)]
-struct BinaryOperatorSpecEntry<'a> {
-    op: Box<dyn BinaryOperatorSpec + 'a>,
-    idx_left: usize,
-    idx_right: usize,
-    global_reflexivity: bool,
+pub struct BinaryOperatorArguments {
+    pub left: usize,
+    pub right: usize,
+    pub global_reflexivity: bool,
 }
 
 #[derive(Debug)]
-struct UnaryOperatorSpecEntry<'a> {
-    op: Box<dyn UnaryOperatorSpec + 'a>,
+struct BinaryOperatorSpecEntry {
+    op: Box<dyn BinaryOperatorSpec>,
+    args: BinaryOperatorArguments,
+}
+
+#[derive(Debug)]
+struct UnaryOperatorSpecEntry {
+    op: Box<dyn UnaryOperatorSpec>,
     idx: usize,
 }
 
 pub struct BinaryOperatorEntry<'a> {
-    pub op: Box<dyn BinaryOperator + 'a>,
-    pub node_nr_left: usize,
-    pub node_nr_right: usize,
-    pub global_reflexivity: bool,
+    pub op: BinaryOperator<'a>,
+    pub args: BinaryOperatorArguments,
 }
 
 pub struct UnaryOperatorEntry {
@@ -55,10 +62,10 @@ pub struct UnaryOperatorEntry {
 }
 
 #[derive(Debug)]
-pub struct Conjunction<'a> {
+pub struct Conjunction {
     nodes: Vec<(String, NodeSearchSpec)>,
-    binary_operators: Vec<BinaryOperatorSpecEntry<'a>>,
-    unary_operators: Vec<UnaryOperatorSpecEntry<'a>>,
+    binary_operators: Vec<BinaryOperatorSpecEntry>,
+    unary_operators: Vec<UnaryOperatorSpecEntry>,
     variables: HashMap<String, usize>,
     location_in_query: HashMap<String, LineColumnRange>,
     include_in_output: HashSet<String>,
@@ -93,8 +100,8 @@ fn should_switch_operand_order(
     node2cost: &BTreeMap<usize, CostEstimate>,
 ) -> bool {
     if let (Some(cost_lhs), Some(cost_rhs)) = (
-        node2cost.get(&op_spec.idx_left),
-        node2cost.get(&op_spec.idx_right),
+        node2cost.get(&op_spec.args.left),
+        node2cost.get(&op_spec.args.right),
     ) {
         let cost_lhs: &CostEstimate = cost_lhs;
         let cost_rhs: &CostEstimate = cost_rhs;
@@ -108,6 +115,40 @@ fn should_switch_operand_order(
     false
 }
 
+fn create_index_join<'b>(
+    db: &'b AnnotationGraph,
+    config: &Config,
+    op: Box<dyn BinaryOperatorIndex + 'b>,
+    op_args: &BinaryOperatorArguments,
+    exec_left: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
+    exec_right: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
+    idx_left: usize,
+) -> Box<dyn ExecutionNode<Item = MatchGroup> + 'b> {
+    if config.use_parallel_joins {
+        let join = parallel::indexjoin::IndexJoin::new(
+            exec_left,
+            idx_left,
+            op,
+            op_args,
+            exec_right.as_nodesearch().unwrap().get_node_search_desc(),
+            db.get_node_annos(),
+            exec_right.get_desc(),
+        );
+        Box::new(join)
+    } else {
+        let join = IndexJoin::new(
+            exec_left,
+            idx_left,
+            op,
+            op_args,
+            exec_right.as_nodesearch().unwrap().get_node_search_desc(),
+            db.get_node_annos(),
+            exec_right.get_desc(),
+        );
+        Box::new(join)
+    }
+}
+
 fn create_join<'b>(
     db: &'b AnnotationGraph,
     config: &Config,
@@ -118,61 +159,39 @@ fn create_join<'b>(
     idx_right: usize,
 ) -> Box<dyn ExecutionNode<Item = MatchGroup> + 'b> {
     if exec_right.as_nodesearch().is_some() {
-        // use index join
-        if config.use_parallel_joins {
-            let join = parallel::indexjoin::IndexJoin::new(
+        if let BinaryOperator::Index(op) = op_entry.op {
+            // we can use directly use an index join
+            return create_index_join(
+                db,
+                config,
+                op,
+                &op_entry.args,
                 exec_left,
+                exec_right,
                 idx_left,
-                op_entry,
-                exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                db.get_node_annos(),
-                exec_right.get_desc(),
             );
-            return Box::new(join);
-        } else {
-            let join = IndexJoin::new(
-                exec_left,
-                idx_left,
-                op_entry,
-                exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                db.get_node_annos(),
-                exec_right.get_desc(),
-            );
-            return Box::new(join);
         }
-    } else if exec_left.as_nodesearch().is_some() {
-        // avoid a nested loop join by switching the operand and using and index join
+    }
+
+    if exec_left.as_nodesearch().is_some() {
+        // avoid a nested loop join by switching the operand and using and index join when possible
         if let Some(inverse_op) = op_entry.op.get_inverse_operator(db) {
-            if config.use_parallel_joins {
-                let join = parallel::indexjoin::IndexJoin::new(
+            if let BinaryOperator::Index(inverse_op) = inverse_op {
+                let inverse_args = BinaryOperatorArguments {
+                    left: op_entry.args.right,
+                    right: op_entry.args.left,
+                    global_reflexivity: op_entry.args.global_reflexivity,
+                };
+
+                return create_index_join(
+                    db,
+                    config,
+                    inverse_op,
+                    &inverse_args,
                     exec_right,
+                    exec_left,
                     idx_right,
-                    BinaryOperatorEntry {
-                        node_nr_left: op_entry.node_nr_right,
-                        node_nr_right: op_entry.node_nr_left,
-                        op: inverse_op,
-                        global_reflexivity: op_entry.global_reflexivity,
-                    },
-                    exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.get_node_annos(),
-                    exec_left.get_desc(),
                 );
-                return Box::new(join);
-            } else {
-                let join = IndexJoin::new(
-                    exec_right,
-                    idx_right,
-                    BinaryOperatorEntry {
-                        node_nr_left: op_entry.node_nr_right,
-                        node_nr_right: op_entry.node_nr_left,
-                        op: inverse_op,
-                        global_reflexivity: op_entry.global_reflexivity,
-                    },
-                    exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.get_node_annos(),
-                    exec_left.get_desc(),
-                );
-                return Box::new(join);
             }
         }
     }
@@ -189,8 +208,8 @@ fn create_join<'b>(
     }
 }
 
-impl<'a> Conjunction<'a> {
-    pub fn new() -> Conjunction<'a> {
+impl Conjunction {
+    pub fn new() -> Conjunction {
         Conjunction {
             nodes: vec![],
             binary_operators: vec![],
@@ -202,7 +221,7 @@ impl<'a> Conjunction<'a> {
         }
     }
 
-    pub fn with_offset(var_idx_offset: usize) -> Conjunction<'a> {
+    pub fn with_offset(var_idx_offset: usize) -> Conjunction {
         Conjunction {
             nodes: vec![],
             binary_operators: vec![],
@@ -214,7 +233,7 @@ impl<'a> Conjunction<'a> {
         }
     }
 
-    pub fn into_disjunction(self) -> Disjunction<'a> {
+    pub fn into_disjunction(self) -> Disjunction {
         Disjunction::new(vec![self])
     }
 
@@ -307,9 +326,11 @@ impl<'a> Conjunction<'a> {
 
         self.binary_operators.push(BinaryOperatorSpecEntry {
             op,
-            idx_left,
-            idx_right,
-            global_reflexivity,
+            args: BinaryOperatorArguments {
+                left: idx_left,
+                right: idx_right,
+                global_reflexivity,
+            },
         });
         Ok(())
     }
@@ -385,7 +406,7 @@ impl<'a> Conjunction<'a> {
 
     fn optimize_join_order_heuristics(
         &self,
-        db: &'a AnnotationGraph,
+        db: &AnnotationGraph,
         config: &Config,
     ) -> Result<Vec<usize>> {
         // check if there is something to optimize
@@ -455,7 +476,7 @@ impl<'a> Conjunction<'a> {
                     .intermediate_sum;
                 trace!(
                     "alternatives plan: \n{}",
-                    initial_plan
+                    alt_plan
                         .get_desc()
                         .ok_or(GraphAnnisError::PlanDescriptionMissing)?
                         .debug_string("  ")
@@ -478,7 +499,7 @@ impl<'a> Conjunction<'a> {
         Ok(best_operator_order)
     }
 
-    fn optimize_node_search_by_operator(
+    fn optimize_node_search_by_operator<'a>(
         &'a self,
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
@@ -491,7 +512,7 @@ impl<'a> Conjunction<'a> {
 
         for e in op_spec_entries {
             let op_spec = &e.op;
-            if e.idx_left == desc.component_nr {
+            if e.args.left == desc.component_nr {
                 // get the necessary components and count the number of nodes in these components
                 let components = op_spec.necessary_components(db);
                 if !components.is_empty() {
@@ -537,7 +558,7 @@ impl<'a> Conjunction<'a> {
         None
     }
 
-    fn make_exec_plan_with_order(
+    fn make_exec_plan_with_order<'a>(
         &'a self,
         db: &'a AnnotationGraph,
         config: &Config,
@@ -641,9 +662,9 @@ impl<'a> Conjunction<'a> {
 
         // 3. add the joins which produce the results in operand order
         for i in operator_order {
-            let op_spec_entry: &BinaryOperatorSpecEntry<'a> = &self.binary_operators[i];
+            let op_spec_entry: &BinaryOperatorSpecEntry = &self.binary_operators[i];
 
-            let mut op: Box<dyn BinaryOperator + 'a> =
+            let mut op: BinaryOperator<'a> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
                     GraphAnnisError::ImpossibleSearch(format!(
                         "could not create operator {:?}",
@@ -651,14 +672,14 @@ impl<'a> Conjunction<'a> {
                     ))
                 })?;
 
-            let mut spec_idx_left = op_spec_entry.idx_left;
-            let mut spec_idx_right = op_spec_entry.idx_right;
+            let mut spec_idx_left = op_spec_entry.args.left;
+            let mut spec_idx_right = op_spec_entry.args.right;
 
             let inverse_op = op.get_inverse_operator(db);
             if let Some(inverse_op) = inverse_op {
                 if should_switch_operand_order(op_spec_entry, &node2cost) {
-                    spec_idx_left = op_spec_entry.idx_right;
-                    spec_idx_right = op_spec_entry.idx_left;
+                    spec_idx_left = op_spec_entry.args.right;
+                    spec_idx_right = op_spec_entry.args.left;
 
                     op = inverse_op;
                 }
@@ -670,9 +691,11 @@ impl<'a> Conjunction<'a> {
 
             let op_entry = BinaryOperatorEntry {
                 op,
-                node_nr_left: spec_idx_left + 1,
-                node_nr_right: spec_idx_right + 1,
-                global_reflexivity: op_spec_entry.global_reflexivity,
+                args: BinaryOperatorArguments {
+                    left: spec_idx_left + 1,
+                    right: spec_idx_right + 1,
+                    global_reflexivity: op_spec_entry.args.global_reflexivity,
+                },
             };
 
             let component_left: usize = *(node2component
@@ -758,8 +781,8 @@ impl<'a> Conjunction<'a> {
             if op_entry.op.is_binding() {
                 // merge both operands to the same component
                 if let (Some(component_left), Some(component_right)) = (
-                    node2component.get(&op_entry.idx_left),
-                    node2component.get(&op_entry.idx_right),
+                    node2component.get(&op_entry.args.left),
+                    node2component.get(&op_entry.args.right),
                 ) {
                     let component_left = *component_left;
                     let component_right = *component_right;
@@ -803,7 +826,7 @@ impl<'a> Conjunction<'a> {
         Ok(())
     }
 
-    pub fn make_exec_node(
+    pub fn make_exec_node<'a>(
         &'a self,
         db: &'a AnnotationGraph,
         config: &Config,

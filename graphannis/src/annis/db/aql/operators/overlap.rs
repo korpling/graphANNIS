@@ -1,9 +1,9 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::EstimationType;
+use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
 use crate::AnnotationGraph;
 use crate::{
-    annis::operator::{BinaryOperator, BinaryOperatorSpec},
+    annis::operator::{BinaryOperatorBase, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
     model::{AnnotationComponent, AnnotationComponentType},
 };
@@ -13,6 +13,7 @@ use graphannis_core::{
 };
 use rustc_hash::FxHashSet;
 
+use std::any::Any;
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -47,13 +48,13 @@ impl BinaryOperatorSpec for OverlapSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = Overlap::new(db, self.reflexive);
-        if let Some(op) = optional_op {
-            Some(Box::new(op))
-        } else {
-            None
-        }
+        optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 
@@ -80,7 +81,77 @@ impl<'a> std::fmt::Display for Overlap<'a> {
     }
 }
 
-impl<'a> BinaryOperator for Overlap<'a> {
+impl<'a> BinaryOperatorBase for Overlap<'a> {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+        if self.reflexive && lhs == rhs {
+            return true;
+        }
+
+        if let (Some(start_lhs), Some(end_lhs), Some(start_rhs), Some(end_rhs)) = (
+            self.tok_helper.left_token_for(lhs.node),
+            self.tok_helper.right_token_for(lhs.node),
+            self.tok_helper.left_token_for(rhs.node),
+            self.tok_helper.right_token_for(rhs.node),
+        ) {
+            // TODO: why not isConnected()? (instead of distance)
+            // path between LHS left-most token and RHS right-most token exists in ORDERING component
+            if self.gs_order.distance(start_lhs, end_rhs).is_some()
+                // path between LHS left-most token and RHS right-most token exists in ORDERING component
+                && self.gs_order.distance(start_rhs, end_lhs).is_some()
+            {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn is_reflexive(&self) -> bool {
+        self.reflexive
+    }
+
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+        Some(BinaryOperator::Index(Box::new(Overlap {
+            gs_order: self.gs_order.clone(),
+            tok_helper: TokenHelper::new(graph)?,
+            reflexive: self.reflexive,
+        })))
+    }
+
+    fn estimation_type(&self) -> EstimationType {
+        if let Some(stats_order) = self.gs_order.get_statistics() {
+            let mut sum_included = 0;
+            let mut sum_cov_nodes = 0;
+
+            let num_of_token = stats_order.nodes as f64;
+
+            for gs_cov in self.tok_helper.get_gs_coverage().iter() {
+                if let Some(stats_cov) = gs_cov.get_statistics() {
+                    sum_cov_nodes += stats_cov.nodes;
+                    let covered_token_per_node = stats_cov.fan_out_99_percentile;
+                    // for each covered token get the number of inverse covered non-token nodes
+                    let aligned_non_token =
+                        covered_token_per_node * (stats_cov.inverse_fan_out_99_percentile);
+
+                    sum_included += covered_token_per_node + aligned_non_token;
+                }
+            }
+            if self.reflexive {
+                sum_included += 1;
+            }
+
+            if sum_cov_nodes == 0 {
+                // only token in this corpus
+                return EstimationType::Selectivity(1.0 / num_of_token);
+            } else {
+                return EstimationType::Selectivity(sum_included as f64 / (sum_cov_nodes as f64));
+            }
+        }
+
+        EstimationType::Selectivity(0.1)
+    }
+}
+
+impl<'a> BinaryOperatorIndex for Overlap<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         // use set to filter out duplicates
         let mut result = FxHashSet::default();
@@ -128,74 +199,7 @@ impl<'a> BinaryOperator for Overlap<'a> {
         }))
     }
 
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        if self.reflexive && lhs == rhs {
-            return true;
-        }
-
-        if let (Some(start_lhs), Some(end_lhs), Some(start_rhs), Some(end_rhs)) = (
-            self.tok_helper.left_token_for(lhs.node),
-            self.tok_helper.right_token_for(lhs.node),
-            self.tok_helper.left_token_for(rhs.node),
-            self.tok_helper.right_token_for(rhs.node),
-        ) {
-            // TODO: why not isConnected()? (instead of distance)
-            // path between LHS left-most token and RHS right-most token exists in ORDERING component
-            if self.gs_order.distance(start_lhs, end_rhs).is_some()
-                // path between LHS left-most token and RHS right-most token exists in ORDERING component
-                && self.gs_order.distance(start_rhs, end_lhs).is_some()
-            {
-                return true;
-            }
-        }
-        false
-    }
-
-    fn is_reflexive(&self) -> bool {
-        self.reflexive
-    }
-
-    fn get_inverse_operator<'b>(
-        &self,
-        graph: &'b AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'b>> {
-        Some(Box::new(Overlap {
-            gs_order: self.gs_order.clone(),
-            tok_helper: TokenHelper::new(graph)?,
-            reflexive: self.reflexive,
-        }))
-    }
-
-    fn estimation_type(&self) -> EstimationType {
-        if let Some(stats_order) = self.gs_order.get_statistics() {
-            let mut sum_included = 0;
-            let mut sum_cov_nodes = 0;
-
-            let num_of_token = stats_order.nodes as f64;
-
-            for gs_cov in self.tok_helper.get_gs_coverage().iter() {
-                if let Some(stats_cov) = gs_cov.get_statistics() {
-                    sum_cov_nodes += stats_cov.nodes;
-                    let covered_token_per_node = stats_cov.fan_out_99_percentile;
-                    // for each covered token get the number of inverse covered non-token nodes
-                    let aligned_non_token =
-                        covered_token_per_node * (stats_cov.inverse_fan_out_99_percentile);
-
-                    sum_included += covered_token_per_node + aligned_non_token;
-                }
-            }
-            if self.reflexive {
-                sum_included += 1;
-            }
-
-            if sum_cov_nodes == 0 {
-                // only token in this corpus
-                return EstimationType::SELECTIVITY(1.0 / num_of_token);
-            } else {
-                return EstimationType::SELECTIVITY(sum_included as f64 / (sum_cov_nodes as f64));
-            }
-        }
-
-        EstimationType::SELECTIVITY(0.1)
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
+        self
     }
 }

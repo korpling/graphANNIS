@@ -1,10 +1,10 @@
 use crate::annis::db::aql::{model::AnnotationComponentType, operators::RangeSpec};
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::operator::EstimationType;
+use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
 use crate::AnnotationGraph;
 use crate::{
-    annis::operator::{BinaryOperator, BinaryOperatorSpec},
+    annis::operator::{BinaryOperatorBase, BinaryOperatorSpec},
     graph::{GraphStorage, Match},
 };
 use graphannis_core::{
@@ -13,6 +13,7 @@ use graphannis_core::{
 };
 
 use rustc_hash::FxHashSet;
+use std::any::Any;
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -48,13 +49,13 @@ impl BinaryOperatorSpec for NearSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = Near::new(db, self.clone());
-        if let Some(op) = optional_op {
-            Some(Box::new(op))
-        } else {
-            None
-        }
+        optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 
@@ -94,7 +95,70 @@ impl<'a> std::fmt::Display for Near<'a> {
     }
 }
 
-impl<'a> BinaryOperator for Near<'a> {
+impl<'a> BinaryOperatorBase for Near<'a> {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+        let start_end_forward = if self.spec.segmentation.is_some() {
+            (lhs.node, rhs.node)
+        } else {
+            let start = self.tok_helper.right_token_for(lhs.node);
+            let end = self.tok_helper.left_token_for(rhs.node);
+            if start.is_none() || end.is_none() {
+                return false;
+            }
+            (start.unwrap(), end.unwrap())
+        };
+        let start_end_backward = if self.spec.segmentation.is_some() {
+            (lhs.node, rhs.node)
+        } else {
+            let start = self.tok_helper.left_token_for(lhs.node);
+            let end = self.tok_helper.right_token_for(rhs.node);
+            if start.is_none() || end.is_none() {
+                return false;
+            }
+            (start.unwrap(), end.unwrap())
+        };
+
+        self.gs_order.is_connected(
+            start_end_forward.0,
+            start_end_forward.1,
+            self.spec.dist.min_dist(),
+            self.spec.dist.max_dist(),
+        ) || self.gs_order.is_connected(
+            start_end_backward.1,
+            start_end_backward.0,
+            self.spec.dist.min_dist(),
+            self.spec.dist.max_dist(),
+        )
+    }
+
+    fn estimation_type(&self) -> EstimationType {
+        if let Some(stats_order) = self.gs_order.get_statistics() {
+            let max_dist = match self.spec.dist.max_dist() {
+                std::ops::Bound::Unbounded => usize::max_value(),
+                std::ops::Bound::Included(max_dist) => max_dist,
+                std::ops::Bound::Excluded(max_dist) => max_dist - 1,
+            };
+            let max_possible_dist = std::cmp::min(max_dist, stats_order.max_depth);
+            let num_of_descendants = 2 * (max_possible_dist - self.spec.dist.min_dist() + 1);
+
+            return EstimationType::Selectivity(
+                (num_of_descendants as f64) / (stats_order.nodes as f64 / 2.0),
+            );
+        }
+
+        EstimationType::Selectivity(0.1)
+    }
+
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+        Some(BinaryOperator::Index(Box::new(Near {
+            gs_order: self.gs_order.clone(),
+            tok_helper: TokenHelper::new(graph)?,
+            spec: self.spec.clone(),
+        })))
+    }
+}
+
+impl<'a> BinaryOperatorIndex for Near<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let start_forward = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -153,67 +217,7 @@ impl<'a> BinaryOperator for Near<'a> {
         Box::new(result.into_iter())
     }
 
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        let start_end_forward = if self.spec.segmentation.is_some() {
-            (lhs.node, rhs.node)
-        } else {
-            let start = self.tok_helper.right_token_for(lhs.node);
-            let end = self.tok_helper.left_token_for(rhs.node);
-            if start.is_none() || end.is_none() {
-                return false;
-            }
-            (start.unwrap(), end.unwrap())
-        };
-        let start_end_backward = if self.spec.segmentation.is_some() {
-            (lhs.node, rhs.node)
-        } else {
-            let start = self.tok_helper.left_token_for(lhs.node);
-            let end = self.tok_helper.right_token_for(rhs.node);
-            if start.is_none() || end.is_none() {
-                return false;
-            }
-            (start.unwrap(), end.unwrap())
-        };
-
-        self.gs_order.is_connected(
-            start_end_forward.0,
-            start_end_forward.1,
-            self.spec.dist.min_dist(),
-            self.spec.dist.max_dist(),
-        ) || self.gs_order.is_connected(
-            start_end_backward.1,
-            start_end_backward.0,
-            self.spec.dist.min_dist(),
-            self.spec.dist.max_dist(),
-        )
-    }
-
-    fn estimation_type(&self) -> EstimationType {
-        if let Some(stats_order) = self.gs_order.get_statistics() {
-            let max_dist = match self.spec.dist.max_dist() {
-                std::ops::Bound::Unbounded => usize::max_value(),
-                std::ops::Bound::Included(max_dist) => max_dist,
-                std::ops::Bound::Excluded(max_dist) => max_dist - 1,
-            };
-            let max_possible_dist = std::cmp::min(max_dist, stats_order.max_depth);
-            let num_of_descendants = 2 * (max_possible_dist - self.spec.dist.min_dist() + 1);
-
-            return EstimationType::SELECTIVITY(
-                (num_of_descendants as f64) / (stats_order.nodes as f64 / 2.0),
-            );
-        }
-
-        EstimationType::SELECTIVITY(0.1)
-    }
-
-    fn get_inverse_operator<'b>(
-        &self,
-        graph: &'b AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'b>> {
-        Some(Box::new(Near {
-            gs_order: self.gs_order.clone(),
-            tok_helper: TokenHelper::new(graph)?,
-            spec: self.spec.clone(),
-        }))
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
+        self
     }
 }

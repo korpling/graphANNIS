@@ -4,6 +4,7 @@ use crate::{
     graph::Match,
 };
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
+use std::any::Any;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
@@ -17,11 +18,12 @@ impl BinaryOperatorSpec for IdenticalNodeSpec {
         HashSet::default()
     }
 
-    fn create_operator<'a>(
-        &self,
-        _db: &'a AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'a>> {
-        Some(Box::new(IdenticalNode {}))
+    fn create_operator<'a>(&self, _db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+        Some(BinaryOperator::Index(Box::new(IdenticalNode {})))
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 
@@ -34,7 +36,21 @@ impl std::fmt::Display for IdenticalNode {
     }
 }
 
-impl BinaryOperator for IdenticalNode {
+impl BinaryOperatorBase for IdenticalNode {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+        lhs.node == rhs.node
+    }
+
+    fn estimation_type(&self) -> EstimationType {
+        EstimationType::Min
+    }
+
+    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+        Some(BinaryOperator::Index(Box::new(self.clone())))
+    }
+}
+
+impl BinaryOperatorIndex for IdenticalNode {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         Box::new(std::iter::once(Match {
             node: lhs.node,
@@ -42,18 +58,7 @@ impl BinaryOperator for IdenticalNode {
         }))
     }
 
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        lhs.node == rhs.node
-    }
-
-    fn estimation_type(&self) -> EstimationType {
-        EstimationType::MIN
-    }
-
-    fn get_inverse_operator<'a>(
-        &self,
-        _graph: &'a AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'a>> {
-        Some(Box::new(self.clone()))
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
+        self
     }
 }

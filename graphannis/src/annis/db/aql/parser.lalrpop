@@ -71,27 +71,28 @@ Literal : ast::Expr = {
         Expr::Terminal(ast::Literal::NodeSearch{pos, spec, variable: var.and_then(|s| Some(s[0..s.len()-1].to_string()))})
     },
     // binary operator
-    <start: @L> <lhs:Operand> <op:BinaryOpSpec> <rhs:Operand> <tail:(BinaryOpSpec Operand)*> <end: @R> => {
+    <start: @L> <lhs:Operand> <neg:"!"?> <op:BinaryOpSpec> <rhs:Operand> <tail:("!"? BinaryOpSpec Operand)*> <end: @R> => {
         // TODO: can we get the position for each individual binary operator?
         let pos = ast::Pos {
             start, end
         };
         let mut expr = 
             Expr::Terminal(
-                ast::Literal::BinaryOp{lhs: lhs.clone(), op, rhs: rhs.clone(), pos: Some(pos.clone())}
+                ast::Literal::BinaryOp{lhs: lhs.clone(), op, rhs: rhs.clone(), pos: Some(pos.clone()), negated: neg.is_some()}
             ); 
         // transform the list of literals into an AND if there is a tail
         let mut last_operand = rhs.clone();
         for t in tail.into_iter() {
             let tail_expr = ast::Literal::BinaryOp{
                 lhs: last_operand.clone(), 
-                op: t.0, 
-                rhs: t.1.clone(), 
-                pos: Some(pos.clone())
+                op: t.1, 
+                rhs: t.2.clone(), 
+                pos: Some(pos.clone()),
+                negated: t.0.is_some(),
             };
             expr = ast::Expr::and(expr, Expr::Terminal(tail_expr));
 
-            last_operand = t.1;
+            last_operand = t.2;
         }
         expr
     },
@@ -104,7 +105,7 @@ Literal : ast::Expr = {
         let mut expr = 
             Expr::Terminal(
                 ast::Literal::BinaryOp{lhs: ast::Operand::NodeRef(lhs.clone()), op: filter, 
-                    rhs: ast::Operand::NodeRef(rhs.clone()), pos: Some(pos.clone())}
+                    rhs: ast::Operand::NodeRef(rhs.clone()), pos: Some(pos.clone()), negated: false}
             ); 
         // transform the list of literals into an AND if there is a tail
         let mut last_operand = rhs.clone();
@@ -113,7 +114,8 @@ Literal : ast::Expr = {
                 lhs: ast::Operand::NodeRef(last_operand.clone()), 
                 op: t.0, 
                 rhs: ast::Operand::NodeRef(t.1.clone()), 
-                pos: Some(pos.clone())
+                pos: Some(pos.clone()),
+                negated: false,
             };
             expr = ast::Expr::and(expr, Expr::Terminal(tail_expr));
 

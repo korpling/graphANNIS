@@ -1,6 +1,7 @@
 use crate::annis::db::aql::{model::AnnotationComponentType, operators::RangeSpec};
 use crate::annis::operator::{
-    BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
+    BinaryOperator, BinaryOperatorBase, BinaryOperatorIndex, BinaryOperatorSpec,
+    EdgeAnnoSearchSpec, EstimationType,
 };
 use crate::graph::{GraphStatistic, GraphStorage, Match};
 use crate::AnnotationGraph;
@@ -9,6 +10,7 @@ use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
     types::{Component, Edge, NodeID},
 };
+use std::any::Any;
 use std::collections::{HashSet, VecDeque};
 use std::iter::FromIterator;
 use std::sync::Arc;
@@ -57,17 +59,17 @@ impl BinaryOperatorSpec for BaseEdgeOpSpec {
         HashSet::from_iter(self.components.clone())
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = BaseEdgeOp::new(db, self.clone());
-        if let Some(op) = optional_op {
-            Some(Box::new(op))
-        } else {
-            None
-        }
+        optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         self.edge_anno.clone()
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 
@@ -124,7 +126,7 @@ fn check_edge_annotation(
             false
         }
         Some(EdgeAnnoSearchSpec::RegexValue { ns, name, val }) => {
-            let full_match_pattern = graphannis_core::util::regex_full_match(&val);
+            let full_match_pattern = graphannis_core::util::regex_full_match(val);
             let re = regex::Regex::new(&full_match_pattern);
             if let Ok(re) = re {
                 for a in gs
@@ -151,7 +153,7 @@ fn check_edge_annotation(
             false
         }
         Some(EdgeAnnoSearchSpec::NotRegexValue { ns, name, val }) => {
-            let full_match_pattern = graphannis_core::util::regex_full_match(&val);
+            let full_match_pattern = graphannis_core::util::regex_full_match(val);
             let re = regex::Regex::new(&full_match_pattern);
             if let Ok(re) = re {
                 for a in gs
@@ -203,7 +205,195 @@ impl std::fmt::Display for BaseEdgeOp {
     }
 }
 
-impl BinaryOperator for BaseEdgeOp {
+impl BinaryOperatorBase for BaseEdgeOp {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+        for e in &self.gs {
+            if self.inverse {
+                if e.is_connected(
+                    rhs.node,
+                    lhs.node,
+                    self.spec.dist.min_dist(),
+                    self.spec.dist.max_dist(),
+                ) && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
+                {
+                    return true;
+                }
+            } else if e.is_connected(
+                lhs.node,
+                rhs.node,
+                self.spec.dist.min_dist(),
+                self.spec.dist.max_dist(),
+            ) && check_edge_annotation(
+                &self.spec.edge_anno,
+                e.as_ref(),
+                lhs.node,
+                rhs.node,
+            ) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn is_reflexive(&self) -> bool {
+        self.spec.is_reflexive
+    }
+
+    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+        // Check if all graph storages have the same inverse cost.
+        // If not, we don't provide an inverse operator, because the plans would not account for the different costs
+        for g in &self.gs {
+            if !g.inverse_has_same_cost() {
+                return None;
+            }
+            if let Some(stat) = g.get_statistics() {
+                // If input and output estimations are too different, also don't provide a more costly inverse operator
+                if stat.inverse_fan_out_99_percentile > stat.fan_out_99_percentile {
+                    return None;
+                }
+            }
+        }
+        let edge_op = BaseEdgeOp {
+            gs: self.gs.clone(),
+            spec: self.spec.clone(),
+            max_nodes_estimate: self.max_nodes_estimate,
+            inverse: !self.inverse,
+        };
+        Some(BinaryOperator::Index(Box::new(edge_op)))
+    }
+
+    fn estimation_type(&self) -> EstimationType {
+        if self.gs.is_empty() {
+            // will not find anything
+            return EstimationType::Selectivity(0.0);
+        }
+
+        let max_nodes: f64 = self.max_nodes_estimate as f64;
+
+        let mut worst_sel: f64 = 0.0;
+
+        for g in &self.gs {
+            let g: &Arc<dyn GraphStorage> = g;
+
+            let mut gs_selectivity = 0.01;
+
+            if let Some(stats) = g.get_statistics() {
+                let stats: &GraphStatistic = stats;
+                if stats.cyclic {
+                    // can get all other nodes
+                    return EstimationType::Selectivity(1.0);
+                }
+                // get number of nodes reachable from min to max distance
+                let max_dist = match self.spec.dist.max_dist() {
+                    std::ops::Bound::Unbounded => usize::max_value(),
+                    std::ops::Bound::Included(max_dist) => max_dist,
+                    std::ops::Bound::Excluded(max_dist) => max_dist - 1,
+                };
+                let max_path_length = std::cmp::min(max_dist, stats.max_depth) as i32;
+                let min_path_length = std::cmp::max(0, self.spec.dist.min_dist() - 1) as i32;
+
+                if stats.avg_fan_out > 1.0 {
+                    // Assume two complete k-ary trees (with the average fan-out as k)
+                    // as defined in "Thomas Cormen: Introduction to algorithms (2009), page 1179)
+                    // with the maximum and minimum height. Calculate the number of nodes for both complete trees and
+                    // subtract them to get an estimation of the number of nodes that fullfull the path length criteria.
+                    let k = stats.avg_fan_out;
+
+                    let reachable_max: f64 = ((k.powi(max_path_length) - 1.0) / (k - 1.0)).ceil();
+                    let reachable_min: f64 = ((k.powi(min_path_length) - 1.0) / (k - 1.0)).ceil();
+
+                    let reachable = reachable_max - reachable_min;
+
+                    gs_selectivity = reachable / max_nodes;
+                } else {
+                    // We can't use the formula for complete k-ary trees because we can't divide by zero and don't want negative
+                    // numbers. Use the simplified estimation with multiplication instead.
+                    let reachable_max: f64 =
+                        (stats.avg_fan_out * f64::from(max_path_length)).ceil();
+                    let reachable_min: f64 =
+                        (stats.avg_fan_out * f64::from(min_path_length)).ceil();
+
+                    gs_selectivity = (reachable_max - reachable_min) / max_nodes;
+                }
+            }
+
+            if worst_sel < gs_selectivity {
+                worst_sel = gs_selectivity;
+            }
+        } // end for
+
+        EstimationType::Selectivity(worst_sel)
+    }
+
+    fn edge_anno_selectivity(&self) -> Option<f64> {
+        if let Some(ref edge_anno) = self.spec.edge_anno {
+            let mut worst_sel = 0.0;
+            for g in &self.gs {
+                let g: &Arc<dyn GraphStorage> = g;
+                let anno_storage = g.get_anno_storage();
+                let num_of_annos = anno_storage.number_of_annotations();
+                if num_of_annos == 0 {
+                    // we won't be able to find anything if there are no annotations
+                    return Some(0.0);
+                } else {
+                    let guessed_count = match edge_anno {
+                        EdgeAnnoSearchSpec::ExactValue { val, ns, name } => {
+                            if let Some(val) = val {
+                                anno_storage.guess_max_count(
+                                    ns.as_ref().map(String::as_str),
+                                    name,
+                                    val,
+                                    val,
+                                )
+                            } else {
+                                anno_storage.number_of_annotations_by_name(
+                                    ns.as_ref().map(String::as_str),
+                                    name,
+                                )
+                            }
+                        }
+                        EdgeAnnoSearchSpec::NotExactValue { val, ns, name } => {
+                            let total = anno_storage.number_of_annotations_by_name(
+                                ns.as_ref().map(String::as_str),
+                                name,
+                            );
+                            total
+                                - anno_storage.guess_max_count(
+                                    ns.as_ref().map(String::as_str),
+                                    name,
+                                    val,
+                                    val,
+                                )
+                        }
+                        EdgeAnnoSearchSpec::RegexValue { val, ns, name } => anno_storage
+                            .guess_max_count_regex(ns.as_ref().map(String::as_str), name, val),
+                        EdgeAnnoSearchSpec::NotRegexValue { val, ns, name } => {
+                            let total = anno_storage.number_of_annotations_by_name(
+                                ns.as_ref().map(String::as_str),
+                                name,
+                            );
+                            total
+                                - anno_storage.guess_max_count_regex(
+                                    ns.as_ref().map(String::as_str),
+                                    name,
+                                    val,
+                                )
+                        }
+                    };
+                    let g_sel: f64 = (guessed_count as f64) / (num_of_annos as f64);
+                    if g_sel > worst_sel {
+                        worst_sel = g_sel;
+                    }
+                }
+            }
+            Some(worst_sel)
+        } else {
+            Some(1.0)
+        }
+    }
+}
+
+impl BinaryOperatorIndex for BaseEdgeOp {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let lhs = lhs.clone();
         let spec = self.spec.clone();
@@ -305,190 +495,8 @@ impl BinaryOperator for BaseEdgeOp {
         }
     }
 
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        for e in &self.gs {
-            if self.inverse {
-                if e.is_connected(
-                    rhs.node,
-                    lhs.node,
-                    self.spec.dist.min_dist(),
-                    self.spec.dist.max_dist(),
-                ) && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
-                {
-                    return true;
-                }
-            } else if e.is_connected(
-                lhs.node,
-                rhs.node,
-                self.spec.dist.min_dist(),
-                self.spec.dist.max_dist(),
-            ) && check_edge_annotation(
-                &self.spec.edge_anno,
-                e.as_ref(),
-                lhs.node,
-                rhs.node,
-            ) {
-                return true;
-            }
-        }
-        false
-    }
-
-    fn is_reflexive(&self) -> bool {
-        self.spec.is_reflexive
-    }
-
-    fn get_inverse_operator(&self, _graph: &AnnotationGraph) -> Option<Box<dyn BinaryOperator>> {
-        // Check if all graph storages have the same inverse cost.
-        // If not, we don't provide an inverse operator, because the plans would not account for the different costs
-        for g in &self.gs {
-            if !g.inverse_has_same_cost() {
-                return None;
-            }
-            if let Some(stat) = g.get_statistics() {
-                // If input and output estimations are too different, also don't provide a more costly inverse operator
-                if stat.inverse_fan_out_99_percentile > stat.fan_out_99_percentile {
-                    return None;
-                }
-            }
-        }
-        let edge_op = BaseEdgeOp {
-            gs: self.gs.clone(),
-            spec: self.spec.clone(),
-            max_nodes_estimate: self.max_nodes_estimate,
-            inverse: !self.inverse,
-        };
-        Some(Box::new(edge_op))
-    }
-
-    fn estimation_type(&self) -> EstimationType {
-        if self.gs.is_empty() {
-            // will not find anything
-            return EstimationType::SELECTIVITY(0.0);
-        }
-
-        let max_nodes: f64 = self.max_nodes_estimate as f64;
-
-        let mut worst_sel: f64 = 0.0;
-
-        for g in &self.gs {
-            let g: &Arc<dyn GraphStorage> = g;
-
-            let mut gs_selectivity = 0.01;
-
-            if let Some(stats) = g.get_statistics() {
-                let stats: &GraphStatistic = stats;
-                if stats.cyclic {
-                    // can get all other nodes
-                    return EstimationType::SELECTIVITY(1.0);
-                }
-                // get number of nodes reachable from min to max distance
-                let max_dist = match self.spec.dist.max_dist() {
-                    std::ops::Bound::Unbounded => usize::max_value(),
-                    std::ops::Bound::Included(max_dist) => max_dist,
-                    std::ops::Bound::Excluded(max_dist) => max_dist - 1,
-                };
-                let max_path_length = std::cmp::min(max_dist, stats.max_depth) as i32;
-                let min_path_length = std::cmp::max(0, self.spec.dist.min_dist() - 1) as i32;
-
-                if stats.avg_fan_out > 1.0 {
-                    // Assume two complete k-ary trees (with the average fan-out as k)
-                    // as defined in "Thomas Cormen: Introduction to algorithms (2009), page 1179)
-                    // with the maximum and minimum height. Calculate the number of nodes for both complete trees and
-                    // subtract them to get an estimation of the number of nodes that fullfull the path length criteria.
-                    let k = stats.avg_fan_out;
-
-                    let reachable_max: f64 = ((k.powi(max_path_length) - 1.0) / (k - 1.0)).ceil();
-                    let reachable_min: f64 = ((k.powi(min_path_length) - 1.0) / (k - 1.0)).ceil();
-
-                    let reachable = reachable_max - reachable_min;
-
-                    gs_selectivity = reachable / max_nodes;
-                } else {
-                    // We can't use the formula for complete k-ary trees because we can't divide by zero and don't want negative
-                    // numbers. Use the simplified estimation with multiplication instead.
-                    let reachable_max: f64 =
-                        (stats.avg_fan_out * f64::from(max_path_length)).ceil();
-                    let reachable_min: f64 =
-                        (stats.avg_fan_out * f64::from(min_path_length)).ceil();
-
-                    gs_selectivity = (reachable_max - reachable_min) / max_nodes;
-                }
-            }
-
-            if worst_sel < gs_selectivity {
-                worst_sel = gs_selectivity;
-            }
-        } // end for
-
-        EstimationType::SELECTIVITY(worst_sel)
-    }
-
-    fn edge_anno_selectivity(&self) -> Option<f64> {
-        if let Some(ref edge_anno) = self.spec.edge_anno {
-            let mut worst_sel = 0.0;
-            for g in &self.gs {
-                let g: &Arc<dyn GraphStorage> = g;
-                let anno_storage = g.get_anno_storage();
-                let num_of_annos = anno_storage.number_of_annotations();
-                if num_of_annos == 0 {
-                    // we won't be able to find anything if there are no annotations
-                    return Some(0.0);
-                } else {
-                    let guessed_count = match edge_anno {
-                        EdgeAnnoSearchSpec::ExactValue { val, ns, name } => {
-                            if let Some(val) = val {
-                                anno_storage.guess_max_count(
-                                    ns.as_ref().map(String::as_str),
-                                    name,
-                                    val,
-                                    val,
-                                )
-                            } else {
-                                anno_storage.number_of_annotations_by_name(
-                                    ns.as_ref().map(String::as_str),
-                                    &name,
-                                )
-                            }
-                        }
-                        EdgeAnnoSearchSpec::NotExactValue { val, ns, name } => {
-                            let total = anno_storage.number_of_annotations_by_name(
-                                ns.as_ref().map(String::as_str),
-                                &name,
-                            );
-                            total
-                                - anno_storage.guess_max_count(
-                                    ns.as_ref().map(String::as_str),
-                                    &name,
-                                    val,
-                                    val,
-                                )
-                        }
-                        EdgeAnnoSearchSpec::RegexValue { val, ns, name } => anno_storage
-                            .guess_max_count_regex(ns.as_ref().map(String::as_str), &name, val),
-                        EdgeAnnoSearchSpec::NotRegexValue { val, ns, name } => {
-                            let total = anno_storage.number_of_annotations_by_name(
-                                ns.as_ref().map(String::as_str),
-                                &name,
-                            );
-                            total
-                                - anno_storage.guess_max_count_regex(
-                                    ns.as_ref().map(String::as_str),
-                                    &name,
-                                    val,
-                                )
-                        }
-                    };
-                    let g_sel: f64 = (guessed_count as f64) / (num_of_annos as f64);
-                    if g_sel > worst_sel {
-                        worst_sel = g_sel;
-                    }
-                }
-            }
-            Some(worst_sel)
-        } else {
-            Some(1.0)
-        }
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
+        self
     }
 }
 
@@ -509,7 +517,7 @@ impl BinaryOperatorSpec for DominanceSpec {
         )
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let components =
             db.get_all_components(Some(AnnotationComponentType::Dominance), Some(&self.name));
         let op_str = if self.name.is_empty() {
@@ -525,6 +533,10 @@ impl BinaryOperatorSpec for DominanceSpec {
             is_reflexive: true,
         };
         base.create_operator(db)
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 
@@ -545,7 +557,7 @@ impl BinaryOperatorSpec for PointingSpec {
         )
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let components =
             db.get_all_components(Some(AnnotationComponentType::Pointing), Some(&self.name));
         let op_str = if self.name.is_empty() {
@@ -562,6 +574,10 @@ impl BinaryOperatorSpec for PointingSpec {
             op_str: Some(op_str),
         };
         base.create_operator(db)
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 
@@ -584,7 +600,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         components
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let components = vec![Component::new(
             AnnotationComponentType::PartOf,
             ANNIS_NS.into(),
@@ -599,5 +615,9 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         };
 
         base.create_operator(db)
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }

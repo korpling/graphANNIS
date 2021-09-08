@@ -1,11 +1,10 @@
 use crate::annis::db::aql;
+use crate::annis::db::aql::conjunction::Conjunction;
+use crate::annis::db::aql::disjunction::Disjunction;
 use crate::annis::db::aql::operators;
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::plan::ExecutionPlan;
-use crate::annis::db::query;
-use crate::annis::db::query::conjunction::Conjunction;
-use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::relannis;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
@@ -203,8 +202,8 @@ impl Default for ResultOrder {
     }
 }
 
-struct PreparationResult<'a> {
-    query: Disjunction<'a>,
+struct PreparationResult {
+    query: Disjunction,
     db_entry: Arc<RwLock<CacheEntry>>,
 }
 
@@ -347,7 +346,7 @@ pub struct CorpusStorage {
     lock_file: File,
     cache_strategy: CacheStrategy,
     corpus_cache: RwLock<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
-    query_config: query::Config,
+    query_config: aql::Config,
     active_background_workers: Arc<(Mutex<usize>, Condvar)>,
 }
 
@@ -475,7 +474,7 @@ impl CorpusStorage {
     ) -> Result<CorpusStorage> {
         init_locale();
 
-        let query_config = query::Config { use_parallel_joins };
+        let query_config = aql::Config { use_parallel_joins };
 
         #[allow(clippy::mutex_atomic)]
         let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
@@ -501,7 +500,7 @@ impl CorpusStorage {
     pub fn with_auto_cache_size(db_dir: &Path, use_parallel_joins: bool) -> Result<CorpusStorage> {
         init_locale();
 
-        let query_config = query::Config { use_parallel_joins };
+        let query_config = aql::Config { use_parallel_joins };
 
         // get the amount of available memory, use a quarter of it per default
         let cache_strategy: CacheStrategy = CacheStrategy::PercentOfFreeMemory(25.0);
@@ -1396,13 +1395,13 @@ impl CorpusStorage {
         Ok(())
     }
 
-    fn prepare_query<'a, F>(
+    fn prepare_query<F>(
         &self,
         corpus_name: &str,
-        query: &'a str,
+        query: &str,
         query_language: QueryLanguage,
         additional_components_callback: F,
-    ) -> Result<PreparationResult<'a>>
+    ) -> Result<PreparationResult>
     where
         F: FnOnce(&AnnotationGraph) -> Vec<Component<AnnotationComponentType>>,
     {
@@ -2596,7 +2595,7 @@ fn extract_subgraph_by_query(
     db_entry: &Arc<RwLock<CacheEntry>>,
     query: &Disjunction,
     match_idx: &[usize],
-    query_config: &query::Config,
+    query_config: &aql::Config,
     component_type_filter: Option<AnnotationComponentType>,
 ) -> Result<AnnotationGraph> {
     let t_before = std::time::SystemTime::now();

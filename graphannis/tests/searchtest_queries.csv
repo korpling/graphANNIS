@@ -17,6 +17,19 @@ dep_xcomp,"""easy"" & ""measure"" & #1 ->dep[func=""xcomp""] #2",GUM,1
 meta_interview,"pos=""RB"" @* type=""interview""",GUM,522
 Profile,"node ->dep[func=""nsubj""] node",GUM,3070
 DirectPointingWithAnno,"pos=""JJ"" ->dep[func=""cop""] ""is""",GUM,112
+NegationDominance,"""challenges"" . ""facing"" & cat & #3 >* #2 & #3 !>* #1",GUM,1
+NegationDominanceMultiple,"""challenges"" . ""facing"" .1,5 cat & #3 !>* #1",GUM,4
+NegationDep,"""issues"" .2 ""challenges"" & tok & #1 !->dep #3 & #1 .1,4 #3",GUM,1
+NegationDepAnno,"""issues"" .2 ""challenges"" & tok & #1 !->dep[func=""conj""] #3 & #1 .1,4 #3",GUM,3
+NegationPrecedence,"cat=""ROOT"" ^ cat=""ROOT"" >* ""challenges"" & #1 !. #2",GUM,1
+NegationNear,"cat=""ROOT"" .1,30 cat=""ROOT"" >* ""challenges"" & #1 !^ #2",GUM,1
+NegationPartOf,"type=""interview"" @ shortName=""GUM"" & /[bB]io.*/ @* #2 & #3 !@* #1",GUM,66
+NegationIdentCoverage,"cat=""ROOT"" >* cat >* ""modern"" . ""campaigns"" & #1 !_=_ #2",GUM,9
+NegationInclusion,"t#tok & m#""modern"" & ((#t ->dep #m)|(#m ->dep #t)) & r#ref _o_ #t & #r !_i_ #m",GUM,1
+NegationOverlap,"t#tok & m#""modern"" & ((#t ->dep #m)|(#m ->dep #t)) & r#ref _o_ #t & #r !_o_ #m",GUM,1
+NegationLeftAligned,"cat=""ROOT"" >* cat >* ""modern"" . ""campaigns"" & #1 !_l_ #2",GUM,9
+NegationRightAligned,"cat=""ROOT"" >* cat >* ""modern"" . ""campaigns"" & #1 !_r_ #2",GUM,9
+NegationNodeIdentity,"m#""modern"" & (n#claws5=""NN1"" | n#claws5=""NN2"") & #m . #n _r_ o#node & #n !_ident_ #o",GUM,16
 NotDocument,"tok @* doc!=""maz-11299""",pcc2.1,34709
 StructureInclusionSeed,"cat=""S"" _i_ cat=""AP""",pcc2.1,726
 IsConnectedRange,"""Jugendlichen"" .3,10 ""Musikcafé""",pcc2.1,1

@@ -1,10 +1,13 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::BinaryOperator;
+use crate::annis::operator::BinaryOperatorBase;
+use crate::annis::operator::BinaryOperatorIndex;
 use crate::annis::operator::BinaryOperatorSpec;
 use crate::AnnotationGraph;
 use crate::{annis::operator::EstimationType, graph::Match, model::AnnotationComponent};
 use graphannis_core::graph::DEFAULT_ANNO_KEY;
+use std::any::Any;
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
@@ -22,13 +25,13 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         let optional_op = RightAlignment::new(db);
-        if let Some(op) = optional_op {
-            Some(Box::new(op))
-        } else {
-            None
-        }
+        optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 
@@ -46,7 +49,43 @@ impl<'a> std::fmt::Display for RightAlignment<'a> {
     }
 }
 
-impl<'a> BinaryOperator for RightAlignment<'a> {
+impl<'a> BinaryOperatorBase for RightAlignment<'a> {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+        if let (Some(lhs_token), Some(rhs_token)) = (
+            self.tok_helper.right_token_for(lhs.node),
+            self.tok_helper.right_token_for(rhs.node),
+        ) {
+            lhs_token == rhs_token
+        } else {
+            false
+        }
+    }
+
+    fn is_reflexive(&self) -> bool {
+        false
+    }
+
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+        let tok_helper = TokenHelper::new(graph)?;
+
+        Some(BinaryOperator::Index(Box::new(RightAlignment {
+            tok_helper,
+        })))
+    }
+
+    fn estimation_type(&self) -> EstimationType {
+        if let Some(stats_right) = self.tok_helper.get_gs_right_token_().get_statistics() {
+            let aligned_nodes_per_token: f64 = stats_right.inverse_fan_out_99_percentile as f64;
+            return EstimationType::Selectivity(
+                aligned_nodes_per_token / (stats_right.nodes as f64),
+            );
+        }
+
+        EstimationType::Selectivity(0.1)
+    }
+}
+
+impl<'a> BinaryOperatorIndex for RightAlignment<'a> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let mut aligned = Vec::default();
 
@@ -69,38 +108,7 @@ impl<'a> BinaryOperator for RightAlignment<'a> {
         Box::from(aligned.into_iter())
     }
 
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        if let (Some(lhs_token), Some(rhs_token)) = (
-            self.tok_helper.right_token_for(lhs.node),
-            self.tok_helper.right_token_for(rhs.node),
-        ) {
-            lhs_token == rhs_token
-        } else {
-            false
-        }
-    }
-
-    fn is_reflexive(&self) -> bool {
-        false
-    }
-
-    fn get_inverse_operator<'b>(
-        &self,
-        graph: &'b AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'b>> {
-        let tok_helper = TokenHelper::new(graph)?;
-
-        Some(Box::new(RightAlignment { tok_helper }))
-    }
-
-    fn estimation_type(&self) -> EstimationType {
-        if let Some(stats_right) = self.tok_helper.get_gs_right_token_().get_statistics() {
-            let aligned_nodes_per_token: f64 = stats_right.inverse_fan_out_99_percentile as f64;
-            return EstimationType::SELECTIVITY(
-                aligned_nodes_per_token / (stats_right.nodes as f64),
-            );
-        }
-
-        EstimationType::SELECTIVITY(0.1)
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
+        self
     }
 }

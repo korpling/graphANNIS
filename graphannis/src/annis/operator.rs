@@ -1,7 +1,7 @@
 use super::db::aql::model::AnnotationComponentType;
 use crate::{annis::db::AnnotationStorage, graph::Match, AnnotationGraph};
 use graphannis_core::types::{Component, Edge};
-use std::collections::HashSet;
+use std::{any::Any, collections::HashSet, fmt::Display};
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum EdgeAnnoSearchSpec {
@@ -134,34 +134,98 @@ impl EdgeAnnoSearchSpec {
     }
 }
 
+/// Represents the different strategies to estimate the output of size of applying an operator.
 pub enum EstimationType {
-    SELECTIVITY(f64),
-    MIN,
+    /// Estimate using the given selectivity.
+    /// This means the cross product of the input sizes is multiplied with this factor to get the output size.
+    Selectivity(f64),
+    /// Use the smallest one of the input sizes to estimate the output size.
+    Min,
 }
 
-pub trait BinaryOperator: std::fmt::Display + Send + Sync {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>>;
-
+pub trait BinaryOperatorBase: std::fmt::Display + Send + Sync {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool;
 
     fn is_reflexive(&self) -> bool {
         true
     }
 
-    fn get_inverse_operator<'a>(
-        &self,
-        _graph: &'a AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'a>> {
+    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
         None
     }
 
     fn estimation_type(&self) -> EstimationType {
-        EstimationType::SELECTIVITY(0.1)
+        EstimationType::Selectivity(0.1)
     }
 
     fn edge_anno_selectivity(&self) -> Option<f64> {
         None
     }
+}
+
+/// Holds an instance of one of the possibly binary operator types.
+pub enum BinaryOperator<'a> {
+    /// Base implementation, usable with as filter and for nested loop joins
+    Base(Box<dyn BinaryOperatorBase + 'a>),
+    /// Implementation that can be used in an index join
+    Index(Box<dyn BinaryOperatorIndex + 'a>),
+}
+
+impl<'a> Display for BinaryOperator<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BinaryOperator::Base(op) => op.fmt(f),
+            BinaryOperator::Index(op) => op.fmt(f),
+        }
+    }
+}
+
+impl<'a> BinaryOperatorBase for BinaryOperator<'a> {
+    fn filter_match(
+        &self,
+        lhs: &graphannis_core::annostorage::Match,
+        rhs: &graphannis_core::annostorage::Match,
+    ) -> bool {
+        match self {
+            BinaryOperator::Base(op) => op.filter_match(lhs, rhs),
+            BinaryOperator::Index(op) => op.filter_match(lhs, rhs),
+        }
+    }
+
+    fn is_reflexive(&self) -> bool {
+        match self {
+            BinaryOperator::Base(op) => op.is_reflexive(),
+            BinaryOperator::Index(op) => op.is_reflexive(),
+        }
+    }
+
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+        match self {
+            BinaryOperator::Base(op) => op.get_inverse_operator(graph),
+            BinaryOperator::Index(op) => op.get_inverse_operator(graph),
+        }
+    }
+
+    fn estimation_type(&self) -> EstimationType {
+        match self {
+            BinaryOperator::Base(op) => op.estimation_type(),
+            BinaryOperator::Index(op) => op.estimation_type(),
+        }
+    }
+
+    fn edge_anno_selectivity(&self) -> Option<f64> {
+        match self {
+            BinaryOperator::Base(op) => op.edge_anno_selectivity(),
+            BinaryOperator::Index(op) => op.edge_anno_selectivity(),
+        }
+    }
+}
+
+/// A binary operator that can be used in an [`IndexJoin`](crate::annis::db::exec::indexjoin::IndexJoin).
+pub trait BinaryOperatorIndex: BinaryOperatorBase {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>>;
+
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase;
 }
 
 pub trait BinaryOperatorSpec: std::fmt::Debug {
@@ -170,7 +234,7 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
         db: &AnnotationGraph,
     ) -> HashSet<Component<AnnotationComponentType>>;
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>>;
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>>;
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         None
@@ -179,6 +243,7 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
     fn is_binding(&self) -> bool {
         true
     }
+    fn into_any(self: Box<Self>) -> Box<dyn Any>;
 }
 
 pub trait UnaryOperatorSpec: std::fmt::Debug {
@@ -194,6 +259,6 @@ pub trait UnaryOperator: std::fmt::Display + Send + Sync {
     fn filter_match(&self, m: &Match) -> bool;
 
     fn estimation_type(&self) -> EstimationType {
-        EstimationType::SELECTIVITY(0.1)
+        EstimationType::Selectivity(0.1)
     }
 }

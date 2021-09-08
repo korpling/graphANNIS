@@ -13,6 +13,7 @@ use graphannis_core::{
     graph::ANNIS_NS,
     types::{Component, NodeID},
 };
+use std::any::Any;
 use std::borrow::Cow;
 use std::collections::HashSet;
 
@@ -31,17 +32,21 @@ impl BinaryOperatorSpec for EqualValueSpec {
         HashSet::default()
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<Box<dyn BinaryOperator + 'a>> {
-        Some(Box::new(EqualValue {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+        Some(BinaryOperator::Index(Box::new(EqualValue {
             node_annos: db.get_node_annos(),
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
             negated: self.negated,
-        }))
+        })))
     }
 
     fn is_binding(&self) -> bool {
         false
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 
@@ -89,7 +94,7 @@ impl<'a> EqualValue<'a> {
             | NodeSearchSpec::NotExactValue { ns, name, .. }
             | NodeSearchSpec::RegexValue { ns, name, .. }
             | NodeSearchSpec::NotRegexValue { ns, name, .. } => {
-                Some((ns.as_ref().map(String::as_str), &name))
+                Some((ns.as_ref().map(String::as_str), name))
             }
             NodeSearchSpec::AnyToken
             | NodeSearchSpec::ExactTokenValue { .. }
@@ -105,27 +110,7 @@ impl<'a> EqualValue<'a> {
     }
 }
 
-impl<'a> BinaryOperator for EqualValue<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        let lhs = lhs.clone();
-        if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
-            let val_search: ValueSearch<&str> = if self.negated {
-                ValueSearch::NotSome(&lhs_val)
-            } else {
-                ValueSearch::Some(&lhs_val)
-            };
-
-            if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
-                let rhs_candidates: MatchGroup = self
-                    .node_annos
-                    .exact_anno_search(ns, name, val_search)
-                    .collect();
-                return Box::new(rhs_candidates.into_iter());
-            }
-        }
-        Box::new(std::iter::empty())
-    }
-
+impl<'a> BinaryOperatorBase for EqualValue<'a> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let lhs_val = self.value_for_match(lhs, &self.spec_left);
         let rhs_val = self.value_for_match(rhs, &self.spec_right);
@@ -157,26 +142,48 @@ impl<'a> BinaryOperator for EqualValue<'a> {
                     let total_annos = self.node_annos.number_of_annotations_by_name(ns, name);
                     let sel = guessed_count_right as f64 / total_annos as f64;
                     if self.negated {
-                        return EstimationType::SELECTIVITY(1.0 - sel);
+                        return EstimationType::Selectivity(1.0 - sel);
                     } else {
-                        return EstimationType::SELECTIVITY(sel);
+                        return EstimationType::Selectivity(sel);
                     }
                 }
             }
         }
         // fallback to default
-        EstimationType::SELECTIVITY(0.5)
+        EstimationType::Selectivity(0.5)
     }
 
-    fn get_inverse_operator<'b>(
-        &self,
-        graph: &'b AnnotationGraph,
-    ) -> Option<Box<dyn BinaryOperator + 'b>> {
-        Some(Box::from(EqualValue {
+    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+        Some(BinaryOperator::Index(Box::from(EqualValue {
             node_annos: graph.get_node_annos(),
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
             negated: self.negated,
-        }))
+        })))
+    }
+}
+
+impl<'a> BinaryOperatorIndex for EqualValue<'a> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+        let lhs = lhs.clone();
+        if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
+            let val_search: ValueSearch<&str> = if self.negated {
+                ValueSearch::NotSome(&lhs_val)
+            } else {
+                ValueSearch::Some(&lhs_val)
+            };
+
+            if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
+                let rhs_candidates: MatchGroup = self
+                    .node_annos
+                    .exact_anno_search(ns, name, val_search)
+                    .collect();
+                return Box::new(rhs_candidates.into_iter());
+            }
+        }
+        Box::new(std::iter::empty())
+    }
+    fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
+        self
     }
 }

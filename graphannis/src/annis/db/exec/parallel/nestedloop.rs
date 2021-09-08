@@ -1,6 +1,6 @@
 use super::super::{Desc, ExecutionNode};
-use crate::annis::db::query::conjunction::BinaryOperatorEntry;
-use crate::annis::operator::BinaryOperator;
+use crate::annis::db::aql::conjunction::BinaryOperatorEntry;
+use crate::annis::operator::BinaryOperatorBase;
 use graphannis_core::annostorage::MatchGroup;
 use rayon::prelude::*;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -11,7 +11,7 @@ const MAX_BUFFER_SIZE: usize = 1024;
 pub struct NestedLoop<'a> {
     outer: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
     inner: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
-    op: Arc<dyn BinaryOperator + 'a>,
+    op: Arc<dyn BinaryOperatorBase + 'a>,
     inner_idx: usize,
     outer_idx: usize,
 
@@ -38,7 +38,7 @@ impl<'a> NestedLoop<'a> {
         rhs_idx: usize,
     ) -> NestedLoop<'a> {
         let mut left_is_outer = true;
-        if let (Some(ref desc_lhs), Some(ref desc_rhs)) = (lhs.get_desc(), rhs.get_desc()) {
+        if let (Some(desc_lhs), Some(desc_rhs)) = (lhs.get_desc(), rhs.get_desc()) {
             if let (&Some(ref cost_lhs), &Some(ref cost_rhs)) = (&desc_lhs.cost, &desc_rhs.cost) {
                 if cost_lhs.output > cost_rhs.output {
                     left_is_outer = false;
@@ -59,13 +59,13 @@ impl<'a> NestedLoop<'a> {
         if left_is_outer {
             NestedLoop {
                 desc: Desc::join(
-                    op_entry.op.as_ref(),
+                    &op_entry.op,
                     lhs.get_desc(),
                     rhs.get_desc(),
                     "nestedloop (parallel) L-R",
                     &format!(
                         "#{} {} #{}",
-                        op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                        op_entry.args.left, op_entry.op, op_entry.args.right
                     ),
                     &processed_func,
                 ),
@@ -79,20 +79,20 @@ impl<'a> NestedLoop<'a> {
                 inner_cache: Vec::new(),
                 pos_inner_cache: None,
                 left_is_outer,
-                global_reflexivity: op_entry.global_reflexivity,
+                global_reflexivity: op_entry.args.global_reflexivity,
                 match_candidate_buffer: Vec::with_capacity(MAX_BUFFER_SIZE),
                 current_outer: None,
             }
         } else {
             NestedLoop {
                 desc: Desc::join(
-                    op_entry.op.as_ref(),
+                    &op_entry.op,
                     rhs.get_desc(),
                     lhs.get_desc(),
                     "nestedloop (parallel) R-L",
                     &format!(
                         "#{} {} #{}",
-                        op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                        op_entry.args.left, op_entry.op, op_entry.args.right
                     ),
                     &processed_func,
                 ),
@@ -106,7 +106,7 @@ impl<'a> NestedLoop<'a> {
                 inner_cache: Vec::new(),
                 pos_inner_cache: None,
                 left_is_outer,
-                global_reflexivity: op_entry.global_reflexivity,
+                global_reflexivity: op_entry.args.global_reflexivity,
                 match_candidate_buffer: Vec::with_capacity(MAX_BUFFER_SIZE),
                 current_outer: None,
             }
@@ -121,12 +121,7 @@ impl<'a> NestedLoop<'a> {
                 self.current_outer = None;
             }
         }
-
-        if let Some(result) = &self.current_outer {
-            Some(result.clone())
-        } else {
-            None
-        }
+        self.current_outer.as_ref().cloned()
     }
 
     fn next_match_buffer(&mut self, tx: &Sender<MatchGroup>) {
@@ -153,7 +148,7 @@ impl<'a> NestedLoop<'a> {
                         }
                     }
                 } else {
-                    while let Some(m_inner) = self.inner.next() {
+                    for m_inner in &mut self.inner {
                         let m_inner: Arc<MatchGroup> = Arc::from(m_inner);
 
                         self.inner_cache.push(m_inner.clone());
@@ -192,7 +187,7 @@ impl<'a> NestedLoop<'a> {
         let inner_idx = self.inner_idx;
         let op = self.op.clone();
 
-        let op: &dyn BinaryOperator = op.as_ref();
+        let op: &dyn BinaryOperatorBase = op.as_ref();
         let global_reflexivity = self.global_reflexivity;
 
         self.match_candidate_buffer
@@ -203,13 +198,13 @@ impl<'a> NestedLoop<'a> {
                 } else {
                     op.filter_match(&m_inner[inner_idx], &m_outer[outer_idx])
                 };
-                // filter by reflexivity if necessary
 
+                // filter by reflexivity if necessary
                 if filter_true
                     && (op.is_reflexive()
                         || (global_reflexivity
-                            && m_outer[outer_idx].different_to_all(&m_inner)
-                            && m_inner[inner_idx].different_to_all(&m_outer))
+                            && m_outer[outer_idx].different_to_all(m_inner)
+                            && m_inner[inner_idx].different_to_all(m_outer))
                         || (!global_reflexivity
                             && m_outer[outer_idx].different_to(&m_inner[inner_idx])))
                 {
@@ -217,8 +212,8 @@ impl<'a> NestedLoop<'a> {
                     result.extend(m_outer.iter().cloned());
                     result.extend(m_inner.iter().cloned());
 
-                    if tx.send(result).is_err() {
-                        return;
+                    if let Err(err) = tx.send(result) {
+                        trace!("Could not send match in nested loop: {}", err);
                     }
                 }
             });

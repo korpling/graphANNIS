@@ -1,11 +1,10 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
-use crate::annis::db::query::conjunction::BinaryOperatorEntry;
+use crate::annis::db::aql::conjunction::BinaryOperatorArguments;
 use crate::annis::db::AnnotationStorage;
-use crate::{
-    annis::operator::{BinaryOperator, EstimationType},
-    graph::Match,
-};
+use crate::annis::operator::BinaryOperatorIndex;
+use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
+use std::boxed::Box;
 use std::iter::Peekable;
 use std::sync::Arc;
 
@@ -15,7 +14,7 @@ use std::sync::Arc;
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
     rhs_candidate: Option<std::iter::Peekable<smallvec::IntoIter<[Match; 8]>>>,
-    op: Box<dyn BinaryOperator + 'a>,
+    op: Box<dyn BinaryOperatorIndex + 'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: &'a dyn AnnotationStorage<NodeID>,
@@ -35,18 +34,18 @@ impl<'a> IndexJoin<'a> {
     pub fn new(
         lhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
         lhs_idx: usize,
-        op_entry: BinaryOperatorEntry<'a>,
+        op: Box<dyn BinaryOperatorIndex + 'a>,
+        op_args: &BinaryOperatorArguments,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: &'a dyn AnnotationStorage<NodeID>,
         rhs_desc: Option<&Desc>,
     ) -> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
-        // TODO, we
         let lhs_peek = lhs.peekable();
 
         let processed_func = |est_type: EstimationType, out_lhs: usize, out_rhs: usize| {
             match est_type {
-                EstimationType::SELECTIVITY(op_sel) => {
+                EstimationType::Selectivity(op_sel) => {
                     // A index join processes each LHS and for each LHS the number of reachable nodes given by the operator.
                     // The selectivity of the operator itself an estimation how many nodes are filtered out by the cross product.
                     // We can use this number (without the edge annotation selectivity) to re-construct the number of reachable nodes.
@@ -61,29 +60,26 @@ impl<'a> IndexJoin<'a> {
 
                     result.round() as usize
                 }
-                EstimationType::MIN => out_lhs,
+                EstimationType::Min => out_lhs,
             }
         };
 
         IndexJoin {
             desc: Desc::join(
-                op_entry.op.as_ref(),
+                op.as_ref(),
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin",
-                &format!(
-                    "#{} {} #{}",
-                    op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
-                ),
+                &format!("#{} {} #{}", op_args.left, op, op_args.right),
                 &processed_func,
             ),
             lhs: lhs_peek,
             lhs_idx,
-            op: op_entry.op,
+            op,
             node_search_desc,
             node_annos,
             rhs_candidate: None,
-            global_reflexivity: op_entry.global_reflexivity,
+            global_reflexivity: op_args.global_reflexivity,
         }
     }
 
@@ -102,7 +98,6 @@ impl<'a> IndexJoin<'a> {
                 it_nodes,
             ));
         }
-
         None
     }
 }
@@ -151,7 +146,7 @@ impl<'a> Iterator for IndexJoin<'a> {
 
                         // check if lhs and rhs are equal and if this is allowed in this query
                         if self.op.is_reflexive()
-                            || (self.global_reflexivity && m_rhs.different_to_all(&m_lhs)
+                            || (self.global_reflexivity && m_rhs.different_to_all(m_lhs)
                                 || (!self.global_reflexivity
                                     && m_rhs.different_to(&m_lhs[self.lhs_idx])))
                         {
@@ -184,11 +179,7 @@ impl<'a> Iterator for IndexJoin<'a> {
             self.lhs.next()?;
 
             // inner was completed once, get new candidates
-            self.rhs_candidate = if let Some(rhs) = self.next_candidates() {
-                Some(rhs.into_iter().peekable())
-            } else {
-                None
-            };
+            self.rhs_candidate = self.next_candidates().map(|rhs| rhs.into_iter().peekable());
         }
     }
 }

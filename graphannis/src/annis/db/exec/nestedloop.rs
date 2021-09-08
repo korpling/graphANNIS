@@ -1,14 +1,14 @@
 use graphannis_core::annostorage::MatchGroup;
 
 use super::{Desc, ExecutionNode};
-use crate::annis::db::query::conjunction::BinaryOperatorEntry;
-use crate::annis::operator::BinaryOperator;
+use crate::annis::db::aql::conjunction::BinaryOperatorEntry;
+use crate::annis::operator::{BinaryOperator, BinaryOperatorBase};
 use std::iter::Peekable;
 
 pub struct NestedLoop<'a> {
     outer: Peekable<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
     inner: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
-    op: Box<dyn BinaryOperator + 'a>,
+    op: BinaryOperator<'a>,
     inner_idx: usize,
     outer_idx: usize,
     inner_cache: Vec<MatchGroup>,
@@ -29,7 +29,7 @@ impl<'a> NestedLoop<'a> {
         rhs_idx: usize,
     ) -> NestedLoop<'a> {
         let mut left_is_outer = true;
-        if let (Some(ref desc_lhs), Some(ref desc_rhs)) = (lhs.get_desc(), rhs.get_desc()) {
+        if let (Some(desc_lhs), Some(desc_rhs)) = (lhs.get_desc(), rhs.get_desc()) {
             if let (&Some(ref cost_lhs), &Some(ref cost_rhs)) = (&desc_lhs.cost, &desc_rhs.cost) {
                 if cost_lhs.output > cost_rhs.output {
                     left_is_outer = false;
@@ -50,13 +50,13 @@ impl<'a> NestedLoop<'a> {
         if left_is_outer {
             NestedLoop {
                 desc: Desc::join(
-                    op_entry.op.as_ref(),
+                    &op_entry.op,
                     lhs.get_desc(),
                     rhs.get_desc(),
                     "nestedloop L-R",
                     &format!(
                         "#{} {} #{}",
-                        op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                        op_entry.args.left, op_entry.op, op_entry.args.right
                     ),
                     &processed_func,
                 ),
@@ -69,18 +69,18 @@ impl<'a> NestedLoop<'a> {
                 inner_cache: Vec::new(),
                 pos_inner_cache: None,
                 left_is_outer,
-                global_reflexivity: op_entry.global_reflexivity,
+                global_reflexivity: op_entry.args.global_reflexivity,
             }
         } else {
             NestedLoop {
                 desc: Desc::join(
-                    op_entry.op.as_ref(),
+                    &op_entry.op,
                     rhs.get_desc(),
                     lhs.get_desc(),
                     "nestedloop R-L",
                     &format!(
                         "#{} {} #{}",
-                        op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                        op_entry.args.left, op_entry.op, op_entry.args.right
                     ),
                     &processed_func,
                 ),
@@ -93,7 +93,7 @@ impl<'a> NestedLoop<'a> {
                 inner_cache: Vec::new(),
                 pos_inner_cache: None,
                 left_is_outer,
-                global_reflexivity: op_entry.global_reflexivity,
+                global_reflexivity: op_entry.args.global_reflexivity,
             }
         }
     }
@@ -133,8 +133,8 @@ impl<'a> Iterator for NestedLoop<'a> {
                         if filter_true
                             && (self.op.is_reflexive()
                                 || (self.global_reflexivity
-                                    && m_outer[self.outer_idx].different_to_all(&m_inner)
-                                    && m_inner[self.inner_idx].different_to_all(&m_outer))
+                                    && m_outer[self.outer_idx].different_to_all(m_inner)
+                                    && m_inner[self.inner_idx].different_to_all(m_outer))
                                 || (!self.global_reflexivity
                                     && m_outer[self.outer_idx]
                                         .different_to(&m_inner[self.inner_idx])))
@@ -145,7 +145,7 @@ impl<'a> Iterator for NestedLoop<'a> {
                         }
                     }
                 } else {
-                    while let Some(mut m_inner) = self.inner.next() {
+                    for mut m_inner in &mut self.inner {
                         self.inner_cache.push(m_inner.clone());
 
                         let filter_true = if self.left_is_outer {

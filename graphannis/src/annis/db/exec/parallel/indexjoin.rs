@@ -1,10 +1,8 @@
 use super::super::{Desc, ExecutionNode, NodeSearchDesc};
-use crate::annis::db::query::conjunction::BinaryOperatorEntry;
+use crate::annis::db::aql::conjunction::BinaryOperatorArguments;
 use crate::annis::db::AnnotationStorage;
-use crate::{
-    annis::operator::{BinaryOperator, EstimationType},
-    graph::Match,
-};
+use crate::annis::operator::BinaryOperatorIndex;
+use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
 use rayon::prelude::*;
 use std::iter::Peekable;
@@ -19,7 +17,7 @@ const MAX_BUFFER_SIZE: usize = 512;
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
     match_receiver: Option<Receiver<MatchGroup>>,
-    op: Arc<dyn BinaryOperator + 'a>,
+    op: Arc<dyn BinaryOperatorIndex + 'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: &'a dyn AnnotationStorage<NodeID>,
@@ -39,18 +37,18 @@ impl<'a> IndexJoin<'a> {
     pub fn new(
         lhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
         lhs_idx: usize,
-        op_entry: BinaryOperatorEntry<'a>,
+        op: Box<dyn BinaryOperatorIndex + 'a>,
+        op_args: &BinaryOperatorArguments,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: &'a dyn AnnotationStorage<NodeID>,
         rhs_desc: Option<&Desc>,
     ) -> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
-        // TODO, we
         let lhs_peek = lhs.peekable();
 
         let processed_func = |est_type: EstimationType, out_lhs: usize, out_rhs: usize| {
             match est_type {
-                EstimationType::SELECTIVITY(op_sel) => {
+                EstimationType::Selectivity(op_sel) => {
                     // A index join processes each LHS and for each LHS the number of reachable nodes given by the operator.
                     // The selectivity of the operator itself an estimation how many nodes are filtered out by the cross product.
                     // We can use this number (without the edge annotation selectivity) to re-construct the number of reachable nodes.
@@ -65,29 +63,26 @@ impl<'a> IndexJoin<'a> {
 
                     result.round() as usize
                 }
-                EstimationType::MIN => out_lhs,
+                EstimationType::Min => out_lhs,
             }
         };
 
         IndexJoin {
             desc: Desc::join(
-                op_entry.op.as_ref(),
+                op.as_binary_operator(),
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin (parallel)",
-                &format!(
-                    "#{} {} #{}",
-                    op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
-                ),
+                &format!("#{} {} #{}", op_args.left, &op, op_args.right),
                 &processed_func,
             ),
             lhs: lhs_peek,
             lhs_idx,
-            op: Arc::from(op_entry.op),
+            op: Arc::from(op),
             node_search_desc,
             node_annos,
             match_receiver: None,
-            global_reflexivity: op_entry.global_reflexivity,
+            global_reflexivity: op_args.global_reflexivity,
         }
     }
 
@@ -116,11 +111,11 @@ impl<'a> IndexJoin<'a> {
         }
 
         let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
-        let op: Arc<dyn BinaryOperator> = self.op.clone();
+        let op: Arc<dyn BinaryOperatorIndex> = self.op.clone();
         let lhs_idx = self.lhs_idx;
         let node_annos = self.node_annos;
 
-        let op: &dyn BinaryOperator = op.as_ref();
+        let op: &dyn BinaryOperatorIndex = op.as_ref();
         let global_reflexivity = self.global_reflexivity;
 
         // find all RHS in parallel
@@ -147,7 +142,7 @@ impl<'a> IndexJoin<'a> {
 
                     // check if lhs and rhs are equal and if this is allowed in this query
                     if op.is_reflexive()
-                        || (global_reflexivity && m_rhs.different_to_all(&m_lhs)
+                        || (global_reflexivity && m_rhs.different_to_all(m_lhs)
                             || (!global_reflexivity && m_rhs.different_to(&m_lhs[lhs_idx])))
                     {
                         // filters have been checked, return the result
@@ -182,7 +177,7 @@ impl<'a> IndexJoin<'a> {
 
 fn next_candidates(
     m_lhs: &[Match],
-    op: &dyn BinaryOperator,
+    op: &dyn BinaryOperatorIndex,
     lhs_idx: usize,
     node_annos: &dyn AnnotationStorage<NodeID>,
     node_search_desc: &Arc<NodeSearchDesc>,
