@@ -21,6 +21,9 @@ NegationDominance,"""challenges"" . ""facing"" & cat & #3 >* #2 & #3 !>* #1",GUM
 NegationDominanceMultiple,"""challenges"" . ""facing"" .1,5 cat & #3 !>* #1",GUM,4
 NegationDep,"""issues"" .2 ""challenges"" & tok & #1 !->dep #3 & #1 .1,4 #3",GUM,1
 NegationDepAnno,"""issues"" .2 ""challenges"" & tok & #1 !->dep[func=""conj""] #3 & #1 .1,4 #3",GUM,3
+NegationPrecedence,"cat=""ROOT"" ^ cat=""ROOT"" >* ""challenges"" & #1 !. #2",GUM,1
+NegationNear,"cat=""ROOT"" .1,30 cat=""ROOT"" >* ""challenges"" & #1 !^ #2",GUM,1
+NegationIdentCoverage,"cat=""ROOT"" .1,30 cat=""ROOT"" >* ""challenges"" & #1 !^ #2",GUM,1
 NotDocument,"tok @* doc!=""maz-11299""",pcc2.1,34709
 StructureInclusionSeed,"cat=""S"" _i_ cat=""AP""",pcc2.1,726
 IsConnectedRange,"""Jugendlichen"" .3,10 ""Musikcafé""",pcc2.1,1
