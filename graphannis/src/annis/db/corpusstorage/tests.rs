@@ -10,6 +10,7 @@ use crate::update::{GraphUpdate, UpdateEvent};
 use crate::CorpusStorage;
 use graphannis_core::annostorage::{AnnotationStorage, ValueSearch};
 use graphannis_core::graph::NODE_NAME_KEY;
+use graphannis_core::types::Edge;
 use graphannis_core::{graph::DEFAULT_NS, types::NodeID};
 use itertools::Itertools;
 use malloc_size_of::MallocSizeOf;
@@ -336,8 +337,29 @@ fn import_salt_sample() {
                 .map(|n| n.into())
                 .sorted()
                 .collect();
-
             assert_eq!(targets1, targets2);
+
+            // Check the edge annotations for each edge
+            let edges1: Vec<Edge> = targets1
+                .iter()
+                .map(|t| Edge {
+                    source: start1,
+                    target: db1.get_node_id_from_name(t).unwrap(),
+                })
+                .collect();
+            let edges2: Vec<Edge> = targets2
+                .iter()
+                .map(|t| Edge {
+                    source: start2,
+                    target: db2.get_node_id_from_name(t).unwrap(),
+                })
+                .collect();
+            compare_annos(
+                gs1.get_anno_storage(),
+                gs2.get_anno_storage(),
+                &edges1,
+                &edges2,
+            );
         }
     }
 }
