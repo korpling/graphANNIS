@@ -9,6 +9,7 @@ use crate::corpusstorage::{ImportFormat, QueryLanguage};
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::CorpusStorage;
 use graphannis_core::annostorage::ValueSearch;
+use graphannis_core::graph::NODE_NAME_KEY;
 use graphannis_core::{graph::DEFAULT_NS, types::NodeID};
 use itertools::Itertools;
 
@@ -286,6 +287,37 @@ fn import_salt_sample() {
         c.get_type() != AnnotationComponentType::Coverage || c.name != "" || c.layer != "annis"
     });
     components2.sort();
-
     assert_eq!(components1, components2);
+
+    for c in components1 {
+        let gs1 = db1.get_graphstorage_as_ref(&c).unwrap();
+        let gs2 = db2.get_graphstorage_as_ref(&c).unwrap();
+
+        for n in &nodes1 {
+            let start1 = db1.get_node_id_from_name(n).unwrap();
+            let start2 = db2.get_node_id_from_name(n).unwrap();
+
+            // Check all connected nodes for this edge
+            let targets1: Vec<String> = gs1
+                .get_outgoing_edges(start1)
+                .filter_map(|target| {
+                    db1.get_node_annos()
+                        .get_value_for_item(&target, &NODE_NAME_KEY)
+                })
+                .map(|n| n.into())
+                .sorted()
+                .collect();
+            let targets2: Vec<String> = gs2
+                .get_outgoing_edges(start2)
+                .filter_map(|target| {
+                    db2.get_node_annos()
+                        .get_value_for_item(&target, &NODE_NAME_KEY)
+                })
+                .map(|n| n.into())
+                .sorted()
+                .collect();
+
+            assert_eq!(targets1, targets2);
+        }
+    }
 }
