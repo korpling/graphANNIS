@@ -8,10 +8,11 @@ use crate::annis::db::{aql::model::AnnotationComponentType, example_generator};
 use crate::corpusstorage::{ImportFormat, QueryLanguage};
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::CorpusStorage;
-use graphannis_core::annostorage::ValueSearch;
+use graphannis_core::annostorage::{AnnotationStorage, ValueSearch};
 use graphannis_core::graph::NODE_NAME_KEY;
 use graphannis_core::{graph::DEFAULT_NS, types::NodeID};
 use itertools::Itertools;
+use malloc_size_of::MallocSizeOf;
 
 use super::SearchQuery;
 
@@ -219,6 +220,24 @@ fn subgraph_with_segmentation() {
     assert_eq!(None, graph.get_node_id_from_name("root/doc1#seg3"));
 }
 
+fn compare_annos<T>(
+    annos1: &dyn AnnotationStorage<T>,
+    annos2: &dyn AnnotationStorage<T>,
+    items1: &[T],
+    items2: &[T],
+) where
+    T: Send + Sync + MallocSizeOf,
+{
+    assert_eq!(items1.len(), items2.len());
+    for i in 0..items1.len() {
+        let mut annos1 = annos1.get_annotations_for_item(&items1[i]);
+        annos1.sort();
+        let mut annos2 = annos2.get_annotations_for_item(&items2[i]);
+        annos2.sort();
+        assert_eq!(annos1, annos2);
+    }
+}
+
 #[test]
 fn import_salt_sample() {
     let tmp = tempfile::tempdir().unwrap();
@@ -268,15 +287,16 @@ fn import_salt_sample() {
         .sorted()
         .collect();
     assert_eq!(&nodes1, &nodes2);
-    for n in &nodes1 {
-        let id1 = db1.get_node_id_from_name(n).unwrap();
-        let id2 = db2.get_node_id_from_name(n).unwrap();
-        let mut annos1 = db1.get_node_annos().get_annotations_for_item(&id1);
-        annos1.sort();
-        let mut annos2 = db2.get_node_annos().get_annotations_for_item(&id2);
-        annos2.sort();
-        assert_eq!(annos1, annos2);
-    }
+
+    let nodes1: Vec<NodeID> = nodes1
+        .into_iter()
+        .filter_map(|n| db1.get_node_id_from_name(&n))
+        .collect();
+    let nodes2: Vec<NodeID> = nodes2
+        .into_iter()
+        .filter_map(|n| db2.get_node_id_from_name(&n))
+        .collect();
+    compare_annos(db1.get_node_annos(), db2.get_node_annos(), &nodes1, &nodes2);
 
     // Check that the graphs have the same edges
     let mut components1 = db1.get_all_components(None, None);
@@ -293,9 +313,9 @@ fn import_salt_sample() {
         let gs1 = db1.get_graphstorage_as_ref(&c).unwrap();
         let gs2 = db2.get_graphstorage_as_ref(&c).unwrap();
 
-        for n in &nodes1 {
-            let start1 = db1.get_node_id_from_name(n).unwrap();
-            let start2 = db2.get_node_id_from_name(n).unwrap();
+        for i in 0..nodes1.len() {
+            let start1 = nodes1[i];
+            let start2 = nodes2[i];
 
             // Check all connected nodes for this edge
             let targets1: Vec<String> = gs1
