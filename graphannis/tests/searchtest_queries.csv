@@ -29,6 +29,7 @@ NegationInclusion,"t#tok & m#""modern"" & ((#t ->dep #m)|(#m ->dep #t)) & r#ref 
 NegationOverlap,"t#tok & m#""modern"" & ((#t ->dep #m)|(#m ->dep #t)) & r#ref _o_ #t & #r !_o_ #m",GUM,1
 NegationLeftAligned,"cat=""ROOT"" >* cat >* ""modern"" . ""campaigns"" & #1 !_l_ #2",GUM,9
 NegationRightAligned,"cat=""ROOT"" >* cat >* ""modern"" . ""campaigns"" & #1 !_r_ #2",GUM,9
+NegationNodeIdentity,"m#""modern"" & (n#claws5=""NN1"" | n#claws5=""NN2"") & #m . #n _r_ o#node & #n !_ident_ #o",GUM,16
 NotDocument,"tok @* doc!=""maz-11299""",pcc2.1,34709
 StructureInclusionSeed,"cat=""S"" _i_ cat=""AP""",pcc2.1,726
 IsConnectedRange,"""Jugendlichen"" .3,10 ""Musikcafé""",pcc2.1,1
