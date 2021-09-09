@@ -456,7 +456,7 @@ impl<CT: ComponentType> Graph<CT> {
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     // only add edge if both nodes already exist
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = CT::from_str(&component_type) {
+                        if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             gs.add_edge(Edge { source, target })?;
@@ -475,7 +475,7 @@ impl<CT: ComponentType> Graph<CT> {
                     let target = self
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = CT::from_str(&component_type) {
+                        if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
 
                             let gs = self.get_or_create_writable(&c)?;
@@ -498,7 +498,7 @@ impl<CT: ComponentType> Graph<CT> {
                     let target = self
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = CT::from_str(&component_type) {
+                        if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
@@ -530,7 +530,7 @@ impl<CT: ComponentType> Graph<CT> {
                     let target = self
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = CT::from_str(&component_type) {
+                        if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
@@ -758,9 +758,10 @@ impl<CT: ComponentType> Graph<CT> {
 
         let gs_mut_ref: &mut dyn GraphStorage = Arc::get_mut(entry)
             .ok_or_else(|| GraphAnnisCoreError::NonExclusiveComponentReference(c.to_string()))?;
-        Ok(gs_mut_ref
+        let result = gs_mut_ref
             .as_writeable()
-            .ok_or_else(|| GraphAnnisCoreError::ReadOnlyComponent(c.to_string()))?)
+            .ok_or_else(|| GraphAnnisCoreError::ReadOnlyComponent(c.to_string()))?;
+        Ok(result)
     }
 
     /// Returns `true` if the graph storage for this specific component is loaded and ready to use.
