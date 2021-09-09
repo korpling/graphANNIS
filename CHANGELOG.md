@@ -11,11 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Compile releases on Ubuntu 18.04 instead of 16.04, which means the minimal GLIBC version is 2.27
 - Updated dependencies
 - Improved compile time by disabling some dependency features.
   This also removes some optional features from the command line parser
   (used in webservice and CLI binaries).
-- Compile releases on Ubuntu 18.04 instead of 16.04, which means the minimal GLIBC version is 2.27
+- Don't use RIDGES corpus in search tests and fail search tests when corpus does not exist.
 
 ### Fixed
 
