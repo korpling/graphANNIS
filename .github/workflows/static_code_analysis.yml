@@ -6,6 +6,7 @@ on:
 name: Static code analysis
 jobs:
   static_code_analysis:
+    name: "Static code analysis"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
