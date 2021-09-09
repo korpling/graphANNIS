@@ -469,18 +469,8 @@ where
                 CycleSafeDFS::new(orig.as_edgecontainer(), *start_node, 1, usize::max_value());
             for step in dfs {
                 let step: DFSStep = step;
-                if step.distance > last_distance {
-                    // first visited, set pre-order
-                    if let Some(dist) = LevelT::from_usize(step.distance) {
-                        PrePostOrderStorage::enter_node(
-                            &mut current_order,
-                            step.node,
-                            dist,
-                            &mut node_stack,
-                        );
-                    }
-                } else {
-                    // Neighbour node, the last subtree was iterated completly, thus the last node
+                if step.distance <= last_distance {
+                    // Neighbor node, the last subtree was iterated completely, thus the last node
                     // can be assigned a post-order.
                     // The parent node must be at the top of the node stack,
                     // thus exit every node which comes after the parent node.
@@ -488,15 +478,15 @@ where
                     while node_stack.len() > step.distance {
                         self.exit_node(&mut current_order, &mut node_stack);
                     }
-                    // new node
-                    if let Some(dist) = LevelT::from_usize(step.distance) {
-                        PrePostOrderStorage::enter_node(
-                            &mut current_order,
-                            step.node,
-                            dist,
-                            &mut node_stack,
-                        );
-                    }
+                }
+                // set pre-order
+                if let Some(dist) = LevelT::from_usize(step.distance) {
+                    PrePostOrderStorage::enter_node(
+                        &mut current_order,
+                        step.node,
+                        dist,
+                        &mut node_stack,
+                    );
                 }
                 last_distance = step.distance;
             } // end for each DFS step

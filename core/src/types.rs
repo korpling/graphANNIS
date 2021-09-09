@@ -157,6 +157,7 @@ pub enum DefaultComponentType {
     Edge,
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<u16> for DefaultComponentType {
     fn into(self) -> u16 {
         0

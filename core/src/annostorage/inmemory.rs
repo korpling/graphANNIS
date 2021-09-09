@@ -163,11 +163,9 @@ where
             .into_iter()
             .filter_map(|key| {
                 let key_id = self.anno_keys.get_symbol(&key)?;
-                if let Some(values_for_key) = self.by_anno.get(&key_id) {
-                    Some((key, values_for_key))
-                } else {
-                    None
-                }
+                self.by_anno
+                    .get(&key_id)
+                    .map(|values_for_key| (key, values_for_key))
             })
             .collect();
 
@@ -179,11 +177,7 @@ where
                     .into_iter()
                     // find the items with the correct value
                     .filter_map(move |(key, values)| {
-                        if let Some(items) = values.get(&target_value_symbol) {
-                            Some((items, key))
-                        } else {
-                            None
-                        }
+                        values.get(&target_value_symbol).map(|items| (items, key))
                     })
                     // flatten the hash set of all items, returns all items for the condition
                     .flat_map(|(items, key)| items.iter().cloned().zip(std::iter::repeat(key)));
@@ -313,7 +307,7 @@ where
                     // if annotation count dropped to zero remove the key
                     if new_key_count == 0 {
                         self.by_anno.remove(&key);
-                        self.anno_key_sizes.remove(&orig_key);
+                        self.anno_key_sizes.remove(orig_key);
                         self.anno_keys.remove(key);
                     }
 
@@ -438,14 +432,12 @@ where
                 matches
             } else {
                 let matching_key_symbols: Vec<(usize, Arc<AnnoKey>)> = self
-                    .get_qnames(&name)
+                    .get_qnames(name)
                     .into_iter()
                     .filter_map(|key| {
-                        if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
-                            Some((key_symbol, Arc::from(key)))
-                        } else {
-                            None
-                        }
+                        self.anno_keys
+                            .get_symbol(&key)
+                            .map(|key_symbol| (key_symbol, Arc::from(key)))
                     })
                     .collect();
                 // return all annotations with the correct name for each node
@@ -526,11 +518,9 @@ where
             .into_iter()
             .filter_map(|key| {
                 let key_id = self.anno_keys.get_symbol(&key)?;
-                if let Some(values_for_key) = self.by_anno.get(&key_id) {
-                    Some((key, values_for_key))
-                } else {
-                    None
-                }
+                self.by_anno
+                    .get(&key_id)
+                    .map(|values_for_key| (key, values_for_key))
             })
             .collect();
 
@@ -542,11 +532,7 @@ where
                     .into_iter()
                     // find the items with the correct value
                     .filter_map(move |(key, values)| {
-                        if let Some(items) = values.get(&target_value_symbol) {
-                            Some((items, key))
-                        } else {
-                            None
-                        }
+                        values.get(&target_value_symbol).map(|items| (items, key))
                     })
                     // flatten the hash set of all items, returns all items for the condition
                     .flat_map(|(items, key)| items.iter().cloned().zip(std::iter::repeat(key)))
@@ -648,7 +634,7 @@ where
             } else {
                 // get all qualified names for the given annotation name
                 let res: Vec<Arc<AnnoKey>> = self
-                    .get_qnames(&name)
+                    .get_qnames(name)
                     .into_iter()
                     .filter(|key| self.get_value_for_item(item, key).is_some())
                     .map(Arc::from)
@@ -683,7 +669,7 @@ where
                 name: name.into(),
                 ns: ns.into(),
             }],
-            None => self.get_qnames(&name),
+            None => self.get_qnames(name),
         };
 
         let mut universe_size: usize = 0;
@@ -740,7 +726,7 @@ where
             if let Ok(lower_val) = val_prefix {
                 let mut upper_val = String::from(lower_val);
                 upper_val.push(std::char::MAX);
-                return self.guess_max_count(ns, name, &lower_val, &upper_val);
+                return self.guess_max_count(ns, name, lower_val, &upper_val);
             }
         }
 
@@ -754,7 +740,7 @@ where
                 name: name.into(),
                 ns: ns.into(),
             }],
-            None => self.get_qnames(&name),
+            None => self.get_qnames(name),
         };
 
         let mut sampled_values: HashMap<&str, usize> = HashMap::default();

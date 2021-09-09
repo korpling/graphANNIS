@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 pub fn shallow_size_of_fxhashmap<K, V>(
@@ -30,7 +32,7 @@ where
     size
 }
 
-pub fn size_of_pathbuf(val: &std::path::PathBuf, ops: &mut MallocSizeOfOps) -> usize {
+pub fn size_of_pathbuf(val: &Path, ops: &mut MallocSizeOfOps) -> usize {
     // The path uses an OsString internally, use this for the estimation
     val.as_os_str().size_of(ops)
 }
