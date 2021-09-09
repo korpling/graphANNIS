@@ -4,4 +4,5 @@ status = [
   "Execute automated tests on OSX",
   "Execute search tests",
   "Static code analysis",
+  "clippy",
 ]
