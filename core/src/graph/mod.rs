@@ -30,6 +30,7 @@ pub const ANNIS_NS: &str = "annis";
 pub const DEFAULT_NS: &str = "default_ns";
 pub const NODE_NAME: &str = "node_name";
 pub const NODE_TYPE: &str = "node_type";
+pub const DEFAULT_EMPTY_LAYER: &str = "default_layer";
 
 lazy_static! {
     pub static ref DEFAULT_ANNO_KEY: Arc<AnnoKey> = Arc::from(AnnoKey::default());
@@ -223,7 +224,7 @@ impl<CT: ComponentType> Graph<CT> {
         p.push("gs");
         p.push(c.get_type().to_string());
         p.push(if c.layer.is_empty() {
-            "default_layer"
+            DEFAULT_EMPTY_LAYER
         } else {
             &c.layer
         });
@@ -244,11 +245,16 @@ impl<CT: ComponentType> Graph<CT> {
                     let layer = layer?;
                     if layer.path().is_dir() {
                         // try to load the component with the empty name
-                        let empty_name_component = Component::new(
-                            c.clone(),
-                            layer.file_name().to_string_lossy().into(),
-                            SmartString::default(),
-                        );
+                        let layer_file_name = layer.file_name();
+                        let layer_name_from_file = layer_file_name.to_string_lossy();
+                        let layer_name: SmartString = if layer_name_from_file == DEFAULT_EMPTY_LAYER
+                        {
+                            SmartString::default()
+                        } else {
+                            layer_name_from_file.into()
+                        };
+                        let empty_name_component =
+                            Component::new(c.clone(), layer_name.clone(), SmartString::default());
                         {
                             let cfg_file = PathBuf::from(location)
                                 .join(self.component_to_relative_path(&empty_name_component))
@@ -264,7 +270,7 @@ impl<CT: ComponentType> Graph<CT> {
                             let name = name?;
                             let named_component = Component::new(
                                 c.clone(),
-                                layer.file_name().to_string_lossy().into(),
+                                layer_name.clone(),
                                 name.file_name().to_string_lossy().into(),
                             );
                             let cfg_file = PathBuf::from(location)
