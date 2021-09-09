@@ -9,7 +9,7 @@ env:
 jobs:
   test_linux:
     name: Execute automated tests on Ubuntu Linux
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1.0.6
