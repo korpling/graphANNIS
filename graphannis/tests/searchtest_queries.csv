@@ -35,6 +35,8 @@ StructureInclusionSeed,"cat=""S"" _i_ cat=""AP""",pcc2.1,726
 IsConnectedRange,"""Jugendlichen"" .3,10 ""Musikcafé""",pcc2.1,1
 Regex,cat=/.P/ >* /A.*/,pcc2.1,1130
 NodeCount,node,pcc2.1,79596
+SegmentCount,SEGMENT,pcc2.1,2359
+PosValueSearch,"pos=""NN""",pcc2.1,6280
 KarolaAlignLemma,"lemma=""Karola"" & pos=""NE"" & #1 _l_ #2 & #1 _r_ #2",pcc2.1,1
 NotProperNound,"pos!=""NE""",pcc2.1,32280
 KarolaOr,"a#""Karola"" & (b#lemma=""Karola"" | b#pos=""NE"") & #a _=_ #b",pcc2.1,2
@@ -77,13 +79,11 @@ PosEqual,pos . pos & #1 == #2,pcc2.1,808
 PosNotEqual,pos=/N./ . pos=/N./ & #1 != #2,pcc2.1,225
 LemmaTokEqual,"lemma=""der"" _=_ tok & #1 == #2",pcc2.1,56
 LemmaTokNotEqual,"lemma=""der"" _=_ tok & #1 != #2",pcc2.1,136
-DiplNameSearch,dipl,RIDGES_Herbology_Version7.0,252777
-PrecedenceMixedSpanTok,"default_ns:pos=""PTKANT"" . node",RIDGES_Herbology_Version7.0,28
-NotWennRegex,KOUS_sem=/konditional/ _i_ lemma!=/wenn.*/,RIDGES_Herbology_Version7.0,119
-Benchmark2,"tok .2,10 tok",RIDGES_Herbology_Version7.0,2317482
-NotWennExact,"KOUS_sem=""konditional"" _i_ lemma!=""wenn""",RIDGES_Herbology_Version7.0,119
-SeedOverlap,"default_ns:pos=""NN"" & default_ns:norm=""Blumen"" & #1 _o_ #2",RIDGES_Herbology_Version7.0,300
-Benchmark1,"default_ns:pos=""NN"" .2,10 default_ns:pos=""ART""",RIDGES_Herbology_Version7.0,37228
-DasAuch,"""Das"" .dipl,1,10 ""auch""",RIDGES_Herbology_Version7.0,28
-PosValueSearch,"default_ns:pos=""NN""",RIDGES_Herbology_Version7.0,46957
-Inclusion,"default_ns:pos=""NN"" & default_ns:norm=""Blumen"" & #1 _i_ #2",RIDGES_Herbology_Version7.0,300
+PrecedenceMixedSpanTok,"pos=""PTKANT"" . node",pcc2.1,11
+NotWennRegex,"cat=""CAVP"" _i_ lemma!=/wenn.*/",pcc2.1,27
+NotWennExact,"cat=""CAVP"" _i_ lemma!=""wenn""",pcc2.1,27
+Overlap,"SEGMENT=""HSF"" _o_ TOPIC=""AB""",pcc2.1,56
+Inclusion,"SEGMENT=""HSF"" _i_ TOPIC=""AB-2""",pcc2.1,6
+Benchmark1,"pos=""NN"" .2,10 pos=""ART""",pcc2.1,5484
+Benchmark2,"tok .2,10 tok",pcc2.1,304938
+ThisTokenized,"""T"" .diplomatic,1,10 ""tokenized""",subtok.demo,1

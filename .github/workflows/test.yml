@@ -59,18 +59,27 @@ jobs:
           profile: minimal
       - uses: Swatinem/rust-cache@v1.3.0
       - uses: actions/cache@v2
+        id: corpus-cache
         with:
           path: |
             relannis
-          key: search-tests-${{ hashFiles('**/Cargo.toml')}}
-      - name: Download test corpora if necessary
-        run: test -d relannis/GUM/ -a -d relannis/pcc2.1/ || "./misc/download-test-corpora.sh"
+            data
+          key: ${{ runner.os }}-search-v1-compatible-${{ hashFiles('graphannis/tests/searchtest.rs','graphannis/tests/searchtest_queries.csv', 'graphannis/build.rs') }}
+      - name: Download test corpora
+        if: steps.corpus-cache.outputs.cache-hit != 'true'
+        run: test -d relannis/GUM/ -a -d relannis/pcc2.1/ -a -d relannis/subtok.demo || "./misc/download-test-corpora.sh"
       - name: Build CLI binary
+        if: steps.corpus-cache.outputs.cache-hit != 'true'
         run: cargo build --release --bin annis
       - name: Import GUM corpus
+        if: steps.corpus-cache.outputs.cache-hit != 'true'
         run: ./target/release/annis data --cmd 'import relannis/GUM'
       - name: Import pcc2.1 corpus
+        if: steps.corpus-cache.outputs.cache-hit != 'true'
         run: ./target/release/annis data --cmd 'set-disk-based on' --cmd 'import relannis/pcc2.1'
+      - name: Import subtok.demo corpus
+        if: steps.corpus-cache.outputs.cache-hit != 'true'
+        run: ./target/release/annis data --cmd 'import relannis/subtok.demo'
       - name: Run integration tests
         run: cargo test --release -- --ignored
         working-directory: graphannis
