@@ -921,13 +921,8 @@ impl<CT: ComponentType> Graph<CT> {
     /// Get a read-only graph storage copy for the given component `c`.
     pub fn get_graphstorage(&self, c: &Component<CT>) -> Option<Arc<dyn GraphStorage>> {
         // get and return the reference to the entry if loaded
-        let entry: Option<&Option<Arc<dyn GraphStorage>>> = self.components.get(c);
-        if let Some(gs_opt) = entry {
-            if let Some(ref impl_type) = *gs_opt {
-                return Some(impl_type.clone());
-            }
-        }
-        None
+        let entry: &Arc<dyn GraphStorage> = self.components.get(c)?.as_ref()?;
+        Some(entry.clone())
     }
 
     /// Get a read-only graph storage reference for the given component `c`.
@@ -936,13 +931,8 @@ impl<CT: ComponentType> Graph<CT> {
         c: &Component<CT>,
     ) -> Option<&'a dyn GraphStorage> {
         // get and return the reference to the entry if loaded
-        let entry: Option<&Option<Arc<dyn GraphStorage>>> = self.components.get(c);
-        if let Some(gs_opt) = entry {
-            if let Some(ref impl_type) = *gs_opt {
-                return Some(impl_type.as_ref());
-            }
-        }
-        None
+        let entry: &Arc<dyn GraphStorage> = self.components.get(c)?.as_ref()?;
+        Some(entry.as_ref())
     }
 
     /// Get a read-only reference to the node annotations of this graph
