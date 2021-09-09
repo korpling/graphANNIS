@@ -1,15 +1,11 @@
 use file_diff::diff;
 
 use regex::Regex;
-use std::ops::Deref;
 use std::path::PathBuf;
 
 /// Take the CSV file with the queries and add a test case for each query whose
 /// corpora exist
 fn create_search_tests() -> Option<()> {
-    println!("rerun-if-env-changed=ANNIS4_TEST_QUERIES");
-    println!("rerun-if-env-changed=ANNIS4_TEST_DATA");
-
     let out_dir = std::env::var("OUT_DIR").unwrap();
     let destination = std::path::Path::new(&out_dir).join("searchtest.rs");
     let destintation_tmp = std::path::Path::new(&out_dir).join("searchtest.rs.tmp");
@@ -21,14 +17,6 @@ fn create_search_tests() -> Option<()> {
         String::from("tests/searchtest_queries.csv")
     });
     println!("cargo:rerun-if-changed={}", query_file.to_string_lossy());
-
-    let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
-        path
-    } else {
-        String::from("../data")
-    });
-    println!("cargo:rerun-if-changed={}", db_dir.to_string_lossy());
-
     let invalid_chars = Regex::new(r"[^A-Za-z0-9_]").unwrap();
 
     if query_file.is_file() {
@@ -42,38 +30,43 @@ fn create_search_tests() -> Option<()> {
             let corpus = row.get(2)?;
             let corpus_escaped = invalid_chars.replace_all(corpus, "_");
             let count = row.get(3)?.trim().parse::<i64>().ok()?;
-            let corpus_dir = db_dir.join(corpus.deref());
-            if corpus_dir.is_dir() {
-                // output test case if corpus exists locally
-                write!(f,
-"
+            // output test case
+            write!(
+                f,
+                "
 #[ignore]
 #[test]
 #[allow(non_snake_case)]
 fn search_{corpus_escaped}_{name_escaped}() {{
-    let aql = r###\"{aql}\"###;
-    if let Some(cs_mutex) = CORPUS_STORAGE.as_ref() {{
-        let search_count = {{ 
-            let cs = cs_mutex.lock().unwrap();
-            let search_query = graphannis::corpusstorage::SearchQuery {{
-                query: aql,
-                corpus_names: &[\"{corpus}\"],
-                query_language: QueryLanguage::AQL,
-                timeout: None,
-            }};
-            cs.count(search_query).unwrap_or(0)
+let aql = r###\"{aql}\"###;
+if let Some(cs_mutex) = CORPUS_STORAGE.as_ref() {{
+    let search_count = {{ 
+        let cs = cs_mutex.lock().unwrap();
+        let search_query = graphannis::corpusstorage::SearchQuery {{
+            query: aql,
+            corpus_names: &[\"{corpus}\"],
+            query_language: QueryLanguage::AQL,
+            timeout: None,
         }};
-        assert_eq!(
-            {count}, search_count,
-            \"Query '{{}}' ({name}) on corpus {corpus} should have had count {count} but was {{}}.\", 
-            aql, search_count
-        );
-    }}
+        cs.count(search_query).unwrap_or(0)
+    }};
+    assert_eq!(
+        {count}, search_count,
+        \"Query '{{}}' ({name}) on corpus {corpus} should have had count {count} but was {{}}.\", 
+        aql, search_count
+    );
+}}
 }}
 
-", 
-                name=name, name_escaped=name_escaped, corpus=corpus, corpus_escaped=corpus_escaped, aql=aql, count=count).ok()?;
-            }
+",
+                name = name,
+                name_escaped = name_escaped,
+                corpus = corpus,
+                corpus_escaped = corpus_escaped,
+                aql = aql,
+                count = count
+            )
+            .ok()?;
         }
     }
 
