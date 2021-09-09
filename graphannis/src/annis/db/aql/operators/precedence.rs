@@ -179,6 +179,7 @@ impl<'a> BinaryOperatorBase for Precedence<'a> {
 }
 
 impl<'a> BinaryOperatorIndex for Precedence<'a> {
+    #[allow(clippy::needless_collect)]
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -284,6 +285,7 @@ impl<'a> BinaryOperatorBase for InversePrecedence<'a> {
 }
 
 impl<'a> BinaryOperatorIndex for InversePrecedence<'a> {
+    #[allow(clippy::needless_collect)]
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)

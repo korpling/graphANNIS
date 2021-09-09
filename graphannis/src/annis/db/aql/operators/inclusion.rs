@@ -136,6 +136,7 @@ impl<'a> BinaryOperatorBase for Inclusion<'a> {
 }
 
 impl<'a> BinaryOperatorIndex for Inclusion<'a> {
+    #[allow(clippy::needless_collect)]
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
         if let (Some(start_lhs), Some(end_lhs)) = self.tok_helper.left_right_token_for(lhs.node) {
             // span length of LHS

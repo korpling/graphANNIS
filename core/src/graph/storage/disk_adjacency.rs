@@ -382,7 +382,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         } else {
             for root_node in &roots {
                 let mut dfs = CycleSafeDFS::new(self, *root_node, 0, usize::max_value());
-                while let Some(step) = dfs.next() {
+                for step in &mut dfs {
                     number_of_visits += 1;
                     stats.max_depth = std::cmp::max(stats.max_depth, step.distance);
                 }

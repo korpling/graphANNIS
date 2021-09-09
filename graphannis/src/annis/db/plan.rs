@@ -31,11 +31,11 @@ impl<'a> ExecutionPlan<'a> {
         let mut descriptions = Vec::new();
         let mut inverse_node_pos = Vec::new();
         for alt in &query.alternatives {
-            let p = alt.make_exec_node(db, &config);
+            let p = alt.make_exec_node(db, config);
             if let Ok(p) = p {
                 descriptions.push(p.get_desc().cloned());
 
-                if let Some(ref desc) = p.get_desc() {
+                if let Some(desc) = p.get_desc() {
                     // check if node position mapping is actually needed
                     let node_pos_needed = desc
                         .node_pos
@@ -106,11 +106,9 @@ impl<'a> ExecutionPlan<'a> {
 
     pub fn estimated_output_size(&self) -> usize {
         let mut estimation = 0;
-        for desc in &self.descriptions {
-            if let Some(desc) = desc {
-                if let Some(ref cost) = desc.cost {
-                    estimation += cost.output;
-                }
+        for desc in self.descriptions.iter().flatten() {
+            if let Some(ref cost) = desc.cost {
+                estimation += cost.output;
             }
         }
         estimation
@@ -149,11 +147,7 @@ impl<'a> Iterator for ExecutionPlan<'a> {
     fn next(&mut self) -> Option<MatchGroup> {
         if self.proxy_mode {
             // just act as an proxy, but make sure the order is the same as requested in the query
-            if let Some(n) = self.plans[0].next() {
-                Some(self.reorder_match(n))
-            } else {
-                None
-            }
+            self.plans[0].next().map(|n| self.reorder_match(n))
         } else {
             while self.current_plan < self.plans.len() {
                 if let Some(n) = self.plans[self.current_plan].next() {

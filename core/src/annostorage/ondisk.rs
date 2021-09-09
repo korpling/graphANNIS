@@ -488,7 +488,7 @@ where
                 matches
             } else {
                 let mut matching_qnames: Vec<(Vec<u8>, Arc<AnnoKey>)> = self
-                    .get_qnames(&name)
+                    .get_qnames(name)
                     .into_iter()
                     .filter_map(|key| {
                         if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
@@ -650,10 +650,10 @@ where
             } else {
                 // get all qualified names for the given annotation name
                 let res: Vec<Arc<AnnoKey>> = self
-                    .get_qnames(&name)
+                    .get_qnames(name)
                     .into_iter()
                     .filter(|key| {
-                        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
+                        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
                             self.by_container
                                 .contains_key(&create_by_container_key(item.clone(), symbol_id))
                         } else {
@@ -686,7 +686,7 @@ where
                 name: name.into(),
                 ns: ns.into(),
             }],
-            None => self.get_qnames(&name),
+            None => self.get_qnames(name),
         };
 
         let mut universe_size: usize = 0;
@@ -741,7 +741,7 @@ where
             if let Ok(lower_val) = val_prefix {
                 let mut upper_val = String::from(lower_val);
                 upper_val.push(std::char::MAX);
-                return self.guess_max_count(ns, name, &lower_val, &upper_val);
+                return self.guess_max_count(ns, name, lower_val, &upper_val);
             }
         }
 
@@ -755,7 +755,7 @@ where
                 name: name.into(),
                 ns: ns.into(),
             }],
-            None => self.get_qnames(&name),
+            None => self.get_qnames(name),
         };
 
         let mut sampled_values: HashMap<&str, usize> = HashMap::default();

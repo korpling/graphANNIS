@@ -374,7 +374,7 @@ fn get_alternatives_from_dnf(expr: ast::Expr) -> Vec<Vec<ast::Literal>> {
     vec![]
 }
 
-pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction> {
+pub fn parse(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction> {
     let ast = AQL_PARSER.with(|p| p.parse(query_as_aql));
     match ast {
         Ok(ast) => {

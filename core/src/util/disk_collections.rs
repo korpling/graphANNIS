@@ -1004,7 +1004,7 @@ where
         }
         // Check C0 (which contains the newest entries)
         if let Some((key, value)) = self.c0_iterator.next() {
-            let key = K::parse_key(&key);
+            let key = K::parse_key(key);
             if let Some(value) = value {
                 return Some((key, value.clone()));
             } else {
