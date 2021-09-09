@@ -246,7 +246,7 @@ impl<CT: ComponentType> Graph<CT> {
                         // try to load the component with the empty name
                         let empty_name_component = Component::new(
                             c.clone(),
-                            layer.file_name().to_string_lossy().trim().into(),
+                            layer.file_name().to_string_lossy().into(),
                             SmartString::default(),
                         );
                         {
@@ -264,8 +264,8 @@ impl<CT: ComponentType> Graph<CT> {
                             let name = name?;
                             let named_component = Component::new(
                                 c.clone(),
-                                layer.file_name().to_string_lossy().trim().into(),
-                                name.file_name().to_string_lossy().trim().into(),
+                                layer.file_name().to_string_lossy().into(),
+                                name.file_name().to_string_lossy().into(),
                             );
                             let cfg_file = PathBuf::from(location)
                                 .join(self.component_to_relative_path(&named_component))
