@@ -4,6 +4,7 @@ use graphannis_core::types::{Component, Edge};
 use std::{any::Any, collections::HashSet, fmt::Display};
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
+#[allow(clippy::enum_variant_names)]
 pub enum EdgeAnnoSearchSpec {
     ExactValue {
         ns: Option<String>,

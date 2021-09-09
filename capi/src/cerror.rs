@@ -51,11 +51,10 @@ fn error_kind(e: &Box<dyn StdError>) -> &'static str {
 }
 
 pub fn create_error_list(e: Box<dyn StdError>) -> ErrorList {
-    let mut result = ErrorList::new();
-    result.push(Error {
+    let mut result = vec![Error {
         msg: CString::new(e.to_string()).unwrap_or_default(),
         kind: CString::new(error_kind(&e)).unwrap_or_default(),
-    });
+    }];
     let cause_it = CauseIterator {
         current: e.source(),
     };
