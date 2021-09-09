@@ -194,7 +194,7 @@ mod tests {
     #[test]
     fn tiger_doc_name_sort_strcoll() {
         unsafe {
-            let locale = CString::new("de_DE.UTF-8").unwrap_or_default();
+            let locale = CString::new("en_US.UTF-8").unwrap_or_default();
             libc::setlocale(libc::LC_COLLATE, locale.as_ptr());
         }
 
