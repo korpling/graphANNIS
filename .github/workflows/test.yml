@@ -73,7 +73,7 @@ jobs:
       - name: Import pcc2.1 corpus if necessary
         run: test -d data/pcc2.1/current || ./target/release/annis data --cmd 'set-disk-based on' --cmd 'import relannis/pcc2.1'
       - name: Import subtok.demo corpus if necessary
-        run: test -d data/subtok.demo/current || ./target/release/annis data--cmd 'import relannis/subtok.demo'
+        run: test -d data/subtok.demo/current || ./target/release/annis data --cmd 'import relannis/subtok.demo'
       - name: Run integration tests
         run: cargo test --release -- --ignored
         working-directory: graphannis
