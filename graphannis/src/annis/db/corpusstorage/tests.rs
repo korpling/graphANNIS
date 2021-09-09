@@ -1,11 +1,19 @@
 extern crate log;
 extern crate tempfile;
 
+use std::path::PathBuf;
+
+use crate::annis::db::corpusstorage::get_read_or_error;
 use crate::annis::db::{aql::model::AnnotationComponentType, example_generator};
-use crate::corpusstorage::QueryLanguage;
+use crate::corpusstorage::{ImportFormat, QueryLanguage};
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::CorpusStorage;
+use graphannis_core::annostorage::{AnnotationStorage, ValueSearch};
+use graphannis_core::graph::NODE_NAME_KEY;
+use graphannis_core::types::Edge;
 use graphannis_core::{graph::DEFAULT_NS, types::NodeID};
+use itertools::Itertools;
+use malloc_size_of::MallocSizeOf;
 
 use super::SearchQuery;
 
@@ -211,4 +219,149 @@ fn subgraph_with_segmentation() {
     assert_eq!(5, seg2_out.len());
 
     assert_eq!(None, graph.get_node_id_from_name("root/doc1#seg3"));
+}
+
+fn compare_annos<T>(
+    annos1: &dyn AnnotationStorage<T>,
+    annos2: &dyn AnnotationStorage<T>,
+    items1: &[T],
+    items2: &[T],
+) where
+    T: Send + Sync + MallocSizeOf,
+{
+    assert_eq!(items1.len(), items2.len());
+    for i in 0..items1.len() {
+        let mut annos1 = annos1.get_annotations_for_item(&items1[i]);
+        annos1.sort();
+        let mut annos2 = annos2.get_annotations_for_item(&items2[i]);
+        annos2.sort();
+        assert_eq!(annos1, annos2);
+    }
+}
+
+#[test]
+fn import_salt_sample() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    // Import both the GraphML and the relANNIS files as corpus
+    cs.import_from_fs(
+        &cargo_dir.join("tests/SaltSampleCorpus"),
+        ImportFormat::RelANNIS,
+        Some("test-relannis".into()),
+        false,
+        true,
+        |_| {},
+    )
+    .unwrap();
+    cs.import_from_fs(
+        &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
+        ImportFormat::GraphML,
+        Some("test-graphml".into()),
+        false,
+        true,
+        |_| {},
+    )
+    .unwrap();
+
+    // compare both corpora, they should be exactly equal
+    let e1 = cs.get_fully_loaded_entry("test-graphml").unwrap();
+    let lock1 = e1.read().unwrap();
+    let db1 = get_read_or_error(&lock1).unwrap();
+
+    let e2 = cs.get_fully_loaded_entry("test-relannis").unwrap();
+    let lock2 = e2.read().unwrap();
+    let db2 = get_read_or_error(&lock2).unwrap();
+
+    // Check all nodes and node annotations exist in both corpora
+    let nodes1: Vec<String> = db1
+        .get_node_annos()
+        .exact_anno_search(Some("annis"), "node_name", ValueSearch::Any)
+        .filter_map(|m| m.extract_annotation(db1.get_node_annos()))
+        .map(|a| a.val.into())
+        .sorted()
+        .collect();
+    let nodes2: Vec<String> = db2
+        .get_node_annos()
+        .exact_anno_search(Some("annis"), "node_name", ValueSearch::Any)
+        .filter_map(|m| m.extract_annotation(db1.get_node_annos()))
+        .map(|a| a.val.into())
+        .sorted()
+        .collect();
+    assert_eq!(&nodes1, &nodes2);
+
+    let nodes1: Vec<NodeID> = nodes1
+        .into_iter()
+        .filter_map(|n| db1.get_node_id_from_name(&n))
+        .collect();
+    let nodes2: Vec<NodeID> = nodes2
+        .into_iter()
+        .filter_map(|n| db2.get_node_id_from_name(&n))
+        .collect();
+    compare_annos(db1.get_node_annos(), db2.get_node_annos(), &nodes1, &nodes2);
+
+    // Check that the graphs have the same edges
+    let mut components1 = db1.get_all_components(None, None);
+    components1.sort();
+    let mut components2 = db2.get_all_components(None, None);
+    // Remove the special annis coverage component created during relANNIS import
+    components2.retain(|c| {
+        c.get_type() != AnnotationComponentType::Coverage || c.name != "" || c.layer != "annis"
+    });
+    components2.sort();
+    assert_eq!(components1, components2);
+
+    for c in components1 {
+        let gs1 = db1.get_graphstorage_as_ref(&c).unwrap();
+        let gs2 = db2.get_graphstorage_as_ref(&c).unwrap();
+
+        for i in 0..nodes1.len() {
+            let start1 = nodes1[i];
+            let start2 = nodes2[i];
+
+            // Check all connected nodes for this edge
+            let targets1: Vec<String> = gs1
+                .get_outgoing_edges(start1)
+                .filter_map(|target| {
+                    db1.get_node_annos()
+                        .get_value_for_item(&target, &NODE_NAME_KEY)
+                })
+                .map(|n| n.into())
+                .sorted()
+                .collect();
+            let targets2: Vec<String> = gs2
+                .get_outgoing_edges(start2)
+                .filter_map(|target| {
+                    db2.get_node_annos()
+                        .get_value_for_item(&target, &NODE_NAME_KEY)
+                })
+                .map(|n| n.into())
+                .sorted()
+                .collect();
+            assert_eq!(targets1, targets2);
+
+            // Check the edge annotations for each edge
+            let edges1: Vec<Edge> = targets1
+                .iter()
+                .map(|t| Edge {
+                    source: start1,
+                    target: db1.get_node_id_from_name(t).unwrap(),
+                })
+                .collect();
+            let edges2: Vec<Edge> = targets2
+                .iter()
+                .map(|t| Edge {
+                    source: start2,
+                    target: db2.get_node_id_from_name(t).unwrap(),
+                })
+                .collect();
+            compare_annos(
+                gs1.get_anno_storage(),
+                gs2.get_anno_storage(),
+                &edges1,
+                &edges2,
+            );
+        }
+    }
 }

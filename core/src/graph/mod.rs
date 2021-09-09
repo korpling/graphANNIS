@@ -30,6 +30,7 @@ pub const ANNIS_NS: &str = "annis";
 pub const DEFAULT_NS: &str = "default_ns";
 pub const NODE_NAME: &str = "node_name";
 pub const NODE_TYPE: &str = "node_type";
+pub const DEFAULT_EMPTY_LAYER: &str = "default_layer";
 
 lazy_static! {
     pub static ref DEFAULT_ANNO_KEY: Arc<AnnoKey> = Arc::from(AnnoKey::default());
@@ -223,7 +224,7 @@ impl<CT: ComponentType> Graph<CT> {
         p.push("gs");
         p.push(c.get_type().to_string());
         p.push(if c.layer.is_empty() {
-            "default_layer"
+            DEFAULT_EMPTY_LAYER
         } else {
             &c.layer
         });
@@ -244,11 +245,16 @@ impl<CT: ComponentType> Graph<CT> {
                     let layer = layer?;
                     if layer.path().is_dir() {
                         // try to load the component with the empty name
-                        let empty_name_component = Component::new(
-                            c.clone(),
-                            layer.file_name().to_string_lossy().into(),
-                            SmartString::default(),
-                        );
+                        let layer_file_name = layer.file_name();
+                        let layer_name_from_file = layer_file_name.to_string_lossy();
+                        let layer_name: SmartString = if layer_name_from_file == DEFAULT_EMPTY_LAYER
+                        {
+                            SmartString::default()
+                        } else {
+                            layer_name_from_file.into()
+                        };
+                        let empty_name_component =
+                            Component::new(c.clone(), layer_name.clone(), SmartString::default());
                         {
                             let cfg_file = PathBuf::from(location)
                                 .join(self.component_to_relative_path(&empty_name_component))
@@ -264,7 +270,7 @@ impl<CT: ComponentType> Graph<CT> {
                             let name = name?;
                             let named_component = Component::new(
                                 c.clone(),
-                                layer.file_name().to_string_lossy().into(),
+                                layer_name.clone(),
                                 name.file_name().to_string_lossy().into(),
                             );
                             let cfg_file = PathBuf::from(location)
@@ -450,7 +456,7 @@ impl<CT: ComponentType> Graph<CT> {
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     // only add edge if both nodes already exist
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = CT::from_str(&component_type) {
+                        if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             gs.add_edge(Edge { source, target })?;
@@ -469,7 +475,7 @@ impl<CT: ComponentType> Graph<CT> {
                     let target = self
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = CT::from_str(&component_type) {
+                        if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
 
                             let gs = self.get_or_create_writable(&c)?;
@@ -492,7 +498,7 @@ impl<CT: ComponentType> Graph<CT> {
                     let target = self
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = CT::from_str(&component_type) {
+                        if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
@@ -524,7 +530,7 @@ impl<CT: ComponentType> Graph<CT> {
                     let target = self
                         .get_cached_node_id_from_name(Cow::Borrowed(target_node), &mut node_ids)?;
                     if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = CT::from_str(&component_type) {
+                        if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
@@ -752,9 +758,10 @@ impl<CT: ComponentType> Graph<CT> {
 
         let gs_mut_ref: &mut dyn GraphStorage = Arc::get_mut(entry)
             .ok_or_else(|| GraphAnnisCoreError::NonExclusiveComponentReference(c.to_string()))?;
-        Ok(gs_mut_ref
+        let result = gs_mut_ref
             .as_writeable()
-            .ok_or_else(|| GraphAnnisCoreError::ReadOnlyComponent(c.to_string()))?)
+            .ok_or_else(|| GraphAnnisCoreError::ReadOnlyComponent(c.to_string()))?;
+        Ok(result)
     }
 
     /// Returns `true` if the graph storage for this specific component is loaded and ready to use.
@@ -914,13 +921,8 @@ impl<CT: ComponentType> Graph<CT> {
     /// Get a read-only graph storage copy for the given component `c`.
     pub fn get_graphstorage(&self, c: &Component<CT>) -> Option<Arc<dyn GraphStorage>> {
         // get and return the reference to the entry if loaded
-        let entry: Option<&Option<Arc<dyn GraphStorage>>> = self.components.get(c);
-        if let Some(gs_opt) = entry {
-            if let Some(ref impl_type) = *gs_opt {
-                return Some(impl_type.clone());
-            }
-        }
-        None
+        let entry: &Arc<dyn GraphStorage> = self.components.get(c)?.as_ref()?;
+        Some(entry.clone())
     }
 
     /// Get a read-only graph storage reference for the given component `c`.
@@ -929,13 +931,8 @@ impl<CT: ComponentType> Graph<CT> {
         c: &Component<CT>,
     ) -> Option<&'a dyn GraphStorage> {
         // get and return the reference to the entry if loaded
-        let entry: Option<&Option<Arc<dyn GraphStorage>>> = self.components.get(c);
-        if let Some(gs_opt) = entry {
-            if let Some(ref impl_type) = *gs_opt {
-                return Some(impl_type.as_ref());
-            }
-        }
-        None
+        let entry: &Arc<dyn GraphStorage> = self.components.get(c)?.as_ref()?;
+        Some(entry.as_ref())
     }
 
     /// Get a read-only reference to the node annotations of this graph

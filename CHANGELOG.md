@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Use the correct `set-disk-based on` command in the documentation for the CLI
+- Optimize node annotation storage and graph implementations when importing GraphML files
 
 ## [1.0.2] - 2021-08-20
 
