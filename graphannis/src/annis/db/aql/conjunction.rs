@@ -175,24 +175,22 @@ fn create_join<'b>(
 
     if exec_left.as_nodesearch().is_some() {
         // avoid a nested loop join by switching the operand and using and index join when possible
-        if let Some(inverse_op) = op_entry.op.get_inverse_operator(db) {
-            if let BinaryOperator::Index(inverse_op) = inverse_op {
-                let inverse_args = BinaryOperatorArguments {
-                    left: op_entry.args.right,
-                    right: op_entry.args.left,
-                    global_reflexivity: op_entry.args.global_reflexivity,
-                };
+        if let Some(BinaryOperator::Index(inverse_op)) = op_entry.op.get_inverse_operator(db) {
+            let inverse_args = BinaryOperatorArguments {
+                left: op_entry.args.right,
+                right: op_entry.args.left,
+                global_reflexivity: op_entry.args.global_reflexivity,
+            };
 
-                return create_index_join(
-                    db,
-                    config,
-                    inverse_op,
-                    &inverse_args,
-                    exec_right,
-                    exec_left,
-                    idx_right,
-                );
-            }
+            return create_index_join(
+                db,
+                config,
+                inverse_op,
+                &inverse_args,
+                exec_right,
+                exec_left,
+                idx_right,
+            );
         }
     }
 

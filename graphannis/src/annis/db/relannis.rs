@@ -395,7 +395,7 @@ where
 }
 
 fn load_node_and_corpus_tables<F>(
-    path: &PathBuf,
+    path: &Path,
     updates: &mut GraphUpdate,
     is_annis_33: bool,
     progress_callback: &F,
@@ -403,9 +403,9 @@ fn load_node_and_corpus_tables<F>(
 where
     F: Fn(&str),
 {
-    let corpus_table = parse_corpus_tab(&path, is_annis_33, &progress_callback)?;
-    let mut texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
-    let corpus_id_to_annos = load_corpus_annotation(&path, is_annis_33, &progress_callback)?;
+    let corpus_table = parse_corpus_tab(path, is_annis_33, &progress_callback)?;
+    let mut texts = parse_text_tab(path, is_annis_33, &progress_callback)?;
+    let corpus_id_to_annos = load_corpus_annotation(path, is_annis_33, &progress_callback)?;
 
     let load_nodes_result = load_nodes(
         path,
@@ -442,7 +442,7 @@ where
 }
 
 fn load_edge_tables<F>(
-    path: &PathBuf,
+    path: &Path,
     updates: &mut GraphUpdate,
     is_annis_33: bool,
     id_to_node_name: &DiskMap<NodeID, String>,
@@ -522,7 +522,7 @@ where
         let visibility = get_field_not_null(&line, 6, "visibility", &resolver_tab_path)?;
 
         let order = get_field(&line, 7, "order", &resolver_tab_path)?
-            .map(|order| i64::from_str_radix(&order, 10).unwrap_or_default())
+            .map(|order| order.parse::<i64>().unwrap_or_default())
             .unwrap_or_default();
         let mappings: BTreeMap<std::string::String, std::string::String> =
             if let Ok(mappings_field) = get_field(&line, 8, "mappings", &resolver_tab_path) {
@@ -665,17 +665,17 @@ where
 
             match key {
                 "max-context" => {
-                    if let Ok(value) = usize::from_str_radix(value, 10) {
+                    if let Ok(value) = value.parse::<usize>() {
                         config.context.max = Some(value);
                     }
                 }
                 "default-context" => {
-                    if let Ok(value) = usize::from_str_radix(value, 10) {
+                    if let Ok(value) = value.parse::<usize>() {
                         config.context.default = value;
                     }
                 }
                 "results-per-page" => {
-                    if let Ok(value) = usize::from_str_radix(value, 10) {
+                    if let Ok(value) = value.parse::<usize>() {
                         config.view.page_size = value;
                     }
                 }
@@ -711,7 +711,7 @@ where
             let value = splitted[1];
 
             if let "context-steps" = key {
-                if let Ok(value) = usize::from_str_radix(value, 10) {
+                if let Ok(value) = value.parse::<usize>() {
                     config.context.sizes = (value..=config.context.max.unwrap_or(value))
                         .step_by(value)
                         .collect();
@@ -820,7 +820,7 @@ fn get_field_not_null(
 }
 
 fn parse_corpus_tab<F>(
-    path: &PathBuf,
+    path: &Path,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<ParsedCorpusTable>
@@ -903,7 +903,7 @@ where
 }
 
 fn parse_text_tab<F>(
-    path: &PathBuf,
+    path: &Path,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<DiskMap<TextKey, Text>>
@@ -1180,8 +1180,8 @@ where
                 n,
                 left_pos,
                 right_pos,
-                &load_node_and_corpus_result,
-                &load_rank_result,
+                load_node_and_corpus_result,
+                load_rank_result,
             ) {
                 // output a warning but do not fail
                 warn!(
@@ -1338,7 +1338,7 @@ where
 }
 
 fn load_node_tab<F>(
-    path: &PathBuf,
+    path: &Path,
     updates: &mut GraphUpdate,
     texts: &mut DiskMap<TextKey, Text>,
     corpus_table: &ParsedCorpusTable,
@@ -1607,7 +1607,7 @@ where
 }
 
 fn load_node_anno_tab<F>(
-    path: &PathBuf,
+    path: &Path,
     updates: &mut GraphUpdate,
     missing_seg_span: &DiskMap<NodeID, String>,
     id_to_node_name: &DiskMap<NodeID, String>,
@@ -1681,7 +1681,7 @@ where
 }
 
 fn load_component_tab<F>(
-    path: &PathBuf,
+    path: &Path,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<BTreeMap<u32, Component<AnnotationComponentType>>>
@@ -1718,7 +1718,7 @@ where
 }
 
 fn load_nodes<F>(
-    path: &PathBuf,
+    path: &Path,
     updates: &mut GraphUpdate,
     texts: &mut DiskMap<TextKey, Text>,
     corpus_table: &ParsedCorpusTable,
@@ -1754,7 +1754,7 @@ where
 }
 
 fn load_rank_tab<F>(
-    path: &PathBuf,
+    path: &Path,
     updates: &mut GraphUpdate,
     component_by_id: &BTreeMap<u32, Component<AnnotationComponentType>>,
     id_to_node_name: &DiskMap<NodeID, String>,
@@ -1868,7 +1868,7 @@ where
 }
 
 fn load_edge_annotation<F>(
-    path: &PathBuf,
+    path: &Path,
     updates: &mut GraphUpdate,
     rank_result: &LoadRankResult,
     id_to_node_name: &DiskMap<NodeID, String>,
@@ -1928,7 +1928,7 @@ where
 }
 
 fn load_corpus_annotation<F>(
-    path: &PathBuf,
+    path: &Path,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<BTreeMap<(u32, AnnoKey), std::string::String>>

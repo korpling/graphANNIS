@@ -432,7 +432,7 @@ impl<'a> NodeSearch<'a> {
                     1
                 } else {
                     db.get_node_annos()
-                        .guess_max_count(qname.0.as_deref(), &qname.1, &val, &val)
+                        .guess_max_count(qname.0.as_deref(), &qname.1, val, val)
                 }
             }
             ValueSearch::NotSome(ref val) => {
@@ -441,7 +441,7 @@ impl<'a> NodeSearch<'a> {
                     .number_of_annotations_by_name(qname.0.as_deref(), &qname.1);
                 total
                     - db.get_node_annos()
-                        .guess_max_count(qname.0.as_deref(), &qname.1, &val, &val)
+                        .guess_max_count(qname.0.as_deref(), &qname.1, val, val)
             }
             ValueSearch::Any => db
                 .get_node_annos()
@@ -557,7 +557,7 @@ impl<'a> NodeSearch<'a> {
 
         let mut filters: Vec<MatchFilterFunc> = Vec::new();
 
-        let full_match_pattern = graphannis_core::util::regex_full_match(&pattern);
+        let full_match_pattern = graphannis_core::util::regex_full_match(pattern);
         let re = regex::Regex::new(&full_match_pattern);
         match re {
             Ok(re) => {
@@ -629,7 +629,7 @@ impl<'a> NodeSearch<'a> {
                     db.get_node_annos().exact_anno_search(
                         Some(&TOKEN_KEY.ns),
                         &TOKEN_KEY.name,
-                        ValueSearch::Some(&val),
+                        ValueSearch::Some(val),
                     )
                 };
                 Box::new(it)

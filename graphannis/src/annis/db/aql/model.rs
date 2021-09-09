@@ -69,9 +69,9 @@ pub enum AnnotationComponentType {
     PartOf,
 }
 
-impl Into<u16> for AnnotationComponentType {
-    fn into(self) -> u16 {
-        self as u16
+impl From<AnnotationComponentType> for u16 {
+    fn from(t: AnnotationComponentType) -> Self {
+        t as u16
     }
 }
 
@@ -442,7 +442,7 @@ impl ComponentType for AnnotationComponentType {
                 ..
             } => {
                 if index.calculate_invalid_nodes {
-                    if let Ok(ctype) = AnnotationComponentType::from_str(&component_type) {
+                    if let Ok(ctype) = AnnotationComponentType::from_str(component_type) {
                         if ctype == AnnotationComponentType::Coverage
                             || ctype == AnnotationComponentType::Dominance
                             || ctype == AnnotationComponentType::Ordering

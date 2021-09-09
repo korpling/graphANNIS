@@ -164,7 +164,7 @@ pub fn compare_match_by_text_pos(
             }
 
             // 3. compare the name
-            let name_cmp = compare_string(&m1_name, &m2_name, collation);
+            let name_cmp = compare_string(m1_name, m2_name, collation);
             if name_cmp != Ordering::Equal {
                 return name_cmp;
             }
