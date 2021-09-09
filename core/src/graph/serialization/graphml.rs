@@ -526,6 +526,15 @@ where
     progress_callback("applying imported changes");
     g.apply_update(&mut updates, &progress_callback)?;
 
+    progress_callback("calculating node statistics");
+    g.get_node_annos_mut().calculate_statistics();
+
+    for c in g.get_all_components(None, None) {
+        progress_callback(&format!("calculating statistics for component {}", c));
+        g.calculate_component_statistics(&c)?;
+        g.optimize_gs_impl(&c)?;
+    }
+
     Ok((g, config))
 }
 
