@@ -1,9 +1,9 @@
 name: Automated tests
 on:
   push:
-    branches: [master, develop, staging, trying]
+    branches: [main, staging, trying]
   pull_request:
-    branches: [master, develop]
+    branches: [main]
 env:
   RUSTFLAGS: "-C debuginfo=0"
 jobs:
