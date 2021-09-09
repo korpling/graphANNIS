@@ -242,10 +242,12 @@ fn compare_annos<T>(
 #[test]
 fn import_salt_sample() {
     let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
     let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
     // Import both the GraphML and the relANNIS files as corpus
     cs.import_from_fs(
-        &PathBuf::from("tests/SaltSampleCorpus"),
+        &cargo_dir.join("tests/SaltSampleCorpus"),
         ImportFormat::RelANNIS,
         Some("test-relannis".into()),
         false,
@@ -254,7 +256,7 @@ fn import_salt_sample() {
     )
     .unwrap();
     cs.import_from_fs(
-        &PathBuf::from("tests/SaltSampleCorpus.graphml"),
+        &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
         ImportFormat::GraphML,
         Some("test-graphml".into()),
         false,
