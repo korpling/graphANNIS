@@ -5,5 +5,5 @@ unzip -o -j gum.zip "gum-*/annis/GUM_annis/*" -d relannis/GUM
 curl -L -o pcc21.zip http://angcl.ling.uni-potsdam.de/resources/pcc2.1_annis.zip
 unzip -o -j pcc21.zip "pcc2.1/annis/*" -d relannis/pcc2.1
 
-curl -L -o ridges7.zip https://www.linguistik.hu-berlin.de/de/institut/professuren/korpuslinguistik/forschung/ridges-projekt/download-files/v7/annis.zip
-unzip -o -j ridges7.zip "Annis/*" -d relannis/RIDGES_Herbology_Version7.0
+curl -L -o subtokdemo.zip https://corpus-tools.org/corpora/subtok.demo_relANNIS.zip
+unzip -o -j subtokdemo.zip "*" -d relannis/subtok.demo
