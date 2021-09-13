@@ -82,20 +82,6 @@ pub enum NodeSearchSpec {
 }
 
 impl NodeSearchSpec {
-    pub fn new_exact(
-        ns: Option<&str>,
-        name: &str,
-        val: Option<&str>,
-        is_meta: bool,
-    ) -> NodeSearchSpec {
-        NodeSearchSpec::ExactValue {
-            ns: ns.map(String::from),
-            name: String::from(name),
-            val: val.map(String::from),
-            is_meta,
-        }
-    }
-
     pub fn necessary_components(
         &self,
         db: &AnnotationGraph,
