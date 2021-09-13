@@ -5,7 +5,10 @@ use graphannis_core::{annostorage::AnnotationStorage, types::NodeID};
 use crate::{
     annis::{
         db::exec::MatchFilterFunc,
-        operator::{BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec},
+        operator::{
+            BinaryOperator, BinaryOperatorIndex, BinaryOperatorSpec, UnaryOperator,
+            UnaryOperatorSpec,
+        },
     },
     AnnotationGraph,
 };
@@ -37,17 +40,19 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
         &'b self,
         g: &'b AnnotationGraph,
     ) -> Option<Box<dyn crate::annis::operator::UnaryOperator + 'b>> {
-        let op = NonExistingUnaryOperator {
-            negated_op: self.negated_op.create_operator(g)?,
-            filter: &self.filter,
-            node_annos: g.get_node_annos(),
-        };
-        Some(Box::new(op))
+        match self.negated_op.create_operator(g)? {
+            BinaryOperator::Base(_) => None,
+            BinaryOperator::Index(negated_op) => Some(Box::new(NonExistingUnaryOperator {
+                negated_op,
+                filter: &self.filter,
+                node_annos: g.get_node_annos(),
+            })),
+        }
     }
 }
 
 struct NonExistingUnaryOperator<'a> {
-    negated_op: BinaryOperator<'a>,
+    negated_op: Box<dyn BinaryOperatorIndex + 'a>,
     node_annos: &'a dyn AnnotationStorage<NodeID>,
     filter: &'a Vec<MatchFilterFunc>,
 }
@@ -62,11 +67,10 @@ impl<'a> Display for NonExistingUnaryOperator<'a> {
 
 impl<'a> UnaryOperator for NonExistingUnaryOperator<'a> {
     fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> bool {
-        match &self.negated_op {
-            BinaryOperator::Base(_) => todo!(),
-            BinaryOperator::Index(op) => !op
-                .retrieve_matches(&m)
-                .any(|m| self.filter.iter().all(|f| f(&m, self.node_annos))),
-        }
+        // Only return true of no match was found which matches the operator and node filter
+        !self
+            .negated_op
+            .retrieve_matches(&m)
+            .any(|m| self.filter.iter().all(|f| f(&m, self.node_annos)))
     }
 }
