@@ -14,7 +14,8 @@ lalrpop_mod!(
 use crate::annis::db::aql::conjunction::Conjunction;
 use crate::annis::db::aql::disjunction::Disjunction;
 use crate::annis::db::aql::operators::{
-    EqualValueSpec, IdenticalNodeSpec, NegatedOpSpec, PartOfSubCorpusSpec, RangeSpec,
+    EqualValueSpec, IdenticalNodeSpec, NegatedOpSpec, NonExistingUnaryOperatorSpec,
+    PartOfSubCorpusSpec, RangeSpec,
 };
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::errors::*;
@@ -105,63 +106,77 @@ fn map_conjunction(
             let node_left = q.resolve_variable(&var_left, op_pos.clone())?;
             let node_right = q.resolve_variable(&var_right, op_pos.clone())?;
 
-            if node_left.optional && node_right.optional {
-                // Not supported yet
-                return Err(GraphAnnisError::AQLSemanticError(AQLError {
+            if quirks_mode {
+                match op {
+                    ast::BinaryOpSpec::Dominance(_) | ast::BinaryOpSpec::Pointing(_) => {
+                        let entry_lhs = num_pointing_or_dominance_joins
+                            .entry(var_left.clone())
+                            .or_insert(0);
+                        *entry_lhs += 1;
+                        let entry_rhs = num_pointing_or_dominance_joins
+                            .entry(var_right.clone())
+                            .or_insert(0);
+                        *entry_rhs += 1;
+                    }
+                    ast::BinaryOpSpec::Precedence(ref mut spec) => {
+                        // limit unspecified .* precedence to 50
+                        spec.dist = if let RangeSpec::Unbound = spec.dist {
+                            RangeSpec::Bound {
+                                min_dist: 1,
+                                max_dist: 50,
+                            }
+                        } else {
+                            spec.dist.clone()
+                        };
+                    }
+                    ast::BinaryOpSpec::Near(ref mut spec) => {
+                        // limit unspecified ^* near-by operator to 50
+                        spec.dist = if let RangeSpec::Unbound = spec.dist {
+                            RangeSpec::Bound {
+                                min_dist: 1,
+                                max_dist: 50,
+                            }
+                        } else {
+                            spec.dist.clone()
+                        };
+                    }
+                    _ => {}
+                }
+            }
+            let mut op_spec =
+                make_binary_operator_spec(op, node_left.spec.clone(), node_right.spec.clone())?;
+            if negated {
+                op_spec = Box::new(NegatedOpSpec {
+                    spec_left: node_left.spec.clone(),
+                    spec_right: node_right.spec.clone(),
+                    negated_op: op_spec,
+                });
+                if node_left.optional && node_right.optional {
+                    // Not supported yet
+                    return Err(GraphAnnisError::AQLSemanticError(AQLError {
                     desc: format!(
                         "Negated binary operator needs a non-optional left or right operand, but both operands (#{}, #{}) are optional, as indicated by their \"?\" suffix.", 
                         var_left, var_right),
                     location: op_pos,
                 }));
-            } else if node_left.optional {
-            } else if node_right.optional {
-            } else {
-                if quirks_mode {
-                    match op {
-                        ast::BinaryOpSpec::Dominance(_) | ast::BinaryOpSpec::Pointing(_) => {
-                            let entry_lhs = num_pointing_or_dominance_joins
-                                .entry(var_left.clone())
-                                .or_insert(0);
-                            *entry_lhs += 1;
-                            let entry_rhs = num_pointing_or_dominance_joins
-                                .entry(var_right.clone())
-                                .or_insert(0);
-                            *entry_rhs += 1;
-                        }
-                        ast::BinaryOpSpec::Precedence(ref mut spec) => {
-                            // limit unspecified .* precedence to 50
-                            spec.dist = if let RangeSpec::Unbound = spec.dist {
-                                RangeSpec::Bound {
-                                    min_dist: 1,
-                                    max_dist: 50,
-                                }
-                            } else {
-                                spec.dist.clone()
-                            };
-                        }
-                        ast::BinaryOpSpec::Near(ref mut spec) => {
-                            // limit unspecified ^* near-by operator to 50
-                            spec.dist = if let RangeSpec::Unbound = spec.dist {
-                                RangeSpec::Bound {
-                                    min_dist: 1,
-                                    max_dist: 50,
-                                }
-                            } else {
-                                spec.dist.clone()
-                            };
-                        }
-                        _ => {}
-                    }
-                }
-                let mut op_spec =
-                    make_binary_operator_spec(op, node_left.spec.clone(), node_right.spec.clone())?;
-                if negated {
-                    op_spec = Box::new(NegatedOpSpec {
-                        spec_left: node_left.spec,
-                        spec_right: node_right.spec,
+                } else if node_left.optional {
+                    let spec = NonExistingUnaryOperatorSpec {
+                        node_search: node_left.spec.clone(),
+                        node_location: node_left.location,
                         negated_op: op_spec,
-                    });
+                    };
+                    q.add_unary_operator_from_query(Box::new(spec), &node_right.var, op_pos)?;
+                } else if node_right.optional {
+                    let spec = NonExistingUnaryOperatorSpec {
+                        node_search: node_right.spec.clone(),
+                        node_location: node_right.location,
+                        negated_op: op_spec,
+                    };
+                    q.add_unary_operator_from_query(Box::new(spec), &node_left.var, op_pos)?;
+                } else {
+                    q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?
                 }
+            } else {
                 q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?;
             }
         }
