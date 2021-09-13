@@ -1,4 +1,4 @@
-use super::super::{Desc, ExecutionNode, NodeSearchDesc};
+use super::super::{ExecutionNode, ExecutionNodeDesc, NodeSearchDesc};
 use crate::annis::db::aql::conjunction::BinaryOperatorArguments;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::operator::BinaryOperatorIndex;
@@ -21,7 +21,7 @@ pub struct IndexJoin<'a> {
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: &'a dyn AnnotationStorage<NodeID>,
-    desc: Desc,
+    desc: ExecutionNodeDesc,
     global_reflexivity: bool,
 }
 
@@ -41,7 +41,7 @@ impl<'a> IndexJoin<'a> {
         op_args: &BinaryOperatorArguments,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: &'a dyn AnnotationStorage<NodeID>,
-        rhs_desc: Option<&Desc>,
+        rhs_desc: Option<&ExecutionNodeDesc>,
     ) -> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
         let lhs_peek = lhs.peekable();
@@ -68,7 +68,7 @@ impl<'a> IndexJoin<'a> {
         };
 
         IndexJoin {
-            desc: Desc::join(
+            desc: ExecutionNodeDesc::join(
                 op.as_binary_operator(),
                 lhs_desc.as_ref(),
                 rhs_desc,
@@ -196,7 +196,7 @@ impl<'a> ExecutionNode for IndexJoin<'a> {
         self
     }
 
-    fn get_desc(&self) -> Option<&Desc> {
+    fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         Some(&self.desc)
     }
 }

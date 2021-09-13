@@ -1,5 +1,5 @@
 use super::MatchFilterFunc;
-use super::{Desc, ExecutionNode, NodeSearchDesc};
+use super::{ExecutionNode, ExecutionNodeDesc, NodeSearchDesc};
 use crate::annis::db::exec::tokensearch;
 use crate::annis::db::exec::tokensearch::AnyTokenSearch;
 use crate::annis::db::{aql::model::AnnotationComponentType, AnnotationStorage};
@@ -28,7 +28,7 @@ pub struct NodeSearch<'a> {
     /// The actual search implementation
     it: Box<dyn Iterator<Item = MatchGroup> + 'a>,
 
-    desc: Option<Desc>,
+    desc: Option<ExecutionNodeDesc>,
     node_search_desc: Arc<NodeSearchDesc>,
     is_sorted: bool,
 }
@@ -360,7 +360,7 @@ impl<'a> NodeSearch<'a> {
 
                 Ok(NodeSearch {
                     it: Box::new(it),
-                    desc: Some(Desc::empty_with_fragment(
+                    desc: Some(ExecutionNodeDesc::empty_with_fragment(
                         super::NodeDescArg {
                             query_fragment,
                             node_nr,
@@ -478,7 +478,7 @@ impl<'a> NodeSearch<'a> {
         }
         Ok(NodeSearch {
             it: Box::new(it),
-            desc: Some(Desc::empty_with_fragment(
+            desc: Some(ExecutionNodeDesc::empty_with_fragment(
                 super::NodeDescArg {
                     query_fragment: query_fragment.to_owned(),
                     node_nr,
@@ -589,7 +589,10 @@ impl<'a> NodeSearch<'a> {
 
         Ok(NodeSearch {
             it: Box::new(it),
-            desc: Some(Desc::empty_with_fragment(node_desc_arg, Some(est_output))),
+            desc: Some(ExecutionNodeDesc::empty_with_fragment(
+                node_desc_arg,
+                Some(est_output),
+            )),
             node_search_desc: Arc::new(NodeSearchDesc {
                 qname: (qname.0, Some(qname.1)),
                 cond: filters,
@@ -829,7 +832,7 @@ impl<'a> NodeSearch<'a> {
 
         Ok(NodeSearch {
             it: Box::new(it),
-            desc: Some(Desc::empty_with_fragment(
+            desc: Some(ExecutionNodeDesc::empty_with_fragment(
                 super::NodeDescArg {
                     query_fragment: query_fragment.to_owned(),
                     node_nr,
@@ -888,7 +891,7 @@ impl<'a> NodeSearch<'a> {
 
         Ok(NodeSearch {
             it: Box::new(it),
-            desc: Some(Desc::empty_with_fragment(
+            desc: Some(ExecutionNodeDesc::empty_with_fragment(
                 super::NodeDescArg {
                     query_fragment: query_fragment.to_owned(),
                     node_nr,
@@ -910,7 +913,7 @@ impl<'a> NodeSearch<'a> {
     pub fn new_partofcomponentsearch(
         db: &'a AnnotationGraph,
         node_search_desc: Arc<NodeSearchDesc>,
-        desc: Option<&Desc>,
+        desc: Option<&ExecutionNodeDesc>,
         components: HashSet<Component<AnnotationComponentType>>,
         edge_anno_spec: Option<EdgeAnnoSearchSpec>,
     ) -> Result<NodeSearch<'a>> {
@@ -981,7 +984,7 @@ impl<'a> NodeSearch<'a> {
         })
     }
 
-    pub fn set_desc(&mut self, desc: Option<Desc>) {
+    pub fn set_desc(&mut self, desc: Option<ExecutionNodeDesc>) {
         self.desc = desc;
     }
 
@@ -995,7 +998,7 @@ impl<'a> ExecutionNode for NodeSearch<'a> {
         self
     }
 
-    fn get_desc(&self) -> Option<&Desc> {
+    fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         self.desc.as_ref()
     }
 

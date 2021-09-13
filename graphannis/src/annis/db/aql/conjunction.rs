@@ -8,7 +8,7 @@ use crate::annis::db::exec::indexjoin::IndexJoin;
 use crate::annis::db::exec::nestedloop::NestedLoop;
 use crate::annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use crate::annis::db::exec::parallel;
-use crate::annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
+use crate::annis::db::exec::{CostEstimate, ExecutionNode, ExecutionNodeDesc, NodeSearchDesc};
 use crate::annis::db::{aql::model::AnnotationComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::{
@@ -62,7 +62,7 @@ pub struct UnaryOperatorEntry<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Node {
+pub struct NodeSearchSpecEntry {
     pub var: String,
     pub spec: NodeSearchSpec,
     pub optional: bool,
@@ -70,7 +70,7 @@ pub struct Node {
 
 #[derive(Debug)]
 pub struct Conjunction {
-    nodes: Vec<Node>,
+    nodes: Vec<NodeSearchSpecEntry>,
     binary_operators: Vec<BinaryOperatorSpecEntry>,
     unary_operators: Vec<UnaryOperatorSpecEntry>,
     variables: HashMap<String, usize>,
@@ -279,7 +279,7 @@ impl Conjunction {
         } else {
             (idx + 1).to_string()
         };
-        self.nodes.push(Node {
+        self.nodes.push(NodeSearchSpecEntry {
             var: variable.clone(),
             spec: node,
             optional,
@@ -379,7 +379,7 @@ impl Conjunction {
         &self,
         variable: &str,
         location: Option<LineColumnRange>,
-    ) -> Result<Node> {
+    ) -> Result<NodeSearchSpecEntry> {
         let idx = self.resolve_variable_pos(variable, location.clone())?;
         if let Some(pos) = idx.checked_sub(self.var_idx_offset) {
             if pos < self.nodes.len() {
@@ -513,7 +513,7 @@ impl Conjunction {
     fn optimize_node_search_by_operator<'a>(
         &'a self,
         node_search_desc: Arc<NodeSearchDesc>,
-        desc: Option<&Desc>,
+        desc: Option<&ExecutionNodeDesc>,
         op_spec_entries: Box<dyn Iterator<Item = &'a BinaryOperatorSpecEntry> + 'a>,
         db: &'a AnnotationGraph,
     ) -> Option<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> {
@@ -608,7 +608,7 @@ impl Conjunction {
                 // make sure the description is correct
                 let mut node_pos = BTreeMap::new();
                 node_pos.insert(node_nr, 0);
-                let new_desc = Desc {
+                let new_desc = ExecutionNodeDesc {
                     component_nr: node_nr,
                     lhs: None,
                     rhs: None,

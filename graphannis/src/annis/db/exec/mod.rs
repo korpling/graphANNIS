@@ -19,11 +19,12 @@ pub struct CostEstimate {
     pub processed_in_step: usize,
 }
 
+/// Representation of the execution node tree.
 #[derive(Debug, Clone)]
-pub struct Desc {
+pub struct ExecutionNodeDesc {
     pub component_nr: usize,
-    pub lhs: Option<Box<Desc>>,
-    pub rhs: Option<Box<Desc>>,
+    pub lhs: Option<Box<ExecutionNodeDesc>>,
+    pub rhs: Option<Box<ExecutionNodeDesc>>,
     /// Maps the index of the node in the actual result to the index in the internal execution plan intermediate result.
     pub node_pos: BTreeMap<usize, usize>,
     pub impl_description: String,
@@ -56,8 +57,11 @@ pub struct NodeDescArg {
     node_nr: usize,
 }
 
-impl Desc {
-    pub fn empty_with_fragment(node_desc_arg: NodeDescArg, est_size: Option<usize>) -> Desc {
+impl ExecutionNodeDesc {
+    pub fn empty_with_fragment(
+        node_desc_arg: NodeDescArg,
+        est_size: Option<usize>,
+    ) -> ExecutionNodeDesc {
         let mut node_pos = BTreeMap::new();
         node_pos.insert(node_desc_arg.node_nr, 0);
 
@@ -67,7 +71,7 @@ impl Desc {
             processed_in_step: 0,
         });
 
-        Desc {
+        ExecutionNodeDesc {
             component_nr: 0,
             lhs: None,
             rhs: None,
@@ -80,12 +84,12 @@ impl Desc {
 
     pub fn join<Op: BinaryOperatorBase + ?Sized>(
         op: &Op,
-        lhs: Option<&Desc>,
-        rhs: Option<&Desc>,
+        lhs: Option<&ExecutionNodeDesc>,
+        rhs: Option<&ExecutionNodeDesc>,
         impl_description: &str,
         query_fragment: &str,
         processed_func: &dyn Fn(EstimationType, usize, usize) -> usize,
-    ) -> Desc {
+    ) -> ExecutionNodeDesc {
         let component_nr = if let Some(d) = lhs {
             d.component_nr
         } else if let Some(d) = rhs {
@@ -131,7 +135,7 @@ impl Desc {
             None
         };
 
-        Desc {
+        ExecutionNodeDesc {
             component_nr,
             lhs: lhs.map(|x| Box::new(x.clone())),
             rhs: rhs.map(|x| Box::new(x.clone())),
@@ -198,7 +202,7 @@ pub trait ExecutionNode: Iterator {
         None
     }
 
-    fn get_desc(&self) -> Option<&Desc> {
+    fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         None
     }
 
@@ -225,7 +229,7 @@ impl ExecutionNode for EmptyResultSet {
         None
     }
 
-    fn get_desc(&self) -> Option<&Desc> {
+    fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         None
     }
 }

@@ -1,6 +1,6 @@
 use crate::annis::db::aql::disjunction::Disjunction;
 use crate::annis::db::aql::Config;
-use crate::annis::db::exec::{Desc, EmptyResultSet, ExecutionNode};
+use crate::annis::db::exec::{EmptyResultSet, ExecutionNode, ExecutionNodeDesc};
 use crate::AnnotationGraph;
 use crate::{annis::errors::*, graph::Match};
 use graphannis_core::{
@@ -15,7 +15,7 @@ use std::sync::Arc;
 pub struct ExecutionPlan<'a> {
     plans: Vec<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
     current_plan: usize,
-    descriptions: Vec<Option<Desc>>,
+    descriptions: Vec<Option<ExecutionNodeDesc>>,
     inverse_node_pos: Vec<Option<Vec<usize>>>,
     proxy_mode: bool,
     unique_result_set: HashSet<Vec<(NodeID, Arc<AnnoKey>)>>,
