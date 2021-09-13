@@ -62,9 +62,15 @@ pub struct UnaryOperatorEntry {
 }
 
 #[derive(Debug)]
+struct Node {
+    var: String,
+    spec: NodeSearchSpec,
+    optional: bool,
+}
+
+#[derive(Debug)]
 pub struct Conjunction {
-    nodes: Vec<(String, NodeSearchSpec)>,
-    optional_nodes: Vec<(String, NodeSearchSpec)>,
+    nodes: Vec<Node>,
     binary_operators: Vec<BinaryOperatorSpecEntry>,
     unary_operators: Vec<UnaryOperatorSpecEntry>,
     variables: HashMap<String, usize>,
@@ -211,7 +217,6 @@ impl Conjunction {
     pub fn new() -> Conjunction {
         Conjunction {
             nodes: vec![],
-            optional_nodes: vec![],
             binary_operators: vec![],
             unary_operators: vec![],
             variables: HashMap::default(),
@@ -224,7 +229,6 @@ impl Conjunction {
     pub fn with_offset(var_idx_offset: usize) -> Conjunction {
         Conjunction {
             nodes: vec![],
-            optional_nodes: vec![],
             binary_operators: vec![],
             unary_operators: vec![],
             variables: HashMap::default(),
@@ -240,16 +244,16 @@ impl Conjunction {
 
     pub fn get_node_descriptions(&self) -> Vec<QueryAttributeDescription> {
         let mut result = Vec::default();
-        for (var, spec) in &self.nodes {
-            let anno_name = match spec {
+        for n in &self.nodes {
+            let anno_name = match &n.spec {
                 NodeSearchSpec::ExactValue { name, .. } => Some(name.clone()),
                 NodeSearchSpec::RegexValue { name, .. } => Some(name.clone()),
                 _ => None,
             };
             let desc = QueryAttributeDescription {
                 alternative: 0,
-                query_fragment: format!("{}", spec),
-                variable: var.clone(),
+                query_fragment: format!("{}", n.spec),
+                variable: n.var.clone(),
                 anno_name,
             };
             result.push(desc);
@@ -275,11 +279,12 @@ impl Conjunction {
         } else {
             (idx + 1).to_string()
         };
-        if optional {
-            self.optional_nodes.push((variable.clone(), node));
-        } else {
-            self.nodes.push((variable.clone(), node));
-        }
+        self.nodes.push(Node {
+            var: variable.clone(),
+            spec: node,
+            optional,
+        });
+
         self.variables.insert(variable.clone(), idx);
         if included_in_output {
             self.include_in_output.insert(variable.clone());
@@ -365,7 +370,7 @@ impl Conjunction {
 
     pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
         if pos < self.nodes.len() {
-            return Some(self.nodes[pos].0.clone());
+            return Some(self.nodes[pos].var.clone());
         }
         None
     }
@@ -378,7 +383,7 @@ impl Conjunction {
         let idx = self.resolve_variable_pos(variable, location.clone())?;
         if let Some(pos) = idx.checked_sub(self.var_idx_offset) {
             if pos < self.nodes.len() {
-                return Ok(self.nodes[pos].1.clone());
+                return Ok(self.nodes[pos].spec.clone());
             }
         }
 
@@ -404,7 +409,7 @@ impl Conjunction {
             result.extend(c);
         }
         for n in &self.nodes {
-            result.extend(n.1.necessary_components(db));
+            result.extend(n.spec.necessary_components(db));
         }
 
         result
@@ -585,8 +590,8 @@ impl Conjunction {
         let mut node2cost: BTreeMap<usize, CostEstimate> = BTreeMap::new();
 
         for node_nr in 0..self.nodes.len() {
-            let n_spec = &self.nodes[node_nr].1;
-            let n_var = &self.nodes[node_nr].0;
+            let n_spec = &self.nodes[node_nr].spec;
+            let n_var = &self.nodes[node_nr].var;
 
             let node_search = NodeSearch::from_spec(
                 n_spec.clone(),
@@ -815,7 +820,7 @@ impl Conjunction {
             } else if let Some(first) = first_component_id {
                 if first != *cid {
                     // add location and description which node is not connected
-                    let n_var = &self.nodes[*node_nr].0;
+                    let n_var = &self.nodes[*node_nr].var;
                     let location = self.location_in_query.get(n_var);
 
                     return Err(GraphAnnisError::AQLSemanticError(AQLError {
