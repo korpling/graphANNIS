@@ -37,6 +37,7 @@ pub enum Literal {
         spec: NodeSearchSpec,
         pos: Option<Pos>,
         variable: Option<String>,
+        optional: bool,
     },
     BinaryOp {
         lhs: Operand,
@@ -63,6 +64,7 @@ pub enum Operand {
         spec: Rc<NodeSearchSpec>,
         pos: Pos,
         variable: Option<String>,
+        optional: bool,
     },
 }
 

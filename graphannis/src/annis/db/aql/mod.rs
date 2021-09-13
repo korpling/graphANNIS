@@ -173,7 +173,7 @@ fn map_conjunction(
     Ok(q)
 }
 
-type PosToNodeMap = BTreeMap<usize, (NodeSearchSpec, Option<String>)>;
+type PosToNodeMap = BTreeMap<usize, (NodeSearchSpec, Option<String>, bool)>;
 type PosToEndPosMap = BTreeMap<usize, usize>;
 
 fn calculate_node_positions(
@@ -190,9 +190,10 @@ fn calculate_node_positions(
                 spec,
                 pos,
                 variable,
+                optional,
             } => {
                 if let Some(pos) = pos {
-                    pos_to_node.insert(pos.start, (spec.clone(), variable.clone()));
+                    pos_to_node.insert(pos.start, (spec.clone(), variable.clone(), *optional));
                     pos_to_endpos.insert(pos.start, pos.end);
                 }
             }
@@ -201,22 +202,24 @@ fn calculate_node_positions(
                     spec,
                     pos,
                     variable,
+                    optional,
                 } = lhs
                 {
                     pos_to_node
                         .entry(pos.start)
-                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
+                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone(), *optional));
                     pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
                 }
                 if let ast::Operand::Literal {
                     spec,
                     pos,
                     variable,
+                    optional,
                 } = rhs
                 {
                     pos_to_node
                         .entry(pos.start)
-                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
+                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone(), *optional));
                     pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
                 }
             }
@@ -244,12 +247,12 @@ fn calculate_node_positions(
 
 fn add_node_specs_by_start(
     q: &mut Conjunction,
-    pos_to_node: BTreeMap<usize, (NodeSearchSpec, Option<String>)>,
+    pos_to_node: BTreeMap<usize, (NodeSearchSpec, Option<String>, bool)>,
     pos_to_endpos: BTreeMap<usize, usize>,
     offsets: &BTreeMap<usize, usize>,
 ) -> Result<BTreeMap<usize, String>> {
     let mut pos_to_node_id: BTreeMap<usize, String> = BTreeMap::default();
-    for (start_pos, (node_spec, variable)) in pos_to_node {
+    for (start_pos, (node_spec, variable, optional)) in pos_to_node {
         let start = get_line_and_column_for_pos(start_pos, offsets);
         let end = pos_to_endpos
             .get(&start_pos)
@@ -260,6 +263,7 @@ fn add_node_specs_by_start(
             variable.as_deref(),
             Some(LineColumnRange { start, end }),
             true,
+            optional,
         );
         pos_to_node_id.insert(start_pos, idx.clone());
     }
@@ -277,7 +281,7 @@ fn add_legacy_metadata_constraints(
         // TODO: add warning to the user not to use this construct anymore
         for (spec, _pos) in legacy_meta_search {
             // add an artificial node that describes the document/corpus node
-            let meta_node_idx = q.add_node_from_query(spec, None, None, false);
+            let meta_node_idx = q.add_node_from_query(spec, None, None, false, false);
             if let Some(first_meta_idx) = first_meta_idx.clone() {
                 // avoid nested loops by joining additional meta nodes with a "identical node"
                 q.add_operator(
@@ -308,6 +312,7 @@ fn add_legacy_metadata_constraints(
                     },
                     None,
                     None,
+                    false,
                     false,
                 );
                 q.add_operator(

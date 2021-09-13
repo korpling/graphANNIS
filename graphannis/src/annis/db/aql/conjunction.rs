@@ -64,6 +64,7 @@ pub struct UnaryOperatorEntry {
 #[derive(Debug)]
 pub struct Conjunction {
     nodes: Vec<(String, NodeSearchSpec)>,
+    optional_nodes: Vec<(String, NodeSearchSpec)>,
     binary_operators: Vec<BinaryOperatorSpecEntry>,
     unary_operators: Vec<UnaryOperatorSpecEntry>,
     variables: HashMap<String, usize>,
@@ -210,6 +211,7 @@ impl Conjunction {
     pub fn new() -> Conjunction {
         Conjunction {
             nodes: vec![],
+            optional_nodes: vec![],
             binary_operators: vec![],
             unary_operators: vec![],
             variables: HashMap::default(),
@@ -222,6 +224,7 @@ impl Conjunction {
     pub fn with_offset(var_idx_offset: usize) -> Conjunction {
         Conjunction {
             nodes: vec![],
+            optional_nodes: vec![],
             binary_operators: vec![],
             unary_operators: vec![],
             variables: HashMap::default(),
@@ -255,7 +258,7 @@ impl Conjunction {
     }
 
     pub fn add_node(&mut self, node: NodeSearchSpec, variable: Option<&str>) -> String {
-        self.add_node_from_query(node, variable, None, true)
+        self.add_node_from_query(node, variable, None, true, false)
     }
 
     pub fn add_node_from_query(
@@ -264,6 +267,7 @@ impl Conjunction {
         variable: Option<&str>,
         location: Option<LineColumnRange>,
         included_in_output: bool,
+        optional: bool,
     ) -> String {
         let idx = self.var_idx_offset + self.nodes.len();
         let variable = if let Some(variable) = variable {
@@ -271,7 +275,11 @@ impl Conjunction {
         } else {
             (idx + 1).to_string()
         };
-        self.nodes.push((variable.clone(), node));
+        if optional {
+            self.optional_nodes.push((variable.clone(), node));
+        } else {
+            self.nodes.push((variable.clone(), node));
+        }
         self.variables.insert(variable.clone(), idx);
         if included_in_output {
             self.include_in_output.insert(variable.clone());
@@ -294,7 +302,7 @@ impl Conjunction {
             Ok(())
         } else {
             Err(GraphAnnisError::AQLSemanticError(AQLError {
-                desc: format!("Operand '#{}' not found", var),
+                desc: format!("Operand \"#{}\" not found", var),
                 location,
             }))
         }
@@ -346,7 +354,7 @@ impl Conjunction {
             return Ok(*pos);
         }
         Err(GraphAnnisError::AQLSemanticError(AQLError {
-            desc: format!("Operand '#{}' not found", variable),
+            desc: format!("Operand \"#{}\" not found", variable),
             location,
         }))
     }
@@ -375,7 +383,7 @@ impl Conjunction {
         }
 
         Err(GraphAnnisError::AQLSemanticError(AQLError {
-            desc: format!("Operand '#{}' not found", variable),
+            desc: format!("Operand \"#{}\" not found", variable),
             location,
         }))
     }
@@ -812,7 +820,7 @@ impl Conjunction {
 
                     return Err(GraphAnnisError::AQLSemanticError(AQLError {
                         desc: format!(
-                            "Variable \"{}\" not bound (use linguistic operators)",
+                            "Variable \"#{}\" not bound (use linguistic operators)",
                             n_var
                         ),
                         location: location.cloned(),

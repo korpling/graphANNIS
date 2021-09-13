@@ -66,9 +66,10 @@ Factor : ast::Expr = {
 
 Literal : ast::Expr = {
     // any node annotation search
-    <start: @L> <var:(VARIABLE_DEF)?> <spec:NodeSearch> <end: @R> => {
+    <start: @L> <var:(VARIABLE_DEF)?> <spec:NodeSearch> <optional:"?"?> <end: @R> => {
         let pos = Some(ast::Pos{start, end});
-        Expr::Terminal(ast::Literal::NodeSearch{pos, spec, variable: var.and_then(|s| Some(s[0..s.len()-1].to_string()))})
+        let optional = optional.is_some();
+        Expr::Terminal(ast::Literal::NodeSearch{pos, spec, optional, variable: var.and_then(|s| Some(s[0..s.len()-1].to_string()))})
     },
     // binary operator
     <start: @L> <lhs:Operand> <neg:"!"?> <op:BinaryOpSpec> <rhs:Operand> <tail:("!"? BinaryOpSpec Operand)*> <end: @R> => {
@@ -181,11 +182,12 @@ Literal : ast::Expr = {
 
 Operand : ast::Operand = {
     NodeRef =>  ast::Operand::NodeRef(<>),
-    <start:@L> <var:(VARIABLE_DEF)?> <spec:NodeSearch> <end:@R> => {
+    <start:@L> <var:(VARIABLE_DEF)?> <spec:NodeSearch> <optional:"?"?> <end:@R> => {
         let pos = ast::Pos {start, end};
         let spec = Rc::from(spec);
         let variable = var.and_then(|s| Some(s[0..s.len()-1].to_string()));
-        ast::Operand::Literal{spec, pos, variable, }
+        let optional = optional.is_some();
+        ast::Operand::Literal{spec, pos, variable, optional}
     },
 }
 
