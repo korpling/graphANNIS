@@ -233,7 +233,7 @@ NodeSearch : NodeSearchSpec = {
         };
         spec
     },
-    // searching for a span value on any tokenization/segmentation layer abc"
+    // searching for a span value on any tokenization/segmentation layer, e.g. "abc"
     <val:TextSearch> => {
         let spec = match val.1 { 
             ast::StringMatchType::Exact => {

@@ -4,6 +4,7 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::operator::BinaryOperatorIndex;
 use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
+use smallvec::SmallVec;
 use std::boxed::Box;
 use std::iter::Peekable;
 use std::sync::Arc;
@@ -83,7 +84,7 @@ impl<'a> IndexJoin<'a> {
         }
     }
 
-    fn next_candidates(&mut self) -> Option<MatchGroup> {
+    fn next_candidates(&mut self) -> Option<SmallVec<[Match; 8]>> {
         if let Some(m_lhs) = self.lhs.peek().cloned() {
             let it_nodes = Box::from(
                 self.op

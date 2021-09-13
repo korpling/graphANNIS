@@ -155,13 +155,13 @@ where
 
     /// Get the matching annotation keys for each item in the iterator.
     ///
-    /// This function allows to filter the received annotation keys by the specifying the namespace and name.
+    /// This function allows to filter the received annotation keys by specifying the namespace and name.
     fn get_keys_for_iterator(
         &self,
         ns: Option<&str>,
         name: Option<&str>,
         it: Box<dyn Iterator<Item = T>>,
-    ) -> MatchGroup;
+    ) -> SmallVec<[Match; 8]>;
 
     /// Return the total number of annotations contained in this `AnnotationStorage`.
     fn number_of_annotations(&self) -> usize;

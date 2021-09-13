@@ -1,4 +1,4 @@
-use super::MatchFilterFunc;
+use super::MatchValueFilterFunc;
 use super::{ExecutionNode, ExecutionNodeDesc, NodeSearchDesc};
 use crate::annis::db::exec::tokensearch;
 use crate::annis::db::exec::tokensearch::AnyTokenSearch;
@@ -91,6 +91,187 @@ impl NodeSearchSpec {
         }
         HashSet::default()
     }
+
+    /// Get the annotatio qualified name needed to execute a search with this specification.
+    pub fn get_anno_qname(&self) -> (Option<String>, Option<String>) {
+        match self {
+            NodeSearchSpec::ExactValue { ns, name, .. }
+            | NodeSearchSpec::NotExactValue { ns, name, .. }
+            | NodeSearchSpec::RegexValue { ns, name, .. }
+            | NodeSearchSpec::NotRegexValue { ns, name, .. } => {
+                (ns.to_owned(), Some(name.to_owned()))
+            }
+            NodeSearchSpec::ExactTokenValue { .. }
+            | NodeSearchSpec::NotExactTokenValue { .. }
+            | NodeSearchSpec::RegexTokenValue { .. }
+            | NodeSearchSpec::NotRegexTokenValue { .. }
+            | NodeSearchSpec::AnyToken { .. } => (
+                Some(TOKEN_KEY.ns.clone().into()),
+                Some(TOKEN_KEY.name.clone().into()),
+            ),
+            NodeSearchSpec::AnyNode => (
+                Some(NODE_TYPE_KEY.ns.clone().into()),
+                Some(NODE_TYPE_KEY.name.clone().into()),
+            ),
+        }
+    }
+
+    /// Creates a vector of value filter functions for this node annotation search.
+    pub fn get_value_filter(
+        &self,
+        g: &AnnotationGraph,
+        location_in_query: Option<LineColumnRange>,
+    ) -> Result<Vec<MatchValueFilterFunc>> {
+        let mut filters: Vec<MatchValueFilterFunc> = Vec::new();
+        match self {
+            NodeSearchSpec::ExactValue { val, .. } => {
+                if let Some(val) = val {
+                    let val: String = val.to_owned();
+                    filters.push(Box::new(move |m, node_annos| {
+                        if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
+                        {
+                            anno_val == val.as_str()
+                        } else {
+                            false
+                        }
+                    }));
+                }
+            }
+            NodeSearchSpec::NotExactValue { val, .. } => {
+                let val: String = val.to_owned();
+                filters.push(Box::new(move |m, node_annos| {
+                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
+                        anno_val != val.as_str()
+                    } else {
+                        false
+                    }
+                }));
+            }
+            NodeSearchSpec::RegexValue { val, .. } => {
+                let full_match_pattern = graphannis_core::util::regex_full_match(val);
+                let re = regex::Regex::new(&full_match_pattern);
+                match re {
+                    Ok(re) => {
+                        filters.push(Box::new(move |m, node_annos| {
+                            if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
+                                re.is_match(&val)
+                            } else {
+                                false
+                            }
+                        }));
+                    }
+                    Err(e) => {
+                        return Err(GraphAnnisError::AQLSemanticError(AQLError {
+                            desc: format!("/{}/ -> {}", val, e),
+                            location: location_in_query,
+                        }));
+                    }
+                }
+            }
+            NodeSearchSpec::NotRegexValue { val, .. } => {
+                let full_match_pattern = graphannis_core::util::regex_full_match(val);
+                let re = regex::Regex::new(&full_match_pattern);
+                match re {
+                    Ok(re) => {
+                        filters.push(Box::new(move |m, node_annos| {
+                            if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
+                                !re.is_match(&val)
+                            } else {
+                                false
+                            }
+                        }));
+                    }
+                    Err(e) => {
+                        return Err(GraphAnnisError::AQLSemanticError(AQLError {
+                            desc: format!("/{}/ -> {}", val, e),
+                            location: location_in_query,
+                        }));
+                    }
+                }
+            }
+            NodeSearchSpec::ExactTokenValue { val, leafs_only } => {
+                let val = val.clone();
+                filters.push(Box::new(move |m, node_annos| {
+                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
+                        anno_val == val.as_str()
+                    } else {
+                        false
+                    }
+                }));
+                if *leafs_only {
+                    filters.push(create_token_leaf_filter(g));
+                }
+            }
+            NodeSearchSpec::NotExactTokenValue { val } => {
+                let val = val.clone();
+                filters.push(Box::new(move |m, node_annos| {
+                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
+                        anno_val != val.as_str()
+                    } else {
+                        false
+                    }
+                }));
+            }
+            NodeSearchSpec::RegexTokenValue { val, leafs_only } => {
+                let full_match_pattern = graphannis_core::util::regex_full_match(val);
+                let re = regex::Regex::new(&full_match_pattern);
+                match re {
+                    Ok(re) => filters.push(Box::new(move |m, node_annos| {
+                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
+                            re.is_match(&val)
+                        } else {
+                            false
+                        }
+                    })),
+                    Err(e) => {
+                        return Err(GraphAnnisError::AQLSemanticError(AQLError {
+                            desc: format!("/{}/ -> {}", val, e),
+                            location: location_in_query,
+                        }));
+                    }
+                };
+                if *leafs_only {
+                    filters.push(create_token_leaf_filter(g));
+                }
+            }
+            NodeSearchSpec::NotRegexTokenValue { val } => {
+                let full_match_pattern = graphannis_core::util::regex_full_match(val);
+                let re = regex::Regex::new(&full_match_pattern);
+                match re {
+                    Ok(re) => filters.push(Box::new(move |m, node_annos| {
+                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
+                            !re.is_match(&val)
+                        } else {
+                            false
+                        }
+                    })),
+                    Err(e) => {
+                        return Err(GraphAnnisError::AQLSemanticError(AQLError {
+                            desc: format!("/{}/ -> {}", val, e),
+                            location: location_in_query,
+                        }));
+                    }
+                };
+            }
+            NodeSearchSpec::AnyToken => {
+                filters.push(create_token_leaf_filter(g));
+            }
+            NodeSearchSpec::AnyNode => {
+                let filter_func: Box<
+                    dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync,
+                > = Box::new(move |m, node_annos| {
+                    if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
+                        val == "node"
+                    } else {
+                        false
+                    }
+                });
+                filters.push(filter_func)
+            }
+        }
+
+        Ok(filters)
+    }
 }
 
 impl fmt::Display for NodeSearchSpec {
@@ -182,6 +363,32 @@ impl fmt::Display for NodeSearchSpec {
     }
 }
 
+fn create_token_leaf_filter(g: &AnnotationGraph) -> MatchValueFilterFunc {
+    let cov_gs: Vec<Arc<dyn GraphStorage>> = g
+        .get_all_components(Some(AnnotationComponentType::Coverage), None)
+        .into_iter()
+        .filter_map(|c| g.get_graphstorage(&c))
+        .filter(|gs| {
+            if let Some(stats) = gs.get_statistics() {
+                stats.nodes > 0
+            } else {
+                true
+            }
+        })
+        .collect();
+
+    let filter_func: Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync> =
+        Box::new(move |m, _| {
+            for cov in cov_gs.iter() {
+                if cov.get_outgoing_edges(m.node).next().is_some() {
+                    return false;
+                }
+            }
+            true
+        });
+    filter_func
+}
+
 impl<'a> NodeSearch<'a> {
     pub fn from_spec(
         spec: NodeSearchSpec,
@@ -190,6 +397,8 @@ impl<'a> NodeSearch<'a> {
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         let query_fragment = format!("{}", spec);
+
+        let filters = spec.get_value_filter(db, location_in_query.to_owned())?;
 
         match spec {
             NodeSearchSpec::ExactValue {
@@ -201,6 +410,7 @@ impl<'a> NodeSearch<'a> {
                 db,
                 (ns, name),
                 val.into(),
+                filters,
                 is_meta,
                 &query_fragment,
                 node_nr,
@@ -214,6 +424,7 @@ impl<'a> NodeSearch<'a> {
                 db,
                 (ns, name),
                 ValueSearch::NotSome(val),
+                filters,
                 is_meta,
                 &query_fragment,
                 node_nr,
@@ -232,18 +443,19 @@ impl<'a> NodeSearch<'a> {
                         (ns, name),
                         &val,
                         false,
+                        filters,
                         is_meta,
                         NodeDescArg {
                             query_fragment,
                             node_nr,
                         },
-                        location_in_query,
                     )
                 } else {
                     NodeSearch::new_annosearch_exact(
                         db,
                         (ns, name),
                         ValueSearch::Some(val),
+                        filters,
                         is_meta,
                         &query_fragment,
                         node_nr,
@@ -264,18 +476,19 @@ impl<'a> NodeSearch<'a> {
                         (ns, name),
                         &val,
                         true,
+                        filters,
                         is_meta,
                         NodeDescArg {
                             query_fragment,
                             node_nr,
                         },
-                        location_in_query,
                     )
                 } else {
                     NodeSearch::new_annosearch_exact(
                         db,
                         (ns, name),
                         ValueSearch::NotSome(val),
+                        filters,
                         is_meta,
                         &query_fragment,
                         node_nr,
@@ -285,38 +498,38 @@ impl<'a> NodeSearch<'a> {
             NodeSearchSpec::ExactTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
                 db,
                 ValueSearch::Some(val),
+                filters,
                 leafs_only,
                 false,
                 &query_fragment,
                 node_nr,
-                location_in_query,
             ),
             NodeSearchSpec::NotExactTokenValue { val } => NodeSearch::new_tokensearch(
                 db,
                 ValueSearch::NotSome(val),
+                filters,
                 true,
                 false,
                 &query_fragment,
                 node_nr,
-                location_in_query,
             ),
             NodeSearchSpec::RegexTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
                 db,
                 ValueSearch::Some(val),
+                filters,
                 leafs_only,
                 true,
                 &query_fragment,
                 node_nr,
-                location_in_query,
             ),
             NodeSearchSpec::NotRegexTokenValue { val } => NodeSearch::new_tokensearch(
                 db,
                 ValueSearch::NotSome(val),
+                filters,
                 true,
                 true,
                 &query_fragment,
                 node_nr,
-                location_in_query,
             ),
             NodeSearchSpec::AnyToken => {
                 NodeSearch::new_anytoken_search(db, &query_fragment, node_nr)
@@ -374,6 +587,7 @@ impl<'a> NodeSearch<'a> {
         db: &'a AnnotationGraph,
         qname: (Option<String>, String),
         val: ValueSearch<String>,
+        filters: Vec<MatchValueFilterFunc>,
         is_meta: bool,
         query_fragment: &str,
         node_nr: usize,
@@ -442,29 +656,6 @@ impl<'a> NodeSearch<'a> {
 
         let it = base_it.map(|n| smallvec![n]);
 
-        let mut filters: Vec<MatchFilterFunc> = Vec::new();
-
-        match val {
-            ValueSearch::Any => {}
-            ValueSearch::Some(val) => {
-                filters.push(Box::new(move |m, node_annos| {
-                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                        anno_val == val.as_str()
-                    } else {
-                        false
-                    }
-                }));
-            }
-            ValueSearch::NotSome(val) => {
-                filters.push(Box::new(move |m, node_annos| {
-                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                        anno_val != val.as_str()
-                    } else {
-                        false
-                    }
-                }));
-            }
-        }
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
@@ -486,9 +677,9 @@ impl<'a> NodeSearch<'a> {
         qname: (Option<String>, String),
         pattern: &str,
         negated: bool,
+        filters: Vec<MatchValueFilterFunc>,
         is_meta: bool,
         node_desc_arg: NodeDescArg,
-        location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         // match_regex works only with values
         let base_it =
@@ -542,38 +733,6 @@ impl<'a> NodeSearch<'a> {
 
         let it = base_it.map(|n| smallvec![n]);
 
-        let mut filters: Vec<MatchFilterFunc> = Vec::new();
-
-        let full_match_pattern = graphannis_core::util::regex_full_match(pattern);
-        let re = regex::Regex::new(&full_match_pattern);
-        match re {
-            Ok(re) => {
-                if negated {
-                    filters.push(Box::new(move |m, node_annos| {
-                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                            !re.is_match(&val)
-                        } else {
-                            false
-                        }
-                    }));
-                } else {
-                    filters.push(Box::new(move |m, node_annos| {
-                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                            re.is_match(&val)
-                        } else {
-                            false
-                        }
-                    }));
-                }
-            }
-            Err(e) => {
-                return Err(GraphAnnisError::AQLSemanticError(AQLError {
-                    desc: format!("/{}/ -> {}", pattern, e),
-                    location: location_in_query,
-                }));
-            }
-        }
-
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
@@ -593,11 +752,11 @@ impl<'a> NodeSearch<'a> {
     fn new_tokensearch(
         db: &'a AnnotationGraph,
         val: ValueSearch<String>,
+        filters: Vec<MatchValueFilterFunc>,
         leafs_only: bool,
         match_regex: bool,
         query_fragment: &str,
         node_nr: usize,
-        location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         let it_base: Box<dyn Iterator<Item = Match>> = match val {
             ValueSearch::Any => {
@@ -677,101 +836,6 @@ impl<'a> NodeSearch<'a> {
                 anno_key: NODE_TYPE_KEY.clone(),
             }]
         });
-        // create filter functions
-        let mut filters: Vec<MatchFilterFunc> = Vec::new();
-
-        match val {
-            ValueSearch::Some(ref val) => {
-                if match_regex {
-                    let full_match_pattern = graphannis_core::util::regex_full_match(val);
-                    let re = regex::Regex::new(&full_match_pattern);
-                    match re {
-                        Ok(re) => filters.push(Box::new(move |m, node_annos| {
-                            if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                                re.is_match(&val)
-                            } else {
-                                false
-                            }
-                        })),
-                        Err(e) => {
-                            return Err(GraphAnnisError::AQLSemanticError(AQLError {
-                                desc: format!("/{}/ -> {}", val, e),
-                                location: location_in_query,
-                            }));
-                        }
-                    };
-                } else {
-                    let val = val.clone();
-                    filters.push(Box::new(move |m, node_annos| {
-                        if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
-                        {
-                            anno_val == val.as_str()
-                        } else {
-                            false
-                        }
-                    }));
-                };
-            }
-            ValueSearch::NotSome(ref val) => {
-                if match_regex {
-                    let full_match_pattern = graphannis_core::util::regex_full_match(val);
-                    let re = regex::Regex::new(&full_match_pattern);
-                    match re {
-                        Ok(re) => filters.push(Box::new(move |m, node_annos| {
-                            if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                                !re.is_match(&val)
-                            } else {
-                                false
-                            }
-                        })),
-                        Err(e) => {
-                            return Err(GraphAnnisError::AQLSemanticError(AQLError {
-                                desc: format!("/{}/ -> {}", val, e),
-                                location: location_in_query,
-                            }));
-                        }
-                    };
-                } else {
-                    let val = val.clone();
-                    filters.push(Box::new(move |m, node_annos| {
-                        if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
-                        {
-                            anno_val != val.as_str()
-                        } else {
-                            false
-                        }
-                    }));
-                };
-            }
-            ValueSearch::Any => {}
-        };
-
-        if leafs_only {
-            let cov_gs: Vec<Arc<dyn GraphStorage>> = db
-                .get_all_components(Some(AnnotationComponentType::Coverage), None)
-                .into_iter()
-                .filter_map(|c| db.get_graphstorage(&c))
-                .filter(|gs| {
-                    if let Some(stats) = gs.get_statistics() {
-                        stats.nodes > 0
-                    } else {
-                        true
-                    }
-                })
-                .collect();
-
-            let filter_func: Box<
-                dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync,
-            > = Box::new(move |m, _| {
-                for cov in cov_gs.iter() {
-                    if cov.get_outgoing_edges(m.node).next().is_some() {
-                        return false;
-                    }
-                }
-                true
-            });
-            filters.push(filter_func);
-        };
 
         // TODO: is_leaf should be part of the estimation
         let est_output = match val {
@@ -844,7 +908,7 @@ impl<'a> NodeSearch<'a> {
     ) -> Result<NodeSearch<'a>> {
         let it: Box<dyn Iterator<Item = MatchGroup>> = Box::from(AnyTokenSearch::new(db)?);
         // create filter functions
-        let mut filters: Vec<MatchFilterFunc> = Vec::new();
+        let mut filters: Vec<MatchValueFilterFunc> = Vec::new();
 
         let cov_gs: Vec<Arc<dyn GraphStorage>> = db
             .get_all_components(Some(AnnotationComponentType::Coverage), None)
@@ -859,7 +923,7 @@ impl<'a> NodeSearch<'a> {
             })
             .collect();
 
-        let filter_func: MatchFilterFunc = Box::new(move |m, _| {
+        let filter_func: MatchValueFilterFunc = Box::new(move |m, _| {
             for cov in cov_gs.iter() {
                 if cov.get_outgoing_edges(m.node).next().is_some() {
                     return false;

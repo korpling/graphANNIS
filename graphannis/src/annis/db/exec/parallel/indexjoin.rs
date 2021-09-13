@@ -5,6 +5,7 @@ use crate::annis::operator::BinaryOperatorIndex;
 use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
 use rayon::prelude::*;
+use smallvec::SmallVec;
 use std::iter::Peekable;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
@@ -181,7 +182,7 @@ fn next_candidates(
     lhs_idx: usize,
     node_annos: &dyn AnnotationStorage<NodeID>,
     node_search_desc: &Arc<NodeSearchDesc>,
-) -> MatchGroup {
+) -> SmallVec<[Match; 8]> {
     let it_nodes = Box::from(op.retrieve_matches(&m_lhs[lhs_idx]).map(|m| m.node).fuse());
 
     node_annos.get_keys_for_iterator(

@@ -8,14 +8,13 @@ use crate::util::disk_collections::{DiskMap, EvictionStrategy};
 use crate::util::{self, memory_estimation};
 use core::ops::Bound::*;
 use rand::seq::IteratorRandom;
+use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use smartstring::alias::String as SmartString;
-
-use super::MatchGroup;
 
 pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v1";
 
@@ -464,7 +463,7 @@ where
         ns: Option<&str>,
         name: Option<&str>,
         it: Box<dyn Iterator<Item = T>>,
-    ) -> MatchGroup {
+    ) -> SmallVec<[Match; 8]> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // return the only possible annotation for each node
@@ -472,7 +471,7 @@ where
                     ns: ns.into(),
                     name: name.into(),
                 });
-                let mut matches = MatchGroup::new();
+                let mut matches = SmallVec::<[Match; 8]>::new();
                 if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
                     // create a template key
                     let mut container_key = create_by_container_key(T::default(), symbol_id);
@@ -500,7 +499,7 @@ where
                     })
                     .collect();
                 // return all annotations with the correct name for each node
-                let mut matches = MatchGroup::new();
+                let mut matches = SmallVec::<[Match; 8]>::new();
                 for item in it {
                     for (container_key, anno_key) in matching_qnames.iter_mut() {
                         // Set the first bytes to the ID of the item.

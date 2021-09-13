@@ -183,12 +183,14 @@ impl ExecutionNodeDesc {
     }
 }
 
-pub type MatchFilterFunc =
+/// Filter function for the value of a given match, but assumes the given match has already the
+/// correct annotation namespace/name.
+pub type MatchValueFilterFunc =
     Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>;
 
 pub struct NodeSearchDesc {
     pub qname: (Option<String>, Option<String>),
-    pub cond: Vec<MatchFilterFunc>,
+    pub cond: Vec<MatchValueFilterFunc>,
     pub const_output: Option<Arc<AnnoKey>>,
 }
 
