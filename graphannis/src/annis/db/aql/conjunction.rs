@@ -826,8 +826,17 @@ impl Conjunction {
 
     fn check_components_connected(&self) -> Result<()> {
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
-        node2component
-            .extend((self.var_idx_offset..self.nodes.len() + self.var_idx_offset).map(|i| (i, i)));
+        node2component.extend(
+            self.nodes
+                .iter()
+                .enumerate()
+                // Exclude all optional nodes from the component calculation
+                .filter(|(_i, n)| !n.optional)
+                // Use the global node number when there are several conjunctions
+                .map(|(i, _n)| self.var_idx_offset + i)
+                // Set the node position as initial unique component number
+                .map(|i| (i, i)),
+        );
 
         for op_entry in self.binary_operators.iter() {
             if op_entry.op.is_binding() {
