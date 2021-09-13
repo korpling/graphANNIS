@@ -253,7 +253,10 @@ pub trait UnaryOperatorSpec: std::fmt::Debug {
         db: &AnnotationGraph,
     ) -> HashSet<Component<AnnotationComponentType>>;
 
-    fn create_operator(&self, db: &AnnotationGraph) -> Option<Box<dyn UnaryOperator>>;
+    fn create_operator<'a>(
+        &'a self,
+        db: &'a AnnotationGraph,
+    ) -> Option<Box<dyn UnaryOperator + 'a>>;
 }
 
 pub trait UnaryOperator: std::fmt::Display + Send + Sync {

@@ -102,55 +102,68 @@ fn map_conjunction(
                 end: Some(get_line_and_column_for_pos(pos.end, offsets)),
             });
 
-            let spec_left = q.resolve_variable(&var_left, op_pos.clone())?.spec;
-            let spec_right = q.resolve_variable(&var_right, op_pos.clone())?.spec;
+            let node_left = q.resolve_variable(&var_left, op_pos.clone())?;
+            let node_right = q.resolve_variable(&var_right, op_pos.clone())?;
 
-            if quirks_mode {
-                match op {
-                    ast::BinaryOpSpec::Dominance(_) | ast::BinaryOpSpec::Pointing(_) => {
-                        let entry_lhs = num_pointing_or_dominance_joins
-                            .entry(var_left.clone())
-                            .or_insert(0);
-                        *entry_lhs += 1;
-                        let entry_rhs = num_pointing_or_dominance_joins
-                            .entry(var_right.clone())
-                            .or_insert(0);
-                        *entry_rhs += 1;
+            if node_left.optional && node_right.optional {
+                // Not supported yet
+                return Err(GraphAnnisError::AQLSemanticError(AQLError {
+                    desc: format!(
+                        "Negated binary operator needs a non-optional left or right operand, but both operands (#{}, #{}) are optional, as indicated by their \"?\" suffix.", 
+                        var_left, var_right),
+                    location: op_pos,
+                }));
+            } else if node_left.optional {
+            } else if node_right.optional {
+            } else {
+                if quirks_mode {
+                    match op {
+                        ast::BinaryOpSpec::Dominance(_) | ast::BinaryOpSpec::Pointing(_) => {
+                            let entry_lhs = num_pointing_or_dominance_joins
+                                .entry(var_left.clone())
+                                .or_insert(0);
+                            *entry_lhs += 1;
+                            let entry_rhs = num_pointing_or_dominance_joins
+                                .entry(var_right.clone())
+                                .or_insert(0);
+                            *entry_rhs += 1;
+                        }
+                        ast::BinaryOpSpec::Precedence(ref mut spec) => {
+                            // limit unspecified .* precedence to 50
+                            spec.dist = if let RangeSpec::Unbound = spec.dist {
+                                RangeSpec::Bound {
+                                    min_dist: 1,
+                                    max_dist: 50,
+                                }
+                            } else {
+                                spec.dist.clone()
+                            };
+                        }
+                        ast::BinaryOpSpec::Near(ref mut spec) => {
+                            // limit unspecified ^* near-by operator to 50
+                            spec.dist = if let RangeSpec::Unbound = spec.dist {
+                                RangeSpec::Bound {
+                                    min_dist: 1,
+                                    max_dist: 50,
+                                }
+                            } else {
+                                spec.dist.clone()
+                            };
+                        }
+                        _ => {}
                     }
-                    ast::BinaryOpSpec::Precedence(ref mut spec) => {
-                        // limit unspecified .* precedence to 50
-                        spec.dist = if let RangeSpec::Unbound = spec.dist {
-                            RangeSpec::Bound {
-                                min_dist: 1,
-                                max_dist: 50,
-                            }
-                        } else {
-                            spec.dist.clone()
-                        };
-                    }
-                    ast::BinaryOpSpec::Near(ref mut spec) => {
-                        // limit unspecified ^* near-by operator to 50
-                        spec.dist = if let RangeSpec::Unbound = spec.dist {
-                            RangeSpec::Bound {
-                                min_dist: 1,
-                                max_dist: 50,
-                            }
-                        } else {
-                            spec.dist.clone()
-                        };
-                    }
-                    _ => {}
                 }
+                let mut op_spec =
+                    make_binary_operator_spec(op, node_left.spec.clone(), node_right.spec.clone())?;
+                if negated {
+                    op_spec = Box::new(NegatedOpSpec {
+                        spec_left: node_left.spec,
+                        spec_right: node_right.spec,
+                        negated_op: op_spec,
+                    });
+                }
+                q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?;
             }
-            let mut op_spec = make_binary_operator_spec(op, spec_left.clone(), spec_right.clone())?;
-            if negated {
-                op_spec = Box::new(NegatedOpSpec {
-                    spec_left,
-                    spec_right,
-                    negated_op: op_spec,
-                });
-            }
-            q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?;
         }
     }
 

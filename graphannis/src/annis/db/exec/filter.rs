@@ -81,7 +81,7 @@ impl<'a> Filter<'a> {
     pub fn new_unary(
         exec: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
         idx: usize,
-        op_entry: UnaryOperatorEntry,
+        op_entry: UnaryOperatorEntry<'a>,
     ) -> Filter<'a> {
         let desc = if let Some(orig_desc) = exec.get_desc() {
             let cost_est = if let Some(ref orig_cost) = orig_desc.cost {

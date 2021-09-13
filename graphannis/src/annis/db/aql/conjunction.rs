@@ -56,8 +56,8 @@ pub struct BinaryOperatorEntry<'a> {
     pub args: BinaryOperatorArguments,
 }
 
-pub struct UnaryOperatorEntry {
-    pub op: Box<dyn UnaryOperator>,
+pub struct UnaryOperatorEntry<'a> {
+    pub op: Box<dyn UnaryOperator + 'a>,
     pub node_nr: usize,
 }
 
