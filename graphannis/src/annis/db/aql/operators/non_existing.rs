@@ -1,18 +1,26 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
+
+use graphannis_core::{annostorage::AnnotationStorage, types::NodeID};
 
 use crate::{
     annis::{
-        db::exec::nodesearch::NodeSearchSpec,
+        db::exec::MatchFilterFunc,
         operator::{BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec},
     },
     AnnotationGraph,
 };
 
-#[derive(Debug)]
 pub struct NonExistingUnaryOperatorSpec {
-    pub spec_left: NodeSearchSpec,
-    pub spec_right: NodeSearchSpec,
+    pub filter: Vec<MatchFilterFunc>,
     pub negated_op: Box<dyn BinaryOperatorSpec>,
+}
+
+impl Debug for NonExistingUnaryOperatorSpec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NonExistingUnaryOperatorSpec")
+            .field("negated_op", &self.negated_op)
+            .finish()
+    }
 }
 
 impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
@@ -25,12 +33,14 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
         self.negated_op.necessary_components(g)
     }
 
-    fn create_operator<'a>(
-        &'a self,
-        g: &'a AnnotationGraph,
-    ) -> Option<Box<dyn crate::annis::operator::UnaryOperator + 'a>> {
+    fn create_operator<'b>(
+        &'b self,
+        g: &'b AnnotationGraph,
+    ) -> Option<Box<dyn crate::annis::operator::UnaryOperator + 'b>> {
         let op = NonExistingUnaryOperator {
             negated_op: self.negated_op.create_operator(g)?,
+            filter: &self.filter,
+            node_annos: g.get_node_annos(),
         };
         Some(Box::new(op))
     }
@@ -38,6 +48,8 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
 
 struct NonExistingUnaryOperator<'a> {
     negated_op: BinaryOperator<'a>,
+    node_annos: &'a dyn AnnotationStorage<NodeID>,
+    filter: &'a Vec<MatchFilterFunc>,
 }
 
 impl<'a> Display for NonExistingUnaryOperator<'a> {
@@ -50,6 +62,11 @@ impl<'a> Display for NonExistingUnaryOperator<'a> {
 
 impl<'a> UnaryOperator for NonExistingUnaryOperator<'a> {
     fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> bool {
-        todo!()
+        match &self.negated_op {
+            BinaryOperator::Base(_) => todo!(),
+            BinaryOperator::Index(op) => !op
+                .retrieve_matches(&m)
+                .any(|m| self.filter.iter().all(|f| f(&m, self.node_annos))),
+        }
     }
 }
