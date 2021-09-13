@@ -32,6 +32,11 @@ pub struct NodeSearch<'a> {
     node_search_desc: Arc<NodeSearchDesc>,
     is_sorted: bool,
 }
+struct NodeDescArg {
+    query_fragment: String,
+    node_nr: usize,
+}
+
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum NodeSearchSpec {
     ExactValue {
@@ -242,7 +247,7 @@ impl<'a> NodeSearch<'a> {
                         &val,
                         false,
                         is_meta,
-                        super::NodeDescArg {
+                        NodeDescArg {
                             query_fragment,
                             node_nr,
                         },
@@ -274,7 +279,7 @@ impl<'a> NodeSearch<'a> {
                         &val,
                         true,
                         is_meta,
-                        super::NodeDescArg {
+                        NodeDescArg {
                             query_fragment,
                             node_nr,
                         },
@@ -361,10 +366,8 @@ impl<'a> NodeSearch<'a> {
                 Ok(NodeSearch {
                     it: Box::new(it),
                     desc: Some(ExecutionNodeDesc::empty_with_fragment(
-                        super::NodeDescArg {
-                            query_fragment,
-                            node_nr,
-                        },
+                        node_nr,
+                        query_fragment,
                         Some(est_output),
                     )),
                     node_search_desc: Arc::new(NodeSearchDesc {
@@ -479,10 +482,8 @@ impl<'a> NodeSearch<'a> {
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
-                super::NodeDescArg {
-                    query_fragment: query_fragment.to_owned(),
-                    node_nr,
-                },
+                node_nr,
+                query_fragment.to_owned(),
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
@@ -500,7 +501,7 @@ impl<'a> NodeSearch<'a> {
         pattern: &str,
         negated: bool,
         is_meta: bool,
-        node_desc_arg: super::NodeDescArg,
+        node_desc_arg: NodeDescArg,
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         // match_regex works only with values
@@ -590,7 +591,8 @@ impl<'a> NodeSearch<'a> {
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
-                node_desc_arg,
+                node_desc_arg.node_nr,
+                node_desc_arg.query_fragment,
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
@@ -833,10 +835,8 @@ impl<'a> NodeSearch<'a> {
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
-                super::NodeDescArg {
-                    query_fragment: query_fragment.to_owned(),
-                    node_nr,
-                },
+                node_nr,
+                query_fragment.to_owned(),
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
@@ -892,10 +892,8 @@ impl<'a> NodeSearch<'a> {
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
-                super::NodeDescArg {
-                    query_fragment: query_fragment.to_owned(),
-                    node_nr,
-                },
+                node_nr,
+                query_fragment.to_owned(),
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {

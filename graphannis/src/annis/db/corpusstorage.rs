@@ -2182,7 +2182,12 @@ impl CorpusStorage {
         let mut query = Conjunction::new();
 
         query.add_node(
-            NodeSearchSpec::new_exact(Some(ANNIS_NS), NODE_TYPE, Some("corpus"), false),
+            NodeSearchSpec::ExactValue {
+                ns: Some(ANNIS_NS.into()),
+                name: NODE_TYPE.into(),
+                val: Some("corpus".into()),
+                is_meta: false,
+            },
             None,
         );
 
