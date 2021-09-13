@@ -102,8 +102,8 @@ fn map_conjunction(
                 end: Some(get_line_and_column_for_pos(pos.end, offsets)),
             });
 
-            let spec_left = q.resolve_variable(&var_left, op_pos.clone())?;
-            let spec_right = q.resolve_variable(&var_right, op_pos.clone())?;
+            let spec_left = q.resolve_variable(&var_left, op_pos.clone())?.spec;
+            let spec_right = q.resolve_variable(&var_right, op_pos.clone())?.spec;
 
             if quirks_mode {
                 match op {
@@ -162,8 +162,8 @@ fn map_conjunction(
             let num_joins = num_pointing_or_dominance_joins.get(orig_var).unwrap_or(&0);
             // add an additional node for each extra join and join this artificial node with identity relation
             for _ in 1..*num_joins {
-                if let Ok(node_spec) = q.resolve_variable(orig_var, None) {
-                    let new_var = q.add_node(node_spec, None);
+                if let Ok(node) = q.resolve_variable(orig_var, None) {
+                    let new_var = q.add_node(node.spec, None);
                     q.add_operator(Box::new(IdenticalNodeSpec {}), orig_var, &new_var, false)?;
                 }
             }
