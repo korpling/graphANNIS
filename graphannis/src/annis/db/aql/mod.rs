@@ -146,11 +146,6 @@ fn map_conjunction(
             let mut op_spec =
                 make_binary_operator_spec(op, node_left.spec.clone(), node_right.spec.clone())?;
             if negated {
-                op_spec = Box::new(NegatedOpSpec {
-                    spec_left: node_left.spec.clone(),
-                    spec_right: node_right.spec.clone(),
-                    negated_op: op_spec,
-                });
                 if node_left.optional && node_right.optional {
                     // Not supported yet
                     return Err(GraphAnnisError::AQLSemanticError(AQLError {
@@ -172,8 +167,14 @@ fn map_conjunction(
                         node_location: node_right.location,
                         negated_op: op_spec,
                     };
+
                     q.add_unary_operator_from_query(Box::new(spec), &node_left.var, op_pos)?;
                 } else {
+                    op_spec = Box::new(NegatedOpSpec {
+                        spec_left: node_left.spec.clone(),
+                        spec_right: node_right.spec.clone(),
+                        negated_op: op_spec,
+                    });
                     q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?
                 }
             } else {
