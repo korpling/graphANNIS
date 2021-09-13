@@ -48,12 +48,13 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
             .ok()?;
         let node_search_qname = self.node_search.get_anno_qname();
         match self.negated_op.create_operator(g)? {
-            BinaryOperator::Base(_) => None,
+            BinaryOperator::Base(_) => todo!(),
             BinaryOperator::Index(negated_op) => Some(Box::new(NonExistingUnaryOperator {
                 negated_op,
                 node_annos: g.get_node_annos(),
                 node_search_qname,
                 value_filter,
+                node_search_spec: self.node_search.clone(),
             })),
         }
     }
@@ -63,13 +64,15 @@ struct NonExistingUnaryOperator<'a> {
     negated_op: Box<dyn BinaryOperatorIndex + 'a>,
     node_annos: &'a dyn AnnotationStorage<NodeID>,
     node_search_qname: (Option<String>, Option<String>),
+    node_search_spec: NodeSearchSpec,
     value_filter: Vec<MatchValueFilterFunc>,
 }
 
 impl<'a> Display for NonExistingUnaryOperator<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "!",)?;
+        write!(f, " !",)?;
         self.negated_op.fmt(f)?;
+        write!(f, " {}", self.node_search_spec)?;
         Ok(())
     }
 }
