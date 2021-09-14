@@ -69,14 +69,8 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
         &'b self,
         g: &'b AnnotationGraph,
     ) -> Option<Box<dyn crate::annis::operator::UnaryOperator + 'b>> {
-        let mut query_fragment = "<unknown>".into();
         let mut op_estimation = EstimationType::Min;
         if let Some(op) = self.op.create_operator(g) {
-            query_fragment = if self.target_left {
-                format!("{} {} x", self.target, op)
-            } else {
-                format!("x {} {}", op, self.target)
-            };
             op_estimation = op.estimation_type();
         }
 
@@ -85,7 +79,6 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
             Box::new(NonExistingUnaryOperatorFilter {
                 spec: self.clone(),
                 graph: g,
-                query_fragment: query_fragment.clone(),
                 op_estimation: op_estimation.clone(),
                 negated_op: orig_op,
             });
@@ -94,7 +87,6 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
                 negated_op = Box::new(NonExistingUnaryOperatorIndex {
                     spec: self.clone(),
                     graph: g,
-                    query_fragment,
                     op_estimation,
                     negated_op: orig_op,
                 })
@@ -108,13 +100,13 @@ struct NonExistingUnaryOperatorIndex<'a> {
     spec: NonExistingUnaryOperatorSpec,
     negated_op: Box<dyn BinaryOperatorIndex + 'a>,
     graph: &'a AnnotationGraph,
-    query_fragment: String,
     op_estimation: EstimationType,
 }
 
 impl<'a> Display for NonExistingUnaryOperatorIndex<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, " !({})", self.query_fragment)
+        write!(f, " !{} {}", self.negated_op, self.spec.target)?;
+        Ok(())
     }
 }
 
@@ -155,13 +147,17 @@ struct NonExistingUnaryOperatorFilter<'a> {
     spec: NonExistingUnaryOperatorSpec,
     negated_op: BinaryOperator<'a>,
     graph: &'a AnnotationGraph,
-    query_fragment: String,
     op_estimation: EstimationType,
 }
 
 impl<'a> Display for NonExistingUnaryOperatorFilter<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, " !({})", self.query_fragment)
+        if self.spec.target_left {
+            write!(f, " !({} {} x)", self.spec.target, self.negated_op)?;
+        } else {
+            write!(f, " !(x {} {})", self.negated_op, self.spec.target,)?;
+        }
+        Ok(())
     }
 }
 
