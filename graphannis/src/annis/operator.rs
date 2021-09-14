@@ -229,7 +229,7 @@ pub trait BinaryOperatorIndex: BinaryOperatorBase {
     fn as_binary_operator(&self) -> &dyn BinaryOperatorBase;
 }
 
-pub trait BinaryOperatorSpec: std::fmt::Debug {
+pub trait BinaryOperatorSpec: std::fmt::Debug + Send + Sync {
     fn necessary_components(
         &self,
         db: &AnnotationGraph,
@@ -261,7 +261,7 @@ pub trait UnaryOperatorSpec: std::fmt::Debug {
     ) -> Option<Box<dyn UnaryOperator + 'a>>;
 }
 
-pub trait UnaryOperator: std::fmt::Display {
+pub trait UnaryOperator: std::fmt::Display + Send + Sync {
     fn filter_match(&self, m: &Match) -> bool;
 
     fn estimation_type(&self) -> EstimationType {
