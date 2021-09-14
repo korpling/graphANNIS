@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use graphannis_core::graph::{ANNIS_NS, NODE_NAME};
+use graphannis_core::graph::{ANNIS_NS, NODE_NAME, NODE_NAME_KEY};
 
 use crate::{
     annis::{
@@ -26,13 +26,13 @@ pub struct NonExistingUnaryOperatorSpec {
 }
 
 impl NonExistingUnaryOperatorSpec {
-    fn create_subquery_conjunction(&self) -> Result<Conjunction> {
+    fn create_subquery_conjunction(&self, node_name: String) -> Result<Conjunction> {
         let mut subquery = Conjunction::new();
         let var_flex = subquery.add_node(
             NodeSearchSpec::ExactValue {
                 ns: Some(ANNIS_NS.into()),
                 name: NODE_NAME.into(),
-                val: None,
+                val: Some(node_name),
                 is_meta: false,
             },
             None,
@@ -55,7 +55,7 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
     ) -> std::collections::HashSet<
         graphannis_core::types::Component<crate::model::AnnotationComponentType>,
     > {
-        if let Ok(subquery) = self.create_subquery_conjunction() {
+        if let Ok(subquery) = self.create_subquery_conjunction(String::default()) {
             subquery.necessary_components(g)
         } else {
             HashSet::default()
@@ -70,16 +70,27 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
             use_parallel_joins: false,
         };
         // Create a conjunction from the definition
-        let subquery = self.create_subquery_conjunction().ok()?;
+        let subquery = self.create_subquery_conjunction(String::default()).ok()?;
         // Make an initial plan and store the operator order and apply it every time
         // (this should aoid costly optimization in each step)
         let operator_order = subquery.optimize_join_order_heuristics(g, &config).ok()?;
+
+        let query_fragment = if let Some(op) = self.op.create_operator(g) {
+            if self.target_left {
+                format!("{} {} x", self.target, op)
+            } else {
+                format!("x {} {}", op, self.target)
+            }
+        } else {
+            "unknown subquery".into()
+        };
 
         let op = NonExistingUnaryOperator {
             spec: self.clone(),
             operator_order,
             graph: g,
             config,
+            query_fragment,
         };
         Some(Box::new(op))
     }
@@ -90,32 +101,34 @@ struct NonExistingUnaryOperator<'a> {
     operator_order: Vec<usize>,
     graph: &'a AnnotationGraph,
     config: Config,
+    query_fragment: String,
 }
 
 impl<'a> Display for NonExistingUnaryOperator<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, " !(?)")?;
-        Ok(())
+        write!(f, " !({})", self.query_fragment)
     }
 }
 
 impl<'a> UnaryOperator for NonExistingUnaryOperator<'a> {
     fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> bool {
-        if let Ok(subquery) = self.spec.create_subquery_conjunction() {
-            // TODO: Replace the first node annotation value with the ID of our match
-            // Create an execution plan from the conjunction
-            if let Ok(mut plan) = subquery.make_exec_plan_with_order(
-                self.graph,
-                &self.config,
-                self.operator_order.clone(),
-            ) {
-                // Only return true of no match was found
-                plan.next().is_none()
-            } else {
-                false
+        if let Some(match_name) = self
+            .graph
+            .get_node_annos()
+            .get_value_for_item(&m.node, &NODE_NAME_KEY)
+        {
+            if let Ok(subquery) = self.spec.create_subquery_conjunction(match_name.into()) {
+                // Create an execution plan from the conjunction
+                if let Ok(mut plan) = subquery.make_exec_plan_with_order(
+                    self.graph,
+                    &self.config,
+                    self.operator_order.clone(),
+                ) {
+                    // Only return true of no match was found
+                    return plan.next().is_none();
+                }
             }
-        } else {
-            false
         }
+        false
     }
 }
