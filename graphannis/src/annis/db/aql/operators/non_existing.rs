@@ -1,30 +1,50 @@
-use std::fmt::{Debug, Display};
+use std::{
+    collections::HashSet,
+    fmt::{Debug, Display},
+    sync::Arc,
+};
 
-use graphannis_core::{annostorage::AnnotationStorage, types::NodeID};
+use graphannis_core::graph::{ANNIS_NS, NODE_NAME};
 
 use crate::{
     annis::{
-        db::exec::{nodesearch::NodeSearchSpec, MatchValueFilterFunc},
-        operator::{
-            BinaryOperator, BinaryOperatorIndex, BinaryOperatorSpec, UnaryOperator,
-            UnaryOperatorSpec,
+        db::{
+            aql::{conjunction::Conjunction, Config},
+            exec::nodesearch::NodeSearchSpec,
         },
-        types::LineColumnRange,
+        errors::Result,
+        operator::{BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec},
     },
     AnnotationGraph,
 };
 
+#[derive(Debug)]
 pub struct NonExistingUnaryOperatorSpec {
-    pub node_search: NodeSearchSpec,
-    pub node_location: Option<LineColumnRange>,
-    pub negated_op: Box<dyn BinaryOperatorSpec>,
+    pub op: Arc<dyn BinaryOperatorSpec>,
+    pub target: NodeSearchSpec,
+    pub target_left: bool,
 }
 
-impl Debug for NonExistingUnaryOperatorSpec {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("NonExistingUnaryOperatorSpec")
-            .field("negated_op", &self.negated_op)
-            .finish()
+impl NonExistingUnaryOperatorSpec {
+    fn create_subquery_conjunction(&self) -> Result<Conjunction> {
+        let mut subquery = Conjunction::new();
+        let var_flex = subquery.add_node(
+            NodeSearchSpec::ExactValue {
+                ns: Some(ANNIS_NS.into()),
+                name: NODE_NAME.into(),
+                val: None,
+                is_meta: false,
+            },
+            None,
+        );
+        let var_target = subquery.add_node(self.target.clone(), None);
+        if self.target_left {
+            subquery.add_operator(self.op.clone(), &var_target, &var_flex, true)?;
+        } else {
+            subquery.add_operator(self.op.clone(), &var_flex, &var_target, true)?;
+        }
+
+        Ok(subquery)
     }
 }
 
@@ -35,61 +55,66 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
     ) -> std::collections::HashSet<
         graphannis_core::types::Component<crate::model::AnnotationComponentType>,
     > {
-        self.negated_op.necessary_components(g)
+        if let Ok(subquery) = self.create_subquery_conjunction() {
+            subquery.necessary_components(g)
+        } else {
+            HashSet::default()
+        }
     }
 
     fn create_operator<'b>(
         &'b self,
         g: &'b AnnotationGraph,
     ) -> Option<Box<dyn crate::annis::operator::UnaryOperator + 'b>> {
-        let value_filter = self
-            .node_search
-            .get_value_filter(g, self.node_location.clone())
-            .ok()?;
-        let node_search_qname = self.node_search.get_anno_qname();
-        match self.negated_op.create_operator(g)? {
-            BinaryOperator::Base(_) => todo!(),
-            BinaryOperator::Index(negated_op) => Some(Box::new(NonExistingUnaryOperator {
-                negated_op,
-                node_annos: g.get_node_annos(),
-                node_search_qname,
-                value_filter,
-                node_search_spec: self.node_search.clone(),
-            })),
-        }
+        let config = Config {
+            use_parallel_joins: false,
+        };
+        // Create a conjunction from the definition
+        let subquery = self.create_subquery_conjunction().ok()?;
+        // make an initial plan and store the operator order and apply it every time
+        // (this should aoid costly optimization in each step)
+        let operator_order = subquery.optimize_join_order_heuristics(g, &config).ok()?;
+
+        let op = NonExistingUnaryOperator {
+            //            subquery: Arc::new(Mutex::new(subquery)),
+            operator_order,
+            graph: g,
+            config,
+        };
+        Some(Box::new(op))
     }
 }
 
 struct NonExistingUnaryOperator<'a> {
-    negated_op: Box<dyn BinaryOperatorIndex + 'a>,
-    node_annos: &'a dyn AnnotationStorage<NodeID>,
-    node_search_qname: (Option<String>, Option<String>),
-    node_search_spec: NodeSearchSpec,
-    value_filter: Vec<MatchValueFilterFunc>,
+    // TODO: this could be replaced with an execution plan and a *mutable* reference to the node ID search
+    //subquery: Arc<Conjunction>,
+    operator_order: Vec<usize>,
+    graph: &'a AnnotationGraph,
+    config: Config,
 }
 
 impl<'a> Display for NonExistingUnaryOperator<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, " !",)?;
-        self.negated_op.fmt(f)?;
-        write!(f, " {}", self.node_search_spec)?;
+        write!(f, " !(?)")?;
         Ok(())
     }
 }
 
 impl<'a> UnaryOperator for NonExistingUnaryOperator<'a> {
     fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> bool {
-        // Extract the annotation keys for the matches
-        let it = self.negated_op.retrieve_matches(&m).map(|m| m.node);
-        let candidates = self.node_annos.get_keys_for_iterator(
-            self.node_search_qname.0.as_deref(),
-            self.node_search_qname.1.as_deref(),
-            Box::new(it),
-        );
-
-        // Only return true of no match was found which matches the operator and node value filter
-        !candidates
-            .into_iter()
-            .any(|m| self.value_filter.iter().all(|f| f(&m, self.node_annos)))
+        todo!()
+        // let subquery = self.subquery.lock().unwrap();
+        // // TODO: Replace the first node annotation value with the ID of our match
+        // // Create an execution plan from the conjunction
+        // if let Ok(plan) = subquery.make_exec_plan_with_order(
+        //     self.graph,
+        //     &self.config,
+        //     self.operator_order.clone(),
+        // ) {
+        //     // Only return true of no match was found
+        //     plan.next().is_none()
+        // } else {
+        //     false
+        // }
     }
 }

@@ -6,6 +6,7 @@ use crate::{
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
 use std::any::Any;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct IdenticalNodeSpec;
@@ -22,7 +23,11 @@ impl BinaryOperatorSpec for IdenticalNodeSpec {
         Some(BinaryOperator::Index(Box::new(IdenticalNode {})))
     }
 
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+        self
+    }
+
+    fn any_ref(&self) -> &dyn Any {
         self
     }
 }

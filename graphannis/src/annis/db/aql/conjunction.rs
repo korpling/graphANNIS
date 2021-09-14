@@ -41,13 +41,13 @@ pub struct BinaryOperatorArguments {
 
 #[derive(Debug)]
 struct BinaryOperatorSpecEntry {
-    op: Box<dyn BinaryOperatorSpec>,
+    op: Arc<dyn BinaryOperatorSpec>,
     args: BinaryOperatorArguments,
 }
 
 #[derive(Debug)]
 struct UnaryOperatorSpecEntry {
-    op: Box<dyn UnaryOperatorSpec>,
+    op: Arc<dyn UnaryOperatorSpec>,
     idx: usize,
 }
 
@@ -299,7 +299,7 @@ impl Conjunction {
 
     pub fn add_unary_operator_from_query(
         &mut self,
-        op: Box<dyn UnaryOperatorSpec>,
+        op: Arc<dyn UnaryOperatorSpec>,
         var: &str,
         location: Option<LineColumnRange>,
     ) -> Result<()> {
@@ -317,7 +317,7 @@ impl Conjunction {
 
     pub fn add_operator(
         &mut self,
-        op: Box<dyn BinaryOperatorSpec>,
+        op: Arc<dyn BinaryOperatorSpec>,
         var_left: &str,
         var_right: &str,
         global_reflexivity: bool,
@@ -327,7 +327,7 @@ impl Conjunction {
 
     pub fn add_operator_from_query(
         &mut self,
-        op: Box<dyn BinaryOperatorSpec>,
+        op: Arc<dyn BinaryOperatorSpec>,
         var_left: &str,
         var_right: &str,
         location: Option<LineColumnRange>,
@@ -417,7 +417,7 @@ impl Conjunction {
         result
     }
 
-    fn optimize_join_order_heuristics(
+    pub fn optimize_join_order_heuristics(
         &self,
         db: &AnnotationGraph,
         config: &Config,
@@ -740,7 +740,7 @@ impl Conjunction {
         Ok(())
     }
 
-    fn make_exec_plan_with_order<'a>(
+    pub fn make_exec_plan_with_order<'a>(
         &'a self,
         db: &'a AnnotationGraph,
         config: &Config,

@@ -24,6 +24,7 @@ use crate::annis::types::{LineColumn, LineColumnRange};
 use lalrpop_util::ParseError;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 thread_local! {
     static AQL_PARSER: parser::DisjunctionParser = parser::DisjunctionParser::new();
@@ -146,36 +147,35 @@ fn map_conjunction(
             let mut op_spec =
                 make_binary_operator_spec(op, node_left.spec.clone(), node_right.spec.clone())?;
             if negated {
-                if node_left.optional && node_right.optional {
-                    // Not supported yet
-                    return Err(GraphAnnisError::AQLSemanticError(AQLError {
-                    desc: format!(
-                        "Negated binary operator needs a non-optional left or right operand, but both operands (#{}, #{}) are optional, as indicated by their \"?\" suffix.", 
-                        var_left, var_right),
-                    location: op_pos,
-                }));
-                } else if node_left.optional {
-                    let spec = NonExistingUnaryOperatorSpec {
-                        node_search: node_left.spec.clone(),
-                        node_location: node_left.location,
-                        negated_op: op_spec,
-                    };
-                    q.add_unary_operator_from_query(Box::new(spec), &node_right.var, op_pos)?;
-                } else if node_right.optional {
-                    let spec = NonExistingUnaryOperatorSpec {
-                        node_search: node_right.spec.clone(),
-                        node_location: node_right.location,
-                        negated_op: op_spec,
-                    };
-
-                    q.add_unary_operator_from_query(Box::new(spec), &node_left.var, op_pos)?;
-                } else {
-                    op_spec = Box::new(NegatedOpSpec {
+                if !node_left.optional && !node_right.optional {
+                    op_spec = Arc::new(NegatedOpSpec {
                         spec_left: node_left.spec.clone(),
                         spec_right: node_right.spec.clone(),
                         negated_op: op_spec,
                     });
                     q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?
+                } else {
+                    if node_left.optional && node_right.optional {
+                        // Not supported yet
+                        return Err(GraphAnnisError::AQLSemanticError(AQLError {
+                    desc: format!(
+                        "Negated binary operator needs a non-optional left or right operand, but both operands (#{}, #{}) are optional, as indicated by their \"?\" suffix.", 
+                        var_left, var_right),
+                    location: op_pos,
+                }));
+                    } else {
+                        let target_left = node_left.optional;
+                        let spec = NonExistingUnaryOperatorSpec {
+                            op: op_spec,
+                            target: if target_left {
+                                node_left.spec
+                            } else {
+                                node_right.spec
+                            },
+                            target_left,
+                        };
+                        q.add_unary_operator_from_query(Arc::new(spec), &node_right.var, op_pos)?;
+                    }
                 }
             } else {
                 q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?;
@@ -193,7 +193,7 @@ fn map_conjunction(
             for _ in 1..*num_joins {
                 if let Ok(node) = q.resolve_variable(orig_var, None) {
                     let new_var = q.add_node(node.spec, None);
-                    q.add_operator(Box::new(IdenticalNodeSpec {}), orig_var, &new_var, false)?;
+                    q.add_operator(Arc::new(IdenticalNodeSpec {}), orig_var, &new_var, false)?;
                 }
             }
         }
@@ -314,7 +314,7 @@ fn add_legacy_metadata_constraints(
             if let Some(first_meta_idx) = first_meta_idx.clone() {
                 // avoid nested loops by joining additional meta nodes with a "identical node"
                 q.add_operator(
-                    Box::new(IdenticalNodeSpec {}),
+                    Arc::new(IdenticalNodeSpec {}),
                     &first_meta_idx,
                     &meta_node_idx,
                     true,
@@ -323,7 +323,7 @@ fn add_legacy_metadata_constraints(
                 first_meta_idx = Some(meta_node_idx.clone());
                 // add a special join to the first node of the query
                 q.add_operator(
-                    Box::new(PartOfSubCorpusSpec {
+                    Arc::new(PartOfSubCorpusSpec {
                         dist: RangeSpec::Unbound,
                     }),
                     &first_node_pos,
@@ -345,7 +345,7 @@ fn add_legacy_metadata_constraints(
                     false,
                 );
                 q.add_operator(
-                    Box::new(IdenticalNodeSpec {}),
+                    Arc::new(IdenticalNodeSpec {}),
                     &meta_node_idx,
                     &doc_anno_idx,
                     true,
@@ -477,26 +477,26 @@ fn make_binary_operator_spec(
     op: ast::BinaryOpSpec,
     spec_left: NodeSearchSpec,
     spec_right: NodeSearchSpec,
-) -> Result<Box<dyn BinaryOperatorSpec>> {
-    let op_spec: Box<dyn BinaryOperatorSpec> = match op {
-        ast::BinaryOpSpec::Dominance(spec) => Box::new(spec),
-        ast::BinaryOpSpec::Pointing(spec) => Box::new(spec),
-        ast::BinaryOpSpec::Precedence(spec) => Box::new(spec),
-        ast::BinaryOpSpec::Near(spec) => Box::new(spec),
-        ast::BinaryOpSpec::Overlap(spec) => Box::new(spec),
-        ast::BinaryOpSpec::IdenticalCoverage(spec) => Box::new(spec),
-        ast::BinaryOpSpec::PartOfSubCorpus(spec) => Box::new(spec),
-        ast::BinaryOpSpec::Inclusion(spec) => Box::new(spec),
-        ast::BinaryOpSpec::LeftAlignment(spec) => Box::new(spec),
-        ast::BinaryOpSpec::RightAlignment(spec) => Box::new(spec),
-        ast::BinaryOpSpec::IdenticalNode(spec) => Box::new(spec),
+) -> Result<Arc<dyn BinaryOperatorSpec>> {
+    let op_spec: Arc<dyn BinaryOperatorSpec> = match op {
+        ast::BinaryOpSpec::Dominance(spec) => Arc::new(spec),
+        ast::BinaryOpSpec::Pointing(spec) => Arc::new(spec),
+        ast::BinaryOpSpec::Precedence(spec) => Arc::new(spec),
+        ast::BinaryOpSpec::Near(spec) => Arc::new(spec),
+        ast::BinaryOpSpec::Overlap(spec) => Arc::new(spec),
+        ast::BinaryOpSpec::IdenticalCoverage(spec) => Arc::new(spec),
+        ast::BinaryOpSpec::PartOfSubCorpus(spec) => Arc::new(spec),
+        ast::BinaryOpSpec::Inclusion(spec) => Arc::new(spec),
+        ast::BinaryOpSpec::LeftAlignment(spec) => Arc::new(spec),
+        ast::BinaryOpSpec::RightAlignment(spec) => Arc::new(spec),
+        ast::BinaryOpSpec::IdenticalNode(spec) => Arc::new(spec),
         ast::BinaryOpSpec::ValueComparison(cmp) => match cmp {
-            ast::ComparisonOperator::Equal => Box::new(EqualValueSpec {
+            ast::ComparisonOperator::Equal => Arc::new(EqualValueSpec {
                 spec_left,
                 spec_right,
                 negated: false,
             }),
-            ast::ComparisonOperator::NotEqual => Box::new(EqualValueSpec {
+            ast::ComparisonOperator::NotEqual => Arc::new(EqualValueSpec {
                 spec_left,
                 spec_right,
                 negated: true,
@@ -506,9 +506,9 @@ fn make_binary_operator_spec(
     Ok(op_spec)
 }
 
-fn make_unary_operator_spec(op: ast::UnaryOpSpec) -> Box<dyn UnaryOperatorSpec> {
+fn make_unary_operator_spec(op: ast::UnaryOpSpec) -> Arc<dyn UnaryOperatorSpec> {
     match op {
-        ast::UnaryOpSpec::Arity(spec) => Box::new(spec),
+        ast::UnaryOpSpec::Arity(spec) => Arc::new(spec),
     }
 }
 

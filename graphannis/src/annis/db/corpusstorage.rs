@@ -374,13 +374,13 @@ fn add_subgraph_precedence(
         let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
         let m_idx = q.add_node(m.clone(), None);
         q.add_operator(
-            Box::new(operators::OverlapSpec { reflexive: true }),
+            Arc::new(operators::OverlapSpec { reflexive: true }),
             &node_idx,
             &tok_idx,
             true,
         )?;
         q.add_operator(
-            Box::new(operators::PrecedenceSpec {
+            Arc::new(operators::PrecedenceSpec {
                 segmentation: None,
                 dist: RangeSpec::Bound {
                     min_dist: 0,
@@ -416,21 +416,21 @@ fn add_subgraph_precedence_with_segmentation(
         let m_idx = q.add_node(m.clone(), None);
 
         q.add_operator(
-            Box::new(operators::OverlapSpec { reflexive: true }),
+            Arc::new(operators::OverlapSpec { reflexive: true }),
             &m_node_idx,
             &m_idx,
             false,
         )?;
 
         q.add_operator(
-            Box::new(operators::OverlapSpec { reflexive: true }),
+            Arc::new(operators::OverlapSpec { reflexive: true }),
             &target_idx,
             &node_idx,
             false,
         )?;
 
         q.add_operator(
-            Box::new(operators::PrecedenceSpec {
+            Arc::new(operators::PrecedenceSpec {
                 segmentation: Some(segmentation.to_string()),
                 dist: RangeSpec::Bound {
                     min_dist: 0,
@@ -1996,7 +1996,7 @@ impl CorpusStorage {
                 let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
                 let m_idx = q.add_node(m.clone(), None);
                 q.add_operator(
-                    Box::new(operators::OverlapSpec { reflexive: true }),
+                    Arc::new(operators::OverlapSpec { reflexive: true }),
                     &m_idx,
                     &node_idx,
                     false,
@@ -2039,7 +2039,7 @@ impl CorpusStorage {
                 );
                 let m_idx = q.add_node(m.clone(), None);
                 q.add_operator(
-                    Box::new(operators::PartOfSubCorpusSpec {
+                    Arc::new(operators::PartOfSubCorpusSpec {
                         dist: RangeSpec::Bound {
                             min_dist: 1,
                             max_dist: 1,
@@ -2122,7 +2122,7 @@ impl CorpusStorage {
                 );
                 let any_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
                 q.add_operator(
-                    Box::new(operators::PartOfSubCorpusSpec {
+                    Arc::new(operators::PartOfSubCorpusSpec {
                         dist: RangeSpec::Unbound,
                     }),
                     &any_node_idx,
@@ -2153,7 +2153,7 @@ impl CorpusStorage {
                     None,
                 );
                 q.add_operator(
-                    Box::new(operators::PartOfSubCorpusSpec {
+                    Arc::new(operators::PartOfSubCorpusSpec {
                         dist: RangeSpec::Unbound,
                     }),
                     &any_node_idx,

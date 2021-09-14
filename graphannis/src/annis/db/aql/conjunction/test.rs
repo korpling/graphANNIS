@@ -20,12 +20,14 @@ fn parse_negation_filter_expression() {
     let op2 = op_entry2.op.into_any();
 
     assert_eq!(true, op1.is::<PrecedenceSpec>());
+    assert_eq!(true, op2.is::<NegatedOpSpec>());
 
-    let op2 = op2.downcast::<NegatedOpSpec>().unwrap();
     let negated_op = op2
+        .downcast_ref::<NegatedOpSpec>()
+        .unwrap()
         .negated_op
-        .into_any()
-        .downcast::<DominanceSpec>()
+        .any_ref()
+        .downcast_ref::<DominanceSpec>()
         .unwrap();
 
     assert_eq!("", negated_op.name);
@@ -51,11 +53,11 @@ fn parse_negation_between_ops_expression() {
     let op_entry1 = alt.binary_operators.remove(1);
     let op1 = op_entry1.op.into_any();
 
-    let op1 = op1.downcast::<NegatedOpSpec>().unwrap();
+    let op1 = op1.downcast_ref::<NegatedOpSpec>().unwrap();
     let negated_op = op1
         .negated_op
-        .into_any()
-        .downcast::<PrecedenceSpec>()
+        .any_ref()
+        .downcast_ref::<PrecedenceSpec>()
         .unwrap();
 
     assert_eq!(None, negated_op.segmentation);

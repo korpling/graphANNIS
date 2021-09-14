@@ -1,7 +1,7 @@
 use super::db::aql::model::AnnotationComponentType;
 use crate::{annis::db::AnnotationStorage, graph::Match, AnnotationGraph};
 use graphannis_core::types::{Component, Edge};
-use std::{any::Any, collections::HashSet, fmt::Display};
+use std::{any::Any, collections::HashSet, fmt::Display, sync::Arc};
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 #[allow(clippy::enum_variant_names)]
@@ -244,7 +244,9 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
     fn is_binding(&self) -> bool {
         true
     }
-    fn into_any(self: Box<Self>) -> Box<dyn Any>;
+    fn into_any(self: Arc<Self>) -> Arc<dyn Any>;
+
+    fn any_ref(&self) -> &dyn Any;
 }
 
 pub trait UnaryOperatorSpec: std::fmt::Debug {

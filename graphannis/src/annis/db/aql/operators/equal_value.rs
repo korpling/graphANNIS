@@ -16,6 +16,7 @@ use graphannis_core::{
 use std::any::Any;
 use std::borrow::Cow;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct EqualValueSpec {
@@ -45,7 +46,11 @@ impl BinaryOperatorSpec for EqualValueSpec {
         false
     }
 
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+        self
+    }
+
+    fn any_ref(&self) -> &dyn Any {
         self
     }
 }
