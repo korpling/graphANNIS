@@ -85,10 +85,6 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
         &'b self,
         g: &'b AnnotationGraph,
     ) -> Option<Box<dyn crate::annis::operator::UnaryOperator + 'b>> {
-        let mut op_estimation = EstimationType::Min;
-        if let Some(op) = self.op.create_operator(g) {
-            op_estimation = op.estimation_type();
-        }
         let mut target_left = self.target_left;
         let mut orig_op = self.op.create_operator(g)?;
 
@@ -99,12 +95,14 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
                 target_left = false;
             }
         }
+        let op_estimation = orig_op.estimation_type();
+
         // When possible, use the index-based implementation, use the filter
         // version as a fallback
         let negated_op: Box<dyn crate::annis::operator::UnaryOperator + 'b> = if !target_left {
             if let BinaryOperator::Index(orig_op) = orig_op {
                 Box::new(NonExistingUnaryOperatorIndex {
-                    spec: self.clone(),
+                    target: self.target.clone(),
                     graph: g,
                     op_estimation,
                     negated_op: orig_op,
@@ -121,7 +119,7 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
 }
 
 struct NonExistingUnaryOperatorIndex<'a> {
-    spec: NonExistingUnaryOperatorSpec,
+    target: NodeSearchSpec,
     negated_op: Box<dyn BinaryOperatorIndex + 'a>,
     graph: &'a AnnotationGraph,
     op_estimation: EstimationType,
@@ -129,7 +127,7 @@ struct NonExistingUnaryOperatorIndex<'a> {
 
 impl<'a> Display for NonExistingUnaryOperatorIndex<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, " !{} {}", self.negated_op, self.spec.target)?;
+        write!(f, " !{} {}", self.negated_op, self.target)?;
         Ok(())
     }
 }
@@ -138,7 +136,7 @@ impl<'a> UnaryOperator for NonExistingUnaryOperatorIndex<'a> {
     fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> bool {
         // Extract the annotation keys for the matches
         let it = self.negated_op.retrieve_matches(&m).map(|m| m.node);
-        let qname = self.spec.target.get_anno_qname();
+        let qname = self.target.get_anno_qname();
         let candidates = self.graph.get_node_annos().get_keys_for_iterator(
             qname.0.as_deref(),
             qname.1.as_deref(),
@@ -146,7 +144,6 @@ impl<'a> UnaryOperator for NonExistingUnaryOperatorIndex<'a> {
         );
 
         let value_filter = self
-            .spec
             .target
             .get_value_filter(self.graph, None)
             .unwrap_or_default();
