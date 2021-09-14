@@ -92,6 +92,30 @@ impl NodeSearchSpec {
         HashSet::default()
     }
 
+    /// Get the annotatiom qualified name needed to execute a search with this specification.
+    pub fn get_anno_qname(&self) -> (Option<String>, Option<String>) {
+        match self {
+            NodeSearchSpec::ExactValue { ns, name, .. }
+            | NodeSearchSpec::NotExactValue { ns, name, .. }
+            | NodeSearchSpec::RegexValue { ns, name, .. }
+            | NodeSearchSpec::NotRegexValue { ns, name, .. } => {
+                (ns.to_owned(), Some(name.to_owned()))
+            }
+            NodeSearchSpec::ExactTokenValue { .. }
+            | NodeSearchSpec::NotExactTokenValue { .. }
+            | NodeSearchSpec::RegexTokenValue { .. }
+            | NodeSearchSpec::NotRegexTokenValue { .. }
+            | NodeSearchSpec::AnyToken { .. } => (
+                Some(TOKEN_KEY.ns.clone().into()),
+                Some(TOKEN_KEY.name.clone().into()),
+            ),
+            NodeSearchSpec::AnyNode => (
+                Some(NODE_TYPE_KEY.ns.clone().into()),
+                Some(NODE_TYPE_KEY.name.clone().into()),
+            ),
+        }
+    }
+
     /// Creates a vector of value filter functions for this node annotation search.
     pub fn get_value_filter(
         &self,

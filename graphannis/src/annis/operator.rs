@@ -136,6 +136,7 @@ impl EdgeAnnoSearchSpec {
 }
 
 /// Represents the different strategies to estimate the output of size of applying an operator.
+#[derive(Clone)]
 pub enum EstimationType {
     /// Estimate using the given selectivity.
     /// This means the cross product of the input sizes is multiplied with this factor to get the output size.
@@ -261,7 +262,7 @@ pub trait UnaryOperatorSpec: std::fmt::Debug {
     ) -> Option<Box<dyn UnaryOperator + 'a>>;
 }
 
-pub trait UnaryOperator: std::fmt::Display + Send + Sync {
+pub trait UnaryOperator: std::fmt::Display {
     fn filter_match(&self, m: &Match) -> bool;
 
     fn estimation_type(&self) -> EstimationType {

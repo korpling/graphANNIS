@@ -4,18 +4,18 @@ use std::{
     sync::Arc,
 };
 
-use graphannis_core::graph::{ANNIS_NS, NODE_NAME, NODE_NAME_KEY};
+use graphannis_core::graph::{ANNIS_NS, NODE_NAME};
 
 use crate::{
     annis::{
         db::{
-            aql::{conjunction::Conjunction, Config},
-            exec::nodesearch::NodeSearchSpec,
+            aql::conjunction::Conjunction,
+            exec::nodesearch::{NodeSearch, NodeSearchSpec},
         },
         errors::Result,
         operator::{
-            BinaryOperatorBase, BinaryOperatorSpec, EstimationType, UnaryOperator,
-            UnaryOperatorSpec,
+            BinaryOperator, BinaryOperatorBase, BinaryOperatorIndex, BinaryOperatorSpec,
+            EstimationType, UnaryOperator, UnaryOperatorSpec,
         },
     },
     AnnotationGraph,
@@ -69,15 +69,6 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
         &'b self,
         g: &'b AnnotationGraph,
     ) -> Option<Box<dyn crate::annis::operator::UnaryOperator + 'b>> {
-        let config = Config {
-            use_parallel_joins: false,
-        };
-        // Create a conjunction from the definition
-        let subquery = self.create_subquery_conjunction(String::default()).ok()?;
-        // Make an initial plan and store the operator order and apply it every time
-        // (this should aoid costly optimization in each step)
-        let operator_order = subquery.optimize_join_order_heuristics(g, &config).ok()?;
-
         let mut query_fragment = "<unknown>".into();
         let mut op_estimation = EstimationType::Min;
         if let Some(op) = self.op.create_operator(g) {
@@ -89,53 +80,107 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
             op_estimation = op.estimation_type();
         }
 
-        let op = NonExistingUnaryOperator {
-            spec: self.clone(),
-            operator_order,
-            graph: g,
-            config,
-            query_fragment,
-            op_estimation,
-        };
-        Some(Box::new(op))
+        let orig_op = self.op.create_operator(g)?;
+        let mut negated_op: Box<dyn crate::annis::operator::UnaryOperator + 'b> =
+            Box::new(NonExistingUnaryOperatorFilter {
+                spec: self.clone(),
+                graph: g,
+                query_fragment: query_fragment.clone(),
+                op_estimation: op_estimation.clone(),
+                negated_op: orig_op,
+            });
+        if !self.target_left {
+            if let BinaryOperator::Index(orig_op) = self.op.create_operator(g)? {
+                negated_op = Box::new(NonExistingUnaryOperatorIndex {
+                    spec: self.clone(),
+                    graph: g,
+                    query_fragment,
+                    op_estimation,
+                    negated_op: orig_op,
+                })
+            }
+        }
+        Some(negated_op)
     }
 }
 
-struct NonExistingUnaryOperator<'a> {
+struct NonExistingUnaryOperatorIndex<'a> {
     spec: NonExistingUnaryOperatorSpec,
-    operator_order: Vec<usize>,
+    negated_op: Box<dyn BinaryOperatorIndex + 'a>,
     graph: &'a AnnotationGraph,
-    config: Config,
     query_fragment: String,
     op_estimation: EstimationType,
 }
 
-impl<'a> Display for NonExistingUnaryOperator<'a> {
+impl<'a> Display for NonExistingUnaryOperatorIndex<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, " !({})", self.query_fragment)
     }
 }
 
-impl<'a> UnaryOperator for NonExistingUnaryOperator<'a> {
+impl<'a> UnaryOperator for NonExistingUnaryOperatorIndex<'a> {
     fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> bool {
-        if let Some(match_name) = self
-            .graph
-            .get_node_annos()
-            .get_value_for_item(&m.node, &NODE_NAME_KEY)
-        {
-            if let Ok(subquery) = self.spec.create_subquery_conjunction(match_name.into()) {
-                // Create an execution plan from the conjunction
-                if let Ok(mut plan) = subquery.make_exec_plan_with_order(
-                    self.graph,
-                    &self.config,
-                    self.operator_order.clone(),
-                ) {
-                    // Only return true of no match was found
-                    return plan.next().is_none();
-                }
-            }
+        // Extract the annotation keys for the matches
+        let it = self.negated_op.retrieve_matches(&m).map(|m| m.node);
+        let qname = self.spec.target.get_anno_qname();
+        let candidates = self.graph.get_node_annos().get_keys_for_iterator(
+            qname.0.as_deref(),
+            qname.1.as_deref(),
+            Box::new(it),
+        );
+
+        let value_filter = self
+            .spec
+            .target
+            .get_value_filter(self.graph, None)
+            .unwrap_or_default();
+
+        // Only return true of no match was found which matches the operator and node value filter
+        !candidates.into_iter().any(|m| {
+            value_filter
+                .iter()
+                .all(|f| f(&m, self.graph.get_node_annos()))
+        })
+    }
+
+    fn estimation_type(&self) -> EstimationType {
+        match self.op_estimation {
+            EstimationType::Selectivity(s) => EstimationType::Selectivity(1.0 - s),
+            EstimationType::Min => EstimationType::Min,
         }
-        false
+    }
+}
+
+struct NonExistingUnaryOperatorFilter<'a> {
+    spec: NonExistingUnaryOperatorSpec,
+    negated_op: BinaryOperator<'a>,
+    graph: &'a AnnotationGraph,
+    query_fragment: String,
+    op_estimation: EstimationType,
+}
+
+impl<'a> Display for NonExistingUnaryOperatorFilter<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, " !({})", self.query_fragment)
+    }
+}
+
+impl<'a> UnaryOperator for NonExistingUnaryOperatorFilter<'a> {
+    fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> bool {
+        // The candidate match is on one side and we need to get an iterator of all possible matches for the other side
+        if let Ok(mut node_search) =
+            NodeSearch::from_spec(self.spec.target.clone(), 0, self.graph, None)
+        {
+            // Include if no nodes matches the conditions
+            let has_any_match = if self.spec.target_left {
+                node_search.any(|lhs| self.negated_op.filter_match(&lhs[0], m))
+            } else {
+                node_search.any(|rhs| self.negated_op.filter_match(m, &rhs[0]))
+            };
+            !has_any_match
+        } else {
+            false
+        }
     }
 
     fn estimation_type(&self) -> EstimationType {
