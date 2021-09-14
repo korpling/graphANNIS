@@ -13,7 +13,10 @@ use crate::{
             exec::nodesearch::NodeSearchSpec,
         },
         errors::Result,
-        operator::{BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec},
+        operator::{
+            BinaryOperatorBase, BinaryOperatorSpec, EstimationType, UnaryOperator,
+            UnaryOperatorSpec,
+        },
     },
     AnnotationGraph,
 };
@@ -75,15 +78,16 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
         // (this should aoid costly optimization in each step)
         let operator_order = subquery.optimize_join_order_heuristics(g, &config).ok()?;
 
-        let query_fragment = if let Some(op) = self.op.create_operator(g) {
-            if self.target_left {
+        let mut query_fragment = "<unknown>".into();
+        let mut op_estimation = EstimationType::Min;
+        if let Some(op) = self.op.create_operator(g) {
+            query_fragment = if self.target_left {
                 format!("{} {} x", self.target, op)
             } else {
                 format!("x {} {}", op, self.target)
-            }
-        } else {
-            "unknown subquery".into()
-        };
+            };
+            op_estimation = op.estimation_type();
+        }
 
         let op = NonExistingUnaryOperator {
             spec: self.clone(),
@@ -91,6 +95,7 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
             graph: g,
             config,
             query_fragment,
+            op_estimation,
         };
         Some(Box::new(op))
     }
@@ -102,6 +107,7 @@ struct NonExistingUnaryOperator<'a> {
     graph: &'a AnnotationGraph,
     config: Config,
     query_fragment: String,
+    op_estimation: EstimationType,
 }
 
 impl<'a> Display for NonExistingUnaryOperator<'a> {
@@ -130,5 +136,12 @@ impl<'a> UnaryOperator for NonExistingUnaryOperator<'a> {
             }
         }
         false
+    }
+
+    fn estimation_type(&self) -> EstimationType {
+        match self.op_estimation {
+            EstimationType::Selectivity(s) => EstimationType::Selectivity(1.0 - s),
+            EstimationType::Min => EstimationType::Min,
+        }
     }
 }
