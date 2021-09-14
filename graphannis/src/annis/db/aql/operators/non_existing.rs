@@ -18,7 +18,7 @@ use crate::{
     AnnotationGraph,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NonExistingUnaryOperatorSpec {
     pub op: Arc<dyn BinaryOperatorSpec>,
     pub target: NodeSearchSpec,
@@ -71,12 +71,12 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
         };
         // Create a conjunction from the definition
         let subquery = self.create_subquery_conjunction().ok()?;
-        // make an initial plan and store the operator order and apply it every time
+        // Make an initial plan and store the operator order and apply it every time
         // (this should aoid costly optimization in each step)
         let operator_order = subquery.optimize_join_order_heuristics(g, &config).ok()?;
 
         let op = NonExistingUnaryOperator {
-            //            subquery: Arc::new(Mutex::new(subquery)),
+            spec: self.clone(),
             operator_order,
             graph: g,
             config,
@@ -86,8 +86,7 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
 }
 
 struct NonExistingUnaryOperator<'a> {
-    // TODO: this could be replaced with an execution plan and a *mutable* reference to the node ID search
-    //subquery: Arc<Conjunction>,
+    spec: NonExistingUnaryOperatorSpec,
     operator_order: Vec<usize>,
     graph: &'a AnnotationGraph,
     config: Config,
@@ -102,19 +101,21 @@ impl<'a> Display for NonExistingUnaryOperator<'a> {
 
 impl<'a> UnaryOperator for NonExistingUnaryOperator<'a> {
     fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> bool {
-        todo!()
-        // let subquery = self.subquery.lock().unwrap();
-        // // TODO: Replace the first node annotation value with the ID of our match
-        // // Create an execution plan from the conjunction
-        // if let Ok(plan) = subquery.make_exec_plan_with_order(
-        //     self.graph,
-        //     &self.config,
-        //     self.operator_order.clone(),
-        // ) {
-        //     // Only return true of no match was found
-        //     plan.next().is_none()
-        // } else {
-        //     false
-        // }
+        if let Ok(subquery) = self.spec.create_subquery_conjunction() {
+            // TODO: Replace the first node annotation value with the ID of our match
+            // Create an execution plan from the conjunction
+            if let Ok(mut plan) = subquery.make_exec_plan_with_order(
+                self.graph,
+                &self.config,
+                self.operator_order.clone(),
+            ) {
+                // Only return true of no match was found
+                plan.next().is_none()
+            } else {
+                false
+            }
+        } else {
+            false
+        }
     }
 }
