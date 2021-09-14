@@ -49,6 +49,22 @@ impl NonExistingUnaryOperatorSpec {
 
         Ok(subquery)
     }
+
+    fn create_filter_operator<'b>(
+        &'b self,
+        g: &'b AnnotationGraph,
+        negated_op: BinaryOperator<'b>,
+        target_left: bool,
+        op_estimation: EstimationType,
+    ) -> Box<dyn crate::annis::operator::UnaryOperator + 'b> {
+        Box::new(NonExistingUnaryOperatorFilter {
+            target: self.target.clone(),
+            target_left,
+            graph: g,
+            op_estimation,
+            negated_op,
+        })
+    }
 }
 
 impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
@@ -73,25 +89,33 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
         if let Some(op) = self.op.create_operator(g) {
             op_estimation = op.estimation_type();
         }
+        let mut target_left = self.target_left;
+        let mut orig_op = self.op.create_operator(g)?;
 
-        let orig_op = self.op.create_operator(g)?;
-        let mut negated_op: Box<dyn crate::annis::operator::UnaryOperator + 'b> =
-            Box::new(NonExistingUnaryOperatorFilter {
-                spec: self.clone(),
-                graph: g,
-                op_estimation: op_estimation.clone(),
-                negated_op: orig_op,
-            });
-        if !self.target_left {
-            if let BinaryOperator::Index(orig_op) = self.op.create_operator(g)? {
-                negated_op = Box::new(NonExistingUnaryOperatorIndex {
+        if target_left {
+            // Check if we can avoid a costly filter operation by switching operands
+            if let Some(inverted_op) = orig_op.get_inverse_operator(g) {
+                orig_op = inverted_op;
+                target_left = false;
+            }
+        }
+        // When possible, use the index-based implementation, use the filter
+        // version as a fallback
+        let negated_op: Box<dyn crate::annis::operator::UnaryOperator + 'b> = if !target_left {
+            if let BinaryOperator::Index(orig_op) = orig_op {
+                Box::new(NonExistingUnaryOperatorIndex {
                     spec: self.clone(),
                     graph: g,
                     op_estimation,
                     negated_op: orig_op,
                 })
+            } else {
+                self.create_filter_operator(g, orig_op, target_left, op_estimation)
             }
-        }
+        } else {
+            self.create_filter_operator(g, orig_op, target_left, op_estimation)
+        };
+
         Some(negated_op)
     }
 }
@@ -144,7 +168,8 @@ impl<'a> UnaryOperator for NonExistingUnaryOperatorIndex<'a> {
 }
 
 struct NonExistingUnaryOperatorFilter<'a> {
-    spec: NonExistingUnaryOperatorSpec,
+    target: NodeSearchSpec,
+    target_left: bool,
     negated_op: BinaryOperator<'a>,
     graph: &'a AnnotationGraph,
     op_estimation: EstimationType,
@@ -152,10 +177,10 @@ struct NonExistingUnaryOperatorFilter<'a> {
 
 impl<'a> Display for NonExistingUnaryOperatorFilter<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.spec.target_left {
-            write!(f, " !({} {} x)", self.spec.target, self.negated_op)?;
+        if self.target_left {
+            write!(f, " !({} {} x)", self.target, self.negated_op)?;
         } else {
-            write!(f, " !(x {} {})", self.negated_op, self.spec.target,)?;
+            write!(f, " !(x {} {})", self.negated_op, self.target,)?;
         }
         Ok(())
     }
@@ -164,11 +189,10 @@ impl<'a> Display for NonExistingUnaryOperatorFilter<'a> {
 impl<'a> UnaryOperator for NonExistingUnaryOperatorFilter<'a> {
     fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> bool {
         // The candidate match is on one side and we need to get an iterator of all possible matches for the other side
-        if let Ok(mut node_search) =
-            NodeSearch::from_spec(self.spec.target.clone(), 0, self.graph, None)
+        if let Ok(mut node_search) = NodeSearch::from_spec(self.target.clone(), 0, self.graph, None)
         {
             // Include if no nodes matches the conditions
-            let has_any_match = if self.spec.target_left {
+            let has_any_match = if self.target_left {
                 node_search.any(|lhs| self.negated_op.filter_match(&lhs[0], m))
             } else {
                 node_search.any(|rhs| self.negated_op.filter_match(m, &rhs[0]))
