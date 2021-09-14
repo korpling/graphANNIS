@@ -165,6 +165,11 @@ fn map_conjunction(
                 }));
                     } else {
                         let target_left = node_left.optional;
+                        let filtered_var = if target_left {
+                            node_right.var
+                        } else {
+                            node_left.var
+                        };
                         let spec = NonExistingUnaryOperatorSpec {
                             op: op_spec,
                             target: if target_left {
@@ -174,7 +179,7 @@ fn map_conjunction(
                             },
                             target_left,
                         };
-                        q.add_unary_operator_from_query(Arc::new(spec), &node_right.var, op_pos)?;
+                        q.add_unary_operator_from_query(Arc::new(spec), &filtered_var, op_pos)?;
                     }
                 }
             } else {
