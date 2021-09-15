@@ -398,7 +398,7 @@ impl<'a> NodeSearch<'a> {
     ) -> Result<NodeSearch<'a>> {
         let query_fragment = format!("{}", spec);
 
-        let filters = spec.get_value_filter(db, location_in_query.to_owned())?;
+        let filters = spec.get_value_filter(db, location_in_query)?;
 
         match spec {
             NodeSearchSpec::ExactValue {
