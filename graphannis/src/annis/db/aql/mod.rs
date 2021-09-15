@@ -154,33 +154,31 @@ fn map_conjunction(
                         negated_op: op_spec,
                     });
                     q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?
-                } else {
-                    if node_left.optional && node_right.optional {
-                        // Not supported yet
-                        return Err(GraphAnnisError::AQLSemanticError(AQLError {
+                } else if node_left.optional && node_right.optional {
+                    // Not supported yet
+                    return Err(GraphAnnisError::AQLSemanticError(AQLError {
                     desc: format!(
                         "Negated binary operator needs a non-optional left or right operand, but both operands (#{}, #{}) are optional, as indicated by their \"?\" suffix.", 
                         var_left, var_right),
                     location: op_pos,
                 }));
+                } else {
+                    let target_left = node_left.optional;
+                    let filtered_var = if target_left {
+                        node_right.var
                     } else {
-                        let target_left = node_left.optional;
-                        let filtered_var = if target_left {
-                            node_right.var
+                        node_left.var
+                    };
+                    let spec = NonExistingUnaryOperatorSpec {
+                        op: op_spec,
+                        target: if target_left {
+                            node_left.spec
                         } else {
-                            node_left.var
-                        };
-                        let spec = NonExistingUnaryOperatorSpec {
-                            op: op_spec,
-                            target: if target_left {
-                                node_left.spec
-                            } else {
-                                node_right.spec
-                            },
-                            target_left,
-                        };
-                        q.add_unary_operator_from_query(Arc::new(spec), &filtered_var, op_pos)?;
-                    }
+                            node_right.spec
+                        },
+                        target_left,
+                    };
+                    q.add_unary_operator_from_query(Arc::new(spec), &filtered_var, op_pos)?;
                 }
             } else {
                 q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?;

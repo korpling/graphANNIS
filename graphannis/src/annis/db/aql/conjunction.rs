@@ -660,7 +660,7 @@ impl Conjunction {
 
         let inverse_op = op.get_inverse_operator(g);
         if let Some(inverse_op) = inverse_op {
-            if should_switch_operand_order(op_spec_entry, &node2cost) {
+            if should_switch_operand_order(op_spec_entry, node2cost) {
                 spec_idx_left = op_spec_entry.args.right;
                 spec_idx_right = op_spec_entry.args.left;
 

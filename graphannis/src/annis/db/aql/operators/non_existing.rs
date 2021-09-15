@@ -135,7 +135,7 @@ impl<'a> Display for NonExistingUnaryOperatorIndex<'a> {
 impl<'a> UnaryOperator for NonExistingUnaryOperatorIndex<'a> {
     fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> bool {
         // Extract the annotation keys for the matches
-        let it = self.negated_op.retrieve_matches(&m).map(|m| m.node);
+        let it = self.negated_op.retrieve_matches(m).map(|m| m.node);
         let qname = self.target.get_anno_qname();
         let candidates = self.graph.get_node_annos().get_keys_for_iterator(
             qname.0.as_deref(),
