@@ -5,11 +5,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added generic operator negation without existence assumption, 
+  if only one side of the negated operator is optional  (#187).
+
 ## [1.1.0] - 2021-09-09
 
 ### Added
 
-- Added generic operator negation with existance assumption by adding `!` before the binary operator (#186)
+- Added generic operator negation with existence assumption by adding `!` before the binary operator (#186)
 
 ### Changed
 
