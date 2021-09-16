@@ -180,23 +180,14 @@ fn map_conjunction(
                     };
                     q.add_unary_operator_from_query(Arc::new(spec), &filtered_var, op_pos)?;
                 }
+            } else if node_left.optional || node_right.optional {
+                // Not supported yet
+                return Err(GraphAnnisError::AQLSemanticError(AQLError {
+                    desc: "Optional left or right operands can only be combined with a negated operator.".into(),
+                    location: op_pos,
+                }));
             } else {
-                if node_left.optional || node_right.optional {
-                    // Not supported yet
-                    return Err(GraphAnnisError::AQLSemanticError(AQLError {
-                        desc: format!(
-                            "Optional left or right operands can only be combined with a negated operator."),
-                        location: op_pos,
-                    }));
-                } else {
-                    q.add_operator_from_query(
-                        op_spec,
-                        &var_left,
-                        &var_right,
-                        op_pos,
-                        !quirks_mode,
-                    )?;
-                }
+                q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?;
             }
         }
     }
