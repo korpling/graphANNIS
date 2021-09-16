@@ -155,3 +155,31 @@ fn semantic_error_unbound() {
         Ok(_) => panic!("Query must return an error"),
     }
 }
+
+#[test]
+fn semantic_error_optional_non_negated() {
+    match aql::parse("tok? & tok? & #1 . #2", false) {
+        Err(AQLSemanticError(err)) => assert_eq!(
+            "Optional left or right operands can only be combined with a negated operator.",
+            err.desc
+        ),
+        Err(err) => panic!("Query must return a semantic error, but returned {}", err),
+        Ok(_) => panic!("Query must return an error"),
+    }
+    match aql::parse("tok & tok? & #1 . #2", false) {
+        Err(AQLSemanticError(err)) => assert_eq!(
+            "Optional left or right operands can only be combined with a negated operator.",
+            err.desc
+        ),
+        Err(err) => panic!("Query must return a semantic error, but returned {}", err),
+        Ok(_) => panic!("Query must return an error"),
+    }
+    match aql::parse("tok? & tok & #1 . #2", false) {
+        Err(AQLSemanticError(err)) => assert_eq!(
+            "Optional left or right operands can only be combined with a negated operator.",
+            err.desc
+        ),
+        Err(err) => panic!("Query must return a semantic error, but returned {}", err),
+        Ok(_) => panic!("Query must return an error"),
+    }
+}
