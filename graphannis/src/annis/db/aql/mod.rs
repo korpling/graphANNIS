@@ -183,8 +183,7 @@ fn map_conjunction(
             } else if node_left.optional || node_right.optional {
                 // Not supported yet
                 return Err(GraphAnnisError::AQLSemanticError(AQLError {
-                    desc: 
-                        "Optional left or right operands can only be combined with a negated operator.".into(),
+                    desc: "Optional left or right operands can only be combined with a negated operator.".into(),
                     location: op_pos,
                 }));
             } else {
