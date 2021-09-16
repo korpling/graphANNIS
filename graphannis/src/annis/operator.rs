@@ -1,7 +1,7 @@
 use super::db::aql::model::AnnotationComponentType;
 use crate::{annis::db::AnnotationStorage, graph::Match, AnnotationGraph};
 use graphannis_core::types::{Component, Edge};
-use std::{any::Any, collections::HashSet, fmt::Display};
+use std::{any::Any, collections::HashSet, fmt::Display, sync::Arc};
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 #[allow(clippy::enum_variant_names)]
@@ -136,6 +136,7 @@ impl EdgeAnnoSearchSpec {
 }
 
 /// Represents the different strategies to estimate the output of size of applying an operator.
+#[derive(Clone)]
 pub enum EstimationType {
     /// Estimate using the given selectivity.
     /// This means the cross product of the input sizes is multiplied with this factor to get the output size.
@@ -229,7 +230,7 @@ pub trait BinaryOperatorIndex: BinaryOperatorBase {
     fn as_binary_operator(&self) -> &dyn BinaryOperatorBase;
 }
 
-pub trait BinaryOperatorSpec: std::fmt::Debug {
+pub trait BinaryOperatorSpec: std::fmt::Debug + Send + Sync {
     fn necessary_components(
         &self,
         db: &AnnotationGraph,
@@ -244,7 +245,9 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
     fn is_binding(&self) -> bool {
         true
     }
-    fn into_any(self: Box<Self>) -> Box<dyn Any>;
+    fn into_any(self: Arc<Self>) -> Arc<dyn Any>;
+
+    fn any_ref(&self) -> &dyn Any;
 }
 
 pub trait UnaryOperatorSpec: std::fmt::Debug {
@@ -253,10 +256,13 @@ pub trait UnaryOperatorSpec: std::fmt::Debug {
         db: &AnnotationGraph,
     ) -> HashSet<Component<AnnotationComponentType>>;
 
-    fn create_operator(&self, db: &AnnotationGraph) -> Option<Box<dyn UnaryOperator>>;
+    fn create_operator<'a>(
+        &'a self,
+        db: &'a AnnotationGraph,
+    ) -> Option<Box<dyn UnaryOperator + 'a>>;
 }
 
-pub trait UnaryOperator: std::fmt::Display + Send + Sync {
+pub trait UnaryOperator: std::fmt::Display {
     fn filter_match(&self, m: &Match) -> bool;
 
     fn estimation_type(&self) -> EstimationType {

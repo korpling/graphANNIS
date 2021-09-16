@@ -1,4 +1,4 @@
-use std::{any::Any, fmt::Display};
+use std::{any::Any, fmt::Display, sync::Arc};
 
 use crate::{
     annis::{
@@ -13,7 +13,7 @@ use graphannis_core::annostorage::Match;
 pub struct NegatedOpSpec {
     pub spec_left: NodeSearchSpec,
     pub spec_right: NodeSearchSpec,
-    pub negated_op: Box<dyn BinaryOperatorSpec>,
+    pub negated_op: Arc<dyn BinaryOperatorSpec>,
 }
 
 impl BinaryOperatorSpec for NegatedOpSpec {
@@ -39,7 +39,11 @@ impl BinaryOperatorSpec for NegatedOpSpec {
         }
     }
 
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+        self
+    }
+
+    fn any_ref(&self) -> &dyn Any {
         self
     }
 }

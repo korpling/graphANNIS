@@ -19,11 +19,12 @@ pub struct CostEstimate {
     pub processed_in_step: usize,
 }
 
+/// Representation of the execution node tree.
 #[derive(Debug, Clone)]
-pub struct Desc {
+pub struct ExecutionNodeDesc {
     pub component_nr: usize,
-    pub lhs: Option<Box<Desc>>,
-    pub rhs: Option<Box<Desc>>,
+    pub lhs: Option<Box<ExecutionNodeDesc>>,
+    pub rhs: Option<Box<ExecutionNodeDesc>>,
     /// Maps the index of the node in the actual result to the index in the internal execution plan intermediate result.
     pub node_pos: BTreeMap<usize, usize>,
     pub impl_description: String,
@@ -51,15 +52,14 @@ fn calculate_outputsize<Op: BinaryOperatorBase + ?Sized>(
     std::cmp::max(output, 1)
 }
 
-pub struct NodeDescArg {
-    query_fragment: String,
-    node_nr: usize,
-}
-
-impl Desc {
-    pub fn empty_with_fragment(node_desc_arg: NodeDescArg, est_size: Option<usize>) -> Desc {
+impl ExecutionNodeDesc {
+    pub fn empty_with_fragment(
+        node_nr: usize,
+        query_fragment: String,
+        est_size: Option<usize>,
+    ) -> ExecutionNodeDesc {
         let mut node_pos = BTreeMap::new();
-        node_pos.insert(node_desc_arg.node_nr, 0);
+        node_pos.insert(node_nr, 0);
 
         let cost = est_size.map(|output| CostEstimate {
             output,
@@ -67,25 +67,25 @@ impl Desc {
             processed_in_step: 0,
         });
 
-        Desc {
+        ExecutionNodeDesc {
             component_nr: 0,
             lhs: None,
             rhs: None,
             node_pos,
             impl_description: String::from(""),
-            query_fragment: node_desc_arg.query_fragment,
+            query_fragment,
             cost,
         }
     }
 
     pub fn join<Op: BinaryOperatorBase + ?Sized>(
         op: &Op,
-        lhs: Option<&Desc>,
-        rhs: Option<&Desc>,
+        lhs: Option<&ExecutionNodeDesc>,
+        rhs: Option<&ExecutionNodeDesc>,
         impl_description: &str,
         query_fragment: &str,
         processed_func: &dyn Fn(EstimationType, usize, usize) -> usize,
-    ) -> Desc {
+    ) -> ExecutionNodeDesc {
         let component_nr = if let Some(d) = lhs {
             d.component_nr
         } else if let Some(d) = rhs {
@@ -131,7 +131,7 @@ impl Desc {
             None
         };
 
-        Desc {
+        ExecutionNodeDesc {
             component_nr,
             lhs: lhs.map(|x| Box::new(x.clone())),
             rhs: rhs.map(|x| Box::new(x.clone())),
@@ -183,12 +183,14 @@ impl Desc {
     }
 }
 
-pub type MatchFilterFunc =
+/// Filter function for the value of a given match, but assumes the given match has already the
+/// correct annotation namespace/name.
+pub type MatchValueFilterFunc =
     Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>;
 
 pub struct NodeSearchDesc {
     pub qname: (Option<String>, Option<String>),
-    pub cond: Vec<MatchFilterFunc>,
+    pub cond: Vec<MatchValueFilterFunc>,
     pub const_output: Option<Arc<AnnoKey>>,
 }
 
@@ -198,7 +200,7 @@ pub trait ExecutionNode: Iterator {
         None
     }
 
-    fn get_desc(&self) -> Option<&Desc> {
+    fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         None
     }
 
@@ -225,7 +227,7 @@ impl ExecutionNode for EmptyResultSet {
         None
     }
 
-    fn get_desc(&self) -> Option<&Desc> {
+    fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         None
     }
 }

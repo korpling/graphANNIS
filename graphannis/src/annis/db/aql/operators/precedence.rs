@@ -71,7 +71,11 @@ impl BinaryOperatorSpec for PrecedenceSpec {
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
 
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+        self
+    }
+
+    fn any_ref(&self) -> &dyn Any {
         self
     }
 }

@@ -8,7 +8,7 @@ use crate::annis::db::exec::indexjoin::IndexJoin;
 use crate::annis::db::exec::nestedloop::NestedLoop;
 use crate::annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use crate::annis::db::exec::parallel;
-use crate::annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
+use crate::annis::db::exec::{CostEstimate, ExecutionNode, ExecutionNodeDesc, NodeSearchDesc};
 use crate::annis::db::{aql::model::AnnotationComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::{
@@ -41,13 +41,13 @@ pub struct BinaryOperatorArguments {
 
 #[derive(Debug)]
 struct BinaryOperatorSpecEntry {
-    op: Box<dyn BinaryOperatorSpec>,
+    op: Arc<dyn BinaryOperatorSpec>,
     args: BinaryOperatorArguments,
 }
 
 #[derive(Debug)]
 struct UnaryOperatorSpecEntry {
-    op: Box<dyn UnaryOperatorSpec>,
+    op: Arc<dyn UnaryOperatorSpec>,
     idx: usize,
 }
 
@@ -56,14 +56,22 @@ pub struct BinaryOperatorEntry<'a> {
     pub args: BinaryOperatorArguments,
 }
 
-pub struct UnaryOperatorEntry {
-    pub op: Box<dyn UnaryOperator>,
+pub struct UnaryOperatorEntry<'a> {
+    pub op: Box<dyn UnaryOperator + 'a>,
     pub node_nr: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct NodeSearchSpecEntry {
+    pub var: String,
+    pub spec: NodeSearchSpec,
+    pub optional: bool,
+    pub location: Option<LineColumnRange>,
 }
 
 #[derive(Debug)]
 pub struct Conjunction {
-    nodes: Vec<(String, NodeSearchSpec)>,
+    nodes: Vec<NodeSearchSpecEntry>,
     binary_operators: Vec<BinaryOperatorSpecEntry>,
     unary_operators: Vec<UnaryOperatorSpecEntry>,
     variables: HashMap<String, usize>,
@@ -237,16 +245,16 @@ impl Conjunction {
 
     pub fn get_node_descriptions(&self) -> Vec<QueryAttributeDescription> {
         let mut result = Vec::default();
-        for (var, spec) in &self.nodes {
-            let anno_name = match spec {
+        for n in &self.nodes {
+            let anno_name = match &n.spec {
                 NodeSearchSpec::ExactValue { name, .. } => Some(name.clone()),
                 NodeSearchSpec::RegexValue { name, .. } => Some(name.clone()),
                 _ => None,
             };
             let desc = QueryAttributeDescription {
                 alternative: 0,
-                query_fragment: format!("{}", spec),
-                variable: var.clone(),
+                query_fragment: format!("{}", n.spec),
+                variable: n.var.clone(),
                 anno_name,
             };
             result.push(desc);
@@ -255,7 +263,7 @@ impl Conjunction {
     }
 
     pub fn add_node(&mut self, node: NodeSearchSpec, variable: Option<&str>) -> String {
-        self.add_node_from_query(node, variable, None, true)
+        self.add_node_from_query(node, variable, None, true, false)
     }
 
     pub fn add_node_from_query(
@@ -264,6 +272,7 @@ impl Conjunction {
         variable: Option<&str>,
         location: Option<LineColumnRange>,
         included_in_output: bool,
+        optional: bool,
     ) -> String {
         let idx = self.var_idx_offset + self.nodes.len();
         let variable = if let Some(variable) = variable {
@@ -271,7 +280,13 @@ impl Conjunction {
         } else {
             (idx + 1).to_string()
         };
-        self.nodes.push((variable.clone(), node));
+        self.nodes.push(NodeSearchSpecEntry {
+            var: variable.clone(),
+            spec: node,
+            optional,
+            location: location.clone(),
+        });
+
         self.variables.insert(variable.clone(), idx);
         if included_in_output {
             self.include_in_output.insert(variable.clone());
@@ -284,7 +299,7 @@ impl Conjunction {
 
     pub fn add_unary_operator_from_query(
         &mut self,
-        op: Box<dyn UnaryOperatorSpec>,
+        op: Arc<dyn UnaryOperatorSpec>,
         var: &str,
         location: Option<LineColumnRange>,
     ) -> Result<()> {
@@ -294,7 +309,7 @@ impl Conjunction {
             Ok(())
         } else {
             Err(GraphAnnisError::AQLSemanticError(AQLError {
-                desc: format!("Operand '#{}' not found", var),
+                desc: format!("Operand \"#{}\" not found", var),
                 location,
             }))
         }
@@ -302,7 +317,7 @@ impl Conjunction {
 
     pub fn add_operator(
         &mut self,
-        op: Box<dyn BinaryOperatorSpec>,
+        op: Arc<dyn BinaryOperatorSpec>,
         var_left: &str,
         var_right: &str,
         global_reflexivity: bool,
@@ -312,7 +327,7 @@ impl Conjunction {
 
     pub fn add_operator_from_query(
         &mut self,
-        op: Box<dyn BinaryOperatorSpec>,
+        op: Arc<dyn BinaryOperatorSpec>,
         var_left: &str,
         var_right: &str,
         location: Option<LineColumnRange>,
@@ -346,7 +361,7 @@ impl Conjunction {
             return Ok(*pos);
         }
         Err(GraphAnnisError::AQLSemanticError(AQLError {
-            desc: format!("Operand '#{}' not found", variable),
+            desc: format!("Operand \"#{}\" not found", variable),
             location,
         }))
     }
@@ -357,7 +372,7 @@ impl Conjunction {
 
     pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
         if pos < self.nodes.len() {
-            return Some(self.nodes[pos].0.clone());
+            return Some(self.nodes[pos].var.clone());
         }
         None
     }
@@ -366,16 +381,16 @@ impl Conjunction {
         &self,
         variable: &str,
         location: Option<LineColumnRange>,
-    ) -> Result<NodeSearchSpec> {
+    ) -> Result<NodeSearchSpecEntry> {
         let idx = self.resolve_variable_pos(variable, location.clone())?;
         if let Some(pos) = idx.checked_sub(self.var_idx_offset) {
             if pos < self.nodes.len() {
-                return Ok(self.nodes[pos].1.clone());
+                return Ok(self.nodes[pos].clone());
             }
         }
 
         Err(GraphAnnisError::AQLSemanticError(AQLError {
-            desc: format!("Operand '#{}' not found", variable),
+            desc: format!("Operand \"#{}\" not found", variable),
             location,
         }))
     }
@@ -396,13 +411,13 @@ impl Conjunction {
             result.extend(c);
         }
         for n in &self.nodes {
-            result.extend(n.1.necessary_components(db));
+            result.extend(n.spec.necessary_components(db));
         }
 
         result
     }
 
-    fn optimize_join_order_heuristics(
+    pub fn optimize_join_order_heuristics(
         &self,
         db: &AnnotationGraph,
         config: &Config,
@@ -500,7 +515,7 @@ impl Conjunction {
     fn optimize_node_search_by_operator<'a>(
         &'a self,
         node_search_desc: Arc<NodeSearchDesc>,
-        desc: Option<&Desc>,
+        desc: Option<&ExecutionNodeDesc>,
         op_spec_entries: Box<dyn Iterator<Item = &'a BinaryOperatorSpecEntry> + 'a>,
         db: &'a AnnotationGraph,
     ) -> Option<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> {
@@ -556,7 +571,176 @@ impl Conjunction {
         None
     }
 
-    fn make_exec_plan_with_order<'a>(
+    fn add_node_to_exec_plan<'a>(
+        &'a self,
+        node_nr: usize,
+        g: &'a AnnotationGraph,
+        component2exec: &mut BTreeMap<usize, Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
+        node2component: &mut BTreeMap<usize, usize>,
+        node2cost: &mut BTreeMap<usize, CostEstimate>,
+        node_search_errors: &mut Vec<GraphAnnisError>,
+    ) {
+        let n_spec = &self.nodes[node_nr].spec;
+        let n_var = &self.nodes[node_nr].var;
+
+        let node_search = NodeSearch::from_spec(
+            n_spec.clone(),
+            node_nr,
+            g,
+            self.location_in_query.get(n_var).cloned(),
+        );
+        match node_search {
+            Ok(mut node_search) => {
+                node2component.insert(node_nr, node_nr);
+
+                let (orig_query_frag, orig_impl_desc, cost) =
+                    if let Some(d) = node_search.get_desc() {
+                        if let Some(ref c) = d.cost {
+                            node2cost.insert(node_nr, c.clone());
+                        }
+
+                        (
+                            d.query_fragment.clone(),
+                            d.impl_description.clone(),
+                            d.cost.clone(),
+                        )
+                    } else {
+                        (String::from(""), String::from(""), None)
+                    };
+                // make sure the description is correct
+                let mut node_pos = BTreeMap::new();
+                node_pos.insert(node_nr, 0);
+                let new_desc = ExecutionNodeDesc {
+                    component_nr: node_nr,
+                    lhs: None,
+                    rhs: None,
+                    node_pos,
+                    impl_description: orig_impl_desc,
+                    query_fragment: orig_query_frag,
+                    cost,
+                };
+                node_search.set_desc(Some(new_desc));
+
+                let node_by_component_search = self.optimize_node_search_by_operator(
+                    node_search.get_node_search_desc(),
+                    node_search.get_desc(),
+                    Box::new(self.binary_operators.iter()),
+                    g,
+                );
+
+                // move to map
+                if let Some(node_by_component_search) = node_by_component_search {
+                    component2exec.insert(node_nr, node_by_component_search);
+                } else {
+                    component2exec.insert(node_nr, Box::new(node_search));
+                }
+            }
+            Err(e) => node_search_errors.push(e),
+        };
+    }
+
+    fn add_binary_operator_to_exec_plan<'a>(
+        &'a self,
+        op_spec_entry: &BinaryOperatorSpecEntry,
+        g: &'a AnnotationGraph,
+        config: &Config,
+        component2exec: &mut BTreeMap<usize, Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
+        node2component: &mut BTreeMap<usize, usize>,
+        node2cost: &BTreeMap<usize, CostEstimate>,
+    ) -> Result<()> {
+        let mut op: BinaryOperator<'a> = op_spec_entry.op.create_operator(g).ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(format!(
+                "could not create operator {:?}",
+                op_spec_entry
+            ))
+        })?;
+
+        let mut spec_idx_left = op_spec_entry.args.left;
+        let mut spec_idx_right = op_spec_entry.args.right;
+
+        let inverse_op = op.get_inverse_operator(g);
+        if let Some(inverse_op) = inverse_op {
+            if should_switch_operand_order(op_spec_entry, node2cost) {
+                spec_idx_left = op_spec_entry.args.right;
+                spec_idx_right = op_spec_entry.args.left;
+
+                op = inverse_op;
+            }
+        }
+
+        // substract the offset from the specificated numbers to get the internal node number for this conjunction
+        spec_idx_left -= self.var_idx_offset;
+        spec_idx_right -= self.var_idx_offset;
+
+        let op_entry = BinaryOperatorEntry {
+            op,
+            args: BinaryOperatorArguments {
+                left: spec_idx_left + 1,
+                right: spec_idx_right + 1,
+                global_reflexivity: op_spec_entry.args.global_reflexivity,
+            },
+        };
+
+        let component_left: usize = *(node2component
+            .get(&spec_idx_left)
+            .ok_or_else(|| GraphAnnisError::NoComponentForNode(spec_idx_left + 1))?);
+        let component_right: usize = *(node2component
+            .get(&spec_idx_right)
+            .ok_or_else(|| GraphAnnisError::NoComponentForNode(spec_idx_right + 1))?);
+
+        // get the original execution node
+        let exec_left: Box<dyn ExecutionNode<Item = MatchGroup> + 'a> = component2exec
+            .remove(&component_left)
+            .ok_or(GraphAnnisError::NoExecutionNode(component_left))?;
+
+        let idx_left: usize = *(exec_left
+            .get_desc()
+            .ok_or(GraphAnnisError::PlanDescriptionMissing)?
+            .node_pos
+            .get(&spec_idx_left)
+            .ok_or(GraphAnnisError::LHSOperandNotFound)?);
+
+        let new_exec: Box<dyn ExecutionNode<Item = MatchGroup>> =
+            if component_left == component_right {
+                // don't create new tuples, only filter the existing ones
+                // TODO: check if LHS or RHS is better suited as filter input iterator
+                let idx_right: usize = *(exec_left
+                    .get_desc()
+                    .ok_or(GraphAnnisError::PlanDescriptionMissing)?
+                    .node_pos
+                    .get(&spec_idx_right)
+                    .ok_or(GraphAnnisError::RHSOperandNotFound)?);
+
+                let filter = Filter::new_binary(exec_left, idx_left, idx_right, op_entry);
+                Box::new(filter)
+            } else {
+                let exec_right = component2exec
+                    .remove(&component_right)
+                    .ok_or(GraphAnnisError::NoExecutionNode(component_right))?;
+                let idx_right: usize = *(exec_right
+                    .get_desc()
+                    .ok_or(GraphAnnisError::PlanDescriptionMissing)?
+                    .node_pos
+                    .get(&spec_idx_right)
+                    .ok_or(GraphAnnisError::RHSOperandNotFound)?);
+
+                create_join(
+                    g, config, op_entry, exec_left, exec_right, idx_left, idx_right,
+                )
+            };
+
+        let new_component_nr = new_exec
+            .get_desc()
+            .ok_or(GraphAnnisError::PlanDescriptionMissing)?
+            .component_nr;
+        update_components_for_nodes(node2component, component_left, new_component_nr);
+        update_components_for_nodes(node2component, component_right, new_component_nr);
+        component2exec.insert(new_component_nr, new_exec);
+
+        Ok(())
+    }
+
+    pub fn make_exec_plan_with_order<'a>(
         &'a self,
         db: &'a AnnotationGraph,
         config: &Config,
@@ -568,72 +752,24 @@ impl Conjunction {
         // semantics check has been performed.
         let mut node_search_errors: Vec<GraphAnnisError> = Vec::default();
 
-        // 1. add all nodes
-
         // Create a map where the key is the component number
         // and move all nodes with their index as component number.
         let mut component2exec: BTreeMap<usize, Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> =
             BTreeMap::new();
         let mut node2cost: BTreeMap<usize, CostEstimate> = BTreeMap::new();
 
+        // 1. add all non-optional nodes
         for node_nr in 0..self.nodes.len() {
-            let n_spec = &self.nodes[node_nr].1;
-            let n_var = &self.nodes[node_nr].0;
-
-            let node_search = NodeSearch::from_spec(
-                n_spec.clone(),
-                node_nr,
-                db,
-                self.location_in_query.get(n_var).cloned(),
-            );
-            match node_search {
-                Ok(mut node_search) => {
-                    node2component.insert(node_nr, node_nr);
-
-                    let (orig_query_frag, orig_impl_desc, cost) =
-                        if let Some(d) = node_search.get_desc() {
-                            if let Some(ref c) = d.cost {
-                                node2cost.insert(node_nr, c.clone());
-                            }
-
-                            (
-                                d.query_fragment.clone(),
-                                d.impl_description.clone(),
-                                d.cost.clone(),
-                            )
-                        } else {
-                            (String::from(""), String::from(""), None)
-                        };
-                    // make sure the description is correct
-                    let mut node_pos = BTreeMap::new();
-                    node_pos.insert(node_nr, 0);
-                    let new_desc = Desc {
-                        component_nr: node_nr,
-                        lhs: None,
-                        rhs: None,
-                        node_pos,
-                        impl_description: orig_impl_desc,
-                        query_fragment: orig_query_frag,
-                        cost,
-                    };
-                    node_search.set_desc(Some(new_desc));
-
-                    let node_by_component_search = self.optimize_node_search_by_operator(
-                        node_search.get_node_search_desc(),
-                        node_search.get_desc(),
-                        Box::new(self.binary_operators.iter()),
-                        db,
-                    );
-
-                    // move to map
-                    if let Some(node_by_component_search) = node_by_component_search {
-                        component2exec.insert(node_nr, node_by_component_search);
-                    } else {
-                        component2exec.insert(node_nr, Box::new(node_search));
-                    }
-                }
-                Err(e) => node_search_errors.push(e),
-            };
+            if !self.nodes[node_nr].optional {
+                self.add_node_to_exec_plan(
+                    node_nr,
+                    db,
+                    &mut component2exec,
+                    &mut node2component,
+                    &mut node2cost,
+                    &mut node_search_errors,
+                );
+            }
         }
 
         // 2. add unary operators as filter to the existing node search
@@ -661,96 +797,14 @@ impl Conjunction {
         // 3. add the joins which produce the results in operand order
         for i in operator_order {
             let op_spec_entry: &BinaryOperatorSpecEntry = &self.binary_operators[i];
-
-            let mut op: BinaryOperator<'a> =
-                op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                    GraphAnnisError::ImpossibleSearch(format!(
-                        "could not create operator {:?}",
-                        op_spec_entry
-                    ))
-                })?;
-
-            let mut spec_idx_left = op_spec_entry.args.left;
-            let mut spec_idx_right = op_spec_entry.args.right;
-
-            let inverse_op = op.get_inverse_operator(db);
-            if let Some(inverse_op) = inverse_op {
-                if should_switch_operand_order(op_spec_entry, &node2cost) {
-                    spec_idx_left = op_spec_entry.args.right;
-                    spec_idx_right = op_spec_entry.args.left;
-
-                    op = inverse_op;
-                }
-            }
-
-            // substract the offset from the specificated numbers to get the internal node number for this conjunction
-            spec_idx_left -= self.var_idx_offset;
-            spec_idx_right -= self.var_idx_offset;
-
-            let op_entry = BinaryOperatorEntry {
-                op,
-                args: BinaryOperatorArguments {
-                    left: spec_idx_left + 1,
-                    right: spec_idx_right + 1,
-                    global_reflexivity: op_spec_entry.args.global_reflexivity,
-                },
-            };
-
-            let component_left: usize = *(node2component
-                .get(&spec_idx_left)
-                .ok_or_else(|| GraphAnnisError::NoComponentForNode(spec_idx_left + 1))?);
-            let component_right: usize = *(node2component
-                .get(&spec_idx_right)
-                .ok_or_else(|| GraphAnnisError::NoComponentForNode(spec_idx_right + 1))?);
-
-            // get the original execution node
-            let exec_left: Box<dyn ExecutionNode<Item = MatchGroup> + 'a> = component2exec
-                .remove(&component_left)
-                .ok_or(GraphAnnisError::NoExecutionNode(component_left))?;
-
-            let idx_left: usize = *(exec_left
-                .get_desc()
-                .ok_or(GraphAnnisError::PlanDescriptionMissing)?
-                .node_pos
-                .get(&spec_idx_left)
-                .ok_or(GraphAnnisError::LHSOperandNotFound)?);
-
-            let new_exec: Box<dyn ExecutionNode<Item = MatchGroup>> =
-                if component_left == component_right {
-                    // don't create new tuples, only filter the existing ones
-                    // TODO: check if LHS or RHS is better suited as filter input iterator
-                    let idx_right: usize = *(exec_left
-                        .get_desc()
-                        .ok_or(GraphAnnisError::PlanDescriptionMissing)?
-                        .node_pos
-                        .get(&spec_idx_right)
-                        .ok_or(GraphAnnisError::RHSOperandNotFound)?);
-
-                    let filter = Filter::new_binary(exec_left, idx_left, idx_right, op_entry);
-                    Box::new(filter)
-                } else {
-                    let exec_right = component2exec
-                        .remove(&component_right)
-                        .ok_or(GraphAnnisError::NoExecutionNode(component_right))?;
-                    let idx_right: usize = *(exec_right
-                        .get_desc()
-                        .ok_or(GraphAnnisError::PlanDescriptionMissing)?
-                        .node_pos
-                        .get(&spec_idx_right)
-                        .ok_or(GraphAnnisError::RHSOperandNotFound)?);
-
-                    create_join(
-                        db, config, op_entry, exec_left, exec_right, idx_left, idx_right,
-                    )
-                };
-
-            let new_component_nr = new_exec
-                .get_desc()
-                .ok_or(GraphAnnisError::PlanDescriptionMissing)?
-                .component_nr;
-            update_components_for_nodes(&mut node2component, component_left, new_component_nr);
-            update_components_for_nodes(&mut node2component, component_right, new_component_nr);
-            component2exec.insert(new_component_nr, new_exec);
+            self.add_binary_operator_to_exec_plan(
+                op_spec_entry,
+                db,
+                config,
+                &mut component2exec,
+                &mut node2component,
+                &node2cost,
+            )?;
         }
 
         // apply the the node error check
@@ -772,8 +826,17 @@ impl Conjunction {
 
     fn check_components_connected(&self) -> Result<()> {
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
-        node2component
-            .extend((self.var_idx_offset..self.nodes.len() + self.var_idx_offset).map(|i| (i, i)));
+        node2component.extend(
+            self.nodes
+                .iter()
+                .enumerate()
+                // Exclude all optional nodes from the component calculation
+                .filter(|(_i, n)| !n.optional)
+                // Use the global node number when there are several conjunctions
+                .map(|(i, _n)| self.var_idx_offset + i)
+                // Set the node position as initial unique component number
+                .map(|i| (i, i)),
+        );
 
         for op_entry in self.binary_operators.iter() {
             if op_entry.op.is_binding() {
@@ -807,12 +870,12 @@ impl Conjunction {
             } else if let Some(first) = first_component_id {
                 if first != *cid {
                     // add location and description which node is not connected
-                    let n_var = &self.nodes[*node_nr].0;
+                    let n_var = &self.nodes[*node_nr].var;
                     let location = self.location_in_query.get(n_var);
 
                     return Err(GraphAnnisError::AQLSemanticError(AQLError {
                         desc: format!(
-                            "Variable \"{}\" not bound (use linguistic operators)",
+                            "Variable \"#{}\" not bound (use linguistic operators)",
                             n_var
                         ),
                         location: location.cloned(),

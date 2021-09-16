@@ -1,4 +1,4 @@
-use super::super::{Desc, ExecutionNode};
+use super::super::{ExecutionNode, ExecutionNodeDesc};
 use crate::annis::db::aql::conjunction::BinaryOperatorEntry;
 use crate::annis::operator::BinaryOperatorBase;
 use graphannis_core::annostorage::MatchGroup;
@@ -22,7 +22,7 @@ pub struct NestedLoop<'a> {
     pos_inner_cache: Option<usize>,
 
     left_is_outer: bool,
-    desc: Desc,
+    desc: ExecutionNodeDesc,
 
     global_reflexivity: bool,
 }
@@ -58,7 +58,7 @@ impl<'a> NestedLoop<'a> {
 
         if left_is_outer {
             NestedLoop {
-                desc: Desc::join(
+                desc: ExecutionNodeDesc::join(
                     &op_entry.op,
                     lhs.get_desc(),
                     rhs.get_desc(),
@@ -85,7 +85,7 @@ impl<'a> NestedLoop<'a> {
             }
         } else {
             NestedLoop {
-                desc: Desc::join(
+                desc: ExecutionNodeDesc::join(
                     &op_entry.op,
                     rhs.get_desc(),
                     lhs.get_desc(),
@@ -228,7 +228,7 @@ impl<'a> ExecutionNode for NestedLoop<'a> {
         self
     }
 
-    fn get_desc(&self) -> Option<&Desc> {
+    fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         Some(&self.desc)
     }
 }

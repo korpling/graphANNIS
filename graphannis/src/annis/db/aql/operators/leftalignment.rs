@@ -7,6 +7,7 @@ use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
 use std::any::Any;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct LeftAlignmentSpec;
@@ -31,7 +32,11 @@ impl BinaryOperatorSpec for LeftAlignmentSpec {
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
 
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+        self
+    }
+
+    fn any_ref(&self) -> &dyn Any {
         self
     }
 }

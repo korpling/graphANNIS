@@ -1,5 +1,5 @@
-use crate::annis::db::exec::Desc;
 use crate::annis::db::exec::ExecutionNode;
+use crate::annis::db::exec::ExecutionNodeDesc;
 use crate::annis::db::sort_matches;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
@@ -21,7 +21,7 @@ use std::sync::Arc;
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps the search for *all* token in a corpus.
 pub struct AnyTokenSearch<'a> {
-    desc: Option<Desc>,
+    desc: Option<ExecutionNodeDesc>,
     node_type_key: Arc<AnnoKey>,
     db: &'a AnnotationGraph,
     token_helper: Option<TokenHelper<'a>>,
@@ -127,7 +127,7 @@ impl<'a> ExecutionNode for AnyTokenSearch<'a> {
         self
     }
 
-    fn get_desc(&self) -> Option<&Desc> {
+    fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         self.desc.as_ref()
     }
 }

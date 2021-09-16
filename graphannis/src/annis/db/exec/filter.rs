@@ -1,12 +1,12 @@
 use graphannis_core::annostorage::MatchGroup;
 
-use super::{CostEstimate, Desc, ExecutionNode};
+use super::{CostEstimate, ExecutionNode, ExecutionNodeDesc};
 use crate::annis::db::aql::conjunction::{BinaryOperatorEntry, UnaryOperatorEntry};
 use crate::annis::operator::{BinaryOperatorBase, EstimationType, UnaryOperator};
 
 pub struct Filter<'a> {
     it: Box<dyn Iterator<Item = MatchGroup> + 'a>,
-    desc: Option<Desc>,
+    desc: Option<ExecutionNodeDesc>,
 }
 
 fn calculate_binary_outputsize(op: &dyn BinaryOperatorBase, num_tuples: usize) -> usize {
@@ -55,7 +55,7 @@ impl<'a> Filter<'a> {
                 None
             };
 
-            Some(Desc {
+            Some(ExecutionNodeDesc {
                 component_nr: orig_desc.component_nr,
                 node_pos: orig_desc.node_pos.clone(),
                 impl_description: String::from("filter"),
@@ -81,7 +81,7 @@ impl<'a> Filter<'a> {
     pub fn new_unary(
         exec: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
         idx: usize,
-        op_entry: UnaryOperatorEntry,
+        op_entry: UnaryOperatorEntry<'a>,
     ) -> Filter<'a> {
         let desc = if let Some(orig_desc) = exec.get_desc() {
             let cost_est = if let Some(ref orig_cost) = orig_desc.cost {
@@ -94,7 +94,7 @@ impl<'a> Filter<'a> {
                 None
             };
 
-            Some(Desc {
+            Some(ExecutionNodeDesc {
                 component_nr: orig_desc.component_nr,
                 node_pos: orig_desc.node_pos.clone(),
                 impl_description: String::from("filter"),
@@ -119,7 +119,7 @@ impl<'a> ExecutionNode for Filter<'a> {
         self
     }
 
-    fn get_desc(&self) -> Option<&Desc> {
+    fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         self.desc.as_ref()
     }
 }

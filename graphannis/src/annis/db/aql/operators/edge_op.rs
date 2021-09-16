@@ -68,7 +68,11 @@ impl BinaryOperatorSpec for BaseEdgeOpSpec {
         self.edge_anno.clone()
     }
 
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+        self
+    }
+
+    fn any_ref(&self) -> &dyn Any {
         self
     }
 }
@@ -535,7 +539,11 @@ impl BinaryOperatorSpec for DominanceSpec {
         base.create_operator(db)
     }
 
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+        self
+    }
+
+    fn any_ref(&self) -> &dyn Any {
         self
     }
 }
@@ -576,7 +584,11 @@ impl BinaryOperatorSpec for PointingSpec {
         base.create_operator(db)
     }
 
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+        self
+    }
+
+    fn any_ref(&self) -> &dyn Any {
         self
     }
 }
@@ -617,7 +629,11 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         base.create_operator(db)
     }
 
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+        self
+    }
+
+    fn any_ref(&self) -> &dyn Any {
         self
     }
 }

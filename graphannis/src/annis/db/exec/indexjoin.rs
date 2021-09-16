@@ -1,9 +1,10 @@
-use super::{Desc, ExecutionNode, NodeSearchDesc};
+use super::{ExecutionNode, ExecutionNodeDesc, NodeSearchDesc};
 use crate::annis::db::aql::conjunction::BinaryOperatorArguments;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::operator::BinaryOperatorIndex;
 use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
+use smallvec::SmallVec;
 use std::boxed::Box;
 use std::iter::Peekable;
 use std::sync::Arc;
@@ -18,7 +19,7 @@ pub struct IndexJoin<'a> {
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: &'a dyn AnnotationStorage<NodeID>,
-    desc: Desc,
+    desc: ExecutionNodeDesc,
     global_reflexivity: bool,
 }
 
@@ -38,7 +39,7 @@ impl<'a> IndexJoin<'a> {
         op_args: &BinaryOperatorArguments,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: &'a dyn AnnotationStorage<NodeID>,
-        rhs_desc: Option<&Desc>,
+        rhs_desc: Option<&ExecutionNodeDesc>,
     ) -> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
         let lhs_peek = lhs.peekable();
@@ -65,7 +66,7 @@ impl<'a> IndexJoin<'a> {
         };
 
         IndexJoin {
-            desc: Desc::join(
+            desc: ExecutionNodeDesc::join(
                 op.as_ref(),
                 lhs_desc.as_ref(),
                 rhs_desc,
@@ -83,7 +84,7 @@ impl<'a> IndexJoin<'a> {
         }
     }
 
-    fn next_candidates(&mut self) -> Option<MatchGroup> {
+    fn next_candidates(&mut self) -> Option<SmallVec<[Match; 8]>> {
         if let Some(m_lhs) = self.lhs.peek().cloned() {
             let it_nodes = Box::from(
                 self.op
@@ -107,7 +108,7 @@ impl<'a> ExecutionNode for IndexJoin<'a> {
         self
     }
 
-    fn get_desc(&self) -> Option<&Desc> {
+    fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         Some(&self.desc)
     }
 }
