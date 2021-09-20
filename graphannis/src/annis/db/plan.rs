@@ -93,7 +93,14 @@ impl<'a> ExecutionPlan<'a> {
         if let Some(ref inverse_node_pos) = self.inverse_node_pos[self.current_plan] {
             // re-order the matched nodes by the original node position of the query
             let mut result = MatchGroup::new();
-            result.resize_with(tmp.len(), Default::default);
+            // We cannot assume that every node has a mapping, so use the maximum index
+            // in the mapping and not the size of the mapping vector as output vector size.
+            let output_size = if let Some(max_item) = inverse_node_pos.iter().max() {
+                *max_item + 1
+            } else {
+                0
+            };
+            result.resize_with(output_size, Default::default);
             for (stream_pos, m) in tmp.into_iter().enumerate() {
                 let target_pos = inverse_node_pos[stream_pos];
                 result[target_pos] = m;
