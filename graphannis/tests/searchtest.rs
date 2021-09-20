@@ -100,3 +100,18 @@ fn non_reflexivity_tokens() {
         }
     }
 }
+
+#[ignore]
+#[test]
+fn reorder_and_negation() {
+    let cs = CORPUS_STORAGE.as_ref().unwrap().lock().unwrap();
+
+    let q = SearchQuery {
+        corpus_names: &["GUM"],
+        query: "pos=/V.*/ _=_ tok !->dep tok? & #1 _o_ s",
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+    let result = cs.count(q);
+    assert_eq!(true, result.is_ok());
+}
