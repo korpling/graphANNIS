@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The webservice endpoint `/search/node-descriptions` now returns
+  wether a node in the query is optional or not.
+
 ## [1.2.2] - 2021-09-20
 
 ### Fixed

@@ -32,8 +32,10 @@ pub struct QueryAttributeDescription {
     pub query_fragment: String,
     // Variable name of this attribute.
     pub variable: String,
-    // Optional annotation name represented by this attribute.
+    /// Optional annotation name represented by this attribute.
     pub anno_name: Option<String>,
+    /// States whether this attribute is optional.
+    pub optional: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]

@@ -256,6 +256,7 @@ impl Conjunction {
                 query_fragment: format!("{}", n.spec),
                 variable: n.var.clone(),
                 anno_name,
+                optional: n.optional,
             };
             result.push(desc);
         }
