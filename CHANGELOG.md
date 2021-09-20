@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Queries with optional nodes with a smaller index than the last non-optional node could fail.
   If the execution nodes re-order the match result vector internally, the query node index is
-  used to define the mapping. Unfortunatly the largest index could be larger than the size of mappings,
+  used to define the mapping. Unfortunately the largest index could be larger than the size of mappings,
   which used to be used to create the output vector. By allowing empty elements in the output vector
   and using the maximum value, we can still map the results properly.
 
