@@ -885,6 +885,10 @@ components:
           type: string
           nullable: true
           description: Optional annotation name represented by this attribute.
+        optional:
+          type: boolean
+          nullable: true
+          description: States whether this attribute is optional.
 
     LineColumn:
       type: object

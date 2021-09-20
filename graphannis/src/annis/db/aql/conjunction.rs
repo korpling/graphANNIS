@@ -245,7 +245,7 @@ impl Conjunction {
 
     pub fn get_node_descriptions(&self) -> Vec<QueryAttributeDescription> {
         let mut result = Vec::default();
-        for n in self.nodes.iter().filter(|n| !n.optional) {
+        for n in self.nodes.iter() {
             let anno_name = match &n.spec {
                 NodeSearchSpec::ExactValue { name, .. } => Some(name.clone()),
                 NodeSearchSpec::RegexValue { name, .. } => Some(name.clone()),
@@ -256,6 +256,7 @@ impl Conjunction {
                 query_fragment: format!("{}", n.spec),
                 variable: n.var.clone(),
                 anno_name,
+                optional: n.optional,
             };
             result.push(desc);
         }
