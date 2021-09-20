@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2021-09-20
+
 ### Fixed
 
 - Queries with optional nodes with a smaller index than the last non-optional node could fail.
