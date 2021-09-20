@@ -1802,11 +1802,10 @@ impl CorpusStorage {
 
             for (i, singlematch) in m.iter().enumerate() {
                 // check if query node actually should be included
-                let include_in_output = if let Some(var) = prep.query.get_variable_by_pos(i) {
-                    prep.query.is_included_in_output(&var)
-                } else {
-                    true
-                };
+                let include_in_output = prep
+                    .query
+                    .get_variable_by_pos(i)
+                    .map_or(true, |var| prep.query.is_included_in_output(&var));
 
                 if include_in_output {
                     if i > 0 {
