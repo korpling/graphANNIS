@@ -180,15 +180,12 @@ where
         } else {
             self.get_qnames(name).into_iter().map(Arc::from).collect()
         };
-        let key_ranges: Vec<usize> = key_ranges
-            .into_iter()
-            .filter_map(|k| self.anno_key_symbols.get_symbol(&k))
-            .collect();
 
         let value = value.map(|v| v.to_string());
 
         let it = key_ranges
             .into_iter()
+            .filter_map(move |k| self.anno_key_symbols.get_symbol(&k))
             .flat_map(move |anno_key_symbol| {
                 let lower_bound_value = if let Some(value) = &value { value } else { "" };
                 let lower_bound = create_by_anno_qname_key(
