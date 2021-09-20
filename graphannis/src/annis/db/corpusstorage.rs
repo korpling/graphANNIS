@@ -1801,13 +1801,9 @@ impl CorpusStorage {
             let mut match_desc = String::new();
 
             for (i, singlematch) in m.iter().enumerate() {
-                // check if query node actually should be included in quirks mode
-                let include_in_output = if quirks_mode {
-                    if let Some(var) = prep.query.get_variable_by_pos(i) {
-                        prep.query.is_included_in_output(&var)
-                    } else {
-                        true
-                    }
+                // check if query node actually should be included
+                let include_in_output = if let Some(var) = prep.query.get_variable_by_pos(i) {
+                    prep.query.is_included_in_output(&var)
                 } else {
                     true
                 };

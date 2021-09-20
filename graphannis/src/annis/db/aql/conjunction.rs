@@ -288,7 +288,7 @@ impl Conjunction {
         });
 
         self.variables.insert(variable.clone(), idx);
-        if included_in_output {
+        if included_in_output && !optional {
             self.include_in_output.insert(variable.clone());
         }
         if let Some(location) = location {
