@@ -33,7 +33,7 @@ use std::{borrow::Cow, collections::HashMap};
 
 lazy_static! {
     static ref INVALID_STRING: Cow<'static, str> = Cow::Owned(std::char::MAX.to_string());
-    static ref ESCAPE_PATTERN: Regex = regex::Regex::new("\\\\([t\\\\'$])").unwrap();
+    static ref ESCAPE_PATTERN: Regex = regex::Regex::new("\\\\([nt\\\\'$])").unwrap();
     static ref DEFAULT_VISUALIZER_RULES: Vec<(i64, bool, VisualizerRule)> = vec![
         (
             -1,
@@ -806,11 +806,12 @@ fn escape_field<'a>(val: &str) -> Cow<str> {
     ESCAPE_PATTERN.replace_all(val, |caps: &Captures| {
         if let Some(c) = caps.get(1) {
             match c.as_str() {
-                "t" => "\t".to_string(),
-                _ => c.as_str().to_string(),
+                "n" => Cow::Borrowed("\n"),
+                "t" => Cow::Borrowed("\t"),
+                _ => Cow::Owned(c.as_str().to_string()),
             }
         } else {
-            std::string::String::default()
+            Cow::Borrowed("")
         }
     })
 }
@@ -2192,8 +2193,9 @@ mod tests {
 
     #[test]
     fn test_escape_field() {
-        assert_eq!("ab$c", escape_field("ab\\$c"));
-        assert_eq!("ab\\cd\\", escape_field("ab\\\\cd\\\\"));
-        assert_eq!("ab'cd\te", escape_field("ab\\'cd\\te"));
+        assert_eq!(escape_field("ab\\$c"), "ab$c");
+        assert_eq!(escape_field("ab\\\\cd\\\\"), "ab\\cd\\",);
+        assert_eq!(escape_field("ab\\'cd\\te"), "ab'cd\te");
+        assert_eq!(escape_field("a\\n"), "a\n");
     }
 }
