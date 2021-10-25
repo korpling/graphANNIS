@@ -808,6 +808,11 @@ fn escape_field<'a>(val: &str) -> Cow<str> {
             match c.as_str() {
                 "n" => Cow::Borrowed("\n"),
                 "t" => Cow::Borrowed("\t"),
+                "\\" => Cow::Borrowed("\\"),
+                "'" => Cow::Borrowed("'"),
+                "$" => Cow::Borrowed("$"),
+                // Fallback, since this allocates the string avoid using
+                // it and better use the static strings like above
                 _ => Cow::Owned(c.as_str().to_string()),
             }
         } else {
