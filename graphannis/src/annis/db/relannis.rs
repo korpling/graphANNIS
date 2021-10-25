@@ -21,6 +21,7 @@ use graphannis_core::{
     util::disk_collections::DiskMap,
 };
 use percent_encoding::utf8_percent_encode;
+use regex::Regex;
 use smartstring::alias::String;
 use std::collections::BTreeMap;
 use std::convert::TryInto;
@@ -31,6 +32,8 @@ use std::path::{Path, PathBuf};
 use std::{borrow::Cow, collections::HashMap};
 
 lazy_static! {
+    static ref INVALID_STRING: Cow<'static, str> = Cow::Owned(std::char::MAX.to_string());
+    static ref ESCAPE_PATTERN: Regex = regex::Regex::new("\\(?P<c>(t|\\|'|$))").unwrap();
     static ref DEFAULT_VISUALIZER_RULES: Vec<(i64, bool, VisualizerRule)> = vec![
         (
             -1,
@@ -509,9 +512,9 @@ where
     for result in resolver_tab_csv.records() {
         let line = result?;
 
-        let layer = get_field(&line, 2, "namespace", &resolver_tab_path)?;
+        let layer = get_field(&line, 2, "namespace", &resolver_tab_path)?.map(|l| l.to_string());
         let element =
-            get_field(&line, 3, "element", &resolver_tab_path)?.and_then(|e| match e.as_str() {
+            get_field(&line, 3, "element", &resolver_tab_path)?.and_then(|e| match e.as_ref() {
                 "node" => Some(VisualizerRuleElement::Node),
                 "edge" => Some(VisualizerRuleElement::Edge),
                 _ => None,
@@ -552,7 +555,7 @@ where
             });
         } else {
             // Insert the new Rule
-            let visibility = match visibility.as_str() {
+            let visibility = match visibility.as_ref() {
                 "hidden" => VisualizerVisibility::Hidden,
                 "visible" => VisualizerVisibility::Visible,
                 "permanent" => VisualizerVisibility::Permanent,
@@ -624,8 +627,8 @@ where
             get_field(&line, 1, "description", &example_queries_path)?,
         ) {
             config.example_queries.push(ExampleQuery {
-                query,
-                description,
+                query: query.to_string(),
+                description: description.to_string(),
                 query_language: QueryLanguage::AQL,
             });
         }
@@ -779,12 +782,12 @@ fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File
         .from_path(path)
 }
 
-fn get_field(
-    record: &csv::StringRecord,
+fn get_field<'a>(
+    record: &'a csv::StringRecord,
     i: usize,
     column_name: &str,
     file: &Path,
-) -> crate::errors::Result<Option<std::string::String>> {
+) -> crate::errors::Result<Option<Cow<'a, str>>> {
     let r = record.get(i).ok_or_else(|| RelAnnisError::MissingColumn {
         pos: i,
         name: column_name.to_string(),
@@ -795,21 +798,17 @@ fn get_field(
         Ok(None)
     } else {
         // replace some known escape sequences
-        Ok(Some(
-            r.replace("\\t", "\t")
-                .replace("\\'", "'")
-                .replace("\\\\", "\\")
-                .replace("\\$", "$"),
-        ))
+        let replaced = ESCAPE_PATTERN.replace_all(r, "$c");
+        Ok(Some(replaced))
     }
 }
 
-fn get_field_not_null(
-    record: &csv::StringRecord,
+fn get_field_not_null<'a>(
+    record: &'a csv::StringRecord,
     i: usize,
     column_name: &str,
     file: &Path,
-) -> crate::errors::Result<std::string::String> {
+) -> crate::errors::Result<Cow<'a, str>> {
     let result =
         get_field(record, i, column_name, file)?.ok_or_else(|| RelAnnisError::UnexpectedNull {
             pos: i,
@@ -850,7 +849,7 @@ where
         let line = result?;
 
         let id = get_field_not_null(&line, 0, "id", &corpus_tab_path)?.parse::<u32>()?;
-        let mut name = get_field_not_null(&line, 1, "name", &corpus_tab_path)?;
+        let name = get_field_not_null(&line, 1, "name", &corpus_tab_path)?;
 
         let corpus_type = get_field_not_null(&line, 2, "type", &corpus_tab_path)?;
         if corpus_type == "DOCUMENT" {
@@ -863,7 +862,7 @@ where
                 .or_insert(1);
             if *existing_count > 1 {
                 let old_name = name.clone();
-                name = format!("{}_duplicated_document_name_{}", name, existing_count);
+                let name = format!("{}_duplicated_document_name_{}", name, existing_count);
                 warn!(
                     "duplicated document name \"{}\" detected: will be renamed to \"{}\"",
                     old_name, name
@@ -1435,7 +1434,7 @@ where
                         node_name: node_path.clone(),
                         anno_ns: ANNIS_NS.to_owned(),
                         anno_name: "layer".to_owned(),
-                        anno_value: layer,
+                        anno_value: layer.to_string(),
                     })?;
                 }
             }
@@ -1506,7 +1505,7 @@ where
                     node_name: node_path,
                     anno_ns: ANNIS_NS.to_owned(),
                     anno_name: TOK.to_owned(),
-                    anno_value: span,
+                    anno_value: span.to_string(),
                 })?;
 
                 let index = TextProperty {
@@ -1546,7 +1545,8 @@ where
                             node_name: node_path,
                             anno_ns: ANNIS_NS.to_owned(),
                             anno_name: TOK.to_owned(),
-                            anno_value: get_field_not_null(&line, 12, "span", &node_tab_path)?,
+                            anno_value: get_field_not_null(&line, 12, "span", &node_tab_path)?
+                                .to_string(),
                         })?;
                     } else {
                         // we need to get the span information from the node_annotation file later
@@ -1646,25 +1646,25 @@ where
         if col_ns != "annis" || col_name != "tok" {
             let has_valid_value = col_val.is_some();
             // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
-            let anno_val = col_val.unwrap_or_else(|| std::char::MAX.to_string());
+            let anno_val = &col_val.unwrap_or_else(|| INVALID_STRING.clone());
 
             if let Some(seg) = missing_seg_span.try_get(&node_id)? {
                 // add all missing span values from the annotation, but don't add NULL values
-                if seg == col_name && has_valid_value {
+                if seg == col_name.as_ref() && has_valid_value {
                     updates.add_event(UpdateEvent::AddNodeLabel {
                         node_name: node_name.clone().into(),
                         anno_ns: ANNIS_NS.to_owned(),
                         anno_name: TOK.to_owned(),
-                        anno_value: anno_val.clone(),
+                        anno_value: anno_val.to_string(),
                     })?;
                 }
             }
 
             updates.add_event(UpdateEvent::AddNodeLabel {
                 node_name: node_name.into(),
-                anno_ns: col_ns,
-                anno_name: col_name,
-                anno_value: anno_val,
+                anno_ns: col_ns.to_string(),
+                anno_name: col_name.to_string(),
+                anno_value: anno_val.to_string(),
             })?;
         }
 
@@ -1902,7 +1902,7 @@ where
                 let name = get_field_not_null(&line, 2, "name", &edge_anno_tab_path)?;
                 // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
                 let val = get_field(&line, 3, "value", &edge_anno_tab_path)?
-                    .unwrap_or_else(|| std::char::MAX.to_string());
+                    .unwrap_or_else(|| INVALID_STRING.clone());
 
                 updates.add_event(UpdateEvent::AddEdgeLabel {
                     source_node: id_to_node_name
@@ -1916,9 +1916,9 @@ where
                     layer: c.layer.clone().into(),
                     component_type: c.get_type().to_string(),
                     component_name: c.name.into(),
-                    anno_ns: ns,
-                    anno_name: name,
-                    anno_value: val,
+                    anno_ns: ns.to_string(),
+                    anno_name: name.to_string(),
+                    anno_value: val.to_string(),
                 })?;
             }
         }
@@ -1959,14 +1959,14 @@ where
         let name = get_field_not_null(&line, 2, "name", &corpus_anno_tab_path)?;
         // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
         let val = get_field(&line, 3, "value", &corpus_anno_tab_path)?
-            .unwrap_or_else(|| std::char::MAX.to_string());
+            .unwrap_or_else(|| INVALID_STRING.clone());
 
         let anno_key = AnnoKey {
             ns: ns.into(),
             name: name.into(),
         };
 
-        corpus_id_to_anno.insert((id, anno_key), val);
+        corpus_id_to_anno.insert((id, anno_key), val.to_string());
     }
 
     Ok(corpus_id_to_anno)
