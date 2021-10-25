@@ -21,7 +21,7 @@ use graphannis_core::{
     util::disk_collections::DiskMap,
 };
 use percent_encoding::utf8_percent_encode;
-use regex::Regex;
+use regex::{Captures, Regex};
 use smartstring::alias::String;
 use std::collections::BTreeMap;
 use std::convert::TryInto;
@@ -33,7 +33,7 @@ use std::{borrow::Cow, collections::HashMap};
 
 lazy_static! {
     static ref INVALID_STRING: Cow<'static, str> = Cow::Owned(std::char::MAX.to_string());
-    static ref ESCAPE_PATTERN: Regex = regex::Regex::new("\\(?P<c>(t|\\|'|$))").unwrap();
+    static ref ESCAPE_PATTERN: Regex = regex::Regex::new("\\\\([t\\\\'$])").unwrap();
     static ref DEFAULT_VISUALIZER_RULES: Vec<(i64, bool, VisualizerRule)> = vec![
         (
             -1,
@@ -798,9 +798,21 @@ fn get_field<'a>(
         Ok(None)
     } else {
         // replace some known escape sequences
-        let replaced = ESCAPE_PATTERN.replace_all(r, "$c");
-        Ok(Some(replaced))
+        Ok(Some(escape_field(r)))
     }
+}
+
+fn escape_field<'a>(val: &str) -> Cow<str> {
+    ESCAPE_PATTERN.replace_all(val, |caps: &Captures| {
+        if let Some(c) = caps.get(1) {
+            match c.as_str() {
+                "t" => "\t".to_string(),
+                _ => c.as_str().to_string(),
+            }
+        } else {
+            std::string::String::default()
+        }
+    })
 }
 
 fn get_field_not_null<'a>(
@@ -2171,5 +2183,17 @@ fn component_type_from_short_name(short_type: &str) -> Result<AnnotationComponen
         "p" => Ok(AnnotationComponentType::Pointing),
         "o" => Ok(AnnotationComponentType::Ordering),
         _ => Err(RelAnnisError::InvalidComponentShortName(short_type.to_string()).into()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::annis::db::relannis::escape_field;
+
+    #[test]
+    fn test_escape_field() {
+        assert_eq!("ab$c", escape_field("ab\\$c"));
+        assert_eq!("ab\\cd\\", escape_field("ab\\\\cd\\\\"));
+        assert_eq!("ab'cd\te", escape_field("ab\\'cd\\te"));
     }
 }
