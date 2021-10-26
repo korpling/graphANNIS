@@ -21,8 +21,8 @@ use graphannis_core::{
     util::disk_collections::DiskMap,
 };
 use percent_encoding::utf8_percent_encode;
-use regex::{Captures, Regex};
 use smartstring::alias::String;
+use smartstring::{LazyCompact, SmartString};
 use std::collections::BTreeMap;
 use std::convert::TryInto;
 use std::fs::File;
@@ -32,8 +32,8 @@ use std::path::{Path, PathBuf};
 use std::{borrow::Cow, collections::HashMap};
 
 lazy_static! {
-    static ref INVALID_STRING: Cow<'static, str> = Cow::Owned(std::char::MAX.to_string());
-    static ref ESCAPE_PATTERN: Regex = regex::Regex::new("\\\\([nt\\\\'$])").unwrap();
+    static ref INVALID_STRING: SmartString<LazyCompact> =
+        SmartString::<LazyCompact>::from(std::char::MAX.to_string());
     static ref DEFAULT_VISUALIZER_RULES: Vec<(i64, bool, VisualizerRule)> = vec![
         (
             -1,
@@ -787,7 +787,7 @@ fn get_field<'a>(
     i: usize,
     column_name: &str,
     file: &Path,
-) -> crate::errors::Result<Option<Cow<'a, str>>> {
+) -> crate::errors::Result<Option<SmartString<LazyCompact>>> {
     let r = record.get(i).ok_or_else(|| RelAnnisError::MissingColumn {
         pos: i,
         name: column_name.to_string(),
@@ -802,18 +802,49 @@ fn get_field<'a>(
     }
 }
 
-fn escape_field<'a>(val: &'a str) -> Cow<'a, str> {
-    ESCAPE_PATTERN.replace_all(val, |caps: &Captures| {
-        if let Some(c) = caps.get(1) {
-            match c.as_str() {
-                "n" => "\n",
-                "t" => "\t",
-                _ => val,
+fn escape_field(val: &str) -> SmartString<LazyCompact> {
+    let mut chars = val.chars().peekable();
+    let mut unescaped = SmartString::<LazyCompact>::new();
+
+    loop {
+        match chars.next() {
+            None => break,
+            Some(c) => {
+                let escaped_char = if c == '\\' {
+                    if let Some(escaped_char) = chars.peek() {
+                        let escaped_char = *escaped_char;
+                        match escaped_char {
+                            _ if escaped_char == '\\'
+                                || escaped_char == '"'
+                                || escaped_char == '\''
+                                || escaped_char == '`'
+                                || escaped_char == '$' =>
+                            {
+                                Some(escaped_char)
+                            }
+                            'n' => Some('\n'),
+                            'r' => Some('\r'),
+                            't' => Some('\t'),
+                            _ => None,
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+                if let Some(escaped_char) = escaped_char {
+                    unescaped.push(escaped_char);
+                    // skip the escaped character instead of outputting it again
+                    chars.next();
+                } else {
+                    unescaped.push(c);
+                };
             }
-        } else {
-            ""
         }
-    })
+    }
+
+    unescaped
 }
 
 fn get_field_not_null<'a>(
@@ -821,7 +852,7 @@ fn get_field_not_null<'a>(
     i: usize,
     column_name: &str,
     file: &Path,
-) -> crate::errors::Result<Cow<'a, str>> {
+) -> crate::errors::Result<SmartString<LazyCompact>> {
     let result =
         get_field(record, i, column_name, file)?.ok_or_else(|| RelAnnisError::UnexpectedNull {
             pos: i,
@@ -870,7 +901,7 @@ where
             // even when the document belongs to different sub-corpora.
             // Some corpora violate this constraint and we change the document name in order to avoid duplicate node names later on
             let existing_count = document_names
-                .entry(name.clone().into())
+                .entry(name.clone())
                 .and_modify(|count| *count += 1)
                 .or_insert(1);
             if *existing_count > 1 {
@@ -891,7 +922,7 @@ where
             CorpusTableEntry {
                 pre: pre_order,
                 post: post_order,
-                name: name.into(),
+                name,
             },
         );
 
@@ -963,13 +994,7 @@ where
             None
         };
         let key = TextKey { id, corpus_ref };
-        texts.insert(
-            key.clone(),
-            Text {
-                name: name.into(),
-                val: value.into(),
-            },
-        )?;
+        texts.insert(key.clone(), Text { name, val: value })?;
     }
 
     Ok(texts)
@@ -1563,11 +1588,11 @@ where
                         })?;
                     } else {
                         // we need to get the span information from the node_annotation file later
-                        missing_seg_span.insert(node_nr, segmentation_name.clone().into())?;
+                        missing_seg_span.insert(node_nr, segmentation_name.clone())?;
                     }
                     // also add the specific segmentation index
                     let index = TextProperty {
-                        segmentation: segmentation_name.into(),
+                        segmentation: segmentation_name,
                         val: seg_index,
                         corpus_id,
                         text_id,
@@ -1724,7 +1749,7 @@ where
             let layer = get_field(&line, 2, "layer", &component_tab_path)?.unwrap_or_default();
             let name = get_field(&line, 3, "name", &component_tab_path)?.unwrap_or_default();
             let ctype = component_type_from_short_name(&col_type)?;
-            component_by_id.insert(cid, Component::new(ctype, layer.into(), name.into()));
+            component_by_id.insert(cid, Component::new(ctype, layer, name));
         }
     }
     Ok(component_by_id)
@@ -1974,10 +1999,7 @@ where
         let val = get_field(&line, 3, "value", &corpus_anno_tab_path)?
             .unwrap_or_else(|| INVALID_STRING.clone());
 
-        let anno_key = AnnoKey {
-            ns: ns.into(),
-            name: name.into(),
-        };
+        let anno_key = AnnoKey { ns, name };
 
         corpus_id_to_anno.insert((id, anno_key), val.to_string());
     }
