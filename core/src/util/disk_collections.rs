@@ -4,6 +4,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 
+use crate::serializer::KeyVec;
 use crate::{errors::Result, serializer::KeySerializer};
 use std::collections::BTreeMap;
 use std::iter::Peekable;
@@ -40,7 +41,7 @@ where
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send + Sync,
 {
     eviction_strategy: EvictionStrategy,
-    c0: BTreeMap<Vec<u8>, Option<V>>,
+    c0: BTreeMap<KeyVec, Option<V>>,
     disk_tables: Vec<Table>,
 
     /// Marks if all items have been inserted in sorted order and if there has not been any delete operation yet.
@@ -48,7 +49,7 @@ where
     /// True if the current state is not different from when it was loaded from the a single disk-based table.
     /// This is important, since e.g. the serialized table will never contain tombstone entries.
     unchanged_from_disk: bool,
-    last_inserted_key: Option<Vec<u8>>,
+    last_inserted_key: Option<KeyVec>,
 
     serialization: bincode::config::DefaultOptions,
 
@@ -112,10 +113,10 @@ where
                 let binary_key: &[u8] = &binary_key;
                 self.insertion_was_sorted = last_key < binary_key;
             }
-            self.last_inserted_key = Some(Vec::from(binary_key.clone()));
+            self.last_inserted_key = Some(binary_key.clone());
         }
 
-        let existing_c0_entry = self.c0.insert(Vec::from(binary_key), Some(value));
+        let existing_c0_entry = self.c0.insert(binary_key, Some(value));
         if let Some(existing) = &existing_c0_entry {
             if let EvictionStrategy::MaximumBytes(_) = self.eviction_strategy {
                 // Subtract the memory size for the item that was removed
@@ -212,7 +213,7 @@ where
             if let EvictionStrategy::MaximumBytes(_) = self.eviction_strategy {
                 self.est_sum_memory += empty_value.size_of(&mut mem_ops);
             }
-            self.c0.insert(Vec::from(key), empty_value);
+            self.c0.insert(key, empty_value);
 
             self.insertion_was_sorted = false;
             self.unchanged_from_disk = false;
@@ -420,15 +421,15 @@ where
     where
         R: RangeBounds<K> + Clone,
     {
-        let mapped_start_bound: std::ops::Bound<Vec<u8>> = match range.start_bound() {
-            Bound::Included(end) => Bound::Included(Vec::from(K::create_key(end))),
-            Bound::Excluded(end) => Bound::Excluded(Vec::from(K::create_key(end))),
+        let mapped_start_bound: std::ops::Bound<KeyVec> = match range.start_bound() {
+            Bound::Included(end) => Bound::Included(K::create_key(end)),
+            Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
             Bound::Unbounded => Bound::Unbounded,
         };
 
-        let mapped_end_bound: std::ops::Bound<Vec<u8>> = match range.end_bound() {
-            Bound::Included(end) => Bound::Included(Vec::from(K::create_key(end))),
-            Bound::Excluded(end) => Bound::Excluded(Vec::from(K::create_key(end))),
+        let mapped_end_bound: std::ops::Bound<KeyVec> = match range.end_bound() {
+            Bound::Included(end) => Bound::Included(K::create_key(end)),
+            Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
             Bound::Unbounded => Bound::Unbounded,
         };
 
@@ -518,9 +519,9 @@ where
 }
 
 pub struct Range<'a, K, V> {
-    range_start: Bound<Vec<u8>>,
-    range_end: Bound<Vec<u8>>,
-    c0_range: Peekable<std::collections::btree_map::Range<'a, Vec<u8>, Option<V>>>,
+    range_start: Bound<KeyVec>,
+    range_end: Bound<KeyVec>,
+    c0_range: Peekable<std::collections::btree_map::Range<'a, KeyVec, Option<V>>>,
     table_iterators: Vec<TableIterator>,
     exhausted: Vec<bool>,
     serialization: bincode::config::DefaultOptions,
@@ -537,10 +538,10 @@ where
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
     fn new(
-        range_start: Bound<Vec<u8>>,
-        range_end: Bound<Vec<u8>>,
+        range_start: Bound<KeyVec>,
+        range_end: Bound<KeyVec>,
         disk_tables: &[Table],
-        c0: &'a BTreeMap<Vec<u8>, Option<V>>,
+        c0: &'a BTreeMap<KeyVec, Option<V>>,
         serialization: bincode::config::DefaultOptions,
     ) -> Range<'a, K, V> {
         let mut table_iterators: Vec<TableIterator> =
@@ -733,9 +734,9 @@ where
 
             // Try C0 first
             if let Some(c0_item) = self.c0_range.peek() {
-                let key: &Vec<u8> = c0_item.0;
+                let key: &KeyVec = c0_item.0;
                 let value: &Option<V> = c0_item.1;
-                smallest_key = Some((key.clone(), value.clone()));
+                smallest_key = Some((key.to_vec(), value.clone()));
             }
 
             // Iterate over all disk tables
@@ -782,8 +783,8 @@ where
 
 /// An iterator implementation for the case that there is only a single disk-table and no C0
 pub struct SimplifiedRange<K, V> {
-    range_start: Bound<Vec<u8>>,
-    range_end: Bound<Vec<u8>>,
+    range_start: Bound<KeyVec>,
+    range_end: Bound<KeyVec>,
     table_it: TableIterator,
     exhausted: bool,
     serialization: bincode::config::DefaultOptions,
@@ -800,8 +801,8 @@ where
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
     fn new(
-        range_start: Bound<Vec<u8>>,
-        range_end: Bound<Vec<u8>>,
+        range_start: Bound<KeyVec>,
+        range_end: Bound<KeyVec>,
         disk_table: &Table,
         serialization: bincode::config::DefaultOptions,
     ) -> SimplifiedRange<K, V> {
@@ -973,7 +974,7 @@ where
 struct SortedLogTableIterator<'a, K, V> {
     current_table_iterator: Option<TableIterator>,
     remaining_table_iterators: Vec<TableIterator>,
-    c0_iterator: std::collections::btree_map::Iter<'a, Vec<u8>, Option<V>>,
+    c0_iterator: std::collections::btree_map::Iter<'a, KeyVec, Option<V>>,
     serialization: bincode::config::DefaultOptions,
     phantom: std::marker::PhantomData<K>,
 }

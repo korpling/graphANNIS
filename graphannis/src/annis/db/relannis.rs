@@ -14,6 +14,7 @@ use crate::{
     corpusstorage::QueryLanguage,
     AnnotationGraph,
 };
+use graphannis_core::serializer::KeyVec;
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_NS},
     serializer::KeySerializer,
@@ -24,12 +25,12 @@ use percent_encoding::utf8_percent_encode;
 use smartstring::alias::String;
 use smartstring::{LazyCompact, SmartString};
 use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
-use std::{borrow::Cow, collections::HashMap};
 
 lazy_static! {
     static ref INVALID_STRING: SmartString<LazyCompact> =
@@ -121,14 +122,13 @@ pub struct TextProperty {
 }
 
 impl KeySerializer for TextProperty {
-    fn create_key(&self) -> Cow<[u8]> {
-        let mut result =
-            Vec::with_capacity(self.segmentation.len() + 1 + std::mem::size_of::<u32>() * 3);
+    fn create_key(&self) -> KeyVec {
+        let mut result = KeyVec::new();
         result.extend(create_str_vec_key(&[&self.segmentation]));
-        result.extend(&self.corpus_id.to_be_bytes());
-        result.extend(&self.text_id.to_be_bytes());
-        result.extend(&self.val.to_be_bytes());
-        Cow::Owned(result)
+        result.extend(self.corpus_id.to_be_bytes());
+        result.extend(self.text_id.to_be_bytes());
+        result.extend(self.val.to_be_bytes());
+        result
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -179,13 +179,13 @@ struct TextKey {
 }
 
 impl KeySerializer for TextKey {
-    fn create_key(&self) -> Cow<[u8]> {
-        let mut result = Vec::with_capacity(std::mem::size_of::<u32>() * 2);
-        result.extend(&self.id.to_be_bytes());
+    fn create_key(&self) -> KeyVec {
+        let mut result = KeyVec::new();
+        result.extend(self.id.to_be_bytes());
         if let Some(corpus_ref) = self.corpus_ref {
-            result.extend(&corpus_ref.to_be_bytes());
+            result.extend(corpus_ref.to_be_bytes());
         }
-        Cow::Owned(result)
+        result
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -217,13 +217,12 @@ struct NodeByTextEntry {
 }
 
 impl KeySerializer for NodeByTextEntry {
-    fn create_key(&self) -> Cow<[u8]> {
-        let mut result =
-            Vec::with_capacity(std::mem::size_of::<u32>() * 2 + std::mem::size_of::<NodeID>());
-        result.extend(&self.text_id.to_be_bytes());
-        result.extend(&self.corpus_ref.to_be_bytes());
-        result.extend(&self.node_id.to_be_bytes());
-        Cow::Owned(result)
+    fn create_key(&self) -> KeyVec {
+        let mut result = KeyVec::new();
+        result.extend(self.text_id.to_be_bytes());
+        result.extend(self.corpus_ref.to_be_bytes());
+        result.extend(self.node_id.to_be_bytes());
+        result
     }
 
     fn parse_key(key: &[u8]) -> Self {
