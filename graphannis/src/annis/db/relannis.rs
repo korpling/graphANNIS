@@ -802,21 +802,16 @@ fn get_field<'a>(
     }
 }
 
-fn escape_field<'a>(val: &str) -> Cow<str> {
+fn escape_field<'a>(val: &'a str) -> Cow<'a, str> {
     ESCAPE_PATTERN.replace_all(val, |caps: &Captures| {
         if let Some(c) = caps.get(1) {
             match c.as_str() {
-                "n" => Cow::Borrowed("\n"),
-                "t" => Cow::Borrowed("\t"),
-                "\\" => Cow::Borrowed("\\"),
-                "'" => Cow::Borrowed("'"),
-                "$" => Cow::Borrowed("$"),
-                // Fallback, since this allocates the string avoid using
-                // it and better use the static strings like above
-                _ => Cow::Owned(c.as_str().to_string()),
+                "n" => "\n",
+                "t" => "\t",
+                _ => val,
             }
         } else {
-            Cow::Borrowed("")
+            ""
         }
     })
 }
