@@ -1,5 +1,7 @@
 pub mod quicksort;
 
+use graphannis_core::serializer::KeyVec;
+
 use crate::errors::{GraphAnnisError, Result};
 
 use std::{
@@ -19,8 +21,8 @@ pub fn contains_regex_metacharacters(pattern: &str) -> bool {
 /// Creates a byte array key from a vector of strings.
 ///
 /// The strings are terminated with `\0`.
-pub fn create_str_vec_key(val: &[&str]) -> Vec<u8> {
-    let mut result: Vec<u8> = Vec::default();
+pub fn create_str_vec_key(val: &[&str]) -> KeyVec {
+    let mut result: KeyVec = KeyVec::default();
     for v in val {
         // append null-terminated string to result
         for b in v.as_bytes() {
