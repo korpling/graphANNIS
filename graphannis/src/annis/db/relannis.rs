@@ -21,6 +21,7 @@ use graphannis_core::{
     types::{AnnoKey, Component, Edge, NodeID},
     util::disk_collections::DiskMap,
 };
+use itertools::Itertools;
 use percent_encoding::utf8_percent_encode;
 use smartstring::alias::String;
 use smartstring::{LazyCompact, SmartString};
@@ -265,6 +266,7 @@ struct CorpusTableEntry {
     pre: u32,
     post: u32,
     name: String,
+    normalized_name: String,
 }
 
 struct ParsedCorpusTable {
@@ -916,11 +918,14 @@ where
         let pre_order = get_field_not_null(&line, 4, "pre", &corpus_tab_path)?.parse::<u32>()?;
         let post_order = get_field_not_null(&line, 5, "post", &corpus_tab_path)?.parse::<u32>()?;
 
+        let normalized_name = utf8_percent_encode(&name, SALT_URI_ENCODE_SET);
+
         corpus_by_id.insert(
             id,
             CorpusTableEntry {
                 pre: pre_order,
                 post: post_order,
+                normalized_name: String::from(normalized_name.to_string()),
                 name,
             },
         );
@@ -2014,26 +2019,24 @@ fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<std::st
     let pre = corpus.pre;
     let post = corpus.post;
 
-    let parent_corpus_path: Vec<std::string::String> = corpus_table
+    Ok(corpus_table
         .corpus_by_preorder
         .range(0..pre)
         .filter_map(|(_, cid)| corpus_table.corpus_by_id.get(cid))
         .filter(|parent_corpus| post < parent_corpus.post)
-        .map(|parent_corpus| {
-            utf8_percent_encode(parent_corpus.name.as_ref(), SALT_URI_ENCODE_SET).to_string()
-        })
-        .collect();
-    Ok(parent_corpus_path.join("/"))
+        .map(|parent_corpus| parent_corpus.normalized_name.clone())
+        .join("/"))
 }
 
-fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<std::string::String> {
-    let parent_path = get_parent_path(cid, corpus_table)?;
+fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String> {
+    let mut result: String = get_parent_path(cid, corpus_table)?.into();
     let corpus = corpus_table
         .corpus_by_id
         .get(&cid)
         .ok_or(RelAnnisError::CorpusNotFound(cid))?;
-    let corpus_name = utf8_percent_encode(&corpus.name, SALT_URI_ENCODE_SET).to_string();
-    Ok(format!("{}/{}", parent_path, &corpus_name))
+    result.push_str("/");
+    result.push_str(&corpus.normalized_name);
+    Ok(result)
 }
 
 fn add_subcorpora(
@@ -2103,11 +2106,11 @@ fn add_subcorpora(
 
             // add a basic node labels for the new (sub-) corpus/document
             updates.add_event(UpdateEvent::AddNode {
-                node_name: subcorpus_full_name.clone(),
+                node_name: subcorpus_full_name.to_string(),
                 node_type: "corpus".to_owned(),
             })?;
             updates.add_event(UpdateEvent::AddNodeLabel {
-                node_name: subcorpus_full_name.clone(),
+                node_name: subcorpus_full_name.to_string(),
                 anno_ns: ANNIS_NS.to_owned(),
                 anno_name: "doc".to_owned(),
                 anno_value: corpus_name.as_str().into(),
@@ -2124,7 +2127,7 @@ fn add_subcorpora(
             for ((entry_cid, anno_key), val) in corpus_id_to_annos.range(start_key..) {
                 if entry_cid == corpus_id {
                     updates.add_event(UpdateEvent::AddNodeLabel {
-                        node_name: subcorpus_full_name.clone(),
+                        node_name: subcorpus_full_name.to_string(),
                         anno_ns: anno_key.ns.clone().into(),
                         anno_name: anno_key.name.clone().into(),
                         anno_value: val.clone(),
@@ -2135,7 +2138,7 @@ fn add_subcorpora(
             }
             // add an edge from the document (or sub-corpus) to the top-level corpus
             updates.add_event(UpdateEvent::AddEdge {
-                source_node: subcorpus_full_name.clone(),
+                source_node: subcorpus_full_name.to_string(),
                 target_node: corpus_table.toplevel_corpus_name.as_str().into(),
                 layer: ANNIS_NS.to_owned(),
                 component_type: AnnotationComponentType::PartOf.to_string(),
@@ -2162,7 +2165,7 @@ fn add_subcorpora(
             // add an edge from the text to the document
             updates.add_event(UpdateEvent::AddEdge {
                 source_node: text_full_name.clone(),
-                target_node: subcorpus_full_name,
+                target_node: subcorpus_full_name.to_string(),
                 layer: ANNIS_NS.to_owned(),
                 component_type: AnnotationComponentType::PartOf.to_string(),
                 component_name: std::string::String::default(),
