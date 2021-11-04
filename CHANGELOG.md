@@ -7,12 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Reduce memory footprint during import when corpus contains a lot of escaped strings (as in #205)
 - Limit the used main memory cache per `DiskTable` to about 100MB in the default configuration.
   Since we use a lot of disk-based maps during import of relANNIS files, this can add up to > 1GB easily.
   The maximum cache usage was much larger before, which amongst other issues caused #205 to happen.
   With this change, during relANNIS import the main memory usage should be limited to be less than 4GB, 
   which seams more reasonable than the previous 20+GB
+- Reduce memory footprint during import when corpus contains a lot of escaped strings (as in #205)
+- Avoid creating small fragmented main memory when importing corpora from relANNIS to help to fix #205
 
 ## [1.3.0] - 2021-09-20
 
