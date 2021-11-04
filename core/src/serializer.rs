@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-pub type KeyVec = smallvec::SmallVec<[u8; 8]>;
+pub type KeyVec = smallvec::SmallVec<[u8; 32]>;
 
 pub trait KeySerializer {
     fn create_key(&self) -> KeyVec;
