@@ -13,7 +13,11 @@ use std::path::{Path, PathBuf};
 
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
 const MAX_TRIES: usize = 5;
-const MAX_NUMBER_OF_TABLES: usize = 128;
+/// Limits the number of sorted string tables the data might be fragmented into before compacting it into one large table.
+/// Because each sorted string table will have a disk cache of currently 8 MB attached to it, we practically
+/// use 5 * 8 = 40 MB of RAM already only for the disk cache. If we would increase the number of fragmented tables,
+/// we need less time for compaction, but also can easily use larger amounts of memory.
+const MAX_NUMBER_OF_TABLES: usize = 5;
 
 #[derive(Serialize, Deserialize)]
 struct Entry<K, V>
@@ -31,7 +35,8 @@ pub enum EvictionStrategy {
 
 impl Default for EvictionStrategy {
     fn default() -> Self {
-        EvictionStrategy::MaximumBytes(16 * 1024 * 1024)
+        // Use up to 60 MB for the C0 in-memory before purging the data onto disk
+        EvictionStrategy::MaximumBytes(60 * 1024 * 1024)
     }
 }
 
