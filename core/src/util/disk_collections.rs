@@ -153,50 +153,58 @@ where
     }
 
     fn evict_c0(&mut self, write_deleted: bool, output_file: Option<&PathBuf>) -> Result<()> {
-        let out_file = if let Some(output_file) = output_file {
-            debug!("Evicting DiskMap C0 to {:?}", output_file.as_path());
-            if let Some(parent) = output_file.parent() {
-                std::fs::create_dir_all(parent)?
-            }
-            std::fs::OpenOptions::new()
-                .write(true)
-                .read(true)
-                .create(true)
-                .open(output_file)?
+        let num_of_tables = if self.c0.is_empty() {
+            self.disk_tables.len()
         } else {
-            debug!("Evicting DiskMap C0 to temporary file");
-            tempfile::tempfile()?
+            self.disk_tables.len() + 1
         };
 
-        {
-            let mut builder = TableBuilder::new(sstable::Options::default(), &out_file);
-
-            for (key, value) in self.c0.iter() {
-                let key = key.create_key();
-                if write_deleted || value.is_some() {
-                    builder.add(&key, &self.serialization.serialize(value)?)?;
-                }
-            }
-            builder.finish()?;
-        }
-
-        self.est_sum_memory = 0;
-        let size = out_file.metadata()?.len();
-        let table = Table::new(
-            sstable::Options::default(),
-            Box::new(out_file),
-            size as usize,
-        )?;
-        self.disk_tables.push(table);
-
-        self.c0.clear();
-
-        if self.disk_tables.len() > MAX_NUMBER_OF_TABLES {
-            debug!("Compacting disk tables after eviction");
+        if num_of_tables > MAX_NUMBER_OF_TABLES {
+            debug!("Compacting disk tables");
+            // Directly compact the existing tables and the C0,
+            // which will also evict the C0 table.
             self.compact()?;
+        } else {
+            let out_file = if let Some(output_file) = output_file {
+                debug!("Evicting DiskMap C0 to {:?}", output_file.as_path());
+                if let Some(parent) = output_file.parent() {
+                    std::fs::create_dir_all(parent)?
+                }
+                std::fs::OpenOptions::new()
+                    .write(true)
+                    .read(true)
+                    .create(true)
+                    .open(output_file)?
+            } else {
+                debug!("Evicting DiskMap C0 to temporary file");
+                tempfile::tempfile()?
+            };
+
+            {
+                let mut builder = TableBuilder::new(sstable::Options::default(), &out_file);
+
+                for (key, value) in self.c0.iter() {
+                    let key = key.create_key();
+                    if write_deleted || value.is_some() {
+                        builder.add(&key, &self.serialization.serialize(value)?)?;
+                    }
+                }
+                builder.finish()?;
+            }
+
+            self.est_sum_memory = 0;
+            let size = out_file.metadata()?.len();
+            let table = Table::new(
+                sstable::Options::default(),
+                Box::new(out_file),
+                size as usize,
+            )?;
+            self.disk_tables.push(table);
+
+            self.c0.clear();
         }
 
-        debug!("Finished evicting DiskMap C0 ");
+        debug!("Finished evicting DiskMap C0");
         Ok(())
     }
 
