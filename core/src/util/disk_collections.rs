@@ -47,8 +47,13 @@ where
 {
     eviction_strategy: EvictionStrategy,
     c0: BTreeMap<KeyVec, Option<V>>,
+    // TODO: only use a single compacted `Table` with the 8 MB cache.
+    // When C0 is evicted to disk during large write sessions, only keep a reference to the written file and avoid having the cache.
+    // Compact the disk tables into one table only on the first read.
+    // This avoids both unnecessary main memory caches and slow compaction.
+    // As long as we don't mix write and read operations, but mainly just write a lot of files in a first phase and then read
+    // them, this approach should be much faster.
     disk_tables: Vec<Table>,
-
     /// Marks if all items have been inserted in sorted order and if there has not been any delete operation yet.
     insertion_was_sorted: bool,
     /// True if the current state is not different from when it was loaded from the a single disk-based table.
@@ -208,7 +213,6 @@ where
         Ok(())
     }
 
-    #[allow(dead_code)]
     pub fn remove(&mut self, key: &K) -> Result<Option<V>> {
         let key = K::create_key(key);
 
