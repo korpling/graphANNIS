@@ -186,7 +186,10 @@ where
             };
 
             {
-                let mut builder = TableBuilder::new(sstable::Options::default(), &out_file);
+                let mut builder = TableBuilder::new(
+                    sstable::Options::default().with_cache_capacity(1),
+                    &out_file,
+                );
 
                 for (key, value) in self.c0.iter() {
                     let key = key.create_key();
@@ -200,7 +203,7 @@ where
             self.est_sum_memory = 0;
             let size = out_file.metadata()?.len();
             let table = Table::new(
-                sstable::Options::default(),
+                sstable::Options::default().with_cache_capacity(1),
                 Box::new(out_file),
                 size as usize,
             )?;
@@ -479,7 +482,10 @@ where
 
         // Create single temporary sorted string file by iterating over all entries
         let out_file = tempfile::tempfile()?;
-        let mut builder = TableBuilder::new(sstable::Options::default(), &out_file);
+        let mut builder = TableBuilder::new(
+            sstable::Options::default().with_cache_capacity(1),
+            &out_file,
+        );
         for (key, value) in self.try_iter()? {
             let key = key.create_key();
             builder.add(&key, &self.serialization.serialize(&Some(value))?)?;
@@ -513,7 +519,8 @@ where
             .read(true)
             .create(true)
             .open(&location)?;
-        let mut builder = TableBuilder::new(sstable::Options::default(), out_file);
+        let mut builder =
+            TableBuilder::new(sstable::Options::default().with_cache_capacity(1), out_file);
         for (key, value) in self.try_iter()? {
             let key = key.create_key();
             builder.add(&key, &self.serialization.serialize(&Some(value))?)?;
