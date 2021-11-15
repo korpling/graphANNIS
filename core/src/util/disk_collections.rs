@@ -9,15 +9,12 @@ use crate::{errors::Result, serializer::KeySerializer};
 use std::collections::BTreeMap;
 use std::iter::Peekable;
 use std::ops::{Bound, RangeBounds};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
 const MAX_TRIES: usize = 5;
 /// Limits the number of sorted string tables the data might be fragmented into before compacting it into one large table.
-/// Because each sorted string table will have a disk cache of currently 8 MB attached to it, we practically
-/// use 5 * 8 = 40 MB of RAM already only for the disk cache. If we would increase the number of fragmented tables,
-/// we need less time for compaction, but also can easily use larger amounts of memory.
-const MAX_NUMBER_OF_TABLES: usize = 5;
+const MAX_NUMBER_OF_TABLES: usize = 128;
 
 #[derive(Serialize, Deserialize)]
 struct Entry<K, V>
@@ -47,12 +44,7 @@ where
 {
     eviction_strategy: EvictionStrategy,
     c0: BTreeMap<KeyVec, Option<V>>,
-    // TODO: only use a single compacted `Table` with the 8 MB cache.
-    // When C0 is evicted to disk during large write sessions, only keep a reference to the written file and avoid having the cache.
-    // Compact the disk tables into one table only on the first read.
-    // This avoids both unnecessary main memory caches and slow compaction.
-    // As long as we don't mix write and read operations, but mainly just write a lot of files in a first phase and then read
-    // them, this approach should be much faster.
+    /// A vector of on-disk tables holding the evicted data.
     disk_tables: Vec<Table>,
     /// Marks if all items have been inserted in sorted order and if there has not been any delete operation yet.
     insertion_was_sorted: bool,
@@ -145,19 +137,19 @@ where
         match self.eviction_strategy {
             EvictionStrategy::MaximumItems(n) => {
                 if self.c0.len() > n {
-                    self.evict_c0(write_deleted, None)?;
+                    self.evict_c0(write_deleted)?;
                 }
             }
             EvictionStrategy::MaximumBytes(b) => {
                 if self.est_sum_memory > b {
-                    self.evict_c0(write_deleted, None)?;
+                    self.evict_c0(write_deleted)?;
                 }
             }
         }
         Ok(())
     }
 
-    fn evict_c0(&mut self, write_deleted: bool, output_file: Option<&PathBuf>) -> Result<()> {
+    fn evict_c0(&mut self, write_deleted: bool) -> Result<()> {
         let num_of_tables = if self.c0.is_empty() {
             self.disk_tables.len()
         } else {
@@ -170,35 +162,21 @@ where
             // which will also evict the C0 table.
             self.compact()?;
         } else {
-            let out_file = if let Some(output_file) = output_file {
-                debug!("Evicting DiskMap C0 to {:?}", output_file.as_path());
-                if let Some(parent) = output_file.parent() {
-                    std::fs::create_dir_all(parent)?
-                }
-                std::fs::OpenOptions::new()
-                    .write(true)
-                    .read(true)
-                    .create(true)
-                    .open(output_file)?
-            } else {
-                debug!("Evicting DiskMap C0 to temporary file");
-                tempfile::tempfile()?
-            };
+            debug!("Evicting DiskMap C0 to temporary file");
+            let out_file = tempfile::tempfile()?;
 
-            {
-                let mut builder = TableBuilder::new(
-                    sstable::Options::default().with_cache_capacity(1),
-                    &out_file,
-                );
+            let mut builder = TableBuilder::new(
+                sstable::Options::default().with_cache_capacity(1),
+                &out_file,
+            );
 
-                for (key, value) in self.c0.iter() {
-                    let key = key.create_key();
-                    if write_deleted || value.is_some() {
-                        builder.add(&key, &self.serialization.serialize(value)?)?;
-                    }
+            for (key, value) in self.c0.iter() {
+                let key = key.create_key();
+                if write_deleted || value.is_some() {
+                    builder.add(&key, &self.serialization.serialize(value)?)?;
                 }
-                builder.finish()?;
             }
+            builder.finish()?;
 
             self.est_sum_memory = 0;
             let size = out_file.metadata()?.len();
