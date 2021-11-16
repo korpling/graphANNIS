@@ -1,12 +1,9 @@
 [workspace]
 members = [
-    "core",
-    "graphannis",
-    "cli",
-    "capi",
-    "webservice",
-    "examples/tutorial"
+  "core",
+  "graphannis",
+  "cli",
+  "capi",
+  "webservice",
+  "examples/tutorial",
 ]
-
-[patch.crates-io]
-sstable = { path = "../sstable" }
