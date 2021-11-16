@@ -311,20 +311,12 @@ where
         self.by_container
             .insert(by_container_key, anno.val.clone().into())?;
 
-        if self.by_container.number_of_disk_tables() > 7 {
-            self.by_container.compact()?;
-        }
-
         // To save some space, insert an empty array as a marker value
         // (all information is part of the key already)
         self.by_anno_qname.insert(
             create_by_anno_qname_key(item.clone(), anno_key_symbol, &anno.val),
             true,
         )?;
-
-        if self.by_anno_qname.number_of_disk_tables() > 7 {
-            self.by_anno_qname.compact()?;
-        }
 
         if !already_existed {
             // a new annotation entry was inserted and did not replace an existing one

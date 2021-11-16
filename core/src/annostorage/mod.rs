@@ -248,9 +248,9 @@ where
     /// This can be used to calculate new IDs for new items.
     fn get_largest_item(&self) -> Option<T>;
 
-    /// (Re-) calculate the internal statistics needed for estimitating annotation values.
+    /// (Re-) calculate the internal statistics needed for estimating annotation values.
     ///
-    /// An annotation storage can not have a valid statistics, in which case the estimitation function will not return
+    /// An annotation storage can invalid statistics, in which case the estimation function will not return
     /// valid results.
     fn calculate_statistics(&mut self);
 

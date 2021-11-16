@@ -14,7 +14,13 @@ use std::path::Path;
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
 const MAX_TRIES: usize = 5;
 /// Limits the number of sorted string tables the data might be fragmented into before compacting it into one large table.
-const MAX_NUMBER_OF_TABLES: usize = 128;
+/// Since each table can use a certain amount of RAM for the block cache, limit the number of tables to limit RAM usage.
+const MAX_NUMBER_OF_TABLES: usize = 32;
+
+const KB: usize = 1 << 10;
+const MB: usize = KB * KB;
+const BLOCK_MAX_SIZE: usize = 4 * KB;
+const BLOCK_CACHE_CAPACITY: usize = 1 * MB;
 
 #[derive(Serialize, Deserialize)]
 struct Entry<K, V>
@@ -33,8 +39,12 @@ pub enum EvictionStrategy {
 impl Default for EvictionStrategy {
     fn default() -> Self {
         // Use up to 60 MB for the C0 in-memory before purging the data onto disk
-        EvictionStrategy::MaximumBytes(60 * 1024 * 1024)
+        EvictionStrategy::MaximumBytes(60 * MB)
     }
+}
+
+fn custom_options() -> sstable::Options {
+    sstable::Options::default().with_cache_capacity(BLOCK_CACHE_CAPACITY / BLOCK_MAX_SIZE)
 }
 
 pub struct DiskMap<K, V>
@@ -74,7 +84,7 @@ where
         if let Some(persisted_file) = persisted_file {
             if persisted_file.is_file() {
                 // Use existing file as read-only table which contains the whole map
-                let table = Table::new_from_file(sstable::Options::default(), persisted_file)?;
+                let table = Table::new_from_file(custom_options(), persisted_file)?;
                 disk_tables.push(table);
             }
         }
@@ -165,10 +175,7 @@ where
             debug!("Evicting DiskMap C0 to temporary file");
             let out_file = tempfile::tempfile()?;
 
-            let mut builder = TableBuilder::new(
-                sstable::Options::default().with_cache_capacity(1),
-                &out_file,
-            );
+            let mut builder = TableBuilder::new(custom_options(), &out_file);
 
             for (key, value) in self.c0.iter() {
                 let key = key.create_key();
@@ -180,11 +187,7 @@ where
 
             self.est_sum_memory = 0;
             let size = out_file.metadata()?.len();
-            let table = Table::new(
-                sstable::Options::default().with_cache_capacity(1),
-                Box::new(out_file),
-                size as usize,
-            )?;
+            let table = Table::new(custom_options(), Box::new(out_file), size as usize)?;
             self.disk_tables.push(table);
 
             self.c0.clear();
@@ -462,10 +465,7 @@ where
 
         // Create single temporary sorted string file by iterating over all entries
         let out_file = tempfile::tempfile()?;
-        let mut builder = TableBuilder::new(
-            sstable::Options::default().with_cache_capacity(1),
-            &out_file,
-        );
+        let mut builder = TableBuilder::new(custom_options(), &out_file);
         for (key, value) in self.try_iter()? {
             let key = key.create_key();
             builder.add(&key, &self.serialization.serialize(&Some(value))?)?;
@@ -473,7 +473,7 @@ where
         let size = builder.finish()?;
 
         // Re-open sorted string table and set it as the only table
-        let table = Table::new(sstable::Options::default(), Box::new(out_file), size)?;
+        let table = Table::new(custom_options(), Box::new(out_file), size)?;
         self.disk_tables = vec![table];
         self.c0.clear();
 
@@ -499,8 +499,7 @@ where
             .read(true)
             .create(true)
             .open(&location)?;
-        let mut builder =
-            TableBuilder::new(sstable::Options::default().with_cache_capacity(1), out_file);
+        let mut builder = TableBuilder::new(custom_options(), out_file);
         for (key, value) in self.try_iter()? {
             let key = key.create_key();
             builder.add(&key, &self.serialization.serialize(&Some(value))?)?;

@@ -376,9 +376,12 @@ where
 
         // TODO: implement handling the "virtual_tokenization_from_namespace" and "virtual_tokenization_mapping" corpus properties
 
+        progress_callback("calculating node statistics (before update)");
+        db.get_node_annos_mut().calculate_statistics();
+
         db.apply_update(&mut updates, &progress_callback)?;
 
-        progress_callback("calculating node statistics");
+        progress_callback("calculating node statistics (after update)");
         db.get_node_annos_mut().calculate_statistics();
 
         for c in db.get_all_components(None, None) {
