@@ -453,9 +453,11 @@ where
     pub fn compact(&mut self) -> Result<()> {
         self.est_sum_memory = 0;
 
-        if self.c0.is_empty() && self.disk_tables.is_empty() {
-            // The table is completly empty, there is nothing to do
-            return Ok(());
+        if self.c0.is_empty() {
+            if self.disk_tables.is_empty() || self.disk_tables.len() == 1 {
+                // The table are empty or already compacted, there is nothing to do
+                return Ok(());
+            }
         }
 
         // Create single temporary sorted string file by iterating over all entries
