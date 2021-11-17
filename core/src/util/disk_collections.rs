@@ -38,8 +38,7 @@ pub enum EvictionStrategy {
 
 impl Default for EvictionStrategy {
     fn default() -> Self {
-        // Use up to 60 MB for the C0 in-memory before purging the data onto disk
-        EvictionStrategy::MaximumBytes(60 * MB)
+        EvictionStrategy::MaximumBytes(32 * MB)
     }
 }
 
@@ -84,7 +83,7 @@ where
         if let Some(persisted_file) = persisted_file {
             if persisted_file.is_file() {
                 // Use existing file as read-only table which contains the whole map
-                let table = Table::new_from_file(custom_options(), persisted_file)?;
+                let table = Table::new_from_file(sstable::Options::default(), persisted_file)?;
                 disk_tables.push(table);
             }
         }
