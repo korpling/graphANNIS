@@ -20,7 +20,7 @@ const MAX_NUMBER_OF_TABLES: usize = 32;
 const KB: usize = 1 << 10;
 const MB: usize = KB * KB;
 const BLOCK_MAX_SIZE: usize = 4 * KB;
-const BLOCK_CACHE_CAPACITY: usize = 1 * MB;
+const BLOCK_CACHE_CAPACITY: usize = MB;
 
 #[derive(Serialize, Deserialize)]
 struct Entry<K, V>
