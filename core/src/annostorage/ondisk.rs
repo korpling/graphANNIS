@@ -72,8 +72,8 @@ where
 /// [x Bits item ID][64 Bits symbol ID]
 /// ```
 fn create_by_container_key<T: FixedSizeKeySerializer>(item: T, anno_key_symbol: usize) -> Vec<u8> {
-    let mut result: Vec<u8> = Vec::from(item.create_key());
-    result.extend_from_slice(&anno_key_symbol.create_key());
+    let mut result: Vec<u8> = item.create_key().to_vec();
+    result.extend(anno_key_symbol.create_key());
     result
 }
 
@@ -92,7 +92,7 @@ fn create_by_anno_qname_key<T: FixedSizeKeySerializer>(
     anno_value: &str,
 ) -> Vec<u8> {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
-    let mut result: Vec<u8> = Vec::from(anno_key_symbol.create_key());
+    let mut result: Vec<u8> = anno_key_symbol.create_key().to_vec();
     for b in anno_value.as_bytes() {
         result.push(*b);
     }
@@ -311,20 +311,12 @@ where
         self.by_container
             .insert(by_container_key, anno.val.clone().into())?;
 
-        if self.by_container.number_of_disk_tables() > 7 {
-            self.by_container.compact()?;
-        }
-
         // To save some space, insert an empty array as a marker value
         // (all information is part of the key already)
         self.by_anno_qname.insert(
             create_by_anno_qname_key(item.clone(), anno_key_symbol, &anno.val),
             true,
         )?;
-
-        if self.by_anno_qname.number_of_disk_tables() > 7 {
-            self.by_anno_qname.compact()?;
-        }
 
         if !already_existed {
             // a new annotation entry was inserted and did not replace an existing one

@@ -2,6 +2,7 @@
 extern crate anyhow;
 
 use clap::{App, Arg};
+use compound_duration::format_dhms;
 use graphannis::corpusstorage::FrequencyDefEntry;
 use graphannis::corpusstorage::LoadStatus;
 use graphannis::corpusstorage::QueryLanguage;
@@ -259,7 +260,11 @@ impl AnnisRunner {
                     })?;
                 let load_time = t_before.elapsed();
                 if let Ok(t) = load_time {
-                    info! {"imported corpora {:?} in {} ms", names, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                    info!(
+                        "imported corpora {:?} in {}",
+                        names,
+                        format_dhms(t.as_secs())
+                    );
                 }
             } else {
                 // Import a single corpus
@@ -284,7 +289,7 @@ impl AnnisRunner {
                     )?;
                 let load_time = t_before.elapsed();
                 if let Ok(t) = load_time {
-                    info! {"imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                    info!("imported corpus {} in {}", name, format_dhms(t.as_secs()));
                 }
             }
         }
@@ -320,7 +325,11 @@ impl AnnisRunner {
             .export_to_fs(&self.current_corpus, &path, format)?;
         let load_time = t_before.elapsed();
         if let Ok(t) = load_time {
-            info! {"exported corpora {:?} in {} ms", &self.current_corpus, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+            info!(
+                "exported corpora {:?} in {}",
+                &self.current_corpus,
+                format_dhms(t.as_secs())
+            );
         }
 
         Ok(())

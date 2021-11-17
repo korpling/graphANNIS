@@ -14,23 +14,28 @@ use crate::{
     corpusstorage::QueryLanguage,
     AnnotationGraph,
 };
+use graphannis_core::serializer::KeyVec;
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_NS},
     serializer::KeySerializer,
     types::{AnnoKey, Component, Edge, NodeID},
     util::disk_collections::DiskMap,
 };
+use itertools::Itertools;
 use percent_encoding::utf8_percent_encode;
 use smartstring::alias::String;
+use smartstring::{LazyCompact, SmartString};
 use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
-use std::{borrow::Cow, collections::HashMap};
 
 lazy_static! {
+    static ref INVALID_STRING: SmartString<LazyCompact> =
+        SmartString::<LazyCompact>::from(std::char::MAX.to_string());
     static ref DEFAULT_VISUALIZER_RULES: Vec<(i64, bool, VisualizerRule)> = vec![
         (
             -1,
@@ -118,14 +123,13 @@ pub struct TextProperty {
 }
 
 impl KeySerializer for TextProperty {
-    fn create_key(&self) -> Cow<[u8]> {
-        let mut result =
-            Vec::with_capacity(self.segmentation.len() + 1 + std::mem::size_of::<u32>() * 3);
+    fn create_key(&self) -> KeyVec {
+        let mut result = KeyVec::new();
         result.extend(create_str_vec_key(&[&self.segmentation]));
-        result.extend(&self.corpus_id.to_be_bytes());
-        result.extend(&self.text_id.to_be_bytes());
-        result.extend(&self.val.to_be_bytes());
-        Cow::Owned(result)
+        result.extend(self.corpus_id.to_be_bytes());
+        result.extend(self.text_id.to_be_bytes());
+        result.extend(self.val.to_be_bytes());
+        result
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -176,13 +180,13 @@ struct TextKey {
 }
 
 impl KeySerializer for TextKey {
-    fn create_key(&self) -> Cow<[u8]> {
-        let mut result = Vec::with_capacity(std::mem::size_of::<u32>() * 2);
-        result.extend(&self.id.to_be_bytes());
+    fn create_key(&self) -> KeyVec {
+        let mut result = KeyVec::new();
+        result.extend(self.id.to_be_bytes());
         if let Some(corpus_ref) = self.corpus_ref {
-            result.extend(&corpus_ref.to_be_bytes());
+            result.extend(corpus_ref.to_be_bytes());
         }
-        Cow::Owned(result)
+        result
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -214,13 +218,12 @@ struct NodeByTextEntry {
 }
 
 impl KeySerializer for NodeByTextEntry {
-    fn create_key(&self) -> Cow<[u8]> {
-        let mut result =
-            Vec::with_capacity(std::mem::size_of::<u32>() * 2 + std::mem::size_of::<NodeID>());
-        result.extend(&self.text_id.to_be_bytes());
-        result.extend(&self.corpus_ref.to_be_bytes());
-        result.extend(&self.node_id.to_be_bytes());
-        Cow::Owned(result)
+    fn create_key(&self) -> KeyVec {
+        let mut result = KeyVec::new();
+        result.extend(self.text_id.to_be_bytes());
+        result.extend(self.corpus_ref.to_be_bytes());
+        result.extend(self.node_id.to_be_bytes());
+        result
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -263,6 +266,7 @@ struct CorpusTableEntry {
     pre: u32,
     post: u32,
     name: String,
+    normalized_name: String,
 }
 
 struct ParsedCorpusTable {
@@ -372,9 +376,12 @@ where
 
         // TODO: implement handling the "virtual_tokenization_from_namespace" and "virtual_tokenization_mapping" corpus properties
 
+        progress_callback("calculating node statistics (before update)");
+        db.get_node_annos_mut().calculate_statistics();
+
         db.apply_update(&mut updates, &progress_callback)?;
 
-        progress_callback("calculating node statistics");
+        progress_callback("calculating node statistics (after update)");
         db.get_node_annos_mut().calculate_statistics();
 
         for c in db.get_all_components(None, None) {
@@ -509,9 +516,9 @@ where
     for result in resolver_tab_csv.records() {
         let line = result?;
 
-        let layer = get_field(&line, 2, "namespace", &resolver_tab_path)?;
+        let layer = get_field(&line, 2, "namespace", &resolver_tab_path)?.map(|l| l.to_string());
         let element =
-            get_field(&line, 3, "element", &resolver_tab_path)?.and_then(|e| match e.as_str() {
+            get_field(&line, 3, "element", &resolver_tab_path)?.and_then(|e| match e.as_ref() {
                 "node" => Some(VisualizerRuleElement::Node),
                 "edge" => Some(VisualizerRuleElement::Edge),
                 _ => None,
@@ -552,7 +559,7 @@ where
             });
         } else {
             // Insert the new Rule
-            let visibility = match visibility.as_str() {
+            let visibility = match visibility.as_ref() {
                 "hidden" => VisualizerVisibility::Hidden,
                 "visible" => VisualizerVisibility::Visible,
                 "permanent" => VisualizerVisibility::Permanent,
@@ -624,8 +631,8 @@ where
             get_field(&line, 1, "description", &example_queries_path)?,
         ) {
             config.example_queries.push(ExampleQuery {
-                query,
-                description,
+                query: query.to_string(),
+                description: description.to_string(),
                 query_language: QueryLanguage::AQL,
             });
         }
@@ -779,12 +786,12 @@ fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File
         .from_path(path)
 }
 
-fn get_field(
-    record: &csv::StringRecord,
+fn get_field<'a>(
+    record: &'a csv::StringRecord,
     i: usize,
     column_name: &str,
     file: &Path,
-) -> crate::errors::Result<Option<std::string::String>> {
+) -> crate::errors::Result<Option<SmartString<LazyCompact>>> {
     let r = record.get(i).ok_or_else(|| RelAnnisError::MissingColumn {
         pos: i,
         name: column_name.to_string(),
@@ -795,21 +802,61 @@ fn get_field(
         Ok(None)
     } else {
         // replace some known escape sequences
-        Ok(Some(
-            r.replace("\\t", "\t")
-                .replace("\\'", "'")
-                .replace("\\\\", "\\")
-                .replace("\\$", "$"),
-        ))
+        Ok(Some(escape_field(r)))
     }
 }
 
-fn get_field_not_null(
-    record: &csv::StringRecord,
+fn escape_field(val: &str) -> SmartString<LazyCompact> {
+    let mut chars = val.chars().peekable();
+    let mut unescaped = SmartString::<LazyCompact>::new();
+
+    loop {
+        match chars.next() {
+            None => break,
+            Some(c) => {
+                let escaped_char = if c == '\\' {
+                    if let Some(escaped_char) = chars.peek() {
+                        let escaped_char = *escaped_char;
+                        match escaped_char {
+                            _ if escaped_char == '\\'
+                                || escaped_char == '"'
+                                || escaped_char == '\''
+                                || escaped_char == '`'
+                                || escaped_char == '$' =>
+                            {
+                                Some(escaped_char)
+                            }
+                            'n' => Some('\n'),
+                            'r' => Some('\r'),
+                            't' => Some('\t'),
+                            _ => None,
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+                if let Some(escaped_char) = escaped_char {
+                    unescaped.push(escaped_char);
+                    // skip the escaped character instead of outputting it again
+                    chars.next();
+                } else {
+                    unescaped.push(c);
+                };
+            }
+        }
+    }
+
+    unescaped
+}
+
+fn get_field_not_null<'a>(
+    record: &'a csv::StringRecord,
     i: usize,
     column_name: &str,
     file: &Path,
-) -> crate::errors::Result<std::string::String> {
+) -> crate::errors::Result<SmartString<LazyCompact>> {
     let result =
         get_field(record, i, column_name, file)?.ok_or_else(|| RelAnnisError::UnexpectedNull {
             pos: i,
@@ -850,7 +897,7 @@ where
         let line = result?;
 
         let id = get_field_not_null(&line, 0, "id", &corpus_tab_path)?.parse::<u32>()?;
-        let mut name = get_field_not_null(&line, 1, "name", &corpus_tab_path)?;
+        let name = get_field_not_null(&line, 1, "name", &corpus_tab_path)?;
 
         let corpus_type = get_field_not_null(&line, 2, "type", &corpus_tab_path)?;
         if corpus_type == "DOCUMENT" {
@@ -858,12 +905,12 @@ where
             // even when the document belongs to different sub-corpora.
             // Some corpora violate this constraint and we change the document name in order to avoid duplicate node names later on
             let existing_count = document_names
-                .entry(name.clone().into())
+                .entry(name.clone())
                 .and_modify(|count| *count += 1)
                 .or_insert(1);
             if *existing_count > 1 {
                 let old_name = name.clone();
-                name = format!("{}_duplicated_document_name_{}", name, existing_count);
+                let name = format!("{}_duplicated_document_name_{}", name, existing_count);
                 warn!(
                     "duplicated document name \"{}\" detected: will be renamed to \"{}\"",
                     old_name, name
@@ -874,12 +921,15 @@ where
         let pre_order = get_field_not_null(&line, 4, "pre", &corpus_tab_path)?.parse::<u32>()?;
         let post_order = get_field_not_null(&line, 5, "post", &corpus_tab_path)?.parse::<u32>()?;
 
+        let normalized_name = utf8_percent_encode(&name, SALT_URI_ENCODE_SET);
+
         corpus_by_id.insert(
             id,
             CorpusTableEntry {
                 pre: pre_order,
                 post: post_order,
-                name: name.into(),
+                normalized_name: String::from(normalized_name.to_string()),
+                name,
             },
         );
 
@@ -951,13 +1001,7 @@ where
             None
         };
         let key = TextKey { id, corpus_ref };
-        texts.insert(
-            key.clone(),
-            Text {
-                name: name.into(),
-                val: value.into(),
-            },
-        )?;
+        texts.insert(key.clone(), Text { name, val: value })?;
     }
 
     Ok(texts)
@@ -1435,7 +1479,7 @@ where
                         node_name: node_path.clone(),
                         anno_ns: ANNIS_NS.to_owned(),
                         anno_name: "layer".to_owned(),
-                        anno_value: layer,
+                        anno_value: layer.to_string(),
                     })?;
                 }
             }
@@ -1506,7 +1550,7 @@ where
                     node_name: node_path,
                     anno_ns: ANNIS_NS.to_owned(),
                     anno_name: TOK.to_owned(),
-                    anno_value: span,
+                    anno_value: span.to_string(),
                 })?;
 
                 let index = TextProperty {
@@ -1546,15 +1590,16 @@ where
                             node_name: node_path,
                             anno_ns: ANNIS_NS.to_owned(),
                             anno_name: TOK.to_owned(),
-                            anno_value: get_field_not_null(&line, 12, "span", &node_tab_path)?,
+                            anno_value: get_field_not_null(&line, 12, "span", &node_tab_path)?
+                                .to_string(),
                         })?;
                     } else {
                         // we need to get the span information from the node_annotation file later
-                        missing_seg_span.insert(node_nr, segmentation_name.clone().into())?;
+                        missing_seg_span.insert(node_nr, segmentation_name.clone())?;
                     }
                     // also add the specific segmentation index
                     let index = TextProperty {
-                        segmentation: segmentation_name.into(),
+                        segmentation: segmentation_name,
                         val: seg_index,
                         corpus_id,
                         text_id,
@@ -1646,25 +1691,25 @@ where
         if col_ns != "annis" || col_name != "tok" {
             let has_valid_value = col_val.is_some();
             // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
-            let anno_val = col_val.unwrap_or_else(|| std::char::MAX.to_string());
+            let anno_val = &col_val.unwrap_or_else(|| INVALID_STRING.clone());
 
             if let Some(seg) = missing_seg_span.try_get(&node_id)? {
                 // add all missing span values from the annotation, but don't add NULL values
-                if seg == col_name && has_valid_value {
+                if seg == col_name.as_ref() && has_valid_value {
                     updates.add_event(UpdateEvent::AddNodeLabel {
                         node_name: node_name.clone().into(),
                         anno_ns: ANNIS_NS.to_owned(),
                         anno_name: TOK.to_owned(),
-                        anno_value: anno_val.clone(),
+                        anno_value: anno_val.to_string(),
                     })?;
                 }
             }
 
             updates.add_event(UpdateEvent::AddNodeLabel {
                 node_name: node_name.into(),
-                anno_ns: col_ns,
-                anno_name: col_name,
-                anno_value: anno_val,
+                anno_ns: col_ns.to_string(),
+                anno_name: col_name.to_string(),
+                anno_value: anno_val.to_string(),
             })?;
         }
 
@@ -1711,7 +1756,7 @@ where
             let layer = get_field(&line, 2, "layer", &component_tab_path)?.unwrap_or_default();
             let name = get_field(&line, 3, "name", &component_tab_path)?.unwrap_or_default();
             let ctype = component_type_from_short_name(&col_type)?;
-            component_by_id.insert(cid, Component::new(ctype, layer.into(), name.into()));
+            component_by_id.insert(cid, Component::new(ctype, layer, name));
         }
     }
     Ok(component_by_id)
@@ -1902,7 +1947,7 @@ where
                 let name = get_field_not_null(&line, 2, "name", &edge_anno_tab_path)?;
                 // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
                 let val = get_field(&line, 3, "value", &edge_anno_tab_path)?
-                    .unwrap_or_else(|| std::char::MAX.to_string());
+                    .unwrap_or_else(|| INVALID_STRING.clone());
 
                 updates.add_event(UpdateEvent::AddEdgeLabel {
                     source_node: id_to_node_name
@@ -1916,9 +1961,9 @@ where
                     layer: c.layer.clone().into(),
                     component_type: c.get_type().to_string(),
                     component_name: c.name.into(),
-                    anno_ns: ns,
-                    anno_name: name,
-                    anno_value: val,
+                    anno_ns: ns.to_string(),
+                    anno_name: name.to_string(),
+                    anno_value: val.to_string(),
                 })?;
             }
         }
@@ -1959,14 +2004,11 @@ where
         let name = get_field_not_null(&line, 2, "name", &corpus_anno_tab_path)?;
         // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
         let val = get_field(&line, 3, "value", &corpus_anno_tab_path)?
-            .unwrap_or_else(|| std::char::MAX.to_string());
+            .unwrap_or_else(|| INVALID_STRING.clone());
 
-        let anno_key = AnnoKey {
-            ns: ns.into(),
-            name: name.into(),
-        };
+        let anno_key = AnnoKey { ns, name };
 
-        corpus_id_to_anno.insert((id, anno_key), val);
+        corpus_id_to_anno.insert((id, anno_key), val.to_string());
     }
 
     Ok(corpus_id_to_anno)
@@ -1980,26 +2022,24 @@ fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<std::st
     let pre = corpus.pre;
     let post = corpus.post;
 
-    let parent_corpus_path: Vec<std::string::String> = corpus_table
+    Ok(corpus_table
         .corpus_by_preorder
         .range(0..pre)
         .filter_map(|(_, cid)| corpus_table.corpus_by_id.get(cid))
         .filter(|parent_corpus| post < parent_corpus.post)
-        .map(|parent_corpus| {
-            utf8_percent_encode(parent_corpus.name.as_ref(), SALT_URI_ENCODE_SET).to_string()
-        })
-        .collect();
-    Ok(parent_corpus_path.join("/"))
+        .map(|parent_corpus| parent_corpus.normalized_name.clone())
+        .join("/"))
 }
 
-fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<std::string::String> {
-    let parent_path = get_parent_path(cid, corpus_table)?;
+fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String> {
+    let mut result: String = get_parent_path(cid, corpus_table)?.into();
     let corpus = corpus_table
         .corpus_by_id
         .get(&cid)
         .ok_or(RelAnnisError::CorpusNotFound(cid))?;
-    let corpus_name = utf8_percent_encode(&corpus.name, SALT_URI_ENCODE_SET).to_string();
-    Ok(format!("{}/{}", parent_path, &corpus_name))
+    result.push_str("/");
+    result.push_str(&corpus.normalized_name);
+    Ok(result)
 }
 
 fn add_subcorpora(
@@ -2069,11 +2109,11 @@ fn add_subcorpora(
 
             // add a basic node labels for the new (sub-) corpus/document
             updates.add_event(UpdateEvent::AddNode {
-                node_name: subcorpus_full_name.clone(),
+                node_name: subcorpus_full_name.to_string(),
                 node_type: "corpus".to_owned(),
             })?;
             updates.add_event(UpdateEvent::AddNodeLabel {
-                node_name: subcorpus_full_name.clone(),
+                node_name: subcorpus_full_name.to_string(),
                 anno_ns: ANNIS_NS.to_owned(),
                 anno_name: "doc".to_owned(),
                 anno_value: corpus_name.as_str().into(),
@@ -2090,7 +2130,7 @@ fn add_subcorpora(
             for ((entry_cid, anno_key), val) in corpus_id_to_annos.range(start_key..) {
                 if entry_cid == corpus_id {
                     updates.add_event(UpdateEvent::AddNodeLabel {
-                        node_name: subcorpus_full_name.clone(),
+                        node_name: subcorpus_full_name.to_string(),
                         anno_ns: anno_key.ns.clone().into(),
                         anno_name: anno_key.name.clone().into(),
                         anno_value: val.clone(),
@@ -2101,7 +2141,7 @@ fn add_subcorpora(
             }
             // add an edge from the document (or sub-corpus) to the top-level corpus
             updates.add_event(UpdateEvent::AddEdge {
-                source_node: subcorpus_full_name.clone(),
+                source_node: subcorpus_full_name.to_string(),
                 target_node: corpus_table.toplevel_corpus_name.as_str().into(),
                 layer: ANNIS_NS.to_owned(),
                 component_type: AnnotationComponentType::PartOf.to_string(),
@@ -2128,7 +2168,7 @@ fn add_subcorpora(
             // add an edge from the text to the document
             updates.add_event(UpdateEvent::AddEdge {
                 source_node: text_full_name.clone(),
-                target_node: subcorpus_full_name,
+                target_node: subcorpus_full_name.to_string(),
                 layer: ANNIS_NS.to_owned(),
                 component_type: AnnotationComponentType::PartOf.to_string(),
                 component_name: std::string::String::default(),
@@ -2171,5 +2211,18 @@ fn component_type_from_short_name(short_type: &str) -> Result<AnnotationComponen
         "p" => Ok(AnnotationComponentType::Pointing),
         "o" => Ok(AnnotationComponentType::Ordering),
         _ => Err(RelAnnisError::InvalidComponentShortName(short_type.to_string()).into()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::annis::db::relannis::escape_field;
+
+    #[test]
+    fn test_escape_field() {
+        assert_eq!(escape_field("ab\\$c"), "ab$c");
+        assert_eq!(escape_field("ab\\\\cd\\\\"), "ab\\cd\\",);
+        assert_eq!(escape_field("ab\\'cd\\te"), "ab'cd\te");
+        assert_eq!(escape_field("a\\n"), "a\n");
     }
 }

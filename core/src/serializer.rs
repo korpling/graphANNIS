@@ -1,8 +1,9 @@
-use std::borrow::Cow;
 use std::convert::TryInto;
 
+pub type KeyVec = smallvec::SmallVec<[u8; 32]>;
+
 pub trait KeySerializer {
-    fn create_key(&self) -> Cow<[u8]>;
+    fn create_key(&self) -> KeyVec;
     fn parse_key(key: &[u8]) -> Self
     where
         Self: std::marker::Sized;
@@ -15,8 +16,8 @@ pub trait FixedSizeKeySerializer: KeySerializer {
 const PANIC_MESSAGE_SIZE: &str = "Key data must fullfill minimal size for type";
 
 impl KeySerializer for Vec<u8> {
-    fn create_key(&self) -> Cow<[u8]> {
-        Cow::Borrowed(self)
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(self)
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -24,9 +25,19 @@ impl KeySerializer for Vec<u8> {
     }
 }
 
+impl KeySerializer for KeyVec {
+    fn create_key(&self) -> KeyVec {
+        self.clone()
+    }
+
+    fn parse_key(key: &[u8]) -> Self {
+        KeyVec::from(key)
+    }
+}
+
 impl KeySerializer for String {
-    fn create_key(&self) -> Cow<[u8]> {
-        Cow::Borrowed(self.as_bytes())
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(self.as_bytes())
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -36,8 +47,8 @@ impl KeySerializer for String {
 }
 
 impl KeySerializer for u8 {
-    fn create_key(&self) -> Cow<[u8]> {
-        Cow::Owned(self.to_be_bytes().to_vec())
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(&self.to_be_bytes())
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -56,8 +67,8 @@ impl FixedSizeKeySerializer for u8 {
 }
 
 impl KeySerializer for u16 {
-    fn create_key(&self) -> Cow<[u8]> {
-        Cow::Owned(self.to_be_bytes().to_vec())
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(&self.to_be_bytes())
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -76,8 +87,8 @@ impl FixedSizeKeySerializer for u16 {
 }
 
 impl KeySerializer for u32 {
-    fn create_key(&self) -> Cow<[u8]> {
-        Cow::Owned(self.to_be_bytes().to_vec())
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(&self.to_be_bytes())
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -96,8 +107,8 @@ impl FixedSizeKeySerializer for u32 {
 }
 
 impl KeySerializer for u64 {
-    fn create_key(&self) -> Cow<[u8]> {
-        Cow::Owned(self.to_be_bytes().to_vec())
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(&self.to_be_bytes())
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -116,8 +127,8 @@ impl FixedSizeKeySerializer for u64 {
 }
 
 impl KeySerializer for u128 {
-    fn create_key(&self) -> Cow<[u8]> {
-        Cow::Owned(self.to_be_bytes().to_vec())
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(&self.to_be_bytes())
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -136,8 +147,8 @@ impl FixedSizeKeySerializer for u128 {
 }
 
 impl KeySerializer for usize {
-    fn create_key(&self) -> Cow<[u8]> {
-        Cow::Owned(self.to_be_bytes().to_vec())
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(&self.to_be_bytes())
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -150,8 +161,8 @@ impl KeySerializer for usize {
 }
 
 impl KeySerializer for i8 {
-    fn create_key(&self) -> Cow<[u8]> {
-        Cow::Owned(self.to_be_bytes().to_vec())
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(&self.to_be_bytes())
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -170,8 +181,8 @@ impl FixedSizeKeySerializer for i8 {
 }
 
 impl KeySerializer for i16 {
-    fn create_key(&self) -> Cow<[u8]> {
-        Cow::Owned(self.to_be_bytes().to_vec())
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(&self.to_be_bytes())
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -190,8 +201,8 @@ impl FixedSizeKeySerializer for i16 {
 }
 
 impl KeySerializer for i32 {
-    fn create_key(&self) -> Cow<[u8]> {
-        Cow::Owned(self.to_be_bytes().to_vec())
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(&self.to_be_bytes())
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -210,8 +221,8 @@ impl FixedSizeKeySerializer for i32 {
 }
 
 impl KeySerializer for i64 {
-    fn create_key(&self) -> Cow<[u8]> {
-        Cow::Owned(self.to_be_bytes().to_vec())
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(&self.to_be_bytes())
     }
 
     fn parse_key(key: &[u8]) -> Self {
@@ -230,8 +241,8 @@ impl FixedSizeKeySerializer for i64 {
 }
 
 impl KeySerializer for i128 {
-    fn create_key(&self) -> Cow<[u8]> {
-        Cow::Owned(self.to_be_bytes().to_vec())
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(&self.to_be_bytes())
     }
 
     fn parse_key(key: &[u8]) -> Self {

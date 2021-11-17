@@ -3,12 +3,12 @@ use smartstring::alias::String;
 use std::fmt;
 use std::ops::AddAssign;
 
-use std::borrow::Cow;
 use std::{convert::TryInto, str::FromStr};
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, EnumString};
 
 use super::serializer::{FixedSizeKeySerializer, KeySerializer};
+use crate::serializer::KeyVec;
 use crate::{
     errors::{ComponentTypeError, GraphAnnisCoreError},
     graph::{update::UpdateEvent, Graph},
@@ -80,11 +80,11 @@ impl Edge {
 }
 
 impl KeySerializer for Edge {
-    fn create_key(&self) -> Cow<[u8]> {
-        let mut result = Vec::with_capacity(std::mem::size_of::<NodeID>() * 2);
-        result.extend(&self.source.to_be_bytes());
-        result.extend(&self.target.to_be_bytes());
-        Cow::Owned(result)
+    fn create_key(&self) -> KeyVec {
+        let mut result = KeyVec::new();
+        result.extend(self.source.to_be_bytes());
+        result.extend(self.target.to_be_bytes());
+        result
     }
 
     fn parse_key(key: &[u8]) -> Self {

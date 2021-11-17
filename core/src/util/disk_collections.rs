@@ -4,15 +4,23 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 
+use crate::serializer::KeyVec;
 use crate::{errors::Result, serializer::KeySerializer};
 use std::collections::BTreeMap;
 use std::iter::Peekable;
 use std::ops::{Bound, RangeBounds};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.";
 const MAX_TRIES: usize = 5;
-const MAX_NUMBER_OF_TABLES: usize = 128;
+/// Limits the number of sorted string tables the data might be fragmented into before compacting it into one large table.
+/// Since each table can use a certain amount of RAM for the block cache, limit the number of tables to limit RAM usage.
+const MAX_NUMBER_OF_TABLES: usize = 32;
+
+const KB: usize = 1 << 10;
+const MB: usize = KB * KB;
+const BLOCK_MAX_SIZE: usize = 4 * KB;
+const BLOCK_CACHE_CAPACITY: usize = 1 * MB;
 
 #[derive(Serialize, Deserialize)]
 struct Entry<K, V>
@@ -30,8 +38,12 @@ pub enum EvictionStrategy {
 
 impl Default for EvictionStrategy {
     fn default() -> Self {
-        EvictionStrategy::MaximumBytes(16 * 1024 * 1024)
+        EvictionStrategy::MaximumBytes(32 * MB)
     }
+}
+
+fn custom_options() -> sstable::Options {
+    sstable::Options::default().with_cache_capacity(BLOCK_CACHE_CAPACITY / BLOCK_MAX_SIZE)
 }
 
 pub struct DiskMap<K, V>
@@ -40,15 +52,15 @@ where
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send + Sync,
 {
     eviction_strategy: EvictionStrategy,
-    c0: BTreeMap<Vec<u8>, Option<V>>,
+    c0: BTreeMap<KeyVec, Option<V>>,
+    /// A vector of on-disk tables holding the evicted data.
     disk_tables: Vec<Table>,
-
     /// Marks if all items have been inserted in sorted order and if there has not been any delete operation yet.
     insertion_was_sorted: bool,
     /// True if the current state is not different from when it was loaded from the a single disk-based table.
     /// This is important, since e.g. the serialized table will never contain tombstone entries.
     unchanged_from_disk: bool,
-    last_inserted_key: Option<Vec<u8>>,
+    last_inserted_key: Option<KeyVec>,
 
     serialization: bincode::config::DefaultOptions,
 
@@ -112,10 +124,10 @@ where
                 let binary_key: &[u8] = &binary_key;
                 self.insertion_was_sorted = last_key < binary_key;
             }
-            self.last_inserted_key = Some(Vec::from(binary_key.clone()));
+            self.last_inserted_key = Some(binary_key.clone());
         }
 
-        let existing_c0_entry = self.c0.insert(Vec::from(binary_key), Some(value));
+        let existing_c0_entry = self.c0.insert(binary_key, Some(value));
         if let Some(existing) = &existing_c0_entry {
             if let EvictionStrategy::MaximumBytes(_) = self.eviction_strategy {
                 // Subtract the memory size for the item that was removed
@@ -134,36 +146,35 @@ where
         match self.eviction_strategy {
             EvictionStrategy::MaximumItems(n) => {
                 if self.c0.len() > n {
-                    self.evict_c0(write_deleted, None)?;
+                    self.evict_c0(write_deleted)?;
                 }
             }
             EvictionStrategy::MaximumBytes(b) => {
                 if self.est_sum_memory > b {
-                    self.evict_c0(write_deleted, None)?;
+                    self.evict_c0(write_deleted)?;
                 }
             }
         }
         Ok(())
     }
 
-    fn evict_c0(&mut self, write_deleted: bool, output_file: Option<&PathBuf>) -> Result<()> {
-        let out_file = if let Some(output_file) = output_file {
-            debug!("Evicting DiskMap C0 to {:?}", output_file.as_path());
-            if let Some(parent) = output_file.parent() {
-                std::fs::create_dir_all(parent)?
-            }
-            std::fs::OpenOptions::new()
-                .write(true)
-                .read(true)
-                .create(true)
-                .open(output_file)?
+    fn evict_c0(&mut self, write_deleted: bool) -> Result<()> {
+        let num_of_tables = if self.c0.is_empty() {
+            self.disk_tables.len()
         } else {
-            debug!("Evicting DiskMap C0 to temporary file");
-            tempfile::tempfile()?
+            self.disk_tables.len() + 1
         };
 
-        {
-            let mut builder = TableBuilder::new(sstable::Options::default(), &out_file);
+        if num_of_tables > MAX_NUMBER_OF_TABLES {
+            debug!("Compacting disk tables");
+            // Directly compact the existing tables and the C0,
+            // which will also evict the C0 table.
+            self.compact()?;
+        } else {
+            debug!("Evicting DiskMap C0 to temporary file");
+            let out_file = tempfile::tempfile()?;
+
+            let mut builder = TableBuilder::new(custom_options(), &out_file);
 
             for (key, value) in self.c0.iter() {
                 let key = key.create_key();
@@ -172,29 +183,19 @@ where
                 }
             }
             builder.finish()?;
+
+            self.est_sum_memory = 0;
+            let size = out_file.metadata()?.len();
+            let table = Table::new(custom_options(), Box::new(out_file), size as usize)?;
+            self.disk_tables.push(table);
+
+            self.c0.clear();
         }
 
-        self.est_sum_memory = 0;
-        let size = out_file.metadata()?.len();
-        let table = Table::new(
-            sstable::Options::default(),
-            Box::new(out_file),
-            size as usize,
-        )?;
-        self.disk_tables.push(table);
-
-        self.c0.clear();
-
-        if self.disk_tables.len() > MAX_NUMBER_OF_TABLES {
-            debug!("Compacting disk tables after eviction");
-            self.compact()?;
-        }
-
-        debug!("Finished evicting DiskMap C0 ");
+        debug!("Finished evicting DiskMap C0");
         Ok(())
     }
 
-    #[allow(dead_code)]
     pub fn remove(&mut self, key: &K) -> Result<Option<V>> {
         let key = K::create_key(key);
 
@@ -212,7 +213,7 @@ where
             if let EvictionStrategy::MaximumBytes(_) = self.eviction_strategy {
                 self.est_sum_memory += empty_value.size_of(&mut mem_ops);
             }
-            self.c0.insert(Vec::from(key), empty_value);
+            self.c0.insert(key, empty_value);
 
             self.insertion_was_sorted = false;
             self.unchanged_from_disk = false;
@@ -420,15 +421,15 @@ where
     where
         R: RangeBounds<K> + Clone,
     {
-        let mapped_start_bound: std::ops::Bound<Vec<u8>> = match range.start_bound() {
-            Bound::Included(end) => Bound::Included(Vec::from(K::create_key(end))),
-            Bound::Excluded(end) => Bound::Excluded(Vec::from(K::create_key(end))),
+        let mapped_start_bound: std::ops::Bound<KeyVec> = match range.start_bound() {
+            Bound::Included(end) => Bound::Included(K::create_key(end)),
+            Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
             Bound::Unbounded => Bound::Unbounded,
         };
 
-        let mapped_end_bound: std::ops::Bound<Vec<u8>> = match range.end_bound() {
-            Bound::Included(end) => Bound::Included(Vec::from(K::create_key(end))),
-            Bound::Excluded(end) => Bound::Excluded(Vec::from(K::create_key(end))),
+        let mapped_end_bound: std::ops::Bound<KeyVec> = match range.end_bound() {
+            Bound::Included(end) => Bound::Included(K::create_key(end)),
+            Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
             Bound::Unbounded => Bound::Unbounded,
         };
 
@@ -454,14 +455,16 @@ where
     pub fn compact(&mut self) -> Result<()> {
         self.est_sum_memory = 0;
 
-        if self.c0.is_empty() && self.disk_tables.is_empty() {
-            // The table is completly empty, there is nothing to do
-            return Ok(());
+        if self.c0.is_empty() {
+            if self.disk_tables.is_empty() || self.disk_tables.len() == 1 {
+                // The table are empty or already compacted, there is nothing to do
+                return Ok(());
+            }
         }
 
         // Create single temporary sorted string file by iterating over all entries
         let out_file = tempfile::tempfile()?;
-        let mut builder = TableBuilder::new(sstable::Options::default(), &out_file);
+        let mut builder = TableBuilder::new(custom_options(), &out_file);
         for (key, value) in self.try_iter()? {
             let key = key.create_key();
             builder.add(&key, &self.serialization.serialize(&Some(value))?)?;
@@ -469,7 +472,7 @@ where
         let size = builder.finish()?;
 
         // Re-open sorted string table and set it as the only table
-        let table = Table::new(sstable::Options::default(), Box::new(out_file), size)?;
+        let table = Table::new(custom_options(), Box::new(out_file), size)?;
         self.disk_tables = vec![table];
         self.c0.clear();
 
@@ -495,7 +498,7 @@ where
             .read(true)
             .create(true)
             .open(&location)?;
-        let mut builder = TableBuilder::new(sstable::Options::default(), out_file);
+        let mut builder = TableBuilder::new(custom_options(), out_file);
         for (key, value) in self.try_iter()? {
             let key = key.create_key();
             builder.add(&key, &self.serialization.serialize(&Some(value))?)?;
@@ -518,9 +521,9 @@ where
 }
 
 pub struct Range<'a, K, V> {
-    range_start: Bound<Vec<u8>>,
-    range_end: Bound<Vec<u8>>,
-    c0_range: Peekable<std::collections::btree_map::Range<'a, Vec<u8>, Option<V>>>,
+    range_start: Bound<KeyVec>,
+    range_end: Bound<KeyVec>,
+    c0_range: Peekable<std::collections::btree_map::Range<'a, KeyVec, Option<V>>>,
     table_iterators: Vec<TableIterator>,
     exhausted: Vec<bool>,
     serialization: bincode::config::DefaultOptions,
@@ -537,10 +540,10 @@ where
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
     fn new(
-        range_start: Bound<Vec<u8>>,
-        range_end: Bound<Vec<u8>>,
+        range_start: Bound<KeyVec>,
+        range_end: Bound<KeyVec>,
         disk_tables: &[Table],
-        c0: &'a BTreeMap<Vec<u8>, Option<V>>,
+        c0: &'a BTreeMap<KeyVec, Option<V>>,
         serialization: bincode::config::DefaultOptions,
     ) -> Range<'a, K, V> {
         let mut table_iterators: Vec<TableIterator> =
@@ -733,9 +736,9 @@ where
 
             // Try C0 first
             if let Some(c0_item) = self.c0_range.peek() {
-                let key: &Vec<u8> = c0_item.0;
+                let key: &KeyVec = c0_item.0;
                 let value: &Option<V> = c0_item.1;
-                smallest_key = Some((key.clone(), value.clone()));
+                smallest_key = Some((key.to_vec(), value.clone()));
             }
 
             // Iterate over all disk tables
@@ -782,8 +785,8 @@ where
 
 /// An iterator implementation for the case that there is only a single disk-table and no C0
 pub struct SimplifiedRange<K, V> {
-    range_start: Bound<Vec<u8>>,
-    range_end: Bound<Vec<u8>>,
+    range_start: Bound<KeyVec>,
+    range_end: Bound<KeyVec>,
     table_it: TableIterator,
     exhausted: bool,
     serialization: bincode::config::DefaultOptions,
@@ -800,8 +803,8 @@ where
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
     fn new(
-        range_start: Bound<Vec<u8>>,
-        range_end: Bound<Vec<u8>>,
+        range_start: Bound<KeyVec>,
+        range_end: Bound<KeyVec>,
         disk_table: &Table,
         serialization: bincode::config::DefaultOptions,
     ) -> SimplifiedRange<K, V> {
@@ -973,7 +976,7 @@ where
 struct SortedLogTableIterator<'a, K, V> {
     current_table_iterator: Option<TableIterator>,
     remaining_table_iterators: Vec<TableIterator>,
-    c0_iterator: std::collections::btree_map::Iter<'a, Vec<u8>, Option<V>>,
+    c0_iterator: std::collections::btree_map::Iter<'a, KeyVec, Option<V>>,
     serialization: bincode::config::DefaultOptions,
     phantom: std::marker::PhantomData<K>,
 }
