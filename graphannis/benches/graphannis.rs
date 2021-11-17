@@ -134,8 +134,10 @@ fn apply_update(bench: &mut Criterion) {
     }
 
     bench.bench_function("apply_update", move |b| {
-        b.iter(|| cs.apply_update("test-corpus", &mut u).unwrap());
+        b.iter(|| cs.apply_update("apply_update_test_corpus", &mut u).unwrap());
     });
+
+    cs.delete("apply_update_test_corpus").unwrap();
 }
 
 criterion_group!(name=long_running; config= Criterion::default().sample_size(10); targets = find_all_nouns_gum);

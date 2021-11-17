@@ -15,7 +15,7 @@ const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-re
 const MAX_TRIES: usize = 5;
 /// Limits the number of sorted string tables the data might be fragmented into before compacting it into one large table.
 /// Since each table can use a certain amount of RAM for the block cache, limit the number of tables to limit RAM usage.
-const MAX_NUMBER_OF_TABLES: usize = 32;
+pub const DEFAULT_MAX_NUMBER_OF_TABLES: usize = 32;
 
 const KB: usize = 1 << 10;
 const MB: usize = KB * KB;
@@ -52,6 +52,7 @@ where
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send + Sync,
 {
     eviction_strategy: EvictionStrategy,
+    max_number_of_tables: usize,
     c0: BTreeMap<KeyVec, Option<V>>,
     /// A vector of on-disk tables holding the evicted data.
     disk_tables: Vec<Table>,
@@ -77,6 +78,7 @@ where
     pub fn new(
         persisted_file: Option<&Path>,
         eviction_strategy: EvictionStrategy,
+        max_number_of_tables: usize,
     ) -> Result<DiskMap<K, V>> {
         let mut disk_tables = Vec::default();
 
@@ -90,6 +92,7 @@ where
 
         Ok(DiskMap {
             eviction_strategy,
+            max_number_of_tables,
             c0: BTreeMap::default(),
             disk_tables,
             insertion_was_sorted: true,
@@ -165,7 +168,7 @@ where
             self.disk_tables.len() + 1
         };
 
-        if num_of_tables > MAX_NUMBER_OF_TABLES {
+        if num_of_tables > self.max_number_of_tables {
             debug!("Compacting disk tables");
             // Directly compact the existing tables and the C0,
             // which will also evict the C0 table.
@@ -513,8 +516,12 @@ where
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + Sync + MallocSizeOf,
 {
     fn default() -> Self {
-        DiskMap::new(None, EvictionStrategy::default())
-            .expect("Temporary disk map creation should not fail.")
+        DiskMap::new(
+            None,
+            EvictionStrategy::default(),
+            DEFAULT_MAX_NUMBER_OF_TABLES,
+        )
+        .expect("Temporary disk map creation should not fail.")
     }
 }
 
