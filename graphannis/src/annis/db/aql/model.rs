@@ -434,12 +434,12 @@ impl ComponentType for AnnotationComponentType {
     ) -> std::result::Result<(), ComponentTypeError> {
         match update {
             UpdateEvent::DeleteNode { node_name } => {
-                let existing_node_id =
-                    index.get_cached_node_id_from_name(Cow::Borrowed(node_name), graph)?;
-                if !index.calculate_invalid_nodes
-                    && index.invalid_nodes.get(&existing_node_id).is_none()
-                {
-                    index.calculate_invalidated_nodes_by_coverage(graph, existing_node_id)?;
+                if index.calculate_invalid_nodes {
+                    let existing_node_id =
+                        index.get_cached_node_id_from_name(Cow::Borrowed(node_name), graph)?;
+                    if !index.invalid_nodes.contains_key(&existing_node_id) {
+                        index.calculate_invalidated_nodes_by_coverage(graph, existing_node_id)?;
+                    }
                 }
             }
             UpdateEvent::DeleteEdge {
