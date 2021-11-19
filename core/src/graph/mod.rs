@@ -675,40 +675,42 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    fn insert_or_copy_writeable(&mut self, c: &Component<CT>) -> Result<()> {
-        self.reset_cached_size();
-
-        // move the old entry into the ownership of this function
-        let entry = self.components.remove(c);
-        // component exists?
-        if let Some(gs_opt) = entry {
-            let mut loaded_comp: Arc<dyn GraphStorage> = if let Some(gs_opt) = gs_opt {
-                gs_opt
-            } else {
-                let component_path = component_path(&self.location, c)
-                    .ok_or(GraphAnnisCoreError::EmptyComponentPath)?;
-                load_component_from_disk(&component_path)?
-            };
-
+    fn ensure_writeable(&mut self, c: &Component<CT>) -> Result<()> {
+        self.ensure_loaded(c)?;
+        // Short path: exists and already writable
+        if let Some(gs_opt) = self.components.get_mut(c) {
+            // This should always work, since we just ensured the component is loaded
+            let gs = gs_opt
+                .as_mut()
+                .ok_or_else(|| GraphAnnisCoreError::ComponentNotLoaded(c.to_string()))?;
             // copy to writable implementation if needed
             let is_writable = {
-                Arc::get_mut(&mut loaded_comp)
+                Arc::get_mut(gs)
                     .ok_or_else(|| {
                         GraphAnnisCoreError::NonExclusiveComponentReference(c.to_string())
                     })?
                     .as_writeable()
                     .is_some()
             };
-
-            let loaded_comp = if is_writable {
-                loaded_comp
-            } else {
-                registry::create_writeable(self, Some(loaded_comp.as_ref()))?
-            };
-
-            // (re-)insert the component into map again
-            self.components.insert(c.clone(), Some(loaded_comp));
+            if is_writable {
+                return Ok(());
+            }
+        } else {
+            // Component does not exist at all, we can abort here
+            return Ok(());
         }
+
+        // Component does exist, but is not writable, replace with writeable implementation
+        self.reset_cached_size();
+        let readonly_gs = self
+            .components
+            .get(c)
+            .cloned()
+            .ok_or_else(|| GraphAnnisCoreError::MissingComponent(c.to_string()))?
+            .ok_or_else(|| GraphAnnisCoreError::ComponentNotLoaded(c.to_string()))?;
+        let writable_gs = registry::create_writeable(self, Some(readonly_gs.as_ref()))?;
+        self.components.insert(c.to_owned(), Some(writable_gs));
+
         Ok(())
     }
 
@@ -749,7 +751,7 @@ impl<CT: ComponentType> Graph<CT> {
 
         if self.components.contains_key(c) {
             // make sure the component is actually writable and loaded
-            self.insert_or_copy_writeable(c)?;
+            self.ensure_writeable(c)?;
         } else {
             let w = registry::create_writeable(self, None)?;
 
