@@ -3,9 +3,10 @@ use crate::{
     graph::{Edge, EdgeContainer, GraphStorage, NodeID},
 };
 use graphannis_core::{
+    annostorage::ValueSearch,
     dfs::CycleSafeDFS,
     errors::ComponentTypeError,
-    graph::{storage::union::UnionEdgeContainer, ANNIS_NS},
+    graph::{storage::union::UnionEdgeContainer, ANNIS_NS, NODE_TYPE_KEY},
     types::ComponentType,
     util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_MAX_NUMBER_OF_TABLES},
 };
@@ -481,14 +482,6 @@ impl ComponentType for AnnotationComponentType {
         index: &mut Self::UpdateGraphIndex,
     ) -> std::result::Result<(), ComponentTypeError> {
         match update {
-            UpdateEvent::AddNode { node_name, .. } => {
-                if !index.calculate_invalid_nodes {
-                    // All new added nodes need to be marked as invalid
-                    let node_id =
-                        index.get_cached_node_id_from_name(Cow::Owned(node_name), graph)?;
-                    index.invalid_nodes.insert(node_id, true)?;
-                }
-            }
             UpdateEvent::AddEdge {
                 component_type,
                 component_name,
@@ -541,6 +534,20 @@ impl ComponentType for AnnotationComponentType {
         mut index: Self::UpdateGraphIndex,
         graph: &mut AnnotationGraph,
     ) -> std::result::Result<(), ComponentTypeError> {
+        if !index.calculate_invalid_nodes {
+            // All new added nodes need to be marked as invalid
+            // Do not use the node name for this because extracting it can be
+            // quite expensive. Instead, query for all nodes and directly
+            // get their numeric node ID
+            let node_search = graph.get_node_annos().exact_anno_search(
+                Some(&NODE_TYPE_KEY.ns),
+                &NODE_TYPE_KEY.name,
+                ValueSearch::Any,
+            );
+            for m in node_search {
+                index.invalid_nodes.insert(m.node, true)?;
+            }
+        }
         index.invalid_nodes.compact()?;
 
         // Re-index the inherited coverage component.
