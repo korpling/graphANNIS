@@ -93,7 +93,7 @@ impl From<u16> for AnnotationComponentType {
 
 pub struct AQLUpdateGraphIndex {
     node_ids: DiskMap<String, NodeID>,
-    graph_was_empty: bool,
+    graph_without_nodes: bool,
     invalid_nodes: DiskMap<NodeID, bool>,
     text_coverage_components: FxHashSet<AnnotationComponent>,
 }
@@ -137,42 +137,62 @@ impl AQLUpdateGraphIndex {
         Ok(())
     }
 
+    fn clear_left_right_token(
+        &self,
+        graph: &mut AnnotationGraph,
+    ) -> std::result::Result<(), ComponentTypeError> {
+        let component_left = AnnotationComponent::new(
+            AnnotationComponentType::LeftToken,
+            ANNIS_NS.into(),
+            "".into(),
+        );
+        let component_right = AnnotationComponent::new(
+            AnnotationComponentType::RightToken,
+            ANNIS_NS.into(),
+            "".into(),
+        );
+        let component_cov = AnnotationComponent::new(
+            AnnotationComponentType::Coverage,
+            ANNIS_NS.into(),
+            "inherited-coverage".into(),
+        );
+
+        if self.graph_without_nodes {
+            // Make sure none of the relevant graph storages has any entries
+            let gs_left = graph.get_or_create_writable(&component_left)?;
+            gs_left.clear()?;
+
+            let gs_right = graph.get_or_create_writable(&component_right)?;
+            gs_right.clear()?;
+
+            let gs_cov = graph.get_or_create_writable(&component_cov)?;
+            gs_cov.clear()?;
+        } else {
+            // Remove existing left/right token edges for the invalidated nodes only
+            let gs_left = graph.get_or_create_writable(&component_left)?;
+            for (n, _) in self.invalid_nodes.iter() {
+                gs_left.delete_node(n)?;
+            }
+
+            let gs_right = graph.get_or_create_writable(&component_right)?;
+            for (n, _) in self.invalid_nodes.iter() {
+                gs_right.delete_node(n)?;
+            }
+
+            let gs_cov = graph.get_or_create_writable(&component_cov)?;
+            for (n, _) in self.invalid_nodes.iter() {
+                gs_cov.delete_node(n)?;
+            }
+        }
+        Ok(())
+    }
+
     fn reindex_inherited_coverage(
         &self,
         graph: &mut AnnotationGraph,
         gs_order: Arc<dyn GraphStorage>,
     ) -> std::result::Result<(), ComponentTypeError> {
-        if !self.graph_was_empty {
-            // remove existing left/right token edges for the invalidated nodes
-            let gs_left = graph.get_or_create_writable(&AnnotationComponent::new(
-                AnnotationComponentType::LeftToken,
-                ANNIS_NS.into(),
-                "".into(),
-            ))?;
-
-            for (n, _) in self.invalid_nodes.iter() {
-                gs_left.delete_node(n)?;
-            }
-
-            let gs_right = graph.get_or_create_writable(&AnnotationComponent::new(
-                AnnotationComponentType::RightToken,
-                ANNIS_NS.into(),
-                "".into(),
-            ))?;
-
-            for (n, _) in self.invalid_nodes.iter() {
-                gs_right.delete_node(n)?;
-            }
-
-            let gs_cov = graph.get_or_create_writable(&AnnotationComponent::new(
-                AnnotationComponentType::Coverage,
-                ANNIS_NS.into(),
-                "inherited-coverage".into(),
-            ))?;
-            for (n, _) in self.invalid_nodes.iter() {
-                gs_cov.delete_node(n)?;
-            }
-        }
+        self.clear_left_right_token(graph)?;
 
         let all_cov_components =
             graph.get_all_components(Some(AnnotationComponentType::Coverage), None);
@@ -402,7 +422,7 @@ impl ComponentType for AnnotationComponentType {
 
         // Calculating the invalid nodes adds additional computational overhead. If there are no nodes yet in the graph,
         // we already know that all new nodes are invalid and don't need calculate the invalid ones.
-        let graph_was_empty = graph.get_node_annos().is_empty();
+        let graph_without_nodes = graph.get_node_annos().is_empty();
 
         let invalid_nodes: DiskMap<NodeID, bool> =
             DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000), 1)?;
@@ -414,7 +434,7 @@ impl ComponentType for AnnotationComponentType {
             .extend(graph.get_all_components(Some(AnnotationComponentType::Coverage), None));
         Ok(AQLUpdateGraphIndex {
             node_ids,
-            graph_was_empty,
+            graph_without_nodes,
             text_coverage_components,
             invalid_nodes,
         })
@@ -427,7 +447,7 @@ impl ComponentType for AnnotationComponentType {
     ) -> std::result::Result<(), ComponentTypeError> {
         match update {
             UpdateEvent::DeleteNode { node_name } => {
-                if !index.graph_was_empty {
+                if !index.graph_without_nodes {
                     let existing_node_id =
                         index.get_cached_node_id_from_name(Cow::Borrowed(node_name), graph)?;
                     if !index.invalid_nodes.contains_key(&existing_node_id) {
@@ -441,7 +461,7 @@ impl ComponentType for AnnotationComponentType {
                 component_type,
                 ..
             } => {
-                if !index.graph_was_empty {
+                if !index.graph_without_nodes {
                     if let Ok(ctype) = AnnotationComponentType::from_str(component_type) {
                         if ctype == AnnotationComponentType::Coverage
                             || ctype == AnnotationComponentType::Dominance
@@ -496,7 +516,7 @@ impl ComponentType for AnnotationComponentType {
                         index.text_coverage_components.insert(c);
                     }
 
-                    if !index.graph_was_empty {
+                    if !index.graph_without_nodes {
                         if ctype == AnnotationComponentType::Coverage
                             || ctype == AnnotationComponentType::Dominance
                             || ctype == AnnotationComponentType::Ordering
@@ -526,7 +546,7 @@ impl ComponentType for AnnotationComponentType {
         mut index: Self::UpdateGraphIndex,
         graph: &mut AnnotationGraph,
     ) -> std::result::Result<(), ComponentTypeError> {
-        if index.graph_was_empty {
+        if index.graph_without_nodes {
             // All new added nodes need to be marked as invalid
             // Do not use the node name for this because extracting it can be
             // quite expensive. Instead, query for all nodes and directly

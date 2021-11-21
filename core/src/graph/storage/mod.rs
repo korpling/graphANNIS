@@ -195,4 +195,7 @@ pub trait WriteableGraphStorage: GraphStorage {
 
     /// Re-calculate the [statistics](struct.GraphStatistic.html) of this graph storage.
     fn calculate_statistics(&mut self);
+
+    /// Remove all edges from this grap storage.
+    fn clear(&mut self) -> Result<()>;
 }

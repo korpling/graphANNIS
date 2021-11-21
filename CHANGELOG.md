@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `clear()` method to the `WriteableGraphStorage` trait.
+
 ### Fixed
 
 - Limit the used main memory cache per `DiskTable` by only using a disk block cache for the C1 table.
