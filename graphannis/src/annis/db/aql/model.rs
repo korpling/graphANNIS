@@ -295,6 +295,13 @@ impl AQLUpdateGraphIndex {
         let alignment_component =
             AnnotationComponent::new(ctype.clone(), ANNIS_NS.into(), "".into());
 
+        // if the node already has a left/right token, just return this value
+        if let Some(alignment_gs) = graph.get_graphstorage_as_ref(&alignment_component) {
+            if let Some(existing) = alignment_gs.get_outgoing_edges(n).next() {
+                return Ok(Some(existing));
+            }
+        }
+
         // if this is a token, return the token itself
         if graph
             .get_node_annos()
@@ -311,14 +318,6 @@ impl AQLUpdateGraphIndex {
             }
             if is_token {
                 return Ok(Some(n));
-            }
-        }
-
-        // if the node already has a left/right token, just return this value
-        if let Some(alignment_gs) = graph.get_graphstorage_as_ref(&alignment_component) {
-            let existing = alignment_gs.get_outgoing_edges(n).next();
-            if let Some(existing) = existing {
-                return Ok(Some(existing));
             }
         }
 
