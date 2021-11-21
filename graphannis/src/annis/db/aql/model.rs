@@ -236,14 +236,16 @@ impl AQLUpdateGraphIndex {
         all_cov_components: &[AnnotationComponent],
         all_dom_gs: &[Arc<dyn GraphStorage>],
     ) -> std::result::Result<FxHashSet<NodeID>, ComponentTypeError> {
-        let mut covered_token = FxHashSet::default();
+        let mut directly_covered_token = FxHashSet::default();
         for c in all_cov_components.iter() {
             if let Some(gs) = graph.get_graphstorage_as_ref(c) {
-                covered_token.extend(gs.get_outgoing_edges(n));
+                directly_covered_token.extend(gs.get_outgoing_edges(n));
             }
         }
 
-        if covered_token.is_empty() {
+        let mut indirectly_covered_token = FxHashSet::default();
+
+        if directly_covered_token.is_empty() {
             let is_token = graph
                 .get_node_annos()
                 .get_value_for_item(&n, &TOKEN_KEY)
@@ -252,7 +254,7 @@ impl AQLUpdateGraphIndex {
                 // recursivly get the covered token from all children connected by a dominance relation
                 for dom_gs in all_dom_gs {
                     for out in dom_gs.get_outgoing_edges(n) {
-                        covered_token.extend(self.calculate_inherited_coverage_edges(
+                        indirectly_covered_token.extend(self.calculate_inherited_coverage_edges(
                             graph,
                             out,
                             all_cov_components,
@@ -267,7 +269,7 @@ impl AQLUpdateGraphIndex {
             ANNIS_NS.into(),
             "inherited-coverage".into(),
         )) {
-            for t in covered_token.iter() {
+            for t in indirectly_covered_token.iter() {
                 gs_cov.add_edge(Edge {
                     source: n,
                     target: *t,
@@ -275,7 +277,8 @@ impl AQLUpdateGraphIndex {
             }
         }
 
-        Ok(covered_token)
+        directly_covered_token.extend(indirectly_covered_token);
+        Ok(directly_covered_token)
     }
 
     fn calculate_token_alignment(
@@ -289,13 +292,6 @@ impl AQLUpdateGraphIndex {
         let alignment_component =
             AnnotationComponent::new(ctype.clone(), ANNIS_NS.into(), "".into());
 
-        // if the node already has a left/right token, just return this value
-        if let Some(alignment_gs) = graph.get_graphstorage_as_ref(&alignment_component) {
-            if let Some(existing) = alignment_gs.get_outgoing_edges(n).next() {
-                return Ok(Some(existing));
-            }
-        }
-
         // if this is a token (and not only a segmentation node), return the token itself
         if graph
             .get_node_annos()
@@ -304,6 +300,13 @@ impl AQLUpdateGraphIndex {
             && covered_token.is_empty()
         {
             return Ok(Some(n));
+        }
+
+        // if the node already has a left/right token, just return this value
+        if let Some(alignment_gs) = graph.get_graphstorage_as_ref(&alignment_component) {
+            if let Some(existing) = alignment_gs.get_outgoing_edges(n).next() {
+                return Ok(Some(existing));
+            }
         }
 
         // order the candidate token by their position in the order chain
