@@ -892,6 +892,10 @@ impl<CT: ComponentType> Graph<CT> {
                 if opt_info.id != gs.serialization_id() {
                     let mut new_gs = registry::create_from_info(&opt_info)?;
                     let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
+                        info!(
+                            "converting component {} to implementation {}",
+                            c, opt_info.id,
+                        );
                         new_gs_mut.copy(self.get_node_annos(), gs.as_ref())?;
                         true
                     } else {
@@ -901,7 +905,7 @@ impl<CT: ComponentType> Graph<CT> {
                         self.reset_cached_size();
                         // insert into components map
                         info!(
-                            "converted component {} to implementation {}",
+                            "finished conversion of component {} to implementation {}",
                             c, opt_info.id,
                         );
                         self.components.insert(c.clone(), Some(new_gs.clone()));
