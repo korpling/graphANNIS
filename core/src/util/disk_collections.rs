@@ -375,34 +375,32 @@ where
     }
 
     pub fn try_iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = (K, V)> + 'a>> {
-        if self.insertion_was_sorted {
-            if self.unchanged_from_disk && self.disk_tables.len() == 1 {
-                // Directly return an iterator over the one single disk table
-                let it = SingleDiskTableIteator {
-                    table_iterator: self.disk_tables[0].iter(),
-                    serialization: self.serialization,
-                    phantom: std::marker::PhantomData,
-                };
-                Ok(Box::new(it))
-            } else {
-                // Use a less complicated and faster iterator over all items
-                let mut remaining_table_iterators = Vec::with_capacity(self.disk_tables.len());
-                // The disk tables are sorted by oldest first. Reverse the order to have the oldest ones last, so that
-                // calling "pop()" will return older disk tables first.
-                for t in self.disk_tables.iter().rev() {
-                    let it = t.iter();
-                    remaining_table_iterators.push(it);
-                }
-                let current_table_iterator = remaining_table_iterators.pop();
-                let it = SortedLogTableIterator {
-                    c0_iterator: self.c0.iter(),
-                    current_table_iterator,
-                    remaining_table_iterators,
-                    serialization: self.serialization,
-                    phantom: std::marker::PhantomData,
-                };
-                Ok(Box::new(it))
+        if self.unchanged_from_disk && self.disk_tables.len() == 1 {
+            // Directly return an iterator over the one single disk table
+            let it = SingleDiskTableIteator {
+                table_iterator: self.disk_tables[0].iter(),
+                serialization: self.serialization,
+                phantom: std::marker::PhantomData,
+            };
+            Ok(Box::new(it))
+        } else if self.insertion_was_sorted {
+            // Use a less complicated and faster iterator over all items
+            let mut remaining_table_iterators = Vec::with_capacity(self.disk_tables.len());
+            // The disk tables are sorted by oldest first. Reverse the order to have the oldest ones last, so that
+            // calling "pop()" will return older disk tables first.
+            for t in self.disk_tables.iter().rev() {
+                let it = t.iter();
+                remaining_table_iterators.push(it);
             }
+            let current_table_iterator = remaining_table_iterators.pop();
+            let it = SortedLogTableIterator {
+                c0_iterator: self.c0.iter(),
+                current_table_iterator,
+                remaining_table_iterators,
+                serialization: self.serialization,
+                phantom: std::marker::PhantomData,
+            };
+            Ok(Box::new(it))
         } else {
             // Default to an iterator that can handle non-globally sorted tables
             let it = self.range(..);
@@ -986,7 +984,6 @@ where
 }
 
 /// Implements an optimized iterator a single disk table.
-
 struct SingleDiskTableIteator<K, V> {
     table_iterator: TableIterator,
     serialization: bincode::config::DefaultOptions,
