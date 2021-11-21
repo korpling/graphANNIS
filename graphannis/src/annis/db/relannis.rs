@@ -1093,6 +1093,12 @@ fn add_automatic_cov_edge_for_node(
         left_aligned_tok
     };
 
+    if left_aligned_tok == n && right_aligned_tok == n {
+        // This is a token and we don't need to add a coverage edge.
+        // Return early here to avoid any costly calculation later on
+        return Ok(());
+    }
+
     let left_tok_pos = load_node_and_corpus_result
         .textpos_table
         .token_to_index
@@ -1104,25 +1110,30 @@ fn add_automatic_cov_edge_for_node(
         .try_get(&right_aligned_tok)?
         .ok_or(RelAnnisError::RightAlignedNotFound(n))?;
 
+    // Create a template TextProperty to which we only change th
+    // position (val) while iterating over all token positions.
+    let mut tok_idx = TextProperty {
+        segmentation: String::default(),
+        corpus_id: left_tok_pos.corpus_id,
+        text_id: left_tok_pos.text_id,
+        val: 0,
+    };
+
     for i in left_tok_pos.val..=right_tok_pos.val {
-        let tok_idx = TextProperty {
-            segmentation: String::default(),
-            corpus_id: left_tok_pos.corpus_id,
-            text_id: left_tok_pos.text_id,
-            val: i,
-        };
+        tok_idx.val = i;
+
         let tok_id = load_node_and_corpus_result
             .textpos_table
             .token_by_index
             .try_get(&tok_idx)?
-            .ok_or(RelAnnisError::NoTokenForPosition(tok_idx))?;
+            .ok_or_else(|| RelAnnisError::NoTokenForPosition(tok_idx.clone()))?;
         if n != tok_id {
             let edge = Edge {
                 source: n,
                 target: tok_id,
             };
 
-            // only add edge of no other coverage edge exists
+            // only add edge if no other coverage edge exists
             if !load_rank_result
                 .text_coverage_edges
                 .try_contains_key(&edge)?
