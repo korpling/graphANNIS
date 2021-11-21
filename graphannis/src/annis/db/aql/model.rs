@@ -203,29 +203,27 @@ impl AQLUpdateGraphIndex {
             .collect();
 
         // go over each node and calculate the left-most and right-most token
-        let all_cov_gs: Vec<Arc<dyn GraphStorage>> = all_cov_components
-            .iter()
-            .filter_map(|c| graph.get_graphstorage(c))
-            .collect();
-
         for (n, _) in self.invalid_nodes.iter() {
+            let covered_token = self.calculate_inherited_coverage_edges(
+                graph,
+                n,
+                &all_cov_components,
+                &all_dom_gs,
+            )?;
             self.calculate_token_alignment(
                 graph,
                 n,
                 AnnotationComponentType::LeftToken,
                 gs_order.as_ref(),
-                &all_cov_gs,
-                &all_dom_gs,
+                &covered_token,
             )?;
             self.calculate_token_alignment(
                 graph,
                 n,
                 AnnotationComponentType::RightToken,
                 gs_order.as_ref(),
-                &all_cov_gs,
-                &all_dom_gs,
+                &covered_token,
             )?;
-            self.calculate_inherited_coverage_edges(graph, n, &all_cov_components, &all_dom_gs)?;
         }
 
         Ok(())
@@ -286,8 +284,7 @@ impl AQLUpdateGraphIndex {
         n: NodeID,
         ctype: AnnotationComponentType,
         gs_order: &dyn GraphStorage,
-        all_cov_gs: &[Arc<dyn GraphStorage>],
-        all_dom_gs: &[Arc<dyn GraphStorage>],
+        covered_token: &FxHashSet<u64>,
     ) -> std::result::Result<Option<NodeID>, ComponentTypeError> {
         let alignment_component =
             AnnotationComponent::new(ctype.clone(), ANNIS_NS.into(), "".into());
@@ -299,54 +296,25 @@ impl AQLUpdateGraphIndex {
             }
         }
 
-        // if this is a token, return the token itself
+        // if this is a token (and not only a segmentation node), return the token itself
         if graph
             .get_node_annos()
             .get_value_for_item(&n, &TOKEN_KEY)
             .is_some()
+            && covered_token.is_empty()
         {
-            // also check if this is an actually token and not only a segmentation
-            let mut is_token = true;
-            for gs_coverage in all_cov_gs.iter() {
-                if gs_coverage.has_outgoing_edges(n) {
-                    is_token = false;
-                    break;
-                }
-            }
-            if is_token {
-                return Ok(Some(n));
-            }
-        }
-
-        // recursively get all candidate token by iterating over text-coverage edges
-        let mut candidates = FxHashSet::default();
-
-        for gs_for_component in all_dom_gs.iter().chain(all_cov_gs.iter()) {
-            for target in gs_for_component.get_outgoing_edges(n) {
-                if let Some(candidate_for_target) = self.calculate_token_alignment(
-                    graph,
-                    target,
-                    ctype.clone(),
-                    gs_order,
-                    all_cov_gs,
-                    all_dom_gs,
-                )? {
-                    candidates.insert(candidate_for_target);
-                } else {
-                    return Ok(None);
-                }
-            }
+            return Ok(Some(n));
         }
 
         // order the candidate token by their position in the order chain
-        let mut candidates: Vec<_> = candidates.into_iter().collect();
+        let mut candidates: Vec<_> = covered_token.into_iter().collect();
         candidates.sort_unstable_by(move |a, b| {
-            if a == b {
+            if **a == **b {
                 return std::cmp::Ordering::Equal;
             }
-            if gs_order.is_connected(*a, *b, 1, std::ops::Bound::Unbounded) {
+            if gs_order.is_connected(**a, **b, 1, std::ops::Bound::Unbounded) {
                 return std::cmp::Ordering::Less;
-            } else if gs_order.is_connected(*b, *a, 1, std::ops::Bound::Unbounded) {
+            } else if gs_order.is_connected(**b, **a, 1, std::ops::Bound::Unbounded) {
                 return std::cmp::Ordering::Greater;
             }
             std::cmp::Ordering::Equal
@@ -362,11 +330,11 @@ impl AQLUpdateGraphIndex {
             let gs = graph.get_or_create_writable(&alignment_component)?;
             let e = Edge {
                 source: n,
-                target: *t,
+                target: **t,
             };
             gs.add_edge(e)?;
 
-            Ok(Some(*t))
+            Ok(Some(**t))
         } else {
             Ok(None)
         }
