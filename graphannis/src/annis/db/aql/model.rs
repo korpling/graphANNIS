@@ -241,18 +241,16 @@ impl AQLUpdateGraphIndex {
         let mut covered_token = FxHashSet::default();
         for c in all_cov_components.iter() {
             if let Some(gs) = graph.get_graphstorage_as_ref(c) {
-                covered_token.extend(gs.find_connected(n, 1, std::ops::Bound::Included(1)));
+                covered_token.extend(gs.get_outgoing_edges(n));
             }
         }
 
         if covered_token.is_empty() {
-            if graph
+            let is_token = graph
                 .get_node_annos()
                 .get_value_for_item(&n, &TOKEN_KEY)
-                .is_some()
-            {
-                covered_token.insert(n);
-            } else {
+                .is_some();
+            if !is_token {
                 // recursivly get the covered token from all children connected by a dominance relation
                 for dom_gs in all_dom_gs {
                     for out in dom_gs.get_outgoing_edges(n) {
@@ -266,7 +264,6 @@ impl AQLUpdateGraphIndex {
                 }
             }
         }
-
         if let Ok(gs_cov) = graph.get_or_create_writable(&AnnotationComponent::new(
             AnnotationComponentType::Coverage,
             ANNIS_NS.into(),
