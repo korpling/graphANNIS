@@ -201,34 +201,30 @@ impl AQLUpdateGraphIndex {
             .into_iter()
             .filter_map(|c| graph.get_graphstorage(&c))
             .collect();
-        {
-            // go over each node and calculate the left-most and right-most token
-            let all_cov_gs: Vec<Arc<dyn GraphStorage>> = all_cov_components
-                .iter()
-                .filter_map(|c| graph.get_graphstorage(c))
-                .collect();
 
-            for (n, _) in self.invalid_nodes.iter() {
-                self.calculate_token_alignment(
-                    graph,
-                    n,
-                    AnnotationComponentType::LeftToken,
-                    gs_order.as_ref(),
-                    &all_cov_gs,
-                    &all_dom_gs,
-                )?;
-                self.calculate_token_alignment(
-                    graph,
-                    n,
-                    AnnotationComponentType::RightToken,
-                    gs_order.as_ref(),
-                    &all_cov_gs,
-                    &all_dom_gs,
-                )?;
-            }
-        }
+        // go over each node and calculate the left-most and right-most token
+        let all_cov_gs: Vec<Arc<dyn GraphStorage>> = all_cov_components
+            .iter()
+            .filter_map(|c| graph.get_graphstorage(c))
+            .collect();
 
         for (n, _) in self.invalid_nodes.iter() {
+            self.calculate_token_alignment(
+                graph,
+                n,
+                AnnotationComponentType::LeftToken,
+                gs_order.as_ref(),
+                &all_cov_gs,
+                &all_dom_gs,
+            )?;
+            self.calculate_token_alignment(
+                graph,
+                n,
+                AnnotationComponentType::RightToken,
+                gs_order.as_ref(),
+                &all_cov_gs,
+                &all_dom_gs,
+            )?;
             self.calculate_inherited_coverage_edges(graph, n, &all_cov_components, &all_dom_gs)?;
         }
 
