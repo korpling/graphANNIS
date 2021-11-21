@@ -7,7 +7,7 @@ use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 use crate::serializer::KeyVec;
 use crate::{errors::Result, serializer::KeySerializer};
 use std::collections::BTreeMap;
-use std::iter::Peekable;
+use std::iter::{FusedIterator, Peekable};
 use std::ops::{Bound, RangeBounds};
 use std::path::Path;
 
@@ -1012,6 +1012,13 @@ where
             None
         }
     }
+}
+
+impl<K, V> FusedIterator for SingleDiskTableIteator<K, V>
+where
+    for<'de> K: 'static + Clone + KeySerializer + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+{
 }
 
 /// Implements an optimized iterator over C0 and all disk tables.
