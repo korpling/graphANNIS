@@ -93,7 +93,7 @@ impl From<u16> for AnnotationComponentType {
 
 pub struct AQLUpdateGraphIndex {
     node_ids: DiskMap<String, NodeID>,
-    calculate_invalid_nodes: bool,
+    graph_was_empty: bool,
     invalid_nodes: DiskMap<NodeID, bool>,
     text_coverage_components: FxHashSet<AnnotationComponent>,
 }
@@ -142,7 +142,7 @@ impl AQLUpdateGraphIndex {
         graph: &mut AnnotationGraph,
         gs_order: Arc<dyn GraphStorage>,
     ) -> std::result::Result<(), ComponentTypeError> {
-        {
+        if !self.graph_was_empty {
             // remove existing left/right token edges for the invalidated nodes
             let gs_left = graph.get_or_create_writable(&AnnotationComponent::new(
                 AnnotationComponentType::LeftToken,
@@ -183,7 +183,6 @@ impl AQLUpdateGraphIndex {
             .collect();
         {
             // go over each node and calculate the left-most and right-most token
-
             let all_cov_gs: Vec<Arc<dyn GraphStorage>> = all_cov_components
                 .iter()
                 .filter_map(|c| graph.get_graphstorage(c))
@@ -403,7 +402,7 @@ impl ComponentType for AnnotationComponentType {
 
         // Calculating the invalid nodes adds additional computational overhead. If there are no nodes yet in the graph,
         // we already know that all new nodes are invalid and don't need calculate the invalid ones.
-        let calculate_invalid_nodes = !graph.get_node_annos().is_empty();
+        let graph_was_empty = graph.get_node_annos().is_empty();
 
         let invalid_nodes: DiskMap<NodeID, bool> =
             DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000), 1)?;
@@ -415,7 +414,7 @@ impl ComponentType for AnnotationComponentType {
             .extend(graph.get_all_components(Some(AnnotationComponentType::Coverage), None));
         Ok(AQLUpdateGraphIndex {
             node_ids,
-            calculate_invalid_nodes,
+            graph_was_empty,
             text_coverage_components,
             invalid_nodes,
         })
@@ -428,7 +427,7 @@ impl ComponentType for AnnotationComponentType {
     ) -> std::result::Result<(), ComponentTypeError> {
         match update {
             UpdateEvent::DeleteNode { node_name } => {
-                if index.calculate_invalid_nodes {
+                if !index.graph_was_empty {
                     let existing_node_id =
                         index.get_cached_node_id_from_name(Cow::Borrowed(node_name), graph)?;
                     if !index.invalid_nodes.contains_key(&existing_node_id) {
@@ -442,7 +441,7 @@ impl ComponentType for AnnotationComponentType {
                 component_type,
                 ..
             } => {
-                if index.calculate_invalid_nodes {
+                if !index.graph_was_empty {
                     if let Ok(ctype) = AnnotationComponentType::from_str(component_type) {
                         if ctype == AnnotationComponentType::Coverage
                             || ctype == AnnotationComponentType::Dominance
@@ -497,7 +496,7 @@ impl ComponentType for AnnotationComponentType {
                         index.text_coverage_components.insert(c);
                     }
 
-                    if index.calculate_invalid_nodes {
+                    if !index.graph_was_empty {
                         if ctype == AnnotationComponentType::Coverage
                             || ctype == AnnotationComponentType::Dominance
                             || ctype == AnnotationComponentType::Ordering
@@ -527,7 +526,7 @@ impl ComponentType for AnnotationComponentType {
         mut index: Self::UpdateGraphIndex,
         graph: &mut AnnotationGraph,
     ) -> std::result::Result<(), ComponentTypeError> {
-        if !index.calculate_invalid_nodes {
+        if index.graph_was_empty {
             // All new added nodes need to be marked as invalid
             // Do not use the node name for this because extracting it can be
             // quite expensive. Instead, query for all nodes and directly
