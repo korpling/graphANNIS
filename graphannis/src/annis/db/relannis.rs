@@ -1117,7 +1117,7 @@ fn add_automatic_cov_edge_for_node(
         .try_get(&right_aligned_tok)?
         .ok_or(RelAnnisError::RightAlignedNotFound(n))?;
 
-    // Create a template TextProperty to which we only change th
+    // Create a template TextProperty to which we only change the
     // position (val) while iterating over all token positions.
     let mut tok_idx = TextProperty {
         segmentation: String::default(),

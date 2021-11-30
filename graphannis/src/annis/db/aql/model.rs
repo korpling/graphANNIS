@@ -237,6 +237,7 @@ impl AQLUpdateGraphIndex {
         all_dom_gs: &[Arc<dyn GraphStorage>],
     ) -> std::result::Result<FxHashSet<NodeID>, ComponentTypeError> {
         let mut directly_covered_token = FxHashSet::default();
+
         for c in all_cov_components.iter() {
             if let Some(gs) = graph.get_graphstorage_as_ref(c) {
                 directly_covered_token.extend(gs.get_outgoing_edges(n));
@@ -246,11 +247,16 @@ impl AQLUpdateGraphIndex {
         let mut indirectly_covered_token = FxHashSet::default();
 
         if directly_covered_token.is_empty() {
-            let is_token = graph
+            let has_token_anno = graph
                 .get_node_annos()
                 .get_value_for_item(&n, &TOKEN_KEY)
                 .is_some();
-            if !is_token {
+
+            if has_token_anno {
+                // Even if technically a token does not cover itself, if we need to abort the recursion
+                // with the basic case
+                directly_covered_token.insert(n);
+            } else {
                 // recursivly get the covered token from all children connected by a dominance relation
                 for dom_gs in all_dom_gs {
                     for out in dom_gs.get_outgoing_edges(n) {
