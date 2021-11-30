@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduce memory footprint during import when corpus contains a lot of escaped strings (as in #205)
 - Avoid creating small fragmented main memory when importing corpora from relANNIS to help to fix #205
 
+### Changed
+
+- Improved overall import speed of relANNIS corpora and when applying graph updates
+
 ## [1.3.0] - 2021-09-20
 
 ### Added
