@@ -1075,7 +1075,7 @@ fn add_automatic_cov_edge_for_node(
         .textpos_table
         .node_to_left
         .try_get(&n)?
-        .ok_or(RelAnnisError::NoRLeftPositionForNode(n))?;
+        .ok_or(RelAnnisError::NoLeftPositionForNode(n))?;
 
     let right_pos = load_node_and_corpus_result
         .textpos_table

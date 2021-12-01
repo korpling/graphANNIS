@@ -142,7 +142,7 @@ pub enum RelAnnisError {
     #[error("can't get token ID for position {0:?}")]
     NoTokenForPosition(TextProperty),
     #[error("can't get left position of node {0}")]
-    NoRLeftPositionForNode(NodeID),
+    NoLeftPositionForNode(NodeID),
     #[error("can't get right position of node {0}")]
     NoRightPositionForNode(NodeID),
     #[error("invalid component type short name '{0}'")]
