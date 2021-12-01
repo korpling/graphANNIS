@@ -244,30 +244,28 @@ impl AQLUpdateGraphIndex {
             }
         }
 
-        let mut indirectly_covered_token = FxHashSet::default();
-
         if directly_covered_token.is_empty() {
             let has_token_anno = graph
                 .get_node_annos()
                 .get_value_for_item(&n, &TOKEN_KEY)
                 .is_some();
-
             if has_token_anno {
                 // Even if technically a token does not cover itself, if we need to abort the recursion
                 // with the basic case
                 directly_covered_token.insert(n);
-            } else {
-                // recursivly get the covered token from all children connected by a dominance relation
-                for dom_gs in all_dom_gs {
-                    for out in dom_gs.get_outgoing_edges(n) {
-                        indirectly_covered_token.extend(self.calculate_inherited_coverage_edges(
-                            graph,
-                            out,
-                            all_cov_components,
-                            all_dom_gs,
-                        )?);
-                    }
-                }
+            }
+        }
+
+        let mut indirectly_covered_token = FxHashSet::default();
+        // recursivly get the covered token from all children connected by a dominance relation
+        for dom_gs in all_dom_gs {
+            for out in dom_gs.get_outgoing_edges(n) {
+                indirectly_covered_token.extend(self.calculate_inherited_coverage_edges(
+                    graph,
+                    out,
+                    all_cov_components,
+                    all_dom_gs,
+                )?);
             }
         }
         if let Ok(gs_cov) = graph.get_or_create_writable(&AnnotationComponent::new(
