@@ -316,7 +316,7 @@ impl AQLUpdateGraphIndex {
         }
 
         // order the candidate token by their position in the order chain
-        let mut candidates: Vec<_> = covered_token.into_iter().collect();
+        let mut candidates: Vec<_> = covered_token.iter().collect();
         candidates.sort_unstable_by(move |a, b| {
             if **a == **b {
                 return std::cmp::Ordering::Equal;
@@ -462,51 +462,49 @@ impl ComponentType for AnnotationComponentType {
         graph: &AnnotationGraph,
         index: &mut Self::UpdateGraphIndex,
     ) -> std::result::Result<(), ComponentTypeError> {
-        match update {
-            UpdateEvent::AddEdge {
-                component_type,
-                component_name,
-                layer,
-                source_node,
-                target_node,
-                ..
-            } => {
-                if let Ok(ctype) = AnnotationComponentType::from_str(&component_type) {
-                    if (ctype == AnnotationComponentType::Dominance
-                        || ctype == AnnotationComponentType::Coverage)
-                        && component_name.is_empty()
+        if let UpdateEvent::AddEdge {
+            component_type,
+            component_name,
+            layer,
+            source_node,
+            target_node,
+            ..
+        } = update
+        {
+            if let Ok(ctype) = AnnotationComponentType::from_str(&component_type) {
+                if (ctype == AnnotationComponentType::Dominance
+                    || ctype == AnnotationComponentType::Coverage)
+                    && component_name.is_empty()
+                {
+                    // might be a new text coverage component
+                    let c = AnnotationComponent::new(
+                        ctype.clone(),
+                        layer.into(),
+                        component_name.into(),
+                    );
+                    index.text_coverage_components.insert(c);
+                }
+
+                if !index.graph_without_nodes {
+                    if ctype == AnnotationComponentType::Coverage
+                        || ctype == AnnotationComponentType::Dominance
+                        || ctype == AnnotationComponentType::Ordering
+                        || ctype == AnnotationComponentType::LeftToken
+                        || ctype == AnnotationComponentType::RightToken
                     {
-                        // might be a new text coverage component
-                        let c = AnnotationComponent::new(
-                            ctype.clone(),
-                            layer.into(),
-                            component_name.into(),
-                        );
-                        index.text_coverage_components.insert(c);
+                        let source =
+                            index.get_cached_node_id_from_name(Cow::Owned(source_node), graph)?;
+
+                        index.calculate_invalidated_nodes_by_coverage(graph, source)?;
                     }
 
-                    if !index.graph_without_nodes {
-                        if ctype == AnnotationComponentType::Coverage
-                            || ctype == AnnotationComponentType::Dominance
-                            || ctype == AnnotationComponentType::Ordering
-                            || ctype == AnnotationComponentType::LeftToken
-                            || ctype == AnnotationComponentType::RightToken
-                        {
-                            let source = index
-                                .get_cached_node_id_from_name(Cow::Owned(source_node), graph)?;
-
-                            index.calculate_invalidated_nodes_by_coverage(graph, source)?;
-                        }
-
-                        if ctype == AnnotationComponentType::Ordering {
-                            let target = index
-                                .get_cached_node_id_from_name(Cow::Owned(target_node), graph)?;
-                            index.calculate_invalidated_nodes_by_coverage(graph, target)?;
-                        }
+                    if ctype == AnnotationComponentType::Ordering {
+                        let target =
+                            index.get_cached_node_id_from_name(Cow::Owned(target_node), graph)?;
+                        index.calculate_invalidated_nodes_by_coverage(graph, target)?;
                     }
                 }
             }
-            _ => {}
         }
         Ok(())
     }
