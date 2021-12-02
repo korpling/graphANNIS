@@ -157,9 +157,9 @@ impl AQLUpdateGraphIndex {
             "inherited-coverage".into(),
         );
 
+        let gs_left = graph.get_or_create_writable(&component_left)?;
         if self.graph_without_nodes {
             // Make sure none of the relevant graph storages has any entries
-            let gs_left = graph.get_or_create_writable(&component_left)?;
             gs_left.clear()?;
 
             let gs_right = graph.get_or_create_writable(&component_right)?;
@@ -169,7 +169,6 @@ impl AQLUpdateGraphIndex {
             gs_cov.clear()?;
         } else {
             // Remove existing left/right token edges for the invalidated nodes only
-            let gs_left = graph.get_or_create_writable(&component_left)?;
             for (n, _) in self.invalid_nodes.iter() {
                 gs_left.delete_node(n)?;
             }
