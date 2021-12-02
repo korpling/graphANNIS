@@ -268,12 +268,14 @@ impl AQLUpdateGraphIndex {
                 )?);
             }
         }
+
         if let Ok(gs_cov) = graph.get_or_create_writable(&AnnotationComponent::new(
             AnnotationComponentType::Coverage,
             ANNIS_NS.into(),
             "inherited-coverage".into(),
         )) {
-            for t in indirectly_covered_token.iter() {
+            // Ignore all already directly covered token when creating the inherited coverage edges
+            for t in indirectly_covered_token.difference(&directly_covered_token) {
                 gs_cov.add_edge(Edge {
                     source: n,
                     target: *t,
