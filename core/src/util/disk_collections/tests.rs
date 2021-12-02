@@ -6,7 +6,12 @@ use fake::Fake;
 
 #[test]
 fn range() {
-    let mut table = DiskMap::new(None, EvictionStrategy::MaximumItems(3)).unwrap();
+    let mut table = DiskMap::new(
+        None,
+        EvictionStrategy::MaximumItems(3),
+        DEFAULT_MAX_NUMBER_OF_TABLES,
+    )
+    .unwrap();
     table.insert(0, true).unwrap();
     table.insert(1, true).unwrap();
     table.insert(2, true).unwrap();
@@ -106,7 +111,12 @@ fn range() {
 fn known_key() {
     let test_key = "DsfbaAGn".to_string();
 
-    let mut table = DiskMap::new(None, EvictionStrategy::MaximumItems(5)).unwrap();
+    let mut table = DiskMap::new(
+        None,
+        EvictionStrategy::MaximumItems(5),
+        DEFAULT_MAX_NUMBER_OF_TABLES,
+    )
+    .unwrap();
     table.insert(test_key.clone(), "Test".to_string()).unwrap();
     // populate with names
     for _ in 0..100 {
@@ -131,7 +141,12 @@ fn known_key() {
 fn unknown_key() {
     let test_key = "DsfbaAGn".to_string();
 
-    let mut table = DiskMap::new(None, EvictionStrategy::MaximumItems(5)).unwrap();
+    let mut table = DiskMap::new(
+        None,
+        EvictionStrategy::MaximumItems(5),
+        DEFAULT_MAX_NUMBER_OF_TABLES,
+    )
+    .unwrap();
     // populate with names
     for _ in 0..100 {
         let last_name: String = LastName(EN).fake();

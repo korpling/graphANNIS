@@ -3,9 +3,10 @@ use crate::{
     graph::{Edge, EdgeContainer, GraphStorage, NodeID},
 };
 use graphannis_core::{
+    annostorage::ValueSearch,
     dfs::CycleSafeDFS,
     errors::ComponentTypeError,
-    graph::{storage::union::UnionEdgeContainer, ANNIS_NS},
+    graph::{storage::union::UnionEdgeContainer, ANNIS_NS, NODE_TYPE_KEY},
     types::ComponentType,
     util::disk_collections::{DiskMap, EvictionStrategy},
 };
@@ -92,7 +93,7 @@ impl From<u16> for AnnotationComponentType {
 
 pub struct AQLUpdateGraphIndex {
     node_ids: DiskMap<String, NodeID>,
-    calculate_invalid_nodes: bool,
+    graph_without_nodes: bool,
     invalid_nodes: DiskMap<NodeID, bool>,
     text_coverage_components: FxHashSet<AnnotationComponent>,
 }
@@ -136,42 +137,61 @@ impl AQLUpdateGraphIndex {
         Ok(())
     }
 
+    fn clear_left_right_token(
+        &self,
+        graph: &mut AnnotationGraph,
+    ) -> std::result::Result<(), ComponentTypeError> {
+        let component_left = AnnotationComponent::new(
+            AnnotationComponentType::LeftToken,
+            ANNIS_NS.into(),
+            "".into(),
+        );
+        let component_right = AnnotationComponent::new(
+            AnnotationComponentType::RightToken,
+            ANNIS_NS.into(),
+            "".into(),
+        );
+        let component_cov = AnnotationComponent::new(
+            AnnotationComponentType::Coverage,
+            ANNIS_NS.into(),
+            "inherited-coverage".into(),
+        );
+
+        let gs_left = graph.get_or_create_writable(&component_left)?;
+        if self.graph_without_nodes {
+            // Make sure none of the relevant graph storages has any entries
+            gs_left.clear()?;
+
+            let gs_right = graph.get_or_create_writable(&component_right)?;
+            gs_right.clear()?;
+
+            let gs_cov = graph.get_or_create_writable(&component_cov)?;
+            gs_cov.clear()?;
+        } else {
+            // Remove existing left/right token edges for the invalidated nodes only
+            for (n, _) in self.invalid_nodes.iter() {
+                gs_left.delete_node(n)?;
+            }
+
+            let gs_right = graph.get_or_create_writable(&component_right)?;
+            for (n, _) in self.invalid_nodes.iter() {
+                gs_right.delete_node(n)?;
+            }
+
+            let gs_cov = graph.get_or_create_writable(&component_cov)?;
+            for (n, _) in self.invalid_nodes.iter() {
+                gs_cov.delete_node(n)?;
+            }
+        }
+        Ok(())
+    }
+
     fn reindex_inherited_coverage(
         &self,
         graph: &mut AnnotationGraph,
         gs_order: Arc<dyn GraphStorage>,
     ) -> std::result::Result<(), ComponentTypeError> {
-        {
-            // remove existing left/right token edges for the invalidated nodes
-            let gs_left = graph.get_or_create_writable(&AnnotationComponent::new(
-                AnnotationComponentType::LeftToken,
-                ANNIS_NS.into(),
-                "".into(),
-            ))?;
-
-            for (n, _) in self.invalid_nodes.iter() {
-                gs_left.delete_node(n)?;
-            }
-
-            let gs_right = graph.get_or_create_writable(&AnnotationComponent::new(
-                AnnotationComponentType::RightToken,
-                ANNIS_NS.into(),
-                "".into(),
-            ))?;
-
-            for (n, _) in self.invalid_nodes.iter() {
-                gs_right.delete_node(n)?;
-            }
-
-            let gs_cov = graph.get_or_create_writable(&AnnotationComponent::new(
-                AnnotationComponentType::Coverage,
-                ANNIS_NS.into(),
-                "inherited-coverage".into(),
-            ))?;
-            for (n, _) in self.invalid_nodes.iter() {
-                gs_cov.delete_node(n)?;
-            }
-        }
+        self.clear_left_right_token(graph)?;
 
         let all_cov_components =
             graph.get_all_components(Some(AnnotationComponentType::Coverage), None);
@@ -180,36 +200,29 @@ impl AQLUpdateGraphIndex {
             .into_iter()
             .filter_map(|c| graph.get_graphstorage(&c))
             .collect();
-        {
-            // go over each node and calculate the left-most and right-most token
 
-            let all_cov_gs: Vec<Arc<dyn GraphStorage>> = all_cov_components
-                .iter()
-                .filter_map(|c| graph.get_graphstorage(c))
-                .collect();
-
-            for (n, _) in self.invalid_nodes.iter() {
-                self.calculate_token_alignment(
-                    graph,
-                    n,
-                    AnnotationComponentType::LeftToken,
-                    gs_order.as_ref(),
-                    &all_cov_gs,
-                    &all_dom_gs,
-                )?;
-                self.calculate_token_alignment(
-                    graph,
-                    n,
-                    AnnotationComponentType::RightToken,
-                    gs_order.as_ref(),
-                    &all_cov_gs,
-                    &all_dom_gs,
-                )?;
-            }
-        }
-
+        // go over each node and calculate the left-most and right-most token
         for (n, _) in self.invalid_nodes.iter() {
-            self.calculate_inherited_coverage_edges(graph, n, &all_cov_components, &all_dom_gs)?;
+            let covered_token = self.calculate_inherited_coverage_edges(
+                graph,
+                n,
+                &all_cov_components,
+                &all_dom_gs,
+            )?;
+            self.calculate_token_alignment(
+                graph,
+                n,
+                AnnotationComponentType::LeftToken,
+                gs_order.as_ref(),
+                &covered_token,
+            )?;
+            self.calculate_token_alignment(
+                graph,
+                n,
+                AnnotationComponentType::RightToken,
+                gs_order.as_ref(),
+                &covered_token,
+            )?;
         }
 
         Ok(())
@@ -222,32 +235,36 @@ impl AQLUpdateGraphIndex {
         all_cov_components: &[AnnotationComponent],
         all_dom_gs: &[Arc<dyn GraphStorage>],
     ) -> std::result::Result<FxHashSet<NodeID>, ComponentTypeError> {
-        let mut covered_token = FxHashSet::default();
+        let mut directly_covered_token = FxHashSet::default();
+
         for c in all_cov_components.iter() {
             if let Some(gs) = graph.get_graphstorage_as_ref(c) {
-                covered_token.extend(gs.find_connected(n, 1, std::ops::Bound::Included(1)));
+                directly_covered_token.extend(gs.get_outgoing_edges(n));
             }
         }
 
-        if covered_token.is_empty() {
-            if graph
+        if directly_covered_token.is_empty() {
+            let has_token_anno = graph
                 .get_node_annos()
                 .get_value_for_item(&n, &TOKEN_KEY)
-                .is_some()
-            {
-                covered_token.insert(n);
-            } else {
-                // recursivly get the covered token from all children connected by a dominance relation
-                for dom_gs in all_dom_gs {
-                    for out in dom_gs.get_outgoing_edges(n) {
-                        covered_token.extend(self.calculate_inherited_coverage_edges(
-                            graph,
-                            out,
-                            all_cov_components,
-                            all_dom_gs,
-                        )?);
-                    }
-                }
+                .is_some();
+            if has_token_anno {
+                // Even if technically a token does not cover itself, if we need to abort the recursion
+                // with the basic case
+                directly_covered_token.insert(n);
+            }
+        }
+
+        let mut indirectly_covered_token = FxHashSet::default();
+        // recursivly get the covered token from all children connected by a dominance relation
+        for dom_gs in all_dom_gs {
+            for out in dom_gs.get_outgoing_edges(n) {
+                indirectly_covered_token.extend(self.calculate_inherited_coverage_edges(
+                    graph,
+                    out,
+                    all_cov_components,
+                    all_dom_gs,
+                )?);
             }
         }
 
@@ -256,7 +273,8 @@ impl AQLUpdateGraphIndex {
             ANNIS_NS.into(),
             "inherited-coverage".into(),
         )) {
-            for t in covered_token.iter() {
+            // Ignore all already directly covered token when creating the inherited coverage edges
+            for t in indirectly_covered_token.difference(&directly_covered_token) {
                 gs_cov.add_edge(Edge {
                     source: n,
                     target: *t,
@@ -264,7 +282,8 @@ impl AQLUpdateGraphIndex {
             }
         }
 
-        Ok(covered_token)
+        directly_covered_token.extend(indirectly_covered_token);
+        Ok(directly_covered_token)
     }
 
     fn calculate_token_alignment(
@@ -273,68 +292,37 @@ impl AQLUpdateGraphIndex {
         n: NodeID,
         ctype: AnnotationComponentType,
         gs_order: &dyn GraphStorage,
-        all_cov_gs: &[Arc<dyn GraphStorage>],
-        all_dom_gs: &[Arc<dyn GraphStorage>],
+        covered_token: &FxHashSet<u64>,
     ) -> std::result::Result<Option<NodeID>, ComponentTypeError> {
         let alignment_component =
             AnnotationComponent::new(ctype.clone(), ANNIS_NS.into(), "".into());
 
-        // if this is a token, return the token itself
+        // if this is a token (and not only a segmentation node), return the token itself
         if graph
             .get_node_annos()
             .get_value_for_item(&n, &TOKEN_KEY)
             .is_some()
+            && covered_token.is_empty()
         {
-            // also check if this is an actually token and not only a segmentation
-            let mut is_token = true;
-            for gs_coverage in all_cov_gs.iter() {
-                if gs_coverage.has_outgoing_edges(n) {
-                    is_token = false;
-                    break;
-                }
-            }
-            if is_token {
-                return Ok(Some(n));
-            }
+            return Ok(Some(n));
         }
 
         // if the node already has a left/right token, just return this value
         if let Some(alignment_gs) = graph.get_graphstorage_as_ref(&alignment_component) {
-            let existing = alignment_gs.get_outgoing_edges(n).next();
-            if let Some(existing) = existing {
+            if let Some(existing) = alignment_gs.get_outgoing_edges(n).next() {
                 return Ok(Some(existing));
             }
         }
 
-        // recursively get all candidate token by iterating over text-coverage edges
-        let mut candidates = FxHashSet::default();
-
-        for gs_for_component in all_dom_gs.iter().chain(all_cov_gs.iter()) {
-            for target in gs_for_component.get_outgoing_edges(n) {
-                if let Some(candidate_for_target) = self.calculate_token_alignment(
-                    graph,
-                    target,
-                    ctype.clone(),
-                    gs_order,
-                    all_cov_gs,
-                    all_dom_gs,
-                )? {
-                    candidates.insert(candidate_for_target);
-                } else {
-                    return Ok(None);
-                }
-            }
-        }
-
         // order the candidate token by their position in the order chain
-        let mut candidates: Vec<_> = candidates.into_iter().collect();
+        let mut candidates: Vec<_> = covered_token.iter().collect();
         candidates.sort_unstable_by(move |a, b| {
-            if a == b {
+            if **a == **b {
                 return std::cmp::Ordering::Equal;
             }
-            if gs_order.is_connected(*a, *b, 1, std::ops::Bound::Unbounded) {
+            if gs_order.is_connected(**a, **b, 1, std::ops::Bound::Unbounded) {
                 return std::cmp::Ordering::Less;
-            } else if gs_order.is_connected(*b, *a, 1, std::ops::Bound::Unbounded) {
+            } else if gs_order.is_connected(**b, **a, 1, std::ops::Bound::Unbounded) {
                 return std::cmp::Ordering::Greater;
             }
             std::cmp::Ordering::Equal
@@ -350,11 +338,11 @@ impl AQLUpdateGraphIndex {
             let gs = graph.get_or_create_writable(&alignment_component)?;
             let e = Edge {
                 source: n,
-                target: *t,
+                target: **t,
             };
             gs.add_edge(e)?;
 
-            Ok(Some(*t))
+            Ok(Some(**t))
         } else {
             Ok(None)
         }
@@ -398,14 +386,14 @@ impl ComponentType for AnnotationComponentType {
         graph: &AnnotationGraph,
     ) -> std::result::Result<Self::UpdateGraphIndex, ComponentTypeError> {
         // Cache the expensive mapping of node names to IDs
-        let node_ids = DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000))?;
+        let node_ids = DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000), 1)?;
 
         // Calculating the invalid nodes adds additional computational overhead. If there are no nodes yet in the graph,
         // we already know that all new nodes are invalid and don't need calculate the invalid ones.
-        let calculate_invalid_nodes = !graph.get_node_annos().is_empty();
+        let graph_without_nodes = graph.get_node_annos().is_empty();
 
         let invalid_nodes: DiskMap<NodeID, bool> =
-            DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000))?;
+            DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000), 1)?;
 
         let mut text_coverage_components = FxHashSet::default();
         text_coverage_components
@@ -414,7 +402,7 @@ impl ComponentType for AnnotationComponentType {
             .extend(graph.get_all_components(Some(AnnotationComponentType::Coverage), None));
         Ok(AQLUpdateGraphIndex {
             node_ids,
-            calculate_invalid_nodes,
+            graph_without_nodes,
             text_coverage_components,
             invalid_nodes,
         })
@@ -427,12 +415,12 @@ impl ComponentType for AnnotationComponentType {
     ) -> std::result::Result<(), ComponentTypeError> {
         match update {
             UpdateEvent::DeleteNode { node_name } => {
-                let existing_node_id =
-                    index.get_cached_node_id_from_name(Cow::Borrowed(node_name), graph)?;
-                if !index.calculate_invalid_nodes
-                    && index.invalid_nodes.get(&existing_node_id).is_none()
-                {
-                    index.calculate_invalidated_nodes_by_coverage(graph, existing_node_id)?;
+                if !index.graph_without_nodes {
+                    let existing_node_id =
+                        index.get_cached_node_id_from_name(Cow::Borrowed(node_name), graph)?;
+                    if !index.invalid_nodes.contains_key(&existing_node_id) {
+                        index.calculate_invalidated_nodes_by_coverage(graph, existing_node_id)?;
+                    }
                 }
             }
             UpdateEvent::DeleteEdge {
@@ -441,7 +429,7 @@ impl ComponentType for AnnotationComponentType {
                 component_type,
                 ..
             } => {
-                if index.calculate_invalid_nodes {
+                if !index.graph_without_nodes {
                     if let Ok(ctype) = AnnotationComponentType::from_str(component_type) {
                         if ctype == AnnotationComponentType::Coverage
                             || ctype == AnnotationComponentType::Dominance
@@ -473,59 +461,49 @@ impl ComponentType for AnnotationComponentType {
         graph: &AnnotationGraph,
         index: &mut Self::UpdateGraphIndex,
     ) -> std::result::Result<(), ComponentTypeError> {
-        match update {
-            UpdateEvent::AddNode { node_name, .. } => {
-                if !index.calculate_invalid_nodes {
-                    // All new added nodes need to be marked as invalid
-                    let node_id =
-                        index.get_cached_node_id_from_name(Cow::Owned(node_name), graph)?;
-                    index.invalid_nodes.insert(node_id, true)?;
+        if let UpdateEvent::AddEdge {
+            component_type,
+            component_name,
+            layer,
+            source_node,
+            target_node,
+            ..
+        } = update
+        {
+            if let Ok(ctype) = AnnotationComponentType::from_str(&component_type) {
+                if (ctype == AnnotationComponentType::Dominance
+                    || ctype == AnnotationComponentType::Coverage)
+                    && component_name.is_empty()
+                {
+                    // might be a new text coverage component
+                    let c = AnnotationComponent::new(
+                        ctype.clone(),
+                        layer.into(),
+                        component_name.into(),
+                    );
+                    index.text_coverage_components.insert(c);
                 }
-            }
-            UpdateEvent::AddEdge {
-                component_type,
-                component_name,
-                layer,
-                source_node,
-                target_node,
-                ..
-            } => {
-                if let Ok(ctype) = AnnotationComponentType::from_str(&component_type) {
-                    if (ctype == AnnotationComponentType::Dominance
-                        || ctype == AnnotationComponentType::Coverage)
-                        && component_name.is_empty()
+
+                if !index.graph_without_nodes {
+                    if ctype == AnnotationComponentType::Coverage
+                        || ctype == AnnotationComponentType::Dominance
+                        || ctype == AnnotationComponentType::Ordering
+                        || ctype == AnnotationComponentType::LeftToken
+                        || ctype == AnnotationComponentType::RightToken
                     {
-                        // might be a new text coverage component
-                        let c = AnnotationComponent::new(
-                            ctype.clone(),
-                            layer.into(),
-                            component_name.into(),
-                        );
-                        index.text_coverage_components.insert(c);
+                        let source =
+                            index.get_cached_node_id_from_name(Cow::Owned(source_node), graph)?;
+
+                        index.calculate_invalidated_nodes_by_coverage(graph, source)?;
                     }
 
-                    if index.calculate_invalid_nodes {
-                        if ctype == AnnotationComponentType::Coverage
-                            || ctype == AnnotationComponentType::Dominance
-                            || ctype == AnnotationComponentType::Ordering
-                            || ctype == AnnotationComponentType::LeftToken
-                            || ctype == AnnotationComponentType::RightToken
-                        {
-                            let source = index
-                                .get_cached_node_id_from_name(Cow::Owned(source_node), graph)?;
-
-                            index.calculate_invalidated_nodes_by_coverage(graph, source)?;
-                        }
-
-                        if ctype == AnnotationComponentType::Ordering {
-                            let target = index
-                                .get_cached_node_id_from_name(Cow::Owned(target_node), graph)?;
-                            index.calculate_invalidated_nodes_by_coverage(graph, target)?;
-                        }
+                    if ctype == AnnotationComponentType::Ordering {
+                        let target =
+                            index.get_cached_node_id_from_name(Cow::Owned(target_node), graph)?;
+                        index.calculate_invalidated_nodes_by_coverage(graph, target)?;
                     }
                 }
             }
-            _ => {}
         }
         Ok(())
     }
@@ -534,6 +512,20 @@ impl ComponentType for AnnotationComponentType {
         mut index: Self::UpdateGraphIndex,
         graph: &mut AnnotationGraph,
     ) -> std::result::Result<(), ComponentTypeError> {
+        if index.graph_without_nodes {
+            // All new added nodes need to be marked as invalid
+            // Do not use the node name for this because extracting it can be
+            // quite expensive. Instead, query for all nodes and directly
+            // get their numeric node ID
+            let node_search = graph.get_node_annos().exact_anno_search(
+                Some(&NODE_TYPE_KEY.ns),
+                &NODE_TYPE_KEY.name,
+                ValueSearch::Any,
+            );
+            for m in node_search {
+                index.invalid_nodes.insert(m.node, true)?;
+            }
+        }
         index.invalid_nodes.compact()?;
 
         // Re-index the inherited coverage component.

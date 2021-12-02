@@ -33,7 +33,7 @@ pub unsafe extern "C" fn annis_str_free(s: *mut c_char) {
         return;
     }
     // take ownership and destruct
-    CString::from_raw(s);
+    drop(CString::from_raw(s));
 }
 
 pub type IterPtr<T> = Box<dyn Iterator<Item = T>>;

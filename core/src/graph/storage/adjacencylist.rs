@@ -404,6 +404,14 @@ impl WriteableGraphStorage for AdjacencyListStorage {
 
         self.stats = Some(stats);
     }
+
+    fn clear(&mut self) -> Result<()> {
+        self.annos.clear()?;
+        self.edges.clear();
+        self.inverse_edges.clear();
+        self.stats = None;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

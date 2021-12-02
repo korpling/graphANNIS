@@ -7,7 +7,7 @@ use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 use crate::serializer::KeyVec;
 use crate::{errors::Result, serializer::KeySerializer};
 use std::collections::BTreeMap;
-use std::iter::Peekable;
+use std::iter::{FusedIterator, Peekable};
 use std::ops::{Bound, RangeBounds};
 use std::path::Path;
 
@@ -15,7 +15,7 @@ const DEFAULT_MSG : &str = "Accessing the disk-database failed. This is a non-re
 const MAX_TRIES: usize = 5;
 /// Limits the number of sorted string tables the data might be fragmented into before compacting it into one large table.
 /// Since each table can use a certain amount of RAM for the block cache, limit the number of tables to limit RAM usage.
-const MAX_NUMBER_OF_TABLES: usize = 32;
+pub const DEFAULT_MAX_NUMBER_OF_TABLES: usize = 32;
 
 const KB: usize = 1 << 10;
 const MB: usize = KB * KB;
@@ -52,6 +52,7 @@ where
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send + Sync,
 {
     eviction_strategy: EvictionStrategy,
+    max_number_of_tables: usize,
     c0: BTreeMap<KeyVec, Option<V>>,
     /// A vector of on-disk tables holding the evicted data.
     disk_tables: Vec<Table>,
@@ -77,6 +78,7 @@ where
     pub fn new(
         persisted_file: Option<&Path>,
         eviction_strategy: EvictionStrategy,
+        max_number_of_tables: usize,
     ) -> Result<DiskMap<K, V>> {
         let mut disk_tables = Vec::default();
 
@@ -90,6 +92,7 @@ where
 
         Ok(DiskMap {
             eviction_strategy,
+            max_number_of_tables,
             c0: BTreeMap::default(),
             disk_tables,
             insertion_was_sorted: true,
@@ -165,7 +168,7 @@ where
             self.disk_tables.len() + 1
         };
 
-        if num_of_tables > MAX_NUMBER_OF_TABLES {
+        if num_of_tables > self.max_number_of_tables {
             debug!("Compacting disk tables");
             // Directly compact the existing tables and the C0,
             // which will also evict the C0 table.
@@ -372,7 +375,15 @@ where
     }
 
     pub fn try_iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = (K, V)> + 'a>> {
-        if self.insertion_was_sorted {
+        if self.unchanged_from_disk && self.disk_tables.len() == 1 {
+            // Directly return an iterator over the one single disk table
+            let it = SingleDiskTableIteator {
+                table_iterator: self.disk_tables[0].iter(),
+                serialization: self.serialization,
+                phantom: std::marker::PhantomData,
+            };
+            Ok(Box::new(it))
+        } else if self.insertion_was_sorted {
             // Use a less complicated and faster iterator over all items
             let mut remaining_table_iterators = Vec::with_capacity(self.disk_tables.len());
             // The disk tables are sorted by oldest first. Reverse the order to have the oldest ones last, so that
@@ -513,8 +524,12 @@ where
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + Sync + MallocSizeOf,
 {
     fn default() -> Self {
-        DiskMap::new(None, EvictionStrategy::default())
-            .expect("Temporary disk map creation should not fail.")
+        DiskMap::new(
+            None,
+            EvictionStrategy::default(),
+            DEFAULT_MAX_NUMBER_OF_TABLES,
+        )
+        .expect("Temporary disk map creation should not fail.")
     }
 }
 
@@ -966,6 +981,44 @@ where
         }
         None
     }
+}
+
+/// Implements an optimized iterator a single disk table.
+struct SingleDiskTableIteator<K, V> {
+    table_iterator: TableIterator,
+    serialization: bincode::config::DefaultOptions,
+    phantom: std::marker::PhantomData<(K, V)>,
+}
+
+impl<K, V> Iterator for SingleDiskTableIteator<K, V>
+where
+    for<'de> K: 'static + Clone + KeySerializer + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+{
+    type Item = (K, V);
+    fn next(&mut self) -> Option<(K, V)> {
+        if let Some((key, value)) = self.table_iterator.next() {
+            let key = K::parse_key(&key);
+            let value: Option<V> = self
+                .serialization
+                .deserialize(&value)
+                .expect("Could not decode previously written data from disk.");
+            if let Some(value) = value {
+                Some((key, value))
+            } else {
+                panic!("Optimized log table iterator should have been called only if no entry was ever deleted");
+            }
+        } else {
+            None
+        }
+    }
+}
+
+impl<K, V> FusedIterator for SingleDiskTableIteator<K, V>
+where
+    for<'de> K: 'static + Clone + KeySerializer + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+{
 }
 
 /// Implements an optimized iterator over C0 and all disk tables.

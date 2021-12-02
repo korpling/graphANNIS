@@ -98,6 +98,35 @@ fn load_component_from_disk(component_path: &Path) -> Result<Arc<dyn GraphStorag
     Ok(gs)
 }
 
+fn component_to_relative_path<CT: ComponentType>(c: &Component<CT>) -> PathBuf {
+    let mut p = PathBuf::new();
+    p.push("gs");
+    p.push(c.get_type().to_string());
+    p.push(if c.layer.is_empty() {
+        DEFAULT_EMPTY_LAYER
+    } else {
+        &c.layer
+    });
+    p.push(c.name.as_str());
+    p
+}
+
+fn component_path<CT: ComponentType>(
+    location: &Option<PathBuf>,
+    c: &Component<CT>,
+) -> Option<PathBuf> {
+    match location {
+        Some(ref loc) => {
+            let mut p = PathBuf::from(loc);
+            // don't use the backup-folder per default
+            p.push("current");
+            p.push(component_to_relative_path(c));
+            Some(p)
+        }
+        None => None,
+    }
+}
+
 impl<CT: ComponentType> Graph<CT> {
     /// Create a new and empty instance without any location on the disk.
     pub fn new(disk_based: bool) -> Result<Self> {
@@ -219,19 +248,6 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    fn component_to_relative_path(&self, c: &Component<CT>) -> PathBuf {
-        let mut p = PathBuf::new();
-        p.push("gs");
-        p.push(c.get_type().to_string());
-        p.push(if c.layer.is_empty() {
-            DEFAULT_EMPTY_LAYER
-        } else {
-            &c.layer
-        });
-        p.push(c.name.as_str());
-        p
-    }
-
     fn find_components_from_disk(&mut self, location: &Path) -> Result<()> {
         self.components.clear();
 
@@ -257,7 +273,7 @@ impl<CT: ComponentType> Graph<CT> {
                             Component::new(c.clone(), layer_name.clone(), SmartString::default());
                         {
                             let cfg_file = PathBuf::from(location)
-                                .join(self.component_to_relative_path(&empty_name_component))
+                                .join(component_to_relative_path(&empty_name_component))
                                 .join("impl.cfg");
 
                             if cfg_file.is_file() {
@@ -274,7 +290,7 @@ impl<CT: ComponentType> Graph<CT> {
                                 name.file_name().to_string_lossy().into(),
                             );
                             let cfg_file = PathBuf::from(location)
-                                .join(self.component_to_relative_path(&named_component))
+                                .join(component_to_relative_path(&named_component))
                                 .join("impl.cfg");
 
                             if cfg_file.is_file() {
@@ -298,7 +314,7 @@ impl<CT: ComponentType> Graph<CT> {
 
         for (c, e) in &self.components {
             if let Some(ref data) = *e {
-                let dir = PathBuf::from(&location).join(self.component_to_relative_path(c));
+                let dir = PathBuf::from(&location).join(component_to_relative_path(c));
                 std::fs::create_dir_all(&dir)?;
 
                 let impl_name = data.serialization_id();
@@ -351,7 +367,7 @@ impl<CT: ComponentType> Graph<CT> {
         let mut update_graph_index = ComponentType::init_update_graph_index(self)?;
         // Cache the expensive mapping of node names to IDs
         let mut node_ids: DiskMap<String, Option<NodeID>> =
-            DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000))?;
+            DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000), 1)?;
         // Iterate once over all changes in the same order as the updates have been added
         for (nr_updates, (id, change)) in u.iter()?.enumerate() {
             trace!("applying event {:?}", &change);
@@ -656,54 +672,42 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    fn component_path(&self, c: &Component<CT>) -> Option<PathBuf> {
-        match self.location {
-            Some(ref loc) => {
-                let mut p = PathBuf::from(loc);
-                // don't use the backup-folder per default
-                p.push("current");
-                p.push(self.component_to_relative_path(c));
-                Some(p)
-            }
-            None => None,
-        }
-    }
-
-    fn insert_or_copy_writeable(&mut self, c: &Component<CT>) -> Result<()> {
-        self.reset_cached_size();
-
-        // move the old entry into the ownership of this function
-        let entry = self.components.remove(c);
-        // component exists?
-        if let Some(gs_opt) = entry {
-            let mut loaded_comp: Arc<dyn GraphStorage> = if let Some(gs_opt) = gs_opt {
-                gs_opt
-            } else {
-                let component_path = self
-                    .component_path(c)
-                    .ok_or(GraphAnnisCoreError::EmptyComponentPath)?;
-                load_component_from_disk(&component_path)?
-            };
-
+    fn ensure_writeable(&mut self, c: &Component<CT>) -> Result<()> {
+        self.ensure_loaded(c)?;
+        // Short path: exists and already writable
+        if let Some(gs_opt) = self.components.get_mut(c) {
+            // This should always work, since we just ensured the component is loaded
+            let gs = gs_opt
+                .as_mut()
+                .ok_or_else(|| GraphAnnisCoreError::ComponentNotLoaded(c.to_string()))?;
             // copy to writable implementation if needed
             let is_writable = {
-                Arc::get_mut(&mut loaded_comp)
+                Arc::get_mut(gs)
                     .ok_or_else(|| {
                         GraphAnnisCoreError::NonExclusiveComponentReference(c.to_string())
                     })?
                     .as_writeable()
                     .is_some()
             };
-
-            let loaded_comp = if is_writable {
-                loaded_comp
-            } else {
-                registry::create_writeable(self, Some(loaded_comp.as_ref()))?
-            };
-
-            // (re-)insert the component into map again
-            self.components.insert(c.clone(), Some(loaded_comp));
+            if is_writable {
+                return Ok(());
+            }
+        } else {
+            // Component does not exist at all, we can abort here
+            return Ok(());
         }
+
+        // Component does exist, but is not writable, replace with writeable implementation
+        self.reset_cached_size();
+        let readonly_gs = self
+            .components
+            .get(c)
+            .cloned()
+            .ok_or_else(|| GraphAnnisCoreError::MissingComponent(c.to_string()))?
+            .ok_or_else(|| GraphAnnisCoreError::ComponentNotLoaded(c.to_string()))?;
+        let writable_gs = registry::create_writeable(self, Some(readonly_gs.as_ref()))?;
+        self.components.insert(c.to_owned(), Some(writable_gs));
+
         Ok(())
     }
 
@@ -744,7 +748,7 @@ impl<CT: ComponentType> Graph<CT> {
 
         if self.components.contains_key(c) {
             // make sure the component is actually writable and loaded
-            self.insert_or_copy_writeable(c)?;
+            self.ensure_writeable(c)?;
         } else {
             let w = registry::create_writeable(self, None)?;
 
@@ -794,7 +798,7 @@ impl<CT: ComponentType> Graph<CT> {
         // load missing components in parallel
         let loaded_components: Vec<(_, Result<Arc<dyn GraphStorage>>)> = components_to_load
             .into_par_iter()
-            .map(|c| match self.component_path(&c) {
+            .map(|c| match component_path(&self.location, &c) {
                 Some(cpath) => {
                     debug!("loading component {} from {}", c, &cpath.to_string_lossy());
                     (c, load_component_from_disk(&cpath))
@@ -813,25 +817,25 @@ impl<CT: ComponentType> Graph<CT> {
 
     /// Ensure that the graph storage for a specific component is loaded and ready to use.
     pub fn ensure_loaded(&mut self, c: &Component<CT>) -> Result<()> {
-        // get and return the reference to the entry if loaded
-        let entry: Option<Option<Arc<dyn GraphStorage>>> = self.components.remove(c);
-        if let Some(gs_opt) = entry {
-            let loaded: Arc<dyn GraphStorage> = if let Some(gs_opt) = gs_opt {
-                gs_opt
-            } else {
-                self.reset_cached_size();
-                let component_path = self
-                    .component_path(c)
+        let mut cache_reset_needed = false;
+        // We only load known components, so check the map if the entry exists
+        if let Some(gs_opt) = self.components.get_mut(c) {
+            // If this is none, the component is known but not loaded
+            if gs_opt.is_none() {
+                let component_path = component_path(&self.location, c)
                     .ok_or(GraphAnnisCoreError::EmptyComponentPath)?;
                 debug!(
                     "loading component {} from {}",
                     c,
                     &component_path.to_string_lossy()
                 );
-                load_component_from_disk(&component_path)?
-            };
-
-            self.components.insert(c.clone(), Some(loaded));
+                let component = load_component_from_disk(&component_path)?;
+                gs_opt.get_or_insert_with(|| component);
+                cache_reset_needed = true;
+            }
+        }
+        if cache_reset_needed {
+            self.reset_cached_size();
         }
         Ok(())
     }
@@ -888,6 +892,10 @@ impl<CT: ComponentType> Graph<CT> {
                 if opt_info.id != gs.serialization_id() {
                     let mut new_gs = registry::create_from_info(&opt_info)?;
                     let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
+                        info!(
+                            "converting component {} to implementation {}",
+                            c, opt_info.id,
+                        );
                         new_gs_mut.copy(self.get_node_annos(), gs.as_ref())?;
                         true
                     } else {
@@ -897,7 +905,7 @@ impl<CT: ComponentType> Graph<CT> {
                         self.reset_cached_size();
                         // insert into components map
                         info!(
-                            "converted component {} to implementation {}",
+                            "finished conversion of component {} to implementation {}",
                             c, opt_info.id,
                         );
                         self.components.insert(c.clone(), Some(new_gs.clone()));

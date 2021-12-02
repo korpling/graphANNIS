@@ -4,7 +4,7 @@ use crate::{
     annostorage::ondisk::AnnoStorageImpl,
     dfs::CycleSafeDFS,
     errors::Result,
-    util::disk_collections::{DiskMap, EvictionStrategy},
+    util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_MAX_NUMBER_OF_TABLES},
 };
 use itertools::Itertools;
 use rustc_hash::FxHashSet;
@@ -121,10 +121,12 @@ impl GraphStorage for DiskAdjacencyListStorage {
             edges: DiskMap::new(
                 Some(&location.join("edges.bin")),
                 EvictionStrategy::default(),
+                DEFAULT_MAX_NUMBER_OF_TABLES,
             )?,
             inverse_edges: DiskMap::new(
                 Some(&location.join("inverse_edges.bin")),
                 EvictionStrategy::default(),
+                DEFAULT_MAX_NUMBER_OF_TABLES,
             )?,
             annos: AnnoStorageImpl::new(Some(
                 location.join(crate::annostorage::ondisk::SUBFOLDER_NAME),
@@ -406,6 +408,14 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         }
 
         self.stats = Some(stats);
+    }
+
+    fn clear(&mut self) -> Result<()> {
+        self.annos.clear()?;
+        self.edges.clear();
+        self.inverse_edges.clear();
+        self.stats = None;
+        Ok(())
     }
 }
 
