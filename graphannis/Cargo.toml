@@ -22,7 +22,7 @@ regex = "1"
 boolean_expression = "0.4"
 csv = "1"
 fs2 = "0.4"
-graphannis-core = {path = "../core/", version = "^1.0"}
+graphannis-core = {path = "../core/", version = "^1"}
 graphannis-malloc_size_of = "1.0"
 graphannis-malloc_size_of_derive = "2.0"
 itertools = "0.10"
