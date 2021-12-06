@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Avoid unnecessary memory allocation when checking if a node has outgoing edges in
+  adjacency lists. This improves search for tokens because the Coverage components
+  are typically adjacency lists, and we need to make sure the token nodes don't
+  have any outgoing edges.
+
 ## [1.4.0] - 2021-12-03
 
 ### Added
