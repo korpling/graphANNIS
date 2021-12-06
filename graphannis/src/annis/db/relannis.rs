@@ -1335,7 +1335,7 @@ where
                 // Get the covered text which either goes until the next token or until the end of the text if there is none
                 let mut covered_text_after = if let Some(end_pos) = whitespace_end_pos {
                     if current_text_offset < end_pos {
-                        std::string::String::with_capacity(current_text_offset - token_right_char)
+                        std::string::String::with_capacity(current_text_offset - end_pos)
                     } else {
                         std::string::String::default()
                     }
