@@ -81,7 +81,6 @@ impl EdgeContainer for DiskAdjacencyListStorage {
             source: node,
             target: NodeID::max_value(),
         };
-        self.edges.range(range)
         self.edges.range(lower_bound..upper_bound).next().is_some()
     }
 
