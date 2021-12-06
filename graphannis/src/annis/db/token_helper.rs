@@ -96,7 +96,12 @@ impl<'a> TokenHelper<'a> {
     }
 
     pub fn has_outgoing_coverage_edges(&self, id: NodeID) -> bool {
-        self.cov_edges.iter().any(|c| c.has_outgoing_edges(id))
+        for c in self.cov_edges.iter() {
+            if c.has_outgoing_edges(id) {
+                return true;
+            }
+        }
+        false
     }
 
     pub fn right_token_for(&self, n: NodeID) -> Option<NodeID> {
