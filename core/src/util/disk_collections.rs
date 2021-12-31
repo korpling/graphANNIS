@@ -106,6 +106,27 @@ where
         })
     }
 
+    pub fn new_temporary(
+        eviction_strategy: EvictionStrategy,
+        max_number_of_tables: Option<usize>,
+        block_cache_capacity: usize,
+    ) -> DiskMap<K, V> {
+        DiskMap {
+            eviction_strategy,
+            max_number_of_tables,
+            block_cache_capacity,
+            c0: BTreeMap::default(),
+            disk_tables: Vec::default(),
+            insertion_was_sorted: true,
+            unchanged_from_disk: false,
+            last_inserted_key: None,
+
+            serialization: bincode::options(),
+            phantom: std::marker::PhantomData,
+            est_sum_memory: 0,
+        }
+    }
+
     fn custom_options(&self) -> sstable::Options {
         let blocks = (self.block_cache_capacity / BLOCK_MAX_SIZE).max(1);
         sstable::Options::default().with_cache_capacity(blocks)

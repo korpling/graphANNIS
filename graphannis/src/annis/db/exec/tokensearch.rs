@@ -167,7 +167,7 @@ mod tests {
     fn find_with_only_one_token() {
         let mut g = AnnotationGraph::new(false).unwrap();
 
-        let mut update = GraphUpdate::new().unwrap();
+        let mut update = GraphUpdate::new();
         update
             .add_event(UpdateEvent::AddNode {
                 node_name: "doc1/tok1".to_owned(),

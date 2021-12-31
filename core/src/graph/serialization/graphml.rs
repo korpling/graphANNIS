@@ -556,7 +556,7 @@ value = "test""#;
     #[test]
     fn export_graphml() {
         // Create a sample graph using the simple type
-        let mut u = GraphUpdate::new().unwrap();
+        let mut u = GraphUpdate::new();
         u.add_event(UpdateEvent::AddNode {
             node_name: "first_node".to_string(),
             node_type: "node".to_string(),

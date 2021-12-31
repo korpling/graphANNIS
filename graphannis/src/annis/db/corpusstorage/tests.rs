@@ -22,7 +22,7 @@ fn delete() {
     let tmp = tempfile::tempdir().unwrap();
     let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
     // fully load a corpus
-    let mut g = GraphUpdate::new().unwrap();
+    let mut g = GraphUpdate::new();
     g.add_event(UpdateEvent::AddNode {
         node_name: "test".to_string(),
         node_type: "node".to_string(),
@@ -39,7 +39,7 @@ fn load_cs_twice() {
     let tmp = tempfile::tempdir().unwrap();
     {
         let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
-        let mut g = GraphUpdate::new().unwrap();
+        let mut g = GraphUpdate::new();
         g.add_event(UpdateEvent::AddNode {
             node_name: "test".to_string(),
             node_type: "node".to_string(),
@@ -51,7 +51,7 @@ fn load_cs_twice() {
 
     {
         let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
-        let mut g = GraphUpdate::new().unwrap();
+        let mut g = GraphUpdate::new();
         g.add_event(UpdateEvent::AddNode {
             node_name: "test".to_string(),
             node_type: "node".to_string(),
@@ -67,7 +67,7 @@ fn apply_update_add_and_delete_nodes() {
     let tmp = tempfile::tempdir().unwrap();
     let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
-    let mut g = GraphUpdate::new().unwrap();
+    let mut g = GraphUpdate::new();
     example_generator::create_corpus_structure(&mut g);
     example_generator::create_tokens(&mut g, Some("root/subCorpus1/doc1"));
     example_generator::create_tokens(&mut g, Some("root/subCorpus1/doc2"));
@@ -103,7 +103,7 @@ fn apply_update_add_and_delete_nodes() {
     assert_eq!(1, edge_count);
 
     // delete one of the tokens
-    let mut g = GraphUpdate::new().unwrap();
+    let mut g = GraphUpdate::new();
     g.add_event(UpdateEvent::DeleteNode {
         node_name: "root/subCorpus1/doc1#tok2".to_string(),
     })
@@ -121,7 +121,7 @@ fn subgraph_with_segmentation() {
     let tmp = tempfile::tempdir().unwrap();
     let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
-    let mut g = GraphUpdate::new().unwrap();
+    let mut g = GraphUpdate::new();
     // Add corpus structure
     example_generator::create_corpus_structure_simple(&mut g);
     // Use the default tokenization as minimal tokens

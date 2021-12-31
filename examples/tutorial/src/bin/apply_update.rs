@@ -5,7 +5,7 @@ use std::path::PathBuf;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cs = CorpusStorage::with_auto_cache_size(&PathBuf::from("data"), true).unwrap();
 
-    let mut g = GraphUpdate::new()?;
+    let mut g = GraphUpdate::new();
 
     // First add the node (with the default type "node"),
     // then all node labels for the node.

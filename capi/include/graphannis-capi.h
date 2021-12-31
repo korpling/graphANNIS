@@ -838,10 +838,8 @@ void annis_init_logging(const char *logfile, enum AnnisLogLevel level, AnnisErro
 
 /**
  * Create a new graph (empty) update instance
- *
- * - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
  */
-struct AnnisGraphUpdate *annis_graphupdate_new(AnnisErrorList **err);
+struct AnnisGraphUpdate *annis_graphupdate_new(void);
 
 /**
  * Add "add node" action to the graph update object.
@@ -949,7 +947,7 @@ void annis_graphupdate_delete_edge(struct AnnisGraphUpdate *ptr,
  * - `annos_ns` - Namespace of the new annotation.
  * - `annos_name` - Name of the new annotation.
  * - `annos_value` - Value of the new annotation.
- * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ * - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
  */
 void annis_graphupdate_add_edge_label(struct AnnisGraphUpdate *ptr,
                                       const char *source_node,
@@ -973,7 +971,7 @@ void annis_graphupdate_add_edge_label(struct AnnisGraphUpdate *ptr,
  * - `component_name` - Name of the component of the edge.
  * - `annos_ns` - Namespace of the annotation to delete.
  * - `annos_name` - Name of the annotation to delete.
- * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ * - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
  */
 void annis_graphupdate_delete_edge_label(struct AnnisGraphUpdate *ptr,
                                          const char *source_node,
