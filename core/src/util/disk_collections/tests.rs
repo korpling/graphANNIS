@@ -9,7 +9,8 @@ fn range() {
     let mut table = DiskMap::new(
         None,
         EvictionStrategy::MaximumItems(3),
-        DEFAULT_MAX_NUMBER_OF_TABLES,
+        Some(DEFAULT_MAX_NUMBER_OF_TABLES),
+        DEFAULT_BLOCK_CACHE_CAPACITY,
     )
     .unwrap();
     table.insert(0, true).unwrap();
@@ -114,7 +115,8 @@ fn known_key() {
     let mut table = DiskMap::new(
         None,
         EvictionStrategy::MaximumItems(5),
-        DEFAULT_MAX_NUMBER_OF_TABLES,
+        Some(DEFAULT_MAX_NUMBER_OF_TABLES),
+        DEFAULT_BLOCK_CACHE_CAPACITY,
     )
     .unwrap();
     table.insert(test_key.clone(), "Test".to_string()).unwrap();
@@ -144,7 +146,8 @@ fn unknown_key() {
     let mut table = DiskMap::new(
         None,
         EvictionStrategy::MaximumItems(5),
-        DEFAULT_MAX_NUMBER_OF_TABLES,
+        Some(DEFAULT_MAX_NUMBER_OF_TABLES),
+        DEFAULT_BLOCK_CACHE_CAPACITY,
     )
     .unwrap();
     // populate with names

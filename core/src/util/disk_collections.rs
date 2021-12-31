@@ -20,7 +20,9 @@ pub const DEFAULT_MAX_NUMBER_OF_TABLES: usize = 32;
 const KB: usize = 1 << 10;
 const MB: usize = KB * KB;
 const BLOCK_MAX_SIZE: usize = 4 * KB;
-const BLOCK_CACHE_CAPACITY: usize = MB;
+
+/// Uses a cache for each disk table with 1 MB capacity.
+pub const DEFAULT_BLOCK_CACHE_CAPACITY: usize = MB;
 
 #[derive(Serialize, Deserialize)]
 struct Entry<K, V>
@@ -42,10 +44,6 @@ impl Default for EvictionStrategy {
     }
 }
 
-fn custom_options() -> sstable::Options {
-    sstable::Options::default().with_cache_capacity(BLOCK_CACHE_CAPACITY / BLOCK_MAX_SIZE)
-}
-
 pub struct DiskMap<K, V>
 where
     K: 'static + KeySerializer + Send + Sync,
@@ -53,6 +51,7 @@ where
 {
     eviction_strategy: EvictionStrategy,
     max_number_of_tables: Option<usize>,
+    block_cache_capacity: usize,
     c0: BTreeMap<KeyVec, Option<V>>,
     /// A vector of on-disk tables holding the evicted data.
     disk_tables: Vec<Table>,
@@ -79,6 +78,7 @@ where
         persisted_file: Option<&Path>,
         eviction_strategy: EvictionStrategy,
         max_number_of_tables: Option<usize>,
+        block_cache_capacity: usize,
     ) -> Result<DiskMap<K, V>> {
         let mut disk_tables = Vec::default();
 
@@ -93,6 +93,7 @@ where
         Ok(DiskMap {
             eviction_strategy,
             max_number_of_tables,
+            block_cache_capacity,
             c0: BTreeMap::default(),
             disk_tables,
             insertion_was_sorted: true,
@@ -103,6 +104,10 @@ where
             phantom: std::marker::PhantomData,
             est_sum_memory: 0,
         })
+    }
+
+    fn custom_options(&self) -> sstable::Options {
+        sstable::Options::default().with_cache_capacity(self.block_cache_capacity / BLOCK_MAX_SIZE)
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Result<()> {
@@ -181,7 +186,7 @@ where
             debug!("Evicting DiskMap C0 to temporary file");
             let out_file = tempfile::tempfile()?;
 
-            let mut builder = TableBuilder::new(custom_options(), &out_file);
+            let mut builder = TableBuilder::new(self.custom_options(), &out_file);
 
             for (key, value) in self.c0.iter() {
                 let key = key.create_key();
@@ -193,7 +198,7 @@ where
 
             self.est_sum_memory = 0;
             let size = out_file.metadata()?.len();
-            let table = Table::new(custom_options(), Box::new(out_file), size as usize)?;
+            let table = Table::new(self.custom_options(), Box::new(out_file), size as usize)?;
             self.disk_tables.push(table);
 
             self.c0.clear();
@@ -477,7 +482,7 @@ where
 
         // Create single temporary sorted string file by iterating over all entries
         let out_file = tempfile::tempfile()?;
-        let mut builder = TableBuilder::new(custom_options(), &out_file);
+        let mut builder = TableBuilder::new(self.custom_options(), &out_file);
         for (key, value) in self.try_iter()? {
             let key = key.create_key();
             builder.add(&key, &self.serialization.serialize(&Some(value))?)?;
@@ -485,7 +490,7 @@ where
         let size = builder.finish()?;
 
         // Re-open sorted string table and set it as the only table
-        let table = Table::new(custom_options(), Box::new(out_file), size)?;
+        let table = Table::new(self.custom_options(), Box::new(out_file), size)?;
         self.disk_tables = vec![table];
         self.c0.clear();
 
@@ -511,7 +516,7 @@ where
             .read(true)
             .create(true)
             .open(&location)?;
-        let mut builder = TableBuilder::new(custom_options(), out_file);
+        let mut builder = TableBuilder::new(self.custom_options(), out_file);
         for (key, value) in self.try_iter()? {
             let key = key.create_key();
             builder.add(&key, &self.serialization.serialize(&Some(value))?)?;
@@ -532,6 +537,7 @@ where
             None,
             EvictionStrategy::default(),
             Some(DEFAULT_MAX_NUMBER_OF_TABLES),
+            DEFAULT_BLOCK_CACHE_CAPACITY / BLOCK_MAX_SIZE,
         )
         .expect("Temporary disk map creation should not fail.")
     }
