@@ -107,7 +107,8 @@ where
     }
 
     fn custom_options(&self) -> sstable::Options {
-        sstable::Options::default().with_cache_capacity(self.block_cache_capacity / BLOCK_MAX_SIZE)
+        let blocks = (self.block_cache_capacity / BLOCK_MAX_SIZE).max(1);
+        sstable::Options::default().with_cache_capacity(blocks)
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Result<()> {
@@ -537,7 +538,7 @@ where
             None,
             EvictionStrategy::default(),
             Some(DEFAULT_MAX_NUMBER_OF_TABLES),
-            DEFAULT_BLOCK_CACHE_CAPACITY / BLOCK_MAX_SIZE,
+            DEFAULT_BLOCK_CACHE_CAPACITY,
         )
         .expect("Temporary disk map creation should not fail.")
     }
