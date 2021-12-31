@@ -7,3 +7,26 @@ members = [
   "webservice",
   "examples/tutorial",
 ]
+
+# Use release optimization of some of the performance sensitive crates even for debug builds.
+# This allows faster builds and debugging of our own code, while balancing performance.
+[profile.dev.package.bincode]
+opt-level = 3
+
+[profile.dev.package.csv]
+opt-level = 3
+
+[profile.dev.package.regex]
+opt-level = 3
+
+[profile.dev.package.serde]
+opt-level = 3
+
+[profile.dev.package.sstable]
+opt-level = 3
+
+[profile.dev.package.quick-xml]
+opt-level = 3
+
+[profile.dev.package.zip]
+opt-level = 3
