@@ -52,7 +52,7 @@ where
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send + Sync,
 {
     eviction_strategy: EvictionStrategy,
-    max_number_of_tables: usize,
+    max_number_of_tables: Option<usize>,
     c0: BTreeMap<KeyVec, Option<V>>,
     /// A vector of on-disk tables holding the evicted data.
     disk_tables: Vec<Table>,
@@ -78,7 +78,7 @@ where
     pub fn new(
         persisted_file: Option<&Path>,
         eviction_strategy: EvictionStrategy,
-        max_number_of_tables: usize,
+        max_number_of_tables: Option<usize>,
     ) -> Result<DiskMap<K, V>> {
         let mut disk_tables = Vec::default();
 
@@ -168,7 +168,11 @@ where
             self.disk_tables.len() + 1
         };
 
-        if num_of_tables > self.max_number_of_tables {
+        let needs_compacting = self
+            .max_number_of_tables
+            .map(|max_number_of_tables| num_of_tables > max_number_of_tables)
+            .unwrap_or(false);
+        if needs_compacting {
             debug!("Compacting disk tables");
             // Directly compact the existing tables and the C0,
             // which will also evict the C0 table.
@@ -527,7 +531,7 @@ where
         DiskMap::new(
             None,
             EvictionStrategy::default(),
-            DEFAULT_MAX_NUMBER_OF_TABLES,
+            Some(DEFAULT_MAX_NUMBER_OF_TABLES),
         )
         .expect("Temporary disk map creation should not fail.")
     }

@@ -123,12 +123,12 @@ where
                 by_container: DiskMap::new(
                     Some(&path_by_container),
                     EvictionStrategy::default(),
-                    DEFAULT_MAX_NUMBER_OF_TABLES,
+                    Some(DEFAULT_MAX_NUMBER_OF_TABLES),
                 )?,
                 by_anno_qname: DiskMap::new(
                     Some(&path_by_anno_qname),
                     EvictionStrategy::default(),
-                    DEFAULT_MAX_NUMBER_OF_TABLES,
+                    Some(DEFAULT_MAX_NUMBER_OF_TABLES),
                 )?,
                 anno_key_symbols: SymbolTable::default(),
                 anno_key_sizes: BTreeMap::new(),
@@ -882,12 +882,12 @@ where
             self.by_container = DiskMap::new(
                 Some(&location.join("by_container.bin")),
                 EvictionStrategy::default(),
-                DEFAULT_MAX_NUMBER_OF_TABLES,
+                Some(DEFAULT_MAX_NUMBER_OF_TABLES),
             )?;
             self.by_anno_qname = DiskMap::new(
                 Some(&location.join("by_anno_qname.bin")),
                 EvictionStrategy::default(),
-                DEFAULT_MAX_NUMBER_OF_TABLES,
+                Some(DEFAULT_MAX_NUMBER_OF_TABLES),
             )?;
         }
 
