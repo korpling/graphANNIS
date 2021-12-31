@@ -350,7 +350,7 @@ where
 
         let mut db = AnnotationGraph::with_default_graphstorages(disk_based)?;
         let mut config = CorpusConfiguration::default();
-        let mut updates = GraphUpdate::new();
+        let mut updates = GraphUpdate::new()?;
         let load_node_and_corpus_result =
             load_node_and_corpus_tables(&path, &mut updates, is_annis_33, &progress_callback)?;
         {

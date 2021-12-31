@@ -3,10 +3,13 @@ use super::{cast_mut, cstr, map_cerr};
 use graphannis::update::{GraphUpdate, UpdateEvent};
 
 /// Create a new graph (empty) update instance
+///
+/// - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
 #[no_mangle]
-pub extern "C" fn annis_graphupdate_new() -> *mut GraphUpdate {
-    let gu = GraphUpdate::new();
-    Box::into_raw(Box::new(gu))
+pub extern "C" fn annis_graphupdate_new(err: *mut *mut ErrorList) -> *mut GraphUpdate {
+    map_cerr(GraphUpdate::new(), err)
+        .map(|gu| Box::into_raw(Box::new(gu)))
+        .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Add "add node" action to the graph update object.
@@ -14,7 +17,7 @@ pub extern "C" fn annis_graphupdate_new() -> *mut GraphUpdate {
 /// - `ptr` - The graph update object.
 /// - `node_name` - Name of the new node.
 /// - `node_type` - Type of the new node, e.g. "node" or "corpus".
-/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+/// - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_add_node(
     ptr: *mut GraphUpdate,
@@ -36,7 +39,7 @@ pub extern "C" fn annis_graphupdate_add_node(
 ///
 /// - `ptr` - The graph update object.
 /// - `node_name` - Name of node to delete.
-/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+/// - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_delete_node(
     ptr: *mut GraphUpdate,
@@ -59,7 +62,7 @@ pub extern "C" fn annis_graphupdate_delete_node(
 /// - `annos_ns` - Namespace of the new annotation.
 /// - `annos_name` - Name of the new annotation.
 /// - `annos_value` - Value of the new annotation.
-/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+/// - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_add_node_label(
     ptr: *mut GraphUpdate,
@@ -87,7 +90,7 @@ pub extern "C" fn annis_graphupdate_add_node_label(
 /// - `node_name` - Name of the node the label is attached to.
 /// - `annos_ns` - Namespace of deleted new annotation.
 /// - `annos_name` - Name of the deleted annotation.
-/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+/// - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_delete_node_label(
     ptr: *mut GraphUpdate,
@@ -115,7 +118,7 @@ pub extern "C" fn annis_graphupdate_delete_node_label(
 /// - `layer` - Layer of the new edge.
 /// - `component_type` - Type of the component of the new edge.
 /// - `component_name` - Name of the component of the new edge.
-/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+/// - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_add_edge(
     ptr: *mut GraphUpdate,
@@ -148,7 +151,7 @@ pub extern "C" fn annis_graphupdate_add_edge(
 /// - `layer` - Layer of the edge to delete.
 /// - `component_type` - Type of the component of the edge to delete.
 /// - `component_name` - Name of the component of the edge to delete.
-/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+/// - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_delete_edge(
     ptr: *mut GraphUpdate,

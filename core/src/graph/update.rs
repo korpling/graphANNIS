@@ -1,5 +1,6 @@
 //! Types used to describe updates on graphs.
 
+use crate::util::disk_collections::EvictionStrategy;
 use crate::{errors::Result, util::disk_collections::DiskMap};
 use serde::de::Error as DeserializeError;
 use serde::de::{MapAccess, Visitor};
@@ -77,11 +78,12 @@ pub struct GraphUpdate {
 
 impl GraphUpdate {
     /// Create a new empty list of updates.
-    pub fn new() -> GraphUpdate {
-        GraphUpdate {
-            diffs: DiskMap::default(),
+    pub fn new() -> Result<GraphUpdate> {
+        let result = GraphUpdate {
+            diffs: DiskMap::new(None, EvictionStrategy::default(), None, 0)?,
             event_counter: 0,
-        }
+        };
+        Ok(result)
     }
 
     /// Add the given event to the update list.
