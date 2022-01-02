@@ -8,7 +8,7 @@ use graphannis_core::{
     errors::ComponentTypeError,
     graph::{storage::union::UnionEdgeContainer, ANNIS_NS, NODE_TYPE_KEY},
     types::ComponentType,
-    util::disk_collections::{DiskMap, EvictionStrategy},
+    util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
 };
 use std::fmt;
 
@@ -386,14 +386,23 @@ impl ComponentType for AnnotationComponentType {
         graph: &AnnotationGraph,
     ) -> std::result::Result<Self::UpdateGraphIndex, ComponentTypeError> {
         // Cache the expensive mapping of node names to IDs
-        let node_ids = DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000), 1)?;
+        let node_ids = DiskMap::new(
+            None,
+            EvictionStrategy::MaximumItems(1_000_000),
+            Some(1),
+            DEFAULT_BLOCK_CACHE_CAPACITY,
+        )?;
 
         // Calculating the invalid nodes adds additional computational overhead. If there are no nodes yet in the graph,
         // we already know that all new nodes are invalid and don't need calculate the invalid ones.
         let graph_without_nodes = graph.get_node_annos().is_empty();
 
-        let invalid_nodes: DiskMap<NodeID, bool> =
-            DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000), 1)?;
+        let invalid_nodes: DiskMap<NodeID, bool> = DiskMap::new(
+            None,
+            EvictionStrategy::MaximumItems(1_000_000),
+            Some(1),
+            DEFAULT_BLOCK_CACHE_CAPACITY,
+        )?;
 
         let mut text_coverage_components = FxHashSet::default();
         text_coverage_components

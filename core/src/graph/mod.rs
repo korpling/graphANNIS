@@ -6,7 +6,7 @@ use crate::{
     annostorage::{AnnotationStorage, ValueSearch},
     errors::Result,
     graph::storage::{registry, GraphStorage, WriteableGraphStorage},
-    util::disk_collections::{DiskMap, EvictionStrategy},
+    util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
 };
 use crate::{
     errors::GraphAnnisCoreError,
@@ -366,8 +366,12 @@ impl<CT: ComponentType> Graph<CT> {
 
         let mut update_graph_index = ComponentType::init_update_graph_index(self)?;
         // Cache the expensive mapping of node names to IDs
-        let mut node_ids: DiskMap<String, Option<NodeID>> =
-            DiskMap::new(None, EvictionStrategy::MaximumItems(1_000_000), 1)?;
+        let mut node_ids: DiskMap<String, Option<NodeID>> = DiskMap::new(
+            None,
+            EvictionStrategy::MaximumItems(1_000_000),
+            Some(1),
+            DEFAULT_BLOCK_CACHE_CAPACITY,
+        )?;
         // Iterate once over all changes in the same order as the updates have been added
         for (nr_updates, (id, change)) in u.iter()?.enumerate() {
             trace!("applying event {:?}", &change);

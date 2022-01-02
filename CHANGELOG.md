@@ -5,6 +5,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Avoid unnecessary compacting of disk tables when collecting graph updates during import.
+  This speeds up both the GraphML and the relANNIS importer and can also reduce the
+  used main memory during import.
+- Use release optimization of some of the performance sensitive crates even for debug builds.
+  This allows faster builds and debugging of our own code, while balancing performance.
+
 ## [1.4.1] - 2021-12-07
 
 ### Fixed
