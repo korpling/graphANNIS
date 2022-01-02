@@ -199,6 +199,10 @@ async fn main() -> Result<()> {
                                 "/{corpus}/edge-annotations/{type}/{layer}/{name}/",
                                 web::get().to(api::corpora::edge_annotations),
                             )
+                            .route(
+                                "/{corpus}/edge-stats/{type}/{layer}/{name}/",
+                                web::get().to(api::corpora::edge_statistics),
+                            )
                             .route("/{corpus}/subgraph", web::post().to(api::corpora::subgraph))
                             .route(
                                 "/{corpus}/subgraph-for-query",

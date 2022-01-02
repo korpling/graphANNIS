@@ -210,6 +210,28 @@ pub async fn edge_annotations(
     Ok(HttpResponse::Ok().json(annos))
 }
 
+pub async fn edge_statistics(
+    path: web::Path<(String, AnnotationComponentType, String, String)>,
+    cs: web::Data<CorpusStorage>,
+    claims: ClaimsFromAuth,
+    db_pool: web::Data<DbPool>,
+) -> Result<HttpResponse, ServiceError> {
+    let (corpus, ctype, layer, name) = path.as_ref();
+    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+
+    let component = graph::Component::<AnnotationComponentType>::new(
+        ctype.to_owned(),
+        layer.into(),
+        name.into(),
+    );
+
+    if let Some(stats) = cs.component_statistics(corpus.as_str(), &component)? {
+        Ok(HttpResponse::Ok().json(stats))
+    } else {
+        Ok(HttpResponse::NotFound().finish())
+    }
+}
+
 #[derive(Deserialize)]
 pub struct ListFilesParameters {
     node: Option<String>,

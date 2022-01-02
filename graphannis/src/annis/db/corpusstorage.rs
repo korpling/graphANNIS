@@ -643,7 +643,7 @@ impl CorpusStorage {
         Ok(corpus_info)
     }
 
-    /// Return detailled information about a specific corpus with a given name (`corpus_name`).
+    /// Return detailed information about a specific corpus with a given name (`corpus_name`).
     pub fn info(&self, corpus_name: &str) -> Result<CorpusInfo> {
         let mut mem_ops =
             MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
@@ -2426,6 +2426,24 @@ impl CorpusStorage {
         }
 
         result
+    }
+
+    /// The the statistics for a given `component` of a `corpus`.
+    pub fn component_statistics(
+        &self,
+        corpus_name: &str,
+        component: &Component<AnnotationComponentType>,
+    ) -> Result<Option<GraphStatistic>> {
+        let db_entry =
+            self.get_loaded_entry_with_components(corpus_name, vec![component.clone()])?;
+        let lock = db_entry.read().unwrap();
+        let db = get_read_or_error(&lock)?;
+        if let Some(gs) = db.get_graphstorage_as_ref(component) {
+            let stats = gs.get_statistics().cloned();
+            Ok(stats)
+        } else {
+            Ok(None)
+        }
     }
 
     fn check_cache_size_and_remove(&self, keep: Vec<&str>, report_cache_status: bool) {
