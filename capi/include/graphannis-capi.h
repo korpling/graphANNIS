@@ -847,7 +847,7 @@ struct AnnisGraphUpdate *annis_graphupdate_new(void);
  * - `ptr` - The graph update object.
  * - `node_name` - Name of the new node.
  * - `node_type` - Type of the new node, e.g. "node" or "corpus".
- * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ * - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
  */
 void annis_graphupdate_add_node(struct AnnisGraphUpdate *ptr,
                                 const char *node_name,
@@ -859,7 +859,7 @@ void annis_graphupdate_add_node(struct AnnisGraphUpdate *ptr,
  *
  * - `ptr` - The graph update object.
  * - `node_name` - Name of node to delete.
- * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ * - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
  */
 void annis_graphupdate_delete_node(struct AnnisGraphUpdate *ptr,
                                    const char *node_name,
@@ -873,7 +873,7 @@ void annis_graphupdate_delete_node(struct AnnisGraphUpdate *ptr,
  * - `annos_ns` - Namespace of the new annotation.
  * - `annos_name` - Name of the new annotation.
  * - `annos_value` - Value of the new annotation.
- * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ * - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
  */
 void annis_graphupdate_add_node_label(struct AnnisGraphUpdate *ptr,
                                       const char *node_name,
@@ -889,7 +889,7 @@ void annis_graphupdate_add_node_label(struct AnnisGraphUpdate *ptr,
  * - `node_name` - Name of the node the label is attached to.
  * - `annos_ns` - Namespace of deleted new annotation.
  * - `annos_name` - Name of the deleted annotation.
- * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ * - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
  */
 void annis_graphupdate_delete_node_label(struct AnnisGraphUpdate *ptr,
                                          const char *node_name,
@@ -906,7 +906,7 @@ void annis_graphupdate_delete_node_label(struct AnnisGraphUpdate *ptr,
  * - `layer` - Layer of the new edge.
  * - `component_type` - Type of the component of the new edge.
  * - `component_name` - Name of the component of the new edge.
- * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ * - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
  */
 void annis_graphupdate_add_edge(struct AnnisGraphUpdate *ptr,
                                 const char *source_node,
@@ -925,7 +925,7 @@ void annis_graphupdate_add_edge(struct AnnisGraphUpdate *ptr,
  * - `layer` - Layer of the edge to delete.
  * - `component_type` - Type of the component of the edge to delete.
  * - `component_name` - Name of the component of the edge to delete.
- * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ * - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
  */
 void annis_graphupdate_delete_edge(struct AnnisGraphUpdate *ptr,
                                    const char *source_node,
@@ -947,7 +947,7 @@ void annis_graphupdate_delete_edge(struct AnnisGraphUpdate *ptr,
  * - `annos_ns` - Namespace of the new annotation.
  * - `annos_name` - Name of the new annotation.
  * - `annos_value` - Value of the new annotation.
- * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ * - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
  */
 void annis_graphupdate_add_edge_label(struct AnnisGraphUpdate *ptr,
                                       const char *source_node,
@@ -971,7 +971,7 @@ void annis_graphupdate_add_edge_label(struct AnnisGraphUpdate *ptr,
  * - `component_name` - Name of the component of the edge.
  * - `annos_ns` - Namespace of the annotation to delete.
  * - `annos_name` - Name of the annotation to delete.
- * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
+ * - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
  */
 void annis_graphupdate_delete_edge_label(struct AnnisGraphUpdate *ptr,
                                          const char *source_node,

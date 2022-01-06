@@ -4,7 +4,9 @@ use crate::annostorage::{Match, ValueSearch};
 use crate::errors::Result;
 use crate::serializer::{FixedSizeKeySerializer, KeySerializer};
 use crate::types::{AnnoKey, Annotation, NodeID};
-use crate::util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_MAX_NUMBER_OF_TABLES};
+use crate::util::disk_collections::{
+    DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY, DEFAULT_MAX_NUMBER_OF_TABLES,
+};
 use crate::util::{self, memory_estimation};
 use core::ops::Bound::*;
 use rand::seq::IteratorRandom;
@@ -123,12 +125,14 @@ where
                 by_container: DiskMap::new(
                     Some(&path_by_container),
                     EvictionStrategy::default(),
-                    DEFAULT_MAX_NUMBER_OF_TABLES,
+                    Some(DEFAULT_MAX_NUMBER_OF_TABLES),
+                    DEFAULT_BLOCK_CACHE_CAPACITY,
                 )?,
                 by_anno_qname: DiskMap::new(
                     Some(&path_by_anno_qname),
                     EvictionStrategy::default(),
-                    DEFAULT_MAX_NUMBER_OF_TABLES,
+                    Some(DEFAULT_MAX_NUMBER_OF_TABLES),
+                    DEFAULT_BLOCK_CACHE_CAPACITY,
                 )?,
                 anno_key_symbols: SymbolTable::default(),
                 anno_key_sizes: BTreeMap::new(),
@@ -882,12 +886,14 @@ where
             self.by_container = DiskMap::new(
                 Some(&location.join("by_container.bin")),
                 EvictionStrategy::default(),
-                DEFAULT_MAX_NUMBER_OF_TABLES,
+                Some(DEFAULT_MAX_NUMBER_OF_TABLES),
+                DEFAULT_BLOCK_CACHE_CAPACITY,
             )?;
             self.by_anno_qname = DiskMap::new(
                 Some(&location.join("by_anno_qname.bin")),
                 EvictionStrategy::default(),
-                DEFAULT_MAX_NUMBER_OF_TABLES,
+                Some(DEFAULT_MAX_NUMBER_OF_TABLES),
+                DEFAULT_BLOCK_CACHE_CAPACITY,
             )?;
         }
 

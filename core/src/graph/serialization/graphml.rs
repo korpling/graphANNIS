@@ -360,10 +360,11 @@ fn add_edge<CT: ComponentType>(
     Ok(())
 }
 
-fn read_graphml<CT: ComponentType, R: std::io::BufRead>(
+fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
     input: &mut R,
     node_updates: &mut GraphUpdate,
     edge_updates: &mut GraphUpdate,
+    progress_callback: &F,
 ) -> Result<Option<String>> {
     let mut reader = Reader::from_reader(input);
     reader.expand_empty_elements(true);
@@ -383,6 +384,8 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead>(
 
     let mut config = None;
 
+    let mut processed_updates = 0;
+
     loop {
         match reader.read_event(&mut buf)? {
             Event::Start(ref e) => {
@@ -401,6 +404,7 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead>(
                     }
                     b"node" => {
                         if in_graph && level == 3 {
+                            data.clear();
                             // Get the ID of this node
                             for att in e.attributes() {
                                 let att = att?;
@@ -413,6 +417,7 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead>(
                     }
                     b"edge" => {
                         if in_graph && level == 3 {
+                            data.clear();
                             // Get the source and target node IDs
                             for att in e.attributes() {
                                 let att = att?;
@@ -467,6 +472,13 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead>(
                     b"node" => {
                         add_node(node_updates, &current_node_id, &mut data)?;
                         current_node_id = None;
+                        processed_updates += 1;
+                        if processed_updates % 1_000_000 == 0 {
+                            progress_callback(&format!(
+                                "Processed {} GraphML nodes and edges",
+                                processed_updates
+                            ));
+                        }
                     }
                     b"edge" => {
                         add_edge::<CT>(
@@ -476,10 +488,16 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead>(
                             &current_component,
                             &mut data,
                         )?;
-
                         current_source_id = None;
                         current_target_id = None;
                         current_component = None;
+                        processed_updates += 1;
+                        if processed_updates % 1_000_000 == 0 {
+                            progress_callback(&format!(
+                                "Processed {} GraphML nodes and edges",
+                                processed_updates
+                            ));
+                        }
                     }
                     b"data" => {
                         current_data_key = None;
@@ -514,7 +532,12 @@ where
 
     // read in all nodes and edges, collecting annotation keys on the fly
     progress_callback("reading GraphML");
-    let config = read_graphml::<CT, BufReader<R>>(&mut input, &mut updates, &mut edge_updates)?;
+    let config = read_graphml::<CT, BufReader<R>, F>(
+        &mut input,
+        &mut updates,
+        &mut edge_updates,
+        &progress_callback,
+    )?;
 
     // Append all edges updates after the node updates:
     // edges would not be added if the nodes they are referring do not exist
