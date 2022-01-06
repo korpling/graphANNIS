@@ -1,0 +1,621 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Rust Tutorial - graphANNIS documentation</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+        <!-- MathJax -->
+        <script async type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div id="sidebar-scrollbox" class="sidebar-scrollbox">
+                <ol class="chapter"><li class="expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="expanded "><a href="data-model.html"><strong aria-hidden="true">2.</strong> Data model</a></li><li><ol class="section"><li class="expanded "><a href="annotation-graph.html"><strong aria-hidden="true">2.1.</strong> Annotations as graph</a></li><li class="expanded "><a href="data-model-indexes.html"><strong aria-hidden="true">2.2.</strong> Indexes for faster query execution</a></li></ol></li><li class="expanded "><a href="embed.html"><strong aria-hidden="true">3.</strong> How to embed into applications</a></li><li><ol class="section"><li class="expanded "><a href="embed-python.html"><strong aria-hidden="true">3.1.</strong> Python Tutorial</a></li><li class="expanded "><a href="embed-java.html"><strong aria-hidden="true">3.2.</strong> Java Tutorial</a></li><li class="expanded "><a href="embed-rust.html" class="active"><strong aria-hidden="true">3.3.</strong> Rust Tutorial</a></li></ol></li><li class="expanded "><a href="rest/index.html"><strong aria-hidden="true">4.</strong> REST service</a></li><li><ol class="section"><li class="expanded "><a href="rest/configuration.html"><strong aria-hidden="true">4.1.</strong> Configuration</a></li><li class="expanded "><a href="rest/auth.html"><strong aria-hidden="true">4.2.</strong> Authentication and authorization</a></li></ol></li><li class="expanded "><a href="cli.html"><strong aria-hidden="true">5.</strong> Interactive command-line</a></li><li class="expanded "><a href="release-checklist.html"><strong aria-hidden="true">6.</strong> Release checklist</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">graphANNIS documentation</h1>
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#rust-tutorial" id="rust-tutorial">Rust Tutorial</a></h1>
+<h2><a class="header" href="#installation" id="installation">Installation</a></h2>
+<p>Add a dependency to graphANNIS in you <code>Cargo.toml</code> file:</p>
+<pre><code class="language-toml">graphannis = &quot;1.5.0&quot;
+</code></pre>
+<h2><a class="header" href="#api-documentation" id="api-documentation">API documentation</a></h2>
+<p>The API documentation is available at <a href="https://docs.rs/graphannis/">https://docs.rs/graphannis/</a>.</p>
+<h2><a class="header" href="#corpus-data-directory" id="corpus-data-directory">Corpus data directory</a></h2>
+<p>Data is organized in corpora, where each corpus has a name and annotations can only refer to other annotations in the same corpus.
+A <code>CorpusStorage</code> is used to access a collection corpora by their name.</p>
+<pre><code class="language-rust no_run noplaypen">use graphannis::CorpusStorage;
+use std::path::PathBuf;
+
+fn main() {
+    let cs = CorpusStorage::with_auto_cache_size(&amp;PathBuf::from(&quot;data&quot;), true).unwrap();
+    let corpora = cs.list().unwrap();
+    let corpus_names: Vec&lt;String&gt; = corpora
+        .into_iter()
+        .map(|corpus_info| corpus_info.name)
+        .collect();
+    println!(&quot;{:?}&quot;, corpus_names);
+}
+</code></pre>
+<p>This will print an empty list, because no corpora have been created yet.
+In this example, the <code>CorpusStorage</code> uses the sub-directory <code>data</code> of the current working directory to store the corpora.
+You can also use an absolute path as argument:</p>
+<pre><code class="language-rust noplaypen ignore">let cs = CorpusStorage::with_auto_cache_size(&amp;PathBuf::from(&quot;/tmp/graphannis-data&quot;), true)?;
+</code></pre>
+<p>Only one process can access a graphANNIS data directory, other processes will fail to open it if there is another process holding a lock.
+The <code>CorpusStorage</code> is thread-safe, thus multiple threads of the same process can call all functions in parallel.</p>
+<h2><a class="header" href="#adding-corpus-data" id="adding-corpus-data">Adding corpus data</a></h2>
+<p>Linguistic annotations as represented in graphANNIS as directed graphs (see the <a href="annotation-graph.html">data model</a> section for more information).
+You can add nodes and edges via the <code>apply_update(...)</code> function.
+It takes the corpus name and a list of graph updates as argument.
+These graph update lists are represented by the class <code>GraphUpdate</code>.
+E.g the following code creates a graph update for the tokenized sentence “That is a Category 3 storm.”.
+Normally, you would not add all events manually in the source code, which gets a bit verbose, but have input data that you map to update events.
+The resulting <code>GraphUpdate</code> object can then be used with the <code>apply_update(...)</code> function to insert the changes into the corpus.</p>
+<pre><code class="language-rust noplaypen">use graphannis::update::{GraphUpdate, UpdateEvent};
+use graphannis::CorpusStorage;
+use std::path::PathBuf;
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let cs = CorpusStorage::with_auto_cache_size(&amp;PathBuf::from(&quot;data&quot;), true).unwrap();
+
+    let mut g = GraphUpdate::new();
+
+    // First add the node (with the default type &quot;node&quot;),
+    // then all node labels for the node.
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t1&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t1&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;That&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t2&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t2&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;is&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t3&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t3&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;a&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t4&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t4&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;Category&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t5&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t5&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;3&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t6&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t6&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;storm&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t7&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t7&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;.&quot;.to_string(),
+    })?;
+
+    // Add the ordering edges to specify token order.
+    // The names of the source and target nodes are given as in the enum as fields,
+    // followed by the component layer, type and name.
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t1&quot;.to_string(),
+        target_node: &quot;tutorial/doc1#t2&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;Ordering&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t2&quot;.to_string(),
+        target_node: &quot;tutorial/doc1#t3&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;Ordering&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t3&quot;.to_string(),
+        target_node: &quot;tutorial/doc1#t4&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;Ordering&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t4&quot;.to_string(),
+        target_node: &quot;tutorial/doc1#t5&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;Ordering&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t5&quot;.to_string(),
+        target_node: &quot;tutorial/doc1#t6&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;Ordering&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t6&quot;.to_string(),
+        target_node: &quot;tutorial/doc1#t7&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;Ordering&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+
+    // Insert the changes in the corpus with the name &quot;tutorial&quot;
+    cs.apply_update(&quot;tutorial&quot;, &amp;mut g).unwrap();
+
+    // List newly created corpus
+    let corpora = cs.list().unwrap();
+    let corpus_names: Vec&lt;String&gt; = corpora
+        .into_iter()
+        .map(|corpus_info| corpus_info.name)
+        .collect();
+    println!(&quot;{:?}&quot;, corpus_names);
+
+    Ok(())
+}
+</code></pre>
+<p>You could add additional annotations like part of speech as labels on nodes.
+For labels on edges, you can use the <code>UpdateEvent::AddEdgeLabel</code> enumeration variant.</p>
+<h2><a class="header" href="#querying" id="querying">Querying</a></h2>
+<p>There are two functions to query a corpus with AQL:</p>
+<ul>
+<li><code>count(...)</code> returns the number of matches, and</li>
+<li><code>find(...)</code> returns a paginated list of matched node IDs.</li>
+</ul>
+<p>You have to give the list of corpora and the query as arguments to both functions.
+The following example searches for all tokens that contain a <code>s</code> character.<sup class="footnote-reference"><a href="#aql">1</a></sup></p>
+<pre><code class="language-rust no_run noplaypen">use graphannis::corpusstorage::{QueryLanguage, ResultOrder, SearchQuery};
+use graphannis::CorpusStorage;
+use std::path::PathBuf;
+
+fn main() {
+    let cs = CorpusStorage::with_auto_cache_size(&amp;PathBuf::from(&quot;data&quot;), true).unwrap();
+    let search_query = SearchQuery {
+        corpus_names: &amp;[&quot;tutorial&quot;],
+        query: &quot;tok=/.*s.*/&quot;,
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+
+    let number_of_matches = cs.count(search_query.clone()).unwrap();
+    println!(&quot;Number of matches: {}&quot;, number_of_matches);
+
+    let matches = cs
+        .find(search_query, 0, Some(100), ResultOrder::Normal)
+        .unwrap();
+    for (i, m) in matches.iter().enumerate() {
+        println!(&quot;Match {}: {}&quot;, i, m);
+    }
+}
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-ignore">Number of matches: 2
+Match 0: tutorial/doc1#t2
+Match 1: tutorial/doc1#t6
+</code></pre>
+<h2><a class="header" href="#getting-subgraphs" id="getting-subgraphs">Getting subgraphs</a></h2>
+<p>The result from the <code>find(...)</code> function can be used to generate a subgraph for the matches.
+It will contain all covered nodes of the matches and additionally a given context (defined in tokens).</p>
+<pre><code class="language-rust no_run noplaypen">use graphannis::corpusstorage::{QueryLanguage, ResultOrder, SearchQuery};
+use graphannis::util;
+use graphannis::CorpusStorage;
+use std::path::PathBuf;
+
+fn main() {
+    let cs = CorpusStorage::with_auto_cache_size(&amp;PathBuf::from(&quot;data&quot;), true).unwrap();
+    let search_query = SearchQuery {
+        corpus_names: &amp;[&quot;tutorial&quot;],
+        query: &quot;tok . tok&quot;,
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+
+    let matches = cs
+        .find(search_query, 0, Some(100), ResultOrder::Normal)
+        .unwrap();
+    for m in matches {
+        println!(&quot;{}&quot;, m);
+        // convert the match string to a list of node IDs
+        let node_names = util::node_names_from_match(&amp;m);
+        let g = cs.subgraph(&quot;tutorial&quot;, node_names, 2, 2, None).unwrap();
+        // find all nodes of type &quot;node&quot; (regular annotation nodes)
+        let node_search =
+            g.get_node_annos()
+                .exact_anno_search(Some(&quot;annis&quot;), &quot;node_type&quot;, Some(&quot;node&quot;).into());
+        println!(&quot;Number of nodes in subgraph: {}&quot;, node_search.count());
+    }
+}
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-ignore">tutorial/doc1#t1 tutorial/doc1#t2
+Number of nodes in subgraph: 4
+tutorial/doc1#t2 tutorial/doc1#t3
+Number of nodes in subgraph: 5
+tutorial/doc1#t3 tutorial/doc1#t4
+Number of nodes in subgraph: 6
+tutorial/doc1#t4 tutorial/doc1#t5
+Number of nodes in subgraph: 6
+tutorial/doc1#t5 tutorial/doc1#t6
+Number of nodes in subgraph: 5
+tutorial/doc1#t6 tutorial/doc1#t7
+Number of nodes in subgraph: 4
+</code></pre>
+<p>The result object of the <code>subgraph(...)</code> function is the type <code>Graph</code>, which provides basic graph access functions (see the API documentation for details).</p>
+<p><strong>Note:</strong> The <code>subgraph(...)</code> function takes a single corpus name as argument instead of a list, so you need to know to which corpus a matched node belongs to.</p>
+<p>Normally a corpus is structured into subcorpora and documents.
+GraphANNIS uses node types and relations of type <code>PartOf</code> to <a href="../data-model/annotation-graph.html#corpus-structure">model the corpus structure</a>.
+If you have document nodes and the <code>PartOf</code> relation between the annotation nodes and its document, you can use the
+<code>subcorpus_graph(...)</code> function to get all annotation nodes for a given list of document names.</p>
+<pre><code class="language-rust no_run noplaypen">use graphannis::update::{GraphUpdate, UpdateEvent};
+use graphannis::CorpusStorage;
+use std::path::PathBuf;
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let cs = CorpusStorage::with_auto_cache_size(&amp;PathBuf::from(&quot;data&quot;), true).unwrap();
+    let mut g = GraphUpdate::new();
+    // create the corpus and document node
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial&quot;.to_string(),
+        node_type: &quot;corpus&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1&quot;.to_string(),
+        node_type: &quot;corpus&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1&quot;.to_string(),
+        target_node: &quot;tutorial&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    // add the corpus structure to the existing nodes
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t1&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t2&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t3&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t4&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t5&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t6&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t7&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    // apply the changes
+    cs.apply_update(&quot;tutorial&quot;, &amp;mut g).unwrap();
+
+    // get the whole document as graph
+    let subgraph = cs
+        .subcorpus_graph(&quot;tutorial&quot;, vec![&quot;tutorial/doc1&quot;.to_string()])
+        .unwrap();
+    let node_search = subgraph.get_node_annos().exact_anno_search(
+        Some(&quot;annis&quot;),
+        &quot;node_type&quot;,
+        Some(&quot;node&quot;).into(),
+    );
+    for m in node_search {
+        // get the numeric node ID from the match
+        let id = m.node;
+        // get the node name from the ID by searching for the label with the name &quot;annis::node_name&quot;
+        let matched_node_name = subgraph
+            .get_node_annos()
+            .get_annotations_for_item(&amp;id)
+            .into_iter()
+            .filter(|anno| anno.key.ns == &quot;annis&quot; &amp;&amp; anno.key.name == &quot;node_name&quot;)
+            .map(|anno| anno.val)
+            .next()
+            .unwrap();
+        println!(&quot;{}&quot;, matched_node_name);
+    }
+
+    Ok(())
+}
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-ignore">tutorial/doc1#t2
+tutorial/doc1#t4
+tutorial/doc1#t5
+tutorial/doc1#t6
+tutorial/doc1#t7
+tutorial/doc1#t1
+tutorial/doc1#t3
+</code></pre>
+<div class="footnote-definition" id="aql"><sup class="footnote-definition-label">1</sup>
+<p>You can get an overview of AQL <a href="http://corpus-tools.org/annis/aql.html">here</a> or detailed information in the
+<a href="http://korpling.github.io/ANNIS/3.6/user-guide/aql.html">User Guide</a>.</p>
+</div>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="embed-java.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="rest/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="embed-java.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="rest/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
