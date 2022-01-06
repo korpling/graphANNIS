@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Fixed
+
+- RelANNIS version 3.3 files with segmentation might also have a missing "span" column.
+  In case the "span" column is null, always attempt to reconstruct the actual value from
+  the corresponding node annotation instead of failing directly.
+
 ## [1.4.1] - 2021-12-07
 
 ### Fixed

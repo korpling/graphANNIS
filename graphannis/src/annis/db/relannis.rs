@@ -1538,7 +1538,7 @@ where
                 .node_to_right
                 .insert(node_nr, right_alignment.clone())?;
 
-            if let Some(token_index_raw) = token_index_raw {
+            if let Some(token_index) = token_index_raw {
                 let span = if has_segmentations {
                     get_field_not_null(&line, 12, "span", &node_tab_path)?
                 } else {
@@ -1554,7 +1554,7 @@ where
 
                 let index = TextProperty {
                     segmentation: String::from(""),
-                    val: token_index_raw.parse::<u32>()?,
+                    val: token_index.parse::<u32>()?,
                     text_id,
                     corpus_id,
                 };
@@ -1583,14 +1583,19 @@ where
                         get_field_not_null(&line, 9, "seg_index", &node_tab_path)?.parse::<u32>()?
                     };
 
-                    if is_annis_33 {
+                    let span_for_seg_node = if is_annis_33 {
+                        get_field(&line, 12, "span", &node_tab_path)?
+                    } else {
+                        None
+                    };
+
+                    if let Some(span_for_seg_node) = span_for_seg_node {
                         // directly add the span information
                         updates.add_event(UpdateEvent::AddNodeLabel {
                             node_name: node_path,
                             anno_ns: ANNIS_NS.to_owned(),
                             anno_name: TOK.to_owned(),
-                            anno_value: get_field_not_null(&line, 12, "span", &node_tab_path)?
-                                .to_string(),
+                            anno_value: span_for_seg_node.to_string(),
                         })?;
                     } else {
                         // we need to get the span information from the node_annotation file later
