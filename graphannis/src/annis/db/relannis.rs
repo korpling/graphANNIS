@@ -1538,7 +1538,7 @@ where
                 .node_to_right
                 .insert(node_nr, right_alignment.clone())?;
 
-            if let Some(token_index) = token_index_raw {
+            if let Some(token_index_raw) = token_index_raw {
                 let span = if has_segmentations {
                     get_field_not_null(&line, 12, "span", &node_tab_path)?
                 } else {
@@ -1554,7 +1554,7 @@ where
 
                 let index = TextProperty {
                     segmentation: String::from(""),
-                    val: token_index.parse::<u32>()?,
+                    val: token_index_raw.parse::<u32>()?,
                     text_id,
                     corpus_id,
                 };
