@@ -866,6 +866,7 @@ fn get_field_not_null<'a>(
             pos: i,
             name: column_name.to_string(),
             file: file.to_string_lossy().to_string(),
+            line: record.position().map(|p| p.line()),
         })?;
     Ok(result)
 }
