@@ -121,11 +121,12 @@ pub enum RelAnnisError {
         name: String,
         file: String,
     },
-    #[error("unexpected value NULL in column {pos} ({name}) in file {file}")]
+    #[error("unexpected value NULL in column {pos} ({name}) in file {file} at line {}", line.map_or("<unkown>".to_string(), |l| l.to_string()))]
     UnexpectedNull {
         pos: usize,
         name: String,
         file: String,
+        line: Option<u64>,
     },
     #[error("toplevel corpus not found")]
     ToplevelCorpusNotFound,

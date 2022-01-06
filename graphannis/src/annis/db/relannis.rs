@@ -866,6 +866,7 @@ fn get_field_not_null<'a>(
             pos: i,
             name: column_name.to_string(),
             file: file.to_string_lossy().to_string(),
+            line: record.position().map(|p| p.line()),
         })?;
     Ok(result)
 }
@@ -1334,9 +1335,7 @@ where
 
                 // Get the covered text which either goes until the next token or until the end of the text if there is none
                 let mut covered_text_after = if let Some(end_pos) = whitespace_end_pos {
-                    std::string::String::with_capacity(
-                        end_pos.checked_sub(current_text_offset).unwrap_or(0),
-                    )
+                    std::string::String::with_capacity(end_pos.saturating_sub(current_text_offset))
                 } else {
                     std::string::String::default()
                 };
@@ -1582,14 +1581,19 @@ where
                         get_field_not_null(&line, 9, "seg_index", &node_tab_path)?.parse::<u32>()?
                     };
 
-                    if is_annis_33 {
+                    let span_for_seg_node = if is_annis_33 {
+                        get_field(&line, 12, "span", &node_tab_path)?
+                    } else {
+                        None
+                    };
+
+                    if let Some(span_for_seg_node) = span_for_seg_node {
                         // directly add the span information
                         updates.add_event(UpdateEvent::AddNodeLabel {
                             node_name: node_path,
                             anno_ns: ANNIS_NS.to_owned(),
                             anno_name: TOK.to_owned(),
-                            anno_value: get_field_not_null(&line, 12, "span", &node_tab_path)?
-                                .to_string(),
+                            anno_value: span_for_seg_node.to_string(),
                         })?;
                     } else {
                         // we need to get the span information from the node_annotation file later
@@ -2214,7 +2218,7 @@ fn component_type_from_short_name(short_type: &str) -> Result<AnnotationComponen
 
 #[cfg(test)]
 mod tests {
-    use crate::annis::db::relannis::escape_field;
+    use super::*;
 
     #[test]
     fn test_escape_field() {
@@ -2222,5 +2226,64 @@ mod tests {
         assert_eq!(escape_field("ab\\\\cd\\\\"), "ab\\cd\\",);
         assert_eq!(escape_field("ab\\'cd\\te"), "ab'cd\te");
         assert_eq!(escape_field("a\\n"), "a\n");
+    }
+
+    #[test]
+    fn relannis33_missing_segmentation_span() {
+        // Prepare all necessary information to parse the node file
+        let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let input_path = cargo_dir.join("tests").join("MissingSegmentationCorpus");
+        let mut u = GraphUpdate::default();
+        let mut texts = DiskMap::default();
+        texts
+            .insert(
+                TextKey {
+                    id: 0,
+                    corpus_ref: Some(0),
+                },
+                Text {
+                    name: "text".into(),
+                    val: "".into(),
+                },
+            )
+            .unwrap();
+        let mut corpus_by_id = BTreeMap::default();
+        let document = CorpusTableEntry {
+            pre: 1,
+            post: 2,
+            name: "document".into(),
+            normalized_name: "document".into(),
+        };
+        let corpus = CorpusTableEntry {
+            pre: 0,
+            post: 3,
+            name: "corpus".into(),
+            normalized_name: "document".into(),
+        };
+        corpus_by_id.insert(0, document);
+        corpus_by_id.insert(1, corpus);
+        let mut corpus_by_preorder = BTreeMap::default();
+        corpus_by_preorder.insert(0, 1);
+        corpus_by_preorder.insert(1, 0);
+
+        let corpus_table = ParsedCorpusTable {
+            toplevel_corpus_name: "MissingSegmentationCorpus".into(),
+            corpus_by_preorder,
+            corpus_by_id,
+        };
+
+        // Load the problematic node file, which should not result in an error
+        let result = load_node_tab(
+            &input_path,
+            &mut u,
+            &mut texts,
+            &corpus_table,
+            true,
+            &|_| {},
+        )
+        .unwrap();
+
+        // Check that the node was added to the missing segmentation span map
+        assert_eq!(true, result.missing_seg_span.contains_key(&680));
     }
 }
