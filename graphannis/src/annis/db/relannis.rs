@@ -1335,9 +1335,7 @@ where
 
                 // Get the covered text which either goes until the next token or until the end of the text if there is none
                 let mut covered_text_after = if let Some(end_pos) = whitespace_end_pos {
-                    std::string::String::with_capacity(
-                        end_pos.checked_sub(current_text_offset).unwrap_or(0),
-                    )
+                    std::string::String::with_capacity(end_pos.saturating_sub(current_text_offset))
                 } else {
                     std::string::String::default()
                 };
