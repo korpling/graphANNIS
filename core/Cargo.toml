@@ -1,7 +1,7 @@
 [package]
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 name = "graphannis-core"
-version = "1.4.1"
+version = "1.5.0"
 description = "This crate supports graph representation and generic query-functionality."
 edition = "2018"
 license = "Apache-2.0"
