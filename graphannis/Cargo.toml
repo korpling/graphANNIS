@@ -13,7 +13,7 @@ version = "1.4.1"
 crate-type = ["lib"]
 
 [build-dependencies]
-csv = "1"
+csv = "1.1"
 file_diff = "1"
 lalrpop = {version = "0.19", default_features = false, features = ["lexer"]}
 regex = "1"
