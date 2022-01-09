@@ -1588,10 +1588,11 @@ impl CorpusStorage {
                         .get_node_annos()
                         .get_value_for_item(&m.node, &NODE_NAME_KEY)
                     {
-                        let node_name: &str = &node_name;
-                        // extract the document path from the node name
-                        let doc_path =
-                            &node_name[0..node_name.rfind('#').unwrap_or_else(|| node_name.len())];
+                        let doc_path = if let Some((before, _)) = node_name.rsplit_once("#") {
+                            before
+                        } else {
+                            &node_name
+                        };
                         known_documents.insert(doc_path.into());
                     }
                 }

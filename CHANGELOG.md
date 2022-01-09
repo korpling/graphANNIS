@@ -5,9 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- More efficient node path extraction in `count_extra` function and when sorting the matches.
+
 ## [1.5.0] - 2022-01-06
 
-## Fixed
+### Fixed
 
 - RelANNIS version 3.3 files with segmentation might also have a missing "span" column.
   In case the "span" column is null, always attempt to reconstruct the actual value from
