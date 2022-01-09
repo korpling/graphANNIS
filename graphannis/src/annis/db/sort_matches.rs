@@ -45,14 +45,9 @@ pub fn compare_matchgroup_by_text_pos(
 }
 
 fn split_path_and_nodename(full_node_name: &str) -> (&str, &str) {
-    let hash_pos = full_node_name.rfind('#');
-    let path: &str = &full_node_name[0..hash_pos.unwrap_or_else(|| full_node_name.len())];
-
-    if let Some(hash_pos) = hash_pos {
-        (path, &full_node_name[hash_pos + 1..])
-    } else {
-        (path, "")
-    }
+    full_node_name
+        .rsplit_once("#")
+        .unwrap_or((full_node_name, ""))
 }
 
 fn compare_document_path(
