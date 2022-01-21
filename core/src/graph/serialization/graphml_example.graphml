@@ -4,13 +4,11 @@
     <key id="k1" for="node" attr.name="default_ns::an_annotation" attr.type="string"/>
     <key id="k2" for="node" attr.name="annis::node_type" attr.type="string"/>
     <graph edgedefault="directed" parse.order="nodesfirst" parse.nodeids="free" parse.edgeids="canonical">
-        <data key="k0">
-            <![CDATA[[some]
+        <data key="k0"><![CDATA[[some]
 key = "<value>"
 
 [some.another]
-value = "test"]]>
-        </data>
+value = "test"]]></data>
         <node id="first_node">
             <data key="k2">node</data>
             <data key="k1">something</data>

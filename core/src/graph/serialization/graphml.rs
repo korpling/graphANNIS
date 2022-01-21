@@ -459,7 +459,8 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
                 if let Some(current_data_key) = &current_data_key {
                     if in_graph && level == 3 && current_data_key == "k0" {
                         // This is the configuration content
-                        config = Some(String::from_utf8_lossy(&t).to_string());
+                        let t_unescaped = t.unescaped()?;
+                        config = Some(String::from_utf8_lossy(&t_unescaped).to_string());
                     }
                 }
             }
