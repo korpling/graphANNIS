@@ -369,8 +369,6 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
     let mut reader = Reader::from_reader(input);
     reader.expand_empty_elements(true);
 
-    let mut buf = Vec::new();
-
     let mut keys = BTreeMap::new();
 
     let mut level = 0;
@@ -386,6 +384,7 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
 
     let mut processed_updates = 0;
 
+    let mut buf = Vec::new();
     loop {
         match reader.read_event(&mut buf)? {
             Event::Start(ref e) => {
@@ -460,7 +459,8 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
                 if let Some(current_data_key) = &current_data_key {
                     if in_graph && level == 3 && current_data_key == "k0" {
                         // This is the configuration content
-                        config = Some(String::from_utf8_lossy(&t).to_string());
+                        let t_unescaped = t.unescaped()?;
+                        config = Some(String::from_utf8_lossy(&t_unescaped).to_string());
                     }
                 }
             }
@@ -512,6 +512,8 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
             }
             _ => {}
         }
+        // Clear the buffer after each event
+        buf.clear();
     }
     Ok(config)
 }

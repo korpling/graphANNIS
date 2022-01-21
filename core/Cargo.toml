@@ -1,34 +1,34 @@
 [package]
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
-name = "graphannis-core"
-version = "1.5.0"
 description = "This crate supports graph representation and generic query-functionality."
 edition = "2018"
 license = "Apache-2.0"
+name = "graphannis-core"
 readme = "crate-info.md"
 repository = "https://github.com/korpling/graphANNIS"
+version = "1.5.0"
 
 [lib]
 
 [dependencies]
 bincode = "1.2"
-graphannis-malloc_size_of = { version = "1.1", features = ["smartstring"] }
+graphannis-malloc_size_of = {version = "1.1", features = ["smartstring"]}
 graphannis-malloc_size_of_derive = "2.0"
 itertools = "0.10"
 lazy_static = "1.4"
 log = "0.4"
 num-traits = "0.2"
 percent-encoding = "2.1"
-quick-xml = "0.18"
-rand = { version = "0.8", features = ["small_rng"] }
-rayon = { version = "1.3", default-features = false }
+quick-xml = "0.22"
+rand = {version = "0.8", features = ["small_rng"]}
+rayon = {version = "1.3", default-features = false}
 regex = "1"
 regex-syntax = "0.6"
 rustc-hash = "1.0"
-serde = { version = "1.0", features = ["rc"] }
+serde = {version = "1.0", features = ["rc"]}
 serde_derive = "1.0"
 smallvec = "1.6"
-smartstring = { version = "0.2", features = ["serde"] }
+smartstring = {version = "0.2", features = ["serde"]}
 sstable = "0.9"
 strum = "0.21"
 strum_macros = "0.21"
@@ -36,7 +36,7 @@ tempfile = "3.1"
 thiserror = "1"
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", features = ["heapapi"] }
+winapi = {version = "0.3", features = ["heapapi"]}
 
 [dev-dependencies]
 env_logger = "0.9"

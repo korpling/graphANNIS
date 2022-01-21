@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - More efficient node path extraction in `count_extra` function and when sorting the matches.
+- Avoid large memory consumption when importing GraphML files by resetting an internal 
+  buffer on each XML event.
 
 ## [1.5.0] - 2022-01-06
 
