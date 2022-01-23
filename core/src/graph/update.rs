@@ -85,8 +85,13 @@ impl GraphUpdate {
     /// Create a new empty list of updates.
     pub fn new() -> GraphUpdate {
         GraphUpdate {
-            // Use a disk map that never compacts, has no cache size and allows 1 million items in C0
-            diffs: DiskMap::new_temporary(EvictionStrategy::MaximumItems(1_000_000), None, 0),
+            // Use a disk map that never compacts very rarely, has no cache size and allows 1 million items in C0
+            // We should not never compact, since a lot of Linux systems have a maximum number of 1024 file handles
+            // per process and each evicted disk map needs a file handle.
+            // By choosing 512 maximum items, we would use half of all available file handles, leaving
+            // the other half for all remaining disk maps that might be used and have a default number of 32 evicted
+            // disk maps.
+            diffs: DiskMap::new_temporary(EvictionStrategy::MaximumItems(1_000_000), Some(512), 0),
             event_counter: 0,
         }
     }

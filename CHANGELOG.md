@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - More efficient node path extraction in `count_extra` function and when sorting the matches.
 - Avoid large memory consumption when importing GraphML files by resetting an internal 
   buffer on each XML event.
+- Limit the number of disk maps for the `GraphUpdate` so there are less issues with large
+  corpora where the maximum number of open files per process might be reached.
 
 ## [1.5.0] - 2022-01-06
 
