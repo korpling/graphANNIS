@@ -179,27 +179,27 @@ fn unknown_key() {
 
 #[test]
 fn never_compact() {
+    // Test that there is no compaction with a maximum number of 1 items and 250 keys
     let mut table: DiskMap<usize, bool> =
         DiskMap::new_temporary(EvictionStrategy::MaximumItems(1), None, 1);
-
-    // populate with 250 unique keys
+    let mut expected: Vec<(usize, bool)> = Vec::with_capacity(250);
     for i in 0..250 {
+        expected.push((i, true));
         table.insert(i, true).unwrap();
     }
-
-    // With 250 entries and a maximum number of 1 item in C0, this disk map
-    // should have 250 evicted disk tables.
     assert_eq!(250, table.number_of_disk_tables());
+    let iterated_values: Vec<(usize, bool)> = table.iter().collect();
+    assert_eq!(expected, iterated_values);
 
+    // Repeat this test with 5 maximum items and 1000 keys
+    let mut expected: Vec<(usize, bool)> = Vec::with_capacity(1000);
     let mut table: DiskMap<usize, bool> =
         DiskMap::new_temporary(EvictionStrategy::MaximumItems(5), None, 1);
-
-    // populate with 1000 unique keys
     for i in 0..1000 {
+        expected.push((i, true));
         table.insert(i, true).unwrap();
     }
-
-    // With 1000 entries and a maximum number of 5 items in C0, this disk map
-    // should have 1000 / 5 = 200 evicted disk tables.
     assert_eq!(200, table.number_of_disk_tables());
+    let iterated_values: Vec<(usize, bool)> = table.iter().collect();
+    assert_eq!(expected, iterated_values);
 }
