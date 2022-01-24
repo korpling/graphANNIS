@@ -320,7 +320,7 @@ where
         self.by_container
             .insert(by_container_key, anno.val.clone().into())?;
 
-        // To save some space, insert an empty array as a marker value
+        // To save some space, insert an boolean value as a marker value
         // (all information is part of the key already)
         self.by_anno_qname.insert(
             create_by_anno_qname_key(item.clone(), anno_key_symbol, &anno.val),
