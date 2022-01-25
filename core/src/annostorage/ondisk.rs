@@ -328,7 +328,15 @@ where
         // insert the value into main tree
         let by_container_key = create_by_container_key(item.clone(), anno_key_symbol);
 
-        let already_existed = self.by_container.try_contains_key(&by_container_key)?;
+        // Check if the item already exists. This needs to access the disk tables,
+        // so avoid the check if we already know the new item is larger than the previous largest
+        // item and thus can't exist yet.
+        let item_smaller_than_largest = self
+            .largest_item
+            .as_ref()
+            .map_or(true, |largest_item| item <= *largest_item);
+        let already_existed =
+            item_smaller_than_largest && self.by_container.try_contains_key(&by_container_key)?;
         self.by_container
             .insert(by_container_key, anno.val.clone().into())?;
 
