@@ -4,9 +4,7 @@ use crate::annostorage::{Match, ValueSearch};
 use crate::errors::Result;
 use crate::serializer::{FixedSizeKeySerializer, KeySerializer};
 use crate::types::{AnnoKey, Annotation, NodeID};
-use crate::util::disk_collections::{
-    DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY, DEFAULT_MAX_NUMBER_OF_TABLES,
-};
+use crate::util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY};
 use crate::util::{self, memory_estimation};
 use core::ops::Bound::*;
 use rand::seq::IteratorRandom;
@@ -21,6 +19,12 @@ use smartstring::alias::String as SmartString;
 pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v1";
 
 const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
+
+const KB: usize = 1 << 10;
+const MB: usize = KB * KB;
+const MAX_NUMBER_OF_TABLES: Option<usize> = Some(4);
+// By having 4 tables instead of 32, we are saving 28 MB in block cache which we can add to the C0 size
+const EVICTION_STRATEGY: EvictionStrategy = EvictionStrategy::MaximumBytes(60 * MB);
 
 /// An on-disk implementation of an annotation storage.
 ///
@@ -124,14 +128,14 @@ where
             let mut result = AnnoStorageImpl {
                 by_container: DiskMap::new(
                     Some(&path_by_container),
-                    EvictionStrategy::default(),
-                    Some(DEFAULT_MAX_NUMBER_OF_TABLES),
+                    EVICTION_STRATEGY,
+                    MAX_NUMBER_OF_TABLES,
                     DEFAULT_BLOCK_CACHE_CAPACITY,
                 )?,
                 by_anno_qname: DiskMap::new(
                     Some(&path_by_anno_qname),
-                    EvictionStrategy::default(),
-                    Some(DEFAULT_MAX_NUMBER_OF_TABLES),
+                    EVICTION_STRATEGY,
+                    MAX_NUMBER_OF_TABLES,
                     DEFAULT_BLOCK_CACHE_CAPACITY,
                 )?,
                 anno_key_symbols: SymbolTable::default(),
@@ -159,8 +163,16 @@ where
                 .prefix("graphannis-ondisk-nodeanno-")
                 .tempdir()?;
             Ok(AnnoStorageImpl {
-                by_container: DiskMap::default(),
-                by_anno_qname: DiskMap::default(),
+                by_container: DiskMap::new_temporary(
+                    EVICTION_STRATEGY,
+                    MAX_NUMBER_OF_TABLES,
+                    DEFAULT_BLOCK_CACHE_CAPACITY,
+                ),
+                by_anno_qname: DiskMap::new_temporary(
+                    EVICTION_STRATEGY,
+                    MAX_NUMBER_OF_TABLES,
+                    DEFAULT_BLOCK_CACHE_CAPACITY,
+                ),
                 anno_key_symbols: SymbolTable::default(),
                 anno_key_sizes: BTreeMap::new(),
                 largest_item: None,
@@ -885,14 +897,14 @@ where
         if !self.location.eq(&location) {
             self.by_container = DiskMap::new(
                 Some(&location.join("by_container.bin")),
-                EvictionStrategy::default(),
-                Some(DEFAULT_MAX_NUMBER_OF_TABLES),
+                EVICTION_STRATEGY,
+                MAX_NUMBER_OF_TABLES,
                 DEFAULT_BLOCK_CACHE_CAPACITY,
             )?;
             self.by_anno_qname = DiskMap::new(
                 Some(&location.join("by_anno_qname.bin")),
-                EvictionStrategy::default(),
-                Some(DEFAULT_MAX_NUMBER_OF_TABLES),
+                EVICTION_STRATEGY,
+                MAX_NUMBER_OF_TABLES,
                 DEFAULT_BLOCK_CACHE_CAPACITY,
             )?;
         }
