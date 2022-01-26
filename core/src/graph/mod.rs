@@ -11,7 +11,7 @@ use crate::{
     errors::GraphAnnisCoreError,
     types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID},
 };
-use lru::LruCache;
+use lfu::LFUCache;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
 use smartstring::alias::String as SmartString;
@@ -344,13 +344,13 @@ impl<CT: ComponentType> Graph<CT> {
     fn get_cached_node_id_from_name(
         &self,
         node_name: Cow<String>,
-        cache: &mut LruCache<String, Option<NodeID>>,
+        cache: &mut LFUCache<String, Option<NodeID>>,
     ) -> Option<NodeID> {
         if let Some(id) = cache.get(node_name.as_ref()) {
             *id
         } else {
             let id = self.get_node_id_from_name(&node_name);
-            cache.put(node_name.to_string(), id)?;
+            cache.set(node_name.to_string(), id);
             id
         }
     }
@@ -366,7 +366,8 @@ impl<CT: ComponentType> Graph<CT> {
 
         let mut update_graph_index = ComponentType::init_update_graph_index(self)?;
         // Cache the expensive mapping of node names to IDs
-        let mut node_id_cache = LruCache::new(1_000_000);
+        let mut node_id_cache = LFUCache::with_capacity(1_000)
+            .map_err(|err| GraphAnnisCoreError::LfuCache(err.to_string()))?;
         // Iterate once over all changes in the same order as the updates have been added
         for (nr_updates, (id, change)) in u.iter()?.enumerate() {
             trace!("applying event {:?}", &change);
@@ -401,7 +402,7 @@ impl<CT: ComponentType> Graph<CT> {
                         self.node_annos.insert(new_node_id, new_anno_type)?;
 
                         // update the internal cache
-                        node_id_cache.put(node_name.clone(), Some(new_node_id));
+                        node_id_cache.set(node_name.clone(), Some(new_node_id));
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
@@ -421,6 +422,9 @@ impl<CT: ComponentType> Graph<CT> {
                                 gs.delete_node(existing_node_id)?;
                             }
                         }
+
+                        // update the internal cache
+                        node_id_cache.set(node_name.clone(), None);
                     }
                 }
                 UpdateEvent::AddNodeLabel {

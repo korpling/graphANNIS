@@ -40,6 +40,8 @@ pub enum GraphAnnisCoreError {
     SortedStringTable(#[from] sstable::error::Status),
     #[error(transparent)]
     Xml(#[from] quick_xml::Error),
+    #[error("Cache error: {0}")]
+    LfuCache(String),
 }
 
 #[derive(Error, Debug)]
