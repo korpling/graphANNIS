@@ -175,12 +175,12 @@ where
     fn check_eviction_necessary(&mut self, write_deleted: bool) -> Result<()> {
         match self.eviction_strategy {
             EvictionStrategy::MaximumItems(n) => {
-                if self.c0.len() > n {
+                if self.c0.len() >= n {
                     self.evict_c0(write_deleted)?;
                 }
             }
             EvictionStrategy::MaximumBytes(b) => {
-                if self.est_sum_memory > b {
+                if self.est_sum_memory >= b {
                     self.evict_c0(write_deleted)?;
                 }
             }
