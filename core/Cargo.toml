@@ -30,7 +30,7 @@ serde = {version = "1.0", features = ["rc"]}
 serde_derive = "1.0"
 smallvec = "1.6"
 smartstring = {version = "0.2", features = ["serde"]}
-sstable = "0.9"
+sstable = "0.10"
 strum = "0.21"
 strum_macros = "0.21"
 tempfile = "3.1"

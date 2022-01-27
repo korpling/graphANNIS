@@ -1,5 +1,6 @@
 use super::memory_estimation;
 use bincode::config::Options;
+use itertools::Itertools;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
@@ -41,6 +42,149 @@ pub enum EvictionStrategy {
 impl Default for EvictionStrategy {
     fn default() -> Self {
         EvictionStrategy::MaximumBytes(32 * MB)
+    }
+}
+
+pub struct SingleDiskMap<K, V>
+where
+    K: 'static + KeySerializer + Send + Sync,
+    for<'de> V: 'static + Serialize + Deserialize<'de> + Send + Sync,
+{
+    eviction_strategy: EvictionStrategy,
+    block_cache_capacity: usize,
+    c0: BTreeMap<Vec<u8>, Option<Vec<u8>>>,
+    disk_table: Option<Table>,
+    serialization: bincode::config::DefaultOptions,
+
+    est_sum_memory: usize,
+
+    phantom: std::marker::PhantomData<(K, V)>,
+}
+
+impl<K, V> SingleDiskMap<K, V>
+where
+    K: 'static + Clone + KeySerializer + Send + Sync + MallocSizeOf,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + Sync + MallocSizeOf,
+{
+    pub fn new(
+        persisted_file: Option<&Path>,
+        eviction_strategy: EvictionStrategy,
+        block_cache_capacity: usize,
+    ) -> Result<SingleDiskMap<K, V>> {
+        let mut disk_table = None;
+
+        if let Some(persisted_file) = persisted_file {
+            if persisted_file.is_file() {
+                // Use existing file as read-only table which contains the whole map
+                let table = Table::new_from_file(sstable::Options::default(), persisted_file)?;
+                disk_table = Some(table);
+            }
+        }
+
+        Ok(SingleDiskMap {
+            eviction_strategy,
+            block_cache_capacity,
+            c0: BTreeMap::default(),
+            disk_table,
+            serialization: bincode::options(),
+            est_sum_memory: 0,
+            phantom: std::marker::PhantomData,
+        })
+    }
+
+    pub fn new_temporary(
+        eviction_strategy: EvictionStrategy,
+        block_cache_capacity: usize,
+    ) -> SingleDiskMap<K, V> {
+        SingleDiskMap {
+            eviction_strategy,
+            block_cache_capacity,
+            c0: BTreeMap::default(),
+            disk_table: None,
+            serialization: bincode::options(),
+            est_sum_memory: 0,
+            phantom: std::marker::PhantomData,
+        }
+    }
+
+    pub fn insert(&mut self, key: K, value: V) -> Result<()> {
+        let binary_key = K::create_key(&key);
+
+        let mut mem_ops =
+            MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
+        let binary_key_size = binary_key.size_of(&mut mem_ops);
+
+        // Add memory size for inserted element
+        if let EvictionStrategy::MaximumBytes(_) = self.eviction_strategy {
+            self.est_sum_memory +=
+                std::mem::size_of::<(Vec<u8>, V)>() + binary_key_size + value.size_of(&mut mem_ops);
+        }
+
+        let value = self.serialization.serialize(&value)?;
+        let existing_c0_entry = self.c0.insert(binary_key.into_vec(), Some(value));
+        if let Some(existing) = &existing_c0_entry {
+            if let EvictionStrategy::MaximumBytes(_) = self.eviction_strategy {
+                // Subtract the memory size for the item that was removed
+                self.est_sum_memory -= std::mem::size_of::<(Vec<u8>, V)>()
+                    + binary_key_size
+                    + existing.size_of(&mut mem_ops);
+            }
+        }
+
+        self.evict_c0_if_necessary()?;
+
+        Ok(())
+    }
+
+    fn evict_c0_if_necessary(&mut self) -> Result<()> {
+        let evict_c0 = match self.eviction_strategy {
+            EvictionStrategy::MaximumItems(n) => self.c0.len() >= n,
+            EvictionStrategy::MaximumBytes(b) => self.est_sum_memory >= b,
+        };
+
+        if evict_c0 {
+            debug!("Evicting C0 and merging it with existing C1 to temporary file");
+            let out_file = tempfile::tempfile()?;
+
+            let mut builder = TableBuilder::new(self.custom_options(), &out_file);
+
+            if let Some(disk_table) = &self.disk_table {
+                let c0_iter: Box<dyn Iterator<Item = (Vec<u8>, Vec<u8>)>> = Box::new(
+                    self.c0
+                        .iter()
+                        .filter_map(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone()))),
+                );
+                let disk_iter: Box<dyn SSIterator> = Box::new(disk_table.iter());
+                for (key, value) in disk_iter.merge(c0_iter) {
+                    builder.add(&key, &value)?;
+                }
+            } else {
+                for (key, value) in self.c0.iter() {
+                    if value.is_some() {
+                        let key = key.create_key();
+                        builder.add(&key, &self.serialization.serialize(&value)?)?;
+                    }
+                }
+            }
+
+            builder.finish()?;
+
+            self.est_sum_memory = 0;
+            let size = out_file.metadata()?.len();
+            let table = Table::new(self.custom_options(), Box::new(out_file), size as usize)?;
+            self.disk_table = Some(table);
+
+            self.c0.clear();
+
+            debug!("Finished evicting C0");
+        }
+
+        Ok(())
+    }
+
+    fn custom_options(&self) -> sstable::Options {
+        let blocks = (self.block_cache_capacity / BLOCK_MAX_SIZE).max(1);
+        sstable::Options::default().with_cache_capacity(blocks)
     }
 }
 
