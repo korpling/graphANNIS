@@ -7,6 +7,7 @@ use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 
 use crate::serializer::KeyVec;
 use crate::{errors::Result, serializer::KeySerializer};
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::iter::{FusedIterator, Peekable};
 use std::ops::{Bound, RangeBounds};
@@ -136,6 +137,43 @@ where
         Ok(())
     }
 
+    pub fn get(&self, key: &K) -> Result<Option<V>> {
+        let key = K::create_key(key);
+        if let Some(value) = self.get_raw(&key)? {
+            let value: Option<V> = self.serialization.deserialize(&value)?;
+            Ok(value)
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.c0.clear();
+        self.disk_table = None;
+        self.est_sum_memory = 0;
+    }
+
+    fn get_raw(&self, key: &[u8]) -> Result<Option<Cow<Vec<u8>>>> {
+        // Check C0 first
+        if let Some(entry) = self.c0.get(key.as_ref()) {
+            if let Some(value) = entry {
+                return Ok(Some(Cow::Borrowed(value)));
+            } else {
+                // Value was explicitly deleted with a tombstone entry
+                //  do not query the disk tables
+                return Ok(None);
+            }
+        }
+        // Check the disk table
+        if let Some(table) = &self.disk_table {
+            if let Some(value) = table.get(key)? {
+                return Ok(Some(Cow::Owned(value)));
+            }
+        }
+
+        Ok(None)
+    }
+
     fn evict_c0_if_necessary(&mut self) -> Result<()> {
         let evict_c0 = match self.eviction_strategy {
             EvictionStrategy::MaximumItems(n) => self.c0.len() >= n,
@@ -169,12 +207,13 @@ where
 
             builder.finish()?;
 
+            self.c0.clear();
             self.est_sum_memory = 0;
+
+            // Load the new file as disk table
             let size = out_file.metadata()?.len();
             let table = Table::new(self.custom_options(), Box::new(out_file), size as usize)?;
             self.disk_table = Some(table);
-
-            self.c0.clear();
 
             debug!("Finished evicting C0");
         }
