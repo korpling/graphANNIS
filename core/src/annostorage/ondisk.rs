@@ -22,8 +22,8 @@ const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
 
 const KB: usize = 1 << 10;
 const MB: usize = KB * KB;
-// By having 4 tables instead of 32, we are saving 28 MB in block cache which we can add to the C0 size
-const EVICTION_STRATEGY: EvictionStrategy = EvictionStrategy::MaximumBytes(60 * MB);
+
+const EVICTION_STRATEGY: EvictionStrategy = EvictionStrategy::MaximumBytes(512 * MB);
 
 /// An on-disk implementation of an annotation storage.
 ///
