@@ -1,7 +1,7 @@
 //! Types used to describe updates on graphs.
 
-use crate::util::disk_collections::EvictionStrategy;
-use crate::{errors::Result, util::disk_collections::DiskMap};
+use crate::errors::Result;
+use crate::util::disk_collections::{EvictionStrategy, SingleDiskMap};
 use serde::de::Error as DeserializeError;
 use serde::de::{MapAccess, Visitor};
 use serde::ser::Error as SerializeError;
@@ -71,7 +71,7 @@ pub enum UpdateEvent {
 
 /// A list of changes to apply to an graph.
 pub struct GraphUpdate {
-    diffs: DiskMap<u64, UpdateEvent>,
+    diffs: SingleDiskMap<u64, UpdateEvent>,
     event_counter: u64,
 }
 
@@ -85,13 +85,7 @@ impl GraphUpdate {
     /// Create a new empty list of updates.
     pub fn new() -> GraphUpdate {
         GraphUpdate {
-            // Use a disk map that never compacts very rarely, has no cache size and allows 1 million items in C0
-            // We should not never compact, since a lot of Linux systems have a maximum number of 1024 file handles
-            // per process and each evicted disk map needs a file handle.
-            // By choosing 512 maximum items, we would use half of all available file handles, leaving
-            // the other half for all remaining disk maps that might be used and have a default number of 32 evicted
-            // disk maps.
-            diffs: DiskMap::new_temporary(EvictionStrategy::MaximumItems(1_000_000), Some(512), 0),
+            diffs: SingleDiskMap::new_temporary(EvictionStrategy::MaximumItems(1_000_000), 0),
             event_counter: 0,
         }
     }
@@ -111,7 +105,7 @@ impl GraphUpdate {
 
     /// Returns `true` if the update list is empty.
     pub fn is_empty(&self) -> Result<bool> {
-        self.diffs.try_is_empty()
+        self.diffs.is_empty()
     }
 }
 
@@ -124,7 +118,7 @@ impl<'a> GraphUpdateIterator<'a> {
     fn new(g: &'a GraphUpdate) -> Result<GraphUpdateIterator<'a>> {
         Ok(GraphUpdateIterator {
             length: g.event_counter,
-            diff_iter: g.diffs.try_iter()?,
+            diff_iter: g.diffs.iter()?,
         })
     }
 }

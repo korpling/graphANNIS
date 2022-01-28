@@ -214,6 +214,14 @@ where
         }
     }
 
+    pub fn is_empty(&self) -> Result<bool> {
+        if self.c0.is_empty() && self.disk_table.is_none() {
+            return Ok(true);
+        }
+        let mut it = self.iter()?;
+        Ok(it.next().is_none())
+    }
+
     pub fn clear(&mut self) {
         self.c0.clear();
         self.disk_table = None;
@@ -227,7 +235,7 @@ where
         };
 
         if evict_c0 {
-            debug!("Evicting C0 and merging it with existing C1 to temporary file");
+            debug!("Evicting C0 and merging it with existing C1 to a temporary file");
             let out_file = tempfile::tempfile()?;
 
             let mut builder = TableBuilder::new(self.custom_options(), &out_file);
