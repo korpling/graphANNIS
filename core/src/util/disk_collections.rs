@@ -164,7 +164,7 @@ where
                 };
                 Ok(Box::new(it))
             } else {
-                todo!()
+                Ok(Box::new(self.range(..)))
             }
         } else {
             // Create an iterator that skips the thombstone entries
@@ -210,7 +210,12 @@ where
                 ))
             }
         } else {
-            todo!()
+            // Return range iterator over all C0 entries, but skip the tombestone entries
+            let it = self
+                .c0
+                .range(range)
+                .filter_map(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone())));
+            Box::new(it)
         }
     }
 
