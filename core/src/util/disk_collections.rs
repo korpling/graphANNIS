@@ -48,23 +48,21 @@ impl Default for EvictionStrategy {
 
 pub struct SingleDiskMap<K, V>
 where
-    K: 'static + KeySerializer + Send + Sync,
+    K: 'static + KeySerializer + Send + Sync + Ord,
     for<'de> V: 'static + Serialize + Deserialize<'de> + Send + Sync,
 {
     eviction_strategy: EvictionStrategy,
     block_cache_capacity: usize,
-    c0: BTreeMap<Vec<u8>, Option<Vec<u8>>>,
+    c0: BTreeMap<K, Option<V>>,
     disk_table: Option<Table>,
     serialization: bincode::config::DefaultOptions,
 
     est_sum_memory: usize,
-
-    phantom: std::marker::PhantomData<(K, V)>,
 }
 
 impl<K, V> SingleDiskMap<K, V>
 where
-    K: 'static + Clone + KeySerializer + Send + Sync + MallocSizeOf,
+    K: 'static + Clone + KeySerializer + Send + Sync + MallocSizeOf + Ord,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + Sync + MallocSizeOf,
 {
     pub fn new(
@@ -89,7 +87,6 @@ where
             disk_table,
             serialization: bincode::options(),
             est_sum_memory: 0,
-            phantom: std::marker::PhantomData,
         })
     }
 
@@ -104,31 +101,26 @@ where
             disk_table: None,
             serialization: bincode::options(),
             est_sum_memory: 0,
-            phantom: std::marker::PhantomData,
         }
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Result<()> {
-        let binary_key = K::create_key(&key);
-
         let mut mem_ops =
             MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
-        let binary_key_size = binary_key.size_of(&mut mem_ops);
+        let key_size = key.size_of(&mut mem_ops);
 
         // Add memory size for inserted element
         if let EvictionStrategy::MaximumBytes(_) = self.eviction_strategy {
             self.est_sum_memory +=
-                std::mem::size_of::<(Vec<u8>, V)>() + binary_key_size + value.size_of(&mut mem_ops);
+                std::mem::size_of::<(Vec<u8>, V)>() + key_size + value.size_of(&mut mem_ops);
         }
 
-        let value = self.serialization.serialize(&value)?;
-        let existing_c0_entry = self.c0.insert(binary_key.into_vec(), Some(value));
+        let existing_c0_entry = self.c0.insert(key, Some(value));
         if let Some(existing) = &existing_c0_entry {
             if let EvictionStrategy::MaximumBytes(_) = self.eviction_strategy {
                 // Subtract the memory size for the item that was removed
-                self.est_sum_memory -= std::mem::size_of::<(Vec<u8>, V)>()
-                    + binary_key_size
-                    + existing.size_of(&mut mem_ops);
+                self.est_sum_memory -=
+                    std::mem::size_of::<(Vec<u8>, V)>() + key_size + existing.size_of(&mut mem_ops);
             }
         }
 
@@ -137,25 +129,9 @@ where
         Ok(())
     }
 
-    pub fn get(&self, key: &K) -> Result<Option<V>> {
-        let key = K::create_key(key);
-        if let Some(value) = self.get_raw(&key)? {
-            let value: Option<V> = self.serialization.deserialize(&value)?;
-            Ok(value)
-        } else {
-            Ok(None)
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.c0.clear();
-        self.disk_table = None;
-        self.est_sum_memory = 0;
-    }
-
-    fn get_raw(&self, key: &[u8]) -> Result<Option<Cow<Vec<u8>>>> {
+    pub fn get(&self, key: &K) -> Result<Option<Cow<V>>> {
         // Check C0 first
-        if let Some(entry) = self.c0.get(key.as_ref()) {
+        if let Some(entry) = self.c0.get(key) {
             if let Some(value) = entry {
                 return Ok(Some(Cow::Borrowed(value)));
             } else {
@@ -165,13 +141,21 @@ where
             }
         }
         // Check the disk table
+        let key = K::create_key(key);
         if let Some(table) = &self.disk_table {
-            if let Some(value) = table.get(key)? {
+            if let Some(value) = table.get(&key)? {
+                let value = self.serialization.deserialize(&value)?;
                 return Ok(Some(Cow::Owned(value)));
             }
         }
 
         Ok(None)
+    }
+
+    pub fn clear(&mut self) {
+        self.c0.clear();
+        self.disk_table = None;
+        self.est_sum_memory = 0;
     }
 
     fn evict_c0_if_necessary(&mut self) -> Result<()> {
@@ -187,13 +171,45 @@ where
             let mut builder = TableBuilder::new(self.custom_options(), &out_file);
 
             if let Some(disk_table) = &self.disk_table {
-                let c0_iter: Box<dyn Iterator<Item = (Vec<u8>, Vec<u8>)>> = Box::new(
-                    self.c0
-                        .iter()
-                        .filter_map(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone()))),
-                );
+                let c0_iter = self
+                    .c0
+                    .iter()
+                    .filter_map(|(k, v)| v.as_ref().map(|v| (k, v)))
+                    .map(|(k, v)| -> Result<(Vec<u8>, Vec<u8>)> {
+                        let k = K::create_key(k).into_vec();
+                        let v = self.serialization.serialize(v)?;
+                        Ok((k, v))
+                    });
                 let disk_iter: Box<dyn SSIterator> = Box::new(disk_table.iter());
-                for (key, value) in disk_iter.merge(c0_iter) {
+                for entry in disk_iter
+                    .map(|e| -> Result<(Vec<u8>, Vec<u8>)> { Ok(e) })
+                    .merge_by(c0_iter, |x, y| {
+                        // We need to return if x <= y.
+                        // Errors should always be sorted before other
+                        // values to catch them early in the loop
+                        if let Ok(x) = x {
+                            if let Ok(y) = y {
+                                // Compare the bot non-error values
+                                x <= y
+                            } else {
+                                // We know that x is ok, but y is an error, so
+                                // y < x is true. This is equivalent to x > y,
+                                // so x <= y must be false
+                                false
+                            }
+                        } else {
+                            if let Ok(_) = y {
+                                // x is an error, but y is not: sort x before y
+                                // because x <= y holds
+                                true
+                            } else {
+                                // Both values are errors, treat them as equal in this sort
+                                true
+                            }
+                        }
+                    })
+                {
+                    let (key, value) = entry?;
                     builder.add(&key, &value)?;
                 }
             } else {
