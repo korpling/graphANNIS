@@ -42,6 +42,8 @@ pub enum GraphAnnisCoreError {
     Xml(#[from] quick_xml::Error),
     #[error("Cache error: {0}")]
     LfuCache(String),
+    #[error("File to persist graph updates is missing.")]
+    GraphUpdatePersistanceFileMissing,
 }
 
 #[derive(Error, Debug)]

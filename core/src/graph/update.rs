@@ -1,11 +1,18 @@
 //! Types used to describe updates on graphs.
 
-use crate::errors::Result;
-use crate::util::disk_collections::{DiskMap, EvictionStrategy};
+use std::convert::TryInto;
+use std::fs::File;
+use std::sync::{Arc, Mutex};
+
+use crate::errors::{GraphAnnisCoreError, Result};
+use crate::serializer::KeySerializer;
+use bincode::Options;
 use serde::de::Error as DeserializeError;
 use serde::de::{MapAccess, Visitor};
 use serde::ser::Error as SerializeError;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use sstable::{SSIterator, Table, TableBuilder, TableIterator};
+use tempfile::NamedTempFile;
 
 /// Describes a single update on the graph.
 #[derive(Serialize, Deserialize, Clone, Debug, MallocSizeOf)]
@@ -69,10 +76,21 @@ pub enum UpdateEvent {
     },
 }
 
+enum ChangeSet {
+    InProgress {
+        table_builder: TableBuilder<File>,
+        outfile: NamedTempFile,
+    },
+    Finished {
+        table: Table,
+    },
+}
+
 /// A list of changes to apply to an graph.
 pub struct GraphUpdate {
-    diffs: DiskMap<u64, UpdateEvent>,
+    changesets: Arc<Mutex<Vec<ChangeSet>>>,
     event_counter: u64,
+    serialization: bincode::config::DefaultOptions,
 }
 
 impl Default for GraphUpdate {
@@ -85,15 +103,24 @@ impl GraphUpdate {
     /// Create a new empty list of updates.
     pub fn new() -> GraphUpdate {
         GraphUpdate {
-            diffs: DiskMap::new_temporary(EvictionStrategy::MaximumItems(1_000_000), 0),
             event_counter: 0,
+            changesets: Arc::new(Mutex::new(Vec::new())),
+            serialization: bincode::options(),
         }
     }
 
     /// Add the given event to the update list.
     pub fn add_event(&mut self, event: UpdateEvent) -> Result<()> {
-        self.event_counter += 1;
-        self.diffs.insert(self.event_counter, event)?;
+        let new_event_counter = self.event_counter + 1;
+        let key = new_event_counter.create_key();
+        let value = self.serialization.serialize(&event)?;
+        let mut changeset = self.changesets.lock().expect("Lock poisining");
+        if let ChangeSet::InProgress { table_builder, .. } =
+            current_inprogress_changeset(&mut changeset)?
+        {
+            table_builder.add(&key, &value)?;
+            self.event_counter = new_event_counter;
+        }
         Ok(())
     }
 
@@ -105,33 +132,125 @@ impl GraphUpdate {
 
     /// Returns `true` if the update list is empty.
     pub fn is_empty(&self) -> Result<bool> {
-        self.diffs.is_empty()
+        Ok(self.event_counter == 0)
     }
 }
 
-pub struct GraphUpdateIterator<'a> {
-    diff_iter: Box<dyn Iterator<Item = (u64, UpdateEvent)> + 'a>,
-    length: u64,
+fn finish_all_changesets(changesets: &mut Vec<ChangeSet>) -> Result<()> {
+    // Remove all changesets from the vector and finish them
+    let finished: Result<Vec<ChangeSet>> = changesets
+        .drain(..)
+        .map(|c| match c {
+            ChangeSet::InProgress {
+                table_builder,
+                outfile,
+            } => {
+                table_builder.finish()?;
+                // Re-open as table
+                let file = outfile.reopen()?;
+                let size = file.metadata()?.len();
+                let table = Table::new(sstable::Options::default(), Box::new(file), size as usize)?;
+                Ok(ChangeSet::Finished { table })
+            }
+            ChangeSet::Finished { table } => Ok(ChangeSet::Finished {
+                table: table.clone(),
+            }),
+        })
+        .collect();
+    // Re-add the finished changesets
+    changesets.extend(finished?);
+
+    Ok(())
 }
 
-impl<'a> GraphUpdateIterator<'a> {
-    fn new(g: &'a GraphUpdate) -> Result<GraphUpdateIterator<'a>> {
+fn current_inprogress_changeset(changesets: &mut Vec<ChangeSet>) -> Result<&mut ChangeSet> {
+    let needs_new_changeset = if let Some(c) = changesets.last_mut() {
+        match c {
+            ChangeSet::InProgress { .. } => false,
+            ChangeSet::Finished { .. } => true,
+        }
+    } else {
+        true
+    };
+
+    if needs_new_changeset {
+        // Create a new changeset
+        let outfile = NamedTempFile::new()?;
+        let table_builder = TableBuilder::new(sstable::Options::default(), outfile.reopen()?);
+        let c = ChangeSet::InProgress {
+            table_builder,
+            outfile,
+        };
+        changesets.push(c);
+    }
+
+    // Get the last changeset, which must be in the InProgress state
+    changesets
+        .last_mut()
+        .ok_or_else(|| GraphAnnisCoreError::GraphUpdatePersistanceFileMissing)
+}
+
+pub struct GraphUpdateIterator {
+    iterators: Vec<TableIterator>,
+    size_hint: u64,
+    serialization: bincode::config::DefaultOptions,
+}
+
+impl GraphUpdateIterator {
+    fn new(g: &GraphUpdate) -> Result<GraphUpdateIterator> {
+        let mut changesets = g.changesets.lock().expect("Lock poisining");
+
+        finish_all_changesets(&mut &mut changesets)?;
+
+        let iterators: Vec<_> = changesets
+            .iter()
+            .filter_map(|c| match c {
+                ChangeSet::InProgress { .. } => None,
+                ChangeSet::Finished { table } => {
+                    let mut it = table.iter();
+                    it.seek_to_first();
+                    Some(it)
+                }
+            })
+            .collect();
         Ok(GraphUpdateIterator {
-            length: g.event_counter,
-            diff_iter: g.diffs.iter()?,
+            size_hint: g.event_counter,
+            iterators,
+            serialization: g.serialization.clone(),
         })
     }
 }
 
-impl<'a> std::iter::Iterator for GraphUpdateIterator<'a> {
+impl std::iter::Iterator for GraphUpdateIterator {
     type Item = (u64, UpdateEvent);
 
     fn next(&mut self) -> Option<(u64, UpdateEvent)> {
-        self.diff_iter.next()
+        // Remove all empty table iterators.
+        self.iterators.retain(|it| it.valid());
+
+        if let Some(it) = self.iterators.first_mut() {
+            // Get the current values
+            if let Some((key, value)) = sstable::current_key_val(it) {
+                // Create the actual types
+                let id = u64::parse_key(&key);
+                let event: UpdateEvent = self
+                    .serialization
+                    .deserialize(&value)
+                    .expect("Could not decode previously written data from disk.");
+                return Some((id, event));
+            }
+            // Advance for next iteration
+            it.advance();
+        }
+        None
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.length as usize, Some(self.length as usize))
+        if let Ok(s) = self.size_hint.try_into() {
+            (s, Some(s))
+        } else {
+            (0, None)
+        }
     }
 }
 
@@ -158,12 +277,36 @@ impl<'de> Visitor<'de> for GraphUpdateVisitor {
     where
         M: MapAccess<'de>,
     {
-        let mut g = GraphUpdate::default();
+        let serialization = bincode::options();
+        let outfile = NamedTempFile::new().map_err(M::Error::custom)?;
+        let mut table_builder = TableBuilder::new(
+            sstable::Options::default(),
+            outfile.reopen().map_err(M::Error::custom)?,
+        );
 
-        while let Some((key, value)) = access.next_entry().map_err(M::Error::custom)? {
-            g.diffs.insert(key, value).map_err(M::Error::custom)?;
-            g.event_counter = key;
+        let mut event_counter = 0;
+
+        while let Some((id, event)) = access
+            .next_entry::<u64, GraphUpdate>()
+            .map_err(M::Error::custom)?
+        {
+            event_counter = id;
+            let key = id.create_key();
+            let value = serialization.serialize(&event).map_err(M::Error::custom)?;
+            table_builder.add(&key, &value).map_err(M::Error::custom)?
         }
+
+        let c = ChangeSet::InProgress {
+            outfile,
+            table_builder,
+        };
+        let mut changesets = vec![c];
+        finish_all_changesets(&mut &mut changesets).map_err(M::Error::custom)?;
+        let g = GraphUpdate {
+            changesets: Arc::new(Mutex::new(changesets)),
+            event_counter,
+            serialization,
+        };
 
         Ok(g)
     }
