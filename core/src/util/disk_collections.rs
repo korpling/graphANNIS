@@ -10,6 +10,7 @@ use crate::{errors::Result, serializer::KeySerializer};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::iter::{FusedIterator, Peekable};
+use std::marker::PhantomData;
 use std::ops::{Bound, RangeBounds};
 use std::path::Path;
 
@@ -152,6 +153,67 @@ where
         Ok(None)
     }
 
+    pub fn iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = (K, V)> + 'a>> {
+        if let Some(disk_table) = &self.disk_table {
+            if self.c0.is_empty() {
+                let table_iterator = disk_table.iter();
+                let it = SingleTableIterator {
+                    table_iterator,
+                    serialization: self.serialization,
+                    phantom: PhantomData,
+                };
+                Ok(Box::new(it))
+            } else {
+                todo!()
+            }
+        } else {
+            // Create an iterator that skips the thombstone entries
+            let it = self
+                .c0
+                .iter()
+                .filter_map(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone())));
+            Ok(Box::new(it))
+        }
+    }
+
+    /// Returns an iterator over a range of entries.
+    pub fn range<'a, R>(&'a self, range: R) -> Box<dyn Iterator<Item = (K, V)> + 'a>
+    where
+        R: RangeBounds<K> + Clone,
+    {
+        if let Some(disk_table) = &self.disk_table {
+            if self.c0.is_empty() {
+                let mapped_start_bound: std::ops::Bound<KeyVec> = match range.start_bound() {
+                    Bound::Included(end) => Bound::Included(K::create_key(end)),
+                    Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
+                    Bound::Unbounded => Bound::Unbounded,
+                };
+
+                let mapped_end_bound: std::ops::Bound<KeyVec> = match range.end_bound() {
+                    Bound::Included(end) => Bound::Included(K::create_key(end)),
+                    Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
+                    Bound::Unbounded => Bound::Unbounded,
+                };
+
+                Box::new(SimplifiedRange::new(
+                    mapped_start_bound,
+                    mapped_end_bound,
+                    disk_table,
+                    self.serialization,
+                ))
+            } else {
+                Box::new(CombinedRange::new(
+                    range,
+                    disk_table,
+                    &self.c0,
+                    self.serialization,
+                ))
+            }
+        } else {
+            todo!()
+        }
+    }
+
     pub fn clear(&mut self) {
         self.c0.clear();
         self.disk_table = None;
@@ -240,6 +302,142 @@ where
     fn custom_options(&self) -> sstable::Options {
         let blocks = (self.block_cache_capacity / BLOCK_MAX_SIZE).max(1);
         sstable::Options::default().with_cache_capacity(blocks)
+    }
+}
+
+/// Implements an optimized iterator a single disk table.
+struct SingleTableIterator<K, V> {
+    table_iterator: TableIterator,
+    serialization: bincode::config::DefaultOptions,
+    phantom: std::marker::PhantomData<(K, V)>,
+}
+
+impl<K, V> Iterator for SingleTableIterator<K, V>
+where
+    for<'de> K: 'static + Clone + KeySerializer + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+{
+    type Item = (K, V);
+    fn next(&mut self) -> Option<(K, V)> {
+        if let Some((key, value)) = self.table_iterator.next() {
+            let key = K::parse_key(&key);
+            let value: V = self
+                .serialization
+                .deserialize(&value)
+                .expect("Could not decode previously written data from disk.");
+            Some((key, value))
+        } else {
+            None
+        }
+    }
+}
+
+impl<K, V> FusedIterator for SingleTableIterator<K, V>
+where
+    for<'de> K: 'static + Clone + KeySerializer + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+{
+}
+
+pub struct CombinedRange<'a, K, V>
+where
+    for<'de> K: 'static + Clone + KeySerializer + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+{
+    c0_range_iterator: Peekable<std::collections::btree_map::Range<'a, K, Option<V>>>,
+    table_iterator: Peekable<SimplifiedRange<K, V>>,
+}
+
+impl<'a, K, V> CombinedRange<'a, K, V>
+where
+    for<'de> K: 'static + Clone + KeySerializer + Send + Ord,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+{
+    fn new<R: RangeBounds<K>>(
+        range: R,
+        disk_table: &Table,
+        c0: &'a BTreeMap<K, Option<V>>,
+        serialization: bincode::config::DefaultOptions,
+    ) -> CombinedRange<'a, K, V> {
+        let table_start_bound = match range.start_bound() {
+            Bound::Included(end) => Bound::Included(K::create_key(&end)),
+            Bound::Excluded(end) => Bound::Excluded(K::create_key(&end)),
+            Bound::Unbounded => Bound::Unbounded,
+        };
+
+        let table_end_bound: std::ops::Bound<KeyVec> = match range.end_bound() {
+            Bound::Included(end) => Bound::Included(K::create_key(&end)),
+            Bound::Excluded(end) => Bound::Excluded(K::create_key(&end)),
+            Bound::Unbounded => Bound::Unbounded,
+        };
+
+        let table_iterator = SimplifiedRange::new(
+            table_start_bound,
+            table_end_bound,
+            disk_table,
+            serialization,
+        )
+        .peekable();
+
+        CombinedRange {
+            c0_range_iterator: c0.range(range).peekable(),
+            table_iterator,
+        }
+    }
+}
+
+impl<'a, K, V> Iterator for CombinedRange<'a, K, V>
+where
+    K: Ord,
+    for<'de> K: 'static + Clone + KeySerializer + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+{
+    type Item = (K, V);
+
+    fn next(&mut self) -> Option<(K, V)> {
+        while self.c0_range_iterator.peek().is_some() || self.table_iterator.peek().is_some() {
+            let c0 = self.c0_range_iterator.peek();
+            let table = self.table_iterator.peek();
+
+            if let (Some(c0), Some(table)) = (c0, table) {
+                // Test which one is smaller and output the smaller one
+                // Additional checks are needed when the keys are the same, e.g.
+                // because a deletion was marked in C0, but the key still exists in C1
+                match c0.0.cmp(&table.0) {
+                    std::cmp::Ordering::Less => {
+                        if let Some((key, value)) = self.c0_range_iterator.next() {
+                            // Only output C0, if it is not explictily deleted
+                            if let Some(value) = value {
+                                return Some((key.clone(), value.clone()));
+                            }
+                        }
+                    }
+                    std::cmp::Ordering::Greater => {
+                        if let Some(item) = self.table_iterator.next() {
+                            return Some(item);
+                        }
+                    }
+                    std::cmp::Ordering::Equal => {
+                        // Advance both iterators, but only output the result from C0
+                        self.table_iterator.next();
+                        if let Some((key, value)) = self.c0_range_iterator.next() {
+                            // Only output C0, if it is not explictily deleted
+                            if let Some(value) = value {
+                                return Some((key.clone(), value.clone()));
+                            }
+                        }
+                    }
+                }
+            } else if let Some((key, value)) = self.c0_range_iterator.next() {
+                // Only output C0, if it is not explictily deleted
+                if let Some(value) = value {
+                    return Some((key.clone(), value.clone()));
+                }
+            } else if let Some(item) = self.table_iterator.next() {
+                return Some(item);
+            }
+        }
+        None
     }
 }
 
@@ -607,7 +805,7 @@ where
     pub fn try_iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = (K, V)> + 'a>> {
         if self.unchanged_from_disk && self.disk_tables.len() == 1 {
             // Directly return an iterator over the one single disk table
-            let it = SingleDiskTableIteator {
+            let it = SingleOptionalValueTableIterator {
                 table_iterator: self.disk_tables[0].iter(),
                 serialization: self.serialization,
                 phantom: std::marker::PhantomData,
@@ -1215,13 +1413,13 @@ where
 }
 
 /// Implements an optimized iterator a single disk table.
-struct SingleDiskTableIteator<K, V> {
+struct SingleOptionalValueTableIterator<K, V> {
     table_iterator: TableIterator,
     serialization: bincode::config::DefaultOptions,
     phantom: std::marker::PhantomData<(K, V)>,
 }
 
-impl<K, V> Iterator for SingleDiskTableIteator<K, V>
+impl<K, V> Iterator for SingleOptionalValueTableIterator<K, V>
 where
     for<'de> K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
@@ -1245,7 +1443,7 @@ where
     }
 }
 
-impl<K, V> FusedIterator for SingleDiskTableIteator<K, V>
+impl<K, V> FusedIterator for SingleOptionalValueTableIterator<K, V>
 where
     for<'de> K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
