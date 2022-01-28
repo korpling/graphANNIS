@@ -2,7 +2,7 @@
 
 use std::convert::TryInto;
 use std::fs::File;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use crate::errors::{GraphAnnisCoreError, Result};
 use crate::serializer::KeySerializer;
@@ -88,7 +88,7 @@ enum ChangeSet {
 
 /// A list of changes to apply to an graph.
 pub struct GraphUpdate {
-    changesets: Arc<Mutex<Vec<ChangeSet>>>,
+    changesets: Mutex<Vec<ChangeSet>>,
     event_counter: u64,
     serialization: bincode::config::DefaultOptions,
 }
@@ -104,7 +104,7 @@ impl GraphUpdate {
     pub fn new() -> GraphUpdate {
         GraphUpdate {
             event_counter: 0,
-            changesets: Arc::new(Mutex::new(Vec::new())),
+            changesets: Mutex::new(Vec::new()),
             serialization: bincode::options(),
         }
     }
@@ -304,7 +304,7 @@ impl<'de> Visitor<'de> for GraphUpdateVisitor {
         let mut changesets = vec![c];
         finish_all_changesets(&mut &mut changesets).map_err(M::Error::custom)?;
         let g = GraphUpdate {
-            changesets: Arc::new(Mutex::new(changesets)),
+            changesets: Mutex::new(changesets),
             event_counter,
             serialization,
         };
