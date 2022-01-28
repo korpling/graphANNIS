@@ -4,16 +4,31 @@ use crate::{
     annostorage::ondisk::AnnoStorageImpl,
     dfs::CycleSafeDFS,
     errors::Result,
-    util::disk_collections::{
-        DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY, DEFAULT_MAX_NUMBER_OF_TABLES,
-    },
+    util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
 };
 use itertools::Itertools;
 use rustc_hash::FxHashSet;
 use std::collections::BTreeSet;
 use std::ops::Bound;
 
-pub const SERIALIZATION_ID: &str = "DiskAdjacencyListV1";
+pub const SERIALIZATION_ID: &str = "DiskAdjacencyListV2";
+
+/// Repeatedly call the given function and get the result, or panic if the error is permanent.
+fn get_or_panic<F, R>(f: F) -> R
+where
+    F: Fn() -> Result<R>,
+{
+    let mut last_err = None;
+    for _ in 0..5 {
+        match f() {
+            Ok(result) => return result,
+            Err(e) => last_err = Some(e),
+        }
+        // In case this is an intermediate error, wait some time before trying again
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    }
+    panic!("Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.\nCause:\n{:?}", last_err.unwrap())
+}
 
 #[derive(MallocSizeOf)]
 pub struct DiskAdjacencyListStorage {
@@ -27,8 +42,9 @@ pub struct DiskAdjacencyListStorage {
 
 fn get_fan_outs(edges: &DiskMap<Edge, bool>) -> Vec<usize> {
     let mut fan_outs: Vec<usize> = Vec::new();
-    if !edges.is_empty() {
-        for (_, targets) in &edges.iter().group_by(|(e, _)| e.source) {
+    if !get_or_panic(|| edges.is_empty()) {
+        let it = get_or_panic(|| edges.iter());
+        for (_, targets) in &it.group_by(|(e, _)| e.source) {
             fan_outs.push(targets.count());
         }
     }
@@ -102,7 +118,9 @@ impl EdgeContainer for DiskAdjacencyListStorage {
         )
     }
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        let it = self.edges.iter().map(|(e, _)| e.source).unique();
+        let it = get_or_panic(|| self.edges.iter())
+            .map(|(e, _)| e.source)
+            .unique();
 
         Box::new(it)
     }
@@ -135,13 +153,11 @@ impl GraphStorage for DiskAdjacencyListStorage {
             edges: DiskMap::new(
                 Some(&location.join("edges.bin")),
                 EvictionStrategy::default(),
-                Some(DEFAULT_MAX_NUMBER_OF_TABLES),
                 DEFAULT_BLOCK_CACHE_CAPACITY,
             )?,
             inverse_edges: DiskMap::new(
                 Some(&location.join("inverse_edges.bin")),
                 EvictionStrategy::default(),
-                Some(DEFAULT_MAX_NUMBER_OF_TABLES),
                 DEFAULT_BLOCK_CACHE_CAPACITY,
             )?,
             annos: AnnoStorageImpl::new(Some(
@@ -274,7 +290,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
     }
 
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) -> Result<()> {
-        if self.edges.get(&edge).is_some() {
+        if self.edges.get(&edge)?.is_some() {
             self.annos.insert(edge, anno)?;
         }
         Ok(())
@@ -341,7 +357,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         let mut roots: BTreeSet<NodeID> = BTreeSet::new();
         {
             let mut all_nodes: BTreeSet<NodeID> = BTreeSet::new();
-            for (e, _) in self.edges.iter() {
+            for (e, _) in get_or_panic(|| self.edges.iter()) {
                 roots.insert(e.source);
                 all_nodes.insert(e.source);
                 all_nodes.insert(e.target);
@@ -357,8 +373,10 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
             stats.nodes = all_nodes.len();
         }
 
-        if !self.edges.is_empty() {
-            for (e, _) in self.edges.iter() {
+        let edges_empty = get_or_panic(|| self.edges.is_empty());
+
+        if !edges_empty {
+            for (e, _) in get_or_panic(|| self.edges.iter()) {
                 roots.remove(&e.target);
             }
         }
@@ -394,7 +412,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         }
 
         let mut number_of_visits = 0;
-        if roots.is_empty() && !self.edges.is_empty() {
+        if roots.is_empty() && !edges_empty {
             // if we have edges but no roots at all there must be a cycle
             stats.cyclic = true;
         } else {

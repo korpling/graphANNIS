@@ -104,8 +104,8 @@ impl AQLUpdateGraphIndex {
         node_name: Cow<String>,
         graph: &AnnotationGraph,
     ) -> std::result::Result<NodeID, ComponentTypeError> {
-        if let Some(id) = self.node_ids.try_get(&node_name)? {
-            return Ok(id);
+        if let Some(id) = self.node_ids.get(&node_name)? {
+            return Ok(*id);
         } else if let Some(id) = graph.get_node_id_from_name(&node_name) {
             self.node_ids.insert(node_name.to_string(), id)?;
             return Ok(id);
@@ -169,17 +169,17 @@ impl AQLUpdateGraphIndex {
             gs_cov.clear()?;
         } else {
             // Remove existing left/right token edges for the invalidated nodes only
-            for (n, _) in self.invalid_nodes.iter() {
+            for (n, _) in self.invalid_nodes.iter()? {
                 gs_left.delete_node(n)?;
             }
 
             let gs_right = graph.get_or_create_writable(&component_right)?;
-            for (n, _) in self.invalid_nodes.iter() {
+            for (n, _) in self.invalid_nodes.iter()? {
                 gs_right.delete_node(n)?;
             }
 
             let gs_cov = graph.get_or_create_writable(&component_cov)?;
-            for (n, _) in self.invalid_nodes.iter() {
+            for (n, _) in self.invalid_nodes.iter()? {
                 gs_cov.delete_node(n)?;
             }
         }
@@ -202,7 +202,7 @@ impl AQLUpdateGraphIndex {
             .collect();
 
         // go over each node and calculate the left-most and right-most token
-        for (n, _) in self.invalid_nodes.iter() {
+        for (n, _) in self.invalid_nodes.iter()? {
             let covered_token = self.calculate_inherited_coverage_edges(
                 graph,
                 n,
@@ -389,7 +389,6 @@ impl ComponentType for AnnotationComponentType {
         let node_ids = DiskMap::new(
             None,
             EvictionStrategy::MaximumItems(1_000_000),
-            Some(1),
             DEFAULT_BLOCK_CACHE_CAPACITY,
         )?;
 
@@ -400,7 +399,6 @@ impl ComponentType for AnnotationComponentType {
         let invalid_nodes: DiskMap<NodeID, bool> = DiskMap::new(
             None,
             EvictionStrategy::MaximumItems(1_000_000),
-            Some(1),
             DEFAULT_BLOCK_CACHE_CAPACITY,
         )?;
 
@@ -427,7 +425,7 @@ impl ComponentType for AnnotationComponentType {
                 if !index.graph_without_nodes {
                     let existing_node_id =
                         index.get_cached_node_id_from_name(Cow::Borrowed(node_name), graph)?;
-                    if !index.invalid_nodes.contains_key(&existing_node_id) {
+                    if !index.invalid_nodes.contains_key(&existing_node_id)? {
                         index.calculate_invalidated_nodes_by_coverage(graph, existing_node_id)?;
                     }
                 }

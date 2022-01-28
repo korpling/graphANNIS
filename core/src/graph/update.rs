@@ -1,7 +1,7 @@
 //! Types used to describe updates on graphs.
 
 use crate::errors::Result;
-use crate::util::disk_collections::{EvictionStrategy, SingleDiskMap};
+use crate::util::disk_collections::{DiskMap, EvictionStrategy};
 use serde::de::Error as DeserializeError;
 use serde::de::{MapAccess, Visitor};
 use serde::ser::Error as SerializeError;
@@ -71,7 +71,7 @@ pub enum UpdateEvent {
 
 /// A list of changes to apply to an graph.
 pub struct GraphUpdate {
-    diffs: SingleDiskMap<u64, UpdateEvent>,
+    diffs: DiskMap<u64, UpdateEvent>,
     event_counter: u64,
 }
 
@@ -85,7 +85,7 @@ impl GraphUpdate {
     /// Create a new empty list of updates.
     pub fn new() -> GraphUpdate {
         GraphUpdate {
-            diffs: SingleDiskMap::new_temporary(EvictionStrategy::MaximumItems(1_000_000), 0),
+            diffs: DiskMap::new_temporary(EvictionStrategy::MaximumItems(1_000_000), 0),
             event_counter: 0,
         }
     }
