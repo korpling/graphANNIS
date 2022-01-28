@@ -342,7 +342,7 @@ where
 
 impl<K, V> FusedIterator for SingleTableIterator<K, V>
 where
-    for<'de> K: 'static + Clone + KeySerializer + Send,
+    K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
 }
@@ -447,6 +447,13 @@ where
         }
         None
     }
+}
+
+impl<'a, K, V> FusedIterator for CombinedRange<'a, K, V>
+where
+    K: 'static + Ord + Clone + KeySerializer + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+{
 }
 
 pub struct DiskMap<K, V>
@@ -1420,6 +1427,13 @@ where
     }
 }
 
+impl<K, V> FusedIterator for SimplifiedRange<K, V>
+where
+    K: 'static + Clone + KeySerializer + Send,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+{
+}
+
 /// Implements an optimized iterator a single disk table.
 struct SingleOptionalValueTableIterator<K, V> {
     table_iterator: TableIterator,
@@ -1453,7 +1467,7 @@ where
 
 impl<K, V> FusedIterator for SingleOptionalValueTableIterator<K, V>
 where
-    for<'de> K: 'static + Clone + KeySerializer + Send,
+    K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
 }
