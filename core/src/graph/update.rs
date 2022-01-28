@@ -200,7 +200,7 @@ impl GraphUpdateIterator {
     fn new(g: &GraphUpdate) -> Result<GraphUpdateIterator> {
         let mut changesets = g.changesets.lock().expect("Lock poisining");
 
-        finish_all_changesets(&mut &mut changesets)?;
+        finish_all_changesets(&mut changesets)?;
 
         let iterators: Vec<_> = changesets
             .iter()
