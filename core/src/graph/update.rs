@@ -237,10 +237,11 @@ impl std::iter::Iterator for GraphUpdateIterator {
                     .serialization
                     .deserialize(&value)
                     .expect("Could not decode previously written data from disk.");
+
+                // Advance for next iteration
+                it.advance();
                 return Some((id, event));
             }
-            // Advance for next iteration
-            it.advance();
         }
         None
     }
