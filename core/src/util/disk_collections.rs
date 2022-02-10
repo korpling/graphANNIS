@@ -263,6 +263,7 @@ where
                     range,
                     disk_table,
                     &self.c0,
+                    self.c1.as_ref(),
                     self.serialization,
                 ))
             }
@@ -395,18 +396,20 @@ where
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
     c0_range_iterator: Peekable<std::collections::btree_map::Range<'a, K, Option<V>>>,
+    c1_range_iterator: Peekable<Box<dyn Iterator<Item = (K, V)> + 'a>>,
     table_iterator: Peekable<SimplifiedRange<K, V>>,
 }
 
 impl<'a, K, V> CombinedRange<'a, K, V>
 where
-    for<'de> K: 'static + Clone + KeySerializer + Send + Ord,
+    for<'de> K: 'static + Clone + KeySerializer + Serialize + Deserialize<'de> + Send + Ord,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
-    fn new<R: RangeBounds<K>>(
+    fn new<R: RangeBounds<K> + Clone>(
         range: R,
         disk_table: &Table,
         c0: &'a BTreeMap<K, Option<V>>,
+        c1: Option<&'a BtreeIndex<K, V>>,
         serialization: bincode::config::DefaultOptions,
     ) -> CombinedRange<'a, K, V> {
         let table_start_bound = match range.start_bound() {
@@ -429,8 +432,21 @@ where
         )
         .peekable();
 
+        let c1_iterator: Box<dyn Iterator<Item = (K, V)>> = if let Some(c1) = c1 {
+            if let Ok(it) = c1.range(range.clone()) {
+                // TODO: add error handling
+                Box::new(it.filter_map(|e| e.ok()))
+            } else {
+                // TODO: add error handling
+                Box::new(std::iter::empty())
+            }
+        } else {
+            Box::new(std::iter::empty())
+        };
+
         CombinedRange {
             c0_range_iterator: c0.range(range).peekable(),
+            c1_range_iterator: c1_iterator.peekable(),
             table_iterator,
         }
     }
