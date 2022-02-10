@@ -173,7 +173,7 @@ impl KeySerializer for TextProperty {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, MallocSizeOf, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, Hash, MallocSizeOf, PartialOrd, Ord, Serialize, Deserialize)]
 struct TextKey {
     id: u32,
     corpus_ref: Option<u32>,
@@ -210,7 +210,7 @@ impl KeySerializer for TextKey {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, MallocSizeOf)]
+#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, MallocSizeOf, Serialize, Deserialize)]
 struct NodeByTextEntry {
     text_id: u32,
     corpus_ref: u32,

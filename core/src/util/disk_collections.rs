@@ -2,8 +2,10 @@ use super::memory_estimation;
 use bincode::config::Options;
 use itertools::Itertools;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
+use transient_btree_index::BtreeIndex;
 
 use crate::serializer::KeyVec;
 use crate::{errors::Result, serializer::KeySerializer};
@@ -47,12 +49,13 @@ impl Default for EvictionStrategy {
 
 pub struct DiskMap<K, V>
 where
-    K: 'static + KeySerializer + Send + Sync + Ord,
-    for<'de> V: 'static + Serialize + Deserialize<'de> + Send + Sync,
+    K: 'static + KeySerializer + Serialize + DeserializeOwned + Clone + Send + Sync + Ord,
+    for<'de> V: 'static + Serialize + Deserialize<'de> + Clone + Send + Sync,
 {
     eviction_strategy: EvictionStrategy,
     block_cache_capacity: usize,
     c0: BTreeMap<K, Option<V>>,
+    c1: Option<BtreeIndex<K, V>>,
     disk_table: Option<Table>,
     serialization: bincode::config::DefaultOptions,
 
@@ -61,7 +64,15 @@ where
 
 impl<K, V> DiskMap<K, V>
 where
-    K: 'static + Clone + KeySerializer + Send + Sync + MallocSizeOf + Ord,
+    K: 'static
+        + Clone
+        + KeySerializer
+        + Serialize
+        + DeserializeOwned
+        + Send
+        + Sync
+        + MallocSizeOf
+        + Ord,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + Sync + MallocSizeOf,
 {
     pub fn new(
@@ -86,6 +97,7 @@ where
             disk_table,
             serialization: bincode::options(),
             est_sum_memory: 0,
+            c1: None,
         })
     }
 
@@ -100,6 +112,7 @@ where
             disk_table: None,
             serialization: bincode::options(),
             est_sum_memory: 0,
+            c1: None,
         }
     }
 
@@ -528,14 +541,22 @@ where
 
 impl<'a, K, V> FusedIterator for CombinedRange<'a, K, V>
 where
-    K: 'static + Ord + Clone + KeySerializer + Send,
+    K: 'static + Ord + Clone + KeySerializer + Serialize + DeserializeOwned + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
 }
 
 impl<K, V> Default for DiskMap<K, V>
 where
-    K: 'static + Ord + Clone + KeySerializer + Send + Sync + MallocSizeOf,
+    K: 'static
+        + Ord
+        + Clone
+        + KeySerializer
+        + Serialize
+        + DeserializeOwned
+        + Send
+        + Sync
+        + MallocSizeOf,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + Sync + MallocSizeOf,
 {
     fn default() -> Self {
