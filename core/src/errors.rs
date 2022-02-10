@@ -44,6 +44,8 @@ pub enum GraphAnnisCoreError {
     LfuCache(String),
     #[error("File to persist graph updates is missing.")]
     GraphUpdatePersistanceFileMissing,
+    #[error(transparent)]
+    BtreeIndex(#[from] transient_btree_index::Error),
 }
 
 #[derive(Error, Debug)]

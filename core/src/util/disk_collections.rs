@@ -1,11 +1,10 @@
 use super::memory_estimation;
 use bincode::config::Options;
-use itertools::Itertools;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
-use transient_btree_index::BtreeIndex;
+use transient_btree_index::{BtreeConfig, BtreeIndex};
 
 use crate::serializer::KeyVec;
 use crate::{errors::Result, serializer::KeySerializer};
@@ -315,70 +314,23 @@ where
     /// Compact the existing disk tables and the in-memory table to a single temporary disk table.
     pub fn compact(&mut self) -> Result<()> {
         debug!("Evicting C0 and merging it with existing C1 to a temporary file");
-        let out_file = tempfile::tempfile()?;
 
-        let mut builder = TableBuilder::new(self.custom_options(), &out_file);
+        if self.c1.is_none() {
+            let c1 = BtreeIndex::with_capacity(BtreeConfig::default(), self.c0.len())?;
+            self.c1 = Some(c1);
+        }
 
-        if let Some(disk_table) = &self.disk_table {
-            let c0_iter = self
-                .c0
-                .iter()
-                .filter_map(|(k, v)| v.as_ref().map(|v| (k, v)))
-                .map(|(k, v)| -> Result<(Vec<u8>, Vec<u8>)> {
-                    let k = K::create_key(k).into_vec();
-                    let v = self.serialization.serialize(v)?;
-                    Ok((k, v))
-                });
-            let disk_iter: Box<dyn SSIterator> = Box::new(disk_table.iter());
-            for entry in disk_iter
-                .map(|e| -> Result<(Vec<u8>, Vec<u8>)> { Ok(e) })
-                .merge_by(c0_iter, |x, y| {
-                    // We need to return if x <= y.
-                    // Errors should always be sorted before other
-                    // values to catch them early in the loop
-                    if let Ok(x) = x {
-                        if let Ok(y) = y {
-                            // Compare the bot non-error values
-                            x <= y
-                        } else {
-                            // We know that x is ok, but y is an error, so
-                            // y < x is true. This is equivalent to x > y,
-                            // so x <= y must be false
-                            false
-                        }
-                    } else {
-                        if let Ok(_) = y {
-                            // x is an error, but y is not: sort x before y
-                            // because x <= y holds
-                            true
-                        } else {
-                            // Both values are errors, treat them as equal in this sort
-                            true
-                        }
-                    }
-                })
-            {
-                let (key, value) = entry?;
-                builder.add(&key, &value)?;
-            }
-        } else {
-            for (key, value) in self.c0.iter() {
-                if let Some(value) = value {
-                    let key = key.create_key();
-                    builder.add(&key, &self.serialization.serialize(&value)?)?;
+        if let Some(c1) = self.c1.as_mut() {
+            let mut c0 = BTreeMap::new();
+            std::mem::swap(&mut self.c0, &mut c0);
+            for (k, v) in c0.into_iter() {
+                if let Some(v) = v {
+                    c1.insert(k, v)?;
                 }
             }
         }
 
-        builder.finish()?;
-
-        self.c0.clear();
         self.est_sum_memory = 0;
-
-        // Load the new file as disk table
-        let size = out_file.metadata()?.len();
-        let table = Table::new(self.custom_options(), Box::new(out_file), size as usize)?;
-        self.disk_table = Some(table);
 
         debug!("Finished evicting C0");
         Ok(())
