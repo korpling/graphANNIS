@@ -461,46 +461,51 @@ where
     type Item = (K, V);
 
     fn next(&mut self) -> Option<(K, V)> {
-        while self.c0_range_iterator.peek().is_some() || self.table_iterator.peek().is_some() {
-            let c0 = self.c0_range_iterator.peek();
-            let table = self.table_iterator.peek();
+        while self.c0_range_iterator.peek().is_some()
+            || self.c1_range_iterator.peek().is_some()
+            || self.table_iterator.peek().is_some()
+        {
+            // Get keys from all iterators and determine which is the smallest one
+            let c0 = self.c0_range_iterator.peek().map(|(k, _v)| *k);
+            let c1 = self.c1_range_iterator.peek().map(|(k, _v)| k);
+            let table = self.table_iterator.peek().map(|(k, _v)| k);
 
-            if let (Some(c0), Some(table)) = (c0, table) {
-                // Test which one is smaller and output the smaller one
-                // Additional checks are needed when the keys are the same, e.g.
-                // because a deletion was marked in C0, but the key still exists in C1
-                match c0.0.cmp(&table.0) {
-                    std::cmp::Ordering::Less => {
-                        if let Some((key, value)) = self.c0_range_iterator.next() {
-                            // Only output C0, if it is not explictily deleted
-                            if let Some(value) = value {
-                                return Some((key.clone(), value.clone()));
-                            }
-                        }
+            let min_key = vec![c0, c1, table].into_iter().filter_map(|k| k).min();
+            if let Some(min_key) = min_key {
+                let c0_is_min = c0.map_or(false, |k| k == min_key);
+                let c1_is_min = c1.map_or(false, |k| k == min_key);
+                let table_is_min = table.map_or(false, |k| k == min_key);
+
+                // Advance all iterators with the same (minimal) key
+                let c0 = if c0_is_min {
+                    self.c0_range_iterator.next()
+                } else {
+                    None
+                };
+                let c1 = if c1_is_min {
+                    self.c1_range_iterator.next()
+                } else {
+                    None
+                };
+                let table = if table_is_min {
+                    self.table_iterator.next()
+                } else {
+                    None
+                };
+
+                // Output the value from the most recent map
+                if let Some((k, v)) = c0 {
+                    if let Some(v) = v {
+                        return Some((k.clone(), v.clone()));
+                    } else {
+                        // Value was explicitly deleted, do not check the other maps
+                        continue;
                     }
-                    std::cmp::Ordering::Greater => {
-                        if let Some(item) = self.table_iterator.next() {
-                            return Some(item);
-                        }
-                    }
-                    std::cmp::Ordering::Equal => {
-                        // Advance both iterators, but only output the result from C0
-                        self.table_iterator.next();
-                        if let Some((key, value)) = self.c0_range_iterator.next() {
-                            // Only output C0, if it is not explictily deleted
-                            if let Some(value) = value {
-                                return Some((key.clone(), value.clone()));
-                            }
-                        }
-                    }
+                } else if let Some((k, v)) = c1 {
+                    return Some((k.clone(), v.clone()));
+                } else if let Some((k, v)) = table {
+                    return Some((k.clone(), v.clone()));
                 }
-            } else if let Some((key, value)) = self.c0_range_iterator.next() {
-                // Only output C0, if it is not explictily deleted
-                if let Some(value) = value {
-                    return Some((key.clone(), value.clone()));
-                }
-            } else if let Some(item) = self.table_iterator.next() {
-                return Some(item);
             }
         }
         None
