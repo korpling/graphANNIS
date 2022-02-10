@@ -55,7 +55,7 @@ where
     block_cache_capacity: usize,
     c0: BTreeMap<K, Option<V>>,
     c1: Option<BtreeIndex<K, V>>,
-    disk_table: Option<Table>,
+    c2: Option<Table>,
     serialization: bincode::config::DefaultOptions,
 
     est_sum_memory: usize,
@@ -93,7 +93,7 @@ where
             eviction_strategy,
             block_cache_capacity,
             c0: BTreeMap::default(),
-            disk_table,
+            c2: disk_table,
             serialization: bincode::options(),
             est_sum_memory: 0,
             c1: None,
@@ -108,7 +108,7 @@ where
             eviction_strategy,
             block_cache_capacity,
             c0: BTreeMap::default(),
-            disk_table: None,
+            c2: None,
             serialization: bincode::options(),
             est_sum_memory: 0,
             c1: None,
@@ -151,10 +151,17 @@ where
                 return Ok(None);
             }
         }
-        // Check the disk table
-        let key = K::create_key(key);
-        if let Some(table) = &self.disk_table {
-            if let Some(value) = table.get(&key)? {
+        // Check C1 (BTree disk index)
+        if let Some(c1) = &self.c1 {
+            if let Some(value) = c1.get(key)? {
+                return Ok(Some(Cow::Owned(value)));
+            }
+        }
+
+        // Check the C2 (sstable)
+        if let Some(c2) = &self.c2 {
+            let key = K::create_key(key);
+            if let Some(value) = c2.get(&key)? {
                 let value = self.serialization.deserialize(&value)?;
                 return Ok(Some(Cow::Owned(value)));
             }
@@ -174,11 +181,18 @@ where
             }
         }
 
+        // Check C1 (BTree disk index)
+        if let Some(c1) = &self.c1 {
+            if c1.contains_key(key)? {
+                return Ok(true);
+            }
+        }
+
         // Use a iterator on the single disk to check if there is an entry with this, without getting the value.
         // Since we don't serialize tombstone entries when compacting or writing the disk table to an output file,
         // when we are checking the key, we can safely assume the value is Some() and not None.
-        if let Some(disk_table) = &self.disk_table {
-            let mut table_it = disk_table.iter();
+        if let Some(c2) = &self.c2 {
+            let mut table_it = c2.iter();
             let key = K::create_key(key);
             table_it.seek(&key);
             if let Some(it_key) = table_it.current_key() {
@@ -211,17 +225,20 @@ where
     }
 
     pub fn iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = (K, V)> + 'a>> {
-        if let Some(disk_table) = &self.disk_table {
-            if self.c0.is_empty() {
-                let table_iterator = disk_table.iter();
+        if let Some(c1) = &self.c1 {
+            if self.c0.is_empty() && self.c2.is_none() {
+                let it = c1.range(..)?.filter_map(|e| e.ok());
+                return Ok(Box::new(it));
+            }
+        } else if let Some(c2) = &self.c2 {
+            if self.c0.is_empty() && self.c1.as_ref().map_or(true, |c1| c1.is_empty()) {
+                let table_iterator = c2.iter();
                 let it = SingleTableIterator {
                     table_iterator,
                     serialization: self.serialization,
                     phantom: PhantomData,
                 };
-                Ok(Box::new(it))
-            } else {
-                Ok(Box::new(self.range(..)))
+                return Ok(Box::new(it));
             }
         } else {
             // Create an iterator that skips the thombstone entries
@@ -229,8 +246,11 @@ where
                 .c0
                 .iter()
                 .filter_map(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone())));
-            Ok(Box::new(it))
+            return Ok(Box::new(it));
         }
+
+        // Use the flexible range iterator as default
+        Ok(Box::new(self.range(..)))
     }
 
     /// Returns an iterator over a range of entries.
@@ -238,8 +258,17 @@ where
     where
         R: RangeBounds<K> + Clone,
     {
-        if let Some(disk_table) = &self.disk_table {
-            if self.c0.is_empty() {
+        // Check if C0, C1 or C2 are the only non-empty maps and return a specialized iterator
+        if let Some(c1) = &self.c1 {
+            if self.c0.is_empty() && self.c2.is_none() {
+                if let Ok(c1_range) = c1.range(range.clone()) {
+                    // Return iterator over C1
+                    // TODO: error handling
+                    return Box::new(c1_range.filter_map(|e| e.ok()));
+                }
+            }
+        } else if let Some(c2) = &self.c2 {
+            if self.c0.is_empty() && self.c1.as_ref().map_or(true, |c1| c1.is_empty()) {
                 let mapped_start_bound: std::ops::Bound<KeyVec> = match range.start_bound() {
                     Bound::Included(end) => Bound::Included(K::create_key(end)),
                     Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
@@ -252,33 +281,35 @@ where
                     Bound::Unbounded => Bound::Unbounded,
                 };
 
-                Box::new(SimplifiedRange::new(
+                // Return iterator over C2
+                return Box::new(SimplifiedRange::new(
                     mapped_start_bound,
                     mapped_end_bound,
-                    disk_table,
+                    c2,
                     self.serialization,
-                ))
-            } else {
-                Box::new(CombinedRange::new(
-                    range,
-                    disk_table,
-                    &self.c0,
-                    self.c1.as_ref(),
-                    self.serialization,
-                ))
+                ));
             }
         } else {
-            // Return range iterator over all C0 entries, but skip the tombestone entries
+            // Neither C1 nor C2 exist:
+            // return range iterator over all C0 entries, but skip the tombestone entries
             let it = self
                 .c0
                 .range(range)
                 .filter_map(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone())));
-            Box::new(it)
+            return Box::new(it);
         }
+        // Use a combined iterator as default
+        Box::new(CombinedRange::new(
+            range,
+            &self.c0,
+            self.c1.as_ref(),
+            self.c2.as_ref(),
+            self.serialization,
+        ))
     }
 
     pub fn is_empty(&self) -> Result<bool> {
-        if self.c0.is_empty() && self.disk_table.is_none() {
+        if self.c0.is_empty() && self.c2.is_none() {
             return Ok(true);
         }
         let mut it = self.iter()?;
@@ -287,7 +318,7 @@ where
 
     pub fn clear(&mut self) {
         self.c0.clear();
-        self.disk_table = None;
+        self.c2 = None;
         self.est_sum_memory = 0;
     }
 
@@ -395,9 +426,9 @@ where
     for<'de> K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
-    c0_range_iterator: Peekable<std::collections::btree_map::Range<'a, K, Option<V>>>,
-    c1_range_iterator: Peekable<Box<dyn Iterator<Item = (K, V)> + 'a>>,
-    table_iterator: Peekable<SimplifiedRange<K, V>>,
+    c0_iterator: Peekable<std::collections::btree_map::Range<'a, K, Option<V>>>,
+    c1_iterator: Peekable<Box<dyn Iterator<Item = (K, V)> + 'a>>,
+    c2_iterator: Peekable<Box<dyn Iterator<Item = (K, V)> + 'a>>,
 }
 
 impl<'a, K, V> CombinedRange<'a, K, V>
@@ -407,31 +438,11 @@ where
 {
     fn new<R: RangeBounds<K> + Clone>(
         range: R,
-        disk_table: &Table,
         c0: &'a BTreeMap<K, Option<V>>,
         c1: Option<&'a BtreeIndex<K, V>>,
+        c2: Option<&Table>,
         serialization: bincode::config::DefaultOptions,
     ) -> CombinedRange<'a, K, V> {
-        let table_start_bound = match range.start_bound() {
-            Bound::Included(end) => Bound::Included(K::create_key(&end)),
-            Bound::Excluded(end) => Bound::Excluded(K::create_key(&end)),
-            Bound::Unbounded => Bound::Unbounded,
-        };
-
-        let table_end_bound: std::ops::Bound<KeyVec> = match range.end_bound() {
-            Bound::Included(end) => Bound::Included(K::create_key(&end)),
-            Bound::Excluded(end) => Bound::Excluded(K::create_key(&end)),
-            Bound::Unbounded => Bound::Unbounded,
-        };
-
-        let table_iterator = SimplifiedRange::new(
-            table_start_bound,
-            table_end_bound,
-            disk_table,
-            serialization,
-        )
-        .peekable();
-
         let c1_iterator: Box<dyn Iterator<Item = (K, V)>> = if let Some(c1) = c1 {
             if let Ok(it) = c1.range(range.clone()) {
                 // TODO: add error handling
@@ -444,10 +455,29 @@ where
             Box::new(std::iter::empty())
         };
 
+        let c2: Box<dyn Iterator<Item = (K, V)>> = if let Some(c2) = c2 {
+            let table_start_bound = match range.start_bound() {
+                Bound::Included(end) => Bound::Included(K::create_key(&end)),
+                Bound::Excluded(end) => Bound::Excluded(K::create_key(&end)),
+                Bound::Unbounded => Bound::Unbounded,
+            };
+
+            let table_end_bound: std::ops::Bound<KeyVec> = match range.end_bound() {
+                Bound::Included(end) => Bound::Included(K::create_key(&end)),
+                Bound::Excluded(end) => Bound::Excluded(K::create_key(&end)),
+                Bound::Unbounded => Bound::Unbounded,
+            };
+
+            let it = SimplifiedRange::new(table_start_bound, table_end_bound, c2, serialization);
+            Box::new(it)
+        } else {
+            Box::new(std::iter::empty())
+        };
+
         CombinedRange {
-            c0_range_iterator: c0.range(range).peekable(),
-            c1_range_iterator: c1_iterator.peekable(),
-            table_iterator,
+            c0_iterator: c0.range(range).peekable(),
+            c1_iterator: c1_iterator.peekable(),
+            c2_iterator: c2.peekable(),
         }
     }
 }
@@ -461,34 +491,34 @@ where
     type Item = (K, V);
 
     fn next(&mut self) -> Option<(K, V)> {
-        while self.c0_range_iterator.peek().is_some()
-            || self.c1_range_iterator.peek().is_some()
-            || self.table_iterator.peek().is_some()
+        while self.c0_iterator.peek().is_some()
+            || self.c1_iterator.peek().is_some()
+            || self.c2_iterator.peek().is_some()
         {
             // Get keys from all iterators and determine which is the smallest one
-            let c0 = self.c0_range_iterator.peek().map(|(k, _v)| *k);
-            let c1 = self.c1_range_iterator.peek().map(|(k, _v)| k);
-            let table = self.table_iterator.peek().map(|(k, _v)| k);
+            let c0 = self.c0_iterator.peek().map(|(k, _v)| *k);
+            let c1 = self.c1_iterator.peek().map(|(k, _v)| k);
+            let c3 = self.c2_iterator.peek().map(|(k, _v)| k);
 
-            let min_key = vec![c0, c1, table].into_iter().filter_map(|k| k).min();
+            let min_key = vec![c0, c1, c3].into_iter().filter_map(|k| k).min();
             if let Some(min_key) = min_key {
                 let c0_is_min = c0.map_or(false, |k| k == min_key);
                 let c1_is_min = c1.map_or(false, |k| k == min_key);
-                let table_is_min = table.map_or(false, |k| k == min_key);
+                let c3_is_min = c3.map_or(false, |k| k == min_key);
 
                 // Advance all iterators with the same (minimal) key
                 let c0 = if c0_is_min {
-                    self.c0_range_iterator.next()
+                    self.c0_iterator.next()
                 } else {
                     None
                 };
                 let c1 = if c1_is_min {
-                    self.c1_range_iterator.next()
+                    self.c1_iterator.next()
                 } else {
                     None
                 };
-                let table = if table_is_min {
-                    self.table_iterator.next()
+                let c3 = if c3_is_min {
+                    self.c2_iterator.next()
                 } else {
                     None
                 };
@@ -503,7 +533,7 @@ where
                     }
                 } else if let Some((k, v)) = c1 {
                     return Some((k.clone(), v.clone()));
-                } else if let Some((k, v)) = table {
+                } else if let Some((k, v)) = c3 {
                     return Some((k.clone(), v.clone()));
                 }
             }
