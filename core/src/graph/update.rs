@@ -134,6 +134,12 @@ impl GraphUpdate {
     pub fn is_empty(&self) -> Result<bool> {
         Ok(self.event_counter == 0)
     }
+
+    // Returns the number of updates.
+    pub fn len(&self) -> Result<usize> {
+        let result = self.event_counter.try_into()?;
+        Ok(result)
+    }
 }
 
 fn finish_all_changesets(changesets: &mut Vec<ChangeSet>) -> Result<()> {

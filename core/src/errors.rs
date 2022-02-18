@@ -1,3 +1,5 @@
+use std::num::TryFromIntError;
+
 use thiserror::Error;
 
 use crate::types::AnnoKey;
@@ -46,6 +48,8 @@ pub enum GraphAnnisCoreError {
     GraphUpdatePersistanceFileMissing,
     #[error(transparent)]
     BtreeIndex(#[from] transient_btree_index::Error),
+    #[error(transparent)]
+    IntConversion(#[from] TryFromIntError),
 }
 
 #[derive(Error, Debug)]

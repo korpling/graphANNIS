@@ -369,6 +369,8 @@ impl<CT: ComponentType> Graph<CT> {
         let mut node_id_cache = LFUCache::with_capacity(1_000)
             .map_err(|err| GraphAnnisCoreError::LfuCache(err.to_string()))?;
         // Iterate once over all changes in the same order as the updates have been added
+        let total_nr_updates = u.len()?;
+        progress_callback(&format!("applying {} atomic updates", total_nr_updates));
         for (nr_updates, (id, change)) in u.iter()?.enumerate() {
             trace!("applying event {:?}", &change);
             ComponentType::before_update_event(&change, self, &mut update_graph_index)?;
@@ -584,8 +586,13 @@ impl<CT: ComponentType> Graph<CT> {
             ComponentType::after_update_event(change, self, &mut update_graph_index)?;
             self.current_change_id = id;
 
-            if nr_updates % 100_000 == 0 {
-                progress_callback(&format!("applied {} atomic updates", nr_updates));
+            if nr_updates > 0 && nr_updates % 100_000 == 0 {
+                // Get progress in percentage
+                let progress = ((nr_updates as f64) / (total_nr_updates as f64)) * 100.0;
+                progress_callback(&format!(
+                    "applied {:.2}% of the atomic updates ({}/{})",
+                    progress, nr_updates, total_nr_updates,
+                ));
             }
         } // end for each consistent update entry
 
