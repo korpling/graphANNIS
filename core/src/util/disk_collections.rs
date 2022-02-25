@@ -433,8 +433,8 @@ where
 
 impl<'a, K, V> CombinedRange<'a, K, V>
 where
-    for<'de> K: 'static + Clone + KeySerializer + Serialize + Deserialize<'de> + Send + Ord,
-    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
+    for<'de> K: 'static + Clone + KeySerializer + Serialize + Deserialize<'de> + Send + Sync + Ord,
+    for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + Sync,
 {
     fn new<R: RangeBounds<K> + Clone>(
         range: R,
