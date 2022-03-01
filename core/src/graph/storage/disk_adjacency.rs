@@ -6,6 +6,7 @@ use crate::{
     errors::Result,
     util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
 };
+use generic_array::typenum::U16;
 use itertools::Itertools;
 use rustc_hash::FxHashSet;
 use std::collections::BTreeSet;
@@ -36,7 +37,7 @@ pub struct DiskAdjacencyListStorage {
     edges: DiskMap<Edge, bool>,
     #[ignore_malloc_size_of = "is stored on disk"]
     inverse_edges: DiskMap<Edge, bool>,
-    annos: AnnoStorageImpl<Edge>,
+    annos: AnnoStorageImpl<Edge, U16>,
     stats: Option<GraphStatistic>,
 }
 

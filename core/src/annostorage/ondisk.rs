@@ -7,6 +7,8 @@ use crate::types::{AnnoKey, Annotation, NodeID};
 use crate::util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY};
 use crate::util::{self, memory_estimation};
 use core::ops::Bound::*;
+use generic_array::ArrayLength;
+use malloc_size_of::MallocSizeOf;
 use rand::seq::IteratorRandom;
 use smallvec::SmallVec;
 use std::borrow::Cow;
@@ -35,8 +37,7 @@ const EVICTION_STRATEGY: EvictionStrategy = EvictionStrategy::MaximumBytes(512 *
 /// (e.g. if the file is suddenly missing this is like if someone removed the main memory)
 /// and there is no way of delivering a correct answer.
 /// Retrying the same query again will also not succeed since temporary errors are already handled internally.
-#[derive(MallocSizeOf)]
-pub struct AnnoStorageImpl<T>
+pub struct AnnoStorageImpl<T, N>
 where
     T: FixedSizeKeySerializer
         + Send
@@ -45,29 +46,45 @@ where
         + Clone
         + serde::ser::Serialize
         + serde::de::DeserializeOwned,
+    N: ArrayLength<u8>,
 {
-    #[ignore_malloc_size_of = "is stored on disk"]
     by_container: DiskMap<Vec<u8>, String>,
-    #[ignore_malloc_size_of = "is stored on disk"]
     by_anno_qname: DiskMap<Vec<u8>, bool>,
-    #[with_malloc_size_of_func = "memory_estimation::size_of_pathbuf"]
     location: PathBuf,
     /// A handle to a temporary directory. This must be part of the struct because the temporary directory will
     /// be deleted when this handle is dropped.
-    #[with_malloc_size_of_func = "memory_estimation::size_of_option_tempdir"]
     temp_dir: Option<tempfile::TempDir>,
 
     anno_key_symbols: SymbolTable<AnnoKey>,
 
-    #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
 
     /// additional statistical information
-    #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
     largest_item: Option<T>,
 
-    phantom: std::marker::PhantomData<T>,
+    phantom: std::marker::PhantomData<(T, N)>,
+}
+
+impl<T, N> MallocSizeOf for AnnoStorageImpl<T, N>
+where
+    T: FixedSizeKeySerializer
+        + Send
+        + Sync
+        + malloc_size_of::MallocSizeOf
+        + Clone
+        + serde::ser::Serialize
+        + serde::de::DeserializeOwned,
+    N: ArrayLength<u8>,
+{
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        memory_estimation::size_of_pathbuf(&self.location, ops)
+            + memory_estimation::size_of_option_tempdir(&self.temp_dir, ops)
+            + SymbolTable::size_of(&self.anno_key_symbols, ops)
+            + memory_estimation::size_of_btreemap(&self.anno_key_sizes, ops)
+            + memory_estimation::size_of_btreemap(&self.histogram_bounds, ops)
+            + Option::size_of(&self.largest_item, ops)
+    }
 }
 
 /// Creates a key for the `by_container` tree.
@@ -124,7 +141,7 @@ where
     panic!("Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.\nCause:\n{:?}", last_err.unwrap())
 }
 
-impl<T> AnnoStorageImpl<T>
+impl<T, N> AnnoStorageImpl<T, N>
 where
     T: FixedSizeKeySerializer
         + Send
@@ -134,9 +151,10 @@ where
         + Default
         + serde::ser::Serialize
         + serde::de::DeserializeOwned,
+    N: ArrayLength<u8> + Send + Sync,
     (T, Arc<AnnoKey>): Into<Match>,
 {
-    pub fn new(path: Option<PathBuf>) -> Result<AnnoStorageImpl<T>> {
+    pub fn new(path: Option<PathBuf>) -> Result<AnnoStorageImpl<T, N>> {
         if let Some(path) = path {
             let path_by_container = path.join("by_container.bin");
             let path_by_anno_qname = path.join("by_anno_qname.bin");
@@ -320,7 +338,7 @@ where
     }
 }
 
-impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
+impl<'de, T, N> AnnotationStorage<T> for AnnoStorageImpl<T, N>
 where
     T: FixedSizeKeySerializer
         + Send
@@ -331,6 +349,7 @@ where
         + Default
         + serde::ser::Serialize
         + serde::de::DeserializeOwned,
+    N: ArrayLength<u8> + Send + Sync,
     (T, Arc<AnnoKey>): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) -> Result<()> {
@@ -975,6 +994,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use generic_array::typenum::U8;
+
     use super::*;
 
     use std::sync::Once;
@@ -992,7 +1013,7 @@ mod tests {
             val: "test".into(),
         };
 
-        let mut a = AnnoStorageImpl::new(None).unwrap();
+        let mut a = AnnoStorageImpl::<NodeID, U8>::new(None).unwrap();
 
         debug!("Inserting annotation for node 1");
         a.insert(1, test_anno.clone()).unwrap();
@@ -1044,7 +1065,7 @@ mod tests {
             val: "test".into(),
         };
 
-        let mut a = AnnoStorageImpl::new(None).unwrap();
+        let mut a = AnnoStorageImpl::<NodeID, U8>::new(None).unwrap();
 
         a.insert(1, test_anno1.clone()).unwrap();
         a.insert(1, test_anno2.clone()).unwrap();
@@ -1073,7 +1094,7 @@ mod tests {
             val: "test".into(),
         };
 
-        let mut a = AnnoStorageImpl::new(None).unwrap();
+        let mut a = AnnoStorageImpl::<NodeID, U8>::new(None).unwrap();
         a.insert(1, test_anno.clone()).unwrap();
 
         assert_eq!(1, a.number_of_annotations());
