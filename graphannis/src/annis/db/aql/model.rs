@@ -11,6 +11,7 @@ use graphannis_core::{
     util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
 };
 use std::fmt;
+use transient_btree_index::BtreeConfig;
 
 use std::borrow::Cow;
 use std::{str::FromStr, sync::Arc};
@@ -390,6 +391,7 @@ impl ComponentType for AnnotationComponentType {
             None,
             EvictionStrategy::MaximumItems(1_000_000),
             DEFAULT_BLOCK_CACHE_CAPACITY,
+            BtreeConfig::default().fixed_value_size(8),
         )?;
 
         // Calculating the invalid nodes adds additional computational overhead. If there are no nodes yet in the graph,
@@ -400,6 +402,7 @@ impl ComponentType for AnnotationComponentType {
             None,
             EvictionStrategy::MaximumItems(1_000_000),
             DEFAULT_BLOCK_CACHE_CAPACITY,
+            BtreeConfig::default().fixed_key_size(8).fixed_value_size(1),
         )?;
 
         let mut text_coverage_components = FxHashSet::default();

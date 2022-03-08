@@ -58,6 +58,8 @@ where
     c2: Option<Table>,
     serialization: bincode::config::DefaultOptions,
 
+    c1_btree_config: BtreeConfig,
+
     est_sum_memory: usize,
 }
 
@@ -78,6 +80,7 @@ where
         persisted_file: Option<&Path>,
         eviction_strategy: EvictionStrategy,
         block_cache_capacity: usize,
+        c1_config: BtreeConfig,
     ) -> Result<DiskMap<K, V>> {
         let mut disk_table = None;
 
@@ -97,12 +100,14 @@ where
             serialization: bincode::options(),
             est_sum_memory: 0,
             c1: None,
+            c1_btree_config: c1_config,
         })
     }
 
     pub fn new_temporary(
         eviction_strategy: EvictionStrategy,
         block_cache_capacity: usize,
+        c1_config: BtreeConfig,
     ) -> DiskMap<K, V> {
         DiskMap {
             eviction_strategy,
@@ -112,6 +117,7 @@ where
             serialization: bincode::options(),
             est_sum_memory: 0,
             c1: None,
+            c1_btree_config: c1_config,
         }
     }
 
@@ -348,7 +354,7 @@ where
         debug!("Evicting C0 and merging it with existing C1 to a temporary file");
 
         if self.c1.is_none() {
-            let c1 = BtreeIndex::with_capacity(BtreeConfig::default(), self.c0.len())?;
+            let c1 = BtreeIndex::with_capacity(self.c1_btree_config.clone(), self.c0.len())?;
             self.c1 = Some(c1);
         }
 
@@ -563,7 +569,11 @@ where
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send + Sync + MallocSizeOf,
 {
     fn default() -> Self {
-        DiskMap::new_temporary(EvictionStrategy::default(), DEFAULT_BLOCK_CACHE_CAPACITY)
+        DiskMap::new_temporary(
+            EvictionStrategy::default(),
+            DEFAULT_BLOCK_CACHE_CAPACITY,
+            BtreeConfig::default(),
+        )
     }
 }
 

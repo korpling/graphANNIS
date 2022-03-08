@@ -15,6 +15,7 @@ use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use transient_btree_index::BtreeConfig;
 
 use smartstring::alias::String as SmartString;
 
@@ -164,11 +165,13 @@ where
                     Some(&path_by_container),
                     EVICTION_STRATEGY,
                     DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BtreeConfig::default().fixed_key_size(T::key_size() + 8),
                 )?,
                 by_anno_qname: DiskMap::new(
                     Some(&path_by_anno_qname),
                     EVICTION_STRATEGY,
                     DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BtreeConfig::default(),
                 )?,
                 anno_key_symbols: SymbolTable::default(),
                 anno_key_sizes: BTreeMap::new(),
@@ -198,10 +201,12 @@ where
                 by_container: DiskMap::new_temporary(
                     EVICTION_STRATEGY,
                     DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BtreeConfig::default().fixed_key_size(T::key_size() + 8),
                 ),
                 by_anno_qname: DiskMap::new_temporary(
                     EVICTION_STRATEGY,
                     DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BtreeConfig::default(),
                 ),
                 anno_key_symbols: SymbolTable::default(),
                 anno_key_sizes: BTreeMap::new(),
@@ -951,11 +956,13 @@ where
                 Some(&location.join("by_container.bin")),
                 EVICTION_STRATEGY,
                 DEFAULT_BLOCK_CACHE_CAPACITY,
+                BtreeConfig::default().fixed_value_size(T::key_size() + 8),
             )?;
             self.by_anno_qname = DiskMap::new(
                 Some(&location.join("by_anno_qname.bin")),
                 EVICTION_STRATEGY,
                 DEFAULT_BLOCK_CACHE_CAPACITY,
+                BtreeConfig::default(),
             )?;
         }
 

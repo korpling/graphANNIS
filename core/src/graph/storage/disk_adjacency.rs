@@ -11,6 +11,7 @@ use itertools::Itertools;
 use rustc_hash::FxHashSet;
 use std::collections::BTreeSet;
 use std::ops::Bound;
+use transient_btree_index::BtreeConfig;
 
 pub const SERIALIZATION_ID: &str = "DiskAdjacencyListV2";
 
@@ -155,11 +156,17 @@ impl GraphStorage for DiskAdjacencyListStorage {
                 Some(&location.join("edges.bin")),
                 EvictionStrategy::default(),
                 DEFAULT_BLOCK_CACHE_CAPACITY,
+                BtreeConfig::default()
+                    .fixed_key_size(std::mem::size_of::<NodeID>() * 2)
+                    .fixed_value_size(1),
             )?,
             inverse_edges: DiskMap::new(
                 Some(&location.join("inverse_edges.bin")),
                 EvictionStrategy::default(),
                 DEFAULT_BLOCK_CACHE_CAPACITY,
+                BtreeConfig::default()
+                    .fixed_key_size(std::mem::size_of::<NodeID>() * 2)
+                    .fixed_value_size(1),
             )?,
             annos: AnnoStorageImpl::new(Some(
                 location.join(crate::annostorage::ondisk::SUBFOLDER_NAME),

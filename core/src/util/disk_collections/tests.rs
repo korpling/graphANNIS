@@ -10,6 +10,7 @@ fn range() {
         None,
         EvictionStrategy::MaximumItems(3),
         DEFAULT_BLOCK_CACHE_CAPACITY,
+        BtreeConfig::default().fixed_key_size(8).fixed_value_size(1),
     )
     .unwrap();
     table.insert(0, true).unwrap();
@@ -115,6 +116,7 @@ fn known_key() {
         None,
         EvictionStrategy::MaximumItems(5),
         DEFAULT_BLOCK_CACHE_CAPACITY,
+        BtreeConfig::default(),
     )
     .unwrap();
     table.insert(test_key.clone(), "Test".to_string()).unwrap();
@@ -151,6 +153,7 @@ fn unknown_key() {
         None,
         EvictionStrategy::MaximumItems(5),
         DEFAULT_BLOCK_CACHE_CAPACITY,
+        BtreeConfig::default(),
     )
     .unwrap();
     // populate with names
