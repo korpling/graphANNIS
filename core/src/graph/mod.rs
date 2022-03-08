@@ -650,7 +650,7 @@ impl<CT: ComponentType> Graph<CT> {
             }
         }
 
-        Ok(())
+        result
     }
 
     /// A function to persist the changes of a write-ahead-log update on the disk. Should be run in a background thread.
