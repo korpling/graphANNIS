@@ -11,7 +11,6 @@ use crate::{
     errors::GraphAnnisCoreError,
     types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID},
 };
-use generic_array::typenum::U8;
 use lfu::LFUCache;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
@@ -132,7 +131,7 @@ impl<CT: ComponentType> Graph<CT> {
     /// Create a new and empty instance without any location on the disk.
     pub fn new(disk_based: bool) -> Result<Self> {
         let node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
-            Box::new(crate::annostorage::ondisk::AnnoStorageImpl::<NodeID, U8>::new(None)?)
+            Box::new(crate::annostorage::ondisk::AnnoStorageImpl::new(None)?)
         } else {
             Box::new(crate::annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
         };
@@ -201,9 +200,8 @@ impl<CT: ComponentType> Graph<CT> {
         if ondisk_subdirectory.exists() && ondisk_subdirectory.is_dir() {
             self.disk_based = true;
             // directly load the on disk storage from the given folder to avoid having a temporary directory
-            let node_annos_tmp = crate::annostorage::ondisk::AnnoStorageImpl::<NodeID, U8>::new(
-                Some(ondisk_subdirectory),
-            )?;
+            let node_annos_tmp =
+                crate::annostorage::ondisk::AnnoStorageImpl::new(Some(ondisk_subdirectory))?;
             self.node_annos = Box::new(node_annos_tmp);
         } else {
             // assume a main memory implementation
@@ -876,7 +874,7 @@ impl<CT: ComponentType> Graph<CT> {
 
             // Change the node annotation implementation
             let mut new_node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
-                Box::new(crate::annostorage::ondisk::AnnoStorageImpl::<NodeID, U8>::new(None)?)
+                Box::new(crate::annostorage::ondisk::AnnoStorageImpl::new(None)?)
             } else {
                 Box::new(crate::annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
             };
