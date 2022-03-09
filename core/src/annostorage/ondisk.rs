@@ -147,7 +147,7 @@ where
                     Some(&path_by_container),
                     EVICTION_STRATEGY,
                     DEFAULT_BLOCK_CACHE_CAPACITY,
-                    BtreeConfig::default().fixed_key_size(T::key_size() + 8),
+                    BtreeConfig::default().fixed_key_size(T::key_size() + 16),
                 )?,
                 by_anno_qname: DiskMap::new(
                     Some(&path_by_anno_qname),
@@ -183,7 +183,7 @@ where
                 by_container: DiskMap::new_temporary(
                     EVICTION_STRATEGY,
                     DEFAULT_BLOCK_CACHE_CAPACITY,
-                    BtreeConfig::default().fixed_key_size(T::key_size() + 8),
+                    BtreeConfig::default().fixed_key_size(T::key_size() + 16),
                 ),
                 by_anno_qname: DiskMap::new_temporary(
                     EVICTION_STRATEGY,
