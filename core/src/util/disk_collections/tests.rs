@@ -6,11 +6,11 @@ use fake::Fake;
 
 #[test]
 fn range() {
-    let mut table = DiskMap::new(
+    let mut table: DiskMap<u8, bool> = DiskMap::new(
         None,
         EvictionStrategy::MaximumItems(3),
-        Some(DEFAULT_MAX_NUMBER_OF_TABLES),
         DEFAULT_BLOCK_CACHE_CAPACITY,
+        BtreeConfig::default().fixed_key_size(1).fixed_value_size(2),
     )
     .unwrap();
     table.insert(0, true).unwrap();
@@ -115,8 +115,8 @@ fn known_key() {
     let mut table = DiskMap::new(
         None,
         EvictionStrategy::MaximumItems(5),
-        Some(DEFAULT_MAX_NUMBER_OF_TABLES),
         DEFAULT_BLOCK_CACHE_CAPACITY,
+        BtreeConfig::default(),
     )
     .unwrap();
     table.insert(test_key.clone(), "Test".to_string()).unwrap();
@@ -130,13 +130,19 @@ fn known_key() {
     }
 
     // check before compaction both with get() and range()
-    assert_eq!(Some("Test".to_string()), table.try_get(&test_key).unwrap());
-    assert_eq!(true, table.try_contains_key(&test_key).unwrap());
+    assert_eq!(
+        "Test",
+        table.get(&test_key).unwrap().unwrap_or_default().as_str()
+    );
+    assert_eq!(true, table.contains_key(&test_key).unwrap());
 
     // compact and check again
     table.compact().unwrap();
-    assert_eq!(Some("Test".to_string()), table.try_get(&test_key).unwrap());
-    assert_eq!(true, table.try_contains_key(&test_key).unwrap());
+    assert_eq!(
+        "Test",
+        table.get(&test_key).unwrap().unwrap_or_default().as_str()
+    );
+    assert_eq!(true, table.contains_key(&test_key).unwrap());
 }
 
 #[test]
@@ -146,8 +152,8 @@ fn unknown_key() {
     let mut table = DiskMap::new(
         None,
         EvictionStrategy::MaximumItems(5),
-        Some(DEFAULT_MAX_NUMBER_OF_TABLES),
         DEFAULT_BLOCK_CACHE_CAPACITY,
+        BtreeConfig::default(),
     )
     .unwrap();
     // populate with names
@@ -160,46 +166,19 @@ fn unknown_key() {
     }
 
     // check before compaction both with get() and range()
-    assert_eq!(None, table.try_get(&test_key).unwrap());
+    assert_eq!(None, table.get(&test_key).unwrap());
     assert_eq!(
         None,
         table.range(test_key.clone()..=test_key.clone()).next()
     );
-    assert_eq!(false, table.try_contains_key(&test_key).unwrap());
+    assert_eq!(false, table.contains_key(&test_key).unwrap());
 
     // compact and check again
     table.compact().unwrap();
-    assert_eq!(None, table.try_get(&test_key).unwrap());
+    assert_eq!(None, table.get(&test_key).unwrap());
     assert_eq!(
         None,
         table.range(test_key.clone()..=test_key.clone()).next()
     );
-    assert_eq!(false, table.try_contains_key(&test_key).unwrap());
-}
-
-#[test]
-fn never_compact() {
-    // Test that there is no compaction with a maximum number of 1 items and 250 keys
-    let mut table: DiskMap<usize, bool> =
-        DiskMap::new_temporary(EvictionStrategy::MaximumItems(1), None, 1);
-    let mut expected: Vec<(usize, bool)> = Vec::with_capacity(250);
-    for i in 0..250 {
-        expected.push((i, true));
-        table.insert(i, true).unwrap();
-    }
-    assert_eq!(250, table.number_of_disk_tables());
-    let iterated_values: Vec<(usize, bool)> = table.iter().collect();
-    assert_eq!(expected, iterated_values);
-
-    // Repeat this test with 5 maximum items and 1000 keys
-    let mut expected: Vec<(usize, bool)> = Vec::with_capacity(1000);
-    let mut table: DiskMap<usize, bool> =
-        DiskMap::new_temporary(EvictionStrategy::MaximumItems(5), None, 1);
-    for i in 0..1000 {
-        expected.push((i, true));
-        table.insert(i, true).unwrap();
-    }
-    assert_eq!(200, table.number_of_disk_tables());
-    let iterated_values: Vec<(usize, bool)> = table.iter().collect();
-    assert_eq!(expected, iterated_values);
+    assert_eq!(false, table.contains_key(&test_key).unwrap());
 }

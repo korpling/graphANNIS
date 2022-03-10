@@ -1,3 +1,5 @@
+use std::num::TryFromIntError;
+
 use thiserror::Error;
 
 use crate::types::AnnoKey;
@@ -42,6 +44,12 @@ pub enum GraphAnnisCoreError {
     Xml(#[from] quick_xml::Error),
     #[error("Cache error: {0}")]
     LfuCache(String),
+    #[error("File to persist graph updates is missing.")]
+    GraphUpdatePersistanceFileMissing,
+    #[error(transparent)]
+    BtreeIndex(#[from] transient_btree_index::Error),
+    #[error(transparent)]
+    IntConversion(#[from] TryFromIntError),
 }
 
 #[derive(Error, Debug)]

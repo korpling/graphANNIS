@@ -12,5 +12,13 @@
     },
     "files.watcherExclude": {
         "**/target/**": true
-    }
+    },
+    "spellright.language": [
+        "en_US"
+    ],
+    "spellright.documentTypes": [
+        "markdown",
+        "latex",
+        "plaintext"
+    ]
 }

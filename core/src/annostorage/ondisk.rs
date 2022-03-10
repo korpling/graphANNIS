@@ -13,6 +13,7 @@ use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use transient_btree_index::BtreeConfig;
 
 use smartstring::alias::String as SmartString;
 
@@ -22,9 +23,8 @@ const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
 
 const KB: usize = 1 << 10;
 const MB: usize = KB * KB;
-const MAX_NUMBER_OF_TABLES: Option<usize> = Some(4);
-// By having 4 tables instead of 32, we are saving 28 MB in block cache which we can add to the C0 size
-const EVICTION_STRATEGY: EvictionStrategy = EvictionStrategy::MaximumBytes(60 * MB);
+
+const EVICTION_STRATEGY: EvictionStrategy = EvictionStrategy::MaximumBytes(512 * MB);
 
 /// An on-disk implementation of an annotation storage.
 ///
@@ -108,6 +108,23 @@ fn create_by_anno_qname_key<T: FixedSizeKeySerializer>(
     result
 }
 
+/// Repeatedly call the given function and get the result, or panic if the error is permanent.
+fn get_or_panic<F, R>(f: F) -> R
+where
+    F: Fn() -> Result<R>,
+{
+    let mut last_err = None;
+    for _ in 0..5 {
+        match f() {
+            Ok(result) => return result,
+            Err(e) => last_err = Some(e),
+        }
+        // In case this is an intermediate error, wait some time before trying again
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    }
+    panic!("Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.\nCause:\n{:?}", last_err.unwrap())
+}
+
 impl<T> AnnoStorageImpl<T>
 where
     T: FixedSizeKeySerializer
@@ -129,14 +146,14 @@ where
                 by_container: DiskMap::new(
                     Some(&path_by_container),
                     EVICTION_STRATEGY,
-                    MAX_NUMBER_OF_TABLES,
                     DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BtreeConfig::default().fixed_key_size(T::key_size() + 16),
                 )?,
                 by_anno_qname: DiskMap::new(
                     Some(&path_by_anno_qname),
                     EVICTION_STRATEGY,
-                    MAX_NUMBER_OF_TABLES,
                     DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BtreeConfig::default(),
                 )?,
                 anno_key_symbols: SymbolTable::default(),
                 anno_key_sizes: BTreeMap::new(),
@@ -165,13 +182,13 @@ where
             Ok(AnnoStorageImpl {
                 by_container: DiskMap::new_temporary(
                     EVICTION_STRATEGY,
-                    MAX_NUMBER_OF_TABLES,
                     DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BtreeConfig::default().fixed_key_size(T::key_size() + 16),
                 ),
                 by_anno_qname: DiskMap::new_temporary(
                     EVICTION_STRATEGY,
-                    MAX_NUMBER_OF_TABLES,
                     DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BtreeConfig::default(),
                 ),
                 anno_key_symbols: SymbolTable::default(),
                 anno_key_sizes: BTreeMap::new(),
@@ -336,7 +353,7 @@ where
             .as_ref()
             .map_or(true, |largest_item| item <= *largest_item);
         let already_existed =
-            item_smaller_than_largest && self.by_container.try_contains_key(&by_container_key)?;
+            item_smaller_than_largest && self.by_container.contains_key(&by_container_key)?;
         self.by_container
             .insert(by_container_key, anno.val.clone().into())?;
 
@@ -448,20 +465,24 @@ where
     }
 
     fn number_of_annotations(&self) -> usize {
-        self.by_container.iter().count()
+        get_or_panic(|| self.by_container.iter()).count()
     }
 
     fn is_empty(&self) -> bool {
-        self.by_container.is_empty()
+        get_or_panic(|| self.by_container.is_empty())
     }
 
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
         if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
-            let raw = self
-                .by_container
-                .get(&create_by_container_key(item.clone(), symbol_id));
+            let raw = get_or_panic(|| {
+                self.by_container
+                    .get(&create_by_container_key(item.clone(), symbol_id))
+            });
             if let Some(val) = raw {
-                return Some(Cow::Owned(val));
+                return match val {
+                    Cow::Borrowed(val) => Some(Cow::Borrowed(val.as_str())),
+                    Cow::Owned(val) => Some(Cow::Owned(val)),
+                };
             }
         }
         None
@@ -469,8 +490,10 @@ where
 
     fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> bool {
         if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
-            self.by_container
-                .contains_key(&create_by_container_key(item.clone(), symbol_id))
+            get_or_panic(|| {
+                self.by_container
+                    .contains_key(&create_by_container_key(item.clone(), symbol_id))
+            })
         } else {
             false
         }
@@ -497,7 +520,9 @@ where
                         // Set the first bytes to the ID of the item.
                         // This saves the repeated expensive construction of the annotation key part.
                         container_key[0..T::key_size()].copy_from_slice(&item.create_key());
-                        if self.by_container.contains_key(&container_key) {
+                        let does_contain_key =
+                            get_or_panic(|| self.by_container.contains_key(&container_key));
+                        if does_contain_key {
                             matches.push((item, key.clone()).into());
                         }
                     }
@@ -523,7 +548,9 @@ where
                         // Set the first bytes to the ID of the item.
                         // This saves the repeated expensive construction of the annotation key part.
                         container_key[0..T::key_size()].copy_from_slice(&item.create_key());
-                        if self.by_container.contains_key(container_key) {
+                        let does_contain_key =
+                            get_or_panic(|| self.by_container.contains_key(container_key));
+                        if does_contain_key {
                             matches.push((item.clone(), anno_key.clone()).into());
                         }
                     }
@@ -656,10 +683,11 @@ where
                     name: name.into(),
                 });
                 if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
-                    if self
-                        .by_container
-                        .contains_key(&create_by_container_key(item.clone(), symbol_id))
-                    {
+                    let does_contain_key = get_or_panic(|| {
+                        self.by_container
+                            .contains_key(&create_by_container_key(item.clone(), symbol_id))
+                    });
+                    if does_contain_key {
                         return vec![key.clone()];
                     }
                 }
@@ -671,8 +699,10 @@ where
                     .into_iter()
                     .filter(|key| {
                         if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
-                            self.by_container
-                                .contains_key(&create_by_container_key(item.clone(), symbol_id))
+                            get_or_panic(|| {
+                                self.by_container
+                                    .contains_key(&create_by_container_key(item.clone(), symbol_id))
+                            })
                         } else {
                             false
                         }
@@ -906,14 +936,14 @@ where
             self.by_container = DiskMap::new(
                 Some(&location.join("by_container.bin")),
                 EVICTION_STRATEGY,
-                MAX_NUMBER_OF_TABLES,
                 DEFAULT_BLOCK_CACHE_CAPACITY,
+                BtreeConfig::default().fixed_value_size(T::key_size() + 9),
             )?;
             self.by_anno_qname = DiskMap::new(
                 Some(&location.join("by_anno_qname.bin")),
                 EVICTION_STRATEGY,
-                MAX_NUMBER_OF_TABLES,
                 DEFAULT_BLOCK_CACHE_CAPACITY,
+                BtreeConfig::default(),
             )?;
         }
 

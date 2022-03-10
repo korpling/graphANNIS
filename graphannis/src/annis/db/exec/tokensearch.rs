@@ -165,7 +165,7 @@ mod tests {
 
     #[test]
     fn find_with_only_one_token() {
-        let mut g = AnnotationGraph::new(false).unwrap();
+        let mut g = AnnotationGraph::with_default_graphstorages(false).unwrap();
 
         let mut update = GraphUpdate::new();
         update

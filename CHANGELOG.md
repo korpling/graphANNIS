@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   buffer on each XML event.
 - Limit the number of disk maps for the `GraphUpdate` so there are less issues with large
   corpora where the maximum number of open files per process might be reached.
+- Performance improvements when importing large corpora in disk-based mode.
+  This optimizes the DiskMap to use a C0 (normal in memory BTree), a C1 (on disk BTree)
+  and a C2 map when serialized to disk. On compacting, the entries are only written
+  to C1 in O(n*log(n)). Before, multiple on disk maps might need to be merged, which
+  had a much worse complexity. The C1 file uses the transient-btree-index crate.
 
 ## [1.5.0] - 2022-01-06
 

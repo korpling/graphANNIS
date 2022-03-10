@@ -173,7 +173,7 @@ impl KeySerializer for TextProperty {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, MallocSizeOf)]
+#[derive(Clone, PartialEq, Eq, Hash, MallocSizeOf, PartialOrd, Ord, Serialize, Deserialize)]
 struct TextKey {
     id: u32,
     corpus_ref: Option<u32>,
@@ -210,7 +210,7 @@ impl KeySerializer for TextKey {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, MallocSizeOf)]
+#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, MallocSizeOf, Serialize, Deserialize)]
 struct NodeByTextEntry {
     text_id: u32,
     corpus_ref: u32,
@@ -1030,7 +1030,7 @@ where
     let mut last_textprop: Option<TextProperty> = None;
     let mut last_token: Option<NodeID> = None;
 
-    for (current_textprop, current_token) in token_by_index.try_iter()? {
+    for (current_textprop, current_token) in token_by_index.iter()? {
         // if the last token/text value is valid and we are still in the same text
         if let (Some(last_token), Some(last_textprop)) = (last_token, last_textprop) {
             if last_textprop.corpus_id == current_textprop.corpus_id
@@ -1045,13 +1045,13 @@ where
                 };
                 updates.add_event(UpdateEvent::AddEdge {
                     source_node: id_to_node_name
-                        .try_get(&last_token)?
+                        .get(&last_token)?
                         .ok_or(RelAnnisError::NodeNotFound(last_token))?
-                        .into(),
+                        .to_string(),
                     target_node: id_to_node_name
-                        .try_get(&current_token)?
+                        .get(&current_token)?
                         .ok_or(RelAnnisError::NodeNotFound(current_token))?
-                        .into(),
+                        .to_string(),
                     layer: ordering_layer,
                     component_type: AnnotationComponentType::Ordering.to_string(),
                     component_name: current_textprop.segmentation.clone().into(),
@@ -1076,24 +1076,26 @@ fn add_automatic_cov_edge_for_node(
     let left_pos = load_node_and_corpus_result
         .textpos_table
         .node_to_left
-        .try_get(&n)?
+        .get(&n)?
         .ok_or(RelAnnisError::NoLeftPositionForNode(n))?;
 
     let right_pos = load_node_and_corpus_result
         .textpos_table
         .node_to_right
-        .try_get(&n)?
+        .get(&n)?
         .ok_or(RelAnnisError::NoRightPositionForNode(n))?;
 
     // find left/right aligned basic token
-    let left_aligned_tok = load_node_and_corpus_result
+    let left_aligned_tok: Option<u64> = load_node_and_corpus_result
         .textpos_table
         .token_by_left_textpos
-        .try_get(&left_pos)?;
-    let right_aligned_tok = load_node_and_corpus_result
+        .get(&left_pos)?
+        .map(|v| *v);
+    let right_aligned_tok: Option<u64> = load_node_and_corpus_result
         .textpos_table
         .token_by_right_textpos
-        .try_get(&right_pos)?;
+        .get(&right_pos)?
+        .map(|v| *v);
 
     // If only one of the aligned token is missing, use it for both sides, this is consistent with
     // the relANNIS import of ANNIS3
@@ -1111,12 +1113,12 @@ fn add_automatic_cov_edge_for_node(
     let left_tok_pos = load_node_and_corpus_result
         .textpos_table
         .token_to_index
-        .try_get(&left_aligned_tok)?
+        .get(&left_aligned_tok)?
         .ok_or(RelAnnisError::LeftAlignedNotFound(n))?;
     let right_tok_pos = load_node_and_corpus_result
         .textpos_table
         .token_to_index
-        .try_get(&right_aligned_tok)?
+        .get(&right_aligned_tok)?
         .ok_or(RelAnnisError::RightAlignedNotFound(n))?;
 
     // Create a template TextProperty to which we only change the
@@ -1134,19 +1136,16 @@ fn add_automatic_cov_edge_for_node(
         let tok_id = load_node_and_corpus_result
             .textpos_table
             .token_by_index
-            .try_get(&tok_idx)?
+            .get(&tok_idx)?
             .ok_or_else(|| RelAnnisError::NoTokenForPosition(tok_idx.clone()))?;
-        if n != tok_id {
+        if n != *tok_id {
             let edge = Edge {
                 source: n,
-                target: tok_id,
+                target: *tok_id,
             };
 
             // only add edge if no other coverage edge exists
-            if !load_rank_result
-                .text_coverage_edges
-                .try_contains_key(&edge)?
-            {
+            if !load_rank_result.text_coverage_edges.contains_key(&edge)? {
                 let nodes_with_same_source = (
                     Bound::Included(Edge {
                         source: n,
@@ -1169,24 +1168,24 @@ fn add_automatic_cov_edge_for_node(
                     // Get the original component name for this target node
                     load_rank_result
                         .component_for_parentless_target_node
-                        .try_get(&n)?
+                        .get(&n)?
                         .map_or_else(
                             || (String::default(), String::default()),
-                            |c| (c.layer, c.name),
+                            |c| (c.layer.to_owned(), c.name.to_owned()),
                         )
                 };
 
                 updates.add_event(UpdateEvent::AddEdge {
                     source_node: load_node_and_corpus_result
                         .id_to_node_name
-                        .try_get(&n)?
+                        .get(&n)?
                         .ok_or(RelAnnisError::NodeNotFound(n))?
-                        .into(),
+                        .to_string(),
                     target_node: load_node_and_corpus_result
                         .id_to_node_name
-                        .try_get(&tok_id)?
-                        .ok_or(RelAnnisError::NodeNotFound(tok_id))?
-                        .into(),
+                        .get(&tok_id)?
+                        .ok_or(RelAnnisError::NodeNotFound(*tok_id))?
+                        .to_string(),
                     layer: component_layer.into(),
                     component_type: AnnotationComponentType::Coverage.to_string(),
                     component_name: component_name.into(),
@@ -1213,14 +1212,14 @@ where
     for (n, textprop) in load_node_and_corpus_result
         .textpos_table
         .node_to_left
-        .try_iter()?
+        .iter()?
     {
         // Do not calculate automatic coverage edges for token
         if textprop.segmentation.is_empty()
             && !load_node_and_corpus_result
                 .textpos_table
                 .token_to_index
-                .try_contains_key(&n)?
+                .contains_key(&n)?
         {
             if let Err(e) = add_automatic_cov_edge_for_node(
                 updates,
@@ -1254,7 +1253,7 @@ where
     let mut added_whitespace_label_count = 0;
 
     // Iterate over all texts of the graph separately
-    for (text_key, text) in texts.try_iter()? {
+    for (text_key, text) in texts.iter()? {
         let mut text_char_it = text.val.chars();
         let mut current_text_offset = 0;
 
@@ -1281,10 +1280,8 @@ where
         while let Some((_, current_token_id)) = token_iterator.next() {
             // Get the character borders for this token
             if let (Some(left_text_pos), Some(right_text_pos)) = (
-                textpos_table.node_to_left_char.try_get(&current_token_id)?,
-                textpos_table
-                    .node_to_right_char
-                    .try_get(&current_token_id)?,
+                textpos_table.node_to_left_char.get(&current_token_id)?,
+                textpos_table.node_to_right_char.get(&current_token_id)?,
             ) {
                 let token_left_char = left_text_pos.val as usize;
                 let token_right_char = right_text_pos.val as usize;
@@ -1302,9 +1299,9 @@ where
                     }
                     current_text_offset += skipped_before_token;
 
-                    if let Some(token_name) = id_to_node_name.try_get(&current_token_id)? {
+                    if let Some(token_name) = id_to_node_name.get(&current_token_id)? {
                         updates.add_event(UpdateEvent::AddNodeLabel {
-                            node_name: token_name.into(),
+                            node_name: token_name.to_string(),
                             anno_ns: ANNIS_NS.to_string(),
                             anno_name: TOK_WHITESPACE_BEFORE.to_string(),
                             anno_value: covered_text_before,
@@ -1327,7 +1324,7 @@ where
                 let mut whitespace_end_pos = None;
                 if let Some((_, next_token_id)) = token_iterator.peek() {
                     if let Some(next_token_left_pos) =
-                        textpos_table.node_to_left_char.try_get(next_token_id)?
+                        textpos_table.node_to_left_char.get(next_token_id)?
                     {
                         whitespace_end_pos = Some(next_token_left_pos.val as usize);
                     }
@@ -1357,9 +1354,9 @@ where
                         current_text_offset += 1;
                     }
                 }
-                if let Some(token_name) = id_to_node_name.try_get(&current_token_id)? {
+                if let Some(token_name) = id_to_node_name.get(&current_token_id)? {
                     updates.add_event(UpdateEvent::AddNodeLabel {
-                        node_name: token_name.into(),
+                        node_name: token_name.to_string(),
                         anno_ns: ANNIS_NS.to_string(),
                         anno_name: TOK_WHITESPACE_AFTER.to_string(),
                         anno_value: covered_text_after,
@@ -1636,7 +1633,7 @@ where
     textpos_table.token_by_left_textpos.compact()?;
     textpos_table.token_by_right_textpos.compact()?;
 
-    if !(textpos_table.token_by_index.try_is_empty())? {
+    if !(textpos_table.token_by_index.is_empty())? {
         calculate_automatic_token_order(
             updates,
             &textpos_table.token_by_index,
@@ -1684,7 +1681,7 @@ where
         let col_id = get_field_not_null(&line, 0, "id", &node_anno_tab_path)?;
         let node_id: NodeID = col_id.parse()?;
         let node_name = id_to_node_name
-            .try_get(&node_id)?
+            .get(&node_id)?
             .ok_or(RelAnnisError::NodeNotFound(node_id))?;
         let col_ns = get_field(&line, 1, "namespace", &node_anno_tab_path)?.unwrap_or_default();
         let col_name = get_field_not_null(&line, 2, "name", &node_anno_tab_path)?;
@@ -1695,11 +1692,11 @@ where
             // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
             let anno_val = &col_val.unwrap_or_else(|| INVALID_STRING.clone());
 
-            if let Some(seg) = missing_seg_span.try_get(&node_id)? {
+            if let Some(seg) = missing_seg_span.get(&node_id)? {
                 // add all missing span values from the annotation, but don't add NULL values
-                if seg == col_name.as_ref() && has_valid_value {
+                if seg.as_str() == col_name.as_str() && has_valid_value {
                     updates.add_event(UpdateEvent::AddNodeLabel {
-                        node_name: node_name.clone().into(),
+                        node_name: node_name.to_string(),
                         anno_ns: ANNIS_NS.to_owned(),
                         anno_name: TOK.to_owned(),
                         anno_value: anno_val.to_string(),
@@ -1708,7 +1705,7 @@ where
             }
 
             updates.add_event(UpdateEvent::AddNodeLabel {
-                node_name: node_name.into(),
+                node_name: node_name.to_string(),
                 anno_ns: col_ns.to_string(),
                 anno_name: col_name.to_string(),
                 anno_value: anno_val.to_string(),
@@ -1861,18 +1858,18 @@ where
 
         if let Some(parent_as_str) = get_field(&line, pos_parent, "parent", &rank_tab_path)? {
             let parent: u32 = parent_as_str.parse()?;
-            if let Some(source) = pre_to_node_id.get(&parent) {
+            if let Some(source) = pre_to_node_id.get(&parent)? {
                 // find the responsible edge database by the component ID
                 if let Some(c) = component_by_id.get(&component_ref) {
                     updates.add_event(UpdateEvent::AddEdge {
                         source_node: id_to_node_name
-                            .try_get(&source)?
-                            .ok_or(RelAnnisError::NodeNotFound(source))?
-                            .into(),
+                            .get(&source)?
+                            .ok_or(RelAnnisError::NodeNotFound(*source))?
+                            .to_string(),
                         target_node: id_to_node_name
-                            .try_get(&target)?
+                            .get(&target)?
                             .ok_or(RelAnnisError::NodeNotFound(target))?
-                            .into(),
+                            .to_string(),
                         layer: c.layer.clone().into(),
                         component_type: c.get_type().to_string(),
                         component_name: c.name.clone().into(),
@@ -1880,7 +1877,10 @@ where
 
                     let pre: u32 = get_field_not_null(&line, 0, "pre", &rank_tab_path)?.parse()?;
 
-                    let e = Edge { source, target };
+                    let e = Edge {
+                        source: *source,
+                        target,
+                    };
 
                     if c.get_type() == AnnotationComponentType::Coverage {
                         load_rank_result
@@ -1943,8 +1943,8 @@ where
         let line = result?;
 
         let pre = get_field_not_null(&line, 0, "pre", &edge_anno_tab_path)?.parse::<u32>()?;
-        if let Some(c) = rank_result.components_by_pre.try_get(&pre)? {
-            if let Some(e) = rank_result.edges_by_pre.try_get(&pre)? {
+        if let Some(c) = rank_result.components_by_pre.get(&pre)? {
+            if let Some(e) = rank_result.edges_by_pre.get(&pre)? {
                 let ns = get_field(&line, 1, "namespace", &edge_anno_tab_path)?.unwrap_or_default();
                 let name = get_field_not_null(&line, 2, "name", &edge_anno_tab_path)?;
                 // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
@@ -1953,16 +1953,16 @@ where
 
                 updates.add_event(UpdateEvent::AddEdgeLabel {
                     source_node: id_to_node_name
-                        .try_get(&e.source)?
+                        .get(&e.source)?
                         .ok_or(RelAnnisError::NodeNotFound(e.source))?
-                        .into(),
+                        .to_string(),
                     target_node: id_to_node_name
-                        .try_get(&e.target)?
+                        .get(&e.target)?
                         .ok_or(RelAnnisError::NodeNotFound(e.target))?
-                        .into(),
+                        .to_string(),
                     layer: c.layer.clone().into(),
                     component_type: c.get_type().to_string(),
-                    component_name: c.name.into(),
+                    component_name: c.name.to_string(),
                     anno_ns: ns.to_string(),
                     anno_name: name.to_string(),
                     anno_value: val.to_string(),
@@ -2155,7 +2155,7 @@ fn add_subcorpora(
     } // end for each document/sub-corpus
 
     // add a node for each text and the connection between all sub-nodes of the text
-    for (text_key, text) in texts.iter() {
+    for (text_key, text) in texts.iter()? {
         // add text node (including its name)
         if let Some(corpus_ref) = text_key.corpus_ref {
             let text_name = utf8_percent_encode(&text.name, SALT_URI_ENCODE_SET).to_string();
@@ -2192,9 +2192,9 @@ fn add_subcorpora(
                 updates.add_event(UpdateEvent::AddEdge {
                     source_node: node_node_result
                         .id_to_node_name
-                        .try_get(&n)?
+                        .get(&n)?
                         .ok_or(RelAnnisError::NodeNotFound(n))?
-                        .into(),
+                        .to_string(),
                     target_node: text_full_name.clone(),
                     layer: ANNIS_NS.to_owned(),
                     component_type: AnnotationComponentType::PartOf.to_string(),
@@ -2284,6 +2284,6 @@ mod tests {
         .unwrap();
 
         // Check that the node was added to the missing segmentation span map
-        assert_eq!(true, result.missing_seg_span.contains_key(&680));
+        assert_eq!(true, result.missing_seg_span.contains_key(&680).unwrap());
     }
 }
