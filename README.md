@@ -4,7 +4,6 @@ This is a new backend implementation of the ANNIS linguistic search and visualiz
 
 **Only a sub-set of the ANNIS Query Langugage (AQL) from ANNIS version 3 (based on PostgreSQL) is supported yet.**
 More operators can be added in the future, but the ones missing are the ones which have been used less frequent.
-Integration with ANNIS is currently implemented in [the development version](https://github.com/korpling/ANNIS/tree/develop) and [released as a beta version](http://corpus-tools.org/annis/download.html).
 There is a tutorial in the Developer Guide on how to embedd graphANNIS in your own application.
 
 The basic design ideas and data models are described in detail in the PhD-thesis ["ANNIS: A graph-based query system for deeply annotated text corpora"](https://doi.org/10.18452/19659). The thesis describes a prototype implementation in C++ and not Rust, but the design ideas are the same.
