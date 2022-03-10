@@ -30,6 +30,3 @@ opt-level = 3
 
 [profile.dev.package.zip]
 opt-level = 3
-
-[patch.crates-io]
-transient-btree-index = {git = "https://github.com/thomaskrause/transient-btree-index.git", branch = "feature/fixed-size-optimization"}

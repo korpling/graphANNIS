@@ -48,7 +48,7 @@ sys-info = "0.9"
 tempfile = "3"
 thiserror = "1"
 toml = "0.5"
-transient-btree-index = "0.2"
+transient-btree-index = "0.3"
 zip = "0.5"
 
 [dev-dependencies]
