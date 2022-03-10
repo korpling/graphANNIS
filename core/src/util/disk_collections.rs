@@ -213,6 +213,7 @@ where
                 } else {
                     // Value was explicitly deleted with a tombstone entry.
                     // Do not query C1 and C2.
+                    return Ok(None);
                 }
             }
         }
@@ -522,14 +523,14 @@ where
 
         let c2: Box<dyn Iterator<Item = (K, V)>> = if let Some(c2) = c2 {
             let table_start_bound = match range.start_bound() {
-                Bound::Included(end) => Bound::Included(K::create_key(&end)),
-                Bound::Excluded(end) => Bound::Excluded(K::create_key(&end)),
+                Bound::Included(end) => Bound::Included(K::create_key(end)),
+                Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
                 Bound::Unbounded => Bound::Unbounded,
             };
 
             let table_end_bound: std::ops::Bound<KeyVec> = match range.end_bound() {
-                Bound::Included(end) => Bound::Included(K::create_key(&end)),
-                Bound::Excluded(end) => Bound::Excluded(K::create_key(&end)),
+                Bound::Included(end) => Bound::Included(K::create_key(end)),
+                Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
                 Bound::Unbounded => Bound::Unbounded,
             };
 
@@ -565,7 +566,7 @@ where
             let c1 = self.c1_iterator.peek().map(|(k, _v)| k);
             let c3 = self.c2_iterator.peek().map(|(k, _v)| k);
 
-            let min_key = vec![c0, c1, c3].into_iter().filter_map(|k| k).min();
+            let min_key = vec![c0, c1, c3].into_iter().flatten().min();
             if let Some(min_key) = min_key {
                 let c0_is_min = c0.map_or(false, |k| k == min_key);
                 let c1_is_min = c1.map_or(false, |k| k == min_key);
@@ -598,13 +599,13 @@ where
                     }
                 } else if let Some((k, v)) = c1 {
                     if let Some(v) = v {
-                        return Some((k.clone(), v.clone()));
+                        return Some((k, v));
                     } else {
                         // Value was explicitly deleted, do not check the other maps
                         continue;
                     }
                 } else if let Some((k, v)) = c3 {
-                    return Some((k.clone(), v.clone()));
+                    return Some((k, v));
                 }
             }
         }

@@ -158,9 +158,7 @@ fn finish_all_changesets(changesets: &mut Vec<ChangeSet>) -> Result<()> {
                 let table = Table::new(sstable::Options::default(), Box::new(file), size as usize)?;
                 Ok(ChangeSet::Finished { table })
             }
-            ChangeSet::Finished { table } => Ok(ChangeSet::Finished {
-                table: table.clone(),
-            }),
+            ChangeSet::Finished { table } => Ok(ChangeSet::Finished { table }),
         })
         .collect();
     // Re-add the finished changesets
@@ -193,7 +191,7 @@ fn current_inprogress_changeset(changesets: &mut Vec<ChangeSet>) -> Result<&mut 
     // Get the last changeset, which must be in the InProgress state
     changesets
         .last_mut()
-        .ok_or_else(|| GraphAnnisCoreError::GraphUpdatePersistanceFileMissing)
+        .ok_or(GraphAnnisCoreError::GraphUpdatePersistanceFileMissing)
 }
 
 pub struct GraphUpdateIterator {
@@ -222,7 +220,7 @@ impl GraphUpdateIterator {
         Ok(GraphUpdateIterator {
             size_hint: g.event_counter,
             iterators,
-            serialization: g.serialization.clone(),
+            serialization: g.serialization,
         })
     }
 }
@@ -308,7 +306,7 @@ impl<'de> Visitor<'de> for GraphUpdateVisitor {
             table_builder,
         };
         let mut changesets = vec![c];
-        finish_all_changesets(&mut &mut changesets).map_err(M::Error::custom)?;
+        finish_all_changesets(&mut changesets).map_err(M::Error::custom)?;
         let g = GraphUpdate {
             changesets: Mutex::new(changesets),
             event_counter,
