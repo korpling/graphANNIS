@@ -315,7 +315,7 @@ where
     }
 
     pub fn is_empty(&self) -> Result<bool> {
-        if self.c0.is_empty() && self.c2.is_none() {
+        if self.c0.is_empty() && self.c1.is_none() && self.c2.is_none() {
             return Ok(true);
         }
         let mut it = self.iter()?;
@@ -324,6 +324,7 @@ where
 
     pub fn clear(&mut self) {
         self.c0.clear();
+        self.c1 = None;
         self.c2 = None;
         self.est_sum_memory = 0;
     }
