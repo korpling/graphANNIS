@@ -937,7 +937,7 @@ where
                 Some(&location.join("by_container.bin")),
                 EVICTION_STRATEGY,
                 DEFAULT_BLOCK_CACHE_CAPACITY,
-                BtreeConfig::default().fixed_value_size(T::key_size() + 8),
+                BtreeConfig::default().fixed_value_size(T::key_size() + 9),
             )?;
             self.by_anno_qname = DiskMap::new(
                 Some(&location.join("by_anno_qname.bin")),

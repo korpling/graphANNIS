@@ -102,7 +102,7 @@ where
     eviction_strategy: EvictionStrategy,
     block_cache_capacity: usize,
     c0: BTreeMap<K, Option<V>>,
-    c1: Option<BtreeIndex<K, V>>,
+    c1: Option<BtreeIndex<K, Option<V>>>,
     c2: Option<Table>,
     serialization: bincode::config::DefaultOptions,
 
@@ -200,15 +200,20 @@ where
             if let Some(value) = entry {
                 return Ok(Some(Cow::Borrowed(value)));
             } else {
-                // Value was explicitly deleted with a tombstone entry
-                //  do not query the disk tables
+                // Value was explicitly deleted with a tombstone entry.
+                // Do not query C1 and C2.
                 return Ok(None);
             }
         }
         // Check C1 (BTree disk index)
         if let Some(c1) = &self.c1 {
-            if let Some(value) = c1.get(key)? {
-                return Ok(Some(Cow::Owned(value)));
+            if let Some(entry) = c1.get(key)? {
+                if let Some(value) = entry {
+                    return Ok(Some(Cow::Owned(value)));
+                } else {
+                    // Value was explicitly deleted with a tombstone entry.
+                    // Do not query C1 and C2.
+                }
             }
         }
 
@@ -286,7 +291,11 @@ where
     pub fn iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = (K, V)> + 'a>> {
         if let Some(c1) = &self.c1 {
             if self.c0.is_empty() && self.c2.is_none() {
-                let it = c1.range(..)?.filter_map(|e| e.ok());
+                // Create an iterator that skips the thombstone entries
+                let it = c1
+                    .range(..)?
+                    .filter_map(|e| e.ok())
+                    .filter_map(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone())));
                 return Ok(Box::new(it));
             }
         } else if let Some(c2) = &self.c2 {
@@ -321,8 +330,11 @@ where
         if let Some(c1) = &self.c1 {
             if self.c0.is_empty() && self.c2.is_none() {
                 let c1_range = get_or_panic(|| c1.range(range.clone()).map_err(|e| e.into()));
-                // Return iterator over C1
-                return Box::new(PanickingIterator { wrapped: c1_range });
+                // Return iterator over C1 that skips the tombstone entries
+                let c1_range = PanickingIterator { wrapped: c1_range };
+                return Box::new(
+                    c1_range.filter_map(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone()))),
+                );
             }
         } else if let Some(c2) = &self.c2 {
             if self.c0.is_empty() && self.c1.as_ref().map_or(true, |c1| c1.is_empty()) {
@@ -415,9 +427,7 @@ where
             let mut c0 = BTreeMap::new();
             std::mem::swap(&mut self.c0, &mut c0);
             for (k, v) in c0.into_iter() {
-                if let Some(v) = v {
-                    c1.insert(k, v)?;
-                }
+                c1.insert(k, v)?;
             }
         }
 
@@ -487,7 +497,7 @@ where
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
     c0_iterator: Peekable<std::collections::btree_map::Range<'a, K, Option<V>>>,
-    c1_iterator: Peekable<Box<dyn Iterator<Item = (K, V)> + 'a>>,
+    c1_iterator: Peekable<Box<dyn Iterator<Item = (K, Option<V>)> + 'a>>,
     c2_iterator: Peekable<Box<dyn Iterator<Item = (K, V)> + 'a>>,
 }
 
@@ -499,11 +509,11 @@ where
     fn new<R: RangeBounds<K> + Clone>(
         range: R,
         c0: &'a BTreeMap<K, Option<V>>,
-        c1: Option<&'a BtreeIndex<K, V>>,
+        c1: Option<&'a BtreeIndex<K, Option<V>>>,
         c2: Option<&Table>,
         serialization: bincode::config::DefaultOptions,
     ) -> CombinedRange<'a, K, V> {
-        let c1_iterator: Box<dyn Iterator<Item = (K, V)>> = if let Some(c1) = c1 {
+        let c1_iterator: Box<dyn Iterator<Item = (K, Option<V>)>> = if let Some(c1) = c1 {
             let it = get_or_panic(|| c1.range(range.clone()).map_err(|e| e.into()));
             Box::new(PanickingIterator { wrapped: it })
         } else {
@@ -587,7 +597,12 @@ where
                         continue;
                     }
                 } else if let Some((k, v)) = c1 {
-                    return Some((k.clone(), v.clone()));
+                    if let Some(v) = v {
+                        return Some((k.clone(), v.clone()));
+                    } else {
+                        // Value was explicitly deleted, do not check the other maps
+                        continue;
+                    }
                 } else if let Some((k, v)) = c3 {
                     return Some((k.clone(), v.clone()));
                 }

@@ -10,7 +10,7 @@ fn range() {
         None,
         EvictionStrategy::MaximumItems(3),
         DEFAULT_BLOCK_CACHE_CAPACITY,
-        BtreeConfig::default().fixed_key_size(1).fixed_value_size(1),
+        BtreeConfig::default().fixed_key_size(1).fixed_value_size(2),
     )
     .unwrap();
     table.insert(0, true).unwrap();

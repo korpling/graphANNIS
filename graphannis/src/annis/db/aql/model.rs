@@ -391,7 +391,7 @@ impl ComponentType for AnnotationComponentType {
             None,
             EvictionStrategy::MaximumItems(1_000_000),
             DEFAULT_BLOCK_CACHE_CAPACITY,
-            BtreeConfig::default().fixed_value_size(8),
+            BtreeConfig::default().fixed_value_size(9),
         )?;
 
         // Calculating the invalid nodes adds additional computational overhead. If there are no nodes yet in the graph,
@@ -402,7 +402,7 @@ impl ComponentType for AnnotationComponentType {
             None,
             EvictionStrategy::MaximumItems(1_000_000),
             DEFAULT_BLOCK_CACHE_CAPACITY,
-            BtreeConfig::default().fixed_key_size(8).fixed_value_size(1),
+            BtreeConfig::default().fixed_key_size(8).fixed_value_size(2),
         )?;
 
         let mut text_coverage_components = FxHashSet::default();

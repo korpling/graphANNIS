@@ -157,7 +157,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
                 DEFAULT_BLOCK_CACHE_CAPACITY,
                 BtreeConfig::default()
                     .fixed_key_size(std::mem::size_of::<NodeID>() * 2)
-                    .fixed_value_size(1),
+                    .fixed_value_size(2),
             )?,
             inverse_edges: DiskMap::new(
                 Some(&location.join("inverse_edges.bin")),
@@ -165,7 +165,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
                 DEFAULT_BLOCK_CACHE_CAPACITY,
                 BtreeConfig::default()
                     .fixed_key_size(std::mem::size_of::<NodeID>() * 2)
-                    .fixed_value_size(1),
+                    .fixed_value_size(2),
             )?,
             annos: AnnoStorageImpl::new(Some(
                 location.join(crate::annostorage::ondisk::SUBFOLDER_NAME),
