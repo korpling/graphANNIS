@@ -12,7 +12,7 @@ use std::collections::BTreeSet;
 use std::ops::Bound;
 use transient_btree_index::BtreeConfig;
 
-pub const SERIALIZATION_ID: &str = "DiskAdjacencyListV2";
+pub const SERIALIZATION_ID: &str = "DiskAdjacencyListV1";
 
 /// Repeatedly call the given function and get the result, or panic if the error is permanent.
 fn get_or_panic<F, R>(f: F) -> R

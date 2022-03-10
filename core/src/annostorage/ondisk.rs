@@ -17,7 +17,7 @@ use transient_btree_index::BtreeConfig;
 
 use smartstring::alias::String as SmartString;
 
-pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v2";
+pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v1";
 
 const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
 

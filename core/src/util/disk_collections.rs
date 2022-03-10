@@ -168,8 +168,13 @@ where
         if let Some(c2) = &self.c2 {
             let key = K::create_key(key);
             if let Some(value) = c2.get(&key)? {
-                let value = self.serialization.deserialize(&value)?;
-                return Ok(Some(Cow::Owned(value)));
+                let value: Option<V> = self.serialization.deserialize(&value)?;
+                if let Some(value) = value {
+                    return Ok(Some(Cow::Owned(value)));
+                } else {
+                    // Value was explicitly deleted (and still written to disk)
+                    return Ok(None);
+                }
             }
         }
 
@@ -343,6 +348,7 @@ where
         let mut builder = TableBuilder::new(self.custom_options(), out_file);
         for (key, value) in self.iter()? {
             let key = key.create_key();
+            let value = Some(value);
             builder.add(&key, &self.serialization.serialize(&value)?)?;
         }
         builder.finish()?;
@@ -408,16 +414,17 @@ where
 {
     type Item = (K, V);
     fn next(&mut self) -> Option<(K, V)> {
-        if let Some((key, value)) = self.table_iterator.next() {
+        while let Some((key, value)) = self.table_iterator.next() {
             let key = K::parse_key(&key);
-            let value: V = self
+            let value: Option<V> = self
                 .serialization
                 .deserialize(&value)
                 .expect("Could not decode previously written data from disk.");
-            Some((key, value))
-        } else {
-            None
+            if let Some(value) = value {
+                return Some((key, value));
+            }
         }
+        None
     }
 }
 
@@ -746,14 +753,16 @@ where
                 .current(&mut self.current_key, &mut self.current_value)
             {
                 if self.range_contains(&self.current_key) {
-                    let value: V = self
+                    let value: Option<V> = self
                         .serialization
                         .deserialize(&self.current_value)
                         .expect("Could not decode previously written data from disk.");
 
                     self.table_it.advance();
 
-                    return Some((K::parse_key(&self.current_key), value));
+                    if let Some(value) = value {
+                        return Some((K::parse_key(&self.current_key), value));
+                    }
                 } else {
                     self.exhausted = true;
                 }

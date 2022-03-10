@@ -6,11 +6,11 @@ use fake::Fake;
 
 #[test]
 fn range() {
-    let mut table = DiskMap::new(
+    let mut table: DiskMap<u8, bool> = DiskMap::new(
         None,
         EvictionStrategy::MaximumItems(3),
         DEFAULT_BLOCK_CACHE_CAPACITY,
-        BtreeConfig::default().fixed_key_size(8).fixed_value_size(1),
+        BtreeConfig::default().fixed_key_size(1).fixed_value_size(1),
     )
     .unwrap();
     table.insert(0, true).unwrap();
