@@ -26,6 +26,54 @@ const BLOCK_MAX_SIZE: usize = 4 * KB;
 /// Uses a cache for each disk table with 1 MB capacity.
 pub const DEFAULT_BLOCK_CACHE_CAPACITY: usize = MB;
 
+/// Repeatedly call the given function and get the result, or panic if the error is permanent.
+fn get_or_panic<F, R>(f: F) -> R
+where
+    F: Fn() -> Result<R>,
+{
+    let mut last_err = None;
+    for _ in 0..5 {
+        match f() {
+            Ok(result) => return result,
+            Err(e) => last_err = Some(e),
+        }
+        // In case this is an intermediate error, wait some time before trying again
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    }
+    panic!("Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.\nCause:\n{:?}", last_err.unwrap())
+}
+
+struct PanickingIterator<I, E, K, V>
+where
+    I: Iterator<Item = std::result::Result<(K, V), E>>,
+{
+    wrapped: I,
+}
+
+impl<I, E, K, V> Iterator for PanickingIterator<I, E, K, V>
+where
+    I: Iterator<Item = std::result::Result<(K, V), E>>,
+    E: std::fmt::Debug,
+{
+    type Item = (K, V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut last_err = None;
+        for _ in 0..5 {
+            match self.wrapped.next() {
+                Some(v) => match v {
+                    Ok(result) => return Some(result),
+                    Err(e) => last_err = Some(e),
+                },
+                None => return None,
+            }
+            // In case this is an intermediate error, wait some time before trying again
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+        panic!("Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.\nCause:\n{:?}", last_err.unwrap())
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 struct Entry<K, V>
 where
@@ -272,11 +320,9 @@ where
         // Check if C0, C1 or C2 are the only non-empty maps and return a specialized iterator
         if let Some(c1) = &self.c1 {
             if self.c0.is_empty() && self.c2.is_none() {
-                if let Ok(c1_range) = c1.range(range.clone()) {
-                    // Return iterator over C1
-                    // TODO: error handling
-                    return Box::new(c1_range.filter_map(|e| e.ok()));
-                }
+                let c1_range = get_or_panic(|| c1.range(range.clone()).map_err(|e| e.into()));
+                // Return iterator over C1
+                return Box::new(PanickingIterator { wrapped: c1_range });
             }
         } else if let Some(c2) = &self.c2 {
             if self.c0.is_empty() && self.c1.as_ref().map_or(true, |c1| c1.is_empty()) {
@@ -458,13 +504,8 @@ where
         serialization: bincode::config::DefaultOptions,
     ) -> CombinedRange<'a, K, V> {
         let c1_iterator: Box<dyn Iterator<Item = (K, V)>> = if let Some(c1) = c1 {
-            if let Ok(it) = c1.range(range.clone()) {
-                // TODO: add error handling
-                Box::new(it.filter_map(|e| e.ok()))
-            } else {
-                // TODO: add error handling
-                Box::new(std::iter::empty())
-            }
+            let it = get_or_panic(|| c1.range(range.clone()).map_err(|e| e.into()));
+            Box::new(PanickingIterator { wrapped: it })
         } else {
             Box::new(std::iter::empty())
         };
