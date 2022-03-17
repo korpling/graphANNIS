@@ -220,7 +220,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                     lhs.node,
                     self.spec.dist.min_dist(),
                     self.spec.dist.max_dist(),
-                ) && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
+                )? && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
                 {
                     return Ok(true);
                 }
@@ -229,7 +229,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                 rhs.node,
                 self.spec.dist.min_dist(),
                 self.spec.dist.max_dist(),
-            ) && check_edge_annotation(
+            )? && check_edge_annotation(
                 &self.spec.edge_anno,
                 e.as_ref(),
                 lhs.node,

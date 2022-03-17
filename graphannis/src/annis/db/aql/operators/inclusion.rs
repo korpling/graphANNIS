@@ -95,9 +95,9 @@ impl<'a> BinaryOperatorBase for Inclusion<'a> {
             // span length of LHS
             if let Some(l) = self.gs_order.distance(start_lhs, end_lhs)? {
                 // path between left-most tokens exists in ORDERING component and has maximum length l
-                if self.gs_order.is_connected(start_lhs, start_rhs, 0, std::ops::Bound::Included(l))
+                if self.gs_order.is_connected(start_lhs, start_rhs, 0, std::ops::Bound::Included(l))?
                 // path between right-most tokens exists in ORDERING component and has maximum length l
-                && self.gs_order.is_connected(end_rhs, end_lhs, 0, std::ops::Bound::Included(l))
+                && self.gs_order.is_connected(end_rhs, end_lhs, 0, std::ops::Bound::Included(l))?
                 {
                     return Ok(true);
                 }
@@ -194,7 +194,7 @@ impl<'a> BinaryOperatorIndex for Inclusion<'a> {
                                     end_lhs,
                                     0,
                                     std::ops::Bound::Included(l),
-                                ) {
+                                )? {
                                     // path between right-most tokens exists in ORDERING component
                                     // and has maximum length l
                                     return Ok(Some(n));

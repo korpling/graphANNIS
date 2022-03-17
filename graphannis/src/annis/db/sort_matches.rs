@@ -144,15 +144,19 @@ pub fn compare_match_by_text_pos(
                     token_helper.left_token_for(m1.node)?,
                     token_helper.left_token_for(m2.node)?,
                 ) {
-                    if gs_order.is_connected(m1_lefttok, m2_lefttok, 1, std::ops::Bound::Unbounded)
-                    {
+                    if gs_order.is_connected(
+                        m1_lefttok,
+                        m2_lefttok,
+                        1,
+                        std::ops::Bound::Unbounded,
+                    )? {
                         return Ok(Ordering::Less);
                     } else if gs_order.is_connected(
                         m2_lefttok,
                         m1_lefttok,
                         1,
                         std::ops::Bound::Unbounded,
-                    ) {
+                    )? {
                         return Ok(Ordering::Greater);
                     }
                 }

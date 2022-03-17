@@ -140,7 +140,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
         target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> bool {
+    ) -> Result<bool> {
         let max_distance = match max_distance {
             Bound::Unbounded => usize::max_value(),
             Bound::Included(max_distance) => max_distance,
@@ -149,7 +149,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
         let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance)
             .filter_ok(|x| target == x.node);
 
-        it.next().is_some()
+        Ok(it.next().is_some())
     }
 
     fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge> {

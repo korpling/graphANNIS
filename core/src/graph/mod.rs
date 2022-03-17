@@ -536,7 +536,7 @@ impl<CT: ComponentType> Graph<CT> {
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
-                            if gs.is_connected(source, target, 1, Included(1)) {
+                            if gs.is_connected(source, target, 1, Included(1))? {
                                 let anno = Annotation {
                                     key: AnnoKey {
                                         ns: anno_ns.into(),
@@ -572,7 +572,7 @@ impl<CT: ComponentType> Graph<CT> {
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
-                            if gs.is_connected(source, target, 1, Included(1)) {
+                            if gs.is_connected(source, target, 1, Included(1))? {
                                 let key = AnnoKey {
                                     ns: anno_ns.into(),
                                     name: anno_name.into(),

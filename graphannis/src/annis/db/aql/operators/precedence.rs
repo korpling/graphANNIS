@@ -146,7 +146,7 @@ impl<'a> BinaryOperatorBase for Precedence<'a> {
             start_end.1,
             self.spec.dist.min_dist(),
             self.spec.dist.max_dist(),
-        );
+        )?;
         Ok(result)
     }
 
@@ -267,7 +267,7 @@ impl<'a> BinaryOperatorBase for InversePrecedence<'a> {
             start_end.0,
             self.spec.dist.min_dist(),
             self.spec.dist.max_dist(),
-        );
+        )?;
         Ok(result)
     }
 

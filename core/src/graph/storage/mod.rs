@@ -122,7 +122,7 @@ pub trait GraphStorage: EdgeContainer {
         target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> bool;
+    ) -> Result<bool>;
 
     /// Get the annotation storage for the edges of this graph storage.
     fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge>;

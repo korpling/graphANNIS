@@ -387,7 +387,7 @@ where
         target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> bool {
+    ) -> Result<bool> {
         if let (Some(order_source), Some(order_target)) = (
             self.node_to_order.get(&source),
             self.node_to_order.get(&target),
@@ -409,7 +409,7 @@ where
                         {
                             if source_level <= target_level {
                                 let diff_level = target_level - source_level;
-                                return min_distance <= diff_level && diff_level <= max_distance;
+                                return Ok(min_distance <= diff_level && diff_level <= max_distance);
                             }
                         }
                     }
@@ -417,7 +417,7 @@ where
             }
         }
 
-        false
+        Ok(false)
     }
 
     fn copy(

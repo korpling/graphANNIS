@@ -1,7 +1,10 @@
 use std::fmt::Display;
 
 use crate::annis::types::LineColumnRange;
-use graphannis_core::{errors::GraphAnnisCoreError, types::NodeID};
+use graphannis_core::{
+    errors::{ComponentTypeError, GraphAnnisCoreError},
+    types::NodeID,
+};
 use thiserror::Error;
 
 use super::db::relannis::TextProperty;
@@ -165,6 +168,12 @@ impl Display for AQLError {
         } else {
             write!(f, "{}", self.desc)
         }
+    }
+}
+
+impl From<GraphAnnisError> for ComponentTypeError {
+    fn from(e: GraphAnnisError) -> Self {
+        ComponentTypeError(Box::new(e))
     }
 }
 

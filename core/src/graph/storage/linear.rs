@@ -244,7 +244,7 @@ where
         target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> bool {
+    ) -> Result<bool> {
         if let (Some(source_pos), Some(target_pos)) =
             (self.node_to_pos.get(&source), self.node_to_pos.get(&target))
         {
@@ -253,20 +253,20 @@ where
                 if let Some(diff) = diff.to_usize() {
                     match max_distance {
                         std::ops::Bound::Unbounded => {
-                            return diff >= min_distance;
+                            return Ok(diff >= min_distance);
                         }
                         std::ops::Bound::Included(max_distance) => {
-                            return diff >= min_distance && diff <= max_distance;
+                            return Ok(diff >= min_distance && diff <= max_distance);
                         }
                         std::ops::Bound::Excluded(max_distance) => {
-                            return diff >= min_distance && diff < max_distance;
+                            return Ok(diff >= min_distance && diff < max_distance);
                         }
                     }
                 }
             }
         }
 
-        false
+        Ok(false)
     }
 
     fn copy(

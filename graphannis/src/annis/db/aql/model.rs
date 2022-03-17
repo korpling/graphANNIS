@@ -1,4 +1,5 @@
 use crate::{
+    annis::util::quicksort,
     errors::GraphAnnisError,
     graph::{Edge, EdgeContainer, GraphStorage, NodeID},
 };
@@ -322,17 +323,18 @@ impl AQLUpdateGraphIndex {
 
         // order the candidate token by their position in the order chain
         let mut candidates: Vec<_> = covered_token.iter().collect();
-        candidates.sort_unstable_by(move |a, b| {
+        let candidates_length = candidates.len();
+        quicksort::sort_first_n_items(&mut candidates, candidates_length, move |a, b| {
             if **a == **b {
-                return std::cmp::Ordering::Equal;
+                return Ok(std::cmp::Ordering::Equal);
             }
-            if gs_order.is_connected(**a, **b, 1, std::ops::Bound::Unbounded) {
-                return std::cmp::Ordering::Less;
-            } else if gs_order.is_connected(**b, **a, 1, std::ops::Bound::Unbounded) {
-                return std::cmp::Ordering::Greater;
+            if gs_order.is_connected(**a, **b, 1, std::ops::Bound::Unbounded)? {
+                return Ok(std::cmp::Ordering::Less);
+            } else if gs_order.is_connected(**b, **a, 1, std::ops::Bound::Unbounded)? {
+                return Ok(std::cmp::Ordering::Greater);
             }
-            std::cmp::Ordering::Equal
-        });
+            Ok(std::cmp::Ordering::Equal)
+        })?;
 
         // add edge to left/right most candidate token
         let t = if ctype == AnnotationComponentType::RightToken {
