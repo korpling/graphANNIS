@@ -63,11 +63,16 @@ impl<'a> EdgeContainer for UnionEdgeContainer<'a> {
         }
     }
 
-    fn source_nodes<'b>(&'b self) -> Box<dyn Iterator<Item = NodeID> + 'b> {
-        let mut sources = FxHashSet::default();
+    fn source_nodes<'b>(&'b self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'b> {
+        let mut sources: FxHashSet<NodeID> = FxHashSet::default();
         for c in self.containers.iter() {
-            sources.extend(c.source_nodes());
+            for n in c.source_nodes() {
+                match n {
+                    Ok(n) => sources.insert(n),
+                    Err(e) => return Box::new(std::iter::once(Err(e))),
+                };
+            }
         }
-        Box::from(sources.into_iter())
+        Box::from(sources.into_iter().map(|n| Ok(n)))
     }
 }

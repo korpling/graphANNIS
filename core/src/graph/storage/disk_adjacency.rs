@@ -128,12 +128,11 @@ impl EdgeContainer for DiskAdjacencyListStorage {
                 .map(|(e, _)| Ok(e.target)),
         )
     }
-    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        let it = get_or_panic(|| self.edges.iter())
-            .map(|(e, _)| e.source)
-            .unique();
-
-        Box::new(it)
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
+        match self.edges.iter() {
+            Ok(edges) => Box::new(edges.map(|(e, _)| e.source).unique().map(|n| Ok(n))),
+            Err(e) => Box::new(std::iter::once(Err(e))),
+        }
     }
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {
@@ -275,6 +274,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
         self.clear()?;
 
         for source in orig.source_nodes() {
+            let source = source?;
             for target in orig.get_outgoing_edges(source) {
                 let target = target?;
                 let e = Edge { source, target };

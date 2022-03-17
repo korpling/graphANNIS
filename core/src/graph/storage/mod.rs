@@ -90,7 +90,7 @@ pub trait EdgeContainer: Sync + Send + MallocSizeOf {
     }
 
     /// Provides an iterator over all nodes of this edge container that are the source of an edge
-    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a>;
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a>;
 }
 
 /// A graph storage is the representation of an edge component of a graph with specific structures.

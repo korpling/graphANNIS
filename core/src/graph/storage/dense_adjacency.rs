@@ -71,13 +71,14 @@ impl EdgeContainer for DenseAdjacencyListStorage {
     }
 
     /// Provides an iterator over all nodes of this edge container that are the source an edge
-    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let it = self
             .edges
             .iter()
             .enumerate()
             .filter(|(_, outgoing)| outgoing.is_some())
-            .filter_map(|(key, _)| key.to_u64());
+            .filter_map(|(key, _)| key.to_u64())
+            .map(|n| Ok(n));
         Box::new(it)
     }
 }
@@ -169,6 +170,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
             self.edges.resize(largest_idx + 1, None);
 
             for source in orig.source_nodes() {
+                let source = source?;
                 if let Some(idx) = source.to_usize() {
                     if let Some(target) = orig.get_outgoing_edges(source).next() {
                         let target = target?;

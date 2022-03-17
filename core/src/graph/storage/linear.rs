@@ -95,14 +95,15 @@ where
         Box::from(std::iter::empty())
     }
 
-    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         // use the node chains to find source nodes, but always skip the last element
         // because the last element is only a target node, not a source node
         let it = self
             .node_chains
             .iter()
             .flat_map(|(_root, chain)| chain.iter().rev().skip(1))
-            .cloned();
+            .cloned()
+            .map(|n| Ok(n));
 
         Box::new(it)
     }

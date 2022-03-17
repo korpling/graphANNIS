@@ -132,15 +132,19 @@ where
         self.find_connected_inverse(node, 1, Included(1))
     }
 
-    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        let it = self.node_to_order.iter().filter_map(move |(n, _order)| {
-            // check if this is actual a source node (and not only a target node)
-            if self.get_outgoing_edges(*n).next().is_some() {
-                Some(*n)
-            } else {
-                None
-            }
-        });
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
+        let it = self
+            .node_to_order
+            .iter()
+            .filter_map(move |(n, _order)| {
+                // check if this is actual a source node (and not only a target node)
+                if self.get_outgoing_edges(*n).next().is_some() {
+                    Some(*n)
+                } else {
+                    None
+                }
+            })
+            .map(|n| Ok(n));
         Box::new(it)
     }
 

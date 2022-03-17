@@ -94,12 +94,12 @@ impl EdgeContainer for AdjacencyListStorage {
         }
         Box::new(std::iter::empty())
     }
-    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let it = self
             .edges
             .iter()
             .filter(|(_, outgoing)| !outgoing.is_empty())
-            .map(|(key, _)| *key);
+            .map(|(key, _)| Ok(*key));
         Box::new(it)
     }
 
@@ -206,6 +206,7 @@ impl GraphStorage for AdjacencyListStorage {
         self.clear()?;
 
         for source in orig.source_nodes() {
+            let source = source?;
             for target in orig.get_outgoing_edges(source) {
                 let target = target?;
                 let e = Edge { source, target };

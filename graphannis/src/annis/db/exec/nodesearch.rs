@@ -11,6 +11,7 @@ use crate::{
     annis::{db::aql::model::TOKEN_KEY, util},
     graph::Match,
 };
+use graphannis_core::errors::GraphAnnisCoreError;
 use graphannis_core::graph::{ANNIS_NS, NODE_NAME};
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
@@ -976,7 +977,9 @@ impl<'a> NodeSearch<'a> {
         let it = components
             .into_iter()
             .flat_map(
-                move |c: Component<AnnotationComponentType>| -> Box<dyn Iterator<Item = NodeID>> {
+                move |c: Component<AnnotationComponentType>| -> Box<
+                    dyn Iterator<Item = std::result::Result<NodeID, GraphAnnisCoreError>>,
+                > {
                     if let Some(gs) = db.get_graphstorage_as_ref(&c) {
                         if let Some(EdgeAnnoSearchSpec::ExactValue {
                             ref ns,
@@ -993,7 +996,7 @@ impl<'a> NodeSearch<'a> {
                                     name,
                                     val.as_ref().map(String::as_str).into(),
                                 )
-                                .map(|m: Match| m.node);
+                                .map(|m: Match| Ok(m.node));
                             Box::new(it)
                         } else {
                             // for each component get the all its source nodes
@@ -1004,7 +1007,7 @@ impl<'a> NodeSearch<'a> {
                     }
                 },
             )
-            .flat_map(move |node: NodeID| {
+            .map_ok(move |node: NodeID| {
                 // fetch annotation candidates for the node based on the original description
                 let node_search_desc = node_search_desc_1.clone();
                 db.get_node_annos()
@@ -1016,7 +1019,8 @@ impl<'a> NodeSearch<'a> {
                     .into_iter()
                     .map(move |anno_key| Match { node, anno_key })
             })
-            .filter_map(move |m: Match| -> Option<MatchGroup> {
+            .flatten_ok()
+            .filter_map_ok(move |m: Match| -> Option<MatchGroup> {
                 // only include the nodes that fullfill all original node search predicates
                 for cond in &node_search_desc_2.cond {
                     if !cond(&m, db.get_node_annos()) {
@@ -1025,7 +1029,7 @@ impl<'a> NodeSearch<'a> {
                 }
                 Some(smallvec![m])
             })
-            .map(|m| Ok(m));
+            .map(|m| m.map_err(|e| GraphAnnisError::from(e)));
         let mut new_desc = desc.cloned();
         if let Some(ref mut new_desc) = new_desc {
             new_desc.impl_description = String::from("part-of-component-search");
