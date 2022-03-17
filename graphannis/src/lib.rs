@@ -1,8 +1,8 @@
 //! This is a graph-based linguistic corpus query system which implements the ANNIS Query Language (AQL).
 //! The main entry point to the API is the [CorpusStorage](struct.CorpusStorage.html) struct which allows to manage and query a database of corpora.
 
-// `error_chain!` can recurse deeply
-#![recursion_limit = "1024"]
+#![warn(clippy::panic)]
+#![warn(clippy::expect_used)]
 
 extern crate graphannis_malloc_size_of as malloc_size_of;
 #[macro_use]
