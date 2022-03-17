@@ -949,7 +949,7 @@ where
     Ok(ParsedCorpusTable {
         toplevel_corpus_name: corpus_by_id
             .get(toplevel_corpus_id)
-            .ok_or_else(|| RelAnnisError::CorpusNotFound(*toplevel_corpus_id))?
+            .ok_or(RelAnnisError::CorpusNotFound(*toplevel_corpus_id))?
             .name
             .clone(),
         corpus_by_preorder,
@@ -2103,7 +2103,7 @@ fn add_subcorpora(
             let corpus = corpus_table
                 .corpus_by_id
                 .get(corpus_id)
-                .ok_or_else(|| RelAnnisError::CorpusNotFound(*corpus_id))?;
+                .ok_or(RelAnnisError::CorpusNotFound(*corpus_id))?;
 
             let corpus_name = &corpus.name;
 

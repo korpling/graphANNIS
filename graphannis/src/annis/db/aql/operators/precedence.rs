@@ -219,7 +219,7 @@ impl<'a> BinaryOperatorIndex for Precedence<'a> {
                     Ok(c) => Ok(c),
                     Err(e) => Err(GraphAnnisError::from(e)),
                 },
-                Err(e) => Err(GraphAnnisError::from(e)),
+                Err(e) => Err(e),
             })
             // map the result as match
             .map_ok(|n| Match {

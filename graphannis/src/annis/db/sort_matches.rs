@@ -46,7 +46,7 @@ pub fn compare_matchgroup_by_text_pos(
 
 fn split_path_and_nodename(full_node_name: &str) -> (&str, &str) {
     full_node_name
-        .rsplit_once("#")
+        .rsplit_once('#')
         .unwrap_or((full_node_name, ""))
 }
 

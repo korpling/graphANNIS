@@ -944,11 +944,9 @@ impl<CT: ComponentType> Graph<CT> {
     }
 
     pub fn get_node_id_from_name(&self, node_name: &str) -> Option<NodeID> {
-        let mut all_nodes_with_anno = self.node_annos.exact_anno_search(
-            Some(&ANNIS_NS.to_owned()),
-            &NODE_NAME.to_owned(),
-            Some(node_name).into(),
-        );
+        let mut all_nodes_with_anno =
+            self.node_annos
+                .exact_anno_search(Some(ANNIS_NS), NODE_NAME, Some(node_name).into());
         if let Some(m) = all_nodes_with_anno.next() {
             return Some(m.node);
         }

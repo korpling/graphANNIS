@@ -998,7 +998,7 @@ mod tests {
 
     #[test]
     fn insert_same_anno() {
-        LOGGER_INIT.call_once(|| env_logger::init());
+        LOGGER_INIT.call_once(env_logger::init);
 
         let test_anno = Annotation {
             key: AnnoKey {
@@ -1036,7 +1036,7 @@ mod tests {
 
     #[test]
     fn get_all_for_node() {
-        LOGGER_INIT.call_once(|| env_logger::init());
+        LOGGER_INIT.call_once(env_logger::init);
 
         let test_anno1 = Annotation {
             key: AnnoKey {
@@ -1080,7 +1080,7 @@ mod tests {
 
     #[test]
     fn remove() {
-        LOGGER_INIT.call_once(|| env_logger::init());
+        LOGGER_INIT.call_once(env_logger::init);
         let test_anno = Annotation {
             key: AnnoKey {
                 name: "anno1".into(),

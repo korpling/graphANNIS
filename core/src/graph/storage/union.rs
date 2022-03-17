@@ -33,10 +33,10 @@ impl<'a> EdgeContainer for UnionEdgeContainer<'a> {
             }
         }
         if errors.is_empty() {
-            Box::from(targets.into_iter().map(|o| Ok(o)))
+            Box::from(targets.into_iter().map(Ok))
         } else {
             // Only return the errors
-            Box::from(errors.into_iter().map(|e| Err(e)))
+            Box::from(errors.into_iter().map(Err))
         }
     }
 
@@ -56,10 +56,10 @@ impl<'a> EdgeContainer for UnionEdgeContainer<'a> {
             }
         }
         if errors.is_empty() {
-            Box::from(sources.into_iter().map(|o| Ok(o)))
+            Box::from(sources.into_iter().map(Ok))
         } else {
             // Only return the errors
-            Box::from(errors.into_iter().map(|e| Err(e)))
+            Box::from(errors.into_iter().map(Err))
         }
     }
 
@@ -73,6 +73,6 @@ impl<'a> EdgeContainer for UnionEdgeContainer<'a> {
                 };
             }
         }
-        Box::from(sources.into_iter().map(|n| Ok(n)))
+        Box::from(sources.into_iter().map(Ok))
     }
 }

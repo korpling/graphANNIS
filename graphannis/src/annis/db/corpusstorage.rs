@@ -1589,7 +1589,7 @@ impl CorpusStorage {
                         .get_node_annos()
                         .get_value_for_item(&m.node, &NODE_NAME_KEY)
                     {
-                        let doc_path = if let Some((before, _)) = node_name.rsplit_once("#") {
+                        let doc_path = if let Some((before, _)) = node_name.rsplit_once('#') {
                             before
                         } else {
                             &node_name
@@ -1736,7 +1736,7 @@ impl CorpusStorage {
                 }
             }
             expected_size = Some(tmp_results.len());
-            Box::from(tmp_results.into_iter().map(|m| Ok(m)))
+            Box::from(tmp_results.into_iter().map(Ok))
         };
 
         Ok((base_it, expected_size))

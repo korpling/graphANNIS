@@ -60,7 +60,7 @@ impl EdgeContainer for DenseAdjacencyListStorage {
             return match ingoing.len() {
                 0 => Box::new(std::iter::empty()),
                 1 => Box::new(std::iter::once(Ok(ingoing[0]))),
-                _ => Box::new(ingoing.iter().map(|e| Ok(e.clone()))),
+                _ => Box::new(ingoing.iter().map(|e| Ok(*e))),
             };
         }
         Box::new(std::iter::empty())
@@ -78,7 +78,7 @@ impl EdgeContainer for DenseAdjacencyListStorage {
             .enumerate()
             .filter(|(_, outgoing)| outgoing.is_some())
             .filter_map(|(key, _)| key.to_u64())
-            .map(|n| Ok(n));
+            .map(Ok);
         Box::new(it)
     }
 }

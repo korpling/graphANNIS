@@ -625,11 +625,11 @@ impl<'a> NodeSearch<'a> {
                                 anno_key: const_output.clone(),
                             })
                             .unique()
-                            .map(|m| Ok(m)),
+                            .map(Ok),
                     )
                 }
             } else {
-                Box::new(base_it.map(|m| Ok(m)))
+                Box::new(base_it.map(Ok))
             };
 
         let est_output = match val {
@@ -841,7 +841,7 @@ impl<'a> NodeSearch<'a> {
                     anno_key: NODE_TYPE_KEY.clone(),
                 }]
             })
-            .map(|m| Ok(m));
+            .map(Ok);
 
         // TODO: is_leaf should be part of the estimation
         let est_output = match val {
@@ -1029,7 +1029,7 @@ impl<'a> NodeSearch<'a> {
                 }
                 Some(smallvec![m])
             })
-            .map(|m| m.map_err(|e| GraphAnnisError::from(e)));
+            .map(|m| m.map_err(GraphAnnisError::from));
         let mut new_desc = desc.cloned();
         if let Some(ref mut new_desc) = new_desc {
             new_desc.impl_description = String::from("part-of-component-search");

@@ -167,7 +167,7 @@ impl<'a> BinaryOperatorIndex for IdenticalCoverage<'a> {
                                     }
                                 }
                             }
-                            Err(e) => result.push(Err(e.into())),
+                            Err(e) => result.push(Err(e)),
                         }
                     }
                     Err(e) => result.push(Err(e.into())),

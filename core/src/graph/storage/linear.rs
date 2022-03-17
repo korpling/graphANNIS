@@ -103,7 +103,7 @@ where
             .iter()
             .flat_map(|(_root, chain)| chain.iter().rev().skip(1))
             .cloned()
-            .map(|n| Ok(n));
+            .map(Ok);
 
         Box::new(it)
     }
@@ -152,9 +152,7 @@ where
                         if min_distance < chain.len() {
                             let max_distance = match max_distance {
                                 std::ops::Bound::Unbounded => {
-                                    return Box::new(
-                                        chain[min_distance..].iter().map(|n| Ok(n.clone())),
-                                    );
+                                    return Box::new(chain[min_distance..].iter().map(|n| Ok(*n)));
                                 }
                                 std::ops::Bound::Included(max_distance) => {
                                     offset + max_distance + 1
@@ -165,9 +163,7 @@ where
                             let max_distance = std::cmp::min(chain.len(), max_distance);
                             if min_distance < max_distance {
                                 return Box::new(
-                                    chain[min_distance..max_distance]
-                                        .iter()
-                                        .map(|n| Ok(n.clone())),
+                                    chain[min_distance..max_distance].iter().map(|n| Ok(*n)),
                                 );
                             }
                         }
@@ -201,16 +197,12 @@ where
                         if min_distance < chain.len() && max_distance <= min_distance {
                             // return all entries in the chain between min_distance..max_distance (inclusive)
                             return Box::new(
-                                chain[max_distance..=min_distance]
-                                    .iter()
-                                    .map(|n| Ok(n.clone())),
+                                chain[max_distance..=min_distance].iter().map(|n| Ok(*n)),
                             );
                         } else if max_distance < chain.len() {
                             // return all entries in the chain between min_distance..max_distance
                             return Box::new(
-                                chain[max_distance..chain.len()]
-                                    .iter()
-                                    .map(|n| Ok(n.clone())),
+                                chain[max_distance..chain.len()].iter().map(|n| Ok(*n)),
                             );
                         }
                     }

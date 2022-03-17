@@ -222,7 +222,7 @@ mod test {
             }
 
             let mut sorted_by_stdlib = items.clone();
-            sorted_by_stdlib.sort();
+            sorted_by_stdlib.sort_unstable();
             super::sort_first_n_items(&mut items, items_size, |x, y| Ok(x.cmp(y))).unwrap();
             assert_eq!(items, sorted_by_stdlib);
         }

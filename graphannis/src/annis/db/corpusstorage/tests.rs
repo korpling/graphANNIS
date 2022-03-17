@@ -140,7 +140,7 @@ fn subgraph_with_segmentation() {
         let node_name = format!("root/doc1#seg{}", i);
         example_generator::create_token_node(&mut g, &node_name, t, Some("root/doc1"));
         g.add_event(UpdateEvent::AddNodeLabel {
-            node_name: node_name,
+            node_name,
             anno_ns: "default_ns".to_string(),
             anno_name: "seg".to_string(),
             anno_value: t.to_string(),
@@ -285,7 +285,9 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph, rhs_remove_annis_
     if rhs_remove_annis_coverage {
         // Remove the special annis coverage component created during relANNIS import
         components2.retain(|c| {
-            c.get_type() != AnnotationComponentType::Coverage || c.name != "" || c.layer != "annis"
+            c.get_type() != AnnotationComponentType::Coverage
+                || !c.name.is_empty()
+                || c.layer != "annis"
         });
     }
     components2.sort();
@@ -385,7 +387,7 @@ fn import_salt_sample() {
     let lock2 = e2.read().unwrap();
     let db2 = get_read_or_error(&lock2).unwrap();
 
-    compare_corpora(&db1, &db2, true);
+    compare_corpora(db1, db2, true);
 }
 
 #[test]
@@ -405,5 +407,5 @@ fn load_legacy_binary_corpus() {
     let lock2 = e2.read().unwrap();
     let db2 = get_read_or_error(&lock2).unwrap();
 
-    compare_corpora(&db1, &db2, false);
+    compare_corpora(db1, db2, false);
 }

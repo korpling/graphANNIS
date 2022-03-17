@@ -16,7 +16,7 @@ lazy_static! {
             String::from("../data")
         });
         let cs = CorpusStorage::with_auto_cache_size(&db_dir, true).unwrap();
-        return Some(Mutex::new(cs));
+        Some(Mutex::new(cs))
     };
 }
 

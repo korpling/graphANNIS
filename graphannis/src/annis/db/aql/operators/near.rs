@@ -243,7 +243,7 @@ impl<'a> BinaryOperatorIndex for Near<'a> {
             })
             .collect();
         let result = try_as_boxed_iter!(result);
-        Box::new(result.into_iter().map(|m| Ok(m)))
+        Box::new(result.into_iter().map(Ok))
     }
 
     fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {

@@ -502,7 +502,7 @@ impl BinaryOperatorIndex for BaseEdgeOp {
             let mut all = try_as_boxed_iter!(all);
             all.sort_unstable();
             all.dedup();
-            Box::new(all.into_iter().map(|m| Ok(m)))
+            Box::new(all.into_iter().map(Ok))
         }
     }
 

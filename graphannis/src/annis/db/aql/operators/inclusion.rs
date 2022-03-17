@@ -166,7 +166,7 @@ impl<'a> BinaryOperatorIndex for Inclusion<'a> {
                             .tok_helper
                             .get_gs_left_token()
                             .get_ingoing_edges(t)
-                            .map_ok(|n| NodeType::Other(n));
+                            .map_ok(NodeType::Other);
                         // return the token itself and all aligned nodes
                         std::iter::once(Ok(NodeType::Token(t))).chain(others)
                     })

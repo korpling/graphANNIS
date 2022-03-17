@@ -690,10 +690,10 @@ impl Conjunction {
 
         let component_left: usize = *(node2component
             .get(&spec_idx_left)
-            .ok_or_else(|| GraphAnnisError::NoComponentForNode(spec_idx_left + 1))?);
+            .ok_or(GraphAnnisError::NoComponentForNode(spec_idx_left + 1))?);
         let component_right: usize = *(node2component
             .get(&spec_idx_right)
-            .ok_or_else(|| GraphAnnisError::NoComponentForNode(spec_idx_right + 1))?);
+            .ok_or(GraphAnnisError::NoComponentForNode(spec_idx_right + 1))?);
 
         // get the original execution node
         let exec_left: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a> = component2exec

@@ -130,7 +130,7 @@ impl EdgeContainer for DiskAdjacencyListStorage {
     }
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         match self.edges.iter() {
-            Ok(edges) => Box::new(edges.map(|(e, _)| e.source).unique().map(|n| Ok(n))),
+            Ok(edges) => Box::new(edges.map(|(e, _)| e.source).unique().map(Ok)),
             Err(e) => Box::new(std::iter::once(Err(e))),
         }
     }
@@ -560,7 +560,7 @@ mod tests {
             .collect();
         let mut found = found.unwrap();
         assert_eq!(2, found.len());
-        found.sort();
+        found.sort_unstable();
 
         assert_eq!(4, found[0]);
         assert_eq!(5, found[1]);
@@ -627,14 +627,14 @@ mod tests {
             .get_outgoing_edges(1)
             .collect::<Result<Vec<_>>>()
             .unwrap();
-        out1.sort();
+        out1.sort_unstable();
         assert_eq!(vec![2, 3], out1);
 
         let mut out3 = gs
             .get_outgoing_edges(3)
             .collect::<Result<Vec<_>>>()
             .unwrap();
-        out3.sort();
+        out3.sort_unstable();
         assert_eq!(vec![4, 5], out3);
 
         let out6 = gs
@@ -652,18 +652,18 @@ mod tests {
         let reachable: Result<Vec<NodeID>> =
             gs.find_connected(1, 1, Bound::Included(100)).collect();
         let mut reachable = reachable.unwrap();
-        reachable.sort();
+        reachable.sort_unstable();
         assert_eq!(vec![2, 3, 4, 5, 6, 7], reachable);
 
         let reachable: Result<Vec<NodeID>> =
             gs.find_connected(3, 2, Bound::Included(100)).collect();
         let mut reachable = reachable.unwrap();
-        reachable.sort();
+        reachable.sort_unstable();
         assert_eq!(vec![6, 7], reachable);
 
         let reachable: Result<Vec<NodeID>> = gs.find_connected(1, 2, Bound::Included(4)).collect();
         let mut reachable = reachable.unwrap();
-        reachable.sort();
+        reachable.sort_unstable();
         assert_eq!(vec![4, 5, 6, 7], reachable);
 
         let reachable: Result<Vec<NodeID>> =

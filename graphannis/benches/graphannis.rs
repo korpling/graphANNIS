@@ -20,19 +20,18 @@ use std::path::PathBuf;
 lazy_static! {
 
 static ref CORPUS_STORAGE : Option<CorpusStorage> = {
-    let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
-        path
-    } else {
-        String::from("../data")
-    });
+        let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
+            path
+        } else {
+            String::from("../data")
+        });
 
-    // only execute the test if the directory exists
-    let cs = if db_dir.exists() && db_dir.is_dir() {
-        CorpusStorage::with_auto_cache_size(&db_dir, false).ok()
-    } else {
-        None
-    };
-    cs
+        // only execute the test if the directory exists
+        if db_dir.exists() && db_dir.is_dir() {
+            CorpusStorage::with_auto_cache_size(&db_dir, false).ok()
+        } else {
+            None
+        }
     };
 }
 

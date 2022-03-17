@@ -185,7 +185,7 @@ impl<'a> BinaryOperatorIndex for EqualValue<'a> {
                     .node_annos
                     .exact_anno_search(ns, name, val_search)
                     .collect();
-                return Box::new(rhs_candidates.into_iter().map(|m| Ok(m)));
+                return Box::new(rhs_candidates.into_iter().map(Ok));
             }
         }
         Box::new(std::iter::empty())

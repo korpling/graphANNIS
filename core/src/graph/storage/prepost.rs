@@ -144,7 +144,7 @@ where
                     None
                 }
             })
-            .map(|n| Ok(n));
+            .map(Ok);
         Box::new(it)
     }
 
@@ -237,7 +237,7 @@ where
                     _ => None,
                 })
                 .filter(move |n| visited.insert(*n))
-                .map(|n| Ok(n));
+                .map(Ok);
             Box::new(it)
         } else {
             Box::new(std::iter::empty())
@@ -337,7 +337,7 @@ where
                     }
                 })
                 .filter(move |n| visited.insert(*n))
-                .map(|n| Ok(n));
+                .map(Ok);
             Box::new(it)
         } else {
             Box::new(std::iter::empty())
