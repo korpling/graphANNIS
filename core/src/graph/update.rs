@@ -78,7 +78,7 @@ pub enum UpdateEvent {
 
 enum ChangeSet {
     InProgress {
-        table_builder: TableBuilder<File>,
+        table_builder: Box<TableBuilder<File>>,
         outfile: NamedTempFile,
     },
     Finished {
@@ -182,7 +182,7 @@ fn current_inprogress_changeset(changesets: &mut Vec<ChangeSet>) -> Result<&mut 
         let outfile = NamedTempFile::new()?;
         let table_builder = TableBuilder::new(sstable::Options::default(), outfile.reopen()?);
         let c = ChangeSet::InProgress {
-            table_builder,
+            table_builder: Box::new(table_builder),
             outfile,
         };
         changesets.push(c);
@@ -303,7 +303,7 @@ impl<'de> Visitor<'de> for GraphUpdateVisitor {
 
         let c = ChangeSet::InProgress {
             outfile,
-            table_builder,
+            table_builder: Box::new(table_builder),
         };
         let mut changesets = vec![c];
         finish_all_changesets(&mut changesets).map_err(M::Error::custom)?;
