@@ -323,8 +323,7 @@ impl AQLUpdateGraphIndex {
 
         // order the candidate token by their position in the order chain
         let mut candidates: Vec<_> = covered_token.iter().collect();
-        let candidates_length = candidates.len();
-        quicksort::sort_first_n_items(&mut candidates, candidates_length, move |a, b| {
+        quicksort::sort(&mut candidates, move |a, b| {
             if **a == **b {
                 return Ok(std::cmp::Ordering::Equal);
             }

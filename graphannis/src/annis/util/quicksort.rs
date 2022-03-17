@@ -1,6 +1,19 @@
 use crate::errors::Result;
 use rand::Rng;
 
+/// Make sure all items of the complete vector are sorted by the given comparision function.
+pub fn sort<T, F>(items: &mut Vec<T>, order_func: F) -> Result<()>
+where
+    T: Send,
+    F: Fn(&T, &T) -> Result<std::cmp::Ordering>,
+{
+    let item_len = items.len();
+    if item_len > 0 {
+        quicksort(items, item_len, &order_func)?;
+    }
+    Ok(())
+}
+
 /// Make sure that the first `n` items of the complete vector are sorted by the given comparision function.
 ///
 /// This returns the original items and it is guaranteed that the items (0..n) are
@@ -23,7 +36,7 @@ where
 /// The algorithm has been modified to accept a `max_size` parameter which allows to abort the algorithm
 /// if at least `max_size` items at the beginning of the vector have been sorted.
 ///
-/// The algorithm used a randomized pivot element and is executed in parallel.
+/// The algorithm used a randomized pivot element.
 fn quicksort<T, F>(items: &mut [T], max_size: usize, order_func: &F) -> Result<()>
 where
     F: Fn(&T, &T) -> Result<std::cmp::Ordering>,

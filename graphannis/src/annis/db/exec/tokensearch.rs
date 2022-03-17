@@ -88,8 +88,7 @@ impl<'a> AnyTokenSearch<'a> {
                 });
             }
         }
-        let root_nodes_length = root_nodes.len();
-        quicksort::sort_first_n_items(&mut root_nodes, root_nodes_length, |a, b| {
+        quicksort::sort(&mut root_nodes, |a, b| {
             sort_matches::compare_match_by_text_pos(
                 b,
                 a,
