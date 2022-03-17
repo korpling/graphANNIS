@@ -447,7 +447,7 @@ where
     type Item = Result<(K, V)>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some((key, value)) = self.table_iterator.next() {
+        if let Some((key, value)) = self.table_iterator.next() {
             let key = K::parse_key(&key);
             return match self.serialization.deserialize(&value) {
                 Ok(value) => Some(Ok((key, value))),
