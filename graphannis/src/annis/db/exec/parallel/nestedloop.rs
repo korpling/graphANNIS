@@ -259,8 +259,8 @@ impl<'a> NestedLoop<'a> {
                         }
                     }
                     Err(e) => {
-                        if tx.send(Err(e)).is_err() {
-                            return;
+                        if let Err(e) = tx.send(Err(e)) {
+                            trace!("Could not send error in parallel nested loop: {}", e);
                         }
                     }
                 };

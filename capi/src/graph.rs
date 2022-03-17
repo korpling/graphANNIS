@@ -87,8 +87,12 @@ pub extern "C" fn annis_graph_all_components_by_type(
 }
 
 /// Return a vector of all outgoing edges for the graph `g`, the `source` node and the given `component`.
+///
+/// # Safety
+///
+/// This functions dereferences the `err` pointer and is therefore unsafe.
 #[no_mangle]
-pub extern "C" fn annis_graph_outgoing_edges(
+pub unsafe extern "C" fn annis_graph_outgoing_edges(
     g: *const AnnotationGraph,
     source: NodeID,
     component: *const AnnotationComponent,
@@ -107,9 +111,7 @@ pub extern "C" fn annis_graph_outgoing_edges(
                 }
                 Err(e) => {
                     if !err.is_null() {
-                        unsafe {
-                            *err = cerror::new(e.into());
-                        }
+                        *err = cerror::new(e.into());
                     }
                     return std::ptr::null_mut();
                 }
