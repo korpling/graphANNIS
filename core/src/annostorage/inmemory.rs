@@ -8,7 +8,6 @@ use crate::{annostorage::symboltable::SymbolTable, errors::GraphAnnisCoreError};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
-use smallvec::SmallVec;
 use smartstring::alias::String;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
@@ -403,16 +402,19 @@ where
         false
     }
 
-    fn get_keys_for_iterator(
-        &self,
+    fn get_keys_for_iterator<'b>(
+        &'b self,
         ns: Option<&str>,
         name: Option<&str>,
-        it: Box<dyn Iterator<Item = T>>,
-    ) -> SmallVec<[Match; 8]> {
+        it: Box<
+            dyn Iterator<Item = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>>
+                + 'b,
+        >,
+    ) -> Result<Vec<Match>> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // return the only possible annotation for each node
-                let mut matches = SmallVec::<[Match; 8]>::new();
+                let mut matches = Vec::new();
                 let key = Arc::from(AnnoKey {
                     ns: ns.into(),
                     name: name.into(),
@@ -420,6 +422,7 @@ where
 
                 if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
                     for item in it {
+                        let item = item?;
                         if let Some(all_annos) = self.by_container.get(&item) {
                             if all_annos
                                 .binary_search_by_key(&key_symbol, |a| a.key)
@@ -430,7 +433,7 @@ where
                         }
                     }
                 }
-                matches
+                Ok(matches)
             } else {
                 let matching_key_symbols: Vec<(usize, Arc<AnnoKey>)> = self
                     .get_qnames(name)
@@ -442,8 +445,9 @@ where
                     })
                     .collect();
                 // return all annotations with the correct name for each node
-                let mut matches = SmallVec::<[Match; 8]>::new();
+                let mut matches = Vec::new();
                 for item in it {
+                    let item = item?;
                     for (key_symbol, key) in matching_key_symbols.iter() {
                         if let Some(all_annos) = self.by_container.get(&item) {
                             if all_annos
@@ -455,18 +459,19 @@ where
                         }
                     }
                 }
-                matches
+                Ok(matches)
             }
         } else {
             // return all annotations for each node
-            let mut matches = SmallVec::<[Match; 8]>::new();
+            let mut matches = Vec::new();
             for item in it {
+                let item = item?;
                 let all_keys = self.get_all_keys_for_item(&item, None, None);
                 for anno_key in all_keys {
                     matches.push((item.clone(), anno_key).into());
                 }
             }
-            matches
+            Ok(matches)
         }
     }
 

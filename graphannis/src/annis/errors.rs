@@ -41,6 +41,8 @@ pub enum GraphAnnisError {
     LHSOperandNotFound,
     #[error("RHS operand not found")]
     RHSOperandNotFound,
+    #[error("Could not peek next element in index join: {0}")]
+    PeekInIndexJoin(String),
     #[error(
         "frequency definition must consists of two parts: \
     the referenced node and the annotation name or \"tok\" separated by \":\""
@@ -164,4 +166,28 @@ impl Display for AQLError {
             write!(f, "{}", self.desc)
         }
     }
+}
+
+#[macro_export]
+macro_rules! try_as_boxed_iter {
+    ($x:expr) => {
+        match $x {
+            Ok(v) => v,
+            Err(e) => {
+                return std::boxed::Box::new(std::iter::once(Err(e.into())));
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! try_as_option {
+    ($x:expr) => {
+        match $x {
+            Ok(v) => v,
+            Err(e) => {
+                return Some(Err(e.into()));
+            }
+        }
+    };
 }

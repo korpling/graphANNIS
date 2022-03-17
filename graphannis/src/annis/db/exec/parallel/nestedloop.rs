@@ -1,6 +1,7 @@
 use super::super::{ExecutionNode, ExecutionNodeDesc};
 use crate::annis::db::aql::conjunction::BinaryOperatorEntry;
 use crate::annis::operator::BinaryOperatorBase;
+use crate::errors::Result;
 use graphannis_core::annostorage::MatchGroup;
 use rayon::prelude::*;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -9,15 +10,15 @@ use std::sync::Arc;
 const MAX_BUFFER_SIZE: usize = 1024;
 
 pub struct NestedLoop<'a> {
-    outer: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
-    inner: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
+    outer: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
+    inner: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
     op: Arc<dyn BinaryOperatorBase + 'a>,
     inner_idx: usize,
     outer_idx: usize,
 
     current_outer: Option<Arc<MatchGroup>>,
     match_candidate_buffer: Vec<MatchCandidate>,
-    match_receiver: Option<Receiver<MatchGroup>>,
+    match_receiver: Option<Receiver<Result<MatchGroup>>>,
     inner_cache: Vec<Arc<MatchGroup>>,
     pos_inner_cache: Option<usize>,
 
@@ -27,13 +28,13 @@ pub struct NestedLoop<'a> {
     global_reflexivity: bool,
 }
 
-type MatchCandidate = (Arc<MatchGroup>, Arc<MatchGroup>, Sender<MatchGroup>);
+type MatchCandidate = (Arc<MatchGroup>, Arc<MatchGroup>, Sender<Result<MatchGroup>>);
 
 impl<'a> NestedLoop<'a> {
     pub fn new(
         op_entry: BinaryOperatorEntry<'a>,
-        lhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
-        rhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
+        lhs: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
+        rhs: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
     ) -> NestedLoop<'a> {
@@ -113,67 +114,105 @@ impl<'a> NestedLoop<'a> {
         }
     }
 
-    fn peek_outer(&mut self) -> Option<Arc<MatchGroup>> {
+    fn peek_outer(&mut self) -> Result<Option<Arc<MatchGroup>>> {
         if self.current_outer.is_none() {
             if let Some(result) = self.outer.next() {
-                self.current_outer = Some(Arc::from(result));
+                match result {
+                    Ok(result) => {
+                        self.current_outer = Some(Arc::from(result));
+                    }
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
             } else {
                 self.current_outer = None;
             }
         }
-        self.current_outer.as_ref().cloned()
+
+        Ok(self.current_outer.as_ref().cloned())
     }
 
-    fn next_match_buffer(&mut self, tx: &Sender<MatchGroup>) {
+    fn next_match_buffer(&mut self, tx: &Sender<Result<MatchGroup>>) {
         self.match_candidate_buffer.clear();
 
         while self.match_candidate_buffer.len() < MAX_BUFFER_SIZE {
-            if let Some(m_outer) = self.peek_outer() {
-                if self.pos_inner_cache.is_some() {
-                    let mut cache_pos = self.pos_inner_cache.unwrap();
+            match self.peek_outer() {
+                Ok(m_outer) => {
+                    if let Some(m_outer) = m_outer {
+                        if self.pos_inner_cache.is_some() {
+                            let mut cache_pos = self.pos_inner_cache.unwrap();
 
-                    while cache_pos < self.inner_cache.len() {
-                        let m_inner = &self.inner_cache[cache_pos];
-                        cache_pos += 1;
-                        self.pos_inner_cache = Some(cache_pos);
+                            while cache_pos < self.inner_cache.len() {
+                                let m_inner = &self.inner_cache[cache_pos];
+                                cache_pos += 1;
+                                self.pos_inner_cache = Some(cache_pos);
 
-                        self.match_candidate_buffer.push((
-                            m_outer.clone(),
-                            m_inner.clone(),
-                            tx.clone(),
-                        ));
+                                self.match_candidate_buffer.push((
+                                    m_outer.clone(),
+                                    m_inner.clone(),
+                                    tx.clone(),
+                                ));
 
-                        if self.match_candidate_buffer.len() >= MAX_BUFFER_SIZE {
-                            return;
+                                if self.match_candidate_buffer.len() >= MAX_BUFFER_SIZE {
+                                    return;
+                                }
+                            }
+                        } else {
+                            for m_inner in &mut self.inner {
+                                match m_inner {
+                                    Ok(m_inner) => {
+                                        let m_inner = Arc::from(m_inner);
+
+                                        self.inner_cache.push(m_inner.clone());
+
+                                        self.match_candidate_buffer.push((
+                                            m_outer.clone(),
+                                            m_inner,
+                                            tx.clone(),
+                                        ));
+
+                                        if self.match_candidate_buffer.len() >= MAX_BUFFER_SIZE {
+                                            return;
+                                        }
+                                    }
+                                    Err(e) => {
+                                        if tx.send(Err(e)).is_err() {
+                                            return;
+                                        }
+                                    }
+                                };
+                            }
                         }
-                    }
-                } else {
-                    for m_inner in &mut self.inner {
-                        let m_inner: Arc<MatchGroup> = Arc::from(m_inner);
-
-                        self.inner_cache.push(m_inner.clone());
-
-                        self.match_candidate_buffer
-                            .push((m_outer.clone(), m_inner, tx.clone()));
-
-                        if self.match_candidate_buffer.len() >= MAX_BUFFER_SIZE {
-                            return;
-                        }
+                        // inner was completed once, use cache from now, or reset to first item once completed
+                        self.pos_inner_cache = Some(0)
                     }
                 }
-                // inner was completed once, use cache from now, or reset to first item once completed
-                self.pos_inner_cache = Some(0)
+                Err(e) => {
+                    if tx.send(Err(e)).is_err() {
+                        return;
+                    }
+                }
             }
 
             // consume next outer
             self.current_outer = None;
-            if self.peek_outer().is_none() {
-                return;
-            }
+            match self.peek_outer() {
+                Ok(next_outer) => {
+                    if next_outer.is_none() {
+                        return;
+                    }
+                }
+                Err(e) => {
+                    if tx.send(Err(e)).is_err() {
+                        return;
+                    }
+                }
+            };
         }
     }
 
-    fn next_match_receiver(&mut self) -> Option<Receiver<MatchGroup>> {
+    fn next_match_receiver(&mut self) -> Option<Receiver<Result<MatchGroup>>> {
         let (tx, rx) = channel();
 
         self.next_match_buffer(&tx);
@@ -199,23 +238,32 @@ impl<'a> NestedLoop<'a> {
                     op.filter_match(&m_inner[inner_idx], &m_outer[outer_idx])
                 };
 
-                // filter by reflexivity if necessary
-                if filter_true
-                    && (op.is_reflexive()
-                        || (global_reflexivity
-                            && m_outer[outer_idx].different_to_all(m_inner)
-                            && m_inner[inner_idx].different_to_all(m_outer))
-                        || (!global_reflexivity
-                            && m_outer[outer_idx].different_to(&m_inner[inner_idx])))
-                {
-                    let mut result = MatchGroup::new();
-                    result.extend(m_outer.iter().cloned());
-                    result.extend(m_inner.iter().cloned());
+                match filter_true {
+                    Ok(filter_true) => {
+                        // filter by reflexivity if necessary
+                        if filter_true
+                            && (op.is_reflexive()
+                                || (global_reflexivity
+                                    && m_outer[outer_idx].different_to_all(m_inner)
+                                    && m_inner[inner_idx].different_to_all(m_outer))
+                                || (!global_reflexivity
+                                    && m_outer[outer_idx].different_to(&m_inner[inner_idx])))
+                        {
+                            let mut result = MatchGroup::new();
+                            result.extend(m_outer.iter().cloned());
+                            result.extend(m_inner.iter().cloned());
 
-                    if let Err(err) = tx.send(result) {
-                        trace!("Could not send match in nested loop: {}", err);
+                            if let Err(err) = tx.send(Ok(result)) {
+                                trace!("Could not send match in nested loop: {}", err);
+                            }
+                        }
                     }
-                }
+                    Err(e) => {
+                        if tx.send(Err(e)).is_err() {
+                            return;
+                        }
+                    }
+                };
             });
         self.match_candidate_buffer.clear();
 
@@ -224,7 +272,7 @@ impl<'a> NestedLoop<'a> {
 }
 
 impl<'a> ExecutionNode for NestedLoop<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
         self
     }
 
@@ -234,9 +282,9 @@ impl<'a> ExecutionNode for NestedLoop<'a> {
 }
 
 impl<'a> Iterator for NestedLoop<'a> {
-    type Item = MatchGroup;
+    type Item = Result<MatchGroup>;
 
-    fn next(&mut self) -> Option<MatchGroup> {
+    fn next(&mut self) -> Option<Self::Item> {
         // lazily initialize
         if self.match_receiver.is_none() {
             self.match_receiver = if let Some(rhs) = self.next_match_receiver() {

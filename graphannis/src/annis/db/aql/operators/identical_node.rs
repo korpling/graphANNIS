@@ -1,6 +1,7 @@
 use crate::AnnotationGraph;
 use crate::{
     annis::{db::aql::model::AnnotationComponentType, operator::*},
+    errors::Result,
     graph::Match,
 };
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
@@ -42,8 +43,8 @@ impl std::fmt::Display for IdenticalNode {
 }
 
 impl BinaryOperatorBase for IdenticalNode {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        lhs.node == rhs.node
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
+        Ok(lhs.node == rhs.node)
     }
 
     fn estimation_type(&self) -> EstimationType {
@@ -56,11 +57,11 @@ impl BinaryOperatorBase for IdenticalNode {
 }
 
 impl BinaryOperatorIndex for IdenticalNode {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        Box::new(std::iter::once(Match {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
+        Box::new(std::iter::once(Ok(Match {
             node: lhs.node,
             anno_key: DEFAULT_ANNO_KEY.clone(),
-        }))
+        })))
     }
 
     fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {

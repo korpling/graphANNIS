@@ -1,7 +1,7 @@
 use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use crate::{
     annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage, Match},
-    dfs::{CycleSafeDFS, DFSStep},
+    dfs::CycleSafeDFS,
     errors::Result,
     graph::NODE_NAME_KEY,
     types::{Edge, NodeID, NumValue},
@@ -60,14 +60,17 @@ impl<PosT: 'static> EdgeContainer for LinearGraphStorage<PosT>
 where
     PosT: NumValue,
 {
-    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_outgoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(pos) = self.node_to_pos.get(&node) {
             // find the next node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root) {
                 let next_pos = pos.pos.clone() + PosT::one();
                 if let Some(next_pos) = next_pos.to_usize() {
                     if next_pos < chain.len() {
-                        return Box::from(std::iter::once(chain[next_pos]));
+                        return Box::from(std::iter::once(Ok(chain[next_pos])));
                     }
                 }
             }
@@ -75,13 +78,16 @@ where
         Box::from(std::iter::empty())
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_ingoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(pos) = self.node_to_pos.get(&node) {
             // find the previous node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root) {
                 if let Some(pos) = pos.pos.to_usize() {
                     if let Some(previous_pos) = pos.checked_sub(1) {
-                        return Box::from(std::iter::once(chain[previous_pos]));
+                        return Box::from(std::iter::once(Ok(chain[previous_pos])));
                     }
                 }
             }
@@ -137,7 +143,7 @@ where
         source: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(start_pos) = self.node_to_pos.get(&source) {
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
                 if let Some(offset) = start_pos.pos.to_usize() {
@@ -145,7 +151,9 @@ where
                         if min_distance < chain.len() {
                             let max_distance = match max_distance {
                                 std::ops::Bound::Unbounded => {
-                                    return Box::new(chain[min_distance..].iter().cloned());
+                                    return Box::new(
+                                        chain[min_distance..].iter().map(|n| Ok(n.clone())),
+                                    );
                                 }
                                 std::ops::Bound::Included(max_distance) => {
                                     offset + max_distance + 1
@@ -155,7 +163,11 @@ where
                             // clip to chain length
                             let max_distance = std::cmp::min(chain.len(), max_distance);
                             if min_distance < max_distance {
-                                return Box::new(chain[min_distance..max_distance].iter().cloned());
+                                return Box::new(
+                                    chain[min_distance..max_distance]
+                                        .iter()
+                                        .map(|n| Ok(n.clone())),
+                                );
                             }
                         }
                     }
@@ -170,7 +182,7 @@ where
         source: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(start_pos) = self.node_to_pos.get(&source) {
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
                 if let Some(offset) = start_pos.pos.to_usize() {
@@ -187,10 +199,18 @@ where
                     if let Some(min_distance) = offset.checked_sub(min_distance) {
                         if min_distance < chain.len() && max_distance <= min_distance {
                             // return all entries in the chain between min_distance..max_distance (inclusive)
-                            return Box::new(chain[max_distance..=min_distance].iter().cloned());
+                            return Box::new(
+                                chain[max_distance..=min_distance]
+                                    .iter()
+                                    .map(|n| Ok(n.clone())),
+                            );
                         } else if max_distance < chain.len() {
                             // return all entries in the chain between min_distance..max_distance
-                            return Box::new(chain[max_distance..chain.len()].iter().cloned());
+                            return Box::new(
+                                chain[max_distance..chain.len()]
+                                    .iter()
+                                    .map(|n| Ok(n.clone())),
+                            );
                         }
                     }
                 }
@@ -199,9 +219,9 @@ where
         Box::new(std::iter::empty())
     }
 
-    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
+    fn distance(&self, source: NodeID, target: NodeID) -> Result<Option<usize>> {
         if source == target {
-            return Some(0);
+            return Ok(Some(0));
         }
 
         if let (Some(source_pos), Some(target_pos)) =
@@ -210,11 +230,11 @@ where
             if source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
                 let diff = target_pos.pos.clone() - source_pos.pos.clone();
                 if let Some(diff) = diff.to_usize() {
-                    return Some(diff);
+                    return Ok(Some(diff));
                 }
             }
         }
-        None
+        Ok(None)
     }
 
     fn is_connected(
@@ -279,6 +299,7 @@ where
 
             let out_edges = orig.get_outgoing_edges(source);
             for target in out_edges {
+                let target = target?;
                 // remove the nodes that have an incoming edge from the root list
                 roots.remove(&target);
 
@@ -302,7 +323,7 @@ where
 
             let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), *root_node, 1, usize::max_value());
             for step in dfs {
-                let step: DFSStep = step;
+                let step = step?;
 
                 if let Some(pos) = PosT::from_usize(chain.len()) {
                     let pos: RelativePosition<PosT> = RelativePosition {

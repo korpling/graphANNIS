@@ -814,7 +814,8 @@ struct AnnisVec_AnnotationComponent *annis_graph_all_components_by_type(const An
  */
 struct AnnisVec_Edge *annis_graph_outgoing_edges(const AnnisAnnotationGraph *g,
                                                  AnnisNodeID source,
-                                                 const AnnisAnnotationComponent *component);
+                                                 const AnnisAnnotationComponent *component,
+                                                 AnnisErrorList **err);
 
 /**
  * Return a vector of annnotations for the given `edge` in the `component` of graph `g.

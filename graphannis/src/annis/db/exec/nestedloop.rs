@@ -3,11 +3,13 @@ use graphannis_core::annostorage::MatchGroup;
 use super::{ExecutionNode, ExecutionNodeDesc};
 use crate::annis::db::aql::conjunction::BinaryOperatorEntry;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorBase};
+use crate::errors::Result;
+use crate::try_as_option;
 use std::iter::Peekable;
 
 pub struct NestedLoop<'a> {
-    outer: Peekable<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
-    inner: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
+    outer: Peekable<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>>,
+    inner: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
     op: BinaryOperator<'a>,
     inner_idx: usize,
     outer_idx: usize,
@@ -23,8 +25,8 @@ pub struct NestedLoop<'a> {
 impl<'a> NestedLoop<'a> {
     pub fn new(
         op_entry: BinaryOperatorEntry<'a>,
-        lhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
-        rhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
+        lhs: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
+        rhs: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
     ) -> NestedLoop<'a> {
@@ -100,7 +102,7 @@ impl<'a> NestedLoop<'a> {
 }
 
 impl<'a> ExecutionNode for NestedLoop<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
         self
     }
 
@@ -110,11 +112,11 @@ impl<'a> ExecutionNode for NestedLoop<'a> {
 }
 
 impl<'a> Iterator for NestedLoop<'a> {
-    type Item = MatchGroup;
+    type Item = Result<MatchGroup>;
 
-    fn next(&mut self) -> Option<MatchGroup> {
+    fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if let Some(m_outer) = self.outer.peek() {
+            if let Some(Ok(m_outer)) = self.outer.peek() {
                 if self.pos_inner_cache.is_some() {
                     let mut cache_pos = self.pos_inner_cache.unwrap();
 
@@ -129,6 +131,7 @@ impl<'a> Iterator for NestedLoop<'a> {
                             self.op
                                 .filter_match(&m_inner[self.inner_idx], &m_outer[self.outer_idx])
                         };
+                        let filter_true = try_as_option!(filter_true);
                         // filter by reflexivity if necessary
                         if filter_true
                             && (self.op.is_reflexive()
@@ -141,11 +144,12 @@ impl<'a> Iterator for NestedLoop<'a> {
                         {
                             let mut result = m_outer.clone();
                             result.append(&mut m_inner.clone());
-                            return Some(result);
+                            return Some(Ok(result));
                         }
                     }
                 } else {
-                    for mut m_inner in &mut self.inner {
+                    for m_inner in &mut self.inner {
+                        let mut m_inner = try_as_option!(m_inner);
                         self.inner_cache.push(m_inner.clone());
 
                         let filter_true = if self.left_is_outer {
@@ -156,6 +160,7 @@ impl<'a> Iterator for NestedLoop<'a> {
                                 .filter_match(&m_inner[self.inner_idx], &m_outer[self.outer_idx])
                         };
                         // filter by reflexivity if necessary
+                        let filter_true = try_as_option!(filter_true);
                         if filter_true
                             && (self.op.is_reflexive()
                                 || m_outer[self.outer_idx].node != m_inner[self.inner_idx].node
@@ -164,7 +169,7 @@ impl<'a> Iterator for NestedLoop<'a> {
                         {
                             let mut result = m_outer.clone();
                             result.append(&mut m_inner);
-                            return Some(result);
+                            return Some(Ok(result));
                         }
                     }
                 }
@@ -172,8 +177,13 @@ impl<'a> Iterator for NestedLoop<'a> {
                 self.pos_inner_cache = Some(0)
             }
 
-            // consume next outer
-            self.outer.next()?;
+            // consume next outer and fail on error
+            match self.outer.next()? {
+                Ok(_) => {}
+                Err(e) => {
+                    return Some(Err(e));
+                }
+            }
         }
     }
 }

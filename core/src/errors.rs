@@ -50,6 +50,8 @@ pub enum GraphAnnisCoreError {
     BtreeIndex(#[from] transient_btree_index::Error),
     #[error(transparent)]
     IntConversion(#[from] TryFromIntError),
+    #[error(transparent)]
+    Other(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[derive(Error, Debug)]

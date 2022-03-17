@@ -3,13 +3,13 @@ use crate::annis::db::exec::ExecutionNodeDesc;
 use crate::annis::db::sort_matches;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
+use crate::annis::util::quicksort;
 use crate::{
     annis::db::aql::model::AnnotationComponentType, annis::db::token_helper::TokenHelper,
-    graph::Match, AnnotationGraph,
+    errors::Result, graph::Match, AnnotationGraph,
 };
 use graphannis_core::{
     annostorage::MatchGroup,
-    errors::Result,
     graph::{storage::GraphStorage, ANNIS_NS, NODE_TYPE_KEY},
     types::{AnnoKey, Component, NodeID},
 };
@@ -26,7 +26,7 @@ pub struct AnyTokenSearch<'a> {
     db: &'a AnnotationGraph,
     token_helper: Option<TokenHelper<'a>>,
     order_gs: Option<&'a dyn GraphStorage>,
-    root_iterators: Option<Vec<Box<dyn Iterator<Item = NodeID> + 'a>>>,
+    root_iterators: Option<Vec<Box<dyn Iterator<Item = Result<NodeID>> + 'a>>>,
 }
 
 lazy_static! {
@@ -61,12 +61,12 @@ impl<'a> AnyTokenSearch<'a> {
         components
     }
 
-    fn get_root_iterators(&mut self) -> &mut Vec<Box<dyn Iterator<Item = NodeID> + 'a>> {
+    fn get_root_iterators(&mut self) -> &mut Vec<Box<dyn Iterator<Item = Result<NodeID>> + 'a>> {
         if let Some(ref mut root_iterators) = self.root_iterators {
             root_iterators
         } else {
             // iterate over all nodes that are token and check if they are root node nodes in the ORDERING component
-            let mut root_nodes = MatchGroup::new();
+            let mut root_nodes = Vec::new();
             for tok_candidate in
                 self.db
                     .get_node_annos()
@@ -75,7 +75,7 @@ impl<'a> AnyTokenSearch<'a> {
                 let n = tok_candidate.node;
                 let mut is_root_tok = true;
                 if let Some(order_gs) = self.order_gs {
-                    is_root_tok = is_root_tok && order_gs.get_ingoing_edges(n).next() == None;
+                    is_root_tok = is_root_tok && order_gs.get_ingoing_edges(n).next().is_none();
                 }
                 if let Some(ref token_helper) = self.token_helper {
                     is_root_tok = is_root_tok && !token_helper.has_outgoing_coverage_edges(n);
@@ -87,28 +87,36 @@ impl<'a> AnyTokenSearch<'a> {
                     });
                 }
             }
-            root_nodes.sort_unstable_by(|a, b| {
-                sort_matches::compare_match_by_text_pos(
-                    b,
-                    a,
-                    self.db.get_node_annos(),
-                    self.token_helper.as_ref(),
-                    self.order_gs,
-                    CollationType::Default,
-                    false,
-                )
-            });
+            let root_nodes_length = root_nodes.len();
+            if let Err(e) =
+                quicksort::sort_first_n_items(&mut root_nodes, root_nodes_length, |a, b| {
+                    sort_matches::compare_match_by_text_pos(
+                        b,
+                        a,
+                        self.db.get_node_annos(),
+                        self.token_helper.as_ref(),
+                        self.order_gs,
+                        CollationType::Default,
+                        false,
+                    )
+                })
+            {
+                // Set the internal cache to a failure state and abort early
+                let err_iterator = std::iter::once(Err(e));
+                self.root_iterators = Some(vec![Box::new(err_iterator)]);
+                return self.root_iterators.as_mut().unwrap();
+            }
 
             // for root nodes add an iterator for all reachable nodes in the order component
-            let mut root_iterators = Vec::new();
+            let mut root_iterators: Vec<Box<dyn Iterator<Item = Result<u64>>>> = Vec::new();
             for root in root_nodes {
                 let it = if let Some(order_gs) = self.order_gs {
                     order_gs.find_connected(root.node, 0, std::ops::Bound::Unbounded)
                 } else {
                     // there is only the the root token and no ordering component
-                    Box::from(vec![root.node].into_iter())
+                    Box::from(vec![Ok(root.node)].into_iter())
                 };
-                root_iterators.push(it);
+                root_iterators.push(Box::new(it.map(|it| it.map_err(|e| e.into()))));
             }
             self.root_iterators = Some(root_iterators);
             self.root_iterators.as_mut().unwrap()
@@ -123,7 +131,7 @@ impl<'a> fmt::Display for AnyTokenSearch<'a> {
 }
 
 impl<'a> ExecutionNode for AnyTokenSearch<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
         self
     }
 
@@ -133,9 +141,9 @@ impl<'a> ExecutionNode for AnyTokenSearch<'a> {
 }
 
 impl<'a> Iterator for AnyTokenSearch<'a> {
-    type Item = MatchGroup;
+    type Item = Result<MatchGroup>;
 
-    fn next(&mut self) -> Option<MatchGroup> {
+    fn next(&mut self) -> Option<Result<MatchGroup>> {
         // lazily initialize the sorted vector of iterators
         let root_iterators = self.get_root_iterators();
         // use the last iterator in the list to get the next match
@@ -144,10 +152,14 @@ impl<'a> Iterator for AnyTokenSearch<'a> {
                 let root_iterators_len = root_iterators.len();
                 let it = &mut root_iterators[root_iterators_len - 1];
                 if let Some(n) = it.next() {
-                    return Some(smallvec![Match {
-                        node: n,
-                        anno_key: self.node_type_key.clone(),
-                    }]);
+                    let result: Option<Result<MatchGroup>> = match n {
+                        Ok(n) => Some(Ok(smallvec![Match {
+                            node: n,
+                            anno_key: self.node_type_key.clone(),
+                        }])),
+                        Err(e) => Some(Err(e)),
+                    };
+                    return result;
                 }
             }
             root_iterators.pop();
@@ -185,7 +197,7 @@ mod tests {
 
         g.apply_update(&mut update, |_| {}).unwrap();
 
-        let search_result: Vec<MatchGroup> = AnyTokenSearch::new(&g).unwrap().collect();
-        assert_eq!(1, search_result.len());
+        let search_result: Result<Vec<MatchGroup>> = AnyTokenSearch::new(&g).unwrap().collect();
+        assert_eq!(1, search_result.unwrap().len());
     }
 }

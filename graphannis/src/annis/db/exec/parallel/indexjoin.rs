@@ -2,10 +2,11 @@ use super::super::{ExecutionNode, ExecutionNodeDesc, NodeSearchDesc};
 use crate::annis::db::aql::conjunction::BinaryOperatorArguments;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::operator::BinaryOperatorIndex;
-use crate::{annis::operator::EstimationType, graph::Match};
+use crate::{annis::operator::EstimationType, errors::Result, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
+use itertools::Itertools;
 use rayon::prelude::*;
-use smallvec::SmallVec;
+use std::error::Error;
 use std::iter::Peekable;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
@@ -16,8 +17,8 @@ const MAX_BUFFER_SIZE: usize = 512;
 /// It then retrieves all matches as defined by the operator for each LHS element and checks
 /// if the annotation condition is true.
 pub struct IndexJoin<'a> {
-    lhs: Peekable<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
-    match_receiver: Option<Receiver<MatchGroup>>,
+    lhs: Peekable<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>>,
+    match_receiver: Option<Receiver<Result<MatchGroup>>>,
     op: Arc<dyn BinaryOperatorIndex + 'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
@@ -36,7 +37,7 @@ impl<'a> IndexJoin<'a> {
     /// * `anno_qname` A pair of the annotation namespace and name (both optional) to define which annotations to fetch
     /// * `anno_cond` - A filter function to determine if a RHS candidate is included
     pub fn new(
-        lhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
+        lhs: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
         lhs_idx: usize,
         op: Box<dyn BinaryOperatorIndex + 'a>,
         op_args: &BinaryOperatorArguments,
@@ -89,10 +90,9 @@ impl<'a> IndexJoin<'a> {
 
     fn next_lhs_buffer(
         &mut self,
-        tx: &Sender<MatchGroup>,
-    ) -> Vec<(MatchGroup, Sender<MatchGroup>)> {
-        let mut lhs_buffer: Vec<(MatchGroup, Sender<MatchGroup>)> =
-            Vec::with_capacity(MAX_BUFFER_SIZE);
+        tx: &Sender<Result<MatchGroup>>,
+    ) -> Vec<(Result<MatchGroup>, Sender<Result<MatchGroup>>)> {
+        let mut lhs_buffer = Vec::with_capacity(MAX_BUFFER_SIZE);
         while lhs_buffer.len() < MAX_BUFFER_SIZE {
             if let Some(lhs) = self.lhs.next() {
                 lhs_buffer.push((lhs, tx.clone()));
@@ -103,9 +103,9 @@ impl<'a> IndexJoin<'a> {
         lhs_buffer
     }
 
-    fn next_match_receiver(&mut self) -> Option<Receiver<MatchGroup>> {
+    fn next_match_receiver(&mut self) -> Option<Receiver<Result<MatchGroup>>> {
         let (tx, rx) = channel();
-        let mut lhs_buffer = self.next_lhs_buffer(&tx);
+        let lhs_buffer = self.next_lhs_buffer(&tx);
 
         if lhs_buffer.is_empty() {
             return None;
@@ -120,57 +120,73 @@ impl<'a> IndexJoin<'a> {
         let global_reflexivity = self.global_reflexivity;
 
         // find all RHS in parallel
-        lhs_buffer.par_iter_mut().for_each(|(m_lhs, tx)| {
-            let mut rhs_candidate =
-                next_candidates(m_lhs, op, lhs_idx, node_annos, &node_search_desc)
-                    .into_iter()
-                    .peekable();
-            while let Some(mut m_rhs) = rhs_candidate.next() {
-                // check if all filters are true
-                let mut filter_result = true;
-                for f in &node_search_desc.cond {
-                    if !(f)(&m_rhs, node_annos) {
-                        filter_result = false;
-                        break;
-                    }
-                }
-
-                if filter_result {
-                    // replace the annotation with a constant value if needed
-                    if let Some(ref const_anno) = node_search_desc.const_output {
-                        m_rhs = (m_rhs.node, const_anno.clone()).into();
-                    }
-
-                    // check if lhs and rhs are equal and if this is allowed in this query
-                    if op.is_reflexive()
-                        || (global_reflexivity && m_rhs.different_to_all(m_lhs)
-                            || (!global_reflexivity && m_rhs.different_to(&m_lhs[lhs_idx])))
-                    {
-                        // filters have been checked, return the result
-                        let mut result = m_lhs.clone();
-                        let matched_node = m_rhs.node;
-                        result.push(m_rhs);
-                        if node_search_desc.const_output.is_some() {
-                            // only return the one unique constAnno for this node and no duplicates
-                            // skip all RHS candidates that have the same node ID
-                            #[allow(clippy::while_let_loop)]
-                            loop {
-                                if let Some(next_match) = rhs_candidate.peek() {
-                                    if next_match.node != matched_node {
+        lhs_buffer.into_par_iter().for_each(|(m_lhs, tx)| {
+            match m_lhs {
+                Ok(m_lhs) => {
+                    match next_candidates(&m_lhs, op, lhs_idx, node_annos, &node_search_desc) {
+                        Ok(rhs_candidate) => {
+                            let mut rhs_candidate = rhs_candidate.into_iter().peekable();
+                            while let Some(mut m_rhs) = rhs_candidate.next() {
+                                // check if all filters are true
+                                let mut include_match = true;
+                                for f in &node_search_desc.cond {
+                                    if !(f)(&m_rhs, node_annos) {
+                                        include_match = false;
                                         break;
                                     }
-                                } else {
-                                    break;
                                 }
-                                rhs_candidate.next();
+
+                                if include_match {
+                                    // replace the annotation with a constant value if needed
+                                    if let Some(ref const_anno) = node_search_desc.const_output {
+                                        m_rhs = (m_rhs.node, const_anno.clone()).into();
+                                    }
+
+                                    // check if lhs and rhs are equal and if this is allowed in this query
+                                    if op.is_reflexive()
+                                        || (global_reflexivity && m_rhs.different_to_all(&m_lhs)
+                                            || (!global_reflexivity
+                                                && m_rhs.different_to(&m_lhs[lhs_idx])))
+                                    {
+                                        // filters have been checked, return the result
+                                        let mut result: MatchGroup = m_lhs.clone();
+                                        let matched_node = m_rhs.node;
+                                        result.push(m_rhs);
+                                        if node_search_desc.const_output.is_some() {
+                                            // only return the one unique constAnno for this node and no duplicates
+                                            // skip all RHS candidates that have the same node ID
+                                            #[allow(clippy::while_let_loop)]
+                                            loop {
+                                                if let Some(next_match) = rhs_candidate.peek() {
+                                                    if next_match.node != matched_node {
+                                                        break;
+                                                    }
+                                                } else {
+                                                    break;
+                                                }
+                                                rhs_candidate.next();
+                                            }
+                                        }
+                                        if tx.send(Ok(result)).is_err() {
+                                            return;
+                                        }
+                                    }
+                                }
                             }
                         }
-                        if tx.send(result).is_err() {
-                            return;
+                        Err(e) => {
+                            if tx.send(Err(e)).is_err() {
+                                return;
+                            };
                         }
                     }
                 }
-            }
+                Err(e) => {
+                    if tx.send(Err(e)).is_err() {
+                        return;
+                    }
+                }
+            };
         });
         Some(rx)
     }
@@ -182,18 +198,31 @@ fn next_candidates(
     lhs_idx: usize,
     node_annos: &dyn AnnotationStorage<NodeID>,
     node_search_desc: &Arc<NodeSearchDesc>,
-) -> SmallVec<[Match; 8]> {
-    let it_nodes = Box::from(op.retrieve_matches(&m_lhs[lhs_idx]).map(|m| m.node).fuse());
+) -> Result<Vec<Match>> {
+    let it_nodes = op
+        .retrieve_matches(&m_lhs[lhs_idx])
+        .map_ok(|m| m.node)
+        .map(|n| {
+            n.map_err(|e| {
+                let e: Box<dyn Error + Send + Sync> = Box::new(e);
+                e
+            })
+        })
+        .fuse();
+    let it_nodes: Box<
+        dyn Iterator<Item = std::result::Result<NodeID, Box<dyn Error + Send + Sync>>>,
+    > = Box::from(it_nodes);
 
-    node_annos.get_keys_for_iterator(
+    let result = node_annos.get_keys_for_iterator(
         node_search_desc.qname.0.as_deref(),
         node_search_desc.qname.1.as_deref(),
         it_nodes,
-    )
+    )?;
+    Ok(result)
 }
 
 impl<'a> ExecutionNode for IndexJoin<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
         self
     }
 
@@ -203,9 +232,9 @@ impl<'a> ExecutionNode for IndexJoin<'a> {
 }
 
 impl<'a> Iterator for IndexJoin<'a> {
-    type Item = MatchGroup;
+    type Item = Result<MatchGroup>;
 
-    fn next(&mut self) -> Option<MatchGroup> {
+    fn next(&mut self) -> Option<Self::Item> {
         // lazily initialize
         if self.match_receiver.is_none() {
             self.match_receiver = if let Some(rhs) = self.next_match_receiver() {

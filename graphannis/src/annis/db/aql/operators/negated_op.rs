@@ -5,6 +5,7 @@ use crate::{
         db::exec::nodesearch::NodeSearchSpec,
         operator::{BinaryOperator, BinaryOperatorBase, BinaryOperatorSpec, EstimationType},
     },
+    errors::Result,
     AnnotationGraph,
 };
 use graphannis_core::annostorage::Match;
@@ -61,9 +62,10 @@ impl<'a> Display for NegatedOp<'a> {
 }
 
 impl<'a> BinaryOperatorBase for NegatedOp<'a> {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         // Invert the filtered logic by the actual operator
-        !self.negated_op.filter_match(lhs, rhs)
+        let orig = self.negated_op.filter_match(lhs, rhs)?;
+        Ok(!orig)
     }
 
     fn is_reflexive(&self) -> bool {

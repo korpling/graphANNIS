@@ -750,7 +750,7 @@ impl<CT: ComponentType> Graph<CT> {
             if let Some(gs_mut) = Arc::get_mut(gs) {
                 // Since immutable graph storages can't change, only writable graph storage statistics need to be re-calculated
                 if let Some(writeable_gs) = gs_mut.as_writeable() {
-                    writeable_gs.calculate_statistics();
+                    writeable_gs.calculate_statistics()?;
                 }
             } else {
                 result = Err(GraphAnnisCoreError::NonExclusiveComponentReference(

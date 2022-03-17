@@ -6,6 +6,7 @@ use crate::{
 };
 
 use super::{EdgeContainer, GraphStatistic, GraphStorage, WriteableGraphStorage};
+use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Deserialize;
 use std::collections::BTreeSet;
@@ -58,12 +59,15 @@ impl AdjacencyListStorage {
 }
 
 impl EdgeContainer for AdjacencyListStorage {
-    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_outgoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(outgoing) = self.edges.get(&node) {
             return match outgoing.len() {
                 0 => Box::new(std::iter::empty()),
-                1 => Box::new(std::iter::once(outgoing[0])),
-                _ => Box::new(outgoing.iter().cloned()),
+                1 => Box::new(std::iter::once(Ok(outgoing[0]))),
+                _ => Box::new(outgoing.iter().map(|e| (Ok(e.clone())))),
             };
         }
         Box::new(std::iter::empty())
@@ -77,12 +81,15 @@ impl EdgeContainer for AdjacencyListStorage {
         }
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_ingoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(ingoing) = self.inverse_edges.get(&node) {
             return match ingoing.len() {
                 0 => Box::new(std::iter::empty()),
-                1 => Box::new(std::iter::once(ingoing[0])),
-                _ => Box::new(ingoing.iter().cloned()),
+                1 => Box::new(std::iter::once(Ok(ingoing[0]))),
+                _ => Box::new(ingoing.iter().map(|e| Ok(e.clone()))),
             };
         }
         Box::new(std::iter::empty())
@@ -129,7 +136,7 @@ impl GraphStorage for AdjacencyListStorage {
         node: NodeID,
         min_distance: usize,
         max_distance: Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
             Bound::Unbounded => usize::max_value(),
@@ -137,8 +144,8 @@ impl GraphStorage for AdjacencyListStorage {
             Bound::Excluded(max_distance) => max_distance + 1,
         };
         let it = CycleSafeDFS::<'a>::new(self, node, min_distance, max_distance)
-            .map(|x| x.node)
-            .filter(move |n| visited.insert(*n));
+            .map_ok(|x| x.node)
+            .filter_ok(move |n| visited.insert(*n));
         Box::new(it)
     }
 
@@ -147,7 +154,7 @@ impl GraphStorage for AdjacencyListStorage {
         node: NodeID,
         min_distance: usize,
         max_distance: Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
             Bound::Unbounded => usize::max_value(),
@@ -156,17 +163,22 @@ impl GraphStorage for AdjacencyListStorage {
         };
 
         let it = CycleSafeDFS::<'a>::new_inverse(self, node, min_distance, max_distance)
-            .map(|x| x.node)
-            .filter(move |n| visited.insert(*n));
+            .map_ok(|x| x.node)
+            .filter_ok(move |n| visited.insert(*n));
         Box::new(it)
     }
 
-    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
+    fn distance(&self, source: NodeID, target: NodeID) -> Result<Option<usize>> {
         let mut it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value())
-            .filter(|x| target == x.node)
-            .map(|x| x.distance);
-
-        it.next()
+            .filter_ok(|x| target == x.node)
+            .map_ok(|x| x.distance);
+        match it.next() {
+            Some(distance) => {
+                let distance = distance?;
+                Ok(Some(distance))
+            }
+            None => Ok(None),
+        }
     }
     fn is_connected(
         &self,
@@ -181,7 +193,7 @@ impl GraphStorage for AdjacencyListStorage {
             Bound::Excluded(max_distance) => max_distance + 1,
         };
         let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance)
-            .filter(|x| target == x.node);
+            .filter_ok(|x| target == x.node);
 
         it.next().is_some()
     }
@@ -195,6 +207,7 @@ impl GraphStorage for AdjacencyListStorage {
 
         for source in orig.source_nodes() {
             for target in orig.get_outgoing_edges(source) {
+                let target = target?;
                 let e = Edge { source, target };
                 self.add_edge(e.clone())?;
                 for a in orig.get_anno_storage().get_annotations_for_item(&e) {
@@ -303,7 +316,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         Ok(())
     }
 
-    fn calculate_statistics(&mut self) {
+    fn calculate_statistics(&mut self) -> Result<()> {
         let mut stats = GraphStatistic {
             max_depth: 1,
             max_fan_out: 0,
@@ -388,6 +401,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             for root_node in &roots {
                 let mut dfs = CycleSafeDFS::new(self, *root_node, 0, usize::max_value());
                 for step in &mut dfs {
+                    let step = step?;
                     number_of_visits += 1;
                     stats.max_depth = std::cmp::max(stats.max_depth, step.distance);
                 }
@@ -411,6 +425,8 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         }
 
         self.stats = Some(stats);
+
+        Ok(())
     }
 
     fn clear(&mut self) -> Result<()> {
@@ -426,8 +442,6 @@ impl WriteableGraphStorage for AdjacencyListStorage {
 mod tests {
 
     use super::*;
-
-    use itertools::Itertools;
 
     #[test]
     fn multiple_paths_find_range() {
@@ -488,13 +502,13 @@ mod tests {
         })
         .unwrap();
 
-        let mut found: Vec<NodeID> = gs
+        let found: Result<Vec<NodeID>> = gs
             .find_connected(1, 3, std::ops::Bound::Included(3))
             .collect();
+        let mut found = found.unwrap();
 
         assert_eq!(2, found.len());
         found.sort();
-
         assert_eq!(4, found[0]);
         assert_eq!(5, found[1]);
     }
@@ -556,30 +570,52 @@ mod tests {
         })
         .unwrap();
 
-        assert_eq!(
-            vec![2, 3],
-            gs.get_outgoing_edges(1).sorted().collect::<Vec<NodeID>>()
-        );
-        assert_eq!(
-            vec![4, 5],
-            gs.get_outgoing_edges(3).sorted().collect::<Vec<NodeID>>()
-        );
-        assert_eq!(0, gs.get_outgoing_edges(6).count());
-        assert_eq!(vec![4], gs.get_outgoing_edges(2).collect::<Vec<NodeID>>());
+        let mut out1 = gs
+            .get_outgoing_edges(1)
+            .collect::<Result<Vec<_>>>()
+            .unwrap();
+        out1.sort();
+        assert_eq!(vec![2, 3], out1);
 
-        let mut reachable: Vec<NodeID> = gs.find_connected(1, 1, Bound::Included(100)).collect();
+        let mut out3 = gs
+            .get_outgoing_edges(3)
+            .collect::<Result<Vec<_>>>()
+            .unwrap();
+        out3.sort();
+        assert_eq!(vec![4, 5], out3);
+
+        let out6 = gs
+            .get_outgoing_edges(6)
+            .collect::<Result<Vec<_>>>()
+            .unwrap();
+        assert_eq!(0, out6.len());
+
+        let out2 = gs
+            .get_outgoing_edges(2)
+            .collect::<Result<Vec<_>>>()
+            .unwrap();
+        assert_eq!(vec![4], out2);
+
+        let reachable: Result<Vec<NodeID>> =
+            gs.find_connected(1, 1, Bound::Included(100)).collect();
+        let mut reachable = reachable.unwrap();
         reachable.sort();
         assert_eq!(vec![2, 3, 4, 5, 6, 7], reachable);
 
-        let mut reachable: Vec<NodeID> = gs.find_connected(3, 2, Bound::Included(100)).collect();
+        let reachable: Result<Vec<NodeID>> =
+            gs.find_connected(3, 2, Bound::Included(100)).collect();
+        let mut reachable = reachable.unwrap();
         reachable.sort();
         assert_eq!(vec![6, 7], reachable);
 
-        let mut reachable: Vec<NodeID> = gs.find_connected(1, 2, Bound::Included(4)).collect();
+        let reachable: Result<Vec<NodeID>> = gs.find_connected(1, 2, Bound::Included(4)).collect();
+        let mut reachable = reachable.unwrap();
         reachable.sort();
         assert_eq!(vec![4, 5, 6, 7], reachable);
 
-        let reachable: Vec<NodeID> = gs.find_connected(7, 1, Bound::Included(100)).collect();
+        let reachable: Result<Vec<NodeID>> =
+            gs.find_connected(7, 1, Bound::Included(100)).collect();
+        let reachable = reachable.unwrap();
         assert_eq!(true, reachable.is_empty());
     }
 
@@ -617,7 +653,7 @@ mod tests {
         })
         .unwrap();
 
-        gs.calculate_statistics();
+        gs.calculate_statistics().unwrap();
         assert_eq!(true, gs.get_statistics().is_some());
         let stats = gs.get_statistics().unwrap();
         assert_eq!(true, stats.cyclic);
@@ -853,7 +889,7 @@ mod tests {
         })
         .unwrap();
 
-        gs.calculate_statistics();
+        gs.calculate_statistics().unwrap();
         assert_eq!(true, gs.get_statistics().is_some());
         let stats = gs.get_statistics().unwrap();
         assert_eq!(true, stats.cyclic);

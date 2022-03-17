@@ -5,6 +5,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Refactored the basic `GraphStorage` APIs to handle errors.
+  Previously, we used mostly main memory containers which had
+  an API that could not fail. This was reflected in the `GraphStorage` 
+  APIs, which directly returned the result or an iterator over 
+  the non-fallible results. 
+  With the addition of disk-based implementations, this API model 
+  was not possible to implement without using panics when repeated 
+  access to the disk failed.
+  Some of the API that was changed was user visible when using
+  the `graphannis-core` crate (and thus the C-API), so this release
+  is not technically backwards-compatible.
+  Adapting to the updated API should be restricted to handle the errors 
+  returned by the functions.
+
 ### Fixed
 
 - More efficient node path extraction in `count_extra` function and when sorting the matches.

@@ -5,7 +5,9 @@ use std::path::PathBuf;
 
 use crate::annis::db::corpusstorage::get_read_or_error;
 use crate::annis::db::{aql::model::AnnotationComponentType, example_generator};
+use crate::annis::errors::GraphAnnisError;
 use crate::corpusstorage::{ImportFormat, QueryLanguage};
+use crate::errors::Result;
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::{AnnotationGraph, CorpusStorage};
 use graphannis_core::annostorage::{AnnotationStorage, ValueSearch};
@@ -207,16 +209,25 @@ fn subgraph_with_segmentation() {
     let gs_cov = graph.get_graphstorage(&cov_components[0]).unwrap();
 
     let segl0_id = graph.get_node_id_from_name("root/doc1#seg0").unwrap();
-    let seg0_out: Vec<NodeID> = gs_cov.get_outgoing_edges(segl0_id).collect();
-    assert_eq!(3, seg0_out.len());
+    let seg0_out: Result<Vec<NodeID>> = gs_cov
+        .get_outgoing_edges(segl0_id)
+        .map(|e| e.map_err(GraphAnnisError::from))
+        .collect();
+    assert_eq!(3, seg0_out.unwrap().len());
 
     let seg1_id = graph.get_node_id_from_name("root/doc1#seg1").unwrap();
-    let seg1_out: Vec<NodeID> = gs_cov.get_outgoing_edges(seg1_id).collect();
-    assert_eq!(2, seg1_out.len());
+    let seg1_out: Result<Vec<NodeID>> = gs_cov
+        .get_outgoing_edges(seg1_id)
+        .map(|e| e.map_err(GraphAnnisError::from))
+        .collect();
+    assert_eq!(2, seg1_out.unwrap().len());
 
     let seg2_id = graph.get_node_id_from_name("root/doc1#seg2").unwrap();
-    let seg2_out: Vec<NodeID> = gs_cov.get_outgoing_edges(seg2_id).collect();
-    assert_eq!(5, seg2_out.len());
+    let seg2_out: Result<Vec<NodeID>> = gs_cov
+        .get_outgoing_edges(seg2_id)
+        .map(|e| e.map_err(GraphAnnisError::from))
+        .collect();
+    assert_eq!(5, seg2_out.unwrap().len());
 
     assert_eq!(None, graph.get_node_id_from_name("root/doc1#seg3"));
 }
@@ -289,24 +300,29 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph, rhs_remove_annis_
             let start2 = nodes2[i];
 
             // Check all connected nodes for this edge
-            let targets1: Vec<String> = gs1
+            let targets1: Result<Vec<String>> = gs1
                 .get_outgoing_edges(start1)
-                .filter_map(|target| {
+                .filter_map_ok(|target| {
                     g1.get_node_annos()
                         .get_value_for_item(&target, &NODE_NAME_KEY)
                 })
-                .map(|n| n.into())
-                .sorted()
+                .map_ok(|n| n.into())
+                .map(|n| n.map_err(GraphAnnisError::from))
                 .collect();
-            let targets2: Vec<String> = gs2
+            let mut targets1 = targets1.unwrap();
+            targets1.sort();
+
+            let targets2: Result<Vec<String>> = gs2
                 .get_outgoing_edges(start2)
-                .filter_map(|target| {
+                .filter_map_ok(|target| {
                     g2.get_node_annos()
                         .get_value_for_item(&target, &NODE_NAME_KEY)
                 })
-                .map(|n| n.into())
-                .sorted()
+                .map(|n| n.map_err(GraphAnnisError::from))
+                .map_ok(|n| n.to_string())
                 .collect();
+            let mut targets2 = targets2.unwrap();
+            targets2.sort();
             assert_eq!(targets1, targets2);
 
             // Check the edge annotations for each edge

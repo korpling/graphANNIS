@@ -2,6 +2,7 @@ use self::nodesearch::NodeSearch;
 use crate::annis::db::AnnotationStorage;
 use crate::{
     annis::operator::{BinaryOperatorBase, EstimationType},
+    errors::Result,
     graph::Match,
 };
 use graphannis_core::{
@@ -195,7 +196,7 @@ pub struct NodeSearchDesc {
 }
 
 pub trait ExecutionNode: Iterator {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup>;
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>>;
     fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {
         None
     }
@@ -212,15 +213,15 @@ pub trait ExecutionNode: Iterator {
 pub struct EmptyResultSet;
 
 impl Iterator for EmptyResultSet {
-    type Item = MatchGroup;
+    type Item = Result<MatchGroup>;
 
-    fn next(&mut self) -> Option<MatchGroup> {
+    fn next(&mut self) -> Option<Result<MatchGroup>> {
         None
     }
 }
 
 impl ExecutionNode for EmptyResultSet {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
         self
     }
     fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {

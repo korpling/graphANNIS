@@ -1,10 +1,15 @@
 use std::{
     collections::HashSet,
+    error::Error,
     fmt::{Debug, Display},
     sync::Arc,
 };
 
-use graphannis_core::graph::{ANNIS_NS, NODE_NAME};
+use graphannis_core::{
+    graph::{ANNIS_NS, NODE_NAME},
+    types::NodeID,
+};
+use itertools::Itertools;
 
 use crate::{
     annis::{
@@ -133,15 +138,29 @@ impl<'a> Display for NonExistingUnaryOperatorIndex<'a> {
 }
 
 impl<'a> UnaryOperator for NonExistingUnaryOperatorIndex<'a> {
-    fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> bool {
+    fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> Result<bool> {
         // Extract the annotation keys for the matches
-        let it = self.negated_op.retrieve_matches(m).map(|m| m.node);
+        let it = self
+            .negated_op
+            .retrieve_matches(m)
+            .map_ok(|m| m.node)
+            .map(|n| {
+                n.map_err(|e| {
+                    let e: Box<dyn Error + Send + Sync> = Box::new(e);
+                    e
+                })
+            });
         let qname = self.target.get_anno_qname();
+
+        let it: Box<
+            dyn Iterator<Item = std::result::Result<NodeID, Box<dyn Error + Send + Sync>>>,
+        > = Box::from(it);
+
         let candidates = self.graph.get_node_annos().get_keys_for_iterator(
             qname.0.as_deref(),
             qname.1.as_deref(),
             Box::new(it),
-        );
+        )?;
 
         let value_filter = self
             .target
@@ -149,11 +168,11 @@ impl<'a> UnaryOperator for NonExistingUnaryOperatorIndex<'a> {
             .unwrap_or_default();
 
         // Only return true of no match was found which matches the operator and node value filter
-        !candidates.into_iter().any(|m| {
+        Ok(!candidates.into_iter().any(|m| {
             value_filter
                 .iter()
                 .all(|f| f(&m, self.graph.get_node_annos()))
-        })
+        }))
     }
 
     fn estimation_type(&self) -> EstimationType {
@@ -184,19 +203,28 @@ impl<'a> Display for NonExistingUnaryOperatorFilter<'a> {
 }
 
 impl<'a> UnaryOperator for NonExistingUnaryOperatorFilter<'a> {
-    fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> bool {
+    fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> Result<bool> {
         // The candidate match is on one side and we need to get an iterator of all possible matches for the other side
-        if let Ok(mut node_search) = NodeSearch::from_spec(self.target.clone(), 0, self.graph, None)
-        {
+        if let Ok(node_search) = NodeSearch::from_spec(self.target.clone(), 0, self.graph, None) {
             // Include if no nodes matches the conditions
-            let has_any_match = if self.target_left {
-                node_search.any(|lhs| self.negated_op.filter_match(&lhs[0], m))
+            if self.target_left {
+                for lhs in node_search {
+                    let lhs = lhs?;
+                    if self.negated_op.filter_match(&lhs[0], m)? {
+                        return Ok(false);
+                    }
+                }
             } else {
-                node_search.any(|rhs| self.negated_op.filter_match(m, &rhs[0]))
-            };
-            !has_any_match
+                for rhs in node_search {
+                    let rhs = rhs?;
+                    if self.negated_op.filter_match(m, &rhs[0])? {
+                        return Ok(false);
+                    }
+                }
+            }
+            Ok(true)
         } else {
-            false
+            Ok(false)
         }
     }
 

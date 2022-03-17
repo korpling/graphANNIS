@@ -7,8 +7,8 @@ use crate::types::{AnnoKey, Annotation, NodeID};
 use crate::util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY};
 use crate::util::{self, memory_estimation};
 use core::ops::Bound::*;
+use itertools::Itertools;
 use rand::seq::IteratorRandom;
-use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -499,12 +499,15 @@ where
         }
     }
 
-    fn get_keys_for_iterator(
-        &self,
+    fn get_keys_for_iterator<'b>(
+        &'b self,
         ns: Option<&str>,
         name: Option<&str>,
-        it: Box<dyn Iterator<Item = T>>,
-    ) -> SmallVec<[Match; 8]> {
+        it: Box<
+            dyn Iterator<Item = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>>
+                + 'b,
+        >,
+    ) -> Result<Vec<Match>> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // return the only possible annotation for each node
@@ -512,11 +515,12 @@ where
                     ns: ns.into(),
                     name: name.into(),
                 });
-                let mut matches = SmallVec::<[Match; 8]>::new();
+                let mut matches = Vec::new();
                 if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
                     // create a template key
                     let mut container_key = create_by_container_key(T::default(), symbol_id);
                     for item in it {
+                        let item = item?;
                         // Set the first bytes to the ID of the item.
                         // This saves the repeated expensive construction of the annotation key part.
                         container_key[0..T::key_size()].copy_from_slice(&item.create_key());
@@ -527,7 +531,7 @@ where
                         }
                     }
                 }
-                matches
+                Ok(matches)
             } else {
                 let mut matching_qnames: Vec<(Vec<u8>, Arc<AnnoKey>)> = self
                     .get_qnames(name)
@@ -542,8 +546,9 @@ where
                     })
                     .collect();
                 // return all annotations with the correct name for each node
-                let mut matches = SmallVec::<[Match; 8]>::new();
+                let mut matches = Vec::new();
                 for item in it {
+                    let item = item?;
                     for (container_key, anno_key) in matching_qnames.iter_mut() {
                         // Set the first bytes to the ID of the item.
                         // This saves the repeated expensive construction of the annotation key part.
@@ -555,19 +560,23 @@ where
                         }
                     }
                 }
-                matches
+                Ok(matches)
             }
         } else {
             // get all annotation keys for this item
-            it.flat_map(|item| {
-                let start = create_by_container_key(item.clone(), usize::min_value());
-                let end = create_by_container_key(item, usize::max_value());
+            let matches: Result<Vec<_>> = it
+                .map_ok(|item| {
+                    let start = create_by_container_key(item.clone(), usize::min_value());
+                    let end = create_by_container_key(item, usize::max_value());
 
-                self.by_container
-                    .range(start..=end)
-                    .map(|(data, _)| self.parse_by_container_key(data).into())
-            })
-            .collect()
+                    self.by_container
+                        .range(start..=end)
+                        .map(|(data, _)| self.parse_by_container_key(data).into())
+                })
+                .flatten_ok()
+                .map(|item| item.map_err(|e| e.into()))
+                .collect();
+            matches
         }
     }
 

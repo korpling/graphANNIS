@@ -1,7 +1,7 @@
 use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use crate::{
     annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage, Match},
-    dfs::{CycleSafeDFS, DFSStep},
+    dfs::CycleSafeDFS,
     errors::Result,
     graph::NODE_NAME_KEY,
     types::{Edge, NodeID, NumValue},
@@ -118,11 +118,17 @@ where
     for<'de> OrderT: NumValue + Deserialize<'de> + Serialize,
     for<'de> LevelT: NumValue + Deserialize<'de> + Serialize,
 {
-    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_outgoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         self.find_connected(node, 1, Included(1))
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_ingoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         self.find_connected_inverse(node, 1, Included(1))
     }
 
@@ -179,7 +185,7 @@ where
         node: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(start_orders) = self.node_to_order.get(&node) {
             let mut visited = FxHashSet::<NodeID>::default();
 
@@ -226,7 +232,8 @@ where
                     }
                     _ => None,
                 })
-                .filter(move |n| visited.insert(*n));
+                .filter(move |n| visited.insert(*n))
+                .map(|n| Ok(n));
             Box::new(it)
         } else {
             Box::new(std::iter::empty())
@@ -238,7 +245,7 @@ where
         start_node: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(start_orders) = self.node_to_order.get(&start_node) {
             let mut visited = FxHashSet::<NodeID>::default();
 
@@ -325,16 +332,17 @@ where
                         None
                     }
                 })
-                .filter(move |n| visited.insert(*n));
+                .filter(move |n| visited.insert(*n))
+                .map(|n| Ok(n));
             Box::new(it)
         } else {
             Box::new(std::iter::empty())
         }
     }
 
-    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
+    fn distance(&self, source: NodeID, target: NodeID) -> Result<Option<usize>> {
         if source == target {
-            return Some(0);
+            return Ok(Some(0));
         }
 
         let mut min_level = usize::max_value();
@@ -364,9 +372,9 @@ where
         }
 
         if was_found {
-            Some(min_level)
+            Ok(Some(min_level))
         } else {
-            None
+            Ok(None)
         }
     }
     fn is_connected(
@@ -439,6 +447,7 @@ where
 
             let out_edges = orig.get_outgoing_edges(source);
             for target in out_edges {
+                let target = target?;
                 // remove the nodes that have an incoming edge from the root list
                 roots.remove(&target);
 
@@ -468,7 +477,7 @@ where
             let dfs =
                 CycleSafeDFS::new(orig.as_edgecontainer(), *start_node, 1, usize::max_value());
             for step in dfs {
-                let step: DFSStep = step;
+                let step = step?;
                 if step.distance <= last_distance {
                     // Neighbor node, the last subtree was iterated completely, thus the last node
                     // can be assigned a post-order.

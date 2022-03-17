@@ -13,7 +13,7 @@ use std::fmt::Formatter;
 use std::sync::Arc;
 
 pub struct ExecutionPlan<'a> {
-    plans: Vec<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
+    plans: Vec<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>>,
     current_plan: usize,
     descriptions: Vec<Option<ExecutionNodeDesc>>,
     inverse_node_pos: Vec<Option<Vec<usize>>>,
@@ -27,7 +27,7 @@ impl<'a> ExecutionPlan<'a> {
         db: &'a AnnotationGraph,
         config: &Config,
     ) -> Result<ExecutionPlan<'a>> {
-        let mut plans: Vec<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> = Vec::new();
+        let mut plans: Vec<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> = Vec::new();
         let mut descriptions = Vec::new();
         let mut inverse_node_pos = Vec::new();
         for alt in &query.alternatives {
@@ -149,25 +149,34 @@ impl<'a> std::fmt::Display for ExecutionPlan<'a> {
 }
 
 impl<'a> Iterator for ExecutionPlan<'a> {
-    type Item = MatchGroup;
+    type Item = Result<MatchGroup>;
 
-    fn next(&mut self) -> Option<MatchGroup> {
+    fn next(&mut self) -> Option<Self::Item> {
         if self.proxy_mode {
             // just act as an proxy, but make sure the order is the same as requested in the query
-            self.plans[0].next().map(|n| self.reorder_match(n))
+            self.plans[0]
+                .next()
+                .map(|n| n.map(|n| self.reorder_match(n)))
         } else {
             while self.current_plan < self.plans.len() {
                 if let Some(n) = self.plans[self.current_plan].next() {
-                    let n = self.reorder_match(n);
+                    match n {
+                        Ok(n) => {
+                            let n = self.reorder_match(n);
 
-                    // check if we already outputted this result
-                    let key: Vec<(NodeID, Arc<AnnoKey>)> = n
-                        .iter()
-                        .map(|m: &Match| (m.node, m.anno_key.clone()))
-                        .collect();
-                    if self.unique_result_set.insert(key) {
-                        // new result found, break out of while-loop and return the result
-                        return Some(n);
+                            // check if we already outputted this result
+                            let key: Vec<(NodeID, Arc<AnnoKey>)> = n
+                                .iter()
+                                .map(|m: &Match| (m.node, m.anno_key.clone()))
+                                .collect();
+                            if self.unique_result_set.insert(key) {
+                                // new result found, break out of while-loop and return the result
+                                return Some(Ok(n));
+                            }
+                        }
+                        Err(e) => {
+                            return Some(Err(e));
+                        }
                     }
                 } else {
                     // proceed to next plan

@@ -6,6 +6,7 @@ use crate::{
         db::aql::model::{AnnotationComponentType, TOK, TOKEN_KEY},
         operator::*,
     },
+    errors::Result,
     graph::Match,
 };
 use graphannis_core::{
@@ -116,11 +117,11 @@ impl<'a> EqualValue<'a> {
 }
 
 impl<'a> BinaryOperatorBase for EqualValue<'a> {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         let lhs_val = self.value_for_match(lhs, &self.spec_left);
         let rhs_val = self.value_for_match(rhs, &self.spec_right);
 
-        if let (Some(lhs_val), Some(rhs_val)) = (lhs_val, rhs_val) {
+        let result = if let (Some(lhs_val), Some(rhs_val)) = (lhs_val, rhs_val) {
             if self.negated {
                 lhs_val != rhs_val
             } else {
@@ -128,7 +129,8 @@ impl<'a> BinaryOperatorBase for EqualValue<'a> {
             }
         } else {
             false
-        }
+        };
+        Ok(result)
     }
 
     fn estimation_type(&self) -> EstimationType {
@@ -169,7 +171,7 @@ impl<'a> BinaryOperatorBase for EqualValue<'a> {
 }
 
 impl<'a> BinaryOperatorIndex for EqualValue<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
         let lhs = lhs.clone();
         if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
             let val_search: ValueSearch<&str> = if self.negated {
@@ -183,7 +185,7 @@ impl<'a> BinaryOperatorIndex for EqualValue<'a> {
                     .node_annos
                     .exact_anno_search(ns, name, val_search)
                     .collect();
-                return Box::new(rhs_candidates.into_iter());
+                return Box::new(rhs_candidates.into_iter().map(|m| Ok(m)));
             }
         }
         Box::new(std::iter::empty())

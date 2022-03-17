@@ -1,17 +1,20 @@
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::errors::GraphAnnisError;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
-use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperatorBase, BinaryOperatorSpec},
+    errors::Result,
     graph::{GraphStorage, Match},
     model::{AnnotationComponent, AnnotationComponentType},
 };
+use crate::{try_as_boxed_iter, AnnotationGraph};
 use graphannis_core::graph::{ANNIS_NS, DEFAULT_ANNO_KEY, DEFAULT_NS};
+use itertools::Itertools;
 
 use std::any::Any;
-use std::collections::{HashSet, VecDeque};
+use std::collections::HashSet;
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -126,24 +129,25 @@ impl<'a> std::fmt::Display for Precedence<'a> {
 }
 
 impl<'a> BinaryOperatorBase for Precedence<'a> {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
         } else {
-            let start = self.tok_helper.right_token_for(lhs.node);
-            let end = self.tok_helper.left_token_for(rhs.node);
+            let start = self.tok_helper.right_token_for(lhs.node)?;
+            let end = self.tok_helper.left_token_for(rhs.node)?;
             if start.is_none() || end.is_none() {
-                return false;
+                return Ok(false);
             }
             (start.unwrap(), end.unwrap())
         };
 
-        self.gs_order.is_connected(
+        let result = self.gs_order.is_connected(
             start_end.0,
             start_end.1,
             self.spec.dist.min_dist(),
             self.spec.dist.max_dist(),
-        )
+        );
+        Ok(result)
     }
 
     fn estimation_type(&self) -> EstimationType {
@@ -183,39 +187,47 @@ impl<'a> BinaryOperatorBase for Precedence<'a> {
 }
 
 impl<'a> BinaryOperatorIndex for Precedence<'a> {
-    #[allow(clippy::needless_collect)]
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>> + 'b> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
-            self.tok_helper.right_token_for(lhs.node)
+            try_as_boxed_iter!(self.tok_helper.right_token_for(lhs.node))
         };
 
         if start.is_none() {
-            return Box::new(std::iter::empty::<Match>());
+            return Box::new(std::iter::empty());
         }
 
         let start = start.unwrap();
 
-        // materialize a list of all matches
-        let result: VecDeque<Match> = self
+        let connected = self
             .gs_order
             // get all token in the range
             .find_connected(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
-            .fuse()
+            .map(|t| t.map_err(GraphAnnisError::from))
+            .fuse();
+        let result = connected
             // find all left aligned nodes for this token and add it together with the token itself
-            .flat_map(move |t| {
+            .map_ok(move |t| {
                 let it_aligned = self.gs_left.get_ingoing_edges(t);
-                std::iter::once(t).chain(it_aligned)
+                std::iter::once(Ok(t)).chain(it_aligned)
+            })
+            .flatten_ok()
+            // Unwrap the Result<Result<_>>
+            .map(|c| match c {
+                Ok(c) => match c {
+                    Ok(c) => Ok(c),
+                    Err(e) => Err(GraphAnnisError::from(e)),
+                },
+                Err(e) => Err(GraphAnnisError::from(e)),
             })
             // map the result as match
-            .map(|n| Match {
+            .map_ok(|n| Match {
                 node: n,
                 anno_key: DEFAULT_ANNO_KEY.clone(),
-            })
-            .collect();
+            });
 
-        Box::new(result.into_iter())
+        Box::new(result)
     }
 
     fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
@@ -238,24 +250,25 @@ impl<'a> std::fmt::Display for InversePrecedence<'a> {
 }
 
 impl<'a> BinaryOperatorBase for InversePrecedence<'a> {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
         } else {
-            let start = self.tok_helper.left_token_for(lhs.node);
-            let end = self.tok_helper.right_token_for(rhs.node);
+            let start = self.tok_helper.left_token_for(lhs.node)?;
+            let end = self.tok_helper.right_token_for(rhs.node)?;
             if start.is_none() || end.is_none() {
-                return false;
+                return Ok(false);
             }
             (start.unwrap(), end.unwrap())
         };
 
-        self.gs_order.is_connected(
+        let result = self.gs_order.is_connected(
             start_end.1,
             start_end.0,
             self.spec.dist.min_dist(),
             self.spec.dist.max_dist(),
-        )
+        );
+        Ok(result)
     }
 
     fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
@@ -290,38 +303,45 @@ impl<'a> BinaryOperatorBase for InversePrecedence<'a> {
 
 impl<'a> BinaryOperatorIndex for InversePrecedence<'a> {
     #[allow(clippy::needless_collect)]
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>> + 'b> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
-            self.tok_helper.left_token_for(lhs.node)
+            try_as_boxed_iter!(self.tok_helper.left_token_for(lhs.node))
         };
 
         if start.is_none() {
-            return Box::new(std::iter::empty::<Match>());
+            return Box::new(std::iter::empty());
         }
 
         let start = start.unwrap();
 
-        // materialize a list of all matches
-        let result: VecDeque<Match> = self
+        let token_in_range = self
             .gs_order
             // get all token in the range
             .find_connected_inverse(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
-            .fuse()
-            // find all right aligned nodes for this token and add it together with the token itself
-            .flat_map(move |t| {
+            .fuse();
+
+        let result = token_in_range
+            .map_ok(move |t| {
+                // find all right aligned nodes for this token and add it together with the token itself
                 let it_aligned = self.gs_right.get_ingoing_edges(t);
-                std::iter::once(t).chain(it_aligned)
+                std::iter::once(Ok(t)).chain(it_aligned)
             })
-            // map the result as match
-            .map(|n| Match {
+            .flatten_ok()
+            // Unwrap the Result<Result<_>>
+            .map(|c| match c {
+                Ok(c) => match c {
+                    Ok(c) => Ok(c),
+                    Err(e) => Err(GraphAnnisError::from(e)),
+                },
+                Err(e) => Err(GraphAnnisError::from(e)),
+            }) // map the result as match
+            .map_ok(|n| Match {
                 node: n,
                 anno_key: DEFAULT_ANNO_KEY.clone(),
-            })
-            .collect();
-
-        Box::new(result.into_iter())
+            });
+        Box::new(result)
     }
 
     fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {

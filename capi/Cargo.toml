@@ -14,6 +14,7 @@ crate-type = ["staticlib", "cdylib"]
 [dependencies]
 anyhow = "1"
 graphannis = {path = "../graphannis/", version = "^1.0"}
+itertools = "0.10"
 libc = "0.2"
 log = "0.4"
 simplelog = {version = "0.10"}

@@ -459,7 +459,7 @@ fn new_vector_with_memory_aligned_capacity<T>(expected_len: usize) -> Vec<T> {
     Vec::with_capacity(aligned_memory_size / std::mem::size_of::<T>())
 }
 
-type FindIterator<'a> = Box<dyn Iterator<Item = MatchGroup> + 'a>;
+type FindIterator<'a> = Box<dyn Iterator<Item = Result<MatchGroup>> + 'a>;
 
 impl CorpusStorage {
     /// Create a new instance with a maximum size for the internal corpus cache.
@@ -1582,6 +1582,7 @@ impl CorpusStorage {
             let mut known_documents: HashSet<SmartString> = HashSet::new();
 
             for m in plan {
+                let m = m?;
                 if !m.is_empty() {
                     let m: &Match = &m[0];
                     if let Some(node_name) = db
@@ -1665,6 +1666,7 @@ impl CorpusStorage {
                 new_vector_with_memory_aligned_capacity(expected_len);
 
             for mgroup in plan {
+                let mgroup = mgroup?;
                 // add all matches to temporary vector
                 tmp_results.push(mgroup);
             }
@@ -1688,9 +1690,9 @@ impl CorpusStorage {
                 };
 
                 let gs_order = db.get_graphstorage_as_ref(&component_order);
-                let order_func = |m1: &MatchGroup, m2: &MatchGroup| -> std::cmp::Ordering {
+                let order_func = |m1: &MatchGroup, m2: &MatchGroup| -> Result<std::cmp::Ordering> {
                     if order == ResultOrder::Inverted {
-                        db::sort_matches::compare_matchgroup_by_text_pos(
+                        let result = db::sort_matches::compare_matchgroup_by_text_pos(
                             m1,
                             m2,
                             db.get_node_annos(),
@@ -1698,10 +1700,11 @@ impl CorpusStorage {
                             gs_order,
                             collation,
                             quirks_mode,
-                        )
-                        .reverse()
+                        )?
+                        .reverse();
+                        Ok(result)
                     } else {
-                        db::sort_matches::compare_matchgroup_by_text_pos(
+                        let result = db::sort_matches::compare_matchgroup_by_text_pos(
                             m1,
                             m2,
                             db.get_node_annos(),
@@ -1709,7 +1712,8 @@ impl CorpusStorage {
                             gs_order,
                             collation,
                             quirks_mode,
-                        )
+                        )?;
+                        Ok(result)
                     }
                 };
 
@@ -1722,13 +1726,17 @@ impl CorpusStorage {
                 };
 
                 if self.query_config.use_parallel_joins {
-                    quicksort::sort_first_n_items_parallel(&mut tmp_results, sort_size, order_func);
+                    quicksort::sort_first_n_items_parallel(
+                        &mut tmp_results,
+                        sort_size,
+                        order_func,
+                    )?;
                 } else {
-                    quicksort::sort_first_n_items(&mut tmp_results, sort_size, order_func);
+                    quicksort::sort_first_n_items(&mut tmp_results, sort_size, order_func)?;
                 }
             }
             expected_size = Some(tmp_results.len());
-            Box::from(tmp_results.into_iter())
+            Box::from(tmp_results.into_iter().map(|m| Ok(m)))
         };
 
         Ok((base_it, expected_size))
@@ -1792,13 +1800,14 @@ impl CorpusStorage {
                 timeout.check()?;
             }
         }
-        let base_it: Box<dyn Iterator<Item = MatchGroup>> = if let Some(limit) = limit {
+        let base_it: Box<dyn Iterator<Item = Result<MatchGroup>>> = if let Some(limit) = limit {
             Box::new(base_it.take(limit))
         } else {
             Box::new(base_it)
         };
 
         for (match_nr, m) in base_it.enumerate() {
+            let m = m?;
             let mut match_desc = String::new();
 
             for (i, singlematch) in m.iter().enumerate() {
@@ -2242,6 +2251,7 @@ impl CorpusStorage {
             let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
             for mgroup in plan {
+                let mgroup = mgroup?;
                 // for each match, extract the defined annotation (by its key) from the result node
                 let mut tuple: Vec<String> = Vec::with_capacity(annokeys.len());
                 for (node_ref, anno_keys) in &annokeys {
@@ -2616,6 +2626,7 @@ fn extract_subgraph_by_query(
 
     // create the subgraph description
     for r in plan {
+        let r = r?;
         trace!("subgraph query found match {:?}", r);
         for i in match_idx.iter().cloned() {
             if i < r.len() {
@@ -2672,6 +2683,7 @@ fn create_subgraph_edge(
         {
             if let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {
+                    let target = target?;
                     if !db
                         .get_node_annos()
                         .get_all_keys_for_item(&target, None, None)

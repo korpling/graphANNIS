@@ -2,10 +2,13 @@ use super::{ExecutionNode, ExecutionNodeDesc, NodeSearchDesc};
 use crate::annis::db::aql::conjunction::BinaryOperatorArguments;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::operator::BinaryOperatorIndex;
+use crate::errors::Result;
+use crate::try_as_option;
 use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
-use smallvec::SmallVec;
+use itertools::Itertools;
 use std::boxed::Box;
+use std::error::Error;
 use std::iter::Peekable;
 use std::sync::Arc;
 
@@ -13,8 +16,8 @@ use std::sync::Arc;
 /// It then retrieves all matches as defined by the operator for each LHS element and checks
 /// if the annotation condition is true.
 pub struct IndexJoin<'a> {
-    lhs: Peekable<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
-    rhs_candidate: Option<std::iter::Peekable<smallvec::IntoIter<[Match; 8]>>>,
+    lhs: Peekable<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>>,
+    rhs_candidate: Option<Peekable<std::vec::IntoIter<Match>>>,
     op: Box<dyn BinaryOperatorIndex + 'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
@@ -33,7 +36,7 @@ impl<'a> IndexJoin<'a> {
     /// * `anno_qname` A pair of the annotation namespace and name (both optional) to define which annotations to fetch
     /// * `anno_cond` - A filter function to determine if a RHS candidate is included
     pub fn new(
-        lhs: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
+        lhs: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
         lhs_idx: usize,
         op: Box<dyn BinaryOperatorIndex + 'a>,
         op_args: &BinaryOperatorArguments,
@@ -84,27 +87,36 @@ impl<'a> IndexJoin<'a> {
         }
     }
 
-    fn next_candidates(&mut self) -> Option<SmallVec<[Match; 8]>> {
-        if let Some(m_lhs) = self.lhs.peek().cloned() {
-            let it_nodes = Box::from(
-                self.op
-                    .retrieve_matches(&m_lhs[self.lhs_idx])
-                    .map(|m| m.node)
-                    .fuse(),
-            );
+    fn next_candidates(&mut self) -> Result<Option<Vec<Match>>> {
+        if let Some(Ok(m_lhs)) = self.lhs.peek() {
+            let it_nodes = self
+                .op
+                .retrieve_matches(&m_lhs[self.lhs_idx])
+                .map_ok(|m| m.node)
+                .map(|n| {
+                    n.map_err(|e| {
+                        let e: Box<dyn Error + Send + Sync> = Box::new(e);
+                        e
+                    })
+                })
+                .fuse();
+            let it_nodes: Box<
+                dyn Iterator<Item = std::result::Result<NodeID, Box<dyn Error + Send + Sync>>>,
+            > = Box::from(it_nodes);
 
-            return Some(self.node_annos.get_keys_for_iterator(
+            let result = self.node_annos.get_keys_for_iterator(
                 self.node_search_desc.qname.0.as_deref(),
                 self.node_search_desc.qname.1.as_deref(),
                 it_nodes,
-            ));
+            )?;
+            return Ok(Some(result));
         }
-        None
+        Ok(None)
     }
 }
 
 impl<'a> ExecutionNode for IndexJoin<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
         self
     }
 
@@ -114,20 +126,17 @@ impl<'a> ExecutionNode for IndexJoin<'a> {
 }
 
 impl<'a> Iterator for IndexJoin<'a> {
-    type Item = MatchGroup;
+    type Item = Result<MatchGroup>;
 
-    fn next(&mut self) -> Option<MatchGroup> {
+    fn next(&mut self) -> Option<Self::Item> {
         // lazily initialize the RHS candidates for the first LHS
         if self.rhs_candidate.is_none() {
-            self.rhs_candidate = if let Some(rhs) = self.next_candidates() {
-                Some(rhs.into_iter().peekable())
-            } else {
-                return None;
-            };
+            let rhs_candidates = try_as_option!(self.next_candidates());
+            self.rhs_candidate = rhs_candidates.map(|c| c.into_iter().peekable());
         }
 
         loop {
-            if let Some(m_lhs) = self.lhs.peek() {
+            if let Some(Ok(m_lhs)) = self.lhs.peek() {
                 let rhs_candidate = self.rhs_candidate.as_mut()?;
                 while let Some(mut m_rhs) = rhs_candidate.next() {
                     // check if all filters are true
@@ -170,17 +179,20 @@ impl<'a> Iterator for IndexJoin<'a> {
                                     rhs_candidate.next();
                                 }
                             }
-                            return Some(result);
+                            return Some(Ok(result));
                         }
                     }
                 }
             }
 
-            // consume next outer
-            self.lhs.next()?;
+            // consume next outer and return if there is an error
+            if let Err(e) = self.lhs.next()? {
+                return Some(Err(e));
+            }
 
             // inner was completed once, get new candidates
-            self.rhs_candidate = self.next_candidates().map(|rhs| rhs.into_iter().peekable());
+            let rhs_candidates = try_as_option!(self.next_candidates());
+            self.rhs_candidate = rhs_candidates.map(|c| c.into_iter().peekable());
         }
     }
 }

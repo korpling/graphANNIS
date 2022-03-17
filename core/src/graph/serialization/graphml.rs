@@ -168,6 +168,7 @@ fn write_edges<CT: ComponentType, W: std::io::Write>(
                         .get_value_for_item(&source, &NODE_NAME_KEY)
                     {
                         for target in gs.get_outgoing_edges(source) {
+                            let target = target?;
                             if let Some(target_id) = graph
                                 .get_node_annos()
                                 .get_value_for_item(&target, &NODE_NAME_KEY)
@@ -659,7 +660,10 @@ value = "test""#;
         assert_eq!("test_component", component[0].name);
 
         let test_gs = g.get_graphstorage_as_ref(&component[0]).unwrap();
-        assert_eq!(Some(1), test_gs.distance(first_node_id, second_node_id));
+        assert_eq!(
+            Some(1),
+            test_gs.distance(first_node_id, second_node_id).unwrap()
+        );
 
         assert_eq!(Some(TEST_CONFIG), config_str.as_deref());
     }

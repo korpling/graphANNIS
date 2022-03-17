@@ -26,7 +26,7 @@ use std::sync::Arc;
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps base node (annotation) searches.
 pub struct NodeSearch<'a> {
     /// The actual search implementation
-    it: Box<dyn Iterator<Item = MatchGroup> + 'a>,
+    it: Box<dyn Iterator<Item = Result<MatchGroup>> + 'a>,
 
     desc: Option<ExecutionNodeDesc>,
     node_search_desc: Arc<NodeSearchDesc>,
@@ -542,7 +542,7 @@ impl<'a> NodeSearch<'a> {
                         &NODE_TYPE_KEY.name,
                         Some("node").into(),
                     )
-                    .map(move |n| smallvec![n]);
+                    .map(move |n| Ok(smallvec![n]));
 
                 let filter_func: Box<
                     dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync,
@@ -604,15 +604,17 @@ impl<'a> NodeSearch<'a> {
             None
         };
 
-        let base_it: Box<dyn Iterator<Item = Match>> =
+        let base_it: Box<dyn Iterator<Item = Result<Match>>> =
             if let Some(const_output) = const_output.clone() {
                 let is_unique = db.get_node_annos().get_qnames(&qname.1).len() <= 1;
                 // Replace the result annotation with a constant value.
                 // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
                 if is_unique {
-                    Box::new(base_it.map(move |m| Match {
-                        node: m.node,
-                        anno_key: const_output.clone(),
+                    Box::new(base_it.map(move |m| {
+                        Ok(Match {
+                            node: m.node,
+                            anno_key: const_output.clone(),
+                        })
                     }))
                 } else {
                     Box::new(
@@ -621,11 +623,12 @@ impl<'a> NodeSearch<'a> {
                                 node: m.node,
                                 anno_key: const_output.clone(),
                             })
-                            .unique(),
+                            .unique()
+                            .map(|m| Ok(m)),
                     )
                 }
             } else {
-                base_it
+                Box::new(base_it.map(|m| Ok(m)))
             };
 
         let est_output = match val {
@@ -654,7 +657,7 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
-        let it = base_it.map(|n| smallvec![n]);
+        let it = base_it.map_ok(|n| smallvec![n]);
 
         Ok(NodeSearch {
             it: Box::new(it),
@@ -731,7 +734,7 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
-        let it = base_it.map(|n| smallvec![n]);
+        let it = base_it.map(|n| Ok(smallvec![n]));
 
         Ok(NodeSearch {
             it: Box::new(it),
@@ -830,12 +833,14 @@ impl<'a> NodeSearch<'a> {
             it_base
         };
         // map to vector
-        let it = it_base.map(move |n| {
-            smallvec![Match {
-                node: n.node,
-                anno_key: NODE_TYPE_KEY.clone(),
-            }]
-        });
+        let it = it_base
+            .map(move |n| {
+                smallvec![Match {
+                    node: n.node,
+                    anno_key: NODE_TYPE_KEY.clone(),
+                }]
+            })
+            .map(|m| Ok(m));
 
         // TODO: is_leaf should be part of the estimation
         let est_output = match val {
@@ -906,7 +911,7 @@ impl<'a> NodeSearch<'a> {
         query_fragment: &str,
         node_nr: usize,
     ) -> Result<NodeSearch<'a>> {
-        let it: Box<dyn Iterator<Item = MatchGroup>> = Box::from(AnyTokenSearch::new(db)?);
+        let it: Box<dyn Iterator<Item = Result<MatchGroup>>> = Box::from(AnyTokenSearch::new(db)?);
         // create filter functions
         let mut filters: Vec<MatchValueFilterFunc> = Vec::new();
 
@@ -1019,7 +1024,8 @@ impl<'a> NodeSearch<'a> {
                     }
                 }
                 Some(smallvec![m])
-            });
+            })
+            .map(|m| Ok(m));
         let mut new_desc = desc.cloned();
         if let Some(ref mut new_desc) = new_desc {
             new_desc.impl_description = String::from("part-of-component-search");
@@ -1042,7 +1048,7 @@ impl<'a> NodeSearch<'a> {
 }
 
 impl<'a> ExecutionNode for NodeSearch<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
         self
     }
 
@@ -1060,9 +1066,9 @@ impl<'a> ExecutionNode for NodeSearch<'a> {
 }
 
 impl<'a> Iterator for NodeSearch<'a> {
-    type Item = MatchGroup;
+    type Item = Result<MatchGroup>;
 
-    fn next(&mut self) -> Option<MatchGroup> {
+    fn next(&mut self) -> Option<Self::Item> {
         self.it.next()
     }
 }

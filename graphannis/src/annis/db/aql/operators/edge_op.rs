@@ -1,15 +1,17 @@
 use crate::annis::db::aql::{model::AnnotationComponentType, operators::RangeSpec};
+use crate::annis::errors::GraphAnnisError;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorBase, BinaryOperatorIndex, BinaryOperatorSpec,
     EdgeAnnoSearchSpec, EstimationType,
 };
+use crate::errors::Result;
 use crate::graph::{GraphStatistic, GraphStorage, Match};
-use crate::AnnotationGraph;
+use crate::{try_as_boxed_iter, AnnotationGraph};
 use graphannis_core::{
-    annostorage::MatchGroup,
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
     types::{Component, Edge, NodeID},
 };
+use itertools::Itertools;
 use std::any::Any;
 use std::collections::{HashSet, VecDeque};
 use std::iter::FromIterator;
@@ -210,7 +212,7 @@ impl std::fmt::Display for BaseEdgeOp {
 }
 
 impl BinaryOperatorBase for BaseEdgeOp {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         for e in &self.gs {
             if self.inverse {
                 if e.is_connected(
@@ -220,7 +222,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                     self.spec.dist.max_dist(),
                 ) && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
                 {
-                    return true;
+                    return Ok(true);
                 }
             } else if e.is_connected(
                 lhs.node,
@@ -233,10 +235,10 @@ impl BinaryOperatorBase for BaseEdgeOp {
                 lhs.node,
                 rhs.node,
             ) {
-                return true;
+                return Ok(true);
             }
         }
-        false
+        Ok(false)
     }
 
     fn is_reflexive(&self) -> bool {
@@ -398,18 +400,18 @@ impl BinaryOperatorBase for BaseEdgeOp {
 }
 
 impl BinaryOperatorIndex for BaseEdgeOp {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
         let lhs = lhs.clone();
         let spec = self.spec.clone();
 
         if self.gs.len() == 1 {
             // directly return all matched nodes since when having only one component
             // no duplicates are possible
-            let result: VecDeque<Match> = if self.inverse {
+            let result: VecDeque<_> = if self.inverse {
                 self.gs[0]
                     .find_connected_inverse(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
                     .fuse()
-                    .filter(move |candidate| {
+                    .filter_ok(move |candidate| {
                         check_edge_annotation(
                             &self.spec.edge_anno,
                             self.gs[0].as_ref(),
@@ -417,16 +419,17 @@ impl BinaryOperatorIndex for BaseEdgeOp {
                             lhs.clone().node,
                         )
                     })
-                    .map(|n| Match {
+                    .map_ok(|n| Match {
                         node: n,
                         anno_key: DEFAULT_ANNO_KEY.clone(),
                     })
+                    .map(|m| m.map_err(GraphAnnisError::from))
                     .collect()
             } else {
                 self.gs[0]
                     .find_connected(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
                     .fuse()
-                    .filter(move |candidate| {
+                    .filter_ok(move |candidate| {
                         check_edge_annotation(
                             &self.spec.edge_anno,
                             self.gs[0].as_ref(),
@@ -434,15 +437,16 @@ impl BinaryOperatorIndex for BaseEdgeOp {
                             *candidate,
                         )
                     })
-                    .map(|n| Match {
+                    .map_ok(|n| Match {
                         node: n,
                         anno_key: DEFAULT_ANNO_KEY.clone(),
                     })
+                    .map(|m| m.map_err(GraphAnnisError::from))
                     .collect()
             };
             Box::new(result.into_iter())
         } else {
-            let mut all: MatchGroup = if self.inverse {
+            let all: Result<Vec<_>> = if self.inverse {
                 self.gs
                     .iter()
                     .flat_map(move |e| {
@@ -455,7 +459,7 @@ impl BinaryOperatorIndex for BaseEdgeOp {
                                 spec.dist.max_dist(),
                             )
                             .fuse()
-                            .filter(move |candidate| {
+                            .filter_ok(move |candidate| {
                                 check_edge_annotation(
                                     &self.spec.edge_anno,
                                     e.as_ref(),
@@ -463,11 +467,12 @@ impl BinaryOperatorIndex for BaseEdgeOp {
                                     lhs.clone().node,
                                 )
                             })
-                            .map(|n| Match {
+                            .map_ok(|n| Match {
                                 node: n,
                                 anno_key: DEFAULT_ANNO_KEY.clone(),
                             })
                     })
+                    .map(|m| m.map_err(GraphAnnisError::from))
                     .collect()
             } else {
                 self.gs
@@ -478,7 +483,7 @@ impl BinaryOperatorIndex for BaseEdgeOp {
                         e.as_ref()
                             .find_connected(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
                             .fuse()
-                            .filter(move |candidate| {
+                            .filter_ok(move |candidate| {
                                 check_edge_annotation(
                                     &self.spec.edge_anno,
                                     e.as_ref(),
@@ -486,16 +491,18 @@ impl BinaryOperatorIndex for BaseEdgeOp {
                                     *candidate,
                                 )
                             })
-                            .map(|n| Match {
+                            .map_ok(|n| Match {
                                 node: n,
                                 anno_key: DEFAULT_ANNO_KEY.clone(),
                             })
                     })
+                    .map(|m| m.map_err(GraphAnnisError::from))
                     .collect()
             };
+            let mut all = try_as_boxed_iter!(all);
             all.sort_unstable();
             all.dedup();
-            Box::new(all.into_iter())
+            Box::new(all.into_iter().map(|m| Ok(m)))
         }
     }
 

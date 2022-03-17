@@ -1,12 +1,14 @@
 use super::{cast_const, cstr};
-use crate::data::IterPtr;
+use crate::{
+    cerror::{self, ErrorList},
+    data::IterPtr,
+};
 use graphannis::{
-    graph::{Annotation, Edge, GraphStorage, Match, NodeID},
+    graph::{Annotation, Edge, Match, NodeID},
     model::{AnnotationComponent, AnnotationComponentType},
     AnnotationGraph,
 };
 use std::ffi::CString;
-use std::sync::Arc;
 
 /// Get the type of the given component.
 #[no_mangle]
@@ -90,6 +92,7 @@ pub extern "C" fn annis_graph_outgoing_edges(
     g: *const AnnotationGraph,
     source: NodeID,
     component: *const AnnotationComponent,
+    err: *mut *mut ErrorList,
 ) -> *mut Vec<Edge> {
     let db: &AnnotationGraph = cast_const(g);
     let component: &AnnotationComponent = cast_const(component);
@@ -97,11 +100,21 @@ pub extern "C" fn annis_graph_outgoing_edges(
     let mut result: Vec<Edge> = Vec::new();
 
     if let Some(gs) = db.get_graphstorage(component) {
-        let gs: Arc<dyn GraphStorage> = gs;
-        result.extend(
-            gs.get_outgoing_edges(source)
-                .map(|target| Edge { source, target }),
-        );
+        for target in gs.get_outgoing_edges(source) {
+            match target {
+                Ok(target) => {
+                    result.push(Edge { source, target });
+                }
+                Err(e) => {
+                    if !err.is_null() {
+                        unsafe {
+                            *err = cerror::new(e.into());
+                        }
+                    }
+                    return std::ptr::null_mut();
+                }
+            }
+        }
     }
 
     Box::into_raw(Box::new(result))

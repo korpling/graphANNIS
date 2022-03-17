@@ -1,12 +1,14 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::errors::GraphAnnisError;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
-use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperatorBase, BinaryOperatorSpec},
+    errors::Result,
     graph::{GraphStorage, Match},
     model::{AnnotationComponent, AnnotationComponentType},
 };
+use crate::{try_as_boxed_iter, AnnotationGraph};
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
     types::NodeID,
@@ -86,27 +88,27 @@ impl<'a> std::fmt::Display for Overlap<'a> {
 }
 
 impl<'a> BinaryOperatorBase for Overlap<'a> {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         if self.reflexive && lhs == rhs {
-            return true;
+            return Ok(true);
         }
 
         if let (Some(start_lhs), Some(end_lhs), Some(start_rhs), Some(end_rhs)) = (
-            self.tok_helper.left_token_for(lhs.node),
-            self.tok_helper.right_token_for(lhs.node),
-            self.tok_helper.left_token_for(rhs.node),
-            self.tok_helper.right_token_for(rhs.node),
+            self.tok_helper.left_token_for(lhs.node)?,
+            self.tok_helper.right_token_for(lhs.node)?,
+            self.tok_helper.left_token_for(rhs.node)?,
+            self.tok_helper.right_token_for(rhs.node)?,
         ) {
             // TODO: why not isConnected()? (instead of distance)
             // path between LHS left-most token and RHS right-most token exists in ORDERING component
-            if self.gs_order.distance(start_lhs, end_rhs).is_some()
+            if self.gs_order.distance(start_lhs, end_rhs)?.is_some()
                 // path between LHS left-most token and RHS right-most token exists in ORDERING component
-                && self.gs_order.distance(start_rhs, end_lhs).is_some()
+                && self.gs_order.distance(start_rhs, end_lhs)?.is_some()
             {
-                return true;
+                return Ok(true);
             }
         }
-        false
+        Ok(false)
     }
 
     fn is_reflexive(&self) -> bool {
@@ -156,7 +158,7 @@ impl<'a> BinaryOperatorBase for Overlap<'a> {
 }
 
 impl<'a> BinaryOperatorIndex for Overlap<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
         // use set to filter out duplicates
         let mut result = FxHashSet::default();
 
@@ -173,21 +175,24 @@ impl<'a> BinaryOperatorIndex for Overlap<'a> {
         } else {
             // Find covered nodes in all Coverage graph storages
             for gs_cov in coverage_gs.iter() {
-                let covered: Box<dyn Iterator<Item = NodeID>> = if lhs_is_token {
-                    Box::new(std::iter::once(lhs.node))
+                let covered: Box<dyn Iterator<Item = Result<NodeID>>> = if lhs_is_token {
+                    Box::new(std::iter::once(Ok(lhs.node)))
                 } else {
                     // all covered token
                     Box::new(
                         gs_cov
                             .find_connected(lhs.node, 1, std::ops::Bound::Included(1))
+                            .map(|m| m.map_err(GraphAnnisError::from))
                             .fuse(),
                     )
                 };
 
                 for t in covered {
+                    let t = try_as_boxed_iter!(t);
                     // get all nodes that are covering the token (in all coverage components)
                     for gs_cov in self.tok_helper.get_gs_coverage().iter() {
                         for n in gs_cov.get_ingoing_edges(t) {
+                            let n = try_as_boxed_iter!(n);
                             result.insert(n);
                         }
                     }
@@ -197,9 +202,11 @@ impl<'a> BinaryOperatorIndex for Overlap<'a> {
             }
         }
 
-        Box::new(result.into_iter().map(|n| Match {
-            node: n,
-            anno_key: DEFAULT_ANNO_KEY.clone(),
+        Box::new(result.into_iter().map(|n| {
+            Ok(Match {
+                node: n,
+                anno_key: DEFAULT_ANNO_KEY.clone(),
+            })
         }))
     }
 

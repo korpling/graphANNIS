@@ -128,10 +128,10 @@ fn create_index_join<'b>(
     config: &Config,
     op: Box<dyn BinaryOperatorIndex + 'b>,
     op_args: &BinaryOperatorArguments,
-    exec_left: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
-    exec_right: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
+    exec_left: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>,
+    exec_right: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>,
     idx_left: usize,
-) -> Box<dyn ExecutionNode<Item = MatchGroup> + 'b> {
+) -> Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b> {
     if config.use_parallel_joins {
         let join = parallel::indexjoin::IndexJoin::new(
             exec_left,
@@ -161,11 +161,11 @@ fn create_join<'b>(
     db: &'b AnnotationGraph,
     config: &Config,
     op_entry: BinaryOperatorEntry<'b>,
-    exec_left: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
-    exec_right: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
+    exec_left: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>,
+    exec_right: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>,
     idx_left: usize,
     idx_right: usize,
-) -> Box<dyn ExecutionNode<Item = MatchGroup> + 'b> {
+) -> Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b> {
     if exec_right.as_nodesearch().is_some() {
         if let BinaryOperator::Index(op) = op_entry.op {
             // we can use directly use an index join
@@ -519,7 +519,7 @@ impl Conjunction {
         desc: Option<&ExecutionNodeDesc>,
         op_spec_entries: Box<dyn Iterator<Item = &'a BinaryOperatorSpecEntry> + 'a>,
         db: &'a AnnotationGraph,
-    ) -> Option<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> {
+    ) -> Option<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> {
         let desc = desc?;
         // check if we can replace this node search with a generic "all nodes from either of these components" search
         let node_search_cost: &CostEstimate = desc.cost.as_ref()?;
@@ -576,7 +576,10 @@ impl Conjunction {
         &'a self,
         node_nr: usize,
         g: &'a AnnotationGraph,
-        component2exec: &mut BTreeMap<usize, Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
+        component2exec: &mut BTreeMap<
+            usize,
+            Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
+        >,
         node2component: &mut BTreeMap<usize, usize>,
         node2cost: &mut BTreeMap<usize, CostEstimate>,
         node_search_errors: &mut Vec<GraphAnnisError>,
@@ -645,7 +648,10 @@ impl Conjunction {
         op_spec_entry: &BinaryOperatorSpecEntry,
         g: &'a AnnotationGraph,
         config: &Config,
-        component2exec: &mut BTreeMap<usize, Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
+        component2exec: &mut BTreeMap<
+            usize,
+            Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
+        >,
         node2component: &mut BTreeMap<usize, usize>,
         node2cost: &BTreeMap<usize, CostEstimate>,
     ) -> Result<()> {
@@ -690,7 +696,7 @@ impl Conjunction {
             .ok_or_else(|| GraphAnnisError::NoComponentForNode(spec_idx_right + 1))?);
 
         // get the original execution node
-        let exec_left: Box<dyn ExecutionNode<Item = MatchGroup> + 'a> = component2exec
+        let exec_left: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a> = component2exec
             .remove(&component_left)
             .ok_or(GraphAnnisError::NoExecutionNode(component_left))?;
 
@@ -701,7 +707,7 @@ impl Conjunction {
             .get(&spec_idx_left)
             .ok_or(GraphAnnisError::LHSOperandNotFound)?);
 
-        let new_exec: Box<dyn ExecutionNode<Item = MatchGroup>> =
+        let new_exec: Box<dyn ExecutionNode<Item = Result<MatchGroup>>> =
             if component_left == component_right {
                 // don't create new tuples, only filter the existing ones
                 // TODO: check if LHS or RHS is better suited as filter input iterator
@@ -746,7 +752,7 @@ impl Conjunction {
         db: &'a AnnotationGraph,
         config: &Config,
         operator_order: Vec<usize>,
-    ) -> Result<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> {
+    ) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> {
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
 
         // Remember node search errors, but do not bail out of this function before the component
@@ -755,8 +761,10 @@ impl Conjunction {
 
         // Create a map where the key is the component number
         // and move all nodes with their index as component number.
-        let mut component2exec: BTreeMap<usize, Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> =
-            BTreeMap::new();
+        let mut component2exec: BTreeMap<
+            usize,
+            Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
+        > = BTreeMap::new();
         let mut node2cost: BTreeMap<usize, CostEstimate> = BTreeMap::new();
 
         // 1. add all non-optional nodes
@@ -775,7 +783,7 @@ impl Conjunction {
 
         // 2. add unary operators as filter to the existing node search
         for op_spec_entry in self.unary_operators.iter() {
-            let child_exec: Box<dyn ExecutionNode<Item = MatchGroup> + 'a> = component2exec
+            let child_exec: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a> = component2exec
                 .remove(&op_spec_entry.idx)
                 .ok_or(GraphAnnisError::NoExecutionNode(op_spec_entry.idx))?;
 
@@ -892,7 +900,7 @@ impl Conjunction {
         &'a self,
         db: &'a AnnotationGraph,
         config: &Config,
-    ) -> Result<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> {
+    ) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> {
         self.check_components_connected()?;
 
         let operator_order = self.optimize_join_order_heuristics(db, config)?;

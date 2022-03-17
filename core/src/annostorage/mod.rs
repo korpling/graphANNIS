@@ -8,9 +8,9 @@ use crate::{
     errors::Result,
     types::{AnnoKey, Annotation, Edge, NodeID},
 };
-use std::borrow::Cow;
-use std::path::Path;
 use std::sync::Arc;
+use std::{borrow::Cow, error::Error};
+use std::{boxed::Box, path::Path};
 
 use crate::malloc_size_of::MallocSizeOf;
 
@@ -156,12 +156,12 @@ where
     /// Get the matching annotation keys for each item in the iterator.
     ///
     /// This function allows to filter the received annotation keys by specifying the namespace and name.
-    fn get_keys_for_iterator(
-        &self,
+    fn get_keys_for_iterator<'a>(
+        &'a self,
         ns: Option<&str>,
         name: Option<&str>,
-        it: Box<dyn Iterator<Item = T>>,
-    ) -> SmallVec<[Match; 8]>;
+        it: Box<dyn Iterator<Item = std::result::Result<T, Box<dyn Error + Send + Sync>>> + 'a>,
+    ) -> Result<Vec<Match>>;
 
     /// Return the total number of annotations contained in this `AnnotationStorage`.
     fn number_of_annotations(&self) -> usize;

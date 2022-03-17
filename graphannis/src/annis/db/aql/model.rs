@@ -132,6 +132,7 @@ impl AQLUpdateGraphIndex {
 
         let dfs = CycleSafeDFS::new_inverse(&union, node, 0, usize::max_value());
         for step in dfs {
+            let step = step?;
             self.invalid_nodes.insert(step.node, true)?;
         }
 
@@ -240,7 +241,9 @@ impl AQLUpdateGraphIndex {
 
         for c in all_cov_components.iter() {
             if let Some(gs) = graph.get_graphstorage_as_ref(c) {
-                directly_covered_token.extend(gs.get_outgoing_edges(n));
+                let out: Result<Vec<u64>, graphannis_core::errors::GraphAnnisCoreError> =
+                    gs.get_outgoing_edges(n).collect();
+                directly_covered_token.extend(out?);
             }
         }
 
@@ -260,6 +263,7 @@ impl AQLUpdateGraphIndex {
         // recursivly get the covered token from all children connected by a dominance relation
         for dom_gs in all_dom_gs {
             for out in dom_gs.get_outgoing_edges(n) {
+                let out = out?;
                 indirectly_covered_token.extend(self.calculate_inherited_coverage_edges(
                     graph,
                     out,
@@ -311,6 +315,7 @@ impl AQLUpdateGraphIndex {
         // if the node already has a left/right token, just return this value
         if let Some(alignment_gs) = graph.get_graphstorage_as_ref(&alignment_component) {
             if let Some(existing) = alignment_gs.get_outgoing_edges(n).next() {
+                let existing = existing?;
                 return Ok(Some(existing));
             }
         }

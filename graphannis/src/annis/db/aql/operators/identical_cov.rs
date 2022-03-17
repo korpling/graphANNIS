@@ -1,18 +1,18 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
+use crate::try_as_boxed_iter;
 use crate::{
     annis::operator::{BinaryOperatorBase, BinaryOperatorSpec},
+    errors::Result,
     graph::{GraphStorage, Match},
     model::AnnotationComponentType,
     AnnotationGraph,
 };
 use graphannis_core::{
-    annostorage::MatchGroup,
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
     types::Component,
 };
-
 use std::any::Any;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -90,18 +90,20 @@ impl<'a> std::fmt::Display for IdenticalCoverage<'a> {
 }
 
 impl<'a> BinaryOperatorBase for IdenticalCoverage<'a> {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        let start_lhs = self.tok_helper.left_token_for(lhs.node);
-        let end_lhs = self.tok_helper.right_token_for(lhs.node);
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
+        let start_lhs = self.tok_helper.left_token_for(lhs.node)?;
+        let end_lhs = self.tok_helper.right_token_for(lhs.node)?;
 
-        let start_rhs = self.tok_helper.left_token_for(rhs.node);
-        let end_rhs = self.tok_helper.right_token_for(rhs.node);
+        let start_rhs = self.tok_helper.left_token_for(rhs.node)?;
+        let end_rhs = self.tok_helper.right_token_for(rhs.node)?;
 
         if start_lhs.is_none() || end_lhs.is_none() || start_rhs.is_none() || end_rhs.is_none() {
-            return false;
+            return Ok(false);
         }
 
-        start_lhs.unwrap() == start_rhs.unwrap() && end_lhs.unwrap() == end_rhs.unwrap()
+        let result =
+            start_lhs.unwrap() == start_rhs.unwrap() && end_lhs.unwrap() == end_rhs.unwrap();
+        Ok(result)
     }
 
     fn is_reflexive(&self) -> bool {
@@ -134,32 +136,41 @@ impl<'a> BinaryOperatorBase for IdenticalCoverage<'a> {
 }
 
 impl<'a> BinaryOperatorIndex for IdenticalCoverage<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        let n_left = self.tok_helper.left_token_for(lhs.node);
-        let n_right = self.tok_helper.right_token_for(lhs.node);
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
+        let n_left = try_as_boxed_iter!(self.tok_helper.left_token_for(lhs.node));
+        let n_right = try_as_boxed_iter!(self.tok_helper.right_token_for(lhs.node));
 
-        let mut result = MatchGroup::new();
+        let mut result = Vec::new();
 
         if let (Some(n_left), Some(n_right)) = (n_left, n_right) {
             if n_left == n_right {
                 // covered range is exactly one token, add token itself
-                result.push(Match {
+                result.push(Ok(Match {
                     node: n_left,
                     anno_key: DEFAULT_ANNO_KEY.clone(),
-                });
+                }));
             }
 
             // find left-aligned non-token
-            let v = self.gs_left.get_ingoing_edges(n_left);
-            for c in v {
-                // check if also right-aligned
-                if let Some(c_right) = self.tok_helper.right_token_for(c) {
-                    if n_right == c_right {
-                        result.push(Match {
-                            node: c,
-                            anno_key: DEFAULT_ANNO_KEY.clone(),
-                        });
+            for c in self.gs_left.get_ingoing_edges(n_left) {
+                match c {
+                    Ok(c) => {
+                        // check if also right-aligned
+                        match self.tok_helper.right_token_for(c) {
+                            Ok(c_right) => {
+                                if let Some(c_right) = c_right {
+                                    if n_right == c_right {
+                                        result.push(Ok(Match {
+                                            node: c,
+                                            anno_key: DEFAULT_ANNO_KEY.clone(),
+                                        }));
+                                    }
+                                }
+                            }
+                            Err(e) => result.push(Err(e.into())),
+                        }
                     }
+                    Err(e) => result.push(Err(e.into())),
                 }
             }
         }

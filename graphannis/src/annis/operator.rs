@@ -1,5 +1,5 @@
 use super::db::aql::model::AnnotationComponentType;
-use crate::{annis::db::AnnotationStorage, graph::Match, AnnotationGraph};
+use crate::{annis::db::AnnotationStorage, errors::Result, graph::Match, AnnotationGraph};
 use graphannis_core::types::{Component, Edge};
 use std::{any::Any, collections::HashSet, fmt::Display, sync::Arc};
 
@@ -146,7 +146,7 @@ pub enum EstimationType {
 }
 
 pub trait BinaryOperatorBase: std::fmt::Display + Send + Sync {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool;
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool>;
 
     fn is_reflexive(&self) -> bool {
         true
@@ -187,7 +187,7 @@ impl<'a> BinaryOperatorBase for BinaryOperator<'a> {
         &self,
         lhs: &graphannis_core::annostorage::Match,
         rhs: &graphannis_core::annostorage::Match,
-    ) -> bool {
+    ) -> Result<bool> {
         match self {
             BinaryOperator::Base(op) => op.filter_match(lhs, rhs),
             BinaryOperator::Index(op) => op.filter_match(lhs, rhs),
@@ -225,7 +225,7 @@ impl<'a> BinaryOperatorBase for BinaryOperator<'a> {
 
 /// A binary operator that can be used in an [`IndexJoin`](crate::annis::db::exec::indexjoin::IndexJoin).
 pub trait BinaryOperatorIndex: BinaryOperatorBase {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>>;
+    fn retrieve_matches<'a>(&'a self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>> + 'a>;
 
     fn as_binary_operator(&self) -> &dyn BinaryOperatorBase;
 }
@@ -263,7 +263,7 @@ pub trait UnaryOperatorSpec: std::fmt::Debug {
 }
 
 pub trait UnaryOperator: std::fmt::Display {
-    fn filter_match(&self, m: &Match) -> bool;
+    fn filter_match(&self, m: &Match) -> Result<bool>;
 
     fn estimation_type(&self) -> EstimationType {
         EstimationType::Selectivity(0.1)

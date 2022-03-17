@@ -1,11 +1,13 @@
 use graphannis_core::annostorage::MatchGroup;
+use itertools::Itertools;
 
 use super::{CostEstimate, ExecutionNode, ExecutionNodeDesc};
 use crate::annis::db::aql::conjunction::{BinaryOperatorEntry, UnaryOperatorEntry};
 use crate::annis::operator::{BinaryOperatorBase, EstimationType, UnaryOperator};
+use crate::errors::Result;
 
 pub struct Filter<'a> {
-    it: Box<dyn Iterator<Item = MatchGroup> + 'a>,
+    it: Box<dyn Iterator<Item = Result<MatchGroup>> + 'a>,
     desc: Option<ExecutionNodeDesc>,
 }
 
@@ -39,7 +41,7 @@ fn calculate_unary_outputsize(op: &dyn UnaryOperator, num_tuples: usize) -> usiz
 
 impl<'a> Filter<'a> {
     pub fn new_binary(
-        exec: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
+        exec: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
         op_entry: BinaryOperatorEntry<'a>,
@@ -70,8 +72,17 @@ impl<'a> Filter<'a> {
         } else {
             None
         };
-        let it =
-            exec.filter(move |tuple| op_entry.op.filter_match(&tuple[lhs_idx], &tuple[rhs_idx]));
+        let it = exec
+            .map(move |tuple| {
+                let tuple = tuple?;
+                let include = op_entry.op.filter_match(&tuple[lhs_idx], &tuple[rhs_idx])?;
+                if include {
+                    Ok(Some(tuple))
+                } else {
+                    Ok(None)
+                }
+            })
+            .filter_map_ok(|t| t);
         Filter {
             desc,
             it: Box::new(it),
@@ -79,7 +90,7 @@ impl<'a> Filter<'a> {
     }
 
     pub fn new_unary(
-        exec: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
+        exec: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
         idx: usize,
         op_entry: UnaryOperatorEntry<'a>,
     ) -> Filter<'a> {
@@ -106,7 +117,16 @@ impl<'a> Filter<'a> {
         } else {
             None
         };
-        let it = exec.filter(move |tuple| op_entry.op.filter_match(&tuple[idx]));
+        let it = exec
+            .map(move |tuple| {
+                let tuple = tuple?;
+                if op_entry.op.filter_match(&tuple[idx])? {
+                    Ok(Some(tuple))
+                } else {
+                    Ok(None)
+                }
+            })
+            .filter_map_ok(|t| t);
         Filter {
             desc,
             it: Box::new(it),
@@ -115,7 +135,7 @@ impl<'a> Filter<'a> {
 }
 
 impl<'a> ExecutionNode for Filter<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
         self
     }
 
@@ -125,9 +145,9 @@ impl<'a> ExecutionNode for Filter<'a> {
 }
 
 impl<'a> Iterator for Filter<'a> {
-    type Item = MatchGroup;
+    type Item = Result<MatchGroup>;
 
-    fn next(&mut self) -> Option<MatchGroup> {
+    fn next(&mut self) -> Option<Self::Item> {
         self.it.next()
     }
 }

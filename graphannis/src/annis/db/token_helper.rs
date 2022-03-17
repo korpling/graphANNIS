@@ -3,6 +3,7 @@ use crate::{
         aql::model::{AnnotationComponentType, TOKEN_KEY},
         AnnotationStorage,
     },
+    errors::Result,
     graph::GraphStorage,
     AnnotationGraph,
 };
@@ -104,32 +105,44 @@ impl<'a> TokenHelper<'a> {
         false
     }
 
-    pub fn right_token_for(&self, n: NodeID) -> Option<NodeID> {
+    pub fn right_token_for(&self, n: NodeID) -> Result<Option<NodeID>> {
         if self.is_token(n) {
-            Some(n)
+            Ok(Some(n))
         } else {
             let mut out = self.right_edges.get_outgoing_edges(n);
-            out.next()
+            match out.next() {
+                Some(out) => Ok(Some(out?)),
+                None => Ok(None),
+            }
         }
     }
 
-    pub fn left_token_for(&self, n: NodeID) -> Option<NodeID> {
+    pub fn left_token_for(&self, n: NodeID) -> Result<Option<NodeID>> {
         if self.is_token(n) {
-            Some(n)
+            Ok(Some(n))
         } else {
             let mut out = self.left_edges.get_outgoing_edges(n);
-            out.next()
+            match out.next() {
+                Some(out) => Ok(Some(out?)),
+                None => Ok(None),
+            }
         }
     }
 
-    pub fn left_right_token_for(&self, n: NodeID) -> (Option<NodeID>, Option<NodeID>) {
+    pub fn left_right_token_for(&self, n: NodeID) -> Result<(Option<NodeID>, Option<NodeID>)> {
         if self.is_token(n) {
-            (Some(n), Some(n))
+            Ok((Some(n), Some(n)))
         } else {
-            let mut out_left = self.left_edges.get_outgoing_edges(n);
-            let mut out_right = self.right_edges.get_outgoing_edges(n);
+            let out_left = match self.left_edges.get_outgoing_edges(n).next() {
+                Some(out) => Some(out?),
+                None => None,
+            };
+            let out_right = match self.right_edges.get_outgoing_edges(n).next() {
+                Some(out) => Some(out?),
+                None => None,
+            };
 
-            (out_left.next(), out_right.next())
+            Ok((out_left, out_right))
         }
     }
 }

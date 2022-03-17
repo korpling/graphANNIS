@@ -1,19 +1,23 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::errors::GraphAnnisError;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
-use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperatorBase, BinaryOperatorSpec},
+    errors::Result,
     graph::{GraphStorage, Match},
     model::AnnotationComponentType,
 };
+use crate::{try_as_boxed_iter, AnnotationGraph};
+use graphannis_core::types::NodeID;
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
     types::Component,
 };
+use itertools::Itertools;
 
 use std::any::Any;
-use std::collections::{HashSet, VecDeque};
+use std::collections::HashSet;
 use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
@@ -79,9 +83,9 @@ impl<'a> std::fmt::Display for Inclusion<'a> {
 }
 
 impl<'a> BinaryOperatorBase for Inclusion<'a> {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        let left_right_lhs = self.tok_helper.left_right_token_for(lhs.node);
-        let left_right_rhs = self.tok_helper.left_right_token_for(rhs.node);
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
+        let left_right_lhs = self.tok_helper.left_right_token_for(lhs.node)?;
+        let left_right_rhs = self.tok_helper.left_right_token_for(rhs.node)?;
         if let (Some(start_lhs), Some(end_lhs), Some(start_rhs), Some(end_rhs)) = (
             left_right_lhs.0,
             left_right_lhs.1,
@@ -89,18 +93,18 @@ impl<'a> BinaryOperatorBase for Inclusion<'a> {
             left_right_rhs.1,
         ) {
             // span length of LHS
-            if let Some(l) = self.gs_order.distance(start_lhs, end_lhs) {
+            if let Some(l) = self.gs_order.distance(start_lhs, end_lhs)? {
                 // path between left-most tokens exists in ORDERING component and has maximum length l
                 if self.gs_order.is_connected(start_lhs, start_rhs, 0, std::ops::Bound::Included(l))
                 // path between right-most tokens exists in ORDERING component and has maximum length l
                 && self.gs_order.is_connected(end_rhs, end_lhs, 0, std::ops::Bound::Included(l))
                 {
-                    return true;
+                    return Ok(true);
                 }
             }
         }
 
-        false
+        Ok(false)
     }
 
     fn is_reflexive(&self) -> bool {
@@ -139,47 +143,80 @@ impl<'a> BinaryOperatorBase for Inclusion<'a> {
     }
 }
 
+enum NodeType {
+    Token(NodeID),
+    Other(NodeID),
+}
+
 impl<'a> BinaryOperatorIndex for Inclusion<'a> {
-    #[allow(clippy::needless_collect)]
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        if let (Some(start_lhs), Some(end_lhs)) = self.tok_helper.left_right_token_for(lhs.node) {
+    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>> + 'b> {
+        let left_right_token = try_as_boxed_iter!(self.tok_helper.left_right_token_for(lhs.node));
+        if let (Some(start_lhs), Some(end_lhs)) = left_right_token {
             // span length of LHS
-            if let Some(l) = self.gs_order.distance(start_lhs, end_lhs) {
+            let l = try_as_boxed_iter!(self.gs_order.distance(start_lhs, end_lhs));
+            if let Some(l) = l {
                 // find each token which is between the left and right border
-                let result: VecDeque<Match> = self
-                    .gs_order
-                    .find_connected(start_lhs, 0, std::ops::Bound::Included(l))
-                    .flat_map(move |t| {
-                        let it_aligned = self
+                let overlapped_token =
+                    self.gs_order
+                        .find_connected(start_lhs, 0, std::ops::Bound::Included(l));
+                // get the nodes that are covering these overlapped tokens
+                let candidates = overlapped_token
+                    .map_ok(move |t| {
+                        let others = self
                             .tok_helper
                             .get_gs_left_token()
                             .get_ingoing_edges(t)
-                            .filter(move |n| {
-                                // right-aligned token of candidate
-                                let mut end_n =
-                                    self.tok_helper.get_gs_right_token_().get_outgoing_edges(*n);
-                                if let Some(end_n) = end_n.next() {
+                            .map_ok(|n| NodeType::Other(n));
+                        // return the token itself and all aligned nodes
+                        std::iter::once(Ok(NodeType::Token(t))).chain(others)
+                    })
+                    .flatten_ok()
+                    // Unwrap the Result<Result<_>>
+                    .map(|c| match c {
+                        Ok(c) => match c {
+                            Ok(c) => Ok(c),
+                            Err(e) => Err(GraphAnnisError::from(e)),
+                        },
+                        Err(e) => Err(GraphAnnisError::from(e)),
+                    });
+                // we need to check if the the RHS of these candidates is also included by the original span
+                let result = candidates
+                    .map_ok(move |n| match n {
+                        NodeType::Token(t) => Ok(Some(t)),
+                        NodeType::Other(n) => {
+                            // get right-aligned token of candidate
+                            let mut end_n =
+                                self.tok_helper.get_gs_right_token_().get_outgoing_edges(n);
+                            if let Some(end_n) = end_n.next() {
+                                let end_n = end_n?;
+                                if self.gs_order.is_connected(
+                                    end_n,
+                                    end_lhs,
+                                    0,
+                                    std::ops::Bound::Included(l),
+                                ) {
                                     // path between right-most tokens exists in ORDERING component
                                     // and has maximum length l
-                                    self.gs_order.is_connected(
-                                        end_n,
-                                        end_lhs,
-                                        0,
-                                        std::ops::Bound::Included(l),
-                                    )
-                                } else {
-                                    false
+                                    return Ok(Some(n));
                                 }
-                            });
-                        // return the token itself and all aligned nodes
-                        std::iter::once(t).chain(it_aligned)
+                            }
+                            Ok(None)
+                        }
+                    }) // Unwrap the Result<Result<_>>
+                    .map(|c| match c {
+                        Ok(c) => match c {
+                            Ok(c) => Ok(c),
+                            Err(e) => Err(e),
+                        },
+                        Err(e) => Err(e),
                     })
-                    .map(|n| Match {
+                    // Only include the ones where the constraint was met
+                    .filter_map_ok(|n| n)
+                    .map_ok(|n| Match {
                         node: n,
                         anno_key: DEFAULT_ANNO_KEY.clone(),
-                    })
-                    .collect();
-                return Box::new(result.into_iter());
+                    });
+                return Box::new(result);
             }
         }
 
