@@ -1030,7 +1030,8 @@ where
     let mut last_textprop: Option<TextProperty> = None;
     let mut last_token: Option<NodeID> = None;
 
-    for (current_textprop, current_token) in token_by_index.iter()? {
+    for token in token_by_index.iter()? {
+        let (current_textprop, current_token) = token?;
         // if the last token/text value is valid and we are still in the same text
         if let (Some(last_token), Some(last_textprop)) = (last_token, last_textprop) {
             if last_textprop.corpus_id == current_textprop.corpus_id
@@ -1209,11 +1210,12 @@ where
     // add explicit coverage edges for each node in the special annis namespace coverage component
     progress_callback("calculating the automatically generated Coverage edges");
 
-    for (n, textprop) in load_node_and_corpus_result
+    for item in load_node_and_corpus_result
         .textpos_table
         .node_to_left
         .iter()?
     {
+        let (n, textprop) = item?;
         // Do not calculate automatic coverage edges for token
         if textprop.segmentation.is_empty()
             && !load_node_and_corpus_result
@@ -1253,7 +1255,8 @@ where
     let mut added_whitespace_label_count = 0;
 
     // Iterate over all texts of the graph separately
-    for (text_key, text) in texts.iter()? {
+    for text in texts.iter()? {
+        let (text_key, text) = text?;
         let mut text_char_it = text.val.chars();
         let mut current_text_offset = 0;
 
@@ -1277,7 +1280,8 @@ where
             .token_by_index
             .range(min_text_prop..max_text_prop)
             .peekable();
-        while let Some((_, current_token_id)) = token_iterator.next() {
+        while let Some(token) = token_iterator.next() {
+            let (_, current_token_id) = token?;
             // Get the character borders for this token
             if let (Some(left_text_pos), Some(right_text_pos)) = (
                 textpos_table.node_to_left_char.get(&current_token_id)?,
@@ -1322,7 +1326,7 @@ where
                 // Get the token borders of the next token to determine where the whitespace after this token is
                 // The whitespace end position is non-inclusive.
                 let mut whitespace_end_pos = None;
-                if let Some((_, next_token_id)) = token_iterator.peek() {
+                if let Some(Ok((_, next_token_id))) = token_iterator.peek() {
                     if let Some(next_token_left_pos) =
                         textpos_table.node_to_left_char.get(next_token_id)?
                     {
@@ -2155,7 +2159,8 @@ fn add_subcorpora(
     } // end for each document/sub-corpus
 
     // add a node for each text and the connection between all sub-nodes of the text
-    for (text_key, text) in texts.iter()? {
+    for text in texts.iter()? {
+        let (text_key, text) = text?;
         // add text node (including its name)
         if let Some(corpus_ref) = text_key.corpus_ref {
             let text_name = utf8_percent_encode(&text.name, SALT_URI_ENCODE_SET).to_string();
@@ -2187,7 +2192,8 @@ fn add_subcorpora(
                 text_id: text_key.id,
                 node_id: NodeID::max_value(),
             };
-            for (text_entry, _) in node_node_result.nodes_by_text.range(min_key..=max_key) {
+            for item in node_node_result.nodes_by_text.range(min_key..=max_key) {
+                let (text_entry, _) = item?;
                 let n = text_entry.node_id;
                 updates.add_event(UpdateEvent::AddEdge {
                     source_node: node_node_result

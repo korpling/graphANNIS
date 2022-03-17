@@ -23,7 +23,7 @@ fn range() {
     // Before compaction
 
     // Start from beginning, exclusive end
-    let result: Vec<(u8, bool)> = table.range(0..6).collect();
+    let result: Result<Vec<(u8, bool)>> = table.range(0..6).collect();
     assert_eq!(
         vec![
             (0, true),
@@ -33,41 +33,41 @@ fn range() {
             (4, true),
             (5, true)
         ],
-        result
+        result.unwrap()
     );
 
     // Start in between, exclusive end
-    let result: Vec<(u8, bool)> = table.range(3..5).collect();
-    assert_eq!(vec![(3, true), (4, true)], result);
+    let result: Result<Vec<(u8, bool)>> = table.range(3..5).collect();
+    assert_eq!(vec![(3, true), (4, true)], result.unwrap());
 
     // Start in between, inclusive end
-    let result: Vec<(u8, bool)> = table.range(3..=5).collect();
-    assert_eq!(vec![(3, true), (4, true), (5, true)], result);
+    let result: Result<Vec<(u8, bool)>> = table.range(3..=5).collect();
+    assert_eq!(vec![(3, true), (4, true), (5, true)], result.unwrap());
 
     // Start from beginning, but exclude start
-    let result: Vec<(u8, bool)> = table
+    let result: Result<Vec<(u8, bool)>> = table
         .range((Bound::Excluded(0), Bound::Excluded(6)))
         .collect();
     assert_eq!(
         vec![(1, true), (2, true), (3, true), (4, true), (5, true)],
-        result
+        result.unwrap()
     );
 
     // Start in between and  exclude start
-    let result: Vec<(u8, bool)> = table
+    let result: Result<Vec<(u8, bool)>> = table
         .range((Bound::Excluded(4), Bound::Excluded(6)))
         .collect();
-    assert_eq!(vec![(5, true)], result);
+    assert_eq!(vec![(5, true)], result.unwrap());
 
     // Unbound end
-    let result: Vec<(u8, bool)> = table.range(3..).collect();
-    assert_eq!(vec![(3, true), (4, true), (5, true)], result);
+    let result: Result<Vec<(u8, bool)>> = table.range(3..).collect();
+    assert_eq!(vec![(3, true), (4, true), (5, true)], result.unwrap());
 
     // After compaction
     table.compact().unwrap();
 
     // Start from beginning, exclusive end
-    let result: Vec<(u8, bool)> = table.range(0..6).collect();
+    let result: Result<Vec<(u8, bool)>> = table.range(0..6).collect();
     assert_eq!(
         vec![
             (0, true),
@@ -77,35 +77,35 @@ fn range() {
             (4, true),
             (5, true)
         ],
-        result
+        result.unwrap()
     );
 
     // Start in between, exclusive end
-    let result: Vec<(u8, bool)> = table.range(3..5).collect();
-    assert_eq!(vec![(3, true), (4, true)], result);
+    let result: Result<Vec<(u8, bool)>> = table.range(3..5).collect();
+    assert_eq!(vec![(3, true), (4, true)], result.unwrap());
 
     // Start in between, inclusive end
-    let result: Vec<(u8, bool)> = table.range(3..=5).collect();
-    assert_eq!(vec![(3, true), (4, true), (5, true)], result);
+    let result: Result<Vec<(u8, bool)>> = table.range(3..=5).collect();
+    assert_eq!(vec![(3, true), (4, true), (5, true)], result.unwrap());
 
     // Start from beginning, but exclude start
-    let result: Vec<(u8, bool)> = table
+    let result: Result<Vec<(u8, bool)>> = table
         .range((Bound::Excluded(0), Bound::Excluded(6)))
         .collect();
     assert_eq!(
         vec![(1, true), (2, true), (3, true), (4, true), (5, true)],
-        result
+        result.unwrap()
     );
 
     // Start in between and  exclude start
-    let result: Vec<(u8, bool)> = table
+    let result: Result<Vec<(u8, bool)>> = table
         .range((Bound::Excluded(4), Bound::Excluded(6)))
         .collect();
-    assert_eq!(vec![(5, true)], result);
+    assert_eq!(vec![(5, true)], result.unwrap());
 
     // Unbound end
-    let result: Vec<(u8, bool)> = table.range(3..).collect();
-    assert_eq!(vec![(3, true), (4, true), (5, true)], result);
+    let result: Result<Vec<(u8, bool)>> = table.range(3..).collect();
+    assert_eq!(vec![(3, true), (4, true), (5, true)], result.unwrap());
 }
 
 #[test]
@@ -168,8 +168,11 @@ fn unknown_key() {
     // check before compaction both with get() and range()
     assert_eq!(None, table.get(&test_key).unwrap());
     assert_eq!(
-        None,
-        table.range(test_key.clone()..=test_key.clone()).next()
+        true,
+        table
+            .range(test_key.clone()..=test_key.clone())
+            .next()
+            .is_none()
     );
     assert_eq!(false, table.contains_key(&test_key).unwrap());
 
@@ -177,8 +180,11 @@ fn unknown_key() {
     table.compact().unwrap();
     assert_eq!(None, table.get(&test_key).unwrap());
     assert_eq!(
-        None,
-        table.range(test_key.clone()..=test_key.clone()).next()
+        true,
+        table
+            .range(test_key.clone()..=test_key.clone())
+            .next()
+            .is_none()
     );
     assert_eq!(false, table.contains_key(&test_key).unwrap());
 }

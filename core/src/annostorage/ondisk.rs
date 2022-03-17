@@ -206,7 +206,7 @@ where
         namespace: Option<&str>,
         name: &str,
         value: Option<&str>,
-    ) -> Box<dyn Iterator<Item = (T, Arc<AnnoKey>)> + 'a>
+    ) -> Box<dyn Iterator<Item = Result<(T, Arc<AnnoKey>)>> + 'a>
     where
         T: FixedSizeKeySerializer + Send + Sync + malloc_size_of::MallocSizeOf + PartialOrd,
     {
@@ -246,7 +246,7 @@ where
                 self.by_anno_qname.range(lower_bound..upper_bound)
             })
             .fuse()
-            .map(move |(data, _)| {
+            .map_ok(move |(data, _)| {
                 // get the item ID at the end
                 let item_id = T::parse_key(&data[data.len() - T::key_size()..]);
                 let anno_key_symbol = usize::parse_key(&data[0..std::mem::size_of::<usize>()]);
@@ -308,7 +308,7 @@ where
     fn get_by_anno_qname_range<'a>(
         &'a self,
         anno_key: &AnnoKey,
-    ) -> Box<dyn Iterator<Item = (Vec<u8>, bool)> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<(Vec<u8>, bool)>> + 'a> {
         if let Some(anno_key_symbol) = self.anno_key_symbols.get_symbol(anno_key) {
             let lower_bound = create_by_anno_qname_key(NodeID::min_value(), anno_key_symbol, "");
 
@@ -385,7 +385,8 @@ where
         let mut result = Vec::default();
         let start = create_by_container_key(item.clone(), usize::min_value());
         let end = create_by_container_key(item.clone(), usize::max_value());
-        for (key, val) in self.by_container.range(start..=end) {
+        for anno in self.by_container.range(start..=end) {
+            let (key, val) = anno.expect("Iterator over annotations returned error");
             let parsed_key = self.parse_by_container_key(key);
             let anno = Annotation {
                 key: parsed_key.1.as_ref().clone(),
@@ -571,6 +572,7 @@ where
 
                     self.by_container
                         .range(start..=end)
+                        .map(|anno| anno.expect("Iterator over annotations returned error"))
                         .map(|(data, _)| self.parse_by_container_key(data).into())
                 })
                 .flatten_ok()
@@ -617,21 +619,26 @@ where
     ) -> Box<dyn Iterator<Item = Match> + 'a> {
         match value {
             ValueSearch::Any => {
-                let it = self
-                    .matching_items(namespace, name, None)
-                    .map(move |item| item.into());
+                let it = self.matching_items(namespace, name, None).map(move |item| {
+                    item.expect("Iterator over matching items returned error")
+                        .into()
+                });
                 Box::new(it)
             }
             ValueSearch::Some(value) => {
                 let it = self
                     .matching_items(namespace, name, Some(value))
-                    .map(move |item| item.into());
+                    .map(move |item| {
+                        item.expect("Iterator over matching items returned error")
+                            .into()
+                    });
                 Box::new(it)
             }
             ValueSearch::NotSome(value) => {
                 let value = value.to_string();
                 let it = self
                     .matching_items(namespace, name, None)
+                    .map(|item| item.expect("Iterator over matching items returned error"))
                     .filter(move |(node, anno_key)| {
                         if let Some(item_value) = self.get_value_for_item(node, anno_key) {
                             item_value != value
@@ -657,6 +664,7 @@ where
         if let Ok(re) = compiled_result {
             let it = self
                 .matching_items(namespace, name, None)
+                .map(|item| item.expect("Iterator over matching items returned error"))
                 .filter(move |(node, anno_key)| {
                     if let Some(val) = self.get_value_for_item(node, anno_key) {
                         if negated {
@@ -844,7 +852,10 @@ where
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Cow<str>> {
         if most_frequent_first {
             let mut values_with_count: HashMap<String, usize> = HashMap::default();
-            for (data, _) in self.get_by_anno_qname_range(key) {
+            for (data, _) in self
+                .get_by_anno_qname_range(key)
+                .map(|item| item.expect("Iterator over items for annotation key returned error"))
+            {
                 let (_, _, val) = self.parse_by_anno_qname_key(data);
 
                 let count = values_with_count.entry(val).or_insert(0);
@@ -862,6 +873,7 @@ where
         } else {
             let values_unique: HashSet<Cow<str>> = self
                 .get_by_anno_qname_range(key)
+                .map(|item| item.expect("Iterator over items for annotation key returned error"))
                 .map(|(data, _)| {
                     let (_, _, val) = self.parse_by_anno_qname_key(data);
                     Cow::Owned(val)
@@ -896,7 +908,8 @@ where
                 .choose_multiple(&mut rng, max_sampled_annotations)
                 .into_iter()
                 .map(|data| {
-                    let (data, _) = data;
+                    let (data, _) =
+                        data.expect("Iterator over items for annotation key returned error");
                     let (_, _, val) = self.parse_by_anno_qname_key(data);
                     val
                 })

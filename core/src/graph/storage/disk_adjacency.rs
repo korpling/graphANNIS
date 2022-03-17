@@ -8,28 +8,11 @@ use crate::{
 };
 use itertools::Itertools;
 use rustc_hash::FxHashSet;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::ops::Bound;
 use transient_btree_index::BtreeConfig;
 
 pub const SERIALIZATION_ID: &str = "DiskAdjacencyListV1";
-
-/// Repeatedly call the given function and get the result, or panic if the error is permanent.
-fn get_or_panic<F, R>(f: F) -> R
-where
-    F: Fn() -> Result<R>,
-{
-    let mut last_err = None;
-    for _ in 0..5 {
-        match f() {
-            Ok(result) => return result,
-            Err(e) => last_err = Some(e),
-        }
-        // In case this is an intermediate error, wait some time before trying again
-        std::thread::sleep(std::time::Duration::from_secs(1));
-    }
-    panic!("Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.\nCause:\n{:?}", last_err.unwrap())
-}
 
 #[derive(MallocSizeOf)]
 pub struct DiskAdjacencyListStorage {
@@ -41,18 +24,23 @@ pub struct DiskAdjacencyListStorage {
     stats: Option<GraphStatistic>,
 }
 
-fn get_fan_outs(edges: &DiskMap<Edge, bool>) -> Vec<usize> {
-    let mut fan_outs: Vec<usize> = Vec::new();
-    if !get_or_panic(|| edges.is_empty()) {
-        let it = get_or_panic(|| edges.iter());
-        for (_, targets) in &it.group_by(|(e, _)| e.source) {
-            fan_outs.push(targets.count());
+fn get_fan_outs(edges: &DiskMap<Edge, bool>) -> Result<Vec<usize>> {
+    let mut fan_outs: HashMap<NodeID, usize> = HashMap::default();
+    if edges.is_empty()? {
+        let all_edges = edges.iter()?;
+        for e in all_edges {
+            let (e, _) = e?;
+            fan_outs
+                .entry(e.source)
+                .and_modify(|num_out| *num_out += 1)
+                .or_insert(1);
         }
     }
     // order the fan-outs
+    let mut fan_outs: Vec<usize> = fan_outs.into_iter().map(|(_, s)| s).collect();
     fan_outs.sort_unstable();
 
-    fan_outs
+    Ok(fan_outs)
 }
 
 impl DiskAdjacencyListStorage {
@@ -90,7 +78,7 @@ impl EdgeContainer for DiskAdjacencyListStorage {
         Box::new(
             self.edges
                 .range(lower_bound..upper_bound)
-                .map(|(e, _)| Ok(e.target)),
+                .map_ok(|(e, _)| e.target),
         )
     }
 
@@ -125,12 +113,16 @@ impl EdgeContainer for DiskAdjacencyListStorage {
         Box::new(
             self.inverse_edges
                 .range(lower_bound..upper_bound)
-                .map(|(e, _)| Ok(e.target)),
+                .map_ok(|(e, _)| e.target),
         )
     }
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         match self.edges.iter() {
-            Ok(edges) => Box::new(edges.map(|(e, _)| e.source).unique().map(Ok)),
+            // The unique_by will merge all errors into a single error, which should be ok for our use case
+            Ok(edges) => Box::new(edges.map_ok(|(e, _)| e.source).unique_by(|n| match n {
+                Ok(n) => Some(*n),
+                Err(_) => None,
+            })),
             Err(e) => Box::new(std::iter::once(Err(e))),
         }
     }
@@ -392,7 +384,8 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         let mut roots: BTreeSet<NodeID> = BTreeSet::new();
         {
             let mut all_nodes: BTreeSet<NodeID> = BTreeSet::new();
-            for (e, _) in get_or_panic(|| self.edges.iter()) {
+            for edge in self.edges.iter()? {
+                let (e, _) = edge?;
                 roots.insert(e.source);
                 all_nodes.insert(e.source);
                 all_nodes.insert(e.target);
@@ -408,21 +401,22 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
             stats.nodes = all_nodes.len();
         }
 
-        let edges_empty = get_or_panic(|| self.edges.is_empty());
+        let edges_empty = self.edges.is_empty()?;
 
         if !edges_empty {
-            for (e, _) in get_or_panic(|| self.edges.iter()) {
+            for edge in self.edges.iter()? {
+                let (e, _) = edge?;
                 roots.remove(&e.target);
             }
         }
 
-        let fan_outs = get_fan_outs(&self.edges);
+        let fan_outs = get_fan_outs(&self.edges)?;
         let sum_fan_out: usize = fan_outs.iter().sum();
 
         if let Some(last) = fan_outs.last() {
             stats.max_fan_out = *last;
         }
-        let inverse_fan_outs = get_fan_outs(&self.inverse_edges);
+        let inverse_fan_outs = get_fan_outs(&self.inverse_edges)?;
 
         // get the percentile value(s)
         // set some default values in case there are not enough elements in the component

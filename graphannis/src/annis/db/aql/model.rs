@@ -172,17 +172,20 @@ impl AQLUpdateGraphIndex {
             gs_cov.clear()?;
         } else {
             // Remove existing left/right token edges for the invalidated nodes only
-            for (n, _) in self.invalid_nodes.iter()? {
+            for invalid in self.invalid_nodes.iter()? {
+                let (n, _) = invalid?;
                 gs_left.delete_node(n)?;
             }
 
             let gs_right = graph.get_or_create_writable(&component_right)?;
-            for (n, _) in self.invalid_nodes.iter()? {
+            for invalid in self.invalid_nodes.iter()? {
+                let (n, _) = invalid?;
                 gs_right.delete_node(n)?;
             }
 
             let gs_cov = graph.get_or_create_writable(&component_cov)?;
-            for (n, _) in self.invalid_nodes.iter()? {
+            for invalid in self.invalid_nodes.iter()? {
+                let (n, _) = invalid?;
                 gs_cov.delete_node(n)?;
             }
         }
@@ -205,7 +208,8 @@ impl AQLUpdateGraphIndex {
             .collect();
 
         // go over each node and calculate the left-most and right-most token
-        for (n, _) in self.invalid_nodes.iter()? {
+        for invalid in self.invalid_nodes.iter()? {
+            let (n, _) = invalid?;
             let covered_token = self.calculate_inherited_coverage_edges(
                 graph,
                 n,
