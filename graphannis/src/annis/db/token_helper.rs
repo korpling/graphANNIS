@@ -87,26 +87,27 @@ impl<'a> TokenHelper<'a> {
         self.right_edges.as_ref()
     }
 
-    pub fn is_token(&self, id: NodeID) -> bool {
+    pub fn is_token(&self, id: NodeID) -> Result<bool> {
         if self.node_annos.has_value_for_item(&id, &TOKEN_KEY) {
             // check if there is no outgoing edge in any of the coverage components
-            !self.has_outgoing_coverage_edges(id)
+            let has_outgoing = self.has_outgoing_coverage_edges(id)?;
+            Ok(!has_outgoing)
         } else {
-            false
+            Ok(false)
         }
     }
 
-    pub fn has_outgoing_coverage_edges(&self, id: NodeID) -> bool {
+    pub fn has_outgoing_coverage_edges(&self, id: NodeID) -> Result<bool> {
         for c in self.cov_edges.iter() {
-            if c.has_outgoing_edges(id) {
-                return true;
+            if c.has_outgoing_edges(id)? {
+                return Ok(true);
             }
         }
-        false
+        Ok(false)
     }
 
     pub fn right_token_for(&self, n: NodeID) -> Result<Option<NodeID>> {
-        if self.is_token(n) {
+        if self.is_token(n)? {
             Ok(Some(n))
         } else {
             let mut out = self.right_edges.get_outgoing_edges(n);
@@ -118,7 +119,7 @@ impl<'a> TokenHelper<'a> {
     }
 
     pub fn left_token_for(&self, n: NodeID) -> Result<Option<NodeID>> {
-        if self.is_token(n) {
+        if self.is_token(n)? {
             Ok(Some(n))
         } else {
             let mut out = self.left_edges.get_outgoing_edges(n);
@@ -130,7 +131,7 @@ impl<'a> TokenHelper<'a> {
     }
 
     pub fn left_right_token_for(&self, n: NodeID) -> Result<(Option<NodeID>, Option<NodeID>)> {
-        if self.is_token(n) {
+        if self.is_token(n)? {
             Ok((Some(n), Some(n)))
         } else {
             let out_left = match self.left_edges.get_outgoing_edges(n).next() {

@@ -61,64 +61,75 @@ impl<'a> AnyTokenSearch<'a> {
         components
     }
 
+    fn create_new_root_iterator(
+        &self,
+    ) -> Result<Vec<Box<dyn Iterator<Item = Result<NodeID>> + 'a>>> {
+        // iterate over all nodes that are token and check if they are root node nodes in the ORDERING component
+        let mut root_nodes = Vec::new();
+        for tok_candidate in
+            self.db
+                .get_node_annos()
+                .exact_anno_search(Some("annis"), "tok", None.into())
+        {
+            let n = tok_candidate.node;
+            let mut is_root_tok = true;
+            if let Some(order_gs) = self.order_gs {
+                is_root_tok = is_root_tok && order_gs.get_ingoing_edges(n).next().is_none();
+            }
+            if let Some(ref token_helper) = self.token_helper {
+                if is_root_tok {
+                    is_root_tok = !token_helper.has_outgoing_coverage_edges(n)?;
+                }
+            }
+            if is_root_tok {
+                root_nodes.push(Match {
+                    node: n,
+                    anno_key: self.node_type_key.clone(),
+                });
+            }
+        }
+        let root_nodes_length = root_nodes.len();
+        quicksort::sort_first_n_items(&mut root_nodes, root_nodes_length, |a, b| {
+            sort_matches::compare_match_by_text_pos(
+                b,
+                a,
+                self.db.get_node_annos(),
+                self.token_helper.as_ref(),
+                self.order_gs,
+                CollationType::Default,
+                false,
+            )
+        })?;
+
+        // for root nodes add an iterator for all reachable nodes in the order component
+        let mut root_iterators: Vec<Box<dyn Iterator<Item = Result<u64>>>> = Vec::new();
+        for root in root_nodes {
+            let it = if let Some(order_gs) = self.order_gs {
+                order_gs.find_connected(root.node, 0, std::ops::Bound::Unbounded)
+            } else {
+                // there is only the the root token and no ordering component
+                Box::from(vec![Ok(root.node)].into_iter())
+            };
+            root_iterators.push(Box::new(it.map(|it| it.map_err(|e| e.into()))));
+        }
+
+        Ok(root_iterators)
+    }
+
     fn get_root_iterators(&mut self) -> &mut Vec<Box<dyn Iterator<Item = Result<NodeID>> + 'a>> {
         if let Some(ref mut root_iterators) = self.root_iterators {
             root_iterators
         } else {
-            // iterate over all nodes that are token and check if they are root node nodes in the ORDERING component
-            let mut root_nodes = Vec::new();
-            for tok_candidate in
-                self.db
-                    .get_node_annos()
-                    .exact_anno_search(Some("annis"), "tok", None.into())
-            {
-                let n = tok_candidate.node;
-                let mut is_root_tok = true;
-                if let Some(order_gs) = self.order_gs {
-                    is_root_tok = is_root_tok && order_gs.get_ingoing_edges(n).next().is_none();
+            match self.create_new_root_iterator() {
+                Ok(root_iterators) => {
+                    self.root_iterators = Some(root_iterators);
                 }
-                if let Some(ref token_helper) = self.token_helper {
-                    is_root_tok = is_root_tok && !token_helper.has_outgoing_coverage_edges(n);
+                Err(e) => {
+                    // Set the internal cache to a failure state
+                    let err_iterator = std::iter::once(Err(e));
+                    self.root_iterators = Some(vec![Box::new(err_iterator)]);
                 }
-                if is_root_tok {
-                    root_nodes.push(Match {
-                        node: n,
-                        anno_key: self.node_type_key.clone(),
-                    });
-                }
-            }
-            let root_nodes_length = root_nodes.len();
-            if let Err(e) =
-                quicksort::sort_first_n_items(&mut root_nodes, root_nodes_length, |a, b| {
-                    sort_matches::compare_match_by_text_pos(
-                        b,
-                        a,
-                        self.db.get_node_annos(),
-                        self.token_helper.as_ref(),
-                        self.order_gs,
-                        CollationType::Default,
-                        false,
-                    )
-                })
-            {
-                // Set the internal cache to a failure state and abort early
-                let err_iterator = std::iter::once(Err(e));
-                self.root_iterators = Some(vec![Box::new(err_iterator)]);
-                return self.root_iterators.as_mut().unwrap();
-            }
-
-            // for root nodes add an iterator for all reachable nodes in the order component
-            let mut root_iterators: Vec<Box<dyn Iterator<Item = Result<u64>>>> = Vec::new();
-            for root in root_nodes {
-                let it = if let Some(order_gs) = self.order_gs {
-                    order_gs.find_connected(root.node, 0, std::ops::Bound::Unbounded)
-                } else {
-                    // there is only the the root token and no ordering component
-                    Box::from(vec![Ok(root.node)].into_iter())
-                };
-                root_iterators.push(Box::new(it.map(|it| it.map_err(|e| e.into()))));
-            }
-            self.root_iterators = Some(root_iterators);
+            };
             self.root_iterators.as_mut().unwrap()
         }
     }

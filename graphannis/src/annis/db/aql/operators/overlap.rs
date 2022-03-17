@@ -167,7 +167,7 @@ impl<'a> BinaryOperatorIndex for Overlap<'a> {
             result.insert(lhs.node);
         }
 
-        let lhs_is_token = self.tok_helper.is_token(lhs.node);
+        let lhs_is_token = try_as_boxed_iter!(self.tok_helper.is_token(lhs.node));
         let coverage_gs = self.tok_helper.get_gs_coverage();
         if lhs_is_token && coverage_gs.is_empty() {
             // There are only token in this corpus and an thus the only covered node is the LHS itself

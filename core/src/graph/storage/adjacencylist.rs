@@ -73,11 +73,11 @@ impl EdgeContainer for AdjacencyListStorage {
         Box::new(std::iter::empty())
     }
 
-    fn has_outgoing_edges(&self, node: NodeID) -> bool {
+    fn has_outgoing_edges(&self, node: NodeID) -> Result<bool> {
         if let Some(outgoing) = self.edges.get(&node) {
-            !outgoing.is_empty()
+            Ok(!outgoing.is_empty())
         } else {
-            false
+            Ok(false)
         }
     }
 

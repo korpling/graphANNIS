@@ -70,8 +70,13 @@ pub trait EdgeContainer: Sync + Send + MallocSizeOf {
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a>;
 
     /// Return true of the given node has any outgoing edges.
-    fn has_outgoing_edges(&self, node: NodeID) -> bool {
-        self.get_outgoing_edges(node).next().is_some()
+    fn has_outgoing_edges(&self, node: NodeID) -> Result<bool> {
+        if let Some(outgoing) = self.get_outgoing_edges(node).next() {
+            outgoing?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     /// Get all incoming edges for a given `node`.

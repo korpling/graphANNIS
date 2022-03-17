@@ -94,7 +94,7 @@ impl EdgeContainer for DiskAdjacencyListStorage {
         )
     }
 
-    fn has_outgoing_edges(&self, node: NodeID) -> bool {
+    fn has_outgoing_edges(&self, node: NodeID) -> Result<bool> {
         let lower_bound = Edge {
             source: node,
             target: NodeID::min_value(),
@@ -103,7 +103,11 @@ impl EdgeContainer for DiskAdjacencyListStorage {
             source: node,
             target: NodeID::max_value(),
         };
-        self.edges.range(lower_bound..upper_bound).next().is_some()
+        if let Some(_) = self.edges.range(lower_bound..upper_bound).next() {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     fn get_ingoing_edges<'a>(
