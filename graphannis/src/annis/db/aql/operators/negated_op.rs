@@ -72,10 +72,12 @@ impl<'a> BinaryOperatorBase for NegatedOp<'a> {
         self.negated_op.is_reflexive()
     }
 
-    fn estimation_type(&self) -> EstimationType {
-        match self.negated_op.estimation_type() {
-            EstimationType::Selectivity(orig_sel) => EstimationType::Selectivity(1.0 - orig_sel),
-            EstimationType::Min => EstimationType::Min,
+    fn estimation_type(&self) -> Result<EstimationType> {
+        match self.negated_op.estimation_type()? {
+            EstimationType::Selectivity(orig_sel) => {
+                Ok(EstimationType::Selectivity(1.0 - orig_sel))
+            }
+            EstimationType::Min => Ok(EstimationType::Min),
         }
     }
 }

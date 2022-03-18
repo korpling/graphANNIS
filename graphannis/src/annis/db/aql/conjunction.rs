@@ -519,57 +519,61 @@ impl Conjunction {
         desc: Option<&ExecutionNodeDesc>,
         op_spec_entries: Box<dyn Iterator<Item = &'a BinaryOperatorSpecEntry> + 'a>,
         db: &'a AnnotationGraph,
-    ) -> Option<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> {
-        let desc = desc?;
-        // check if we can replace this node search with a generic "all nodes from either of these components" search
-        let node_search_cost: &CostEstimate = desc.cost.as_ref()?;
+    ) -> Result<Option<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>>> {
+        if let Some(desc) = desc {
+            // check if we can replace this node search with a generic "all nodes from either of these components" search
+            if let Some(node_search_cost) = desc.cost.as_ref() {
+                for e in op_spec_entries {
+                    let op_spec = &e.op;
+                    if e.args.left == desc.component_nr {
+                        // get the necessary components and count the number of nodes in these components
+                        let components = op_spec.necessary_components(db);
+                        if !components.is_empty() {
+                            let mut estimated_component_search = 0;
 
-        for e in op_spec_entries {
-            let op_spec = &e.op;
-            if e.args.left == desc.component_nr {
-                // get the necessary components and count the number of nodes in these components
-                let components = op_spec.necessary_components(db);
-                if !components.is_empty() {
-                    let mut estimated_component_search = 0;
-
-                    let mut estimation_valid = false;
-                    for c in &components {
-                        if let Some(gs) = db.get_graphstorage(c) {
-                            // check if we can apply an even more restrictive edge annotation search
-                            if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
-                                let anno_storage: &dyn AnnotationStorage<Edge> =
-                                    gs.get_anno_storage();
-                                let edge_anno_est = edge_anno_spec.guess_max_count(anno_storage);
-                                estimated_component_search += edge_anno_est;
-                                estimation_valid = true;
-                            } else if let Some(stats) = gs.get_statistics() {
-                                let stats: &GraphStatistic = stats;
-                                estimated_component_search += stats.nodes;
-                                estimation_valid = true;
+                            let mut estimation_valid = false;
+                            for c in &components {
+                                if let Some(gs) = db.get_graphstorage(c) {
+                                    // check if we can apply an even more restrictive edge annotation search
+                                    if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
+                                        let anno_storage: &dyn AnnotationStorage<Edge> =
+                                            gs.get_anno_storage();
+                                        let edge_anno_est =
+                                            edge_anno_spec.guess_max_count(anno_storage)?;
+                                        estimated_component_search += edge_anno_est;
+                                        estimation_valid = true;
+                                    } else if let Some(stats) = gs.get_statistics() {
+                                        let stats: &GraphStatistic = stats;
+                                        estimated_component_search += stats.nodes;
+                                        estimation_valid = true;
+                                    }
+                                }
                             }
-                        }
-                    }
 
-                    if estimation_valid && node_search_cost.output > estimated_component_search {
-                        let poc_search = NodeSearch::new_partofcomponentsearch(
-                            db,
-                            node_search_desc,
-                            Some(desc),
-                            components,
-                            op_spec.get_edge_anno_spec(),
-                        );
-                        if let Ok(poc_search) = poc_search {
-                            // TODO: check if there is another operator with even better estimates
-                            return Some(Box::new(poc_search));
-                        } else {
-                            return None;
+                            if estimation_valid
+                                && node_search_cost.output > estimated_component_search
+                            {
+                                let poc_search = NodeSearch::new_partofcomponentsearch(
+                                    db,
+                                    node_search_desc,
+                                    Some(desc),
+                                    components,
+                                    op_spec.get_edge_anno_spec(),
+                                );
+                                if let Ok(poc_search) = poc_search {
+                                    // TODO: check if there is another operator with even better estimates
+                                    return Ok(Some(Box::new(poc_search)));
+                                } else {
+                                    return Ok(None);
+                                }
+                            }
                         }
                     }
                 }
             }
         }
 
-        None
+        Ok(None)
     }
 
     fn add_node_to_exec_plan<'a>(
@@ -583,7 +587,7 @@ impl Conjunction {
         node2component: &mut BTreeMap<usize, usize>,
         node2cost: &mut BTreeMap<usize, CostEstimate>,
         node_search_errors: &mut Vec<GraphAnnisError>,
-    ) {
+    ) -> Result<()> {
         let n_spec = &self.nodes[node_nr].spec;
         let n_var = &self.nodes[node_nr].var;
 
@@ -630,7 +634,7 @@ impl Conjunction {
                     node_search.get_desc(),
                     Box::new(self.binary_operators.iter()),
                     g,
-                );
+                )?;
 
                 // move to map
                 if let Some(node_by_component_search) = node_by_component_search {
@@ -641,6 +645,7 @@ impl Conjunction {
             }
             Err(e) => node_search_errors.push(e),
         };
+        Ok(())
     }
 
     fn add_binary_operator_to_exec_plan<'a>(
@@ -779,7 +784,7 @@ impl Conjunction {
                     &mut node2component,
                     &mut node2cost,
                     &mut node_search_errors,
-                );
+                )?;
             }
         }
 
@@ -789,13 +794,7 @@ impl Conjunction {
                 .remove(&op_spec_entry.idx)
                 .ok_or(GraphAnnisError::NoExecutionNode(op_spec_entry.idx))?;
 
-            let op: Box<dyn UnaryOperator> =
-                op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                    GraphAnnisError::ImpossibleSearch(format!(
-                        "could not create operator {:?}",
-                        op_spec_entry
-                    ))
-                })?;
+            let op = op_spec_entry.op.create_operator(db)?;
             let op_entry = UnaryOperatorEntry {
                 op,
                 node_nr: op_spec_entry.idx + 1,

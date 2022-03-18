@@ -170,7 +170,7 @@ where
     fn is_empty(&self) -> bool;
 
     /// Return the number of annotations contained in this `AnnotationStorage` filtered by `name` and optional namespace (`ns`).
-    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> usize;
+    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> Result<usize>;
 
     /// Returns an iterator for all items that exactly match the given annotation constraints.
     /// The annotation `name` must be given as argument, the other arguments are optional.

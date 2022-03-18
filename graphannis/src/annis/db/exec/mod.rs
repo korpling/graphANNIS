@@ -38,7 +38,7 @@ fn calculate_outputsize<Op: BinaryOperatorBase + ?Sized>(
     cost_lhs: &CostEstimate,
     cost_rhs: &CostEstimate,
 ) -> Result<usize> {
-    let output = match op.estimation_type() {
+    let output = match op.estimation_type()? {
         EstimationType::Selectivity(selectivity) => {
             let num_tuples = (cost_lhs.output * cost_rhs.output) as f64;
             if let Some(edge_sel) = op.edge_anno_selectivity()? {
@@ -117,7 +117,7 @@ impl ExecutionNodeDesc {
                 let output = calculate_outputsize(op, cost_lhs, cost_rhs)?;
 
                 let processed_in_step =
-                    processed_func(op.estimation_type(), cost_lhs.output, cost_rhs.output);
+                    processed_func(op.estimation_type()?, cost_lhs.output, cost_rhs.output);
                 Some(CostEstimate {
                     output,
                     intermediate_sum: processed_in_step

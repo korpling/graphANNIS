@@ -17,7 +17,7 @@ use crate::{
             aql::conjunction::Conjunction,
             exec::nodesearch::{NodeSearch, NodeSearchSpec},
         },
-        errors::Result,
+        errors::{GraphAnnisError, Result},
         operator::{
             BinaryOperator, BinaryOperatorBase, BinaryOperatorIndex, BinaryOperatorSpec,
             EstimationType, UnaryOperator, UnaryOperatorSpec,
@@ -89,9 +89,14 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
     fn create_operator<'b>(
         &'b self,
         g: &'b AnnotationGraph,
-    ) -> Option<Box<dyn crate::annis::operator::UnaryOperator + 'b>> {
+    ) -> Result<Box<dyn crate::annis::operator::UnaryOperator + 'b>> {
         let mut target_left = self.target_left;
-        let mut orig_op = self.op.create_operator(g)?;
+        let mut orig_op = self.op.create_operator(g).ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(format!(
+                "Binary operator {:?} not possible",
+                &self.op
+            ))
+        })?;
 
         if target_left {
             // Check if we can avoid a costly filter operation by switching operands
@@ -100,7 +105,7 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
                 target_left = false;
             }
         }
-        let op_estimation = orig_op.estimation_type();
+        let op_estimation = orig_op.estimation_type()?;
 
         // When possible, use the index-based implementation, use the filter
         // version as a fallback
@@ -119,7 +124,7 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
             self.create_filter_operator(g, orig_op, target_left, op_estimation)
         };
 
-        Some(negated_op)
+        Ok(negated_op)
     }
 }
 

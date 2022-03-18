@@ -268,10 +268,10 @@ impl BinaryOperatorBase for BaseEdgeOp {
         Some(BinaryOperator::Index(Box::new(edge_op)))
     }
 
-    fn estimation_type(&self) -> EstimationType {
+    fn estimation_type(&self) -> Result<EstimationType> {
         if self.gs.is_empty() {
             // will not find anything
-            return EstimationType::Selectivity(0.0);
+            return Ok(EstimationType::Selectivity(0.0));
         }
 
         let max_nodes: f64 = self.max_nodes_estimate as f64;
@@ -287,7 +287,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                 let stats: &GraphStatistic = stats;
                 if stats.cyclic {
                     // can get all other nodes
-                    return EstimationType::Selectivity(1.0);
+                    return Ok(EstimationType::Selectivity(1.0));
                 }
                 // get number of nodes reachable from min to max distance
                 let max_dist = match self.spec.dist.max_dist() {
@@ -299,10 +299,13 @@ impl BinaryOperatorBase for BaseEdgeOp {
                 let min_path_length = std::cmp::max(0, self.spec.dist.min_dist() - 1) as i32;
 
                 if stats.avg_fan_out > 1.0 {
-                    // Assume two complete k-ary trees (with the average fan-out as k)
-                    // as defined in "Thomas Cormen: Introduction to algorithms (2009), page 1179)
-                    // with the maximum and minimum height. Calculate the number of nodes for both complete trees and
-                    // subtract them to get an estimation of the number of nodes that fullfull the path length criteria.
+                    // Assume two complete k-ary trees (with the average fan-out
+                    // as k) as defined in "Thomas Cormen: Introduction to
+                    // algorithms (2009), page 1179) with the maximum and
+                    // minimum height. Calculate the number of nodes for both
+                    // complete trees and subtract them to get an estimation of
+                    // the number of nodes that fullfull the path length
+                    // criteria.
                     let k = stats.avg_fan_out;
 
                     let reachable_max: f64 = ((k.powi(max_path_length) - 1.0) / (k - 1.0)).ceil();
@@ -312,8 +315,10 @@ impl BinaryOperatorBase for BaseEdgeOp {
 
                     gs_selectivity = reachable / max_nodes;
                 } else {
-                    // We can't use the formula for complete k-ary trees because we can't divide by zero and don't want negative
-                    // numbers. Use the simplified estimation with multiplication instead.
+                    // We can't use the formula for complete k-ary trees because
+                    // we can't divide by zero and don't want negative numbers.
+                    // Use the simplified estimation with multiplication
+                    // instead.
                     let reachable_max: f64 =
                         (stats.avg_fan_out * f64::from(max_path_length)).ceil();
                     let reachable_min: f64 =
@@ -328,7 +333,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
             }
         } // end for
 
-        EstimationType::Selectivity(worst_sel)
+        Ok(EstimationType::Selectivity(worst_sel))
     }
 
     fn edge_anno_selectivity(&self) -> Result<Option<f64>> {
@@ -356,14 +361,14 @@ impl BinaryOperatorBase for BaseEdgeOp {
                                 anno_storage.number_of_annotations_by_name(
                                     ns.as_ref().map(String::as_str),
                                     name,
-                                )
+                                )?
                             }
                         }
                         EdgeAnnoSearchSpec::NotExactValue { val, ns, name } => {
                             let total = anno_storage.number_of_annotations_by_name(
                                 ns.as_ref().map(String::as_str),
                                 name,
-                            );
+                            )?;
                             total
                                 - anno_storage.guess_max_count(
                                     ns.as_ref().map(String::as_str),
@@ -378,7 +383,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                             let total = anno_storage.number_of_annotations_by_name(
                                 ns.as_ref().map(String::as_str),
                                 name,
-                            );
+                            )?;
                             total
                                 - anno_storage.guess_max_count_regex(
                                     ns.as_ref().map(String::as_str),

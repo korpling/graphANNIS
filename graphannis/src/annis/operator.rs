@@ -92,19 +92,20 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
 }
 
 impl EdgeAnnoSearchSpec {
-    pub fn guess_max_count(&self, anno_storage: &dyn AnnotationStorage<Edge>) -> usize {
+    pub fn guess_max_count(&self, anno_storage: &dyn AnnotationStorage<Edge>) -> Result<usize> {
         match self {
             EdgeAnnoSearchSpec::ExactValue {
                 ref ns,
                 ref name,
                 ref val,
             } => {
-                if let Some(val) = val {
+                let result = if let Some(val) = val {
                     anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val)
                 } else {
                     anno_storage
-                        .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)
-                }
+                        .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)?
+                };
+                Ok(result)
             }
             EdgeAnnoSearchSpec::NotExactValue {
                 ref ns,
@@ -112,24 +113,30 @@ impl EdgeAnnoSearchSpec {
                 ref val,
             } => {
                 let total = anno_storage
-                    .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name);
-                total
-                    - anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val)
+                    .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)?;
+                let result = total
+                    - anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val);
+                Ok(result)
             }
             EdgeAnnoSearchSpec::RegexValue {
                 ref ns,
                 ref name,
                 ref val,
-            } => anno_storage.guess_max_count_regex(ns.as_ref().map(String::as_str), name, val),
+            } => Ok(anno_storage.guess_max_count_regex(ns.as_ref().map(String::as_str), name, val)),
             EdgeAnnoSearchSpec::NotRegexValue {
                 ref ns,
                 ref name,
                 ref val,
             } => {
                 let total = anno_storage
-                    .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name);
-                total
-                    - anno_storage.guess_max_count_regex(ns.as_ref().map(String::as_str), name, val)
+                    .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)?;
+                let result = total
+                    - anno_storage.guess_max_count_regex(
+                        ns.as_ref().map(String::as_str),
+                        name,
+                        val,
+                    );
+                Ok(result)
             }
         }
     }
@@ -156,8 +163,8 @@ pub trait BinaryOperatorBase: std::fmt::Display + Send + Sync {
         None
     }
 
-    fn estimation_type(&self) -> EstimationType {
-        EstimationType::Selectivity(0.1)
+    fn estimation_type(&self) -> Result<EstimationType> {
+        Ok(EstimationType::Selectivity(0.1))
     }
 
     fn edge_anno_selectivity(&self) -> Result<Option<f64>> {
@@ -208,7 +215,7 @@ impl<'a> BinaryOperatorBase for BinaryOperator<'a> {
         }
     }
 
-    fn estimation_type(&self) -> EstimationType {
+    fn estimation_type(&self) -> Result<EstimationType> {
         match self {
             BinaryOperator::Base(op) => op.estimation_type(),
             BinaryOperator::Index(op) => op.estimation_type(),
@@ -259,7 +266,7 @@ pub trait UnaryOperatorSpec: std::fmt::Debug {
     fn create_operator<'a>(
         &'a self,
         db: &'a AnnotationGraph,
-    ) -> Option<Box<dyn UnaryOperator + 'a>>;
+    ) -> Result<Box<dyn UnaryOperator + 'a>>;
 }
 
 pub trait UnaryOperator: std::fmt::Display {

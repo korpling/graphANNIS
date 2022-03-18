@@ -12,7 +12,7 @@ pub struct Filter<'a> {
 }
 
 fn calculate_binary_outputsize(op: &dyn BinaryOperatorBase, num_tuples: usize) -> Result<usize> {
-    let output = match op.estimation_type() {
+    let output = match op.estimation_type()? {
         EstimationType::Selectivity(selectivity) => {
             let num_tuples = num_tuples as f64;
             if let Some(edge_sel) = op.edge_anno_selectivity()? {

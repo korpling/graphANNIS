@@ -583,7 +583,7 @@ where
         }
     }
 
-    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> usize {
+    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> Result<usize> {
         let qualified_keys = match ns {
             Some(ns) => self.anno_key_sizes.range((
                 Included(AnnoKey {
@@ -609,7 +609,7 @@ where
         for (_anno_key, anno_size) in qualified_keys {
             result += anno_size;
         }
-        result
+        Ok(result)
     }
 
     fn exact_anno_search<'a>(

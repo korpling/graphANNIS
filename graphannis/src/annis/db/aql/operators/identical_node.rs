@@ -47,8 +47,8 @@ impl BinaryOperatorBase for IdenticalNode {
         Ok(lhs.node == rhs.node)
     }
 
-    fn estimation_type(&self) -> EstimationType {
-        EstimationType::Min
+    fn estimation_type(&self) -> Result<EstimationType> {
+        Ok(EstimationType::Min)
     }
 
     fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {

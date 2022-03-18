@@ -81,15 +81,15 @@ impl<'a> BinaryOperatorBase for LeftAlignment<'a> {
         })))
     }
 
-    fn estimation_type(&self) -> EstimationType {
+    fn estimation_type(&self) -> Result<EstimationType> {
         if let Some(stats_left) = self.tok_helper.get_gs_left_token().get_statistics() {
             let aligned_nodes_per_token: f64 = stats_left.inverse_fan_out_99_percentile as f64;
-            return EstimationType::Selectivity(
+            return Ok(EstimationType::Selectivity(
                 aligned_nodes_per_token / (stats_left.nodes as f64),
-            );
+            ));
         }
 
-        EstimationType::Selectivity(0.1)
+        Ok(EstimationType::Selectivity(0.1))
     }
 }
 

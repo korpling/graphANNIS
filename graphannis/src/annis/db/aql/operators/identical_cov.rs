@@ -118,7 +118,7 @@ impl<'a> BinaryOperatorBase for IdenticalCoverage<'a> {
         })))
     }
 
-    fn estimation_type(&self) -> EstimationType {
+    fn estimation_type(&self) -> Result<EstimationType> {
         if let Some(order_stats) = self.gs_order.get_statistics() {
             let num_of_token = order_stats.nodes as f64;
 
@@ -128,9 +128,9 @@ impl<'a> BinaryOperatorBase for IdenticalCoverage<'a> {
             // The probability for the same length is taken is assumed to be 1.0, histograms
             // of the distribution would help here.
 
-            EstimationType::Selectivity(1.0 / num_of_token)
+            Ok(EstimationType::Selectivity(1.0 / num_of_token))
         } else {
-            EstimationType::Selectivity(0.1)
+            Ok(EstimationType::Selectivity(0.1))
         }
     }
 }

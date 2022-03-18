@@ -123,7 +123,7 @@ impl<'a> BinaryOperatorBase for Overlap<'a> {
         })))
     }
 
-    fn estimation_type(&self) -> EstimationType {
+    fn estimation_type(&self) -> Result<EstimationType> {
         if let Some(stats_order) = self.gs_order.get_statistics() {
             let mut sum_included = 0;
             let mut sum_cov_nodes = 0;
@@ -147,13 +147,15 @@ impl<'a> BinaryOperatorBase for Overlap<'a> {
 
             if sum_cov_nodes == 0 {
                 // only token in this corpus
-                return EstimationType::Selectivity(1.0 / num_of_token);
+                return Ok(EstimationType::Selectivity(1.0 / num_of_token));
             } else {
-                return EstimationType::Selectivity(sum_included as f64 / (sum_cov_nodes as f64));
+                return Ok(EstimationType::Selectivity(
+                    sum_included as f64 / (sum_cov_nodes as f64),
+                ));
             }
         }
 
-        EstimationType::Selectivity(0.1)
+        Ok(EstimationType::Selectivity(0.1))
     }
 }
 

@@ -133,7 +133,7 @@ impl<'a> BinaryOperatorBase for EqualValue<'a> {
         Ok(result)
     }
 
-    fn estimation_type(&self) -> EstimationType {
+    fn estimation_type(&self) -> Result<EstimationType> {
         if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_left) {
             if let Some(most_frequent_value_left) =
                 self.node_annos.guess_most_frequent_value(ns, name)
@@ -146,18 +146,18 @@ impl<'a> BinaryOperatorBase for EqualValue<'a> {
                         &most_frequent_value_left,
                     );
 
-                    let total_annos = self.node_annos.number_of_annotations_by_name(ns, name);
+                    let total_annos = self.node_annos.number_of_annotations_by_name(ns, name)?;
                     let sel = guessed_count_right as f64 / total_annos as f64;
                     if self.negated {
-                        return EstimationType::Selectivity(1.0 - sel);
+                        return Ok(EstimationType::Selectivity(1.0 - sel));
                     } else {
-                        return EstimationType::Selectivity(sel);
+                        return Ok(EstimationType::Selectivity(sel));
                     }
                 }
             }
         }
         // fallback to default
-        EstimationType::Selectivity(0.5)
+        Ok(EstimationType::Selectivity(0.5))
     }
 
     fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {

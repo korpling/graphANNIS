@@ -111,7 +111,7 @@ impl<'a> BinaryOperatorBase for Inclusion<'a> {
         false
     }
 
-    fn estimation_type(&self) -> EstimationType {
+    fn estimation_type(&self) -> Result<EstimationType> {
         if let (Some(stats_order), Some(stats_left)) = (
             self.gs_order.get_statistics(),
             self.tok_helper.get_gs_left_token().get_statistics(),
@@ -133,13 +133,15 @@ impl<'a> BinaryOperatorBase for Inclusion<'a> {
             }
             if sum_cov_nodes == 0 {
                 // only token in this corpus
-                return EstimationType::Selectivity(1.0 / num_of_token);
+                return Ok(EstimationType::Selectivity(1.0 / num_of_token));
             } else {
-                return EstimationType::Selectivity((sum_included as f64) / (sum_cov_nodes as f64));
+                return Ok(EstimationType::Selectivity(
+                    (sum_included as f64) / (sum_cov_nodes as f64),
+                ));
             }
         }
 
-        EstimationType::Selectivity(0.1)
+        Ok(EstimationType::Selectivity(0.1))
     }
 }
 

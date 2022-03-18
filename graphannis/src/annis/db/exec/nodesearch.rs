@@ -645,14 +645,14 @@ impl<'a> NodeSearch<'a> {
             ValueSearch::NotSome(ref val) => {
                 let total = db
                     .get_node_annos()
-                    .number_of_annotations_by_name(qname.0.as_deref(), &qname.1);
+                    .number_of_annotations_by_name(qname.0.as_deref(), &qname.1)?;
                 total
                     - db.get_node_annos()
                         .guess_max_count(qname.0.as_deref(), &qname.1, val, val)
             }
             ValueSearch::Any => db
                 .get_node_annos()
-                .number_of_annotations_by_name(qname.0.as_deref(), &qname.1),
+                .number_of_annotations_by_name(qname.0.as_deref(), &qname.1)?,
         };
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
@@ -723,7 +723,7 @@ impl<'a> NodeSearch<'a> {
         let est_output = if negated {
             let total = db
                 .get_node_annos()
-                .number_of_annotations_by_name(qname.0.as_deref(), &qname.1);
+                .number_of_annotations_by_name(qname.0.as_deref(), &qname.1)?;
             total
                 - db.get_node_annos()
                     .guess_max_count_regex(qname.0.as_deref(), &qname.1, pattern)
@@ -864,7 +864,7 @@ impl<'a> NodeSearch<'a> {
             ValueSearch::NotSome(val) => {
                 let total_count = db
                     .get_node_annos()
-                    .number_of_annotations_by_name(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name);
+                    .number_of_annotations_by_name(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name)?;
                 let positive_count = if match_regex {
                     db.get_node_annos().guess_max_count_regex(
                         Some(&TOKEN_KEY.ns),
@@ -883,7 +883,7 @@ impl<'a> NodeSearch<'a> {
             }
             ValueSearch::Any => db
                 .get_node_annos()
-                .number_of_annotations_by_name(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name),
+                .number_of_annotations_by_name(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name)?,
         };
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
@@ -941,7 +941,7 @@ impl<'a> NodeSearch<'a> {
 
         let est_output = db
             .get_node_annos()
-            .number_of_annotations_by_name(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name);
+            .number_of_annotations_by_name(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name)?;
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 

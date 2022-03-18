@@ -31,7 +31,7 @@ impl UnaryOperatorSpec for AritySpec {
         result
     }
 
-    fn create_operator(&self, db: &AnnotationGraph) -> Option<Box<dyn UnaryOperator>> {
+    fn create_operator(&self, db: &AnnotationGraph) -> Result<Box<dyn UnaryOperator>> {
         // collect all relevant graph storages
         let mut graphstorages = Vec::default();
 
@@ -46,7 +46,7 @@ impl UnaryOperatorSpec for AritySpec {
             }
         }
 
-        Some(Box::new(ArityOperator {
+        Ok(Box::new(ArityOperator {
             graphstorages,
             allowed_range: self.children.clone(),
         }))
