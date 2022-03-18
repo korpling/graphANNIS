@@ -16,10 +16,6 @@ use std::marker::PhantomData;
 use std::ops::{Bound, RangeBounds};
 use std::path::Path;
 
-/// Limits the number of sorted string tables the data might be fragmented into before compacting it into one large table.
-/// Since each table can use a certain amount of RAM for the block cache, limit the number of tables to limit RAM usage.
-pub const DEFAULT_MAX_NUMBER_OF_TABLES: usize = 32;
-
 const KB: usize = 1 << 10;
 const MB: usize = KB * KB;
 const BLOCK_MAX_SIZE: usize = 4 * KB;
