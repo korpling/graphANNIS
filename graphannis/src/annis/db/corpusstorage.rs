@@ -1676,7 +1676,7 @@ impl CorpusStorage {
                 let mut rng = rand::thread_rng();
                 tmp_results.shuffle(&mut rng);
             } else {
-                let token_helper = TokenHelper::new(db);
+                let token_helper = TokenHelper::new(db).ok();
                 let component_order = Component::new(
                     AnnotationComponentType::Ordering,
                     ANNIS_NS.into(),

@@ -31,13 +31,10 @@ impl BinaryOperatorSpec for NegatedOpSpec {
         self.negated_op.necessary_components(db)
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
-        if let Some(negated_op) = self.negated_op.create_operator(db) {
-            let op = NegatedOp { negated_op };
-            Some(BinaryOperator::Base(Box::new(op)))
-        } else {
-            None
-        }
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+        let negated_op = self.negated_op.create_operator(db)?;
+        let op = NegatedOp { negated_op };
+        Ok(BinaryOperator::Base(Box::new(op)))
     }
 
     fn into_any(self: Arc<Self>) -> Arc<dyn Any> {

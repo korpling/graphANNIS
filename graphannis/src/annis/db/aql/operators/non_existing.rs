@@ -17,7 +17,7 @@ use crate::{
             aql::conjunction::Conjunction,
             exec::nodesearch::{NodeSearch, NodeSearchSpec},
         },
-        errors::{GraphAnnisError, Result},
+        errors::Result,
         operator::{
             BinaryOperator, BinaryOperatorBase, BinaryOperatorIndex, BinaryOperatorSpec,
             EstimationType, UnaryOperator, UnaryOperatorSpec,
@@ -91,16 +91,11 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
         g: &'b AnnotationGraph,
     ) -> Result<Box<dyn crate::annis::operator::UnaryOperator + 'b>> {
         let mut target_left = self.target_left;
-        let mut orig_op = self.op.create_operator(g).ok_or_else(|| {
-            GraphAnnisError::ImpossibleSearch(format!(
-                "Binary operator {:?} not possible",
-                &self.op
-            ))
-        })?;
+        let mut orig_op = self.op.create_operator(g)?;
 
         if target_left {
             // Check if we can avoid a costly filter operation by switching operands
-            if let Some(inverted_op) = orig_op.get_inverse_operator(g) {
+            if let Some(inverted_op) = orig_op.get_inverse_operator(g)? {
                 orig_op = inverted_op;
                 target_left = false;
             }

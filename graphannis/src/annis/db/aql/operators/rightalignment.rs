@@ -31,9 +31,9 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
-        let optional_op = RightAlignment::new(db);
-        optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+        let op = RightAlignment::new(db)?;
+        Ok(BinaryOperator::Index(Box::new(op)))
     }
 
     fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
@@ -46,10 +46,10 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
 }
 
 impl<'a> RightAlignment<'a> {
-    pub fn new(graph: &'a AnnotationGraph) -> Option<RightAlignment<'a>> {
+    pub fn new(graph: &'a AnnotationGraph) -> Result<RightAlignment<'a>> {
         let tok_helper = TokenHelper::new(graph)?;
 
-        Some(RightAlignment { tok_helper })
+        Ok(RightAlignment { tok_helper })
     }
 }
 
@@ -75,12 +75,13 @@ impl<'a> BinaryOperatorBase for RightAlignment<'a> {
         false
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'b>>> {
         let tok_helper = TokenHelper::new(graph)?;
-
-        Some(BinaryOperator::Index(Box::new(RightAlignment {
-            tok_helper,
-        })))
+        let inverse = BinaryOperator::Index(Box::new(RightAlignment { tok_helper }));
+        Ok(Some(inverse))
     }
 
     fn estimation_type(&self) -> Result<EstimationType> {

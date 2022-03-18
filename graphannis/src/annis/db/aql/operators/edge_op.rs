@@ -34,12 +34,15 @@ struct BaseEdgeOp {
 }
 
 impl BaseEdgeOp {
-    pub fn new(db: &AnnotationGraph, spec: BaseEdgeOpSpec) -> Option<BaseEdgeOp> {
+    pub fn new(db: &AnnotationGraph, spec: BaseEdgeOpSpec) -> Result<BaseEdgeOp> {
         let mut gs: Vec<Arc<dyn GraphStorage>> = Vec::new();
         for c in &spec.components {
-            gs.push(db.get_graphstorage(c)?);
+            let gs_for_component = db.get_graphstorage(c).ok_or_else(|| {
+                GraphAnnisError::ImpossibleSearch(format!("Component {} does not exist", &c))
+            })?;
+            gs.push(gs_for_component);
         }
-        Some(BaseEdgeOp {
+        Ok(BaseEdgeOp {
             gs,
             spec,
             max_nodes_estimate: db.get_node_annos().guess_max_count(
@@ -61,7 +64,7 @@ impl BinaryOperatorSpec for BaseEdgeOpSpec {
         HashSet::from_iter(self.components.clone())
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
         let optional_op = BaseEdgeOp::new(db, self.clone());
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
@@ -245,17 +248,21 @@ impl BinaryOperatorBase for BaseEdgeOp {
         self.spec.is_reflexive
     }
 
-    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
-        // Check if all graph storages have the same inverse cost.
-        // If not, we don't provide an inverse operator, because the plans would not account for the different costs
+    fn get_inverse_operator<'a>(
+        &self,
+        _graph: &'a AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'a>>> {
+        // Check if all graph storages have the same inverse cost. If not, we
+        // don't provide an inverse operator, because the plans would not
+        // account for the different costs
         for g in &self.gs {
             if !g.inverse_has_same_cost() {
-                return None;
+                return Ok(None);
             }
             if let Some(stat) = g.get_statistics() {
                 // If input and output estimations are too different, also don't provide a more costly inverse operator
                 if stat.inverse_fan_out_99_percentile > stat.fan_out_99_percentile {
-                    return None;
+                    return Ok(None);
                 }
             }
         }
@@ -265,7 +272,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
             max_nodes_estimate: self.max_nodes_estimate,
             inverse: !self.inverse,
         };
-        Some(BinaryOperator::Index(Box::new(edge_op)))
+        Ok(Some(BinaryOperator::Index(Box::new(edge_op))))
     }
 
     fn estimation_type(&self) -> Result<EstimationType> {
@@ -534,7 +541,7 @@ impl BinaryOperatorSpec for DominanceSpec {
         )
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
         let components =
             db.get_all_components(Some(AnnotationComponentType::Dominance), Some(&self.name));
         let op_str = if self.name.is_empty() {
@@ -578,7 +585,7 @@ impl BinaryOperatorSpec for PointingSpec {
         )
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
         let components =
             db.get_all_components(Some(AnnotationComponentType::Pointing), Some(&self.name));
         let op_str = if self.name.is_empty() {
@@ -625,7 +632,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         components
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
         let components = vec![Component::new(
             AnnotationComponentType::PartOf,
             ANNIS_NS.into(),

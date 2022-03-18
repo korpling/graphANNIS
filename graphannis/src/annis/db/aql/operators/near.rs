@@ -52,7 +52,7 @@ impl BinaryOperatorSpec for NearSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
         let optional_op = Near::new(db, self.clone());
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
@@ -77,18 +77,22 @@ impl std::fmt::Display for NearSpec {
 }
 
 impl<'a> Near<'a> {
-    pub fn new(graph: &'a AnnotationGraph, spec: NearSpec) -> Option<Near<'a>> {
+    pub fn new(graph: &'a AnnotationGraph, spec: NearSpec) -> Result<Near<'a>> {
         let component_order = Component::new(
             AnnotationComponentType::Ordering,
             ANNIS_NS.into(),
             spec.segmentation.clone().unwrap_or_default().into(),
         );
 
-        let gs_order = graph.get_graphstorage(&component_order)?;
+        let gs_order = graph.get_graphstorage(&component_order).ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(
+                "Ordering component missing (needed for ^ operator)".to_string(),
+            )
+        })?;
 
         let tok_helper = TokenHelper::new(graph)?;
 
-        Some(Near {
+        Ok(Near {
             gs_order,
             tok_helper,
             spec,
@@ -157,12 +161,16 @@ impl<'a> BinaryOperatorBase for Near<'a> {
         Ok(EstimationType::Selectivity(0.1))
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
-        Some(BinaryOperator::Index(Box::new(Near {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'b>>> {
+        let inverse = BinaryOperator::Index(Box::new(Near {
             gs_order: self.gs_order.clone(),
             tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
-        })))
+        }));
+        Ok(Some(inverse))
     }
 }
 

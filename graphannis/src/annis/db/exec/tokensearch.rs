@@ -42,11 +42,12 @@ lazy_static! {
 impl<'a> AnyTokenSearch<'a> {
     pub fn new(db: &'a AnnotationGraph) -> Result<AnyTokenSearch<'a>> {
         let order_gs = db.get_graphstorage_as_ref(&COMPONENT_ORDER);
+        let token_helper = TokenHelper::new(db).ok();
 
         Ok(AnyTokenSearch {
             order_gs,
             db,
-            token_helper: TokenHelper::new(db),
+            token_helper,
             desc: None,
             node_type_key: NODE_TYPE_KEY.clone(),
             root_iterators: None,

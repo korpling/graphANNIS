@@ -49,7 +49,7 @@ impl BinaryOperatorSpec for InclusionSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
         let optional_op = Inclusion::new(db);
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
@@ -64,12 +64,16 @@ impl BinaryOperatorSpec for InclusionSpec {
 }
 
 impl<'a> Inclusion<'a> {
-    pub fn new(db: &'a AnnotationGraph) -> Option<Inclusion<'a>> {
-        let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
+    pub fn new(db: &'a AnnotationGraph) -> Result<Inclusion<'a>> {
+        let gs_order = db.get_graphstorage(&COMPONENT_ORDER).ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(
+                "Ordering component missing (needed for _i_ operator)".to_string(),
+            )
+        })?;
 
         let tok_helper = TokenHelper::new(db)?;
 
-        Some(Inclusion {
+        Ok(Inclusion {
             gs_order,
             tok_helper,
         })

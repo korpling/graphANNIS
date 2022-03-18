@@ -1,5 +1,6 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::errors::GraphAnnisError;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
 use crate::try_as_boxed_iter;
 use crate::{
@@ -56,7 +57,7 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
         let optional_op = IdenticalCoverage::new(db);
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
@@ -71,11 +72,19 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
 }
 
 impl<'a> IdenticalCoverage<'a> {
-    pub fn new(db: &'a AnnotationGraph) -> Option<IdenticalCoverage<'a>> {
-        let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
-        let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
+    pub fn new(db: &'a AnnotationGraph) -> Result<IdenticalCoverage<'a>> {
+        let gs_left = db.get_graphstorage(&COMPONENT_LEFT).ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(
+                "LeftToken component is missing (needed by _=_ operator)".to_string(),
+            )
+        })?;
+        let gs_order = db.get_graphstorage(&COMPONENT_ORDER).ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(
+                "Ordering component is missing for (needed by _=_ operator)".to_string(),
+            )
+        })?;
 
-        Some(IdenticalCoverage {
+        Ok(IdenticalCoverage {
             gs_left,
             gs_order,
             tok_helper: TokenHelper::new(db)?,
@@ -110,12 +119,16 @@ impl<'a> BinaryOperatorBase for IdenticalCoverage<'a> {
         false
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
-        Some(BinaryOperator::Index(Box::new(IdenticalCoverage {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'b>>> {
+        let inverse = BinaryOperator::Index(Box::new(IdenticalCoverage {
             gs_left: self.gs_left.clone(),
             gs_order: self.gs_order.clone(),
             tok_helper: TokenHelper::new(graph)?,
-        })))
+        }));
+        Ok(Some(inverse))
     }
 
     fn estimation_type(&self) -> Result<EstimationType> {

@@ -159,8 +159,11 @@ pub trait BinaryOperatorBase: std::fmt::Display + Send + Sync {
         true
     }
 
-    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
-        None
+    fn get_inverse_operator<'a>(
+        &self,
+        _graph: &'a AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'a>>> {
+        Ok(None)
     }
 
     fn estimation_type(&self) -> Result<EstimationType> {
@@ -208,7 +211,10 @@ impl<'a> BinaryOperatorBase for BinaryOperator<'a> {
         }
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'b>>> {
         match self {
             BinaryOperator::Base(op) => op.get_inverse_operator(graph),
             BinaryOperator::Index(op) => op.get_inverse_operator(graph),
@@ -243,7 +249,7 @@ pub trait BinaryOperatorSpec: std::fmt::Debug + Send + Sync {
         db: &AnnotationGraph,
     ) -> HashSet<Component<AnnotationComponentType>>;
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>>;
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>>;
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         None

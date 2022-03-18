@@ -20,8 +20,8 @@ impl BinaryOperatorSpec for IdenticalNodeSpec {
         HashSet::default()
     }
 
-    fn create_operator<'a>(&self, _db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
-        Some(BinaryOperator::Index(Box::new(IdenticalNode {})))
+    fn create_operator<'a>(&self, _db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+        Ok(BinaryOperator::Index(Box::new(IdenticalNode {})))
     }
 
     fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
@@ -51,8 +51,11 @@ impl BinaryOperatorBase for IdenticalNode {
         Ok(EstimationType::Min)
     }
 
-    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
-        Some(BinaryOperator::Index(Box::new(self.clone())))
+    fn get_inverse_operator<'a>(
+        &self,
+        _graph: &'a AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'a>>> {
+        Ok(Some(BinaryOperator::Index(Box::new(self.clone()))))
     }
 }
 

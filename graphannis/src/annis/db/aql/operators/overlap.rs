@@ -50,7 +50,7 @@ impl BinaryOperatorSpec for OverlapSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
         let optional_op = Overlap::new(db, self.reflexive);
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
@@ -65,11 +65,15 @@ impl BinaryOperatorSpec for OverlapSpec {
 }
 
 impl<'a> Overlap<'a> {
-    pub fn new(graph: &'a AnnotationGraph, reflexive: bool) -> Option<Overlap<'a>> {
-        let gs_order = graph.get_graphstorage(&COMPONENT_ORDER)?;
+    pub fn new(graph: &'a AnnotationGraph, reflexive: bool) -> Result<Overlap<'a>> {
+        let gs_order = graph.get_graphstorage(&COMPONENT_ORDER).ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(
+                "Ordering component missing (needed for _o_ operator)".to_string(),
+            )
+        })?;
         let tok_helper = TokenHelper::new(graph)?;
 
-        Some(Overlap {
+        Ok(Overlap {
             gs_order,
             tok_helper,
             reflexive,
@@ -115,12 +119,16 @@ impl<'a> BinaryOperatorBase for Overlap<'a> {
         self.reflexive
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
-        Some(BinaryOperator::Index(Box::new(Overlap {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'b>>> {
+        let inverse = BinaryOperator::Index(Box::new(Overlap {
             gs_order: self.gs_order.clone(),
             tok_helper: TokenHelper::new(graph)?,
             reflexive: self.reflexive,
-        })))
+        }));
+        Ok(Some(inverse))
     }
 
     fn estimation_type(&self) -> Result<EstimationType> {

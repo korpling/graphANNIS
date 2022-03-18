@@ -69,9 +69,9 @@ impl BinaryOperatorSpec for PrecedenceSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
-        let optional_op = Precedence::new(db, self.clone());
-        optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+        let op = Precedence::new(db, self.clone())?;
+        Ok(BinaryOperator::Index(Box::new(op)))
     }
 
     fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
@@ -94,7 +94,7 @@ impl std::fmt::Display for PrecedenceSpec {
 }
 
 impl<'a> Precedence<'a> {
-    pub fn new(graph: &'a AnnotationGraph, spec: PrecedenceSpec) -> Option<Precedence<'a>> {
+    pub fn new(graph: &'a AnnotationGraph, spec: PrecedenceSpec) -> Result<Precedence<'a>> {
         let ordering_layer = if spec.segmentation.is_none() {
             ANNIS_NS.to_owned()
         } else {
@@ -106,13 +106,25 @@ impl<'a> Precedence<'a> {
             spec.segmentation.clone().unwrap_or_default().into(),
         );
 
-        let gs_order = graph.get_graphstorage(&component_order)?;
-        let gs_left = graph.get_graphstorage(&COMPONENT_LEFT)?;
-        let gs_right = graph.get_graphstorage(&COMPONENT_RIGHT)?;
+        let gs_order = graph.get_graphstorage(&component_order).ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(
+                "Ordering component missing (needed for . operator)".to_string(),
+            )
+        })?;
+        let gs_left = graph.get_graphstorage(&COMPONENT_LEFT).ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(
+                "LeftToken component missing (needed for . operator)".to_string(),
+            )
+        })?;
+        let gs_right = graph.get_graphstorage(&COMPONENT_RIGHT).ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(
+                "RightToken component missing (needed for . operator)".to_string(),
+            )
+        })?;
 
         let tok_helper = TokenHelper::new(graph)?;
 
-        Some(Precedence {
+        Ok(Precedence {
             gs_order,
             gs_left,
             gs_right,
@@ -168,11 +180,14 @@ impl<'a> BinaryOperatorBase for Precedence<'a> {
         Ok(EstimationType::Selectivity(0.1))
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'b>>> {
         // Check if order graph storages has the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         if !self.gs_order.inverse_has_same_cost() {
-            return None;
+            return Ok(None);
         }
 
         let inv_precedence = InversePrecedence {
@@ -182,7 +197,7 @@ impl<'a> BinaryOperatorBase for Precedence<'a> {
             tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
         };
-        Some(BinaryOperator::Index(Box::new(inv_precedence)))
+        Ok(Some(BinaryOperator::Index(Box::new(inv_precedence))))
     }
 }
 
@@ -271,7 +286,10 @@ impl<'a> BinaryOperatorBase for InversePrecedence<'a> {
         Ok(result)
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'b>>> {
         let prec = Precedence {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),
@@ -279,7 +297,7 @@ impl<'a> BinaryOperatorBase for InversePrecedence<'a> {
             tok_helper: TokenHelper::new(graph)?,
             spec: self.spec.clone(),
         };
-        Some(BinaryOperator::Index(Box::new(prec)))
+        Ok(Some(BinaryOperator::Index(Box::new(prec))))
     }
 
     fn estimation_type(&self) -> Result<EstimationType> {

@@ -183,7 +183,7 @@ fn create_join<'b>(
 
     if exec_left.as_nodesearch().is_some() {
         // avoid a nested loop join by switching the operand and using and index join when possible
-        if let Some(BinaryOperator::Index(inverse_op)) = op_entry.op.get_inverse_operator(db) {
+        if let Some(BinaryOperator::Index(inverse_op)) = op_entry.op.get_inverse_operator(db)? {
             let inverse_args = BinaryOperatorArguments {
                 left: op_entry.args.right,
                 right: op_entry.args.left,
@@ -660,17 +660,12 @@ impl Conjunction {
         node2component: &mut BTreeMap<usize, usize>,
         node2cost: &BTreeMap<usize, CostEstimate>,
     ) -> Result<()> {
-        let mut op: BinaryOperator<'a> = op_spec_entry.op.create_operator(g).ok_or_else(|| {
-            GraphAnnisError::ImpossibleSearch(format!(
-                "could not create operator {:?}",
-                op_spec_entry
-            ))
-        })?;
+        let mut op: BinaryOperator<'a> = op_spec_entry.op.create_operator(g)?;
 
         let mut spec_idx_left = op_spec_entry.args.left;
         let mut spec_idx_right = op_spec_entry.args.right;
 
-        let inverse_op = op.get_inverse_operator(g);
+        let inverse_op = op.get_inverse_operator(g)?;
         if let Some(inverse_op) = inverse_op {
             if should_switch_operand_order(op_spec_entry, node2cost) {
                 spec_idx_left = op_spec_entry.args.right;

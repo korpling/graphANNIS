@@ -29,7 +29,7 @@ impl BinaryOperatorSpec for LeftAlignmentSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
         let optional_op = LeftAlignment::new(db);
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
@@ -44,10 +44,10 @@ impl BinaryOperatorSpec for LeftAlignmentSpec {
 }
 
 impl<'a> LeftAlignment<'a> {
-    pub fn new(graph: &'a AnnotationGraph) -> Option<LeftAlignment<'a>> {
+    pub fn new(graph: &'a AnnotationGraph) -> Result<LeftAlignment<'a>> {
         let tok_helper = TokenHelper::new(graph)?;
 
-        Some(LeftAlignment { tok_helper })
+        Ok(LeftAlignment { tok_helper })
     }
 }
 
@@ -73,12 +73,15 @@ impl<'a> BinaryOperatorBase for LeftAlignment<'a> {
         false
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'b>>> {
         let tok_helper = TokenHelper::new(graph)?;
 
-        Some(BinaryOperator::Index(Box::new(LeftAlignment {
+        Ok(Some(BinaryOperator::Index(Box::new(LeftAlignment {
             tok_helper,
-        })))
+        }))))
     }
 
     fn estimation_type(&self) -> Result<EstimationType> {

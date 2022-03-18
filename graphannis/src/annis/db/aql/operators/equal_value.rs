@@ -34,8 +34,8 @@ impl BinaryOperatorSpec for EqualValueSpec {
         HashSet::default()
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
-        Some(BinaryOperator::Index(Box::new(EqualValue {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+        Ok(BinaryOperator::Index(Box::new(EqualValue {
             node_annos: db.get_node_annos(),
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
@@ -160,13 +160,17 @@ impl<'a> BinaryOperatorBase for EqualValue<'a> {
         Ok(EstimationType::Selectivity(0.5))
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
-        Some(BinaryOperator::Index(Box::from(EqualValue {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'b>>> {
+        let inverse = BinaryOperator::Index(Box::from(EqualValue {
             node_annos: graph.get_node_annos(),
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
             negated: self.negated,
-        })))
+        }));
+        Ok(Some(inverse))
     }
 }
 
