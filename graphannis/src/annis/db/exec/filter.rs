@@ -11,11 +11,11 @@ pub struct Filter<'a> {
     desc: Option<ExecutionNodeDesc>,
 }
 
-fn calculate_binary_outputsize(op: &dyn BinaryOperatorBase, num_tuples: usize) -> usize {
+fn calculate_binary_outputsize(op: &dyn BinaryOperatorBase, num_tuples: usize) -> Result<usize> {
     let output = match op.estimation_type() {
         EstimationType::Selectivity(selectivity) => {
             let num_tuples = num_tuples as f64;
-            if let Some(edge_sel) = op.edge_anno_selectivity() {
+            if let Some(edge_sel) = op.edge_anno_selectivity()? {
                 (num_tuples * selectivity * edge_sel).round() as usize
             } else {
                 (num_tuples * selectivity).round() as usize
@@ -24,7 +24,7 @@ fn calculate_binary_outputsize(op: &dyn BinaryOperatorBase, num_tuples: usize) -
         EstimationType::Min => num_tuples,
     };
     // always assume at least one output item otherwise very small selectivity can fool the planner
-    std::cmp::max(output, 1)
+    Ok(std::cmp::max(output, 1))
 }
 
 fn calculate_unary_outputsize(op: &dyn UnaryOperator, num_tuples: usize) -> usize {
@@ -45,11 +45,11 @@ impl<'a> Filter<'a> {
         lhs_idx: usize,
         rhs_idx: usize,
         op_entry: BinaryOperatorEntry<'a>,
-    ) -> Filter<'a> {
+    ) -> Result<Filter<'a>> {
         let desc = if let Some(orig_desc) = exec.get_desc() {
             let cost_est = if let Some(ref orig_cost) = orig_desc.cost {
                 Some(CostEstimate {
-                    output: calculate_binary_outputsize(&op_entry.op, orig_cost.output),
+                    output: calculate_binary_outputsize(&op_entry.op, orig_cost.output)?,
                     processed_in_step: orig_cost.processed_in_step,
                     intermediate_sum: orig_cost.intermediate_sum + orig_cost.processed_in_step,
                 })
@@ -83,10 +83,10 @@ impl<'a> Filter<'a> {
                 }
             })
             .filter_map_ok(|t| t);
-        Filter {
+        Ok(Filter {
             desc,
             it: Box::new(it),
-        }
+        })
     }
 
     pub fn new_unary(

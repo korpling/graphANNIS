@@ -465,8 +465,9 @@ where
         result
     }
 
-    fn number_of_annotations(&self) -> usize {
-        get_or_panic(|| self.by_container.iter()).count()
+    fn number_of_annotations(&self) -> Result<usize> {
+        let result = self.by_container.iter()?.count();
+        Ok(result)
     }
 
     fn is_empty(&self) -> bool {
@@ -1035,7 +1036,7 @@ mod tests {
         debug!("Inserting annotation for node 3");
         a.insert(3, test_anno).unwrap();
 
-        assert_eq!(3, a.number_of_annotations());
+        assert_eq!(3, a.number_of_annotations().unwrap());
 
         assert_eq!(
             "test",
@@ -1082,7 +1083,7 @@ mod tests {
         a.insert(1, test_anno2.clone()).unwrap();
         a.insert(1, test_anno3.clone()).unwrap();
 
-        assert_eq!(3, a.number_of_annotations());
+        assert_eq!(3, a.number_of_annotations().unwrap());
 
         let mut all = a.get_annotations_for_item(&1);
         assert_eq!(3, all.len());
@@ -1108,13 +1109,13 @@ mod tests {
         let mut a = AnnoStorageImpl::new(None).unwrap();
         a.insert(1, test_anno.clone()).unwrap();
 
-        assert_eq!(1, a.number_of_annotations());
+        assert_eq!(1, a.number_of_annotations().unwrap());
         assert_eq!(1, a.anno_key_sizes.len());
         assert_eq!(&1, a.anno_key_sizes.get(&test_anno.key).unwrap());
 
         a.remove_annotation_for_item(&1, &test_anno.key).unwrap();
 
-        assert_eq!(0, a.number_of_annotations());
+        assert_eq!(0, a.number_of_annotations().unwrap());
         assert_eq!(&0, a.anno_key_sizes.get(&test_anno.key).unwrap_or(&0));
     }
 }

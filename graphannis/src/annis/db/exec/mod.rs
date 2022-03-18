@@ -37,11 +37,11 @@ fn calculate_outputsize<Op: BinaryOperatorBase + ?Sized>(
     op: &Op,
     cost_lhs: &CostEstimate,
     cost_rhs: &CostEstimate,
-) -> usize {
+) -> Result<usize> {
     let output = match op.estimation_type() {
         EstimationType::Selectivity(selectivity) => {
             let num_tuples = (cost_lhs.output * cost_rhs.output) as f64;
-            if let Some(edge_sel) = op.edge_anno_selectivity() {
+            if let Some(edge_sel) = op.edge_anno_selectivity()? {
                 (num_tuples * selectivity * edge_sel).round() as usize
             } else {
                 (num_tuples * selectivity).round() as usize
@@ -50,7 +50,7 @@ fn calculate_outputsize<Op: BinaryOperatorBase + ?Sized>(
         EstimationType::Min => std::cmp::min(cost_lhs.output, cost_rhs.output),
     };
     // always assume at least one output item otherwise very small selectivity can fool the planner
-    std::cmp::max(output, 1)
+    Ok(std::cmp::max(output, 1))
 }
 
 impl ExecutionNodeDesc {
@@ -86,7 +86,7 @@ impl ExecutionNodeDesc {
         impl_description: &str,
         query_fragment: &str,
         processed_func: &dyn Fn(EstimationType, usize, usize) -> usize,
-    ) -> ExecutionNodeDesc {
+    ) -> Result<ExecutionNodeDesc> {
         let component_nr = if let Some(d) = lhs {
             d.component_nr
         } else if let Some(d) = rhs {
@@ -114,7 +114,7 @@ impl ExecutionNodeDesc {
         let cost = if let (Some(lhs), Some(rhs)) = (lhs, rhs) {
             if let (&Some(ref cost_lhs), &Some(ref cost_rhs)) = (&lhs.cost, &rhs.cost) {
                 // estimate output size using the operator
-                let output = calculate_outputsize(op, cost_lhs, cost_rhs);
+                let output = calculate_outputsize(op, cost_lhs, cost_rhs)?;
 
                 let processed_in_step =
                     processed_func(op.estimation_type(), cost_lhs.output, cost_rhs.output);
@@ -132,7 +132,7 @@ impl ExecutionNodeDesc {
             None
         };
 
-        ExecutionNodeDesc {
+        Ok(ExecutionNodeDesc {
             component_nr,
             lhs: lhs.map(|x| Box::new(x.clone())),
             rhs: rhs.map(|x| Box::new(x.clone())),
@@ -140,7 +140,7 @@ impl ExecutionNodeDesc {
             impl_description: String::from(impl_description),
             query_fragment: String::from(query_fragment),
             cost,
-        }
+        })
     }
 
     pub fn debug_string(&self, indention: &str) -> String {

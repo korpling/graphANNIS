@@ -366,8 +366,8 @@ where
         Vec::new()
     }
 
-    fn number_of_annotations(&self) -> usize {
-        self.total_number_of_annos
+    fn number_of_annotations(&self) -> Result<usize> {
+        Ok(self.total_number_of_annos)
     }
 
     fn is_empty(&self) -> bool {
@@ -944,7 +944,7 @@ mod tests {
         a.insert(2, test_anno.clone()).unwrap();
         a.insert(3, test_anno).unwrap();
 
-        assert_eq!(3, a.number_of_annotations());
+        assert_eq!(3, a.number_of_annotations().unwrap());
         assert_eq!(3, a.by_container.len());
         assert_eq!(1, a.by_anno.len());
         assert_eq!(1, a.anno_keys.len());
@@ -991,7 +991,7 @@ mod tests {
         a.insert(1, test_anno2.clone()).unwrap();
         a.insert(1, test_anno3.clone()).unwrap();
 
-        assert_eq!(3, a.number_of_annotations());
+        assert_eq!(3, a.number_of_annotations().unwrap());
 
         let all = a.get_annotations_for_item(&1);
         assert_eq!(3, all.len());
@@ -1013,7 +1013,7 @@ mod tests {
         let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
         a.insert(1, test_anno.clone()).unwrap();
 
-        assert_eq!(1, a.number_of_annotations());
+        assert_eq!(1, a.number_of_annotations().unwrap());
         assert_eq!(1, a.by_container.len());
         assert_eq!(1, a.by_anno.len());
         assert_eq!(1, a.anno_key_sizes.len());
@@ -1021,7 +1021,7 @@ mod tests {
 
         a.remove_annotation_for_item(&1, &test_anno.key).unwrap();
 
-        assert_eq!(0, a.number_of_annotations());
+        assert_eq!(0, a.number_of_annotations().unwrap());
         assert_eq!(0, a.by_container.len());
         assert_eq!(0, a.by_anno.len());
         assert_eq!(&0, a.anno_key_sizes.get(&test_anno.key).unwrap_or(&0));

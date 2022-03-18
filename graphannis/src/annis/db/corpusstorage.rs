@@ -608,7 +608,7 @@ impl CorpusStorage {
                         graphstorages.push(GraphStorageInfo {
                             component: c.clone(),
                             load_status: LoadStatus::FullyLoaded(gs.size_of(mem_ops)),
-                            number_of_annotations: gs.get_anno_storage().number_of_annotations(),
+                            number_of_annotations: gs.get_anno_storage().number_of_annotations()?,
                             implementation: gs.serialization_id().clone(),
                             statistics: gs.get_statistics().cloned(),
                         });

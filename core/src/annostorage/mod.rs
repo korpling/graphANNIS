@@ -164,7 +164,7 @@ where
     ) -> Result<Vec<Match>>;
 
     /// Return the total number of annotations contained in this `AnnotationStorage`.
-    fn number_of_annotations(&self) -> usize;
+    fn number_of_annotations(&self) -> Result<usize>;
 
     /// Return true if there are no annotations in this `AnnotationStorage`.
     fn is_empty(&self) -> bool;

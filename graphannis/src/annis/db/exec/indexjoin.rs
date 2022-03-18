@@ -43,7 +43,7 @@ impl<'a> IndexJoin<'a> {
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: &'a dyn AnnotationStorage<NodeID>,
         rhs_desc: Option<&ExecutionNodeDesc>,
-    ) -> IndexJoin<'a> {
+    ) -> Result<IndexJoin<'a>> {
         let lhs_desc = lhs.get_desc().cloned();
         let lhs_peek = lhs.peekable();
 
@@ -68,7 +68,7 @@ impl<'a> IndexJoin<'a> {
             }
         };
 
-        IndexJoin {
+        let join = IndexJoin {
             desc: ExecutionNodeDesc::join(
                 op.as_ref(),
                 lhs_desc.as_ref(),
@@ -76,7 +76,7 @@ impl<'a> IndexJoin<'a> {
                 "indexjoin",
                 &format!("#{} {} #{}", op_args.left, op, op_args.right),
                 &processed_func,
-            ),
+            )?,
             lhs: lhs_peek,
             lhs_idx,
             op,
@@ -84,7 +84,8 @@ impl<'a> IndexJoin<'a> {
             node_annos,
             rhs_candidate: None,
             global_reflexivity: op_args.global_reflexivity,
-        }
+        };
+        Ok(join)
     }
 
     fn next_candidates(&mut self) -> Result<Option<Vec<Match>>> {

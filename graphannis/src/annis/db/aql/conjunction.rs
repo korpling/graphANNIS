@@ -131,7 +131,7 @@ fn create_index_join<'b>(
     exec_left: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>,
     exec_right: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>,
     idx_left: usize,
-) -> Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b> {
+) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>> {
     if config.use_parallel_joins {
         let join = parallel::indexjoin::IndexJoin::new(
             exec_left,
@@ -141,8 +141,8 @@ fn create_index_join<'b>(
             exec_right.as_nodesearch().unwrap().get_node_search_desc(),
             db.get_node_annos(),
             exec_right.get_desc(),
-        );
-        Box::new(join)
+        )?;
+        Ok(Box::new(join))
     } else {
         let join = IndexJoin::new(
             exec_left,
@@ -152,8 +152,8 @@ fn create_index_join<'b>(
             exec_right.as_nodesearch().unwrap().get_node_search_desc(),
             db.get_node_annos(),
             exec_right.get_desc(),
-        );
-        Box::new(join)
+        )?;
+        Ok(Box::new(join))
     }
 }
 
@@ -165,7 +165,7 @@ fn create_join<'b>(
     exec_right: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>,
     idx_left: usize,
     idx_right: usize,
-) -> Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b> {
+) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>> {
     if exec_right.as_nodesearch().is_some() {
         if let BinaryOperator::Index(op) = op_entry.op {
             // we can use directly use an index join
@@ -206,11 +206,11 @@ fn create_join<'b>(
     if config.use_parallel_joins {
         let join = parallel::nestedloop::NestedLoop::new(
             op_entry, exec_left, exec_right, idx_left, idx_right,
-        );
-        Box::new(join)
+        )?;
+        Ok(Box::new(join))
     } else {
-        let join = NestedLoop::new(op_entry, exec_left, exec_right, idx_left, idx_right);
-        Box::new(join)
+        let join = NestedLoop::new(op_entry, exec_left, exec_right, idx_left, idx_right)?;
+        Ok(Box::new(join))
     }
 }
 
@@ -707,7 +707,7 @@ impl Conjunction {
             .get(&spec_idx_left)
             .ok_or(GraphAnnisError::LHSOperandNotFound)?);
 
-        let new_exec: Box<dyn ExecutionNode<Item = Result<MatchGroup>>> =
+        let new_exec: Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>>>> =
             if component_left == component_right {
                 // don't create new tuples, only filter the existing ones
                 // TODO: check if LHS or RHS is better suited as filter input iterator
@@ -718,8 +718,8 @@ impl Conjunction {
                     .get(&spec_idx_right)
                     .ok_or(GraphAnnisError::RHSOperandNotFound)?);
 
-                let filter = Filter::new_binary(exec_left, idx_left, idx_right, op_entry);
-                Box::new(filter)
+                let filter = Filter::new_binary(exec_left, idx_left, idx_right, op_entry)?;
+                Ok(Box::new(filter))
             } else {
                 let exec_right = component2exec
                     .remove(&component_right)
@@ -731,10 +731,12 @@ impl Conjunction {
                     .get(&spec_idx_right)
                     .ok_or(GraphAnnisError::RHSOperandNotFound)?);
 
-                create_join(
+                let join = create_join(
                     g, config, op_entry, exec_left, exec_right, idx_left, idx_right,
-                )
+                )?;
+                Ok(join)
             };
+        let new_exec = new_exec?;
 
         let new_component_nr = new_exec
             .get_desc()

@@ -37,7 +37,7 @@ impl<'a> NestedLoop<'a> {
         rhs: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
-    ) -> NestedLoop<'a> {
+    ) -> Result<NestedLoop<'a>> {
         let mut left_is_outer = true;
         if let (Some(desc_lhs), Some(desc_rhs)) = (lhs.get_desc(), rhs.get_desc()) {
             if let (&Some(ref cost_lhs), &Some(ref cost_rhs)) = (&desc_lhs.cost, &desc_rhs.cost) {
@@ -58,7 +58,7 @@ impl<'a> NestedLoop<'a> {
         };
 
         if left_is_outer {
-            NestedLoop {
+            let join = NestedLoop {
                 desc: ExecutionNodeDesc::join(
                     &op_entry.op,
                     lhs.get_desc(),
@@ -69,7 +69,7 @@ impl<'a> NestedLoop<'a> {
                         op_entry.args.left, op_entry.op, op_entry.args.right
                     ),
                     &processed_func,
-                ),
+                )?,
 
                 outer: lhs,
                 inner: rhs,
@@ -83,9 +83,10 @@ impl<'a> NestedLoop<'a> {
                 global_reflexivity: op_entry.args.global_reflexivity,
                 match_candidate_buffer: Vec::with_capacity(MAX_BUFFER_SIZE),
                 current_outer: None,
-            }
+            };
+            Ok(join)
         } else {
-            NestedLoop {
+            let join = NestedLoop {
                 desc: ExecutionNodeDesc::join(
                     &op_entry.op,
                     rhs.get_desc(),
@@ -96,7 +97,7 @@ impl<'a> NestedLoop<'a> {
                         op_entry.args.left, op_entry.op, op_entry.args.right
                     ),
                     &processed_func,
-                ),
+                )?,
 
                 outer: rhs,
                 inner: lhs,
@@ -110,7 +111,8 @@ impl<'a> NestedLoop<'a> {
                 global_reflexivity: op_entry.args.global_reflexivity,
                 match_candidate_buffer: Vec::with_capacity(MAX_BUFFER_SIZE),
                 current_outer: None,
-            }
+            };
+            Ok(join)
         }
     }
 

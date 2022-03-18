@@ -331,16 +331,17 @@ impl BinaryOperatorBase for BaseEdgeOp {
         EstimationType::Selectivity(worst_sel)
     }
 
-    fn edge_anno_selectivity(&self) -> Option<f64> {
+    fn edge_anno_selectivity(&self) -> Result<Option<f64>> {
         if let Some(ref edge_anno) = self.spec.edge_anno {
             let mut worst_sel = 0.0;
             for g in &self.gs {
                 let g: &Arc<dyn GraphStorage> = g;
                 let anno_storage = g.get_anno_storage();
-                let num_of_annos = anno_storage.number_of_annotations();
+                let num_of_annos = anno_storage.number_of_annotations()?;
                 if num_of_annos == 0 {
-                    // we won't be able to find anything if there are no annotations
-                    return Some(0.0);
+                    // we won't be able to find anything if there are no
+                    // annotations
+                    return Ok(Some(0.0));
                 } else {
                     let guessed_count = match edge_anno {
                         EdgeAnnoSearchSpec::ExactValue { val, ns, name } => {
@@ -392,9 +393,9 @@ impl BinaryOperatorBase for BaseEdgeOp {
                     }
                 }
             }
-            Some(worst_sel)
+            Ok(Some(worst_sel))
         } else {
-            Some(1.0)
+            Ok(Some(1.0))
         }
     }
 }

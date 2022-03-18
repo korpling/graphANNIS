@@ -160,8 +160,8 @@ pub trait BinaryOperatorBase: std::fmt::Display + Send + Sync {
         EstimationType::Selectivity(0.1)
     }
 
-    fn edge_anno_selectivity(&self) -> Option<f64> {
-        None
+    fn edge_anno_selectivity(&self) -> Result<Option<f64>> {
+        Ok(None)
     }
 }
 
@@ -215,7 +215,7 @@ impl<'a> BinaryOperatorBase for BinaryOperator<'a> {
         }
     }
 
-    fn edge_anno_selectivity(&self) -> Option<f64> {
+    fn edge_anno_selectivity(&self) -> Result<Option<f64>> {
         match self {
             BinaryOperator::Base(op) => op.edge_anno_selectivity(),
             BinaryOperator::Index(op) => op.edge_anno_selectivity(),
