@@ -208,28 +208,37 @@ fn subgraph_with_segmentation() {
 
     let gs_cov = graph.get_graphstorage(&cov_components[0]).unwrap();
 
-    let segl0_id = graph.get_node_id_from_name("root/doc1#seg0").unwrap();
-    let seg0_out: Result<Vec<NodeID>> = gs_cov
+    let segl0_id = graph
+        .get_node_id_from_name("root/doc1#seg0")
+        .unwrap()
+        .unwrap();
+    let seg0_out: Result<Vec<_>> = gs_cov
         .get_outgoing_edges(segl0_id)
         .map(|e| e.map_err(GraphAnnisError::from))
         .collect();
     assert_eq!(3, seg0_out.unwrap().len());
 
-    let seg1_id = graph.get_node_id_from_name("root/doc1#seg1").unwrap();
-    let seg1_out: Result<Vec<NodeID>> = gs_cov
+    let seg1_id = graph
+        .get_node_id_from_name("root/doc1#seg1")
+        .unwrap()
+        .unwrap();
+    let seg1_out: Result<Vec<_>> = gs_cov
         .get_outgoing_edges(seg1_id)
         .map(|e| e.map_err(GraphAnnisError::from))
         .collect();
     assert_eq!(2, seg1_out.unwrap().len());
 
-    let seg2_id = graph.get_node_id_from_name("root/doc1#seg2").unwrap();
-    let seg2_out: Result<Vec<NodeID>> = gs_cov
+    let seg2_id = graph
+        .get_node_id_from_name("root/doc1#seg2")
+        .unwrap()
+        .unwrap();
+    let seg2_out: Result<Vec<_>> = gs_cov
         .get_outgoing_edges(seg2_id)
         .map(|e| e.map_err(GraphAnnisError::from))
         .collect();
     assert_eq!(5, seg2_out.unwrap().len());
 
-    assert_eq!(None, graph.get_node_id_from_name("root/doc1#seg3"));
+    assert_eq!(None, graph.get_node_id_from_name("root/doc1#seg3").unwrap());
 }
 
 fn compare_annos<T>(
@@ -255,14 +264,14 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph, rhs_remove_annis_
     let nodes1: Vec<String> = g1
         .get_node_annos()
         .exact_anno_search(Some("annis"), "node_name", ValueSearch::Any)
-        .filter_map(|m| m.extract_annotation(g1.get_node_annos()))
+        .filter_map(|m| m.unwrap().extract_annotation(g1.get_node_annos()).unwrap())
         .map(|a| a.val.into())
         .sorted()
         .collect();
     let nodes2: Vec<String> = g2
         .get_node_annos()
         .exact_anno_search(Some("annis"), "node_name", ValueSearch::Any)
-        .filter_map(|m| m.extract_annotation(g1.get_node_annos()))
+        .filter_map(|m| m.unwrap().extract_annotation(g1.get_node_annos()).unwrap())
         .map(|a| a.val.into())
         .sorted()
         .collect();
@@ -270,11 +279,11 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph, rhs_remove_annis_
 
     let nodes1: Vec<NodeID> = nodes1
         .into_iter()
-        .filter_map(|n| g1.get_node_id_from_name(&n))
+        .filter_map(|n| g1.get_node_id_from_name(&n).unwrap())
         .collect();
     let nodes2: Vec<NodeID> = nodes2
         .into_iter()
-        .filter_map(|n| g2.get_node_id_from_name(&n))
+        .filter_map(|n| g2.get_node_id_from_name(&n).unwrap())
         .collect();
     compare_annos(g1.get_node_annos(), g2.get_node_annos(), &nodes1, &nodes2);
 
@@ -307,6 +316,7 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph, rhs_remove_annis_
                 .filter_map_ok(|target| {
                     g1.get_node_annos()
                         .get_value_for_item(&target, &NODE_NAME_KEY)
+                        .unwrap()
                 })
                 .map_ok(|n| n.into())
                 .map(|n| n.map_err(GraphAnnisError::from))
@@ -319,6 +329,7 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph, rhs_remove_annis_
                 .filter_map_ok(|target| {
                     g2.get_node_annos()
                         .get_value_for_item(&target, &NODE_NAME_KEY)
+                        .unwrap()
                 })
                 .map(|n| n.map_err(GraphAnnisError::from))
                 .map_ok(|n| n.to_string())
@@ -332,14 +343,14 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph, rhs_remove_annis_
                 .iter()
                 .map(|t| Edge {
                     source: start1,
-                    target: g1.get_node_id_from_name(t).unwrap(),
+                    target: g1.get_node_id_from_name(t).unwrap().unwrap(),
                 })
                 .collect();
             let edges2: Vec<Edge> = targets2
                 .iter()
                 .map(|t| Edge {
                     source: start2,
-                    target: g2.get_node_id_from_name(t).unwrap(),
+                    target: g2.get_node_id_from_name(t).unwrap().unwrap(),
                 })
                 .collect();
             compare_annos(

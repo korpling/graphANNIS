@@ -1,6 +1,6 @@
 use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use crate::{
-    annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage, Match},
+    annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage},
     dfs::CycleSafeDFS,
     errors::Result,
     graph::NODE_NAME_KEY,
@@ -429,12 +429,12 @@ where
 
         // find all roots of the component
         let mut roots: FxHashSet<NodeID> = FxHashSet::default();
-        let nodes: Box<dyn Iterator<Item = Match>> =
+        let nodes =
             node_annos.exact_anno_search(Some(&NODE_NAME_KEY.ns), &NODE_NAME_KEY.name, None.into());
 
         // first add all nodes that are a source of an edge as possible roots
         for m in nodes {
-            let m: Match = m;
+            let m = m?;
             let n = m.node;
             // insert all nodes to the root candidate list which are part of this component
             if orig.get_outgoing_edges(n).next().is_some() {
@@ -442,10 +442,10 @@ where
             }
         }
 
-        let nodes: Box<dyn Iterator<Item = Match>> =
+        let nodes =
             node_annos.exact_anno_search(Some(&NODE_NAME_KEY.ns), &NODE_NAME_KEY.name, None.into());
         for m in nodes {
-            let m: Match = m;
+            let m = m?;
 
             let source = m.node;
 

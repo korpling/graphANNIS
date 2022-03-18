@@ -1,6 +1,7 @@
 use super::super::{ExecutionNode, ExecutionNodeDesc, NodeSearchDesc};
 use crate::annis::db::aql::conjunction::BinaryOperatorArguments;
 use crate::annis::db::AnnotationStorage;
+use crate::annis::errors::GraphAnnisError;
 use crate::annis::operator::BinaryOperatorIndex;
 use crate::{annis::operator::EstimationType, errors::Result, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
@@ -130,11 +131,24 @@ impl<'a> IndexJoin<'a> {
                             while let Some(mut m_rhs) = rhs_candidate.next() {
                                 // check if all filters are true
                                 let mut include_match = true;
+
                                 for f in &node_search_desc.cond {
-                                    if !(f)(&m_rhs, node_annos) {
-                                        include_match = false;
-                                        break;
-                                    }
+                                    let func_result = (f)(&m_rhs, node_annos);
+                                    match func_result {
+                                        Ok(func_result) => {
+                                            if !func_result {
+                                                include_match = false;
+                                                break;
+                                            }
+                                        }
+                                        Err(e) => {
+                                            if let Err(e) = tx.send(Err(GraphAnnisError::from(e))) {
+                                                trace!(
+                                                    "Could not send error in parallel index join {}", e
+                                                );
+                                            }
+                                        }
+                                    };
                                 }
 
                                 if include_match {

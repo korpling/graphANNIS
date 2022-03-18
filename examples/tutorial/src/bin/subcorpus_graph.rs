@@ -84,6 +84,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some("node").into(),
     );
     for m in node_search {
+        let m = m?;
         // get the numeric node ID from the match
         let id = m.node;
         // get the node name from the ID by searching for the label with the name "annis::node_name"

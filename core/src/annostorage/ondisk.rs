@@ -108,23 +108,6 @@ fn create_by_anno_qname_key<T: FixedSizeKeySerializer>(
     result
 }
 
-/// Repeatedly call the given function and get the result, or panic if the error is permanent.
-fn get_or_panic<F, R>(f: F) -> R
-where
-    F: Fn() -> Result<R>,
-{
-    let mut last_err = None;
-    for _ in 0..5 {
-        match f() {
-            Ok(result) => return result,
-            Err(e) => last_err = Some(e),
-        }
-        // In case this is an intermediate error, wait some time before trying again
-        std::thread::sleep(std::time::Duration::from_secs(1));
-    }
-    panic!("Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.\nCause:\n{:?}", last_err.unwrap())
-}
-
 impl<T> AnnoStorageImpl<T>
 where
     T: FixedSizeKeySerializer
@@ -470,34 +453,33 @@ where
         Ok(result)
     }
 
-    fn is_empty(&self) -> bool {
-        get_or_panic(|| self.by_container.is_empty())
+    fn is_empty(&self) -> Result<bool> {
+        self.by_container.is_empty()
     }
 
-    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
+    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>> {
         if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
-            let raw = get_or_panic(|| {
-                self.by_container
-                    .get(&create_by_container_key(item.clone(), symbol_id))
-            });
+            let raw = self
+                .by_container
+                .get(&create_by_container_key(item.clone(), symbol_id))?;
             if let Some(val) = raw {
                 return match val {
-                    Cow::Borrowed(val) => Some(Cow::Borrowed(val.as_str())),
-                    Cow::Owned(val) => Some(Cow::Owned(val)),
+                    Cow::Borrowed(val) => Ok(Some(Cow::Borrowed(val.as_str()))),
+                    Cow::Owned(val) => Ok(Some(Cow::Owned(val))),
                 };
             }
         }
-        None
+        Ok(None)
     }
 
-    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> bool {
+    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<bool> {
         if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
-            get_or_panic(|| {
-                self.by_container
-                    .contains_key(&create_by_container_key(item.clone(), symbol_id))
-            })
+            let result = self
+                .by_container
+                .contains_key(&create_by_container_key(item.clone(), symbol_id))?;
+            Ok(result)
         } else {
-            false
+            Ok(false)
         }
     }
 
@@ -526,8 +508,7 @@ where
                         // Set the first bytes to the ID of the item.
                         // This saves the repeated expensive construction of the annotation key part.
                         container_key[0..T::key_size()].copy_from_slice(&item.create_key());
-                        let does_contain_key =
-                            get_or_panic(|| self.by_container.contains_key(&container_key));
+                        let does_contain_key = self.by_container.contains_key(&container_key)?;
                         if does_contain_key {
                             matches.push((item, key.clone()).into());
                         }
@@ -555,8 +536,7 @@ where
                         // Set the first bytes to the ID of the item.
                         // This saves the repeated expensive construction of the annotation key part.
                         container_key[0..T::key_size()].copy_from_slice(&item.create_key());
-                        let does_contain_key =
-                            get_or_panic(|| self.by_container.contains_key(container_key));
+                        let does_contain_key = self.by_container.contains_key(container_key)?;
                         if does_contain_key {
                             matches.push((item.clone(), anno_key.clone()).into());
                         }
@@ -617,37 +597,39 @@ where
         namespace: Option<&str>,
         name: &str,
         value: ValueSearch<&str>,
-    ) -> Box<dyn Iterator<Item = Match> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<Match>> + 'a> {
         match value {
             ValueSearch::Any => {
-                let it = self.matching_items(namespace, name, None).map(move |item| {
-                    item.expect("Iterator over matching items returned error")
-                        .into()
-                });
+                let it = self
+                    .matching_items(namespace, name, None)
+                    .map_ok(|item| item.into());
                 Box::new(it)
             }
             ValueSearch::Some(value) => {
                 let it = self
                     .matching_items(namespace, name, Some(value))
-                    .map(move |item| {
-                        item.expect("Iterator over matching items returned error")
-                            .into()
-                    });
+                    .map_ok(|item| item.into());
                 Box::new(it)
             }
             ValueSearch::NotSome(value) => {
                 let value = value.to_string();
                 let it = self
                     .matching_items(namespace, name, None)
-                    .map(|item| item.expect("Iterator over matching items returned error"))
-                    .filter(move |(node, anno_key)| {
-                        if let Some(item_value) = self.get_value_for_item(node, anno_key) {
-                            item_value != value
+                    .map(move |item| match item {
+                        Ok((node, anno_key)) => {
+                            let value = self.get_value_for_item(&node, &anno_key)?;
+                            Ok((node, anno_key, value))
+                        }
+                        Err(e) => Err(e),
+                    })
+                    .filter_ok(move |(_, _, item_value)| {
+                        if let Some(item_value) = item_value {
+                            item_value != &value
                         } else {
                             false
                         }
                     })
-                    .map(move |item| item.into());
+                    .map_ok(move |(node, anno_key, _)| (node, anno_key).into());
                 Box::new(it)
             }
         }
@@ -659,15 +641,21 @@ where
         name: &str,
         pattern: &str,
         negated: bool,
-    ) -> Box<dyn Iterator<Item = Match> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<Match>> + 'a> {
         let full_match_pattern = util::regex_full_match(pattern);
         let compiled_result = regex::Regex::new(&full_match_pattern);
         if let Ok(re) = compiled_result {
             let it = self
                 .matching_items(namespace, name, None)
-                .map(|item| item.expect("Iterator over matching items returned error"))
-                .filter(move |(node, anno_key)| {
-                    if let Some(val) = self.get_value_for_item(node, anno_key) {
+                .map(move |item| match item {
+                    Ok((node, anno_key)) => {
+                        let value = self.get_value_for_item(&node, &anno_key)?;
+                        Ok((node, anno_key, value))
+                    }
+                    Err(e) => Err(e),
+                })
+                .filter_ok(move |(_, _, val)| {
+                    if let Some(val) = val {
                         if negated {
                             !re.is_match(&val)
                         } else {
@@ -677,7 +665,7 @@ where
                         false
                     }
                 })
-                .map(move |item| item.into());
+                .map_ok(move |(node, anno_key, _val)| (node, anno_key).into());
             Box::new(it)
         } else if negated {
             // return all values
@@ -1047,6 +1035,7 @@ mod tests {
                     ns: "annis".into()
                 }
             )
+            .unwrap()
             .unwrap()
         );
     }

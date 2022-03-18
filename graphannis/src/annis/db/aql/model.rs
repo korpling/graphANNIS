@@ -108,7 +108,7 @@ impl AQLUpdateGraphIndex {
     ) -> std::result::Result<NodeID, ComponentTypeError> {
         if let Some(id) = self.node_ids.get(&node_name)? {
             return Ok(*id);
-        } else if let Some(id) = graph.get_node_id_from_name(&node_name) {
+        } else if let Some(id) = graph.get_node_id_from_name(&node_name)? {
             self.node_ids.insert(node_name.to_string(), id)?;
             return Ok(id);
         }
@@ -255,7 +255,7 @@ impl AQLUpdateGraphIndex {
         if directly_covered_token.is_empty() {
             let has_token_anno = graph
                 .get_node_annos()
-                .get_value_for_item(&n, &TOKEN_KEY)
+                .get_value_for_item(&n, &TOKEN_KEY)?
                 .is_some();
             if has_token_anno {
                 // Even if technically a token does not cover itself, if we need to abort the recursion
@@ -310,7 +310,7 @@ impl AQLUpdateGraphIndex {
         // if this is a token (and not only a segmentation node), return the token itself
         if graph
             .get_node_annos()
-            .get_value_for_item(&n, &TOKEN_KEY)
+            .get_value_for_item(&n, &TOKEN_KEY)?
             .is_some()
             && covered_token.is_empty()
         {
@@ -406,7 +406,7 @@ impl ComponentType for AnnotationComponentType {
 
         // Calculating the invalid nodes adds additional computational overhead. If there are no nodes yet in the graph,
         // we already know that all new nodes are invalid and don't need calculate the invalid ones.
-        let graph_without_nodes = graph.get_node_annos().is_empty();
+        let graph_without_nodes = graph.get_node_annos().is_empty()?;
 
         let invalid_nodes: DiskMap<NodeID, bool> = DiskMap::new(
             None,
@@ -543,6 +543,7 @@ impl ComponentType for AnnotationComponentType {
                 ValueSearch::Any,
             );
             for m in node_search {
+                let m = m?;
                 index.invalid_nodes.insert(m.node, true)?;
             }
         }

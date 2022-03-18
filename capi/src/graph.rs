@@ -4,10 +4,12 @@ use crate::{
     data::IterPtr,
 };
 use graphannis::{
+    errors::GraphAnnisError,
     graph::{Annotation, Edge, Match, NodeID},
     model::{AnnotationComponent, AnnotationComponentType},
     AnnotationGraph,
 };
+use itertools::Itertools;
 use std::ffi::CString;
 
 /// Get the type of the given component.
@@ -48,7 +50,8 @@ pub extern "C" fn annis_graph_nodes_by_type(
     let it = db
         .get_node_annos()
         .exact_anno_search(Some("annis"), "node_type", Some(node_type.as_ref()).into())
-        .map(|m: Match| m.node);
+        .map_ok(|m: Match| m.node)
+        .map(|n| n.map_err(GraphAnnisError::from));
     Box::into_raw(Box::new(Box::new(it)))
 }
 

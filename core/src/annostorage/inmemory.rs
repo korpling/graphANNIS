@@ -370,36 +370,36 @@ where
         Ok(self.total_number_of_annos)
     }
 
-    fn is_empty(&self) -> bool {
-        self.total_number_of_annos == 0
+    fn is_empty(&self) -> Result<bool> {
+        Ok(self.total_number_of_annos == 0)
     }
 
-    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
-        let key_symbol = self.anno_keys.get_symbol(key)?;
-
-        if let Some(all_annos) = self.by_container.get(item) {
+    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>> {
+        if let (Some(key_symbol), Some(all_annos)) =
+            (self.anno_keys.get_symbol(key), self.by_container.get(item))
+        {
             let idx = all_annos.binary_search_by_key(&key_symbol, |a| a.key);
             if let Ok(idx) = idx {
                 if let Some(val) = self.anno_values.get_value_ref(all_annos[idx].val) {
-                    return Some(Cow::Borrowed(val));
+                    return Ok(Some(Cow::Borrowed(val)));
                 }
             }
         }
-        None
+        Ok(None)
     }
 
-    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> bool {
+    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<bool> {
         if let Some(key_symbol) = self.anno_keys.get_symbol(key) {
             if let Some(all_annos) = self.by_container.get(item) {
                 if all_annos
                     .binary_search_by_key(&key_symbol, |a| a.key)
                     .is_ok()
                 {
-                    return true;
+                    return Ok(true);
                 }
             }
         }
-        false
+        Ok(false)
     }
 
     fn get_keys_for_iterator<'b>(
@@ -509,7 +509,7 @@ where
         namespace: Option<&str>,
         name: &str,
         value: ValueSearch<&str>,
-    ) -> Box<dyn Iterator<Item = Match> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<Match>> + 'a> {
         let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
             vec![Arc::from(AnnoKey {
                 ns: ns.into(),
@@ -542,7 +542,7 @@ where
                     })
                     // flatten the hash set of all items, returns all items for the condition
                     .flat_map(|(items, key)| items.iter().cloned().zip(std::iter::repeat(key)))
-                    .map(move |item| item.into());
+                    .map(move |item| Ok(item.into()));
                 Box::new(it)
             } else {
                 // value is not known, return empty result
@@ -563,17 +563,21 @@ where
             if let ValueSearch::NotSome(value) = value {
                 let value = value.to_string();
                 let it = matching_qname_annos
-                    .filter(move |(item, anno_key)| {
-                        if let Some(item_value) = self.get_value_for_item(item, anno_key) {
-                            item_value != value
+                    .map(move |(item, anno_key)| {
+                        let value = self.get_value_for_item(&item, &anno_key)?;
+                        Ok((item, anno_key, value))
+                    })
+                    .filter_ok(move |(_, _, item_value)| {
+                        if let Some(item_value) = item_value {
+                            item_value != &value
                         } else {
                             false
                         }
                     })
-                    .map(move |item| item.into());
+                    .map_ok(|(item, anno_key, _)| (item, anno_key).into());
                 Box::new(it)
             } else {
-                Box::new(matching_qname_annos.map(move |item| item.into()))
+                Box::new(matching_qname_annos.map(move |item| Ok(item.into())))
             }
         }
     }
@@ -584,14 +588,18 @@ where
         name: &str,
         pattern: &str,
         negated: bool,
-    ) -> Box<dyn Iterator<Item = Match> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<Match>> + 'a> {
         let full_match_pattern = util::regex_full_match(pattern);
         let compiled_result = regex::Regex::new(&full_match_pattern);
         if let Ok(re) = compiled_result {
             let it = self
                 .matching_items(namespace, name, None)
-                .filter(move |(node, anno_key)| {
-                    if let Some(val) = self.get_value_for_item(node, anno_key) {
+                .map(move |(item, anno_key)| {
+                    let value = self.get_value_for_item(&item, &anno_key)?;
+                    Ok((item, anno_key, value))
+                })
+                .filter_ok(move |(_, _, value)| {
+                    if let Some(val) = value {
                         if negated {
                             !re.is_match(&val)
                         } else {
@@ -601,7 +609,7 @@ where
                         false
                     }
                 })
-                .map(move |item| item.into());
+                .map_ok(move |(item, anno_key, _)| (item, anno_key).into());
             Box::new(it)
         } else if negated {
             // return all values
@@ -639,13 +647,17 @@ where
                 return Ok(vec![]);
             } else {
                 // get all qualified names for the given annotation name
-                let res: Vec<Arc<AnnoKey>> = self
+                let res: Result<Vec<Arc<AnnoKey>>> = self
                     .get_qnames(name)
                     .into_iter()
-                    .filter(|key| self.get_value_for_item(item, key).is_some())
-                    .map(Arc::from)
+                    .map(|anno_key| {
+                        let value = self.get_value_for_item(item, &anno_key)?;
+                        Ok((anno_key, value))
+                    })
+                    .filter_ok(|(_key, value)| value.is_some())
+                    .map_ok(|(key, _)| Arc::from(key))
                     .collect();
-                Ok(res)
+                res
             }
         } else if let Some(all_annos) = self.by_container.get(item) {
             // no annotation name given, return all
@@ -958,6 +970,7 @@ mod tests {
                     ns: "annis".into()
                 }
             )
+            .unwrap()
             .unwrap()
         );
     }

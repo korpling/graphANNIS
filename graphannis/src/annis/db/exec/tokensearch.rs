@@ -72,7 +72,7 @@ impl<'a> AnyTokenSearch<'a> {
                 .get_node_annos()
                 .exact_anno_search(Some("annis"), "tok", None.into())
         {
-            let n = tok_candidate.node;
+            let n = tok_candidate?.node;
             let mut is_root_tok = true;
             if let Some(order_gs) = self.order_gs {
                 is_root_tok = is_root_tok && order_gs.get_ingoing_edges(n).next().is_none();

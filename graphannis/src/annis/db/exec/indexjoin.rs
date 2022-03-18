@@ -143,7 +143,8 @@ impl<'a> Iterator for IndexJoin<'a> {
                     // check if all filters are true
                     let mut filter_result = true;
                     for f in &self.node_search_desc.cond {
-                        if !(f)(&m_rhs, self.node_annos) {
+                        let single_filter_result = try_as_option!((f)(&m_rhs, self.node_annos));
+                        if !single_filter_result {
                             filter_result = false;
                             break;
                         }

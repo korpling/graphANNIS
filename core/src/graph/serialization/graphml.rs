@@ -122,11 +122,12 @@ fn write_nodes<CT: ComponentType, W: std::io::Write>(
         .get_node_annos()
         .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Any)
     {
+        let m = m?;
         let mut node_start = BytesStart::borrowed_name(b"node");
 
         if let Some(id) = graph
             .get_node_annos()
-            .get_value_for_item(&m.node, &NODE_NAME_KEY)
+            .get_value_for_item(&m.node, &NODE_NAME_KEY)?
         {
             node_start.push_attribute(("id", id.as_ref()));
             let node_annotations = graph.get_node_annos().get_annotations_for_item(&m.node);
@@ -166,13 +167,13 @@ fn write_edges<CT: ComponentType, W: std::io::Write>(
                     let source = source?;
                     if let Some(source_id) = graph
                         .get_node_annos()
-                        .get_value_for_item(&source, &NODE_NAME_KEY)
+                        .get_value_for_item(&source, &NODE_NAME_KEY)?
                     {
                         for target in gs.get_outgoing_edges(source) {
                             let target = target?;
                             if let Some(target_id) = graph
                                 .get_node_annos()
-                                .get_value_for_item(&target, &NODE_NAME_KEY)
+                                .get_value_for_item(&target, &NODE_NAME_KEY)?
                             {
                                 let edge = Edge { source, target };
 
@@ -632,20 +633,22 @@ value = "test""#;
         let (g, config_str) = import(input_xml, false, |_| {}).unwrap();
 
         // Check that all nodes, edges and annotations have been created
-        let first_node_id = g.get_node_id_from_name("first_node").unwrap();
-        let second_node_id = g.get_node_id_from_name("second_node").unwrap();
+        let first_node_id = g.get_node_id_from_name("first_node").unwrap().unwrap();
+        let second_node_id = g.get_node_id_from_name("second_node").unwrap().unwrap();
 
         let first_node_annos = g.get_node_annos().get_annotations_for_item(&first_node_id);
         assert_eq!(3, first_node_annos.len());
         assert_eq!(
             Some(Cow::Borrowed("something")),
-            g.get_node_annos().get_value_for_item(
-                &first_node_id,
-                &AnnoKey {
-                    ns: DEFAULT_NS.into(),
-                    name: "an_annotation".into(),
-                }
-            )
+            g.get_node_annos()
+                .get_value_for_item(
+                    &first_node_id,
+                    &AnnoKey {
+                        ns: DEFAULT_NS.into(),
+                        name: "an_annotation".into(),
+                    }
+                )
+                .unwrap()
         );
 
         assert_eq!(

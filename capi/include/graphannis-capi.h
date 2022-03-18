@@ -627,8 +627,12 @@ void annis_str_free(char *s);
 /**
  * Returns a pointer to the next node ID for the iterator given by the `ptr` argument
  * or `NULL` if iterator is empty.
+ *
+ * # Safety
+ *
+ * This functions dereferences the `err` pointer and is therefore unsafe.
  */
-AnnisNodeID *annis_iter_nodeid_next(struct AnnisIterPtr_NodeID *ptr);
+AnnisNodeID *annis_iter_nodeid_next(struct AnnisIterPtr_NodeID *ptr, AnnisErrorList **err);
 
 /**
  * Returns the number of elements of the string vector.
@@ -811,6 +815,10 @@ struct AnnisVec_AnnotationComponent *annis_graph_all_components_by_type(const An
 
 /**
  * Return a vector of all outgoing edges for the graph `g`, the `source` node and the given `component`.
+ *
+ * # Safety
+ *
+ * This functions dereferences the `err` pointer and is therefore unsafe.
  */
 struct AnnisVec_Edge *annis_graph_outgoing_edges(const AnnisAnnotationGraph *g,
                                                  AnnisNodeID source,

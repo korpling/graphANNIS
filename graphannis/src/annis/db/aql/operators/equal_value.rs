@@ -1,6 +1,5 @@
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::AnnotationStorage;
-use crate::AnnotationGraph;
 use crate::{
     annis::{
         db::aql::model::{AnnotationComponentType, TOK, TOKEN_KEY},
@@ -9,8 +8,9 @@ use crate::{
     errors::Result,
     graph::Match,
 };
+use crate::{try_as_boxed_iter, AnnotationGraph};
 use graphannis_core::{
-    annostorage::{MatchGroup, ValueSearch},
+    annostorage::ValueSearch,
     graph::ANNIS_NS,
     types::{Component, NodeID},
 };
@@ -75,22 +75,24 @@ impl<'a> std::fmt::Display for EqualValue<'a> {
 }
 
 impl<'a> EqualValue<'a> {
-    fn value_for_match(&self, m: &Match, spec: &NodeSearchSpec) -> Option<Cow<str>> {
+    fn value_for_match(&self, m: &Match, spec: &NodeSearchSpec) -> Result<Option<Cow<str>>> {
         match spec {
             NodeSearchSpec::ExactValue { .. }
             | NodeSearchSpec::NotExactValue { .. }
             | NodeSearchSpec::RegexValue { .. }
             | NodeSearchSpec::NotRegexValue { .. } => {
-                self.node_annos.get_value_for_item(&m.node, &m.anno_key)
+                let val = self.node_annos.get_value_for_item(&m.node, &m.anno_key)?;
+                Ok(val)
             }
             NodeSearchSpec::AnyToken
             | NodeSearchSpec::ExactTokenValue { .. }
             | NodeSearchSpec::NotExactTokenValue { .. }
             | NodeSearchSpec::RegexTokenValue { .. }
             | NodeSearchSpec::NotRegexTokenValue { .. } => {
-                self.node_annos.get_value_for_item(&m.node, &TOKEN_KEY)
+                let val = self.node_annos.get_value_for_item(&m.node, &TOKEN_KEY)?;
+                Ok(val)
             }
-            NodeSearchSpec::AnyNode => None,
+            NodeSearchSpec::AnyNode => Ok(None),
         }
     }
 
@@ -118,8 +120,8 @@ impl<'a> EqualValue<'a> {
 
 impl<'a> BinaryOperatorBase for EqualValue<'a> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
-        let lhs_val = self.value_for_match(lhs, &self.spec_left);
-        let rhs_val = self.value_for_match(rhs, &self.spec_right);
+        let lhs_val = self.value_for_match(lhs, &self.spec_left)?;
+        let rhs_val = self.value_for_match(rhs, &self.spec_right)?;
 
         let result = if let (Some(lhs_val), Some(rhs_val)) = (lhs_val, rhs_val) {
             if self.negated {
@@ -175,9 +177,10 @@ impl<'a> BinaryOperatorBase for EqualValue<'a> {
 }
 
 impl<'a> BinaryOperatorIndex for EqualValue<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
+    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>> + 'b> {
         let lhs = lhs.clone();
-        if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
+        let lhs_val = try_as_boxed_iter!(self.value_for_match(&lhs, &self.spec_left));
+        if let Some(lhs_val) = lhs_val {
             let val_search: ValueSearch<&str> = if self.negated {
                 ValueSearch::NotSome(&lhs_val)
             } else {
@@ -185,11 +188,11 @@ impl<'a> BinaryOperatorIndex for EqualValue<'a> {
             };
 
             if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
-                let rhs_candidates: MatchGroup = self
+                let rhs_candidates = self
                     .node_annos
                     .exact_anno_search(ns, name, val_search)
-                    .collect();
-                return Box::new(rhs_candidates.into_iter().map(Ok));
+                    .map(|m| m.map_err(|e| e.into()));
+                return Box::new(rhs_candidates);
             }
         }
         Box::new(std::iter::empty())

@@ -104,7 +104,7 @@ impl<'a> TokenHelper<'a> {
     }
 
     pub fn is_token(&self, id: NodeID) -> Result<bool> {
-        if self.node_annos.has_value_for_item(&id, &TOKEN_KEY) {
+        if self.node_annos.has_value_for_item(&id, &TOKEN_KEY)? {
             // check if there is no outgoing edge in any of the coverage components
             let has_outgoing = self.has_outgoing_coverage_edges(id)?;
             Ok(!has_outgoing)

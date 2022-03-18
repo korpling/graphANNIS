@@ -345,13 +345,13 @@ impl<CT: ComponentType> Graph<CT> {
         &self,
         node_name: Cow<String>,
         cache: &mut LFUCache<String, Option<NodeID>>,
-    ) -> Option<NodeID> {
+    ) -> Result<Option<NodeID>> {
         if let Some(id) = cache.get(node_name.as_ref()) {
-            *id
+            Ok(*id)
         } else {
-            let id = self.get_node_id_from_name(&node_name);
+            let id = self.get_node_id_from_name(&node_name)?;
             cache.set(node_name.to_string(), id);
-            id
+            Ok(id)
         }
     }
 
@@ -379,8 +379,10 @@ impl<CT: ComponentType> Graph<CT> {
                     node_name,
                     node_type,
                 } => {
-                    let existing_node_id = self
-                        .get_cached_node_id_from_name(Cow::Borrowed(node_name), &mut node_id_cache);
+                    let existing_node_id = self.get_cached_node_id_from_name(
+                        Cow::Borrowed(node_name),
+                        &mut node_id_cache,
+                    )?;
                     // only add node if it does not exist yet
                     if existing_node_id.is_none() {
                         let new_node_id: NodeID =
@@ -408,9 +410,10 @@ impl<CT: ComponentType> Graph<CT> {
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
-                    if let Some(existing_node_id) = self
-                        .get_cached_node_id_from_name(Cow::Borrowed(node_name), &mut node_id_cache)
-                    {
+                    if let Some(existing_node_id) = self.get_cached_node_id_from_name(
+                        Cow::Borrowed(node_name),
+                        &mut node_id_cache,
+                    )? {
                         // delete all annotations
                         {
                             for a in self.node_annos.get_annotations_for_item(&existing_node_id) {
@@ -435,9 +438,10 @@ impl<CT: ComponentType> Graph<CT> {
                     anno_name,
                     anno_value,
                 } => {
-                    if let Some(existing_node_id) = self
-                        .get_cached_node_id_from_name(Cow::Borrowed(node_name), &mut node_id_cache)
-                    {
+                    if let Some(existing_node_id) = self.get_cached_node_id_from_name(
+                        Cow::Borrowed(node_name),
+                        &mut node_id_cache,
+                    )? {
                         let anno = Annotation {
                             key: AnnoKey {
                                 ns: anno_ns.into(),
@@ -453,9 +457,10 @@ impl<CT: ComponentType> Graph<CT> {
                     anno_ns,
                     anno_name,
                 } => {
-                    if let Some(existing_node_id) = self
-                        .get_cached_node_id_from_name(Cow::Borrowed(node_name), &mut node_id_cache)
-                    {
+                    if let Some(existing_node_id) = self.get_cached_node_id_from_name(
+                        Cow::Borrowed(node_name),
+                        &mut node_id_cache,
+                    )? {
                         let key = AnnoKey {
                             ns: anno_ns.into(),
                             name: anno_name.into(),
@@ -474,11 +479,11 @@ impl<CT: ComponentType> Graph<CT> {
                     let source = self.get_cached_node_id_from_name(
                         Cow::Borrowed(source_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     let target = self.get_cached_node_id_from_name(
                         Cow::Borrowed(target_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     // only add edge if both nodes already exist
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(component_type) {
@@ -498,11 +503,11 @@ impl<CT: ComponentType> Graph<CT> {
                     let source = self.get_cached_node_id_from_name(
                         Cow::Borrowed(source_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     let target = self.get_cached_node_id_from_name(
                         Cow::Borrowed(target_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
@@ -525,11 +530,11 @@ impl<CT: ComponentType> Graph<CT> {
                     let source = self.get_cached_node_id_from_name(
                         Cow::Borrowed(source_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     let target = self.get_cached_node_id_from_name(
                         Cow::Borrowed(target_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
@@ -561,11 +566,11 @@ impl<CT: ComponentType> Graph<CT> {
                     let source = self.get_cached_node_id_from_name(
                         Cow::Borrowed(source_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     let target = self.get_cached_node_id_from_name(
                         Cow::Borrowed(target_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
@@ -885,6 +890,7 @@ impl<CT: ComponentType> Graph<CT> {
                 .node_annos
                 .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Any)
             {
+                let m = m?;
                 for anno in self.node_annos.get_annotations_for_item(&m.node) {
                     new_node_annos.insert(m.node, anno)?;
                 }
@@ -943,14 +949,15 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    pub fn get_node_id_from_name(&self, node_name: &str) -> Option<NodeID> {
+    pub fn get_node_id_from_name(&self, node_name: &str) -> Result<Option<NodeID>> {
         let mut all_nodes_with_anno =
             self.node_annos
                 .exact_anno_search(Some(ANNIS_NS), NODE_NAME, Some(node_name).into());
         if let Some(m) = all_nodes_with_anno.next() {
-            return Some(m.node);
+            let m = m?;
+            return Ok(Some(m.node));
         }
-        None
+        Ok(None)
     }
 
     /// Get a read-only graph storage copy for the given component `c`.

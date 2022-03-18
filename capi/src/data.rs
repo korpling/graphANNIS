@@ -1,7 +1,10 @@
+use crate::cerror::{self, ErrorList};
+
 use super::Matrix;
 use super::{cast_const, cast_mut, cstr};
 use graphannis::{
     corpusstorage::{FrequencyTable, QueryAttributeDescription},
+    errors::Result,
     graph::{Annotation, Edge, NodeID},
     model::AnnotationComponent,
 };
@@ -36,21 +39,40 @@ pub unsafe extern "C" fn annis_str_free(s: *mut c_char) {
     drop(CString::from_raw(s));
 }
 
-pub type IterPtr<T> = Box<dyn Iterator<Item = T>>;
+pub type IterPtr<T> = Box<dyn Iterator<Item = Result<T>>>;
 
-pub fn iter_next<T>(ptr: *mut Box<dyn Iterator<Item = T>>) -> *mut T {
-    let it: &mut Box<dyn Iterator<Item = T>> = cast_mut(ptr);
+unsafe fn iter_next<T>(
+    ptr: *mut Box<dyn Iterator<Item = Result<T>>>,
+    err: *mut *mut ErrorList,
+) -> *mut T {
+    let it: &mut Box<dyn Iterator<Item = Result<T>>> = cast_mut(ptr);
     if let Some(v) = it.next() {
-        return Box::into_raw(Box::new(v));
+        match v {
+            Ok(v) => {
+                return Box::into_raw(Box::new(v));
+            }
+            Err(e) => {
+                if !err.is_null() {
+                    *err = cerror::new(e.into());
+                }
+            }
+        };
     }
     std::ptr::null_mut()
 }
 
 /// Returns a pointer to the next node ID for the iterator given by the `ptr` argument
 /// or `NULL` if iterator is empty.
+///
+/// # Safety
+///
+/// This functions dereferences the `err` pointer and is therefore unsafe.
 #[no_mangle]
-pub extern "C" fn annis_iter_nodeid_next(ptr: *mut IterPtr<NodeID>) -> *mut NodeID {
-    iter_next(ptr)
+pub unsafe extern "C" fn annis_iter_nodeid_next(
+    ptr: *mut IterPtr<NodeID>,
+    err: *mut *mut ErrorList,
+) -> *mut NodeID {
+    iter_next(ptr, err)
 }
 
 pub fn vec_size<T>(ptr: *const Vec<T>) -> size_t {

@@ -167,12 +167,16 @@ impl<'a> UnaryOperator for NonExistingUnaryOperatorIndex<'a> {
             .get_value_filter(self.graph, None)
             .unwrap_or_default();
 
-        // Only return true of no match was found which matches the operator and node value filter
-        Ok(!candidates.into_iter().any(|m| {
-            value_filter
-                .iter()
-                .all(|f| f(&m, self.graph.get_node_annos()))
-        }))
+        // Only return true if no match was found which matches the operator and
+        // the node value filter
+        for c in candidates {
+            for f in value_filter.iter() {
+                if f(&c, self.graph.get_node_annos())? {
+                    return Ok(false);
+                }
+            }
+        }
+        Ok(true)
     }
 
     fn estimation_type(&self) -> EstimationType {

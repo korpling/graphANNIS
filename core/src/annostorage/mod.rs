@@ -34,14 +34,18 @@ impl Match {
     pub fn extract_annotation(
         &self,
         node_annos: &dyn AnnotationStorage<NodeID>,
-    ) -> Option<Annotation> {
+    ) -> Result<Option<Annotation>> {
         let val = node_annos
             .get_value_for_item(&self.node, &self.anno_key)?
             .to_owned();
-        Some(Annotation {
-            key: self.anno_key.as_ref().clone(),
-            val: val.into(),
-        })
+        if let Some(val) = val {
+            Ok(Some(Annotation {
+                key: self.anno_key.as_ref().clone(),
+                val: val.into(),
+            }))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Returns true if this match is different to all the other matches given as argument.
@@ -148,10 +152,10 @@ where
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
 
     /// Get the annotation for a given `item` and the annotation `key`.
-    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
+    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>>;
 
     /// Returns `true` if the given `item` has an annotation for the given `key`.
-    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> bool;
+    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<bool>;
 
     /// Get the matching annotation keys for each item in the iterator.
     ///
@@ -167,7 +171,7 @@ where
     fn number_of_annotations(&self) -> Result<usize>;
 
     /// Return true if there are no annotations in this `AnnotationStorage`.
-    fn is_empty(&self) -> bool;
+    fn is_empty(&self) -> Result<bool>;
 
     /// Return the number of annotations contained in this `AnnotationStorage` filtered by `name` and optional namespace (`ns`).
     fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> Result<usize>;
@@ -187,7 +191,7 @@ where
         namespace: Option<&str>,
         name: &str,
         value: ValueSearch<&str>,
-    ) -> Box<dyn Iterator<Item = Match> + 'a>;
+    ) -> Box<dyn Iterator<Item = Result<Match>> + 'a>;
 
     /// Returns an iterator for all items where the value matches the regular expression.
     /// The annotation `name` and the `pattern` for the value must be given as argument, the  
@@ -207,7 +211,7 @@ where
         name: &str,
         pattern: &str,
         negated: bool,
-    ) -> Box<dyn Iterator<Item = Match> + 'a>;
+    ) -> Box<dyn Iterator<Item = Result<Match>> + 'a>;
 
     /// Estimate the number of results for an [annotation exact search](#tymethod.exact_anno_search) for a given an inclusive value range.
     ///

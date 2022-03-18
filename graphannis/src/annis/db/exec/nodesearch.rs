@@ -129,11 +129,12 @@ impl NodeSearchSpec {
                 if let Some(val) = val {
                     let val: String = val.to_owned();
                     filters.push(Box::new(move |m, node_annos| {
-                        if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)
+                        if let Some(anno_val) =
+                            node_annos.get_value_for_item(&m.node, &m.anno_key)?
                         {
-                            anno_val == val.as_str()
+                            Ok(anno_val == val.as_str())
                         } else {
-                            false
+                            Ok(false)
                         }
                     }));
                 }
@@ -141,10 +142,10 @@ impl NodeSearchSpec {
             NodeSearchSpec::NotExactValue { val, .. } => {
                 let val: String = val.to_owned();
                 filters.push(Box::new(move |m, node_annos| {
-                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                        anno_val != val.as_str()
+                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)? {
+                        Ok(anno_val != val.as_str())
                     } else {
-                        false
+                        Ok(false)
                     }
                 }));
             }
@@ -154,10 +155,12 @@ impl NodeSearchSpec {
                 match re {
                     Ok(re) => {
                         filters.push(Box::new(move |m, node_annos| {
-                            if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                                re.is_match(&val)
+                            if let Some(val) =
+                                node_annos.get_value_for_item(&m.node, &m.anno_key)?
+                            {
+                                Ok(re.is_match(&val))
                             } else {
-                                false
+                                Ok(false)
                             }
                         }));
                     }
@@ -175,10 +178,12 @@ impl NodeSearchSpec {
                 match re {
                     Ok(re) => {
                         filters.push(Box::new(move |m, node_annos| {
-                            if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                                !re.is_match(&val)
+                            if let Some(val) =
+                                node_annos.get_value_for_item(&m.node, &m.anno_key)?
+                            {
+                                Ok(!re.is_match(&val))
                             } else {
-                                false
+                                Ok(false)
                             }
                         }));
                     }
@@ -193,10 +198,10 @@ impl NodeSearchSpec {
             NodeSearchSpec::ExactTokenValue { val, leafs_only } => {
                 let val = val.clone();
                 filters.push(Box::new(move |m, node_annos| {
-                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                        anno_val == val.as_str()
+                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)? {
+                        Ok(anno_val == val.as_str())
                     } else {
-                        false
+                        Ok(false)
                     }
                 }));
                 if *leafs_only {
@@ -206,10 +211,10 @@ impl NodeSearchSpec {
             NodeSearchSpec::NotExactTokenValue { val } => {
                 let val = val.clone();
                 filters.push(Box::new(move |m, node_annos| {
-                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                        anno_val != val.as_str()
+                    if let Some(anno_val) = node_annos.get_value_for_item(&m.node, &m.anno_key)? {
+                        Ok(anno_val != val.as_str())
                     } else {
-                        false
+                        Ok(false)
                     }
                 }));
             }
@@ -218,10 +223,10 @@ impl NodeSearchSpec {
                 let re = regex::Regex::new(&full_match_pattern);
                 match re {
                     Ok(re) => filters.push(Box::new(move |m, node_annos| {
-                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                            re.is_match(&val)
+                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key)? {
+                            Ok(re.is_match(&val))
                         } else {
-                            false
+                            Ok(false)
                         }
                     })),
                     Err(e) => {
@@ -240,10 +245,10 @@ impl NodeSearchSpec {
                 let re = regex::Regex::new(&full_match_pattern);
                 match re {
                     Ok(re) => filters.push(Box::new(move |m, node_annos| {
-                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                            !re.is_match(&val)
+                        if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key)? {
+                            Ok(!re.is_match(&val))
                         } else {
-                            false
+                            Ok(false)
                         }
                     })),
                     Err(e) => {
@@ -258,13 +263,11 @@ impl NodeSearchSpec {
                 filters.push(create_token_leaf_filter(g));
             }
             NodeSearchSpec::AnyNode => {
-                let filter_func: Box<
-                    dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync,
-                > = Box::new(move |m, node_annos| {
-                    if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                        val == "node"
+                let filter_func: MatchValueFilterFunc = Box::new(move |m, node_annos| {
+                    if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key)? {
+                        Ok(val == "node")
                     } else {
-                        false
+                        Ok(false)
                     }
                 });
                 filters.push(filter_func)
@@ -378,15 +381,14 @@ fn create_token_leaf_filter(g: &AnnotationGraph) -> MatchValueFilterFunc {
         })
         .collect();
 
-    let filter_func: Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync> =
-        Box::new(move |m, _| {
-            for cov in cov_gs.iter() {
-                if cov.get_outgoing_edges(m.node).next().is_some() {
-                    return false;
-                }
+    let filter_func: MatchValueFilterFunc = Box::new(move |m, _| {
+        for cov in cov_gs.iter() {
+            if cov.get_outgoing_edges(m.node).next().is_some() {
+                return Ok(false);
             }
-            true
-        });
+        }
+        Ok(true)
+    });
     filter_func
 }
 
@@ -543,15 +545,14 @@ impl<'a> NodeSearch<'a> {
                         &NODE_TYPE_KEY.name,
                         Some("node").into(),
                     )
-                    .map(move |n| Ok(smallvec![n]));
+                    .map_ok(move |n| smallvec![n])
+                    .map(|n| n.map_err(GraphAnnisError::from));
 
-                let filter_func: Box<
-                    dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync,
-                > = Box::new(move |m, node_annos| {
-                    if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key) {
-                        val == "node"
+                let filter_func: MatchValueFilterFunc = Box::new(move |m, node_annos| {
+                    if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key)? {
+                        Ok(val == "node")
                     } else {
-                        false
+                        Ok(false)
                     }
                 });
 
@@ -608,28 +609,37 @@ impl<'a> NodeSearch<'a> {
         let base_it: Box<dyn Iterator<Item = Result<Match>>> =
             if let Some(const_output) = const_output.clone() {
                 let is_unique = db.get_node_annos().get_qnames(&qname.1).len() <= 1;
-                // Replace the result annotation with a constant value.
-                // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
+                // Replace the result annotation with a constant value. If a
+                // node matches two different annotations (because there is no
+                // namespace), this can result in duplicates which needs to be
+                // filtered out.
                 if is_unique {
-                    Box::new(base_it.map(move |m| {
-                        Ok(Match {
-                            node: m.node,
-                            anno_key: const_output.clone(),
-                        })
-                    }))
-                } else {
                     Box::new(
                         base_it
-                            .map(move |m| Match {
+                            .map_ok(move |m| Match {
                                 node: m.node,
                                 anno_key: const_output.clone(),
                             })
-                            .unique()
-                            .map(Ok),
+                            .map(|it| it.map_err(GraphAnnisError::from)),
+                    )
+                } else {
+                    Box::new(
+                        base_it
+                            // The unique_by will merge all errors into a single
+                            // error, which should be ok for our use case
+                            .unique_by(|m| match m {
+                                Ok(m) => Some(m.clone()),
+                                Err(_) => None,
+                            })
+                            .map_ok(move |m| Match {
+                                node: m.node,
+                                anno_key: const_output.clone(),
+                            })
+                            .map(|it| it.map_err(GraphAnnisError::from)),
                     )
                 }
             } else {
-                Box::new(base_it.map(Ok))
+                Box::new(base_it.map(|it| it.map_err(GraphAnnisError::from)))
             };
 
         let est_output = match val {
@@ -696,28 +706,36 @@ impl<'a> NodeSearch<'a> {
             None
         };
 
-        let base_it: Box<dyn Iterator<Item = Match>> =
+        let base_it: Box<dyn Iterator<Item = Result<Match>>> =
             if let Some(const_output) = const_output.clone() {
                 let is_unique = db.get_node_annos().get_qnames(&qname.1).len() <= 1;
                 // Replace the result annotation with a constant value.
                 // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
                 if is_unique {
-                    Box::new(base_it.map(move |m| Match {
-                        node: m.node,
-                        anno_key: const_output.clone(),
-                    }))
-                } else {
                     Box::new(
                         base_it
-                            .map(move |m| Match {
+                            .map_ok(move |m| Match {
                                 node: m.node,
                                 anno_key: const_output.clone(),
                             })
-                            .unique(),
+                            .map(|it| it.map_err(GraphAnnisError::from)),
+                    )
+                } else {
+                    Box::new(
+                        base_it
+                            .unique_by(|m| match m {
+                                Ok(m) => Some(m.clone()),
+                                Err(_) => None,
+                            })
+                            .map_ok(move |m| Match {
+                                node: m.node,
+                                anno_key: const_output.clone(),
+                            })
+                            .map(|it| it.map_err(GraphAnnisError::from)),
                     )
                 }
             } else {
-                base_it
+                Box::new(base_it.map(|it| it.map_err(GraphAnnisError::from)))
             };
 
         let est_output = if negated {
@@ -735,7 +753,7 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
-        let it = base_it.map(|n| Ok(smallvec![n]));
+        let it = base_it.map_ok(|n| smallvec![n]);
 
         Ok(NodeSearch {
             it: Box::new(it),
@@ -762,13 +780,12 @@ impl<'a> NodeSearch<'a> {
         query_fragment: &str,
         node_nr: usize,
     ) -> Result<NodeSearch<'a>> {
-        let it_base: Box<dyn Iterator<Item = Match>> = match val {
+        let it_base: Box<dyn Iterator<Item = Result<Match>>> = match val {
             ValueSearch::Any => {
-                let it = db.get_node_annos().exact_anno_search(
-                    Some(&TOKEN_KEY.ns),
-                    &TOKEN_KEY.name,
-                    None.into(),
-                );
+                let it = db
+                    .get_node_annos()
+                    .exact_anno_search(Some(&TOKEN_KEY.ns), &TOKEN_KEY.name, None.into())
+                    .map(|it| it.map_err(GraphAnnisError::from));
                 Box::new(it)
             }
             ValueSearch::Some(ref val) => {
@@ -786,7 +803,7 @@ impl<'a> NodeSearch<'a> {
                         ValueSearch::Some(val),
                     )
                 };
-                Box::new(it)
+                Box::new(it.map(|it| it.map_err(GraphAnnisError::from)))
             }
             ValueSearch::NotSome(ref val) => {
                 let it = if match_regex {
@@ -803,7 +820,7 @@ impl<'a> NodeSearch<'a> {
                         ValueSearch::NotSome(val),
                     )
                 };
-                Box::new(it)
+                Box::new(it.map(|it| it.map_err(GraphAnnisError::from)))
             }
         };
 
@@ -821,7 +838,7 @@ impl<'a> NodeSearch<'a> {
                 })
                 .collect();
 
-            let it = it_base.filter(move |n| {
+            let it = it_base.filter_ok(move |n| {
                 for cov in cov_gs.iter() {
                     if cov.get_outgoing_edges(n.node).next().is_some() {
                         return false;
@@ -834,14 +851,12 @@ impl<'a> NodeSearch<'a> {
             it_base
         };
         // map to vector
-        let it = it_base
-            .map(move |n| {
-                smallvec![Match {
-                    node: n.node,
-                    anno_key: NODE_TYPE_KEY.clone(),
-                }]
-            })
-            .map(Ok);
+        let it = it_base.map_ok(move |n| {
+            smallvec![Match {
+                node: n.node,
+                anno_key: NODE_TYPE_KEY.clone(),
+            }]
+        });
 
         // TODO: is_leaf should be part of the estimation
         let est_output = match val {
@@ -931,11 +946,12 @@ impl<'a> NodeSearch<'a> {
 
         let filter_func: MatchValueFilterFunc = Box::new(move |m, _| {
             for cov in cov_gs.iter() {
-                if cov.get_outgoing_edges(m.node).next().is_some() {
-                    return false;
+                if let Some(edge) = cov.get_outgoing_edges(m.node).next() {
+                    edge?;
+                    return Ok(false);
                 }
             }
-            true
+            Ok(true)
         });
         filters.push(filter_func);
 
@@ -996,7 +1012,7 @@ impl<'a> NodeSearch<'a> {
                                     name,
                                     val.as_ref().map(String::as_str).into(),
                                 )
-                                .map(|m: Match| Ok(m.node));
+                                .map_ok(|m| m.node);
                             Box::new(it)
                         } else {
                             // for each component get the all its source nodes
@@ -1026,15 +1042,19 @@ impl<'a> NodeSearch<'a> {
                 }
             })
             .flatten_ok()
-            .filter_map_ok(move |m: Match| -> Option<MatchGroup> {
-                // only include the nodes that fullfill all original node search predicates
-                for cond in &node_search_desc_2.cond {
-                    if !cond(&m, db.get_node_annos()) {
-                        return None;
+            .map(move |m| match m {
+                Ok(m) => {
+                    // only include the nodes that fullfill all original node search predicates
+                    for cond in &node_search_desc_2.cond {
+                        if !cond(&m, db.get_node_annos())? {
+                            return Ok(None);
+                        }
                     }
+                    Ok(Some(smallvec![m]))
                 }
-                Some(smallvec![m])
+                Err(e) => Err(GraphAnnisError::from(e)),
             })
+            .filter_map_ok(|m| m)
             .map(|m| m.map_err(GraphAnnisError::from));
         let mut new_desc = desc.cloned();
         if let Some(ref mut new_desc) = new_desc {

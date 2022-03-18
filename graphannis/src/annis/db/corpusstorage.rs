@@ -31,6 +31,7 @@ use graphannis_core::{
     types::{AnnoKey, Annotation, Component, Edge, NodeID},
     util::memory_estimation,
 };
+use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, CONTROLS};
 use smartstring::alias::String as SmartString;
@@ -1060,18 +1061,19 @@ impl CorpusStorage {
         };
         // Find all nodes of the type "file"
         let node_annos: &mut dyn AnnotationStorage<NodeID> = graph.get_node_annos_mut();
-        let file_nodes: Vec<NodeID> = node_annos
+        let file_nodes: Result<Vec<_>> = node_annos
             .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
-            .map(|m| m.node)
+            .map_ok(|m| m.node)
+            .map(|n| n.map_err(GraphAnnisError::from))
             .collect();
-        for node in file_nodes {
+        for node in file_nodes? {
             // Get the linked file for this node
-            if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key) {
+            if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key)? {
                 let original_path = old_base_path
                     .canonicalize()?
                     .join(&PathBuf::from(original_path.as_ref()));
                 if original_path.is_file() {
-                    if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY) {
+                    if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY)? {
                         // Create a new file name based on the node name and copy the file
                         let new_path = new_base_path.join(node_name.as_ref());
                         if let Some(parent) = new_path.parent() {
@@ -1101,7 +1103,7 @@ impl CorpusStorage {
         &'a self,
         corpus_name: &'a str,
         graph: &'a AnnotationGraph,
-    ) -> Result<Option<impl Iterator<Item = (String, PathBuf)> + 'a>> {
+    ) -> Result<Option<impl Iterator<Item = Result<(String, PathBuf)>> + 'a>> {
         let linked_file_key = AnnoKey {
             ns: ANNIS_NS.into(),
             name: "file".into(),
@@ -1116,20 +1118,28 @@ impl CorpusStorage {
             let it = node_annos
                 .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
                 // Get the linked file for this node
-                .filter_map(move |m| {
-                    if let Some(node_name) = node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY)
-                    {
-                        if let Some(file_path_value) =
-                            node_annos.get_value_for_item(&m.node, &linked_file_key)
-                        {
-                            return Some((
-                                node_name.to_string(),
-                                base_path.join(file_path_value.to_string()),
-                            ));
-                        }
+                .map(move |m| match m {
+                    Ok(m) => node_annos
+                        .get_value_for_item(&m.node, &NODE_NAME_KEY)
+                        .map(|node_name| (m, node_name)),
+                    Err(e) => Err(e),
+                })
+                .map(move |result| match result {
+                    Ok((m, node_name)) => node_annos
+                        .get_value_for_item(&m.node, &linked_file_key)
+                        .map(|file_path_value| (node_name, file_path_value)),
+                    Err(e) => Err(e),
+                })
+                .filter_map_ok(move |(node_name, file_path_value)| {
+                    if let (Some(node_name), Some(file_path_value)) = (node_name, file_path_value) {
+                        return Some((
+                            node_name.to_string(),
+                            base_path.join(file_path_value.to_string()),
+                        ));
                     }
                     None
-                });
+                })
+                .map(|item| item.map_err(GraphAnnisError::from));
             Ok(Some(it))
         } else {
             Ok(None)
@@ -1143,7 +1153,8 @@ impl CorpusStorage {
         graph: &AnnotationGraph,
     ) -> Result<()> {
         if let Some(it_files) = self.get_linked_files(corpus_name, graph)? {
-            for (node_name, original_path) in it_files {
+            for file in it_files {
+                let (node_name, original_path) = file?;
                 let node_name: String = node_name;
                 if original_path.is_file() {
                     // Create a new file name based on the node name and copy the file
@@ -1255,7 +1266,8 @@ impl CorpusStorage {
 
         // Insert all linked files into the ZIP file
         if let Some(it_files) = self.get_linked_files(corpus_name.as_ref(), graph)? {
-            for (node_name, original_path) in it_files {
+            for file in it_files {
+                let (node_name, original_path) = file?;
                 let node_name: String = node_name;
 
                 zip.start_file(base_path.join(&node_name).to_string_lossy(), options)?;
@@ -1587,7 +1599,7 @@ impl CorpusStorage {
                     let m: &Match = &m[0];
                     if let Some(node_name) = db
                         .get_node_annos()
-                        .get_value_for_item(&m.node, &NODE_NAME_KEY)
+                        .get_value_for_item(&m.node, &NODE_NAME_KEY)?
                     {
                         let doc_path = if let Some((before, _)) = node_name.rsplit_once('#') {
                             before
@@ -1643,7 +1655,11 @@ impl CorpusStorage {
                 ValueSearch::Any,
             );
             if let Some(m) = relannis_version_it.next() {
-                if let Some(v) = db.get_node_annos().get_value_for_item(&m.node, &m.anno_key) {
+                let m = m?;
+                if let Some(v) = db
+                    .get_node_annos()
+                    .get_value_for_item(&m.node, &m.anno_key)?
+                {
                     if v == "3.3" {
                         relannis_version_33 = true;
                     }
@@ -1841,7 +1857,7 @@ impl CorpusStorage {
 
                     if let Some(name) = db
                         .get_node_annos()
-                        .get_value_for_item(&singlematch.node, &NODE_NAME_KEY)
+                        .get_value_for_item(&singlematch.node, &NODE_NAME_KEY)?
                     {
                         if quirks_mode {
                             // Unescape and re-escape with quirks-mode compatible character encoding set
@@ -2259,7 +2275,7 @@ impl CorpusStorage {
                     if *node_ref < mgroup.len() {
                         let m: &Match = &mgroup[*node_ref];
                         for k in anno_keys.iter() {
-                            if let Some(val) = db.get_node_annos().get_value_for_item(&m.node, k) {
+                            if let Some(val) = db.get_node_annos().get_value_for_item(&m.node, k)? {
                                 tuple_val = val.to_string();
                             }
                         }
