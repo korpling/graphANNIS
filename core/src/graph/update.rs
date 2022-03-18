@@ -114,7 +114,7 @@ impl GraphUpdate {
         let new_event_counter = self.event_counter + 1;
         let key = new_event_counter.create_key();
         let value = self.serialization.serialize(&event)?;
-        let mut changeset = self.changesets.lock().expect("Lock poisining");
+        let mut changeset = self.changesets.lock()?;
         if let ChangeSet::InProgress { table_builder, .. } =
             current_inprogress_changeset(&mut changeset)?
         {
@@ -202,7 +202,7 @@ pub struct GraphUpdateIterator {
 
 impl GraphUpdateIterator {
     fn new(g: &GraphUpdate) -> Result<GraphUpdateIterator> {
-        let mut changesets = g.changesets.lock().expect("Lock poisining");
+        let mut changesets = g.changesets.lock()?;
 
         finish_all_changesets(&mut changesets)?;
 
