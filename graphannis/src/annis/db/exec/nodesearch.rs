@@ -1007,17 +1007,23 @@ impl<'a> NodeSearch<'a> {
                     }
                 },
             )
-            .map_ok(move |node: NodeID| {
-                // fetch annotation candidates for the node based on the original description
-                let node_search_desc = node_search_desc_1.clone();
-                db.get_node_annos()
-                    .get_all_keys_for_item(
-                        &node,
-                        node_search_desc.qname.0.as_deref(),
-                        node_search_desc.qname.1.as_deref(),
-                    )
-                    .into_iter()
-                    .map(move |anno_key| Match { node, anno_key })
+            .map(move |node| {
+                match node {
+                    Ok(node) => {
+                        // fetch annotation candidates for the node based on the original description
+                        let node_search_desc = node_search_desc_1.clone();
+                        let all_keys = db.get_node_annos().get_all_keys_for_item(
+                            &node,
+                            node_search_desc.qname.0.as_deref(),
+                            node_search_desc.qname.1.as_deref(),
+                        )?;
+                        let it = all_keys
+                            .into_iter()
+                            .map(move |anno_key| Match { node, anno_key });
+                        Ok(it)
+                    }
+                    Err(e) => Err(e),
+                }
             })
             .flatten_ok()
             .filter_map_ok(move |m: Match| -> Option<MatchGroup> {

@@ -2686,7 +2686,7 @@ fn create_subgraph_edge(
                     let target = target?;
                     if !db
                         .get_node_annos()
-                        .get_all_keys_for_item(&target, None, None)
+                        .get_all_keys_for_item(&target, None, None)?
                         .is_empty()
                     {
                         let e = Edge {

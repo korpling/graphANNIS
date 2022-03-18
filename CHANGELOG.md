@@ -7,32 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Refactored the basic `GraphStorage` APIs to handle errors.
-  Previously, we used mostly main memory containers which had
-  an API that could not fail. This was reflected in the `GraphStorage` 
-  APIs, which directly returned the result or an iterator over 
-  the non-fallible results. 
-  With the addition of disk-based implementations, this API model 
-  was not possible to implement without using panics when repeated 
-  access to the disk failed.
-  Some of the API that was changed was user visible when using
-  the `graphannis-core` crate (and thus the C-API), so this release
-  is not technically backwards-compatible.
-  Adapting to the updated API should be restricted to handle the errors 
-  returned by the functions.
+- Refactored the basic `GraphStorage` and `AnnotationStorage` APIs to handle
+  errors. Previously, we used mostly main memory containers which had an API
+  that could not fail. This was reflected in the `GraphStorage` and
+  `AnnotationStorage`  APIs, which directly returned the result or an iterator
+  over the non-fallible results. With the addition of disk-based
+  implementations, this API model was not possible to implement without using
+  panics when repeated access to the disk failed. Some of the API that was
+  changed was user visible when using the `graphannis-core` crate (and thus the
+  C-API), so this release is not technically backwards-compatible. Adapting to
+  the updated API should be restricted to handle the errors returned by the
+  functions.
 
 ### Fixed
 
-- More efficient node path extraction in `count_extra` function and when sorting the matches.
-- Avoid large memory consumption when importing GraphML files by resetting an internal 
-  buffer on each XML event.
-- Limit the number of disk maps for the `GraphUpdate` so there are less issues with large
-  corpora where the maximum number of open files per process might be reached.
-- Performance improvements when importing large corpora in disk-based mode.
-  This optimizes the DiskMap to use a C0 (normal in memory BTree), a C1 (on disk BTree)
-  and a C2 map when serialized to disk. On compacting, the entries are only written
-  to C1 in O(n*log(n)). Before, multiple on disk maps might need to be merged, which
-  had a much worse complexity. The C1 file uses the transient-btree-index crate.
+- More efficient node path extraction in `count_extra` function and when sorting
+  the matches.
+- Avoid large memory consumption when importing GraphML files by resetting an
+  internal buffer on each XML event.
+- Limit the number of disk maps for the `GraphUpdate` so there are less issues
+  with large corpora where the maximum number of open files per process might be
+  reached.
+- Performance improvements when importing large corpora in disk-based mode. This
+  optimizes the DiskMap to use a C0 (normal in memory BTree), a C1 (on disk
+  BTree) and a C2 map when serialized to disk. On compacting, the entries are
+  only written to C1 in O(n*log(n)). Before, multiple on disk maps might need to
+  be merged, which had a much worse complexity. The C1 file uses the
+  transient-btree-index crate.
 
 ## [1.5.0] - 2022-01-06
 

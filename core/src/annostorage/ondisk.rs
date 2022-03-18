@@ -692,7 +692,7 @@ where
         item: &T,
         ns: Option<&str>,
         name: Option<&str>,
-    ) -> Vec<Arc<AnnoKey>> {
+    ) -> Result<Vec<Arc<AnnoKey>>> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 let key = Arc::from(AnnoKey {
@@ -700,40 +700,43 @@ where
                     name: name.into(),
                 });
                 if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
-                    let does_contain_key = get_or_panic(|| {
-                        self.by_container
-                            .contains_key(&create_by_container_key(item.clone(), symbol_id))
-                    });
+                    let does_contain_key = self
+                        .by_container
+                        .contains_key(&create_by_container_key(item.clone(), symbol_id))?;
                     if does_contain_key {
-                        return vec![key.clone()];
+                        return Ok(vec![key.clone()]);
                     }
                 }
-                vec![]
+                Ok(vec![])
             } else {
                 // get all qualified names for the given annotation name
-                let res: Vec<Arc<AnnoKey>> = self
+                let res: Result<Vec<Arc<AnnoKey>>> = self
                     .get_qnames(name)
                     .into_iter()
-                    .filter(|key| {
-                        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
-                            get_or_panic(|| {
-                                self.by_container
-                                    .contains_key(&create_by_container_key(item.clone(), symbol_id))
-                            })
+                    .map(|key| {
+                        if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
+                            let does_contain_key = self
+                                .by_container
+                                .contains_key(&create_by_container_key(item.clone(), symbol_id))?;
+                            Ok((does_contain_key, key))
                         } else {
-                            false
+                            Ok((false, key))
                         }
                     })
-                    .map(Arc::from)
+                    .filter_ok(|(does_contain_key, _)| *does_contain_key)
+                    .map_ok(|(_, key)| Arc::from(key))
                     .collect();
-                res
+                let res = res?;
+                Ok(res)
             }
         } else {
             // no annotation name given, return all
-            self.get_annotations_for_item(item)
+            let result = self
+                .get_annotations_for_item(item)
                 .into_iter()
                 .map(|anno| Arc::from(anno.key))
-                .collect()
+                .collect();
+            Ok(result)
         }
     }
 

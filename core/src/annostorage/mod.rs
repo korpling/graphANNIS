@@ -132,7 +132,7 @@ where
         item: &T,
         ns: Option<&str>,
         name: Option<&str>,
-    ) -> Vec<Arc<AnnoKey>>;
+    ) -> Result<Vec<Arc<AnnoKey>>>;
 
     /// Remove the annotation given by its `key` for a specific `item`
     /// Returns the value for that annotation, if it existed.

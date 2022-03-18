@@ -466,7 +466,7 @@ where
             let mut matches = Vec::new();
             for item in it {
                 let item = item?;
-                let all_keys = self.get_all_keys_for_item(&item, None, None);
+                let all_keys = self.get_all_keys_for_item(&item, None, None)?;
                 for anno_key in all_keys {
                     matches.push((item.clone(), anno_key).into());
                 }
@@ -617,7 +617,7 @@ where
         item: &T,
         ns: Option<&str>,
         name: Option<&str>,
-    ) -> Vec<Arc<AnnoKey>> {
+    ) -> Result<Vec<Arc<AnnoKey>>> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // fully qualified search
@@ -631,12 +631,12 @@ where
                             .binary_search_by_key(&key_symbol, |a| a.key)
                             .is_ok()
                         {
-                            return vec![Arc::from(key)];
+                            return Ok(vec![Arc::from(key)]);
                         }
                     }
                 }
 
-                return vec![];
+                return Ok(vec![]);
             } else {
                 // get all qualified names for the given annotation name
                 let res: Vec<Arc<AnnoKey>> = self
@@ -645,7 +645,7 @@ where
                     .filter(|key| self.get_value_for_item(item, key).is_some())
                     .map(Arc::from)
                     .collect();
-                res
+                Ok(res)
             }
         } else if let Some(all_annos) = self.by_container.get(item) {
             // no annotation name given, return all
@@ -655,10 +655,10 @@ where
                     result.push(key);
                 }
             }
-            result
+            Ok(result)
         } else {
             // return empty result if not found
-            return vec![];
+            return Ok(vec![]);
         }
     }
 
