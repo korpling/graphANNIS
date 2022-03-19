@@ -23,23 +23,6 @@ const BLOCK_MAX_SIZE: usize = 4 * KB;
 /// Uses a cache for each disk table with 1 MB capacity.
 pub const DEFAULT_BLOCK_CACHE_CAPACITY: usize = MB;
 
-/// Repeatedly call the given function and get the result, or panic if the error is permanent.
-fn get_or_panic<F, R>(f: F) -> R
-where
-    F: Fn() -> Result<R>,
-{
-    let mut last_err = None;
-    for _ in 0..5 {
-        match f() {
-            Ok(result) => return result,
-            Err(e) => last_err = Some(e),
-        }
-        // In case this is an intermediate error, wait some time before trying again
-        std::thread::sleep(std::time::Duration::from_secs(1));
-    }
-    panic!("Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.\nCause:\n{:?}", last_err.unwrap())
-}
-
 #[derive(Serialize, Deserialize)]
 struct Entry<K, V>
 where
@@ -297,7 +280,10 @@ where
         // Check if C0, C1 or C2 are the only non-empty maps and return a specialized iterator
         if let Some(c1) = &self.c1 {
             if self.c0.is_empty() && self.c2.is_none() {
-                let c1_range = get_or_panic(|| c1.range(range.clone()).map_err(|e| e.into()));
+                let c1_range = match c1.range(range.clone()).map_err(|e| e.into()) {
+                    Ok(c1_range) => c1_range,
+                    Err(e) => return Box::new(std::iter::once(Err(e))),
+                };
                 // Return iterator over C1 that skips the tombstone entries
                 let it = c1_range
                     .filter_map_ok(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone())))
