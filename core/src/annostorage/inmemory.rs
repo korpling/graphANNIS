@@ -75,11 +75,11 @@ impl<
         self.anno_values.clear();
     }
 
-    fn create_sparse_anno(&mut self, orig: Annotation) -> SparseAnnotation {
-        SparseAnnotation {
-            key: self.anno_keys.insert(orig.key),
-            val: self.anno_values.insert(orig.val),
-        }
+    fn create_sparse_anno(&mut self, orig: Annotation) -> Result<SparseAnnotation> {
+        let key = self.anno_keys.insert(orig.key)?;
+        let val = self.anno_values.insert(orig.val)?;
+
+        Ok(SparseAnnotation { key, val })
     }
 
     fn create_annotation_from_sparse(&self, orig: &SparseAnnotation) -> Option<Annotation> {
@@ -216,7 +216,7 @@ where
 {
     fn insert(&mut self, item: T, anno: Annotation) -> Result<()> {
         let orig_anno_key = anno.key.clone();
-        let anno = self.create_sparse_anno(anno);
+        let anno = self.create_sparse_anno(anno)?;
 
         let existing_anno = {
             let existing_item_entry = self

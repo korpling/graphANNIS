@@ -54,6 +54,8 @@ pub enum GraphAnnisCoreError {
     LockPoisoning(String),
     #[error(transparent)]
     FromUtf8Error(#[from] FromUtf8Error),
+    #[error("Too man unique items added to symbol table")]
+    SymbolTableOverflow,
     #[error(transparent)]
     Other(#[from] Box<dyn std::error::Error + Send + Sync>),
 }

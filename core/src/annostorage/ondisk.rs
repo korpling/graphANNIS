@@ -322,7 +322,7 @@ where
 {
     fn insert(&mut self, item: T, anno: Annotation) -> Result<()> {
         // make sure the symbol ID for this annotation key is created
-        let anno_key_symbol = self.anno_key_symbols.insert(anno.key.clone());
+        let anno_key_symbol = self.anno_key_symbols.insert(anno.key.clone())?;
 
         // insert the value into main tree
         let by_container_key = create_by_container_key(item.clone(), anno_key_symbol);

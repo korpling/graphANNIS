@@ -1,3 +1,4 @@
+use crate::errors::{GraphAnnisCoreError, Result};
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::util::memory_estimation::shallow_size_of_fxhashmap;
 use rustc_hash::FxHashMap;
@@ -57,11 +58,11 @@ where
         }
     }
 
-    pub fn insert(&mut self, val: T) -> usize {
+    pub fn insert(&mut self, val: T) -> Result<usize> {
         let val = Arc::from(val);
         {
             if let Some(existing_idx) = self.by_value.get(&val) {
-                return *existing_idx;
+                return Ok(*existing_idx);
             }
         }
         // non-existing: add a new value
@@ -73,12 +74,11 @@ where
             self.by_id.push(Some(val.clone()));
             self.by_id.len() - 1
         } else {
-            // TODO if no empty place found, return an error, do not panic
-            panic!("Too man unique items added to symbol table");
+            return Err(GraphAnnisCoreError::SymbolTableOverflow);
         };
         self.by_value.insert(val, id);
 
-        id
+        Ok(id)
     }
 
     pub fn remove(&mut self, symbol: usize) -> Option<Arc<T>> {
@@ -141,9 +141,9 @@ mod tests {
     #[test]
     fn insert_and_get() {
         let mut s = SymbolTable::<String>::new();
-        let id1 = s.insert("abc".to_owned());
-        let id2 = s.insert("def".to_owned());
-        let id3 = s.insert("def".to_owned());
+        let id1 = s.insert("abc".to_owned()).unwrap();
+        let id2 = s.insert("def".to_owned()).unwrap();
+        let id3 = s.insert("def".to_owned()).unwrap();
 
         assert_eq!(2, s.len());
 
@@ -164,11 +164,11 @@ mod tests {
     fn insert_clear_insert_get() {
         let mut s = SymbolTable::<String>::new();
 
-        s.insert("abc".to_owned());
+        s.insert("abc".to_owned()).unwrap();
         assert_eq!(1, s.len());
         s.clear();
         assert_eq!(0, s.len());
-        s.insert("abc".to_owned());
+        s.insert("abc".to_owned()).unwrap();
         assert_eq!(1, s.len());
     }
 }
