@@ -9,7 +9,6 @@ use graphannis_core::{
     graph::{ANNIS_NS, NODE_NAME},
     types::NodeID,
 };
-use itertools::Itertools;
 
 use crate::{
     annis::{
