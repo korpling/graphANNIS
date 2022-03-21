@@ -264,10 +264,6 @@ const char *annis_error_get_kind(const AnnisErrorList *ptr, size_t i);
  * - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
  * - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
  * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
- *
- * # Safety
- *
- * This functions dereferences the `err` pointer and is therefore unsafe.
  */
 struct AnnisCorpusStorage *annis_cs_with_auto_cache_size(const char *db_dir,
                                                          bool use_parallel_joins,
@@ -280,10 +276,6 @@ struct AnnisCorpusStorage *annis_cs_with_auto_cache_size(const char *db_dir,
  * - `max_cache_size` - Fixed maximum size of the cache in bytes.
  * - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
  * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
- *
- * # Safety
- *
- * This functions dereferences the `err` pointer and is therefore unsafe.
  */
 struct AnnisCorpusStorage *annis_cs_with_max_cache_size(const char *db_dir,
                                                         uintptr_t max_cache_size,
@@ -635,9 +627,7 @@ void annis_str_free(char *s);
  * Returns a pointer to the next node ID for the iterator given by the `ptr` argument
  * or `NULL` if iterator is empty.
  *
- * # Safety
- *
- * This functions dereferences the `err` pointer and is therefore unsafe.
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
  */
 AnnisNodeID *annis_iter_nodeid_next(struct AnnisIterPtr_NodeID *ptr, AnnisErrorList **err);
 
@@ -805,6 +795,8 @@ struct AnnisIterPtr_NodeID *annis_graph_nodes_by_type(const AnnisAnnotationGraph
 
 /**
  * Return a vector of all annotations for the given `node` in the graph `g`.
+ *
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
  */
 struct AnnisVec_Annotation *annis_graph_annotations_for_node(const AnnisAnnotationGraph *g,
                                                              AnnisNodeID node,
@@ -824,9 +816,7 @@ struct AnnisVec_AnnotationComponent *annis_graph_all_components_by_type(const An
 /**
  * Return a vector of all outgoing edges for the graph `g`, the `source` node and the given `component`.
  *
- * # Safety
- *
- * This functions dereferences the `err` pointer and is therefore unsafe.
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
  */
 struct AnnisVec_Edge *annis_graph_outgoing_edges(const AnnisAnnotationGraph *g,
                                                  AnnisNodeID source,
@@ -835,6 +825,8 @@ struct AnnisVec_Edge *annis_graph_outgoing_edges(const AnnisAnnotationGraph *g,
 
 /**
  * Return a vector of annnotations for the given `edge` in the `component` of graph `g.
+ *
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
  */
 struct AnnisVec_Annotation *annis_graph_annotations_for_edge(const AnnisAnnotationGraph *g,
                                                              struct AnnisEdge edge,

@@ -1,9 +1,5 @@
 use super::{cast_const, cstr};
-use crate::{
-    cerror::{self, ErrorList},
-    data::IterPtr,
-    map_cerr,
-};
+use crate::{cerror::ErrorList, data::IterPtr, map_cerr};
 use graphannis::{
     errors::GraphAnnisError,
     graph::{Annotation, Edge, Match, NodeID},
@@ -57,6 +53,8 @@ pub extern "C" fn annis_graph_nodes_by_type(
 }
 
 /// Return a vector of all annotations for the given `node` in the graph `g`.
+///
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graph_annotations_for_node(
     g: *const AnnotationGraph,
@@ -96,11 +94,9 @@ pub extern "C" fn annis_graph_all_components_by_type(
 
 /// Return a vector of all outgoing edges for the graph `g`, the `source` node and the given `component`.
 ///
-/// # Safety
-///
-/// This functions dereferences the `err` pointer and is therefore unsafe.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
-pub unsafe extern "C" fn annis_graph_outgoing_edges(
+pub extern "C" fn annis_graph_outgoing_edges(
     g: *const AnnotationGraph,
     source: NodeID,
     component: *const AnnotationComponent,
@@ -113,16 +109,8 @@ pub unsafe extern "C" fn annis_graph_outgoing_edges(
 
     if let Some(gs) = db.get_graphstorage(component) {
         for target in gs.get_outgoing_edges(source) {
-            match target {
-                Ok(target) => {
-                    result.push(Edge { source, target });
-                }
-                Err(e) => {
-                    if !err.is_null() {
-                        *err = cerror::new(e.into());
-                    }
-                    return std::ptr::null_mut();
-                }
+            if let Some(target) = map_cerr(target, err) {
+                result.push(Edge { source, target })
             }
         }
     }
@@ -131,6 +119,8 @@ pub unsafe extern "C" fn annis_graph_outgoing_edges(
 }
 
 /// Return a vector of annnotations for the given `edge` in the `component` of graph `g.
+///
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_graph_annotations_for_edge(
     g: *const AnnotationGraph,

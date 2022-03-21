@@ -1,4 +1,5 @@
-use crate::cerror::{self, ErrorList};
+use crate::cerror::ErrorList;
+use crate::map_cerr;
 
 use super::Matrix;
 use super::{cast_const, cast_mut, cstr};
@@ -41,22 +42,12 @@ pub unsafe extern "C" fn annis_str_free(s: *mut c_char) {
 
 pub type IterPtr<T> = Box<dyn Iterator<Item = Result<T>>>;
 
-unsafe fn iter_next<T>(
-    ptr: *mut Box<dyn Iterator<Item = Result<T>>>,
-    err: *mut *mut ErrorList,
-) -> *mut T {
+fn iter_next<T>(ptr: *mut Box<dyn Iterator<Item = Result<T>>>, err: *mut *mut ErrorList) -> *mut T {
     let it: &mut Box<dyn Iterator<Item = Result<T>>> = cast_mut(ptr);
     if let Some(v) = it.next() {
-        match v {
-            Ok(v) => {
-                return Box::into_raw(Box::new(v));
-            }
-            Err(e) => {
-                if !err.is_null() {
-                    *err = cerror::new(e.into());
-                }
-            }
-        };
+        if let Some(v) = map_cerr(v, err) {
+            return Box::into_raw(Box::new(v));
+        }
     }
     std::ptr::null_mut()
 }
@@ -64,11 +55,9 @@ unsafe fn iter_next<T>(
 /// Returns a pointer to the next node ID for the iterator given by the `ptr` argument
 /// or `NULL` if iterator is empty.
 ///
-/// # Safety
-///
-/// This functions dereferences the `err` pointer and is therefore unsafe.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
-pub unsafe extern "C" fn annis_iter_nodeid_next(
+pub extern "C" fn annis_iter_nodeid_next(
     ptr: *mut IterPtr<NodeID>,
     err: *mut *mut ErrorList,
 ) -> *mut NodeID {

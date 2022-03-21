@@ -1,4 +1,3 @@
-use super::cerror;
 use super::cerror::ErrorList;
 use super::Matrix;
 use super::{cast_const, cast_mut, cstr, map_cerr};
@@ -23,12 +22,8 @@ use std::path::PathBuf;
 /// - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
 /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-///
-/// # Safety
-///
-/// This functions dereferences the `err` pointer and is therefore unsafe.
 #[no_mangle]
-pub unsafe extern "C" fn annis_cs_with_auto_cache_size(
+pub extern "C" fn annis_cs_with_auto_cache_size(
     db_dir: *const libc::c_char,
     use_parallel_joins: bool,
     err: *mut *mut ErrorList,
@@ -39,15 +34,9 @@ pub unsafe extern "C" fn annis_cs_with_auto_cache_size(
 
     let s = CorpusStorage::with_auto_cache_size(&db_dir_path, use_parallel_joins);
 
-    match s {
-        Ok(result) => Box::into_raw(Box::new(result)),
-        Err(e) => {
-            if !err.is_null() {
-                *err = cerror::new(e.into());
-            }
-            std::ptr::null_mut()
-        }
-    }
+    map_cerr(s, err)
+        .map(|cs| Box::into_raw(Box::new(cs)))
+        .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Create a new corpus storage with an manually defined maximum cache size.
@@ -56,12 +45,8 @@ pub unsafe extern "C" fn annis_cs_with_auto_cache_size(
 /// - `max_cache_size` - Fixed maximum size of the cache in bytes.
 /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-///
-/// # Safety
-///
-/// This functions dereferences the `err` pointer and is therefore unsafe.
 #[no_mangle]
-pub unsafe extern "C" fn annis_cs_with_max_cache_size(
+pub extern "C" fn annis_cs_with_max_cache_size(
     db_dir: *const libc::c_char,
     max_cache_size: usize,
     use_parallel_joins: bool,
@@ -77,15 +62,9 @@ pub unsafe extern "C" fn annis_cs_with_max_cache_size(
         use_parallel_joins,
     );
 
-    match s {
-        Ok(result) => Box::into_raw(Box::new(result)),
-        Err(e) => {
-            if !err.is_null() {
-                *err = cerror::new(e.into());
-            }
-            std::ptr::null_mut()
-        }
-    }
+    map_cerr(s, err)
+        .map(|cs| Box::into_raw(Box::new(cs)))
+        .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Frees the reference to the corpus storage object.
