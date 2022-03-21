@@ -146,7 +146,7 @@ where
     fn clear(&mut self) -> Result<()>;
 
     /// Get all qualified annotation names (including namespace) for a given annotation name
-    fn get_qnames(&self, name: &str) -> Vec<AnnoKey>;
+    fn get_qnames(&self, name: &str) -> Result<Vec<AnnoKey>>;
 
     /// Get all annotations for an `item` (node or edge).
     fn get_annotations_for_item(&self, item: &T) -> Result<Vec<Annotation>>;
@@ -225,7 +225,7 @@ where
         name: &str,
         lower_val: &str,
         upper_val: &str,
-    ) -> usize;
+    ) -> Result<usize>;
 
     /// Estimate the number of results for an [annotation regular expression search](#tymethod.regex_anno_search)
     /// for a given pattern.
@@ -233,12 +233,12 @@ where
     /// - `ns` - If given, only annotations having this namespace are considered.
     /// - `name`  - Only annotations with this name are considered.
     /// - `pattern`- The regular expression pattern.
-    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> usize;
+    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> Result<usize>;
 
     /// Estimate the most frequent value for a given annotation `name` with an optional namespace (`ns`).
     ///
     /// If more than one qualified annotation name matches the defnition, the more frequent value is used.
-    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Option<Cow<str>>;
+    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Result<Option<Cow<str>>>;
 
     /// Return a list of all existing values for a given annotation `key`.
     /// If the `most_frequent_first` parameter is true, the results are sorted by their frequency.

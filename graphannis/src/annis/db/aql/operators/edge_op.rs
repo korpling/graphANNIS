@@ -50,7 +50,7 @@ impl BaseEdgeOp {
                 &NODE_TYPE_KEY.name,
                 "node",
                 "node",
-            ),
+            )?,
             inverse: false,
         })
     }
@@ -367,7 +367,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                                     name,
                                     val,
                                     val,
-                                )
+                                )?
                             } else {
                                 anno_storage.number_of_annotations_by_name(
                                     ns.as_ref().map(String::as_str),
@@ -386,10 +386,10 @@ impl BinaryOperatorBase for BaseEdgeOp {
                                     name,
                                     val,
                                     val,
-                                )
+                                )?
                         }
                         EdgeAnnoSearchSpec::RegexValue { val, ns, name } => anno_storage
-                            .guess_max_count_regex(ns.as_ref().map(String::as_str), name, val),
+                            .guess_max_count_regex(ns.as_ref().map(String::as_str), name, val)?,
                         EdgeAnnoSearchSpec::NotRegexValue { val, ns, name } => {
                             let total = anno_storage.number_of_annotations_by_name(
                                 ns.as_ref().map(String::as_str),
@@ -400,7 +400,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                                     ns.as_ref().map(String::as_str),
                                     name,
                                     val,
-                                )
+                                )?
                         }
                     };
                     let g_sel: f64 = (guessed_count as f64) / (num_of_annos as f64);

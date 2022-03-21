@@ -100,7 +100,7 @@ impl EdgeAnnoSearchSpec {
                 ref val,
             } => {
                 let result = if let Some(val) = val {
-                    anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val)
+                    anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val)?
                 } else {
                     anno_storage
                         .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)?
@@ -115,14 +115,23 @@ impl EdgeAnnoSearchSpec {
                 let total = anno_storage
                     .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)?;
                 let result = total
-                    - anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val);
+                    - anno_storage.guess_max_count(
+                        ns.as_ref().map(String::as_str),
+                        name,
+                        val,
+                        val,
+                    )?;
                 Ok(result)
             }
             EdgeAnnoSearchSpec::RegexValue {
                 ref ns,
                 ref name,
                 ref val,
-            } => Ok(anno_storage.guess_max_count_regex(ns.as_ref().map(String::as_str), name, val)),
+            } => Ok(anno_storage.guess_max_count_regex(
+                ns.as_ref().map(String::as_str),
+                name,
+                val,
+            )?),
             EdgeAnnoSearchSpec::NotRegexValue {
                 ref ns,
                 ref name,
@@ -135,7 +144,7 @@ impl EdgeAnnoSearchSpec {
                         ns.as_ref().map(String::as_str),
                         name,
                         val,
-                    );
+                    )?;
                 Ok(result)
             }
         }

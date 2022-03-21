@@ -138,7 +138,7 @@ impl<'a> BinaryOperatorBase for EqualValue<'a> {
     fn estimation_type(&self) -> Result<EstimationType> {
         if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_left) {
             if let Some(most_frequent_value_left) =
-                self.node_annos.guess_most_frequent_value(ns, name)
+                self.node_annos.guess_most_frequent_value(ns, name)?
             {
                 if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
                     let guessed_count_right = self.node_annos.guess_max_count(
@@ -146,7 +146,7 @@ impl<'a> BinaryOperatorBase for EqualValue<'a> {
                         name,
                         &most_frequent_value_left,
                         &most_frequent_value_left,
-                    );
+                    )?;
 
                     let total_annos = self.node_annos.number_of_annotations_by_name(ns, name)?;
                     let sel = guessed_count_right as f64 / total_annos as f64;

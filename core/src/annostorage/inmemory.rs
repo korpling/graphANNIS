@@ -148,14 +148,18 @@ where
         namespace: Option<&str>,
         name: &str,
         value: Option<&str>,
-    ) -> Box<dyn Iterator<Item = (T, Arc<AnnoKey>)> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<(T, Arc<AnnoKey>)>> + 'a> {
         let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
             vec![Arc::from(AnnoKey {
                 ns: ns.into(),
                 name: name.into(),
             })]
         } else {
-            self.get_qnames(name).into_iter().map(Arc::from).collect()
+            let qnames = match self.get_qnames(name) {
+                Ok(qnames) => qnames,
+                Err(e) => return Box::new(std::iter::once(Err(e))),
+            };
+            qnames.into_iter().map(Arc::from).collect()
         };
         // Create a vector fore each matching AnnoKey to the value map containing all items and their annotation values
         // for this key.
@@ -180,7 +184,8 @@ where
                         values.get(&target_value_symbol).map(|items| (items, key))
                     })
                     // flatten the hash set of all items, returns all items for the condition
-                    .flat_map(|(items, key)| items.iter().cloned().zip(std::iter::repeat(key)));
+                    .flat_map(|(items, key)| items.iter().cloned().zip(std::iter::repeat(key)))
+                    .map(Ok);
                 Box::new(it)
             } else {
                 // value is not known, return empty result
@@ -195,7 +200,8 @@ where
                         .iter()
                         .flat_map(|(_, items)| items.iter().cloned())
                         .zip(std::iter::repeat(key))
-                });
+                })
+                .map(Ok);
             Box::new(it)
         }
     }
@@ -334,7 +340,7 @@ where
         Ok(())
     }
 
-    fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
+    fn get_qnames(&self, name: &str) -> Result<Vec<AnnoKey>> {
         let it = self.anno_key_sizes.range(
             AnnoKey {
                 name: name.into(),
@@ -349,7 +355,7 @@ where
                 break;
             }
         }
-        result
+        Ok(result)
     }
 
     fn get_annotations_for_item(&self, item: &T) -> Result<Vec<Annotation>> {
@@ -436,7 +442,7 @@ where
                 Ok(matches)
             } else {
                 let matching_key_symbols: Vec<(usize, Arc<AnnoKey>)> = self
-                    .get_qnames(name)
+                    .get_qnames(name)?
                     .into_iter()
                     .filter_map(|key| {
                         self.anno_keys
@@ -516,7 +522,11 @@ where
                 name: name.into(),
             })]
         } else {
-            self.get_qnames(name).into_iter().map(Arc::from).collect()
+            let qnames = match self.get_qnames(name) {
+                Ok(qnames) => qnames,
+                Err(e) => return Box::new(std::iter::once(Err(e))),
+            };
+            qnames.into_iter().map(Arc::from).collect()
         };
         // Create a vector for each matching AnnoKey to the value map containing all items and their annotation values
         // for this key.
@@ -594,7 +604,8 @@ where
         if let Ok(re) = compiled_result {
             let it = self
                 .matching_items(namespace, name, None)
-                .map(move |(item, anno_key)| {
+                .map(move |item| {
+                    let (item, anno_key) = item?;
                     let value = self.get_value_for_item(&item, &anno_key)?;
                     Ok((item, anno_key, value))
                 })
@@ -648,7 +659,7 @@ where
             } else {
                 // get all qualified names for the given annotation name
                 let res: Result<Vec<Arc<AnnoKey>>> = self
-                    .get_qnames(name)
+                    .get_qnames(name)?
                     .into_iter()
                     .map(|anno_key| {
                         let value = self.get_value_for_item(item, &anno_key)?;
@@ -680,14 +691,14 @@ where
         name: &str,
         lower_val: &str,
         upper_val: &str,
-    ) -> usize {
+    ) -> Result<usize> {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
             Some(ns) => vec![AnnoKey {
                 name: name.into(),
                 ns: ns.into(),
             }],
-            None => self.get_qnames(name),
+            None => self.get_qnames(name)?,
         };
 
         let mut universe_size: usize = 0;
@@ -725,13 +736,13 @@ where
 
         if sum_histogram_buckets > 0 {
             let selectivity: f64 = (count_matches as f64) / (sum_histogram_buckets as f64);
-            (selectivity * (universe_size as f64)).round() as usize
+            Ok((selectivity * (universe_size as f64)).round() as usize)
         } else {
-            0
+            Ok(0)
         }
     }
 
-    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> usize {
+    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> Result<usize> {
         let full_match_pattern = util::regex_full_match(pattern);
 
         let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
@@ -748,17 +759,17 @@ where
             }
         }
 
-        0
+        Ok(0)
     }
 
-    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Option<Cow<str>> {
+    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Result<Option<Cow<str>>> {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
             Some(ns) => vec![AnnoKey {
                 name: name.into(),
                 ns: ns.into(),
             }],
-            None => self.get_qnames(name),
+            None => self.get_qnames(name)?,
         };
 
         let mut sampled_values: HashMap<&str, usize> = HashMap::default();
@@ -784,9 +795,9 @@ where
                     max_count = count;
                 }
             }
-            Some(max_value)
+            Ok(Some(max_value))
         } else {
-            None
+            Ok(None)
         }
     }
 

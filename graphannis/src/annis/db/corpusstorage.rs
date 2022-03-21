@@ -2264,7 +2264,7 @@ impl CorpusStorage {
                         ));
                     } else {
                         // add all matching annotation keys
-                        annokeys.push((node_ref, db.get_node_annos().get_qnames(&def.name)));
+                        annokeys.push((node_ref, db.get_node_annos().get_qnames(&def.name)?));
                     }
                 }
             }

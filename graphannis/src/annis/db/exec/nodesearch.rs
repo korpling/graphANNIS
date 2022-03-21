@@ -555,7 +555,7 @@ impl<'a> NodeSearch<'a> {
                     &NODE_TYPE_KEY.name,
                     "node",
                     "node",
-                );
+                )?;
                 let est_output = std::cmp::max(1, est_output);
 
                 Ok(NodeSearch {
@@ -602,7 +602,7 @@ impl<'a> NodeSearch<'a> {
 
         let base_it: Box<dyn Iterator<Item = Result<Match>>> =
             if let Some(const_output) = const_output.clone() {
-                let is_unique = db.get_node_annos().get_qnames(&qname.1).len() <= 1;
+                let is_unique = db.get_node_annos().get_qnames(&qname.1)?.len() <= 1;
                 // Replace the result annotation with a constant value. If a
                 // node matches two different annotations (because there is no
                 // namespace), this can result in duplicates which needs to be
@@ -643,7 +643,7 @@ impl<'a> NodeSearch<'a> {
                     1
                 } else {
                     db.get_node_annos()
-                        .guess_max_count(qname.0.as_deref(), &qname.1, val, val)
+                        .guess_max_count(qname.0.as_deref(), &qname.1, val, val)?
                 }
             }
             ValueSearch::NotSome(ref val) => {
@@ -652,7 +652,7 @@ impl<'a> NodeSearch<'a> {
                     .number_of_annotations_by_name(qname.0.as_deref(), &qname.1)?;
                 total
                     - db.get_node_annos()
-                        .guess_max_count(qname.0.as_deref(), &qname.1, val, val)
+                        .guess_max_count(qname.0.as_deref(), &qname.1, val, val)?
             }
             ValueSearch::Any => db
                 .get_node_annos()
@@ -702,7 +702,7 @@ impl<'a> NodeSearch<'a> {
 
         let base_it: Box<dyn Iterator<Item = Result<Match>>> =
             if let Some(const_output) = const_output.clone() {
-                let is_unique = db.get_node_annos().get_qnames(&qname.1).len() <= 1;
+                let is_unique = db.get_node_annos().get_qnames(&qname.1)?.len() <= 1;
                 // Replace the result annotation with a constant value.
                 // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
                 if is_unique {
@@ -737,11 +737,14 @@ impl<'a> NodeSearch<'a> {
                 .get_node_annos()
                 .number_of_annotations_by_name(qname.0.as_deref(), &qname.1)?;
             total
-                - db.get_node_annos()
-                    .guess_max_count_regex(qname.0.as_deref(), &qname.1, pattern)
+                - db.get_node_annos().guess_max_count_regex(
+                    qname.0.as_deref(),
+                    &qname.1,
+                    pattern,
+                )?
         } else {
             db.get_node_annos()
-                .guess_max_count_regex(qname.0.as_deref(), &qname.1, pattern)
+                .guess_max_count_regex(qname.0.as_deref(), &qname.1, pattern)?
         };
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
@@ -860,14 +863,14 @@ impl<'a> NodeSearch<'a> {
                         Some(&TOKEN_KEY.ns),
                         &TOKEN_KEY.name,
                         val,
-                    )
+                    )?
                 } else {
                     db.get_node_annos().guess_max_count(
                         Some(&TOKEN_KEY.ns),
                         &TOKEN_KEY.name,
                         val,
                         val,
-                    )
+                    )?
                 }
             }
             ValueSearch::NotSome(val) => {
@@ -879,14 +882,14 @@ impl<'a> NodeSearch<'a> {
                         Some(&TOKEN_KEY.ns),
                         &TOKEN_KEY.name,
                         &val,
-                    )
+                    )?
                 } else {
                     db.get_node_annos().guess_max_count(
                         Some(&TOKEN_KEY.ns),
                         &TOKEN_KEY.name,
                         &val,
                         &val,
-                    )
+                    )?
                 };
                 total_count - positive_count
             }

@@ -197,7 +197,11 @@ where
                 name: name.into(),
             })]
         } else {
-            self.get_qnames(name).into_iter().map(Arc::from).collect()
+            let qnames = match self.get_qnames(name) {
+                Ok(qnames) => qnames,
+                Err(e) => return Box::new(std::iter::once(Err(e))),
+            };
+            qnames.into_iter().map(Arc::from).collect()
         };
 
         let value = value.map(|v| v.to_string());
@@ -429,7 +433,7 @@ where
         Ok(())
     }
 
-    fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
+    fn get_qnames(&self, name: &str) -> Result<Vec<AnnoKey>> {
         let it = self.anno_key_sizes.range(
             AnnoKey {
                 name: name.into(),
@@ -444,7 +448,7 @@ where
                 break;
             }
         }
-        result
+        Ok(result)
     }
 
     fn number_of_annotations(&self) -> Result<usize> {
@@ -516,7 +520,7 @@ where
                 Ok(matches)
             } else {
                 let mut matching_qnames: Vec<(Vec<u8>, Arc<AnnoKey>)> = self
-                    .get_qnames(name)
+                    .get_qnames(name)?
                     .into_iter()
                     .filter_map(|key| {
                         if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
@@ -697,7 +701,7 @@ where
             } else {
                 // get all qualified names for the given annotation name
                 let res: Result<Vec<Arc<AnnoKey>>> = self
-                    .get_qnames(name)
+                    .get_qnames(name)?
                     .into_iter()
                     .map(|key| {
                         if let Some(symbol_id) = self.anno_key_symbols.get_symbol(&key) {
@@ -732,14 +736,14 @@ where
         name: &str,
         lower_val: &str,
         upper_val: &str,
-    ) -> usize {
+    ) -> Result<usize> {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
             Some(ns) => vec![AnnoKey {
                 name: name.into(),
                 ns: ns.into(),
             }],
-            None => self.get_qnames(name),
+            None => self.get_qnames(name)?,
         };
 
         let mut universe_size: usize = 0;
@@ -775,13 +779,13 @@ where
 
         if sum_histogram_buckets > 0 {
             let selectivity: f64 = (count_matches as f64) / (sum_histogram_buckets as f64);
-            (selectivity * (universe_size as f64)).round() as usize
+            Ok((selectivity * (universe_size as f64)).round() as usize)
         } else {
-            0
+            Ok(0)
         }
     }
 
-    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> usize {
+    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> Result<usize> {
         let full_match_pattern = util::regex_full_match(pattern);
 
         let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
@@ -798,17 +802,17 @@ where
             }
         }
 
-        0
+        Ok(0)
     }
 
-    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Option<Cow<str>> {
+    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Result<Option<Cow<str>>> {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
             Some(ns) => vec![AnnoKey {
                 name: name.into(),
                 ns: ns.into(),
             }],
-            None => self.get_qnames(name),
+            None => self.get_qnames(name)?,
         };
 
         let mut sampled_values: HashMap<&str, usize> = HashMap::default();
@@ -832,9 +836,9 @@ where
                     max_count = count;
                 }
             }
-            Some(max_value)
+            Ok(Some(max_value))
         } else {
-            None
+            Ok(None)
         }
     }
 
