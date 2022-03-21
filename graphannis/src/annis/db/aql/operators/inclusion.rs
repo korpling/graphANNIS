@@ -187,34 +187,30 @@ impl<'a> BinaryOperatorIndex for Inclusion<'a> {
                     });
                 // we need to check if the the RHS of these candidates is also included by the original span
                 let result = candidates
-                    .map_ok(move |n| match n {
-                        NodeType::Token(t) => Ok(Some(t)),
-                        NodeType::Other(n) => {
-                            // get right-aligned token of candidate
-                            let mut end_n =
-                                self.tok_helper.get_gs_right_token_().get_outgoing_edges(n);
-                            if let Some(end_n) = end_n.next() {
-                                let end_n = end_n?;
-                                if self.gs_order.is_connected(
-                                    end_n,
-                                    end_lhs,
-                                    0,
-                                    std::ops::Bound::Included(l),
-                                )? {
-                                    // path between right-most tokens exists in ORDERING component
-                                    // and has maximum length l
-                                    return Ok(Some(n));
+                    .map(move |n| {
+                        let n = n?;
+                        match n {
+                            NodeType::Token(t) => Ok(Some(t)),
+                            NodeType::Other(n) => {
+                                // get right-aligned token of candidate
+                                let mut end_n =
+                                    self.tok_helper.get_gs_right_token_().get_outgoing_edges(n);
+                                if let Some(end_n) = end_n.next() {
+                                    let end_n = end_n?;
+                                    if self.gs_order.is_connected(
+                                        end_n,
+                                        end_lhs,
+                                        0,
+                                        std::ops::Bound::Included(l),
+                                    )? {
+                                        // path between right-most tokens exists in ORDERING component
+                                        // and has maximum length l
+                                        return Ok(Some(n));
+                                    }
                                 }
+                                Ok(None)
                             }
-                            Ok(None)
                         }
-                    }) // Unwrap the Result<Result<_>>
-                    .map(|c| match c {
-                        Ok(c) => match c {
-                            Ok(c) => Ok(c),
-                            Err(e) => Err(e),
-                        },
-                        Err(e) => Err(e),
                     })
                     // Only include the ones where the constraint was met
                     .filter_map_ok(|n| n)

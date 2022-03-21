@@ -233,15 +233,13 @@ impl<'a> BinaryOperatorIndex for Precedence<'a> {
             // Unwrap the Result<Result<_>>
             .map(|c| match c {
                 Ok(c) => match c {
-                    Ok(c) => Ok(c),
+                    Ok(n) => Ok(Match {
+                        node: n,
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
+                    }),
                     Err(e) => Err(GraphAnnisError::from(e)),
                 },
                 Err(e) => Err(e),
-            })
-            // map the result as match
-            .map_ok(|n| Match {
-                node: n,
-                anno_key: DEFAULT_ANNO_KEY.clone(),
             });
 
         Box::new(result)
@@ -324,7 +322,6 @@ impl<'a> BinaryOperatorBase for InversePrecedence<'a> {
 }
 
 impl<'a> BinaryOperatorIndex for InversePrecedence<'a> {
-    #[allow(clippy::needless_collect)]
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>> + 'b> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -354,14 +351,13 @@ impl<'a> BinaryOperatorIndex for InversePrecedence<'a> {
             // Unwrap the Result<Result<_>>
             .map(|c| match c {
                 Ok(c) => match c {
-                    Ok(c) => Ok(c),
+                    Ok(n) => Ok(Match {
+                        node: n,
+                        anno_key: DEFAULT_ANNO_KEY.clone(),
+                    }),
                     Err(e) => Err(GraphAnnisError::from(e)),
                 },
                 Err(e) => Err(GraphAnnisError::from(e)),
-            }) // map the result as match
-            .map_ok(|n| Match {
-                node: n,
-                anno_key: DEFAULT_ANNO_KEY.clone(),
             });
         Box::new(result)
     }
