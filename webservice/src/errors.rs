@@ -1,3 +1,5 @@
+use std::sync::PoisonError;
+
 use actix_web::{
     error::{BlockingError, ResponseError},
     HttpResponse,
@@ -26,6 +28,14 @@ pub enum ServiceError {
     Uuid(#[from] uuid::Error),
     #[error("{0}")]
     IllegalNodePath(String),
+    #[error("Lock poisoning ({0})")]
+    LockPoisoning(String),
+}
+
+impl<T> From<PoisonError<T>> for ServiceError {
+    fn from(e: PoisonError<T>) -> Self {
+        Self::LockPoisoning(e.to_string())
+    }
 }
 
 #[derive(Serialize)]
@@ -70,6 +80,9 @@ impl ResponseError for ServiceError {
             ServiceError::NotFound => HttpResponse::NotFound().finish(),
             ServiceError::NotAnAdministrator(_) => HttpResponse::Forbidden()
                 .json("You need to have administrator privilege to access this resource."),
+            ServiceError::LockPoisoning(err) => {
+                HttpResponse::InternalServerError().json(err.to_string())
+            }
         }
     }
 }
