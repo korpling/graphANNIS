@@ -25,15 +25,6 @@ const MB: usize = KB * KB;
 const EVICTION_STRATEGY: EvictionStrategy = EvictionStrategy::MaximumBytes(512 * MB);
 
 /// An on-disk implementation of an annotation storage.
-///
-/// # Panics
-///
-/// In contrast to the main-memory implementation, accessing the disk can fail.
-/// This is handled as a fatal error with panic except for specific scenarios where we know how to recover from this error.
-/// Panics are used because these errors are unrecoverable
-/// (e.g. if the file is suddenly missing this is like if someone removed the main memory)
-/// and there is no way of delivering a correct answer.
-/// Retrying the same query again will also not succeed since temporary errors are already handled internally.
 #[derive(MallocSizeOf)]
 pub struct AnnoStorageImpl<T>
 where
@@ -249,9 +240,6 @@ where
     }
 
     /// Parse the raw data and extract the item ID and the annotation key.
-    ///
-    /// # Panics
-    /// Panics if the raw data is smaller than the length of a item ID bit-representation.
     fn parse_by_container_key(&self, data: Vec<u8>) -> Result<(T, Arc<AnnoKey>)> {
         let item = T::parse_key(&data[0..T::key_size()])?;
         let anno_key_symbol = usize::parse_key(&data[T::key_size()..])?;
