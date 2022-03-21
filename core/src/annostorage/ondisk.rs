@@ -229,15 +229,18 @@ where
                 self.by_anno_qname.range(lower_bound..upper_bound)
             })
             .fuse()
-            .map_ok(move |(data, _)| {
-                // get the item ID at the end
-                let item_id = T::parse_key(&data[data.len() - T::key_size()..]);
-                let anno_key_symbol = usize::parse_key(&data[0..std::mem::size_of::<usize>()]);
-                let key = self
-                    .anno_key_symbols
-                    .get_value(anno_key_symbol)
-                    .unwrap_or_default();
-                (item_id, key)
+            .map(move |item| match item {
+                Ok((data, _)) => {
+                    // get the item ID at the end
+                    let item_id = T::parse_key(&data[data.len() - T::key_size()..])?;
+                    let anno_key_symbol = usize::parse_key(&data[0..std::mem::size_of::<usize>()])?;
+                    let key = self
+                        .anno_key_symbols
+                        .get_value(anno_key_symbol)
+                        .unwrap_or_default();
+                    Ok((item_id, key))
+                }
+                Err(e) => Err(e),
             });
 
         Box::new(it)
@@ -247,16 +250,17 @@ where
     ///
     /// # Panics
     /// Panics if the raw data is smaller than the length of a item ID bit-representation.
-    fn parse_by_container_key(&self, data: Vec<u8>) -> (T, Arc<AnnoKey>) {
-        let item = T::parse_key(&data[0..T::key_size()]);
-        let anno_key_symbol = usize::parse_key(&data[T::key_size()..]);
+    fn parse_by_container_key(&self, data: Vec<u8>) -> Result<(T, Arc<AnnoKey>)> {
+        let item = T::parse_key(&data[0..T::key_size()])?;
+        let anno_key_symbol = usize::parse_key(&data[T::key_size()..])?;
 
-        (
+        let result = (
             item,
             self.anno_key_symbols
                 .get_value(anno_key_symbol)
                 .unwrap_or_default(),
-        )
+        );
+        Ok(result)
     }
 
     /// Parse the raw data and extract the node ID and the annotation.
@@ -264,10 +268,10 @@ where
     /// # Panics
     /// Panics if the raw data is smaller than the length of a node ID bit-representation or if the strings are not valid
     /// UTF-8.
-    fn parse_by_anno_qname_key(&self, mut data: Vec<u8>) -> (T, Arc<AnnoKey>, String) {
+    fn parse_by_anno_qname_key(&self, mut data: Vec<u8>) -> Result<(T, Arc<AnnoKey>, String)> {
         // get the item ID at the end
         let item_id_raw = data.split_off(data.len() - T::key_size());
-        let item_id = T::parse_key(&item_id_raw);
+        let item_id = T::parse_key(&item_id_raw)?;
 
         // remove the trailing '\0' character
         data.pop();
@@ -277,15 +281,16 @@ where
         let anno_val = String::from_utf8(anno_val_raw).expect(UTF_8_MSG);
 
         // parse the remaining annotation key symbol
-        let anno_key_symbol = usize::parse_key(&data);
+        let anno_key_symbol = usize::parse_key(&data)?;
 
-        (
+        let result = (
             item_id,
             self.anno_key_symbols
                 .get_value(anno_key_symbol)
                 .unwrap_or_default(),
             anno_val,
-        )
+        );
+        Ok(result)
     }
 
     fn get_by_anno_qname_range<'a>(
@@ -364,13 +369,13 @@ where
         Ok(())
     }
 
-    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
+    fn get_annotations_for_item(&self, item: &T) -> Result<Vec<Annotation>> {
         let mut result = Vec::default();
         let start = create_by_container_key(item.clone(), usize::min_value());
         let end = create_by_container_key(item.clone(), usize::max_value());
         for anno in self.by_container.range(start..=end) {
             let (key, val) = anno.expect("Iterator over annotations returned error");
-            let parsed_key = self.parse_by_container_key(key);
+            let parsed_key = self.parse_by_container_key(key)?;
             let anno = Annotation {
                 key: parsed_key.1.as_ref().clone(),
                 val: val.into(),
@@ -378,7 +383,7 @@ where
             result.push(anno);
         }
 
-        result
+        Ok(result)
     }
 
     fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>> {
@@ -546,20 +551,18 @@ where
             }
         } else {
             // get all annotation keys for this item
-            let matches: Result<Vec<_>> = it
-                .map_ok(|item| {
-                    let start = create_by_container_key(item.clone(), usize::min_value());
-                    let end = create_by_container_key(item, usize::max_value());
-
-                    self.by_container
-                        .range(start..=end)
-                        .map(|anno| anno.expect("Iterator over annotations returned error"))
-                        .map(|(data, _)| self.parse_by_container_key(data).into())
-                })
-                .flatten_ok()
-                .map(|item| item.map_err(|e| e.into()))
-                .collect();
-            matches
+            let mut matches = Vec::new();
+            for item in it {
+                let item = item?;
+                let start = create_by_container_key(item.clone(), usize::min_value());
+                let end = create_by_container_key(item, usize::max_value());
+                for anno in self.by_container.range(start..=end) {
+                    let (data, _) = anno?;
+                    let m = self.parse_by_container_key(data)?.into();
+                    matches.push(m);
+                }
+            }
+            Ok(matches)
         }
     }
 
@@ -721,7 +724,7 @@ where
         } else {
             // no annotation name given, return all
             let result = self
-                .get_annotations_for_item(item)
+                .get_annotations_for_item(item)?
                 .into_iter()
                 .map(|anno| Arc::from(anno.key))
                 .collect();
@@ -841,14 +844,14 @@ where
         }
     }
 
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Cow<str>> {
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Result<Vec<Cow<str>>> {
         if most_frequent_first {
             let mut values_with_count: HashMap<String, usize> = HashMap::default();
             for (data, _) in self
                 .get_by_anno_qname_range(key)
                 .map(|item| item.expect("Iterator over items for annotation key returned error"))
             {
-                let (_, _, val) = self.parse_by_anno_qname_key(data);
+                let (_, _, val) = self.parse_by_anno_qname_key(data)?;
 
                 let count = values_with_count.entry(val).or_insert(0);
                 *count += 1;
@@ -858,20 +861,21 @@ where
                 .map(|(val, count)| (count, Cow::Owned(val)))
                 .collect();
             values_with_count.sort();
-            values_with_count
+            let result = values_with_count
                 .into_iter()
                 .map(|(_count, val)| val)
-                .collect()
+                .collect();
+            Ok(result)
         } else {
-            let values_unique: HashSet<Cow<str>> = self
+            let values_unique: Result<HashSet<Cow<str>>> = self
                 .get_by_anno_qname_range(key)
                 .map(|item| item.expect("Iterator over items for annotation key returned error"))
                 .map(|(data, _)| {
-                    let (_, _, val) = self.parse_by_anno_qname_key(data);
-                    Cow::Owned(val)
+                    let (_, _, val) = self.parse_by_anno_qname_key(data)?;
+                    Ok(Cow::Owned(val))
                 })
                 .collect();
-            values_unique.into_iter().collect()
+            Ok(values_unique?.into_iter().collect())
         }
     }
 
@@ -883,7 +887,7 @@ where
         self.largest_item.clone()
     }
 
-    fn calculate_statistics(&mut self) {
+    fn calculate_statistics(&mut self) -> Result<()> {
         let max_histogram_buckets = 250;
         let max_sampled_annotations = 2500;
 
@@ -896,16 +900,16 @@ where
 
             let all_values_for_key = self.get_by_anno_qname_range(anno_key);
 
-            let mut sampled_anno_values: Vec<String> = all_values_for_key
+            let sampled_anno_values: Result<Vec<String>> = all_values_for_key
                 .choose_multiple(&mut rng, max_sampled_annotations)
                 .into_iter()
                 .map(|data| {
-                    let (data, _) =
-                        data.expect("Iterator over items for annotation key returned error");
-                    let (_, _, val) = self.parse_by_anno_qname_key(data);
-                    val
+                    let (data, _) = data?;
+                    let (_, _, val) = self.parse_by_anno_qname_key(data)?;
+                    Ok(val)
                 })
                 .collect();
+            let mut sampled_anno_values = sampled_anno_values?;
 
             // create uniformly distributed histogram bounds
             sampled_anno_values.sort();
@@ -941,6 +945,7 @@ where
                 }
             }
         }
+        Ok(())
     }
 
     fn load_annotations_from(&mut self, location: &Path) -> Result<()> {
@@ -1074,7 +1079,7 @@ mod tests {
 
         assert_eq!(3, a.number_of_annotations().unwrap());
 
-        let mut all = a.get_annotations_for_item(&1);
+        let mut all = a.get_annotations_for_item(&1).unwrap();
         assert_eq!(3, all.len());
 
         all.sort_by(|a, b| a.key.partial_cmp(&b.key).unwrap());

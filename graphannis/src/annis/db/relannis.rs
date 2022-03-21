@@ -132,17 +132,15 @@ impl KeySerializer for TextProperty {
         result
     }
 
-    fn parse_key(key: &[u8]) -> Self {
+    fn parse_key(
+        key: &[u8],
+    ) -> std::result::Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let id_size = std::mem::size_of::<u32>();
         let mut id_offset = key.len() - id_size * 3;
         let key_as_string: std::string::String = std::string::String::from_utf8_lossy(key).into();
         let segmentation_vector: Vec<_> = key_as_string.split_terminator('\0').collect();
 
-        let corpus_id = u32::from_be_bytes(
-            key[id_offset..(id_offset + id_size)]
-                .try_into()
-                .expect("TextProperty deserialization key was too small"),
-        );
+        let corpus_id = u32::from_be_bytes(key[id_offset..(id_offset + id_size)].try_into()?);
         id_offset += id_size;
 
         let text_id = u32::from_be_bytes(
@@ -164,12 +162,12 @@ impl KeySerializer for TextProperty {
             segmentation_vector[0].into()
         };
 
-        TextProperty {
+        Ok(TextProperty {
             segmentation,
             corpus_id,
             text_id,
             val,
-        }
+        })
     }
 }
 
@@ -189,24 +187,18 @@ impl KeySerializer for TextKey {
         result
     }
 
-    fn parse_key(key: &[u8]) -> Self {
+    fn parse_key(
+        key: &[u8],
+    ) -> std::result::Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let id_size = std::mem::size_of::<u32>();
-        let id = u32::from_be_bytes(
-            key[0..id_size]
-                .try_into()
-                .expect("TextKey deserialization key was too small"),
-        );
+        let id = u32::from_be_bytes(key[0..id_size].try_into()?);
         let corpus_ref = if key.len() == id_size * 2 {
-            Some(u32::from_be_bytes(
-                key[id_size..]
-                    .try_into()
-                    .expect("TextKey deserialization key was too small"),
-            ))
+            Some(u32::from_be_bytes(key[id_size..].try_into()?))
         } else {
             None
         };
 
-        TextKey { id, corpus_ref }
+        Ok(TextKey { id, corpus_ref })
     }
 }
 
@@ -226,33 +218,23 @@ impl KeySerializer for NodeByTextEntry {
         result
     }
 
-    fn parse_key(key: &[u8]) -> Self {
+    fn parse_key(
+        key: &[u8],
+    ) -> std::result::Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let u32_size = std::mem::size_of::<u32>();
-        let text_id = u32::from_be_bytes(
-            key[0..u32_size]
-                .try_into()
-                .expect("NodeByTextEntry deserialization key was too small (text_id)"),
-        );
+        let text_id = u32::from_be_bytes(key[0..u32_size].try_into()?);
         let mut offset = u32_size;
 
-        let corpus_ref = u32::from_be_bytes(
-            key[offset..(offset + u32_size)]
-                .try_into()
-                .expect("NodeByTextEntry deserialization key was too small (corpus_ref)"),
-        );
+        let corpus_ref = u32::from_be_bytes(key[offset..(offset + u32_size)].try_into()?);
         offset += u32_size;
 
-        let node_id = NodeID::from_be_bytes(
-            key[offset..]
-                .try_into()
-                .expect("NodeByTextEntry deserialization key was too small (node_id)"),
-        );
+        let node_id = NodeID::from_be_bytes(key[offset..].try_into()?);
 
-        NodeByTextEntry {
+        Ok(NodeByTextEntry {
             text_id,
             corpus_ref,
             node_id,
-        }
+        })
     }
 }
 
@@ -377,12 +359,12 @@ where
         // TODO: implement handling the "virtual_tokenization_from_namespace" and "virtual_tokenization_mapping" corpus properties
 
         progress_callback("calculating node statistics (before update)");
-        db.get_node_annos_mut().calculate_statistics();
+        db.get_node_annos_mut().calculate_statistics()?;
 
         db.apply_update(&mut updates, &progress_callback)?;
 
         progress_callback("calculating node statistics (after update)");
-        db.get_node_annos_mut().calculate_statistics();
+        db.get_node_annos_mut().calculate_statistics()?;
 
         for c in db.get_all_components(None, None) {
             progress_callback(&format!("calculating statistics for component {}", c));

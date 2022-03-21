@@ -1,10 +1,10 @@
-use std::convert::TryInto;
+use std::{convert::TryInto, error::Error};
 
 pub type KeyVec = smallvec::SmallVec<[u8; 32]>;
 
 pub trait KeySerializer {
     fn create_key(&self) -> KeyVec;
-    fn parse_key(key: &[u8]) -> Self
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>>
     where
         Self: std::marker::Sized;
 }
@@ -13,15 +13,13 @@ pub trait FixedSizeKeySerializer: KeySerializer {
     fn key_size() -> usize;
 }
 
-const PANIC_MESSAGE_SIZE: &str = "Key data must fullfill minimal size for type";
-
 impl KeySerializer for Vec<u8> {
     fn create_key(&self) -> KeyVec {
         KeyVec::from_slice(self)
     }
 
-    fn parse_key(key: &[u8]) -> Self {
-        Vec::from(key)
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        Ok(Vec::from(key))
     }
 }
 
@@ -30,8 +28,8 @@ impl KeySerializer for KeyVec {
         self.clone()
     }
 
-    fn parse_key(key: &[u8]) -> Self {
-        KeyVec::from(key)
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        Ok(KeyVec::from(key))
     }
 }
 
@@ -40,9 +38,9 @@ impl KeySerializer for String {
         KeyVec::from_slice(self.as_bytes())
     }
 
-    fn parse_key(key: &[u8]) -> Self {
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
         let v = String::from_utf8_lossy(key);
-        v.to_string()
+        Ok(v.to_string())
     }
 }
 
@@ -51,12 +49,10 @@ impl KeySerializer for u8 {
         KeyVec::from_slice(&self.to_be_bytes())
     }
 
-    fn parse_key(key: &[u8]) -> Self {
-        Self::from_be_bytes(
-            key[..std::mem::size_of::<Self>()]
-                .try_into()
-                .expect(PANIC_MESSAGE_SIZE),
-        )
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let as_array = key[..std::mem::size_of::<Self>()].try_into()?;
+        let result = Self::from_be_bytes(as_array);
+        Ok(result)
     }
 }
 
@@ -71,12 +67,10 @@ impl KeySerializer for u16 {
         KeyVec::from_slice(&self.to_be_bytes())
     }
 
-    fn parse_key(key: &[u8]) -> Self {
-        Self::from_be_bytes(
-            key[..std::mem::size_of::<Self>()]
-                .try_into()
-                .expect(PANIC_MESSAGE_SIZE),
-        )
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let as_array = key[..std::mem::size_of::<Self>()].try_into()?;
+        let result = Self::from_be_bytes(as_array);
+        Ok(result)
     }
 }
 
@@ -91,12 +85,10 @@ impl KeySerializer for u32 {
         KeyVec::from_slice(&self.to_be_bytes())
     }
 
-    fn parse_key(key: &[u8]) -> Self {
-        Self::from_be_bytes(
-            key[..std::mem::size_of::<Self>()]
-                .try_into()
-                .expect(PANIC_MESSAGE_SIZE),
-        )
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let as_array = key[..std::mem::size_of::<Self>()].try_into()?;
+        let result = Self::from_be_bytes(as_array);
+        Ok(result)
     }
 }
 
@@ -111,12 +103,10 @@ impl KeySerializer for u64 {
         KeyVec::from_slice(&self.to_be_bytes())
     }
 
-    fn parse_key(key: &[u8]) -> Self {
-        Self::from_be_bytes(
-            key[..std::mem::size_of::<Self>()]
-                .try_into()
-                .expect(PANIC_MESSAGE_SIZE),
-        )
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let as_array = key[..std::mem::size_of::<Self>()].try_into()?;
+        let result = Self::from_be_bytes(as_array);
+        Ok(result)
     }
 }
 
@@ -131,12 +121,10 @@ impl KeySerializer for u128 {
         KeyVec::from_slice(&self.to_be_bytes())
     }
 
-    fn parse_key(key: &[u8]) -> Self {
-        Self::from_be_bytes(
-            key[..std::mem::size_of::<Self>()]
-                .try_into()
-                .expect(PANIC_MESSAGE_SIZE),
-        )
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let as_array = key[..std::mem::size_of::<Self>()].try_into()?;
+        let result = Self::from_be_bytes(as_array);
+        Ok(result)
     }
 }
 
@@ -151,12 +139,10 @@ impl KeySerializer for usize {
         KeyVec::from_slice(&self.to_be_bytes())
     }
 
-    fn parse_key(key: &[u8]) -> Self {
-        Self::from_be_bytes(
-            key[..std::mem::size_of::<Self>()]
-                .try_into()
-                .expect(PANIC_MESSAGE_SIZE),
-        )
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let as_array = key[..std::mem::size_of::<Self>()].try_into()?;
+        let result = Self::from_be_bytes(as_array);
+        Ok(result)
     }
 }
 
@@ -165,12 +151,10 @@ impl KeySerializer for i8 {
         KeyVec::from_slice(&self.to_be_bytes())
     }
 
-    fn parse_key(key: &[u8]) -> Self {
-        Self::from_be_bytes(
-            key[..std::mem::size_of::<Self>()]
-                .try_into()
-                .expect(PANIC_MESSAGE_SIZE),
-        )
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let as_array = key[..std::mem::size_of::<Self>()].try_into()?;
+        let result = Self::from_be_bytes(as_array);
+        Ok(result)
     }
 }
 
@@ -185,12 +169,10 @@ impl KeySerializer for i16 {
         KeyVec::from_slice(&self.to_be_bytes())
     }
 
-    fn parse_key(key: &[u8]) -> Self {
-        Self::from_be_bytes(
-            key[..std::mem::size_of::<Self>()]
-                .try_into()
-                .expect(PANIC_MESSAGE_SIZE),
-        )
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let as_array = key[..std::mem::size_of::<Self>()].try_into()?;
+        let result = Self::from_be_bytes(as_array);
+        Ok(result)
     }
 }
 
@@ -205,12 +187,10 @@ impl KeySerializer for i32 {
         KeyVec::from_slice(&self.to_be_bytes())
     }
 
-    fn parse_key(key: &[u8]) -> Self {
-        Self::from_be_bytes(
-            key[..std::mem::size_of::<Self>()]
-                .try_into()
-                .expect(PANIC_MESSAGE_SIZE),
-        )
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let as_array = key[..std::mem::size_of::<Self>()].try_into()?;
+        let result = Self::from_be_bytes(as_array);
+        Ok(result)
     }
 }
 
@@ -225,12 +205,10 @@ impl KeySerializer for i64 {
         KeyVec::from_slice(&self.to_be_bytes())
     }
 
-    fn parse_key(key: &[u8]) -> Self {
-        Self::from_be_bytes(
-            key[..std::mem::size_of::<Self>()]
-                .try_into()
-                .expect(PANIC_MESSAGE_SIZE),
-        )
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let as_array = key[..std::mem::size_of::<Self>()].try_into()?;
+        let result = Self::from_be_bytes(as_array);
+        Ok(result)
     }
 }
 
@@ -245,12 +223,10 @@ impl KeySerializer for i128 {
         KeyVec::from_slice(&self.to_be_bytes())
     }
 
-    fn parse_key(key: &[u8]) -> Self {
-        Self::from_be_bytes(
-            key[..std::mem::size_of::<Self>()]
-                .try_into()
-                .expect(PANIC_MESSAGE_SIZE),
-        )
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let as_array = key[..std::mem::size_of::<Self>()].try_into()?;
+        let result = Self::from_be_bytes(as_array);
+        Ok(result)
     }
 }
 

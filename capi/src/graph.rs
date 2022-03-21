@@ -2,6 +2,7 @@ use super::{cast_const, cstr};
 use crate::{
     cerror::{self, ErrorList},
     data::IterPtr,
+    map_cerr,
 };
 use graphannis::{
     errors::GraphAnnisError,
@@ -60,12 +61,16 @@ pub extern "C" fn annis_graph_nodes_by_type(
 pub extern "C" fn annis_graph_annotations_for_node(
     g: *const AnnotationGraph,
     node: NodeID,
+    err: *mut *mut ErrorList,
 ) -> *mut Vec<Annotation> {
     let db: &AnnotationGraph = cast_const(g);
 
-    Box::into_raw(Box::new(
-        db.get_node_annos().get_annotations_for_item(&node),
-    ))
+    map_cerr(db.get_node_annos().get_annotations_for_item(&node), err)
+        .map(|annos| {
+            let anno = Box::new(annos);
+            Box::into_raw(anno)
+        })
+        .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Return a vector of all components for the graph `g`.
@@ -131,15 +136,16 @@ pub extern "C" fn annis_graph_annotations_for_edge(
     g: *const AnnotationGraph,
     edge: Edge,
     component: *const AnnotationComponent,
+    err: *mut *mut ErrorList,
 ) -> *mut Vec<Annotation> {
     let db: &AnnotationGraph = cast_const(g);
     let component: &AnnotationComponent = cast_const(component);
 
-    let annos: Vec<Annotation> = if let Some(gs) = db.get_graphstorage(component) {
-        gs.get_anno_storage().get_annotations_for_item(&edge)
+    if let Some(gs) = db.get_graphstorage(component) {
+        map_cerr(gs.get_anno_storage().get_annotations_for_item(&edge), err)
+            .map(|annos| Box::into_raw(Box::new(annos)))
+            .unwrap_or_else(std::ptr::null_mut)
     } else {
-        vec![]
-    };
-
-    Box::into_raw(Box::new(annos))
+        Box::into_raw(Box::new(vec![]))
+    }
 }

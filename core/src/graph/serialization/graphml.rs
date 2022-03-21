@@ -130,7 +130,7 @@ fn write_nodes<CT: ComponentType, W: std::io::Write>(
             .get_value_for_item(&m.node, &NODE_NAME_KEY)?
         {
             node_start.push_attribute(("id", id.as_ref()));
-            let node_annotations = graph.get_node_annos().get_annotations_for_item(&m.node);
+            let node_annotations = graph.get_node_annos().get_annotations_for_item(&m.node)?;
             if node_annotations.is_empty() {
                 // Write an empty XML element without child nodes
                 writer.write_event(Event::Empty(node_start))?;
@@ -191,7 +191,7 @@ fn write_edges<CT: ComponentType, W: std::io::Write>(
                                 writer.write_event(Event::Start(edge_start))?;
 
                                 // Write all annotations of the edge as "data" element
-                                for anno in gs.get_anno_storage().get_annotations_for_item(&edge) {
+                                for anno in gs.get_anno_storage().get_annotations_for_item(&edge)? {
                                     write_data(anno, writer, key_id_mapping)?;
                                 }
                                 writer.write_event(Event::End(BytesEnd::borrowed(b"edge")))?;
@@ -547,7 +547,8 @@ where
     // Append all edges updates after the node updates:
     // edges would not be added if the nodes they are referring do not exist
     progress_callback("merging generated events");
-    for (_, event) in edge_updates.iter()? {
+    for event in edge_updates.iter()? {
+        let (_, event) = event?;
         updates.add_event(event)?;
     }
 
@@ -555,7 +556,7 @@ where
     g.apply_update(&mut updates, &progress_callback)?;
 
     progress_callback("calculating node statistics");
-    g.get_node_annos_mut().calculate_statistics();
+    g.get_node_annos_mut().calculate_statistics()?;
 
     for c in g.get_all_components(None, None) {
         progress_callback(&format!("calculating statistics for component {}", c));
@@ -636,7 +637,10 @@ value = "test""#;
         let first_node_id = g.get_node_id_from_name("first_node").unwrap().unwrap();
         let second_node_id = g.get_node_id_from_name("second_node").unwrap().unwrap();
 
-        let first_node_annos = g.get_node_annos().get_annotations_for_item(&first_node_id);
+        let first_node_annos = g
+            .get_node_annos()
+            .get_annotations_for_item(&first_node_id)
+            .unwrap();
         assert_eq!(3, first_node_annos.len());
         assert_eq!(
             Some(Cow::Borrowed("something")),
@@ -655,6 +659,7 @@ value = "test""#;
             2,
             g.get_node_annos()
                 .get_annotations_for_item(&second_node_id)
+                .unwrap()
                 .len()
         );
 

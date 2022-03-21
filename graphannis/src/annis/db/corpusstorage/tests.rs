@@ -251,9 +251,9 @@ fn compare_annos<T>(
 {
     assert_eq!(items1.len(), items2.len());
     for i in 0..items1.len() {
-        let mut annos1 = annos1.get_annotations_for_item(&items1[i]);
+        let mut annos1 = annos1.get_annotations_for_item(&items1[i]).unwrap();
         annos1.sort();
-        let mut annos2 = annos2.get_annotations_for_item(&items2[i]);
+        let mut annos2 = annos2.get_annotations_for_item(&items2[i]).unwrap();
         annos2.sort();
         assert_eq!(annos1, annos2);
     }

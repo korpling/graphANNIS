@@ -87,12 +87,12 @@ fn check_edge_annotation(
     gs: &dyn GraphStorage,
     source: NodeID,
     target: NodeID,
-) -> bool {
+) -> Result<bool> {
     match edge_anno {
         Some(EdgeAnnoSearchSpec::ExactValue { ns, name, val }) => {
             for a in gs
                 .get_anno_storage()
-                .get_annotations_for_item(&Edge { source, target })
+                .get_annotations_for_item(&Edge { source, target })?
             {
                 if name != &a.key.name {
                     continue;
@@ -108,14 +108,14 @@ fn check_edge_annotation(
                     }
                 }
                 // all checks passed, this edge has the correct annotation
-                return true;
+                return Ok(true);
             }
-            false
+            Ok(false)
         }
         Some(EdgeAnnoSearchSpec::NotExactValue { ns, name, val }) => {
             for a in gs
                 .get_anno_storage()
-                .get_annotations_for_item(&Edge { source, target })
+                .get_annotations_for_item(&Edge { source, target })?
             {
                 if name != &a.key.name {
                     continue;
@@ -130,9 +130,9 @@ fn check_edge_annotation(
                 }
 
                 // all checks passed, this edge has the correct annotation
-                return true;
+                return Ok(true);
             }
-            false
+            Ok(false)
         }
         Some(EdgeAnnoSearchSpec::RegexValue { ns, name, val }) => {
             let full_match_pattern = graphannis_core::util::regex_full_match(val);
@@ -140,7 +140,7 @@ fn check_edge_annotation(
             if let Ok(re) = re {
                 for a in gs
                     .get_anno_storage()
-                    .get_annotations_for_item(&Edge { source, target })
+                    .get_annotations_for_item(&Edge { source, target })?
                 {
                     if name != &a.key.name {
                         continue;
@@ -156,10 +156,10 @@ fn check_edge_annotation(
                     }
 
                     // all checks passed, this edge has the correct annotation
-                    return true;
+                    return Ok(true);
                 }
             }
-            false
+            Ok(false)
         }
         Some(EdgeAnnoSearchSpec::NotRegexValue { ns, name, val }) => {
             let full_match_pattern = graphannis_core::util::regex_full_match(val);
@@ -167,7 +167,7 @@ fn check_edge_annotation(
             if let Ok(re) = re {
                 for a in gs
                     .get_anno_storage()
-                    .get_annotations_for_item(&Edge { source, target })
+                    .get_annotations_for_item(&Edge { source, target })?
                 {
                     if name != &a.key.name {
                         continue;
@@ -183,12 +183,12 @@ fn check_edge_annotation(
                     }
 
                     // all checks passed, this edge has the correct annotation
-                    return true;
+                    return Ok(true);
                 }
             }
-            false
+            Ok(false)
         }
-        None => true,
+        None => Ok(true),
     }
 }
 
@@ -223,8 +223,12 @@ impl BinaryOperatorBase for BaseEdgeOp {
                     lhs.node,
                     self.spec.dist.min_dist(),
                     self.spec.dist.max_dist(),
-                )? && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
-                {
+                )? && check_edge_annotation(
+                    &self.spec.edge_anno,
+                    e.as_ref(),
+                    rhs.node,
+                    lhs.node,
+                )? {
                     return Ok(true);
                 }
             } else if e.is_connected(
@@ -237,7 +241,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                 e.as_ref(),
                 lhs.node,
                 rhs.node,
-            ) {
+            )? {
                 return Ok(true);
             }
         }
@@ -420,44 +424,49 @@ impl BinaryOperatorIndex for BaseEdgeOp {
         if self.gs.len() == 1 {
             // directly return all matched nodes since when having only one component
             // no duplicates are possible
-            let result: VecDeque<_> = if self.inverse {
+            let result: Result<VecDeque<_>> = if self.inverse {
                 self.gs[0]
                     .find_connected_inverse(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
                     .fuse()
-                    .filter_ok(move |candidate| {
-                        check_edge_annotation(
+                    .map(move |candidate| {
+                        let candidate = candidate?;
+                        let has_annotation = check_edge_annotation(
                             &self.spec.edge_anno,
                             self.gs[0].as_ref(),
-                            *candidate,
+                            candidate,
                             lhs.clone().node,
-                        )
+                        )?;
+                        Ok((candidate, has_annotation))
                     })
-                    .map_ok(|n| Match {
+                    .filter_ok(move |(_, has_annotation)| *has_annotation)
+                    .map_ok(|(n, _)| Match {
                         node: n,
                         anno_key: DEFAULT_ANNO_KEY.clone(),
                     })
-                    .map(|m| m.map_err(GraphAnnisError::from))
                     .collect()
             } else {
                 self.gs[0]
                     .find_connected(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
                     .fuse()
-                    .filter_ok(move |candidate| {
-                        check_edge_annotation(
+                    .map(move |candidate| {
+                        let candidate = candidate?;
+                        let has_annotation = check_edge_annotation(
                             &self.spec.edge_anno,
                             self.gs[0].as_ref(),
                             lhs.clone().node,
-                            *candidate,
-                        )
+                            candidate,
+                        )?;
+                        Ok((candidate, has_annotation))
                     })
-                    .map_ok(|n| Match {
+                    .filter_ok(move |(_, has_annotation)| *has_annotation)
+                    .map_ok(|(n, _)| Match {
                         node: n,
                         anno_key: DEFAULT_ANNO_KEY.clone(),
                     })
-                    .map(|m| m.map_err(GraphAnnisError::from))
                     .collect()
             };
-            Box::new(result.into_iter())
+            let result = try_as_boxed_iter!(result);
+            Box::new(result.into_iter().map(Ok))
         } else {
             let all: Result<Vec<_>> = if self.inverse {
                 self.gs
@@ -472,20 +481,22 @@ impl BinaryOperatorIndex for BaseEdgeOp {
                                 spec.dist.max_dist(),
                             )
                             .fuse()
-                            .filter_ok(move |candidate| {
-                                check_edge_annotation(
+                            .map(move |candidate| {
+                                let candidate = candidate?;
+                                let has_annotation = check_edge_annotation(
                                     &self.spec.edge_anno,
                                     e.as_ref(),
-                                    *candidate,
+                                    candidate,
                                     lhs.clone().node,
-                                )
+                                )?;
+                                Ok((candidate, has_annotation))
                             })
-                            .map_ok(|n| Match {
+                            .filter_ok(move |(_, has_annotation)| *has_annotation)
+                            .map_ok(|(n, _)| Match {
                                 node: n,
                                 anno_key: DEFAULT_ANNO_KEY.clone(),
                             })
                     })
-                    .map(|m| m.map_err(GraphAnnisError::from))
                     .collect()
             } else {
                 self.gs
@@ -496,20 +507,22 @@ impl BinaryOperatorIndex for BaseEdgeOp {
                         e.as_ref()
                             .find_connected(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
                             .fuse()
-                            .filter_ok(move |candidate| {
-                                check_edge_annotation(
+                            .map(move |candidate| {
+                                let candidate = candidate?;
+                                let has_annotation = check_edge_annotation(
                                     &self.spec.edge_anno,
                                     e.as_ref(),
                                     lhs.clone().node,
-                                    *candidate,
-                                )
+                                    candidate,
+                                )?;
+                                Ok((candidate, has_annotation))
                             })
-                            .map_ok(|n| Match {
+                            .filter_ok(move |(_, has_annotation)| *has_annotation)
+                            .map_ok(|(n, _)| Match {
                                 node: n,
                                 anno_key: DEFAULT_ANNO_KEY.clone(),
                             })
                     })
-                    .map(|m| m.map_err(GraphAnnisError::from))
                     .collect()
             };
             let mut all = try_as_boxed_iter!(all);

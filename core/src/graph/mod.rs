@@ -371,7 +371,8 @@ impl<CT: ComponentType> Graph<CT> {
         // Iterate once over all changes in the same order as the updates have been added
         let total_nr_updates = u.len()?;
         progress_callback(&format!("applying {} atomic updates", total_nr_updates));
-        for (nr_updates, (id, change)) in u.iter()?.enumerate() {
+        for (nr_updates, update_event) in u.iter()?.enumerate() {
+            let (id, change) = update_event?;
             trace!("applying event {:?}", &change);
             ComponentType::before_update_event(&change, self, &mut update_graph_index)?;
             match &change {
@@ -416,7 +417,10 @@ impl<CT: ComponentType> Graph<CT> {
                     )? {
                         // delete all annotations
                         {
-                            for a in self.node_annos.get_annotations_for_item(&existing_node_id) {
+                            for a in self
+                                .node_annos
+                                .get_annotations_for_item(&existing_node_id)?
+                            {
                                 self.node_annos
                                     .remove_annotation_for_item(&existing_node_id, &a.key)?;
                             }
@@ -602,7 +606,7 @@ impl<CT: ComponentType> Graph<CT> {
         } // end for each consistent update entry
 
         progress_callback("calculating node statistics");
-        self.get_node_annos_mut().calculate_statistics();
+        self.get_node_annos_mut().calculate_statistics()?;
 
         progress_callback("extending graph with model-specific index");
         ComponentType::apply_update_graph_index(update_graph_index, self)?;
@@ -891,12 +895,12 @@ impl<CT: ComponentType> Graph<CT> {
                 .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Any)
             {
                 let m = m?;
-                for anno in self.node_annos.get_annotations_for_item(&m.node) {
+                for anno in self.node_annos.get_annotations_for_item(&m.node)? {
                     new_node_annos.insert(m.node, anno)?;
                 }
             }
             info!("re-calculating node annotation statistics");
-            new_node_annos.calculate_statistics();
+            new_node_annos.calculate_statistics()?;
             self.node_annos = new_node_annos;
         }
 

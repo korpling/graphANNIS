@@ -477,22 +477,29 @@ pub extern "C" fn annis_cs_list_node_annotations(
     corpus_name: *const libc::c_char,
     list_values: bool,
     only_most_frequent_values: bool,
+    err: *mut *mut ErrorList,
 ) -> *mut Matrix<CString> {
     let cs: &CorpusStorage = cast_const(ptr);
     let corpus = cstr(corpus_name);
 
-    let orig_vec = cs.list_node_annotations(&corpus, list_values, only_most_frequent_values);
-    let mut result: Matrix<CString> = Matrix::new();
-    for anno in orig_vec.into_iter() {
-        if let (Ok(ns), Ok(name), Ok(val)) = (
-            CString::new(anno.key.ns.as_str()),
-            CString::new(anno.key.name.as_str()),
-            CString::new(anno.val.as_str()),
-        ) {
-            result.push(vec![ns, name, val]);
+    map_cerr(
+        cs.list_node_annotations(&corpus, list_values, only_most_frequent_values),
+        err,
+    )
+    .map(|orig_vec| {
+        let mut result: Matrix<CString> = Matrix::new();
+        for anno in orig_vec.into_iter() {
+            if let (Ok(ns), Ok(name), Ok(val)) = (
+                CString::new(anno.key.ns.as_str()),
+                CString::new(anno.key.name.as_str()),
+                CString::new(anno.val.as_str()),
+            ) {
+                result.push(vec![ns, name, val]);
+            }
         }
-    }
-    Box::into_raw(Box::new(result))
+        Box::into_raw(Box::new(result))
+    })
+    .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Returns a list of all edge annotations of a corpus given by `corpus_name` and the component.
@@ -513,6 +520,7 @@ pub extern "C" fn annis_cs_list_edge_annotations(
     component_layer: *const libc::c_char,
     list_values: bool,
     only_most_frequent_values: bool,
+    err: *mut *mut ErrorList,
 ) -> *mut Matrix<CString> {
     let cs: &CorpusStorage = cast_const(ptr);
     let corpus = cstr(corpus_name);
@@ -522,19 +530,24 @@ pub extern "C" fn annis_cs_list_edge_annotations(
         cstr(component_name).into(),
     );
 
-    let orig_vec =
-        cs.list_edge_annotations(&corpus, &component, list_values, only_most_frequent_values);
-    let mut result: Matrix<CString> = Matrix::new();
-    for anno in orig_vec.into_iter() {
-        if let (Ok(ns), Ok(name), Ok(val)) = (
-            CString::new(anno.key.ns.as_str()),
-            CString::new(anno.key.name.as_str()),
-            CString::new(anno.val.as_str()),
-        ) {
-            result.push(vec![ns, name, val]);
+    map_cerr(
+        cs.list_edge_annotations(&corpus, &component, list_values, only_most_frequent_values),
+        err,
+    )
+    .map(|orig_vec| {
+        let mut result: Matrix<CString> = Matrix::new();
+        for anno in orig_vec.into_iter() {
+            if let (Ok(ns), Ok(name), Ok(val)) = (
+                CString::new(anno.key.ns.as_str()),
+                CString::new(anno.key.name.as_str()),
+                CString::new(anno.val.as_str()),
+            ) {
+                result.push(vec![ns, name, val]);
+            }
         }
-    }
-    Box::into_raw(Box::new(result))
+        Box::into_raw(Box::new(result))
+    })
+    .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Parses a `query` and checks if it is valid.

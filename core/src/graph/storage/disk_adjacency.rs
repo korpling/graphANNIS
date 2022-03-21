@@ -280,14 +280,14 @@ impl GraphStorage for DiskAdjacencyListStorage {
                 let target = target?;
                 let e = Edge { source, target };
                 self.add_edge(e.clone())?;
-                for a in orig.get_anno_storage().get_annotations_for_item(&e) {
+                for a in orig.get_anno_storage().get_annotations_for_item(&e)? {
                     self.add_edge_annotation(e.clone(), a)?;
                 }
             }
         }
 
         self.stats = orig.get_statistics().cloned();
-        self.annos.calculate_statistics();
+        self.annos.calculate_statistics()?;
         Ok(())
     }
 
@@ -325,7 +325,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         self.edges.remove(edge)?;
         self.inverse_edges.remove(&edge.inverse())?;
 
-        let annos = self.annos.get_annotations_for_item(edge);
+        let annos = self.annos.get_annotations_for_item(edge)?;
         for a in annos {
             self.annos.remove_annotation_for_item(edge, &a.key)?;
         }
@@ -376,7 +376,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
             dfs_visit_ratio: 0.0,
         };
 
-        self.annos.calculate_statistics();
+        self.annos.calculate_statistics()?;
 
         let mut has_incoming_edge: BTreeSet<NodeID> = BTreeSet::new();
 

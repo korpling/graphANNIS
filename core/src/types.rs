@@ -1,5 +1,6 @@
 use num_traits::{Bounded, FromPrimitive, Num, ToPrimitive};
 use smartstring::alias::String;
+use std::error::Error;
 use std::fmt;
 use std::ops::AddAssign;
 
@@ -87,20 +88,12 @@ impl KeySerializer for Edge {
         result
     }
 
-    fn parse_key(key: &[u8]) -> Self {
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
         let id_size = std::mem::size_of::<NodeID>();
 
-        let source = NodeID::from_be_bytes(
-            key[..id_size]
-                .try_into()
-                .expect("Edge deserialization key was too small"),
-        );
-        let target = NodeID::from_be_bytes(
-            key[id_size..]
-                .try_into()
-                .expect("Edge deserialization key has wrong size"),
-        );
-        Edge { source, target }
+        let source = NodeID::from_be_bytes(key[..id_size].try_into()?);
+        let target = NodeID::from_be_bytes(key[id_size..].try_into()?);
+        Ok(Edge { source, target })
     }
 }
 

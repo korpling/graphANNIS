@@ -2361,7 +2361,7 @@ impl CorpusStorage {
         corpus_name: &str,
         list_values: bool,
         only_most_frequent_values: bool,
-    ) -> Vec<Annotation> {
+    ) -> Result<Vec<Annotation>> {
         let mut result: Vec<Annotation> = Vec::new();
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
             let lock = db_entry.read().unwrap();
@@ -2372,7 +2372,7 @@ impl CorpusStorage {
                         if only_most_frequent_values {
                             // get the first value
                             if let Some(val) =
-                                node_annos.get_all_values(&key, true).into_iter().next()
+                                node_annos.get_all_values(&key, true)?.into_iter().next()
                             {
                                 result.push(Annotation {
                                     key: key.clone(),
@@ -2381,7 +2381,7 @@ impl CorpusStorage {
                             }
                         } else {
                             // get all values
-                            for val in node_annos.get_all_values(&key, false) {
+                            for val in node_annos.get_all_values(&key, false)? {
                                 result.push(Annotation {
                                     key: key.clone(),
                                     val: val.into(),
@@ -2398,7 +2398,7 @@ impl CorpusStorage {
             }
         }
 
-        result
+        Ok(result)
     }
 
     /// Returns a list of all edge annotations of a corpus given by `corpus_name` and the `component`.
@@ -2411,7 +2411,7 @@ impl CorpusStorage {
         component: &Component<AnnotationComponentType>,
         list_values: bool,
         only_most_frequent_values: bool,
-    ) -> Vec<Annotation> {
+    ) -> Result<Vec<Annotation>> {
         let mut result: Vec<Annotation> = Vec::new();
         if let Ok(db_entry) =
             self.get_loaded_entry_with_components(corpus_name, vec![component.clone()])
@@ -2425,7 +2425,7 @@ impl CorpusStorage {
                             if only_most_frequent_values {
                                 // get the first value
                                 if let Some(val) =
-                                    edge_annos.get_all_values(&key, true).into_iter().next()
+                                    edge_annos.get_all_values(&key, true)?.into_iter().next()
                                 {
                                     result.push(Annotation {
                                         key: key.clone(),
@@ -2434,7 +2434,7 @@ impl CorpusStorage {
                                 }
                             } else {
                                 // get all values
-                                for val in edge_annos.get_all_values(&key, false) {
+                                for val in edge_annos.get_all_values(&key, false)? {
                                     result.push(Annotation {
                                         key: key.clone(),
                                         val: val.into(),
@@ -2452,7 +2452,7 @@ impl CorpusStorage {
             }
         }
 
-        result
+        Ok(result)
     }
 
     fn check_cache_size_and_remove(&self, keep: Vec<&str>, report_cache_status: bool) {
@@ -2676,7 +2676,7 @@ fn create_subgraph_node(
     orig_db: &AnnotationGraph,
 ) -> Result<()> {
     // add all node labels with the same node ID
-    for a in orig_db.get_node_annos().get_annotations_for_item(&id) {
+    for a in orig_db.get_node_annos().get_annotations_for_item(&id)? {
         db.get_node_annos_mut().insert(id, a)?;
     }
     Ok(())
@@ -2716,7 +2716,7 @@ fn create_subgraph_edge(
                         for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
                             source: source_id,
                             target,
-                        }) {
+                        })? {
                             if let Ok(new_gs) = db.get_or_create_writable(c) {
                                 new_gs.add_edge_annotation(e.clone(), a)?;
                             }

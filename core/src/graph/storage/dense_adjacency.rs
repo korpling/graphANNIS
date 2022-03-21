@@ -188,14 +188,14 @@ impl GraphStorage for DenseAdjacencyListStorage {
                             inverse_entry.insert(insertion_idx, e.source);
                         }
                         // insert annotation
-                        for a in orig.get_anno_storage().get_annotations_for_item(&e) {
+                        for a in orig.get_anno_storage().get_annotations_for_item(&e)? {
                             self.annos.insert(e.clone(), a)?;
                         }
                     }
                 }
             }
             self.stats = orig.get_statistics().cloned();
-            self.annos.calculate_statistics();
+            self.annos.calculate_statistics()?;
         }
         Ok(())
     }

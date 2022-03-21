@@ -180,7 +180,7 @@ pub async fn node_annotations(
         corpus.as_str(),
         params.list_values,
         params.only_most_frequent_values,
-    );
+    )?;
 
     Ok(HttpResponse::Ok().json(annos))
 }
@@ -205,7 +205,7 @@ pub async fn edge_annotations(
         &component,
         params.list_values,
         params.only_most_frequent_values,
-    );
+    )?;
 
     Ok(HttpResponse::Ok().json(annos))
 }

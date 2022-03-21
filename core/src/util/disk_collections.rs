@@ -430,7 +430,10 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((key, value)) = self.table_iterator.next() {
-            let key = K::parse_key(&key);
+            let key = match K::parse_key(&key) {
+                Ok(key) => key,
+                Err(e) => return Some(Err(e.into())),
+            };
             return match self.serialization.deserialize(&value) {
                 Ok(value) => Some(Ok((key, value))),
                 Err(e) => Some(Err(e.into())),
@@ -795,7 +798,11 @@ where
                     self.table_it.advance();
 
                     if let Some(value) = value {
-                        return Some(Ok((K::parse_key(&self.current_key), value)));
+                        let key = match K::parse_key(&self.current_key) {
+                            Ok(key) => key,
+                            Err(e) => return Some(Err(e.into())),
+                        };
+                        return Some(Ok((key, value)));
                     }
                 } else {
                     self.exhausted = true;

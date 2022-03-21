@@ -457,7 +457,7 @@ where
 
                 // add the edge annotations for this edge
                 let e = Edge { source, target };
-                let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e);
+                let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e)?;
                 for a in edge_annos {
                     self.annos.insert(e.clone(), a)?;
                 }
@@ -532,7 +532,7 @@ where
         }
 
         self.stats = orig.get_statistics().cloned();
-        self.annos.calculate_statistics();
+        self.annos.calculate_statistics()?;
 
         self.node_to_order.shrink_to_fit();
 

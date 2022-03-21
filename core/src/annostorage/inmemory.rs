@@ -352,7 +352,7 @@ where
         result
     }
 
-    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
+    fn get_annotations_for_item(&self, item: &T) -> Result<Vec<Annotation>> {
         if let Some(all_annos) = self.by_container.get(item) {
             let mut result: Vec<Annotation> = Vec::with_capacity(all_annos.len());
             for a in all_annos.iter() {
@@ -360,10 +360,10 @@ where
                     result.push(a);
                 }
             }
-            return result;
+            return Ok(result);
         }
         // return empty result if not found
-        Vec::new()
+        Ok(Vec::new())
     }
 
     fn number_of_annotations(&self) -> Result<usize> {
@@ -790,7 +790,7 @@ where
         }
     }
 
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Cow<str>> {
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Result<Vec<Cow<str>>> {
         if let Some(key) = self.anno_keys.get_symbol(key) {
             if let Some(values_for_key) = self.by_anno.get(&key) {
                 if most_frequent_first {
@@ -800,21 +800,22 @@ where
                             let val = self.anno_values.get_value_ref(*val)?;
                             Some((items.len(), val))
                         })
-                        .sorted();
-                    return result
+                        .sorted()
                         .rev()
                         .map(|(_, val)| Cow::Borrowed(&val[..]))
                         .collect();
+                    return Ok(result);
                 } else {
-                    return values_for_key
+                    let result = values_for_key
                         .iter()
                         .filter_map(|(val, _items)| self.anno_values.get_value_ref(*val))
                         .map(|val| Cow::Borrowed(&val[..]))
                         .collect();
+                    return Ok(result);
                 }
             }
         }
-        return vec![];
+        return Ok(vec![]);
     }
 
     fn annotation_keys(&self) -> Vec<AnnoKey> {
@@ -825,7 +826,7 @@ where
         self.largest_item.clone()
     }
 
-    fn calculate_statistics(&mut self) {
+    fn calculate_statistics(&mut self) -> Result<()> {
         let max_histogram_buckets = 250;
         let max_sampled_annotations = 2500;
 
@@ -897,6 +898,7 @@ where
                 }
             }
         }
+        Ok(())
     }
 
     fn load_annotations_from(&mut self, location: &Path) -> Result<()> {
@@ -1006,7 +1008,7 @@ mod tests {
 
         assert_eq!(3, a.number_of_annotations().unwrap());
 
-        let all = a.get_annotations_for_item(&1);
+        let all = a.get_annotations_for_item(&1).unwrap();
         assert_eq!(3, all.len());
 
         assert_eq!(test_anno1, all[0]);

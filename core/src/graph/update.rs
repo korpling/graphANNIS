@@ -9,7 +9,7 @@ use crate::serializer::KeySerializer;
 use bincode::Options;
 use serde::de::Error as DeserializeError;
 use serde::de::{MapAccess, Visitor};
-use serde::ser::Error as SerializeError;
+use serde::ser::{Error as SerializeError, SerializeMap};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 use tempfile::NamedTempFile;
@@ -226,9 +226,9 @@ impl GraphUpdateIterator {
 }
 
 impl std::iter::Iterator for GraphUpdateIterator {
-    type Item = (u64, UpdateEvent);
+    type Item = Result<(u64, UpdateEvent)>;
 
-    fn next(&mut self) -> Option<(u64, UpdateEvent)> {
+    fn next(&mut self) -> Option<Self::Item> {
         // Remove all empty table iterators.
         self.iterators.retain(|it| it.valid());
 
@@ -236,15 +236,18 @@ impl std::iter::Iterator for GraphUpdateIterator {
             // Get the current values
             if let Some((key, value)) = sstable::current_key_val(it) {
                 // Create the actual types
-                let id = u64::parse_key(&key);
-                let event: UpdateEvent = self
-                    .serialization
-                    .deserialize(&value)
-                    .expect("Could not decode previously written data from disk.");
+                let id = match u64::parse_key(&key) {
+                    Ok(id) => id,
+                    Err(e) => return Some(Err(e.into())),
+                };
+                let event: UpdateEvent = match self.serialization.deserialize(&value) {
+                    Ok(event) => event,
+                    Err(e) => return Some(Err(e.into())),
+                };
 
                 // Advance for next iteration
                 it.advance();
-                return Some((id, event));
+                return Some(Ok((id, event)));
             }
         }
         None
@@ -264,8 +267,18 @@ impl Serialize for GraphUpdate {
     where
         S: Serializer,
     {
-        let it = self.iter().map_err(S::Error::custom)?;
-        serializer.collect_map(it)
+        let iter = self.iter().map_err(S::Error::custom)?;
+        let number_of_updates = self.len().map_err(S::Error::custom)?;
+        let mut map_serializer = serializer.serialize_map(Some(number_of_updates))?;
+
+        for entry in iter {
+            let (key, value) = entry.map_err(S::Error::custom)?;
+            map_serializer
+                .serialize_entry(&key, &value)
+                .map_err(S::Error::custom)?;
+        }
+
+        map_serializer.end()
     }
 }
 

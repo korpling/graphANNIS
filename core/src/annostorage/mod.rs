@@ -149,7 +149,7 @@ where
     fn get_qnames(&self, name: &str) -> Vec<AnnoKey>;
 
     /// Get all annotations for an `item` (node or edge).
-    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
+    fn get_annotations_for_item(&self, item: &T) -> Result<Vec<Annotation>>;
 
     /// Get the annotation for a given `item` and the annotation `key`.
     fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>>;
@@ -242,7 +242,7 @@ where
 
     /// Return a list of all existing values for a given annotation `key`.
     /// If the `most_frequent_first` parameter is true, the results are sorted by their frequency.
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Cow<str>>;
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Result<Vec<Cow<str>>>;
 
     /// Get all the annotation keys which are part of this annotation storage
     fn annotation_keys(&self) -> Vec<AnnoKey>;
@@ -256,7 +256,7 @@ where
     ///
     /// An annotation storage can invalid statistics, in which case the estimation function will not return
     /// valid results.
-    fn calculate_statistics(&mut self);
+    fn calculate_statistics(&mut self) -> Result<()>;
 
     /// Load the annotation from an external `location`.
     fn load_annotations_from(&mut self, location: &Path) -> Result<()>;
