@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   C-API), so this release is not technically backwards-compatible. Adapting to
   the updated API should be restricted to handle the errors returned by the
   functions.
+- The changes to the error handling also affects the C-API. These following 
+  functions have now a `ErrorList` argument:
+  * `annis_cs_list_node_annotations`
+  * `annis_cs_list_edge_annotations`
+  * `annis_cs_list_components_by_type`
+  * `annis_cs_unload`
+  * `annis_iter_nodeid_next`
+  * `annis_graph_annotations_for_node`
+  * `annis_graph_outgoing_edges`
+  * `annis_graph_annotations_for_edge`
 
 ### Fixed
 
