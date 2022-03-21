@@ -168,10 +168,11 @@ impl<CT: ComponentType> Graph<CT> {
 
     /// Clear the graph content.
     /// This removes all node annotations, edges and knowledge about components.
-    fn clear(&mut self) {
-        self.reset_cached_size();
+    fn clear(&mut self) -> Result<()> {
+        self.reset_cached_size()?;
         self.node_annos = Box::new(crate::annostorage::inmemory::AnnoStorageImpl::new());
         self.components.clear();
+        Ok(())
     }
 
     /// Load the graph from an external location.
@@ -181,7 +182,7 @@ impl<CT: ComponentType> Graph<CT> {
     /// * `preload` - If `true`, all components are loaded from disk into main memory.
     pub fn load_from(&mut self, location: &Path, preload: bool) -> Result<()> {
         debug!("Loading corpus from {}", location.to_string_lossy());
-        self.clear();
+        self.clear()?;
 
         let location = PathBuf::from(location);
 
@@ -360,7 +361,7 @@ impl<CT: ComponentType> Graph<CT> {
     where
         F: Fn(&str),
     {
-        self.reset_cached_size();
+        self.reset_cached_size()?;
 
         let all_components = self.get_all_components(None, None);
 
@@ -733,7 +734,7 @@ impl<CT: ComponentType> Graph<CT> {
         }
 
         // Component does exist, but is not writable, replace with writeable implementation
-        self.reset_cached_size();
+        self.reset_cached_size()?;
         let readonly_gs = self
             .components
             .get(c)
@@ -748,7 +749,7 @@ impl<CT: ComponentType> Graph<CT> {
 
     /// Makes sure the statistics for the given component are up-to-date.
     pub fn calculate_component_statistics(&mut self, c: &Component<CT>) -> Result<()> {
-        self.reset_cached_size();
+        self.reset_cached_size()?;
 
         let mut result: Result<()> = Ok(());
         let mut entry = self
@@ -779,7 +780,7 @@ impl<CT: ComponentType> Graph<CT> {
         &mut self,
         c: &Component<CT>,
     ) -> Result<&mut dyn WriteableGraphStorage> {
-        self.reset_cached_size();
+        self.reset_cached_size()?;
 
         if self.components.contains_key(c) {
             // make sure the component is actually writable and loaded
@@ -828,7 +829,7 @@ impl<CT: ComponentType> Graph<CT> {
             }
         }
 
-        self.reset_cached_size();
+        self.reset_cached_size()?;
 
         // load missing components in parallel
         let loaded_components: Vec<(_, Result<Arc<dyn GraphStorage>>)> = components_to_load
@@ -870,7 +871,7 @@ impl<CT: ComponentType> Graph<CT> {
             }
         }
         if cache_reset_needed {
-            self.reset_cached_size();
+            self.reset_cached_size()?;
         }
         Ok(())
     }
@@ -938,7 +939,7 @@ impl<CT: ComponentType> Graph<CT> {
                         false
                     };
                     if converted {
-                        self.reset_cached_size();
+                        self.reset_cached_size()?;
                         // insert into components map
                         info!(
                             "finished conversion of component {} to implementation {}",
@@ -1046,21 +1047,22 @@ impl<CT: ComponentType> Graph<CT> {
         }
     }
 
-    pub fn size_of_cached(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut lock = self.cached_size.lock().unwrap();
+    pub fn size_of_cached(&self, ops: &mut MallocSizeOfOps) -> Result<usize> {
+        let mut lock = self.cached_size.lock()?;
         let cached_size: &mut Option<usize> = &mut *lock;
         if let Some(cached) = cached_size {
-            return *cached;
+            return Ok(*cached);
         }
         let calculated_size = self.size_of(ops);
         *cached_size = Some(calculated_size);
-        calculated_size
+        Ok(calculated_size)
     }
 
-    fn reset_cached_size(&self) {
-        let mut lock = self.cached_size.lock().unwrap();
+    fn reset_cached_size(&self) -> Result<()> {
+        let mut lock = self.cached_size.lock()?;
         let cached_size: &mut Option<usize> = &mut *lock;
         *cached_size = None;
+        Ok(())
     }
 }
 
