@@ -6,7 +6,6 @@ use crate::errors::Result;
 use crate::try_as_option;
 use crate::{annis::operator::EstimationType, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
-use itertools::Itertools;
 use std::boxed::Box;
 use std::error::Error;
 use std::iter::Peekable;
@@ -93,14 +92,14 @@ impl<'a> IndexJoin<'a> {
             let it_nodes = self
                 .op
                 .retrieve_matches(&m_lhs[self.lhs_idx])
-                .map_ok(|m| m.node)
-                .map(|n| {
-                    n.map_err(|e| {
+                .fuse()
+                .map(|m| {
+                    m.map_err(|e| {
                         let e: Box<dyn Error + Send + Sync> = Box::new(e);
                         e
                     })
-                })
-                .fuse();
+                    .map(|m| m.node)
+                });
             let it_nodes: Box<
                 dyn Iterator<Item = std::result::Result<NodeID, Box<dyn Error + Send + Sync>>>,
             > = Box::from(it_nodes);

@@ -30,3 +30,6 @@ opt-level = 3
 
 [profile.dev.package.zip]
 opt-level = 3
+
+[profile.release]
+debug = true

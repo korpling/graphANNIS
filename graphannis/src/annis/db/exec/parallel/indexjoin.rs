@@ -4,7 +4,6 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::operator::BinaryOperatorIndex;
 use crate::{annis::operator::EstimationType, errors::Result, graph::Match};
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
-use itertools::Itertools;
 use rayon::prelude::*;
 use std::error::Error;
 use std::iter::Peekable;
@@ -213,16 +212,13 @@ fn next_candidates(
     node_annos: &dyn AnnotationStorage<NodeID>,
     node_search_desc: &Arc<NodeSearchDesc>,
 ) -> Result<Vec<Match>> {
-    let it_nodes = op
-        .retrieve_matches(&m_lhs[lhs_idx])
-        .map_ok(|m| m.node)
-        .map(|n| {
-            n.map_err(|e| {
-                let e: Box<dyn Error + Send + Sync> = Box::new(e);
-                e
-            })
+    let it_nodes = op.retrieve_matches(&m_lhs[lhs_idx]).fuse().map(|m| {
+        m.map_err(|e| {
+            let e: Box<dyn Error + Send + Sync> = Box::new(e);
+            e
         })
-        .fuse();
+        .map(|m| m.node)
+    });
     let it_nodes: Box<
         dyn Iterator<Item = std::result::Result<NodeID, Box<dyn Error + Send + Sync>>>,
     > = Box::from(it_nodes);
