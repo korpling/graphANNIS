@@ -39,9 +39,8 @@ fn create_search_tests() -> Option<()> {
 #[allow(non_snake_case)]
 fn search_{corpus_escaped}_{name_escaped}() {{
 let aql = r###\"{aql}\"###;
-if let Some(cs_mutex) = CORPUS_STORAGE.as_ref() {{
+if let Some(cs) = CORPUS_STORAGE.as_ref() {{
     let search_count = {{ 
-        let cs = cs_mutex.lock().unwrap();
         let search_query = graphannis::corpusstorage::SearchQuery {{
             query: aql,
             corpus_names: &[\"{corpus}\"],
