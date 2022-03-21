@@ -2372,7 +2372,7 @@ impl CorpusStorage {
             let lock = db_entry.read()?;
             if let Ok(db) = get_read_or_error(&lock) {
                 let node_annos: &dyn AnnotationStorage<NodeID> = db.get_node_annos();
-                for key in node_annos.annotation_keys() {
+                for key in node_annos.annotation_keys()? {
                     if list_values {
                         if only_most_frequent_values {
                             // get the first value
@@ -2425,7 +2425,7 @@ impl CorpusStorage {
             if let Ok(db) = get_read_or_error(&lock) {
                 if let Some(gs) = db.get_graphstorage(component) {
                     let edge_annos = gs.get_anno_storage();
-                    for key in edge_annos.annotation_keys() {
+                    for key in edge_annos.annotation_keys()? {
                         if list_values {
                             if only_most_frequent_values {
                                 // get the first value

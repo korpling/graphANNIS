@@ -165,7 +165,10 @@ impl GraphStorage for DenseAdjacencyListStorage {
         self.edges.clear();
         self.inverse_edges.clear();
 
-        if let Some(largest_idx) = node_annos.get_largest_item().and_then(|idx| idx.to_usize()) {
+        if let Some(largest_idx) = node_annos
+            .get_largest_item()?
+            .and_then(|idx| idx.to_usize())
+        {
             debug!("Resizing dense adjacency list to size {}", largest_idx + 1);
             self.edges.resize(largest_idx + 1, None);
 

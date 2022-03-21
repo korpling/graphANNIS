@@ -245,12 +245,12 @@ where
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Result<Vec<Cow<str>>>;
 
     /// Get all the annotation keys which are part of this annotation storage
-    fn annotation_keys(&self) -> Vec<AnnoKey>;
+    fn annotation_keys(&self) -> Result<Vec<AnnoKey>>;
 
     /// Return the item with the largest item which has an annotation value in this annotation storage.
     ///
     /// This can be used to calculate new IDs for new items.
-    fn get_largest_item(&self) -> Option<T>;
+    fn get_largest_item(&self) -> Result<Option<T>>;
 
     /// (Re-) calculate the internal statistics needed for estimating annotation values.
     ///

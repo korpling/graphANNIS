@@ -95,7 +95,7 @@ fn get_adjacencylist_impl<CT: ComponentType>(db: &Graph<CT>, stats: &GraphStatis
         create_info_diskadjacency()
     } else {
         // check if a large percentage of nodes are part of the graph storage
-        if let Some(largest_node_id) = db.node_annos.get_largest_item() {
+        if let Ok(Some(largest_node_id)) = db.node_annos.get_largest_item() {
             if stats.max_fan_out <= 1 && (stats.nodes as f64 / largest_node_id as f64) >= 0.75 {
                 return create_info::<DenseAdjacencyListStorage>();
             }

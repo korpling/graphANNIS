@@ -387,7 +387,7 @@ impl<CT: ComponentType> Graph<CT> {
                     // only add node if it does not exist yet
                     if existing_node_id.is_none() {
                         let new_node_id: NodeID =
-                            if let Some(id) = self.node_annos.get_largest_item() {
+                            if let Some(id) = self.node_annos.get_largest_item()? {
                                 id + 1
                             } else {
                                 0

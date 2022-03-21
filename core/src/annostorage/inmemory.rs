@@ -829,12 +829,12 @@ where
         Ok(vec![])
     }
 
-    fn annotation_keys(&self) -> Vec<AnnoKey> {
-        self.anno_key_sizes.keys().cloned().collect()
+    fn annotation_keys(&self) -> Result<Vec<AnnoKey>> {
+        Ok(self.anno_key_sizes.keys().cloned().collect())
     }
 
-    fn get_largest_item(&self) -> Option<T> {
-        self.largest_item.clone()
+    fn get_largest_item(&self) -> Result<Option<T>> {
+        Ok(self.largest_item.clone())
     }
 
     fn calculate_statistics(&mut self) -> Result<()> {
