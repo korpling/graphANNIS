@@ -238,7 +238,7 @@ where
         Ok(existing)
     }
 
-    pub fn iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = Result<(K, V)>> + 'a>> {
+    pub fn iter(&self) -> Result<ResultIterator<K, V>> {
         if let Some(c1) = &self.c1 {
             if self.c0.is_empty() && self.c2.is_none() {
                 // Create an iterator that skips the thombstone entries
@@ -450,14 +450,16 @@ where
 {
 }
 
+type ResultIterator<'a, K, V> = Box<dyn Iterator<Item = Result<(K, V)>> + 'a>;
+
 pub struct CombinedRange<'a, K, V>
 where
     for<'de> K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
     c0_iterator: Peekable<std::collections::btree_map::Range<'a, K, Option<V>>>,
-    c1_iterator: Peekable<Box<dyn Iterator<Item = Result<(K, Option<V>)>> + 'a>>,
-    c2_iterator: Peekable<Box<dyn Iterator<Item = Result<(K, V)>> + 'a>>,
+    c1_iterator: Peekable<ResultIterator<'a, K, Option<V>>>,
+    c2_iterator: Peekable<ResultIterator<'a, K, V>>,
 }
 
 impl<'a, K, V> CombinedRange<'a, K, V>
