@@ -1,4 +1,3 @@
-use super::cerror;
 use super::cerror::ErrorList;
 use super::Matrix;
 use super::{cast_const, cast_mut, cstr, map_cerr};
@@ -23,12 +22,8 @@ use std::path::PathBuf;
 /// - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
 /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-///
-/// # Safety
-///
-/// This functions dereferences the `err` pointer and is therefore unsafe.
 #[no_mangle]
-pub unsafe extern "C" fn annis_cs_with_auto_cache_size(
+pub extern "C" fn annis_cs_with_auto_cache_size(
     db_dir: *const libc::c_char,
     use_parallel_joins: bool,
     err: *mut *mut ErrorList,
@@ -39,15 +34,9 @@ pub unsafe extern "C" fn annis_cs_with_auto_cache_size(
 
     let s = CorpusStorage::with_auto_cache_size(&db_dir_path, use_parallel_joins);
 
-    match s {
-        Ok(result) => Box::into_raw(Box::new(result)),
-        Err(e) => {
-            if !err.is_null() {
-                *err = cerror::new(e.into());
-            }
-            std::ptr::null_mut()
-        }
-    }
+    map_cerr(s, err)
+        .map(|cs| Box::into_raw(Box::new(cs)))
+        .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Create a new corpus storage with an manually defined maximum cache size.
@@ -56,12 +45,8 @@ pub unsafe extern "C" fn annis_cs_with_auto_cache_size(
 /// - `max_cache_size` - Fixed maximum size of the cache in bytes.
 /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-///
-/// # Safety
-///
-/// This functions dereferences the `err` pointer and is therefore unsafe.
 #[no_mangle]
-pub unsafe extern "C" fn annis_cs_with_max_cache_size(
+pub extern "C" fn annis_cs_with_max_cache_size(
     db_dir: *const libc::c_char,
     max_cache_size: usize,
     use_parallel_joins: bool,
@@ -77,15 +62,9 @@ pub unsafe extern "C" fn annis_cs_with_max_cache_size(
         use_parallel_joins,
     );
 
-    match s {
-        Ok(result) => Box::into_raw(Box::new(result)),
-        Err(e) => {
-            if !err.is_null() {
-                *err = cerror::new(e.into());
-            }
-            std::ptr::null_mut()
-        }
-    }
+    map_cerr(s, err)
+        .map(|cs| Box::into_raw(Box::new(cs)))
+        .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Frees the reference to the corpus storage object.
@@ -477,22 +456,29 @@ pub extern "C" fn annis_cs_list_node_annotations(
     corpus_name: *const libc::c_char,
     list_values: bool,
     only_most_frequent_values: bool,
+    err: *mut *mut ErrorList,
 ) -> *mut Matrix<CString> {
     let cs: &CorpusStorage = cast_const(ptr);
     let corpus = cstr(corpus_name);
 
-    let orig_vec = cs.list_node_annotations(&corpus, list_values, only_most_frequent_values);
-    let mut result: Matrix<CString> = Matrix::new();
-    for anno in orig_vec.into_iter() {
-        if let (Ok(ns), Ok(name), Ok(val)) = (
-            CString::new(anno.key.ns.as_str()),
-            CString::new(anno.key.name.as_str()),
-            CString::new(anno.val.as_str()),
-        ) {
-            result.push(vec![ns, name, val]);
+    map_cerr(
+        cs.list_node_annotations(&corpus, list_values, only_most_frequent_values),
+        err,
+    )
+    .map(|orig_vec| {
+        let mut result: Matrix<CString> = Matrix::new();
+        for anno in orig_vec.into_iter() {
+            if let (Ok(ns), Ok(name), Ok(val)) = (
+                CString::new(anno.key.ns.as_str()),
+                CString::new(anno.key.name.as_str()),
+                CString::new(anno.val.as_str()),
+            ) {
+                result.push(vec![ns, name, val]);
+            }
         }
-    }
-    Box::into_raw(Box::new(result))
+        Box::into_raw(Box::new(result))
+    })
+    .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Returns a list of all edge annotations of a corpus given by `corpus_name` and the component.
@@ -513,6 +499,7 @@ pub extern "C" fn annis_cs_list_edge_annotations(
     component_layer: *const libc::c_char,
     list_values: bool,
     only_most_frequent_values: bool,
+    err: *mut *mut ErrorList,
 ) -> *mut Matrix<CString> {
     let cs: &CorpusStorage = cast_const(ptr);
     let corpus = cstr(corpus_name);
@@ -522,19 +509,24 @@ pub extern "C" fn annis_cs_list_edge_annotations(
         cstr(component_name).into(),
     );
 
-    let orig_vec =
-        cs.list_edge_annotations(&corpus, &component, list_values, only_most_frequent_values);
-    let mut result: Matrix<CString> = Matrix::new();
-    for anno in orig_vec.into_iter() {
-        if let (Ok(ns), Ok(name), Ok(val)) = (
-            CString::new(anno.key.ns.as_str()),
-            CString::new(anno.key.name.as_str()),
-            CString::new(anno.val.as_str()),
-        ) {
-            result.push(vec![ns, name, val]);
+    map_cerr(
+        cs.list_edge_annotations(&corpus, &component, list_values, only_most_frequent_values),
+        err,
+    )
+    .map(|orig_vec| {
+        let mut result: Matrix<CString> = Matrix::new();
+        for anno in orig_vec.into_iter() {
+            if let (Ok(ns), Ok(name), Ok(val)) = (
+                CString::new(anno.key.ns.as_str()),
+                CString::new(anno.key.name.as_str()),
+                CString::new(anno.val.as_str()),
+            ) {
+                result.push(vec![ns, name, val]);
+            }
         }
-    }
-    Box::into_raw(Box::new(result))
+        Box::into_raw(Box::new(result))
+    })
+    .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Parses a `query` and checks if it is valid.
@@ -670,16 +662,20 @@ pub extern "C" fn annis_cs_export_to_fs(
 ///
 /// - `ptr` - The corpus storage object.
 /// - `ctype` -Filter by the component type.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_cs_list_components_by_type(
     ptr: *mut CorpusStorage,
     corpus_name: *const libc::c_char,
     ctype: AnnotationComponentType,
+    err: *mut *mut ErrorList,
 ) -> *mut Vec<AnnotationComponent> {
     let cs: &CorpusStorage = cast_const(ptr);
     let corpus = cstr(corpus_name);
 
-    Box::into_raw(Box::new(cs.list_components(&corpus, Some(ctype), None)))
+    map_cerr(cs.list_components(&corpus, Some(ctype), None), err)
+        .map(|c| Box::into_raw(Box::new(c)))
+        .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Delete a corpus from this corpus storage.
@@ -700,12 +696,19 @@ pub extern "C" fn annis_cs_delete(
 }
 
 /// Unloads a corpus from the cache.
+///
+/// - `corpus` The name of the corpus to unload.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
-pub extern "C" fn annis_cs_unload(ptr: *mut CorpusStorage, corpus: *const libc::c_char) {
+pub extern "C" fn annis_cs_unload(
+    ptr: *mut CorpusStorage,
+    corpus: *const libc::c_char,
+    err: *mut *mut ErrorList,
+) {
     let cs: &mut CorpusStorage = cast_mut(ptr);
     let corpus = cstr(corpus);
 
-    cs.unload(&corpus);
+    map_cerr(cs.unload(&corpus), err);
 }
 
 /// Apply a sequence of updates (`update` parameter) to this graph for a corpus given by the `corpus_name` parameter.

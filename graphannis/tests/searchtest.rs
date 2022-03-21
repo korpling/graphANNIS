@@ -6,17 +6,16 @@ use graphannis::corpusstorage::{QueryLanguage, SearchQuery};
 use graphannis::CorpusStorage;
 
 use std::path::PathBuf;
-use std::sync::Mutex;
 
 lazy_static! {
-    static ref CORPUS_STORAGE: Option<Mutex<CorpusStorage>> = {
+    static ref CORPUS_STORAGE: Option<CorpusStorage> = {
         let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
             path
         } else {
             String::from("../data")
         });
         let cs = CorpusStorage::with_auto_cache_size(&db_dir, true).unwrap();
-        return Some(Mutex::new(cs));
+        Some(cs)
     };
 }
 
@@ -25,9 +24,8 @@ include!(concat!(env!("OUT_DIR"), "/searchtest.rs"));
 #[ignore]
 #[test]
 fn non_reflexivity_nodes() {
-    if let Some(cs_mutex) = CORPUS_STORAGE.as_ref() {
+    if let Some(cs) = CORPUS_STORAGE.as_ref() {
         let node_count = {
-            let cs = cs_mutex.lock().unwrap();
             let query = SearchQuery {
                 corpus_names: &["GUM"],
                 query: "node",
@@ -44,7 +42,6 @@ fn non_reflexivity_nodes() {
 
         for o in operators_to_test.into_iter() {
             let count = {
-                let cs = cs_mutex.lock().unwrap();
                 let query = SearchQuery {
                     corpus_names: &["GUM"],
                     query: "node {} node",
@@ -65,9 +62,8 @@ fn non_reflexivity_nodes() {
 #[ignore]
 #[test]
 fn non_reflexivity_tokens() {
-    if let Some(cs_mutex) = CORPUS_STORAGE.as_ref() {
+    if let Some(cs) = CORPUS_STORAGE.as_ref() {
         let tok_count = {
-            let cs = cs_mutex.lock().unwrap();
             let query = SearchQuery {
                 corpus_names: &["GUM"],
                 query: "tok",
@@ -83,7 +79,6 @@ fn non_reflexivity_tokens() {
 
         for o in operators_to_test.into_iter() {
             let count = {
-                let cs = cs_mutex.lock().unwrap();
                 let query = SearchQuery {
                     corpus_names: &["GUM"],
                     query: &format!("tok {} tok", o),
@@ -104,7 +99,7 @@ fn non_reflexivity_tokens() {
 #[ignore]
 #[test]
 fn reorder_and_negation() {
-    let cs = CORPUS_STORAGE.as_ref().unwrap().lock().unwrap();
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
 
     let q = SearchQuery {
         corpus_names: &["GUM"],

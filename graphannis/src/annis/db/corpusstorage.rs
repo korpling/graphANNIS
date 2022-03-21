@@ -31,6 +31,7 @@ use graphannis_core::{
     types::{AnnoKey, Annotation, Component, Edge, NodeID},
     util::memory_estimation,
 };
+use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, CONTROLS};
 use smartstring::alias::String as SmartString;
@@ -459,7 +460,7 @@ fn new_vector_with_memory_aligned_capacity<T>(expected_len: usize) -> Vec<T> {
     Vec::with_capacity(aligned_memory_size / std::mem::size_of::<T>())
 }
 
-type FindIterator<'a> = Box<dyn Iterator<Item = MatchGroup> + 'a>;
+type FindIterator<'a> = Box<dyn Iterator<Item = Result<MatchGroup>> + 'a>;
 
 impl CorpusStorage {
     /// Create a new instance with a maximum size for the internal corpus cache.
@@ -584,7 +585,7 @@ impl CorpusStorage {
         mem_ops: &mut MallocSizeOfOps,
     ) -> Result<CorpusInfo> {
         let cache_entry = self.get_entry(corpus_name)?;
-        let lock = cache_entry.read().unwrap();
+        let lock = cache_entry.read()?;
 
         // Read configuration file or create a default one
         let config: CorpusConfiguration = self
@@ -608,7 +609,7 @@ impl CorpusStorage {
                         graphstorages.push(GraphStorageInfo {
                             component: c.clone(),
                             load_status: LoadStatus::FullyLoaded(gs.size_of(mem_ops)),
-                            number_of_annotations: gs.get_anno_storage().number_of_annotations(),
+                            number_of_annotations: gs.get_anno_storage().number_of_annotations()?,
                             implementation: gs.serialization_id().clone(),
                             statistics: gs.get_statistics().cloned(),
                         });
@@ -655,7 +656,7 @@ impl CorpusStorage {
 
         {
             // test with read-only access if corpus is contained in cache
-            let cache_lock = self.corpus_cache.read().unwrap();
+            let cache_lock = self.corpus_cache.read()?;
             let cache = &*cache_lock;
             if let Some(e) = cache.get(&corpus_name) {
                 return Ok(e.clone());
@@ -663,7 +664,7 @@ impl CorpusStorage {
         }
 
         // if not yet available, change to write-lock and insert cache entry
-        let mut cache_lock = self.corpus_cache.write().unwrap();
+        let mut cache_lock = self.corpus_cache.write()?;
         let cache = &mut *cache_lock;
 
         let entry = cache
@@ -697,7 +698,7 @@ impl CorpusStorage {
         };
 
         // make sure the cache is not too large before adding the new corpus
-        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![], false);
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![], false)?;
 
         let db = if create_corpus {
             // create the default graph storages that are assumed to exist in every corpus
@@ -726,7 +727,7 @@ impl CorpusStorage {
             &self.cache_strategy,
             vec![corpus_name],
             true,
-        );
+        )?;
 
         Ok(entry)
     }
@@ -740,14 +741,14 @@ impl CorpusStorage {
 
         // check if basics (node annotation, strings) of the database are loaded
         let loaded = {
-            let lock = cache_entry.read().unwrap();
+            let lock = cache_entry.read()?;
             matches!(&*lock, CacheEntry::Loaded(_))
         };
 
         if loaded {
             Ok(cache_entry)
         } else {
-            let mut cache_lock = self.corpus_cache.write().unwrap();
+            let mut cache_lock = self.corpus_cache.write()?;
             self.load_entry_with_lock(&mut cache_lock, corpus_name, create_if_missing)
         }
     }
@@ -759,7 +760,7 @@ impl CorpusStorage {
     ) -> Result<Arc<RwLock<CacheEntry>>> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let missing_components = {
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             let db = get_read_or_error(&lock)?;
 
             let mut missing: HashSet<_> = HashSet::new();
@@ -772,7 +773,7 @@ impl CorpusStorage {
         };
         if !missing_components.is_empty() {
             // load the needed components
-            let mut lock = db_entry.write().unwrap();
+            let mut lock = db_entry.write()?;
             let db = get_write_or_error(&mut lock)?;
             for c in missing_components {
                 db.ensure_loaded(&c)?;
@@ -785,7 +786,7 @@ impl CorpusStorage {
     fn get_fully_loaded_entry(&self, corpus_name: &str) -> Result<Arc<RwLock<CacheEntry>>> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let missing_components = {
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             let db = get_read_or_error(&lock)?;
 
             let mut missing: HashSet<_> = HashSet::new();
@@ -798,7 +799,7 @@ impl CorpusStorage {
         };
         if !missing_components.is_empty() {
             // load the needed components
-            let mut lock = db_entry.write().unwrap();
+            let mut lock = db_entry.write()?;
             let db = get_write_or_error(&mut lock)?;
             for c in missing_components {
                 db.ensure_loaded(&c)?;
@@ -933,7 +934,9 @@ impl CorpusStorage {
             ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
                 progress_callback(status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
-                self.check_cache_size_and_remove(vec![], false);
+                if let Err(e) = self.check_cache_size_and_remove(vec![], false) {
+                    error!("Could not check cache size: {}", e);
+                };
             })?,
             ImportFormat::GraphML => {
                 let orig_corpus_name = if let Some(file_name) = path.file_stem() {
@@ -948,7 +951,9 @@ impl CorpusStorage {
                     |status| {
                         progress_callback(status);
                         // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
-                        self.check_cache_size_and_remove(vec![], false);
+                        if let Err(e) = self.check_cache_size_and_remove(vec![], false) {
+                            error!("Could not check cache size: {}", e);
+                        };
                     },
                 )?;
                 let config = if let Some(config_str) = config_str {
@@ -975,11 +980,11 @@ impl CorpusStorage {
         let mut db_path = PathBuf::from(&self.db_dir);
         db_path.push(escaped_corpus_name.to_string());
 
-        let mut cache_lock = self.corpus_cache.write().unwrap();
+        let mut cache_lock = self.corpus_cache.write()?;
         let cache = &mut *cache_lock;
 
         // make sure the cache is not too large before adding the new corpus
-        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![], false);
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![], false)?;
 
         // remove any possible old corpus
         if cache.contains_key(&corpus_name) {
@@ -1043,7 +1048,7 @@ impl CorpusStorage {
             &self.cache_strategy,
             vec![&corpus_name],
             true,
-        );
+        )?;
 
         Ok(corpus_name)
     }
@@ -1060,18 +1065,19 @@ impl CorpusStorage {
         };
         // Find all nodes of the type "file"
         let node_annos: &mut dyn AnnotationStorage<NodeID> = graph.get_node_annos_mut();
-        let file_nodes: Vec<NodeID> = node_annos
+        let file_nodes: Result<Vec<_>> = node_annos
             .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
-            .map(|m| m.node)
+            .map_ok(|m| m.node)
+            .map(|n| n.map_err(GraphAnnisError::from))
             .collect();
-        for node in file_nodes {
+        for node in file_nodes? {
             // Get the linked file for this node
-            if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key) {
+            if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key)? {
                 let original_path = old_base_path
                     .canonicalize()?
                     .join(&PathBuf::from(original_path.as_ref()));
                 if original_path.is_file() {
-                    if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY) {
+                    if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY)? {
                         // Create a new file name based on the node name and copy the file
                         let new_path = new_base_path.join(node_name.as_ref());
                         if let Some(parent) = new_path.parent() {
@@ -1101,7 +1107,7 @@ impl CorpusStorage {
         &'a self,
         corpus_name: &'a str,
         graph: &'a AnnotationGraph,
-    ) -> Result<Option<impl Iterator<Item = (String, PathBuf)> + 'a>> {
+    ) -> Result<Option<impl Iterator<Item = Result<(String, PathBuf)>> + 'a>> {
         let linked_file_key = AnnoKey {
             ns: ANNIS_NS.into(),
             name: "file".into(),
@@ -1116,20 +1122,28 @@ impl CorpusStorage {
             let it = node_annos
                 .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
                 // Get the linked file for this node
-                .filter_map(move |m| {
-                    if let Some(node_name) = node_annos.get_value_for_item(&m.node, &NODE_NAME_KEY)
-                    {
-                        if let Some(file_path_value) =
-                            node_annos.get_value_for_item(&m.node, &linked_file_key)
-                        {
-                            return Some((
-                                node_name.to_string(),
-                                base_path.join(file_path_value.to_string()),
-                            ));
-                        }
+                .map(move |m| match m {
+                    Ok(m) => node_annos
+                        .get_value_for_item(&m.node, &NODE_NAME_KEY)
+                        .map(|node_name| (m, node_name)),
+                    Err(e) => Err(e),
+                })
+                .map(move |result| match result {
+                    Ok((m, node_name)) => node_annos
+                        .get_value_for_item(&m.node, &linked_file_key)
+                        .map(|file_path_value| (node_name, file_path_value)),
+                    Err(e) => Err(e),
+                })
+                .filter_map_ok(move |(node_name, file_path_value)| {
+                    if let (Some(node_name), Some(file_path_value)) = (node_name, file_path_value) {
+                        return Some((
+                            node_name.to_string(),
+                            base_path.join(file_path_value.to_string()),
+                        ));
                     }
                     None
-                });
+                })
+                .map(|item| item.map_err(GraphAnnisError::from));
             Ok(Some(it))
         } else {
             Ok(None)
@@ -1143,7 +1157,8 @@ impl CorpusStorage {
         graph: &AnnotationGraph,
     ) -> Result<()> {
         if let Some(it_files) = self.get_linked_files(corpus_name, graph)? {
-            for (node_name, original_path) in it_files {
+            for file in it_files {
+                let (node_name, original_path) = file?;
                 let node_name: String = node_name;
                 if original_path.is_file() {
                     // Create a new file name based on the node name and copy the file
@@ -1165,12 +1180,12 @@ impl CorpusStorage {
 
         // Ensure all components are loaded
         {
-            let mut lock = entry.write().unwrap();
+            let mut lock = entry.write()?;
             let graph: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
             graph.ensure_loaded_all()?;
         }
         // Perform the export on a read-only reference
-        let lock = entry.read().unwrap();
+        let lock = entry.read()?;
         let graph: &AnnotationGraph = get_read_or_error(&lock)?;
 
         let config_as_str = if let Some(config) = self.get_corpus_config(corpus_name)? {
@@ -1231,12 +1246,12 @@ impl CorpusStorage {
 
         // Ensure all components are loaded
         {
-            let mut lock = entry.write().unwrap();
+            let mut lock = entry.write()?;
             let graph: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
             graph.ensure_loaded_all()?;
         }
         // Perform the export on a read-only reference
-        let lock = entry.read().unwrap();
+        let lock = entry.read()?;
         let graph: &AnnotationGraph = get_read_or_error(&lock)?;
 
         let config_as_str = if let Some(config) = self.get_corpus_config(corpus_name)? {
@@ -1255,7 +1270,8 @@ impl CorpusStorage {
 
         // Insert all linked files into the ZIP file
         if let Some(it_files) = self.get_linked_files(corpus_name.as_ref(), graph)? {
-            for (node_name, original_path) in it_files {
+            for file in it_files {
+                let (node_name, original_path) = file?;
                 let node_name: String = node_name;
 
                 zip.start_file(base_path.join(&node_name).to_string_lossy(), options)?;
@@ -1331,7 +1347,7 @@ impl CorpusStorage {
         let mut db_path = PathBuf::from(&self.db_dir);
         db_path.push(corpus_name);
 
-        let mut cache_lock = self.corpus_cache.write().unwrap();
+        let mut cache_lock = self.corpus_cache.write()?;
 
         let cache = &mut *cache_lock;
 
@@ -1339,7 +1355,7 @@ impl CorpusStorage {
         if let Some(db_entry) = cache.remove(corpus_name) {
             // aquire exclusive lock for this cache entry because
             // other queries or background writer might still have access it and need to finish first
-            let mut _lock = db_entry.write().unwrap();
+            let mut _lock = db_entry.write()?;
 
             if db_path.is_dir() && db_path.exists() {
                 std::fs::remove_dir_all(db_path).map_err(|e| {
@@ -1362,7 +1378,7 @@ impl CorpusStorage {
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<()> {
         let db_entry = self.get_loaded_entry(corpus_name, true)?;
         {
-            let mut lock = db_entry.write().unwrap();
+            let mut lock = db_entry.write()?;
             let db: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
 
             db.apply_update(update, |_| {})?;
@@ -1372,7 +1388,7 @@ impl CorpusStorage {
         let active_background_workers = self.active_background_workers.clone();
         {
             let &(ref lock, ref _cvar) = &*active_background_workers;
-            let mut nr_active_background_workers = lock.lock().unwrap();
+            let mut nr_active_background_workers = lock.lock()?;
             *nr_active_background_workers += 1;
         }
         thread::spawn(move || {
@@ -1409,7 +1425,7 @@ impl CorpusStorage {
 
         // make sure the database is loaded with all necessary components
         let (q, missing_components) = {
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             let db = get_read_or_error(&lock)?;
 
             let q = match query_language {
@@ -1439,13 +1455,13 @@ impl CorpusStorage {
         if !missing_components.is_empty() {
             // load the needed components
             {
-                let mut lock = db_entry.write().unwrap();
+                let mut lock = db_entry.write()?;
                 let db = get_write_or_error(&mut lock)?;
                 for c in missing_components {
                     db.ensure_loaded(&c)?;
                 }
             }
-            self.check_cache_size_and_remove(vec![corpus_name], true);
+            self.check_cache_size_and_remove(vec![corpus_name], true)?;
         };
 
         Ok(PreparationResult { query: q, db_entry })
@@ -1455,19 +1471,20 @@ impl CorpusStorage {
     pub fn preload(&self, corpus_name: &str) -> Result<()> {
         {
             let db_entry = self.get_loaded_entry(corpus_name, false)?;
-            let mut lock = db_entry.write().unwrap();
+            let mut lock = db_entry.write()?;
             let db = get_write_or_error(&mut lock)?;
             db.ensure_loaded_all()?;
         }
-        self.check_cache_size_and_remove(vec![corpus_name], true);
+        self.check_cache_size_and_remove(vec![corpus_name], true)?;
         Ok(())
     }
 
     /// Unloads a corpus from the cache.
-    pub fn unload(&self, corpus_name: &str) {
-        let mut cache_lock = self.corpus_cache.write().unwrap();
+    pub fn unload(&self, corpus_name: &str) -> Result<()> {
+        let mut cache_lock = self.corpus_cache.write()?;
         let cache = &mut *cache_lock;
         cache.remove(corpus_name);
+        Ok(())
     }
 
     /// Optimize the node annotation and graph storage implementations of the given corpus.
@@ -1476,7 +1493,7 @@ impl CorpusStorage {
     #[doc(hidden)]
     pub fn reoptimize_implementation(&self, corpus_name: &str, disk_based: bool) -> Result<()> {
         let graph_entry = self.get_loaded_entry(corpus_name, false)?;
-        let mut lock = graph_entry.write().unwrap();
+        let mut lock = graph_entry.write()?;
         let graph: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
 
         graph.optimize_impl(disk_based)?;
@@ -1500,7 +1517,7 @@ impl CorpusStorage {
             let prep: PreparationResult =
                 self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
             // also get the semantic errors by creating an execution plan on the actual Graph
-            let lock = prep.db_entry.read().unwrap();
+            let lock = prep.db_entry.read()?;
             let db = get_read_or_error(&lock)?;
             ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
         }
@@ -1523,7 +1540,7 @@ impl CorpusStorage {
             let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
 
             // acquire read-only lock and plan
-            let lock = prep.db_entry.read().unwrap();
+            let lock = prep.db_entry.read()?;
             let db = get_read_or_error(&lock)?;
             let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
@@ -1544,7 +1561,7 @@ impl CorpusStorage {
                 self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
 
             // acquire read-only lock and execute query
-            let lock = prep.db_entry.read().unwrap();
+            let lock = prep.db_entry.read()?;
             let db = get_read_or_error(&lock)?;
             let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
@@ -1575,20 +1592,21 @@ impl CorpusStorage {
                 self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
 
             // acquire read-only lock and execute query
-            let lock = prep.db_entry.read().unwrap();
+            let lock = prep.db_entry.read()?;
             let db: &AnnotationGraph = get_read_or_error(&lock)?;
             let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
             let mut known_documents: HashSet<SmartString> = HashSet::new();
 
             for m in plan {
+                let m = m?;
                 if !m.is_empty() {
                     let m: &Match = &m[0];
                     if let Some(node_name) = db
                         .get_node_annos()
-                        .get_value_for_item(&m.node, &NODE_NAME_KEY)
+                        .get_value_for_item(&m.node, &NODE_NAME_KEY)?
                     {
-                        let doc_path = if let Some((before, _)) = node_name.rsplit_once("#") {
+                        let doc_path = if let Some((before, _)) = node_name.rsplit_once('#') {
                             before
                         } else {
                             &node_name
@@ -1642,7 +1660,11 @@ impl CorpusStorage {
                 ValueSearch::Any,
             );
             if let Some(m) = relannis_version_it.next() {
-                if let Some(v) = db.get_node_annos().get_value_for_item(&m.node, &m.anno_key) {
+                let m = m?;
+                if let Some(v) = db
+                    .get_node_annos()
+                    .get_value_for_item(&m.node, &m.anno_key)?
+                {
                     if v == "3.3" {
                         relannis_version_33 = true;
                     }
@@ -1665,6 +1687,7 @@ impl CorpusStorage {
                 new_vector_with_memory_aligned_capacity(expected_len);
 
             for mgroup in plan {
+                let mgroup = mgroup?;
                 // add all matches to temporary vector
                 tmp_results.push(mgroup);
             }
@@ -1674,7 +1697,7 @@ impl CorpusStorage {
                 let mut rng = rand::thread_rng();
                 tmp_results.shuffle(&mut rng);
             } else {
-                let token_helper = TokenHelper::new(db);
+                let token_helper = TokenHelper::new(db).ok();
                 let component_order = Component::new(
                     AnnotationComponentType::Ordering,
                     ANNIS_NS.into(),
@@ -1688,9 +1711,9 @@ impl CorpusStorage {
                 };
 
                 let gs_order = db.get_graphstorage_as_ref(&component_order);
-                let order_func = |m1: &MatchGroup, m2: &MatchGroup| -> std::cmp::Ordering {
+                let order_func = |m1: &MatchGroup, m2: &MatchGroup| -> Result<std::cmp::Ordering> {
                     if order == ResultOrder::Inverted {
-                        db::sort_matches::compare_matchgroup_by_text_pos(
+                        let result = db::sort_matches::compare_matchgroup_by_text_pos(
                             m1,
                             m2,
                             db.get_node_annos(),
@@ -1698,10 +1721,11 @@ impl CorpusStorage {
                             gs_order,
                             collation,
                             quirks_mode,
-                        )
-                        .reverse()
+                        )?
+                        .reverse();
+                        Ok(result)
                     } else {
-                        db::sort_matches::compare_matchgroup_by_text_pos(
+                        let result = db::sort_matches::compare_matchgroup_by_text_pos(
                             m1,
                             m2,
                             db.get_node_annos(),
@@ -1709,7 +1733,8 @@ impl CorpusStorage {
                             gs_order,
                             collation,
                             quirks_mode,
-                        )
+                        )?;
+                        Ok(result)
                     }
                 };
 
@@ -1722,13 +1747,17 @@ impl CorpusStorage {
                 };
 
                 if self.query_config.use_parallel_joins {
-                    quicksort::sort_first_n_items_parallel(&mut tmp_results, sort_size, order_func);
+                    quicksort::sort_first_n_items_parallel(
+                        &mut tmp_results,
+                        sort_size,
+                        order_func,
+                    )?;
                 } else {
-                    quicksort::sort_first_n_items(&mut tmp_results, sort_size, order_func);
+                    quicksort::sort_first_n_items(&mut tmp_results, sort_size, order_func)?;
                 }
             }
             expected_size = Some(tmp_results.len());
-            Box::from(tmp_results.into_iter())
+            Box::from(tmp_results.into_iter().map(Ok))
         };
 
         Ok((base_it, expected_size))
@@ -1758,7 +1787,7 @@ impl CorpusStorage {
         })?;
 
         // acquire read-only lock and execute query
-        let lock = prep.db_entry.read().unwrap();
+        let lock = prep.db_entry.read()?;
         let db = get_read_or_error(&lock)?;
 
         let quirks_mode = match query.query_language {
@@ -1792,13 +1821,14 @@ impl CorpusStorage {
                 timeout.check()?;
             }
         }
-        let base_it: Box<dyn Iterator<Item = MatchGroup>> = if let Some(limit) = limit {
+        let base_it: Box<dyn Iterator<Item = Result<MatchGroup>>> = if let Some(limit) = limit {
             Box::new(base_it.take(limit))
         } else {
             Box::new(base_it)
         };
 
         for (match_nr, m) in base_it.enumerate() {
+            let m = m?;
             let mut match_desc = String::new();
 
             for (i, singlematch) in m.iter().enumerate() {
@@ -1832,7 +1862,7 @@ impl CorpusStorage {
 
                     if let Some(name) = db
                         .get_node_annos()
-                        .get_value_for_item(&singlematch.node, &NODE_NAME_KEY)
+                        .get_value_for_item(&singlematch.node, &NODE_NAME_KEY)?
                     {
                         if quirks_mode {
                             // Unescape and re-escape with quirks-mode compatible character encoding set
@@ -2169,7 +2199,7 @@ impl CorpusStorage {
 
         let subcorpus_components = {
             // make sure all subcorpus partitions are loaded
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             let db = get_read_or_error(&lock)?;
             db.get_all_components(Some(AnnotationComponentType::PartOf), None)
         };
@@ -2216,7 +2246,7 @@ impl CorpusStorage {
                 self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
 
             // acquire read-only lock and execute query
-            let lock = prep.db_entry.read().unwrap();
+            let lock = prep.db_entry.read()?;
             let db: &AnnotationGraph = get_read_or_error(&lock)?;
 
             // get the matching annotation keys for each definition entry
@@ -2234,7 +2264,7 @@ impl CorpusStorage {
                         ));
                     } else {
                         // add all matching annotation keys
-                        annokeys.push((node_ref, db.get_node_annos().get_qnames(&def.name)));
+                        annokeys.push((node_ref, db.get_node_annos().get_qnames(&def.name)?));
                     }
                 }
             }
@@ -2242,6 +2272,7 @@ impl CorpusStorage {
             let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
             for mgroup in plan {
+                let mgroup = mgroup?;
                 // for each match, extract the defined annotation (by its key) from the result node
                 let mut tuple: Vec<String> = Vec::with_capacity(annokeys.len());
                 for (node_ref, anno_keys) in &annokeys {
@@ -2249,7 +2280,7 @@ impl CorpusStorage {
                     if *node_ref < mgroup.len() {
                         let m: &Match = &mgroup[*node_ref];
                         for k in anno_keys.iter() {
-                            if let Some(val) = db.get_node_annos().get_value_for_item(&m.node, k) {
+                            if let Some(val) = db.get_node_annos().get_value_for_item(&m.node, k)? {
                                 tuple_val = val.to_string();
                             }
                         }
@@ -2316,14 +2347,14 @@ impl CorpusStorage {
         corpus_name: &str,
         ctype: Option<AnnotationComponentType>,
         name: Option<&str>,
-    ) -> Vec<Component<AnnotationComponentType>> {
+    ) -> Result<Vec<Component<AnnotationComponentType>>> {
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             if let Ok(db) = get_read_or_error(&lock) {
-                return db.get_all_components(ctype, name);
+                return Ok(db.get_all_components(ctype, name));
             }
         }
-        return vec![];
+        Ok(vec![])
     }
 
     /// Returns a list of all node annotations of a corpus given by `corpus_name`.
@@ -2335,18 +2366,18 @@ impl CorpusStorage {
         corpus_name: &str,
         list_values: bool,
         only_most_frequent_values: bool,
-    ) -> Vec<Annotation> {
+    ) -> Result<Vec<Annotation>> {
         let mut result: Vec<Annotation> = Vec::new();
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             if let Ok(db) = get_read_or_error(&lock) {
                 let node_annos: &dyn AnnotationStorage<NodeID> = db.get_node_annos();
-                for key in node_annos.annotation_keys() {
+                for key in node_annos.annotation_keys()? {
                     if list_values {
                         if only_most_frequent_values {
                             // get the first value
                             if let Some(val) =
-                                node_annos.get_all_values(&key, true).into_iter().next()
+                                node_annos.get_all_values(&key, true)?.into_iter().next()
                             {
                                 result.push(Annotation {
                                     key: key.clone(),
@@ -2355,7 +2386,7 @@ impl CorpusStorage {
                             }
                         } else {
                             // get all values
-                            for val in node_annos.get_all_values(&key, false) {
+                            for val in node_annos.get_all_values(&key, false)? {
                                 result.push(Annotation {
                                     key: key.clone(),
                                     val: val.into(),
@@ -2372,7 +2403,7 @@ impl CorpusStorage {
             }
         }
 
-        result
+        Ok(result)
     }
 
     /// Returns a list of all edge annotations of a corpus given by `corpus_name` and the `component`.
@@ -2385,21 +2416,21 @@ impl CorpusStorage {
         component: &Component<AnnotationComponentType>,
         list_values: bool,
         only_most_frequent_values: bool,
-    ) -> Vec<Annotation> {
+    ) -> Result<Vec<Annotation>> {
         let mut result: Vec<Annotation> = Vec::new();
         if let Ok(db_entry) =
             self.get_loaded_entry_with_components(corpus_name, vec![component.clone()])
         {
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             if let Ok(db) = get_read_or_error(&lock) {
                 if let Some(gs) = db.get_graphstorage(component) {
                     let edge_annos = gs.get_anno_storage();
-                    for key in edge_annos.annotation_keys() {
+                    for key in edge_annos.annotation_keys()? {
                         if list_values {
                             if only_most_frequent_values {
                                 // get the first value
                                 if let Some(val) =
-                                    edge_annos.get_all_values(&key, true).into_iter().next()
+                                    edge_annos.get_all_values(&key, true)?.into_iter().next()
                                 {
                                     result.push(Annotation {
                                         key: key.clone(),
@@ -2408,7 +2439,7 @@ impl CorpusStorage {
                                 }
                             } else {
                                 // get all values
-                                for val in edge_annos.get_all_values(&key, false) {
+                                for val in edge_annos.get_all_values(&key, false)? {
                                     result.push(Annotation {
                                         key: key.clone(),
                                         val: val.into(),
@@ -2426,18 +2457,23 @@ impl CorpusStorage {
             }
         }
 
-        result
+        Ok(result)
     }
 
-    fn check_cache_size_and_remove(&self, keep: Vec<&str>, report_cache_status: bool) {
-        let mut cache_lock = self.corpus_cache.write().unwrap();
+    fn check_cache_size_and_remove(
+        &self,
+        keep: Vec<&str>,
+        report_cache_status: bool,
+    ) -> Result<()> {
+        let mut cache_lock = self.corpus_cache.write()?;
         let cache = &mut *cache_lock;
         check_cache_size_and_remove_with_cache(
             cache,
             &self.cache_strategy,
             keep,
             report_cache_status,
-        );
+        )?;
+        Ok(())
     }
 }
 
@@ -2485,18 +2521,18 @@ fn get_write_or_error<'a>(
 
 fn get_cache_sizes(
     cache: &LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
-) -> LinkedHashMap<String, usize> {
+) -> Result<LinkedHashMap<String, usize>> {
     let mut mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
 
     let mut db_sizes: LinkedHashMap<String, usize> = LinkedHashMap::new();
     for (corpus, db_entry) in cache.iter() {
-        let lock = db_entry.read().unwrap();
+        let lock = db_entry.read()?;
         if let CacheEntry::Loaded(ref db) = &*lock {
-            let s = db.size_of_cached(&mut mem_ops);
+            let s = db.size_of_cached(&mut mem_ops)?;
             db_sizes.insert(corpus.clone(), s);
         }
     }
-    db_sizes
+    Ok(db_sizes)
 }
 
 fn get_max_cache_size(cache_strategy: &CacheStrategy, used_cache_size: usize) -> usize {
@@ -2524,11 +2560,11 @@ fn check_cache_size_and_remove_with_cache(
     cache_strategy: &CacheStrategy,
     keep: Vec<&str>,
     report_cache_status: bool,
-) {
+) -> Result<()> {
     let keep: HashSet<&str> = keep.into_iter().collect();
 
     // check size of each corpus and calculate the sum of used memory
-    let db_sizes = get_cache_sizes(cache);
+    let db_sizes = get_cache_sizes(cache)?;
     let mut size_sum: usize = db_sizes.iter().map(|(_, s)| s).sum();
 
     let max_cache_size: usize = get_max_cache_size(cache_strategy, size_sum);
@@ -2549,7 +2585,7 @@ fn check_cache_size_and_remove_with_cache(
                 debug!(
                     "Removing corpus {} from cache. {}",
                     corpus_name,
-                    get_corpus_cache_info_as_string(cache, max_cache_size),
+                    get_corpus_cache_info_as_string(cache, max_cache_size)?,
                 );
             }
         } else {
@@ -2559,17 +2595,21 @@ fn check_cache_size_and_remove_with_cache(
     }
 
     if report_cache_status {
-        info!("{}", get_corpus_cache_info_as_string(cache, max_cache_size));
+        info!(
+            "{}",
+            get_corpus_cache_info_as_string(cache, max_cache_size)?
+        );
     }
+    Ok(())
 }
 
 /// Return the current size and loaded corpora as debug string.
 fn get_corpus_cache_info_as_string(
     cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
     max_cache_size: usize,
-) -> String {
-    let cache_sizes = get_cache_sizes(cache);
-    if cache_sizes.is_empty() {
+) -> Result<String> {
+    let cache_sizes = get_cache_sizes(cache)?;
+    let result = if cache_sizes.is_empty() {
         "Corpus cache is currently empty".to_string()
     } else {
         let corpus_memory_as_string: Vec<String> = cache_sizes
@@ -2589,7 +2629,8 @@ fn get_corpus_cache_info_as_string(
             (max_cache_size as f64) / 1_000_000.0,
             corpus_memory_as_string.join(", ")
         )
-    }
+    };
+    Ok(result)
 }
 
 fn extract_subgraph_by_query(
@@ -2616,6 +2657,7 @@ fn extract_subgraph_by_query(
 
     // create the subgraph description
     for r in plan {
+        let r = r?;
         trace!("subgraph query found match {:?}", r);
         for i in match_idx.iter().cloned() {
             if i < r.len() {
@@ -2649,7 +2691,7 @@ fn create_subgraph_node(
     orig_db: &AnnotationGraph,
 ) -> Result<()> {
     // add all node labels with the same node ID
-    for a in orig_db.get_node_annos().get_annotations_for_item(&id) {
+    for a in orig_db.get_node_annos().get_annotations_for_item(&id)? {
         db.get_node_annos_mut().insert(id, a)?;
     }
     Ok(())
@@ -2672,9 +2714,10 @@ fn create_subgraph_edge(
         {
             if let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {
+                    let target = target?;
                     if !db
                         .get_node_annos()
-                        .get_all_keys_for_item(&target, None, None)
+                        .get_all_keys_for_item(&target, None, None)?
                         .is_empty()
                     {
                         let e = Edge {
@@ -2688,7 +2731,7 @@ fn create_subgraph_edge(
                         for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
                             source: source_id,
                             target,
-                        }) {
+                        })? {
                             if let Ok(new_gs) = db.get_or_create_writable(c) {
                                 new_gs.add_edge_annotation(e.clone(), a)?;
                             }

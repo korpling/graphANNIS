@@ -128,10 +128,10 @@ fn create_index_join<'b>(
     config: &Config,
     op: Box<dyn BinaryOperatorIndex + 'b>,
     op_args: &BinaryOperatorArguments,
-    exec_left: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
-    exec_right: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
+    exec_left: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>,
+    exec_right: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>,
     idx_left: usize,
-) -> Box<dyn ExecutionNode<Item = MatchGroup> + 'b> {
+) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>> {
     if config.use_parallel_joins {
         let join = parallel::indexjoin::IndexJoin::new(
             exec_left,
@@ -141,8 +141,8 @@ fn create_index_join<'b>(
             exec_right.as_nodesearch().unwrap().get_node_search_desc(),
             db.get_node_annos(),
             exec_right.get_desc(),
-        );
-        Box::new(join)
+        )?;
+        Ok(Box::new(join))
     } else {
         let join = IndexJoin::new(
             exec_left,
@@ -152,8 +152,8 @@ fn create_index_join<'b>(
             exec_right.as_nodesearch().unwrap().get_node_search_desc(),
             db.get_node_annos(),
             exec_right.get_desc(),
-        );
-        Box::new(join)
+        )?;
+        Ok(Box::new(join))
     }
 }
 
@@ -161,11 +161,11 @@ fn create_join<'b>(
     db: &'b AnnotationGraph,
     config: &Config,
     op_entry: BinaryOperatorEntry<'b>,
-    exec_left: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
-    exec_right: Box<dyn ExecutionNode<Item = MatchGroup> + 'b>,
+    exec_left: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>,
+    exec_right: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>,
     idx_left: usize,
     idx_right: usize,
-) -> Box<dyn ExecutionNode<Item = MatchGroup> + 'b> {
+) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>> {
     if exec_right.as_nodesearch().is_some() {
         if let BinaryOperator::Index(op) = op_entry.op {
             // we can use directly use an index join
@@ -183,7 +183,7 @@ fn create_join<'b>(
 
     if exec_left.as_nodesearch().is_some() {
         // avoid a nested loop join by switching the operand and using and index join when possible
-        if let Some(BinaryOperator::Index(inverse_op)) = op_entry.op.get_inverse_operator(db) {
+        if let Some(BinaryOperator::Index(inverse_op)) = op_entry.op.get_inverse_operator(db)? {
             let inverse_args = BinaryOperatorArguments {
                 left: op_entry.args.right,
                 right: op_entry.args.left,
@@ -206,11 +206,11 @@ fn create_join<'b>(
     if config.use_parallel_joins {
         let join = parallel::nestedloop::NestedLoop::new(
             op_entry, exec_left, exec_right, idx_left, idx_right,
-        );
-        Box::new(join)
+        )?;
+        Ok(Box::new(join))
     } else {
-        let join = NestedLoop::new(op_entry, exec_left, exec_right, idx_left, idx_right);
-        Box::new(join)
+        let join = NestedLoop::new(op_entry, exec_left, exec_right, idx_left, idx_right)?;
+        Ok(Box::new(join))
     }
 }
 
@@ -519,68 +519,75 @@ impl Conjunction {
         desc: Option<&ExecutionNodeDesc>,
         op_spec_entries: Box<dyn Iterator<Item = &'a BinaryOperatorSpecEntry> + 'a>,
         db: &'a AnnotationGraph,
-    ) -> Option<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> {
-        let desc = desc?;
-        // check if we can replace this node search with a generic "all nodes from either of these components" search
-        let node_search_cost: &CostEstimate = desc.cost.as_ref()?;
+    ) -> Result<Option<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>>> {
+        if let Some(desc) = desc {
+            // check if we can replace this node search with a generic "all nodes from either of these components" search
+            if let Some(node_search_cost) = desc.cost.as_ref() {
+                for e in op_spec_entries {
+                    let op_spec = &e.op;
+                    if e.args.left == desc.component_nr {
+                        // get the necessary components and count the number of nodes in these components
+                        let components = op_spec.necessary_components(db);
+                        if !components.is_empty() {
+                            let mut estimated_component_search = 0;
 
-        for e in op_spec_entries {
-            let op_spec = &e.op;
-            if e.args.left == desc.component_nr {
-                // get the necessary components and count the number of nodes in these components
-                let components = op_spec.necessary_components(db);
-                if !components.is_empty() {
-                    let mut estimated_component_search = 0;
-
-                    let mut estimation_valid = false;
-                    for c in &components {
-                        if let Some(gs) = db.get_graphstorage(c) {
-                            // check if we can apply an even more restrictive edge annotation search
-                            if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
-                                let anno_storage: &dyn AnnotationStorage<Edge> =
-                                    gs.get_anno_storage();
-                                let edge_anno_est = edge_anno_spec.guess_max_count(anno_storage);
-                                estimated_component_search += edge_anno_est;
-                                estimation_valid = true;
-                            } else if let Some(stats) = gs.get_statistics() {
-                                let stats: &GraphStatistic = stats;
-                                estimated_component_search += stats.nodes;
-                                estimation_valid = true;
+                            let mut estimation_valid = false;
+                            for c in &components {
+                                if let Some(gs) = db.get_graphstorage(c) {
+                                    // check if we can apply an even more restrictive edge annotation search
+                                    if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
+                                        let anno_storage: &dyn AnnotationStorage<Edge> =
+                                            gs.get_anno_storage();
+                                        let edge_anno_est =
+                                            edge_anno_spec.guess_max_count(anno_storage)?;
+                                        estimated_component_search += edge_anno_est;
+                                        estimation_valid = true;
+                                    } else if let Some(stats) = gs.get_statistics() {
+                                        let stats: &GraphStatistic = stats;
+                                        estimated_component_search += stats.nodes;
+                                        estimation_valid = true;
+                                    }
+                                }
                             }
-                        }
-                    }
 
-                    if estimation_valid && node_search_cost.output > estimated_component_search {
-                        let poc_search = NodeSearch::new_partofcomponentsearch(
-                            db,
-                            node_search_desc,
-                            Some(desc),
-                            components,
-                            op_spec.get_edge_anno_spec(),
-                        );
-                        if let Ok(poc_search) = poc_search {
-                            // TODO: check if there is another operator with even better estimates
-                            return Some(Box::new(poc_search));
-                        } else {
-                            return None;
+                            if estimation_valid
+                                && node_search_cost.output > estimated_component_search
+                            {
+                                let poc_search = NodeSearch::new_partofcomponentsearch(
+                                    db,
+                                    node_search_desc,
+                                    Some(desc),
+                                    components,
+                                    op_spec.get_edge_anno_spec(),
+                                );
+                                if let Ok(poc_search) = poc_search {
+                                    // TODO: check if there is another operator with even better estimates
+                                    return Ok(Some(Box::new(poc_search)));
+                                } else {
+                                    return Ok(None);
+                                }
+                            }
                         }
                     }
                 }
             }
         }
 
-        None
+        Ok(None)
     }
 
     fn add_node_to_exec_plan<'a>(
         &'a self,
         node_nr: usize,
         g: &'a AnnotationGraph,
-        component2exec: &mut BTreeMap<usize, Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
+        component2exec: &mut BTreeMap<
+            usize,
+            Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
+        >,
         node2component: &mut BTreeMap<usize, usize>,
         node2cost: &mut BTreeMap<usize, CostEstimate>,
         node_search_errors: &mut Vec<GraphAnnisError>,
-    ) {
+    ) -> Result<()> {
         let n_spec = &self.nodes[node_nr].spec;
         let n_var = &self.nodes[node_nr].var;
 
@@ -627,7 +634,7 @@ impl Conjunction {
                     node_search.get_desc(),
                     Box::new(self.binary_operators.iter()),
                     g,
-                );
+                )?;
 
                 // move to map
                 if let Some(node_by_component_search) = node_by_component_search {
@@ -638,6 +645,7 @@ impl Conjunction {
             }
             Err(e) => node_search_errors.push(e),
         };
+        Ok(())
     }
 
     fn add_binary_operator_to_exec_plan<'a>(
@@ -645,21 +653,19 @@ impl Conjunction {
         op_spec_entry: &BinaryOperatorSpecEntry,
         g: &'a AnnotationGraph,
         config: &Config,
-        component2exec: &mut BTreeMap<usize, Box<dyn ExecutionNode<Item = MatchGroup> + 'a>>,
+        component2exec: &mut BTreeMap<
+            usize,
+            Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
+        >,
         node2component: &mut BTreeMap<usize, usize>,
         node2cost: &BTreeMap<usize, CostEstimate>,
     ) -> Result<()> {
-        let mut op: BinaryOperator<'a> = op_spec_entry.op.create_operator(g).ok_or_else(|| {
-            GraphAnnisError::ImpossibleSearch(format!(
-                "could not create operator {:?}",
-                op_spec_entry
-            ))
-        })?;
+        let mut op: BinaryOperator<'a> = op_spec_entry.op.create_operator(g)?;
 
         let mut spec_idx_left = op_spec_entry.args.left;
         let mut spec_idx_right = op_spec_entry.args.right;
 
-        let inverse_op = op.get_inverse_operator(g);
+        let inverse_op = op.get_inverse_operator(g)?;
         if let Some(inverse_op) = inverse_op {
             if should_switch_operand_order(op_spec_entry, node2cost) {
                 spec_idx_left = op_spec_entry.args.right;
@@ -684,13 +690,13 @@ impl Conjunction {
 
         let component_left: usize = *(node2component
             .get(&spec_idx_left)
-            .ok_or_else(|| GraphAnnisError::NoComponentForNode(spec_idx_left + 1))?);
+            .ok_or(GraphAnnisError::NoComponentForNode(spec_idx_left + 1))?);
         let component_right: usize = *(node2component
             .get(&spec_idx_right)
-            .ok_or_else(|| GraphAnnisError::NoComponentForNode(spec_idx_right + 1))?);
+            .ok_or(GraphAnnisError::NoComponentForNode(spec_idx_right + 1))?);
 
         // get the original execution node
-        let exec_left: Box<dyn ExecutionNode<Item = MatchGroup> + 'a> = component2exec
+        let exec_left: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a> = component2exec
             .remove(&component_left)
             .ok_or(GraphAnnisError::NoExecutionNode(component_left))?;
 
@@ -701,7 +707,7 @@ impl Conjunction {
             .get(&spec_idx_left)
             .ok_or(GraphAnnisError::LHSOperandNotFound)?);
 
-        let new_exec: Box<dyn ExecutionNode<Item = MatchGroup>> =
+        let new_exec: Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>>>> =
             if component_left == component_right {
                 // don't create new tuples, only filter the existing ones
                 // TODO: check if LHS or RHS is better suited as filter input iterator
@@ -712,8 +718,8 @@ impl Conjunction {
                     .get(&spec_idx_right)
                     .ok_or(GraphAnnisError::RHSOperandNotFound)?);
 
-                let filter = Filter::new_binary(exec_left, idx_left, idx_right, op_entry);
-                Box::new(filter)
+                let filter = Filter::new_binary(exec_left, idx_left, idx_right, op_entry)?;
+                Ok(Box::new(filter))
             } else {
                 let exec_right = component2exec
                     .remove(&component_right)
@@ -725,10 +731,12 @@ impl Conjunction {
                     .get(&spec_idx_right)
                     .ok_or(GraphAnnisError::RHSOperandNotFound)?);
 
-                create_join(
+                let join = create_join(
                     g, config, op_entry, exec_left, exec_right, idx_left, idx_right,
-                )
+                )?;
+                Ok(join)
             };
+        let new_exec = new_exec?;
 
         let new_component_nr = new_exec
             .get_desc()
@@ -746,7 +754,7 @@ impl Conjunction {
         db: &'a AnnotationGraph,
         config: &Config,
         operator_order: Vec<usize>,
-    ) -> Result<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> {
+    ) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> {
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
 
         // Remember node search errors, but do not bail out of this function before the component
@@ -755,8 +763,10 @@ impl Conjunction {
 
         // Create a map where the key is the component number
         // and move all nodes with their index as component number.
-        let mut component2exec: BTreeMap<usize, Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> =
-            BTreeMap::new();
+        let mut component2exec: BTreeMap<
+            usize,
+            Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
+        > = BTreeMap::new();
         let mut node2cost: BTreeMap<usize, CostEstimate> = BTreeMap::new();
 
         // 1. add all non-optional nodes
@@ -769,23 +779,17 @@ impl Conjunction {
                     &mut node2component,
                     &mut node2cost,
                     &mut node_search_errors,
-                );
+                )?;
             }
         }
 
         // 2. add unary operators as filter to the existing node search
         for op_spec_entry in self.unary_operators.iter() {
-            let child_exec: Box<dyn ExecutionNode<Item = MatchGroup> + 'a> = component2exec
+            let child_exec: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a> = component2exec
                 .remove(&op_spec_entry.idx)
                 .ok_or(GraphAnnisError::NoExecutionNode(op_spec_entry.idx))?;
 
-            let op: Box<dyn UnaryOperator> =
-                op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                    GraphAnnisError::ImpossibleSearch(format!(
-                        "could not create operator {:?}",
-                        op_spec_entry
-                    ))
-                })?;
+            let op = op_spec_entry.op.create_operator(db)?;
             let op_entry = UnaryOperatorEntry {
                 op,
                 node_nr: op_spec_entry.idx + 1,
@@ -892,7 +896,7 @@ impl Conjunction {
         &'a self,
         db: &'a AnnotationGraph,
         config: &Config,
-    ) -> Result<Box<dyn ExecutionNode<Item = MatchGroup> + 'a>> {
+    ) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> {
         self.check_components_connected()?;
 
         let operator_order = self.optimize_join_order_heuristics(db, config)?;

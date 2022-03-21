@@ -1,5 +1,8 @@
 use super::EdgeContainer;
-use crate::types::NodeID;
+use crate::{
+    errors::{GraphAnnisCoreError, Result},
+    types::NodeID,
+};
 use rustc_hash::FxHashSet;
 
 #[derive(MallocSizeOf)]
@@ -14,27 +17,62 @@ impl<'a> UnionEdgeContainer<'a> {
 }
 
 impl<'a> EdgeContainer for UnionEdgeContainer<'a> {
-    fn get_outgoing_edges<'b>(&'b self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'b> {
-        let mut targets = FxHashSet::default();
+    fn get_outgoing_edges<'b>(
+        &'b self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'b> {
+        // Use a hash set so target nodes are only returned once
+        let mut targets: FxHashSet<NodeID> = FxHashSet::default();
+        // Collect all possible errors when trying to get the outgoing edges
+        let mut errors: Vec<GraphAnnisCoreError> = Vec::new();
         for c in self.containers.iter() {
-            targets.extend(c.get_outgoing_edges(node));
+            let outgoing: Result<Vec<NodeID>> = c.get_outgoing_edges(node).collect();
+            match outgoing {
+                Ok(outgoing) => targets.extend(outgoing),
+                Err(e) => errors.push(e),
+            }
         }
-        Box::from(targets.into_iter())
+        if errors.is_empty() {
+            Box::from(targets.into_iter().map(Ok))
+        } else {
+            // Only return the errors
+            Box::from(errors.into_iter().map(Err))
+        }
     }
 
-    fn get_ingoing_edges<'b>(&'b self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'b> {
-        let mut sources = FxHashSet::default();
+    fn get_ingoing_edges<'b>(
+        &'b self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'b> {
+        // Use a hash set so target nodes are only returned once
+        let mut sources: FxHashSet<NodeID> = FxHashSet::default();
+        // Collect all possible errors when trying to get the outgoing edges
+        let mut errors: Vec<GraphAnnisCoreError> = Vec::new();
         for c in self.containers.iter() {
-            sources.extend(c.get_ingoing_edges(node));
+            let ingoing: Result<Vec<NodeID>> = c.get_ingoing_edges(node).collect();
+            match ingoing {
+                Ok(ingoing) => sources.extend(ingoing),
+                Err(e) => errors.push(e),
+            }
         }
-        Box::from(sources.into_iter())
+        if errors.is_empty() {
+            Box::from(sources.into_iter().map(Ok))
+        } else {
+            // Only return the errors
+            Box::from(errors.into_iter().map(Err))
+        }
     }
 
-    fn source_nodes<'b>(&'b self) -> Box<dyn Iterator<Item = NodeID> + 'b> {
-        let mut sources = FxHashSet::default();
+    fn source_nodes<'b>(&'b self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'b> {
+        let mut sources: FxHashSet<NodeID> = FxHashSet::default();
         for c in self.containers.iter() {
-            sources.extend(c.source_nodes());
+            for n in c.source_nodes() {
+                match n {
+                    Ok(n) => sources.insert(n),
+                    Err(e) => return Box::new(std::iter::once(Err(e))),
+                };
+            }
         }
-        Box::from(sources.into_iter())
+        Box::from(sources.into_iter().map(Ok))
     }
 }

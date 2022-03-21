@@ -2,6 +2,7 @@ use self::nodesearch::NodeSearch;
 use crate::annis::db::AnnotationStorage;
 use crate::{
     annis::operator::{BinaryOperatorBase, EstimationType},
+    errors::Result,
     graph::Match,
 };
 use graphannis_core::{
@@ -36,11 +37,11 @@ fn calculate_outputsize<Op: BinaryOperatorBase + ?Sized>(
     op: &Op,
     cost_lhs: &CostEstimate,
     cost_rhs: &CostEstimate,
-) -> usize {
-    let output = match op.estimation_type() {
+) -> Result<usize> {
+    let output = match op.estimation_type()? {
         EstimationType::Selectivity(selectivity) => {
             let num_tuples = (cost_lhs.output * cost_rhs.output) as f64;
-            if let Some(edge_sel) = op.edge_anno_selectivity() {
+            if let Some(edge_sel) = op.edge_anno_selectivity()? {
                 (num_tuples * selectivity * edge_sel).round() as usize
             } else {
                 (num_tuples * selectivity).round() as usize
@@ -49,7 +50,7 @@ fn calculate_outputsize<Op: BinaryOperatorBase + ?Sized>(
         EstimationType::Min => std::cmp::min(cost_lhs.output, cost_rhs.output),
     };
     // always assume at least one output item otherwise very small selectivity can fool the planner
-    std::cmp::max(output, 1)
+    Ok(std::cmp::max(output, 1))
 }
 
 impl ExecutionNodeDesc {
@@ -85,7 +86,7 @@ impl ExecutionNodeDesc {
         impl_description: &str,
         query_fragment: &str,
         processed_func: &dyn Fn(EstimationType, usize, usize) -> usize,
-    ) -> ExecutionNodeDesc {
+    ) -> Result<ExecutionNodeDesc> {
         let component_nr = if let Some(d) = lhs {
             d.component_nr
         } else if let Some(d) = rhs {
@@ -113,10 +114,10 @@ impl ExecutionNodeDesc {
         let cost = if let (Some(lhs), Some(rhs)) = (lhs, rhs) {
             if let (&Some(ref cost_lhs), &Some(ref cost_rhs)) = (&lhs.cost, &rhs.cost) {
                 // estimate output size using the operator
-                let output = calculate_outputsize(op, cost_lhs, cost_rhs);
+                let output = calculate_outputsize(op, cost_lhs, cost_rhs)?;
 
                 let processed_in_step =
-                    processed_func(op.estimation_type(), cost_lhs.output, cost_rhs.output);
+                    processed_func(op.estimation_type()?, cost_lhs.output, cost_rhs.output);
                 Some(CostEstimate {
                     output,
                     intermediate_sum: processed_in_step
@@ -131,7 +132,7 @@ impl ExecutionNodeDesc {
             None
         };
 
-        ExecutionNodeDesc {
+        Ok(ExecutionNodeDesc {
             component_nr,
             lhs: lhs.map(|x| Box::new(x.clone())),
             rhs: rhs.map(|x| Box::new(x.clone())),
@@ -139,7 +140,7 @@ impl ExecutionNodeDesc {
             impl_description: String::from(impl_description),
             query_fragment: String::from(query_fragment),
             cost,
-        }
+        })
     }
 
     pub fn debug_string(&self, indention: &str) -> String {
@@ -186,7 +187,7 @@ impl ExecutionNodeDesc {
 /// Filter function for the value of a given match, but assumes the given match has already the
 /// correct annotation namespace/name.
 pub type MatchValueFilterFunc =
-    Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> bool + Send + Sync>;
+    Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> Result<bool> + Send + Sync>;
 
 pub struct NodeSearchDesc {
     pub qname: (Option<String>, Option<String>),
@@ -195,7 +196,7 @@ pub struct NodeSearchDesc {
 }
 
 pub trait ExecutionNode: Iterator {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup>;
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>>;
     fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {
         None
     }
@@ -212,15 +213,15 @@ pub trait ExecutionNode: Iterator {
 pub struct EmptyResultSet;
 
 impl Iterator for EmptyResultSet {
-    type Item = MatchGroup;
+    type Item = Result<MatchGroup>;
 
-    fn next(&mut self) -> Option<MatchGroup> {
+    fn next(&mut self) -> Option<Result<MatchGroup>> {
         None
     }
 }
 
 impl ExecutionNode for EmptyResultSet {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
         self
     }
     fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {

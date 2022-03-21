@@ -1,7 +1,7 @@
 use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use crate::{
-    annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage, Match},
-    dfs::{CycleSafeDFS, DFSStep},
+    annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage},
+    dfs::CycleSafeDFS,
     errors::Result,
     graph::NODE_NAME_KEY,
     types::{Edge, NodeID, NumValue},
@@ -60,14 +60,17 @@ impl<PosT: 'static> EdgeContainer for LinearGraphStorage<PosT>
 where
     PosT: NumValue,
 {
-    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_outgoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(pos) = self.node_to_pos.get(&node) {
             // find the next node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root) {
                 let next_pos = pos.pos.clone() + PosT::one();
                 if let Some(next_pos) = next_pos.to_usize() {
                     if next_pos < chain.len() {
-                        return Box::from(std::iter::once(chain[next_pos]));
+                        return Box::from(std::iter::once(Ok(chain[next_pos])));
                     }
                 }
             }
@@ -75,13 +78,16 @@ where
         Box::from(std::iter::empty())
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_ingoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(pos) = self.node_to_pos.get(&node) {
             // find the previous node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root) {
                 if let Some(pos) = pos.pos.to_usize() {
                     if let Some(previous_pos) = pos.checked_sub(1) {
-                        return Box::from(std::iter::once(chain[previous_pos]));
+                        return Box::from(std::iter::once(Ok(chain[previous_pos])));
                     }
                 }
             }
@@ -89,14 +95,15 @@ where
         Box::from(std::iter::empty())
     }
 
-    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         // use the node chains to find source nodes, but always skip the last element
         // because the last element is only a target node, not a source node
         let it = self
             .node_chains
             .iter()
             .flat_map(|(_root, chain)| chain.iter().rev().skip(1))
-            .cloned();
+            .cloned()
+            .map(Ok);
 
         Box::new(it)
     }
@@ -137,7 +144,7 @@ where
         source: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(start_pos) = self.node_to_pos.get(&source) {
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
                 if let Some(offset) = start_pos.pos.to_usize() {
@@ -145,7 +152,7 @@ where
                         if min_distance < chain.len() {
                             let max_distance = match max_distance {
                                 std::ops::Bound::Unbounded => {
-                                    return Box::new(chain[min_distance..].iter().cloned());
+                                    return Box::new(chain[min_distance..].iter().map(|n| Ok(*n)));
                                 }
                                 std::ops::Bound::Included(max_distance) => {
                                     offset + max_distance + 1
@@ -155,7 +162,9 @@ where
                             // clip to chain length
                             let max_distance = std::cmp::min(chain.len(), max_distance);
                             if min_distance < max_distance {
-                                return Box::new(chain[min_distance..max_distance].iter().cloned());
+                                return Box::new(
+                                    chain[min_distance..max_distance].iter().map(|n| Ok(*n)),
+                                );
                             }
                         }
                     }
@@ -170,7 +179,7 @@ where
         source: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(start_pos) = self.node_to_pos.get(&source) {
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
                 if let Some(offset) = start_pos.pos.to_usize() {
@@ -187,10 +196,14 @@ where
                     if let Some(min_distance) = offset.checked_sub(min_distance) {
                         if min_distance < chain.len() && max_distance <= min_distance {
                             // return all entries in the chain between min_distance..max_distance (inclusive)
-                            return Box::new(chain[max_distance..=min_distance].iter().cloned());
+                            return Box::new(
+                                chain[max_distance..=min_distance].iter().map(|n| Ok(*n)),
+                            );
                         } else if max_distance < chain.len() {
                             // return all entries in the chain between min_distance..max_distance
-                            return Box::new(chain[max_distance..chain.len()].iter().cloned());
+                            return Box::new(
+                                chain[max_distance..chain.len()].iter().map(|n| Ok(*n)),
+                            );
                         }
                     }
                 }
@@ -199,9 +212,9 @@ where
         Box::new(std::iter::empty())
     }
 
-    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
+    fn distance(&self, source: NodeID, target: NodeID) -> Result<Option<usize>> {
         if source == target {
-            return Some(0);
+            return Ok(Some(0));
         }
 
         if let (Some(source_pos), Some(target_pos)) =
@@ -210,11 +223,11 @@ where
             if source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
                 let diff = target_pos.pos.clone() - source_pos.pos.clone();
                 if let Some(diff) = diff.to_usize() {
-                    return Some(diff);
+                    return Ok(Some(diff));
                 }
             }
         }
-        None
+        Ok(None)
     }
 
     fn is_connected(
@@ -223,7 +236,7 @@ where
         target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> bool {
+    ) -> Result<bool> {
         if let (Some(source_pos), Some(target_pos)) =
             (self.node_to_pos.get(&source), self.node_to_pos.get(&target))
         {
@@ -232,20 +245,20 @@ where
                 if let Some(diff) = diff.to_usize() {
                     match max_distance {
                         std::ops::Bound::Unbounded => {
-                            return diff >= min_distance;
+                            return Ok(diff >= min_distance);
                         }
                         std::ops::Bound::Included(max_distance) => {
-                            return diff >= min_distance && diff <= max_distance;
+                            return Ok(diff >= min_distance && diff <= max_distance);
                         }
                         std::ops::Bound::Excluded(max_distance) => {
-                            return diff >= min_distance && diff < max_distance;
+                            return Ok(diff >= min_distance && diff < max_distance);
                         }
                     }
                 }
             }
         }
 
-        false
+        Ok(false)
     }
 
     fn copy(
@@ -257,12 +270,12 @@ where
 
         // find all roots of the component
         let mut roots: FxHashSet<NodeID> = FxHashSet::default();
-        let nodes: Box<dyn Iterator<Item = Match>> =
+        let nodes =
             node_annos.exact_anno_search(Some(&NODE_NAME_KEY.ns), &NODE_NAME_KEY.name, None.into());
 
         // first add all nodes that are a source of an edge as possible roots
         for m in nodes {
-            let m: Match = m;
+            let m = m?;
             let n = m.node;
             // insert all nodes to the root candidate list which are part of this component
             if orig.get_outgoing_edges(n).next().is_some() {
@@ -270,21 +283,22 @@ where
             }
         }
 
-        let nodes: Box<dyn Iterator<Item = Match>> =
+        let nodes =
             node_annos.exact_anno_search(Some(&NODE_NAME_KEY.ns), &NODE_NAME_KEY.name, None.into());
         for m in nodes {
-            let m: Match = m;
+            let m = m?;
 
             let source = m.node;
 
             let out_edges = orig.get_outgoing_edges(source);
             for target in out_edges {
+                let target = target?;
                 // remove the nodes that have an incoming edge from the root list
                 roots.remove(&target);
 
                 // add the edge annotations for this edge
                 let e = Edge { source, target };
-                let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e);
+                let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e)?;
                 for a in edge_annos {
                     self.annos.insert(e.clone(), a)?;
                 }
@@ -302,7 +316,7 @@ where
 
             let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), *root_node, 1, usize::max_value());
             for step in dfs {
-                let step: DFSStep = step;
+                let step = step?;
 
                 if let Some(pos) = PosT::from_usize(chain.len()) {
                     let pos: RelativePosition<PosT> = RelativePosition {
@@ -321,7 +335,7 @@ where
         self.node_to_pos.shrink_to_fit();
 
         self.stats = orig.get_statistics().cloned();
-        self.annos.calculate_statistics();
+        self.annos.calculate_statistics()?;
 
         Ok(())
     }

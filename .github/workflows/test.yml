@@ -64,6 +64,7 @@ jobs:
           path: |
             relannis
             data
+            data_ondisk
           key: ${{ runner.os }}-search-v1-compatible-${{ hashFiles('graphannis/tests/searchtest.rs','graphannis/tests/searchtest_queries.csv', 'graphannis/build.rs') }}
       - name: Download test corpora
         if: steps.corpus-cache.outputs.cache-hit != 'true'
@@ -71,15 +72,31 @@ jobs:
       - name: Build CLI binary
         if: steps.corpus-cache.outputs.cache-hit != 'true'
         run: cargo build --release --bin annis
-      - name: Import GUM corpus
+      - name: Import GUM corpus (memory)
         if: steps.corpus-cache.outputs.cache-hit != 'true'
         run: ./target/release/annis data --cmd 'import relannis/GUM'
-      - name: Import pcc2.1 corpus
+      - name: Import pcc2.1 corpus (memory)
         if: steps.corpus-cache.outputs.cache-hit != 'true'
-        run: ./target/release/annis data --cmd 'set-disk-based on' --cmd 'import relannis/pcc2.1'
-      - name: Import subtok.demo corpus
+        run: ./target/release/annis data --cmd 'import relannis/pcc2.1'
+      - name: Import subtok.demo corpus (memory)
         if: steps.corpus-cache.outputs.cache-hit != 'true'
         run: ./target/release/annis data --cmd 'import relannis/subtok.demo'
-      - name: Run integration tests
+      - name: Run integration tests (memory)
         run: cargo test --release -- --ignored
         working-directory: graphannis
+      - name: "Create data_ondisk directory"
+        run: "mkdir -p data_ondisk"
+      - name: Import GUM corpus (ondisk)
+        if: steps.corpus-cache.outputs.cache-hit != 'true'
+        run: ./target/release/annis data_ondisk --cmd 'set-disk-based on' --cmd 'import relannis/GUM'
+      - name: Import pcc2.1 corpus (ondisk)
+        if: steps.corpus-cache.outputs.cache-hit != 'true'
+        run: ./target/release/annis data_ondisk --cmd 'set-disk-based on' --cmd 'import relannis/pcc2.1'
+      - name: Import subtok.demo corpus (ondisk)
+        if: steps.corpus-cache.outputs.cache-hit != 'true'
+        run: ./target/release/annis data_ondisk --cmd 'set-disk-based on' --cmd 'import relannis/subtok.demo'
+      - name: Run integration tests (ondisk)
+        run: cargo test --release -- --ignored
+        working-directory: graphannis
+        env: 
+          ANNIS4_TEST_DATA: "../data_ondisk"

@@ -1,12 +1,17 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::errors::GraphAnnisError;
 use crate::annis::operator::BinaryOperator;
 use crate::annis::operator::BinaryOperatorBase;
 use crate::annis::operator::BinaryOperatorIndex;
 use crate::annis::operator::BinaryOperatorSpec;
+use crate::try_as_boxed_iter;
 use crate::AnnotationGraph;
-use crate::{annis::operator::EstimationType, graph::Match, model::AnnotationComponent};
+use crate::{
+    annis::operator::EstimationType, errors::Result, graph::Match, model::AnnotationComponent,
+};
 use graphannis_core::graph::DEFAULT_ANNO_KEY;
+use itertools::Itertools;
 use std::any::Any;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -26,9 +31,9 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
-        let optional_op = RightAlignment::new(db);
-        optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+        let op = RightAlignment::new(db)?;
+        Ok(BinaryOperator::Index(Box::new(op)))
     }
 
     fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
@@ -41,10 +46,10 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
 }
 
 impl<'a> RightAlignment<'a> {
-    pub fn new(graph: &'a AnnotationGraph) -> Option<RightAlignment<'a>> {
+    pub fn new(graph: &'a AnnotationGraph) -> Result<RightAlignment<'a>> {
         let tok_helper = TokenHelper::new(graph)?;
 
-        Some(RightAlignment { tok_helper })
+        Ok(RightAlignment { tok_helper })
     }
 }
 
@@ -55,14 +60,14 @@ impl<'a> std::fmt::Display for RightAlignment<'a> {
 }
 
 impl<'a> BinaryOperatorBase for RightAlignment<'a> {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         if let (Some(lhs_token), Some(rhs_token)) = (
-            self.tok_helper.right_token_for(lhs.node),
-            self.tok_helper.right_token_for(rhs.node),
+            self.tok_helper.right_token_for(lhs.node)?,
+            self.tok_helper.right_token_for(rhs.node)?,
         ) {
-            lhs_token == rhs_token
+            Ok(lhs_token == rhs_token)
         } else {
-            false
+            Ok(false)
         }
     }
 
@@ -70,47 +75,54 @@ impl<'a> BinaryOperatorBase for RightAlignment<'a> {
         false
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'b>>> {
         let tok_helper = TokenHelper::new(graph)?;
-
-        Some(BinaryOperator::Index(Box::new(RightAlignment {
-            tok_helper,
-        })))
+        let inverse = BinaryOperator::Index(Box::new(RightAlignment { tok_helper }));
+        Ok(Some(inverse))
     }
 
-    fn estimation_type(&self) -> EstimationType {
+    fn estimation_type(&self) -> Result<EstimationType> {
         if let Some(stats_right) = self.tok_helper.get_gs_right_token_().get_statistics() {
             let aligned_nodes_per_token: f64 = stats_right.inverse_fan_out_99_percentile as f64;
-            return EstimationType::Selectivity(
+            return Ok(EstimationType::Selectivity(
                 aligned_nodes_per_token / (stats_right.nodes as f64),
-            );
+            ));
         }
 
-        EstimationType::Selectivity(0.1)
+        Ok(EstimationType::Selectivity(0.1))
     }
 }
 
 impl<'a> BinaryOperatorIndex for RightAlignment<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
         let mut aligned = Vec::default();
 
-        if let Some(lhs_token) = self.tok_helper.right_token_for(lhs.node) {
-            aligned.push(Match {
+        let lhs_token = try_as_boxed_iter!(self.tok_helper.right_token_for(lhs.node));
+
+        if let Some(lhs_token) = lhs_token {
+            aligned.push(Ok(Match {
                 node: lhs_token,
                 anno_key: DEFAULT_ANNO_KEY.clone(),
-            });
+            }));
             aligned.extend(
                 self.tok_helper
                     .get_gs_right_token_()
                     .get_ingoing_edges(lhs_token)
-                    .map(|n| Match {
+                    .map_ok(|n| Match {
                         node: n,
                         anno_key: DEFAULT_ANNO_KEY.clone(),
                     }),
             );
         }
 
-        Box::from(aligned.into_iter())
+        Box::from(
+            aligned
+                .into_iter()
+                .map(|m| m.map_err(GraphAnnisError::from)),
+        )
     }
 
     fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {

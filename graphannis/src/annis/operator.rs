@@ -1,5 +1,5 @@
 use super::db::aql::model::AnnotationComponentType;
-use crate::{annis::db::AnnotationStorage, graph::Match, AnnotationGraph};
+use crate::{annis::db::AnnotationStorage, errors::Result, graph::Match, AnnotationGraph};
 use graphannis_core::types::{Component, Edge};
 use std::{any::Any, collections::HashSet, fmt::Display, sync::Arc};
 
@@ -92,19 +92,20 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
 }
 
 impl EdgeAnnoSearchSpec {
-    pub fn guess_max_count(&self, anno_storage: &dyn AnnotationStorage<Edge>) -> usize {
+    pub fn guess_max_count(&self, anno_storage: &dyn AnnotationStorage<Edge>) -> Result<usize> {
         match self {
             EdgeAnnoSearchSpec::ExactValue {
                 ref ns,
                 ref name,
                 ref val,
             } => {
-                if let Some(val) = val {
-                    anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val)
+                let result = if let Some(val) = val {
+                    anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val)?
                 } else {
                     anno_storage
-                        .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)
-                }
+                        .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)?
+                };
+                Ok(result)
             }
             EdgeAnnoSearchSpec::NotExactValue {
                 ref ns,
@@ -112,24 +113,39 @@ impl EdgeAnnoSearchSpec {
                 ref val,
             } => {
                 let total = anno_storage
-                    .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name);
-                total
-                    - anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val)
+                    .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)?;
+                let result = total
+                    - anno_storage.guess_max_count(
+                        ns.as_ref().map(String::as_str),
+                        name,
+                        val,
+                        val,
+                    )?;
+                Ok(result)
             }
             EdgeAnnoSearchSpec::RegexValue {
                 ref ns,
                 ref name,
                 ref val,
-            } => anno_storage.guess_max_count_regex(ns.as_ref().map(String::as_str), name, val),
+            } => Ok(anno_storage.guess_max_count_regex(
+                ns.as_ref().map(String::as_str),
+                name,
+                val,
+            )?),
             EdgeAnnoSearchSpec::NotRegexValue {
                 ref ns,
                 ref name,
                 ref val,
             } => {
                 let total = anno_storage
-                    .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name);
-                total
-                    - anno_storage.guess_max_count_regex(ns.as_ref().map(String::as_str), name, val)
+                    .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)?;
+                let result = total
+                    - anno_storage.guess_max_count_regex(
+                        ns.as_ref().map(String::as_str),
+                        name,
+                        val,
+                    )?;
+                Ok(result)
             }
         }
     }
@@ -146,22 +162,25 @@ pub enum EstimationType {
 }
 
 pub trait BinaryOperatorBase: std::fmt::Display + Send + Sync {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool;
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool>;
 
     fn is_reflexive(&self) -> bool {
         true
     }
 
-    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
-        None
+    fn get_inverse_operator<'a>(
+        &self,
+        _graph: &'a AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'a>>> {
+        Ok(None)
     }
 
-    fn estimation_type(&self) -> EstimationType {
-        EstimationType::Selectivity(0.1)
+    fn estimation_type(&self) -> Result<EstimationType> {
+        Ok(EstimationType::Selectivity(0.1))
     }
 
-    fn edge_anno_selectivity(&self) -> Option<f64> {
-        None
+    fn edge_anno_selectivity(&self) -> Result<Option<f64>> {
+        Ok(None)
     }
 }
 
@@ -187,7 +206,7 @@ impl<'a> BinaryOperatorBase for BinaryOperator<'a> {
         &self,
         lhs: &graphannis_core::annostorage::Match,
         rhs: &graphannis_core::annostorage::Match,
-    ) -> bool {
+    ) -> Result<bool> {
         match self {
             BinaryOperator::Base(op) => op.filter_match(lhs, rhs),
             BinaryOperator::Index(op) => op.filter_match(lhs, rhs),
@@ -201,21 +220,24 @@ impl<'a> BinaryOperatorBase for BinaryOperator<'a> {
         }
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'b>>> {
         match self {
             BinaryOperator::Base(op) => op.get_inverse_operator(graph),
             BinaryOperator::Index(op) => op.get_inverse_operator(graph),
         }
     }
 
-    fn estimation_type(&self) -> EstimationType {
+    fn estimation_type(&self) -> Result<EstimationType> {
         match self {
             BinaryOperator::Base(op) => op.estimation_type(),
             BinaryOperator::Index(op) => op.estimation_type(),
         }
     }
 
-    fn edge_anno_selectivity(&self) -> Option<f64> {
+    fn edge_anno_selectivity(&self) -> Result<Option<f64>> {
         match self {
             BinaryOperator::Base(op) => op.edge_anno_selectivity(),
             BinaryOperator::Index(op) => op.edge_anno_selectivity(),
@@ -225,7 +247,7 @@ impl<'a> BinaryOperatorBase for BinaryOperator<'a> {
 
 /// A binary operator that can be used in an [`IndexJoin`](crate::annis::db::exec::indexjoin::IndexJoin).
 pub trait BinaryOperatorIndex: BinaryOperatorBase {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>>;
+    fn retrieve_matches<'a>(&'a self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>> + 'a>;
 
     fn as_binary_operator(&self) -> &dyn BinaryOperatorBase;
 }
@@ -236,7 +258,7 @@ pub trait BinaryOperatorSpec: std::fmt::Debug + Send + Sync {
         db: &AnnotationGraph,
     ) -> HashSet<Component<AnnotationComponentType>>;
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>>;
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>>;
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         None
@@ -259,11 +281,11 @@ pub trait UnaryOperatorSpec: std::fmt::Debug {
     fn create_operator<'a>(
         &'a self,
         db: &'a AnnotationGraph,
-    ) -> Option<Box<dyn UnaryOperator + 'a>>;
+    ) -> Result<Box<dyn UnaryOperator + 'a>>;
 }
 
 pub trait UnaryOperator: std::fmt::Display {
-    fn filter_match(&self, m: &Match) -> bool;
+    fn filter_match(&self, m: &Match) -> Result<bool>;
 
     fn estimation_type(&self) -> EstimationType {
         EstimationType::Selectivity(0.1)

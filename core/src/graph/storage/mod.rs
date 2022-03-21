@@ -64,22 +64,33 @@ impl std::fmt::Display for GraphStatistic {
 /// Basic trait for accessing edges of a graph for a specific component.
 pub trait EdgeContainer: Sync + Send + MallocSizeOf {
     /// Get all outgoing edges for a given `node`.
-    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a>;
+    fn get_outgoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a>;
 
     /// Return true of the given node has any outgoing edges.
-    fn has_outgoing_edges(&self, node: NodeID) -> bool {
-        self.get_outgoing_edges(node).next().is_some()
+    fn has_outgoing_edges(&self, node: NodeID) -> Result<bool> {
+        if let Some(outgoing) = self.get_outgoing_edges(node).next() {
+            outgoing?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     /// Get all incoming edges for a given `node`.
-    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a>;
+    fn get_ingoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a>;
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {
         None
     }
 
     /// Provides an iterator over all nodes of this edge container that are the source of an edge
-    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a>;
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a>;
 }
 
 /// A graph storage is the representation of an edge component of a graph with specific structures.
@@ -91,7 +102,7 @@ pub trait GraphStorage: EdgeContainer {
         node: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a>;
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a>;
 
     /// Find all nodes reachable from a given start node inside the component, when the directed edges are inversed.
     fn find_connected_inverse<'a>(
@@ -99,10 +110,10 @@ pub trait GraphStorage: EdgeContainer {
         node: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a>;
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a>;
 
     /// Compute the distance (shortest path length) of two nodes inside this component.
-    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize>;
+    fn distance(&self, source: NodeID, target: NodeID) -> Result<Option<usize>>;
 
     /// Check if two nodes are connected with any path in this component given a minimum (`min_distance`) and maximum (`max_distance`) path length.
     fn is_connected(
@@ -111,7 +122,7 @@ pub trait GraphStorage: EdgeContainer {
         target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> bool;
+    ) -> Result<bool>;
 
     /// Get the annotation storage for the edges of this graph storage.
     fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge>;
@@ -194,7 +205,7 @@ pub trait WriteableGraphStorage: GraphStorage {
     fn delete_node(&mut self, node: NodeID) -> Result<()>;
 
     /// Re-calculate the [statistics](struct.GraphStatistic.html) of this graph storage.
-    fn calculate_statistics(&mut self);
+    fn calculate_statistics(&mut self) -> Result<()>;
 
     /// Remove all edges from this grap storage.
     fn clear(&mut self) -> Result<()>;

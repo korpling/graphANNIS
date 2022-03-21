@@ -8,9 +8,9 @@ use crate::{
     errors::Result,
     types::{AnnoKey, Annotation, Edge, NodeID},
 };
-use std::borrow::Cow;
-use std::path::Path;
 use std::sync::Arc;
+use std::{borrow::Cow, error::Error};
+use std::{boxed::Box, path::Path};
 
 use crate::malloc_size_of::MallocSizeOf;
 
@@ -34,14 +34,18 @@ impl Match {
     pub fn extract_annotation(
         &self,
         node_annos: &dyn AnnotationStorage<NodeID>,
-    ) -> Option<Annotation> {
+    ) -> Result<Option<Annotation>> {
         let val = node_annos
             .get_value_for_item(&self.node, &self.anno_key)?
             .to_owned();
-        Some(Annotation {
-            key: self.anno_key.as_ref().clone(),
-            val: val.into(),
-        })
+        if let Some(val) = val {
+            Ok(Some(Annotation {
+                key: self.anno_key.as_ref().clone(),
+                val: val.into(),
+            }))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Returns true if this match is different to all the other matches given as argument.
@@ -132,7 +136,7 @@ where
         item: &T,
         ns: Option<&str>,
         name: Option<&str>,
-    ) -> Vec<Arc<AnnoKey>>;
+    ) -> Result<Vec<Arc<AnnoKey>>>;
 
     /// Remove the annotation given by its `key` for a specific `item`
     /// Returns the value for that annotation, if it existed.
@@ -142,35 +146,35 @@ where
     fn clear(&mut self) -> Result<()>;
 
     /// Get all qualified annotation names (including namespace) for a given annotation name
-    fn get_qnames(&self, name: &str) -> Vec<AnnoKey>;
+    fn get_qnames(&self, name: &str) -> Result<Vec<AnnoKey>>;
 
     /// Get all annotations for an `item` (node or edge).
-    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
+    fn get_annotations_for_item(&self, item: &T) -> Result<Vec<Annotation>>;
 
     /// Get the annotation for a given `item` and the annotation `key`.
-    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>>;
+    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>>;
 
     /// Returns `true` if the given `item` has an annotation for the given `key`.
-    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> bool;
+    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<bool>;
 
     /// Get the matching annotation keys for each item in the iterator.
     ///
     /// This function allows to filter the received annotation keys by specifying the namespace and name.
-    fn get_keys_for_iterator(
-        &self,
+    fn get_keys_for_iterator<'a>(
+        &'a self,
         ns: Option<&str>,
         name: Option<&str>,
-        it: Box<dyn Iterator<Item = T>>,
-    ) -> SmallVec<[Match; 8]>;
+        it: Box<dyn Iterator<Item = std::result::Result<T, Box<dyn Error + Send + Sync>>> + 'a>,
+    ) -> Result<Vec<Match>>;
 
     /// Return the total number of annotations contained in this `AnnotationStorage`.
-    fn number_of_annotations(&self) -> usize;
+    fn number_of_annotations(&self) -> Result<usize>;
 
     /// Return true if there are no annotations in this `AnnotationStorage`.
-    fn is_empty(&self) -> bool;
+    fn is_empty(&self) -> Result<bool>;
 
     /// Return the number of annotations contained in this `AnnotationStorage` filtered by `name` and optional namespace (`ns`).
-    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> usize;
+    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> Result<usize>;
 
     /// Returns an iterator for all items that exactly match the given annotation constraints.
     /// The annotation `name` must be given as argument, the other arguments are optional.
@@ -187,7 +191,7 @@ where
         namespace: Option<&str>,
         name: &str,
         value: ValueSearch<&str>,
-    ) -> Box<dyn Iterator<Item = Match> + 'a>;
+    ) -> Box<dyn Iterator<Item = Result<Match>> + 'a>;
 
     /// Returns an iterator for all items where the value matches the regular expression.
     /// The annotation `name` and the `pattern` for the value must be given as argument, the  
@@ -207,7 +211,7 @@ where
         name: &str,
         pattern: &str,
         negated: bool,
-    ) -> Box<dyn Iterator<Item = Match> + 'a>;
+    ) -> Box<dyn Iterator<Item = Result<Match>> + 'a>;
 
     /// Estimate the number of results for an [annotation exact search](#tymethod.exact_anno_search) for a given an inclusive value range.
     ///
@@ -221,7 +225,7 @@ where
         name: &str,
         lower_val: &str,
         upper_val: &str,
-    ) -> usize;
+    ) -> Result<usize>;
 
     /// Estimate the number of results for an [annotation regular expression search](#tymethod.regex_anno_search)
     /// for a given pattern.
@@ -229,30 +233,30 @@ where
     /// - `ns` - If given, only annotations having this namespace are considered.
     /// - `name`  - Only annotations with this name are considered.
     /// - `pattern`- The regular expression pattern.
-    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> usize;
+    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> Result<usize>;
 
     /// Estimate the most frequent value for a given annotation `name` with an optional namespace (`ns`).
     ///
     /// If more than one qualified annotation name matches the defnition, the more frequent value is used.
-    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Option<Cow<str>>;
+    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Result<Option<Cow<str>>>;
 
     /// Return a list of all existing values for a given annotation `key`.
     /// If the `most_frequent_first` parameter is true, the results are sorted by their frequency.
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Cow<str>>;
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Result<Vec<Cow<str>>>;
 
     /// Get all the annotation keys which are part of this annotation storage
-    fn annotation_keys(&self) -> Vec<AnnoKey>;
+    fn annotation_keys(&self) -> Result<Vec<AnnoKey>>;
 
     /// Return the item with the largest item which has an annotation value in this annotation storage.
     ///
     /// This can be used to calculate new IDs for new items.
-    fn get_largest_item(&self) -> Option<T>;
+    fn get_largest_item(&self) -> Result<Option<T>>;
 
     /// (Re-) calculate the internal statistics needed for estimating annotation values.
     ///
     /// An annotation storage can invalid statistics, in which case the estimation function will not return
     /// valid results.
-    fn calculate_statistics(&mut self);
+    fn calculate_statistics(&mut self) -> Result<()>;
 
     /// Load the annotation from an external `location`.
     fn load_annotations_from(&mut self, location: &Path) -> Result<()>;

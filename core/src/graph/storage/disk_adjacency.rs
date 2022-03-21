@@ -8,28 +8,11 @@ use crate::{
 };
 use itertools::Itertools;
 use rustc_hash::FxHashSet;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::ops::Bound;
 use transient_btree_index::BtreeConfig;
 
 pub const SERIALIZATION_ID: &str = "DiskAdjacencyListV1";
-
-/// Repeatedly call the given function and get the result, or panic if the error is permanent.
-fn get_or_panic<F, R>(f: F) -> R
-where
-    F: Fn() -> Result<R>,
-{
-    let mut last_err = None;
-    for _ in 0..5 {
-        match f() {
-            Ok(result) => return result,
-            Err(e) => last_err = Some(e),
-        }
-        // In case this is an intermediate error, wait some time before trying again
-        std::thread::sleep(std::time::Duration::from_secs(1));
-    }
-    panic!("Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.\nCause:\n{:?}", last_err.unwrap())
-}
 
 #[derive(MallocSizeOf)]
 pub struct DiskAdjacencyListStorage {
@@ -41,18 +24,23 @@ pub struct DiskAdjacencyListStorage {
     stats: Option<GraphStatistic>,
 }
 
-fn get_fan_outs(edges: &DiskMap<Edge, bool>) -> Vec<usize> {
-    let mut fan_outs: Vec<usize> = Vec::new();
-    if !get_or_panic(|| edges.is_empty()) {
-        let it = get_or_panic(|| edges.iter());
-        for (_, targets) in &it.group_by(|(e, _)| e.source) {
-            fan_outs.push(targets.count());
+fn get_fan_outs(edges: &DiskMap<Edge, bool>) -> Result<Vec<usize>> {
+    let mut fan_outs: HashMap<NodeID, usize> = HashMap::default();
+    if !edges.is_empty()? {
+        let all_edges = edges.iter()?;
+        for e in all_edges {
+            let (e, _) = e?;
+            fan_outs
+                .entry(e.source)
+                .and_modify(|num_out| *num_out += 1)
+                .or_insert(1);
         }
     }
     // order the fan-outs
+    let mut fan_outs: Vec<usize> = fan_outs.into_iter().map(|(_, s)| s).collect();
     fan_outs.sort_unstable();
 
-    fan_outs
+    Ok(fan_outs)
 }
 
 impl DiskAdjacencyListStorage {
@@ -75,7 +63,10 @@ impl DiskAdjacencyListStorage {
 }
 
 impl EdgeContainer for DiskAdjacencyListStorage {
-    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_outgoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let lower_bound = Edge {
             source: node,
             target: NodeID::min_value(),
@@ -87,11 +78,11 @@ impl EdgeContainer for DiskAdjacencyListStorage {
         Box::new(
             self.edges
                 .range(lower_bound..upper_bound)
-                .map(|(e, _)| e.target),
+                .map_ok(|(e, _)| e.target),
         )
     }
 
-    fn has_outgoing_edges(&self, node: NodeID) -> bool {
+    fn has_outgoing_edges(&self, node: NodeID) -> Result<bool> {
         let lower_bound = Edge {
             source: node,
             target: NodeID::min_value(),
@@ -100,10 +91,18 @@ impl EdgeContainer for DiskAdjacencyListStorage {
             source: node,
             target: NodeID::max_value(),
         };
-        self.edges.range(lower_bound..upper_bound).next().is_some()
+        if let Some(edge) = self.edges.range(lower_bound..upper_bound).next() {
+            edge?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_ingoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let lower_bound = Edge {
             source: node,
             target: NodeID::min_value(),
@@ -115,15 +114,18 @@ impl EdgeContainer for DiskAdjacencyListStorage {
         Box::new(
             self.inverse_edges
                 .range(lower_bound..upper_bound)
-                .map(|(e, _)| e.target),
+                .map_ok(|(e, _)| e.target),
         )
     }
-    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        let it = get_or_panic(|| self.edges.iter())
-            .map(|(e, _)| e.source)
-            .unique();
-
-        Box::new(it)
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
+        match self.edges.iter() {
+            // The unique_by will merge all errors into a single error, which should be ok for our use case
+            Ok(edges) => Box::new(edges.map_ok(|(e, _)| e.source).unique_by(|n| match n {
+                Ok(n) => Some(*n),
+                Err(_) => None,
+            })),
+            Err(e) => Box::new(std::iter::once(Err(e))),
+        }
     }
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {
@@ -194,7 +196,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
         node: NodeID,
         min_distance: usize,
         max_distance: Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
             Bound::Unbounded => usize::max_value(),
@@ -202,8 +204,8 @@ impl GraphStorage for DiskAdjacencyListStorage {
             Bound::Excluded(max_distance) => max_distance + 1,
         };
         let it = CycleSafeDFS::<'a>::new(self, node, min_distance, max_distance)
-            .map(|x| x.node)
-            .filter(move |n| visited.insert(*n));
+            .map_ok(|x| x.node)
+            .filter_ok(move |n| visited.insert(*n));
         Box::new(it)
     }
 
@@ -212,7 +214,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
         node: NodeID,
         min_distance: usize,
         max_distance: Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
             Bound::Unbounded => usize::max_value(),
@@ -221,17 +223,23 @@ impl GraphStorage for DiskAdjacencyListStorage {
         };
 
         let it = CycleSafeDFS::<'a>::new_inverse(self, node, min_distance, max_distance)
-            .map(|x| x.node)
-            .filter(move |n| visited.insert(*n));
+            .map_ok(|x| x.node)
+            .filter_ok(move |n| visited.insert(*n));
         Box::new(it)
     }
 
-    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
+    fn distance(&self, source: NodeID, target: NodeID) -> Result<Option<usize>> {
         let mut it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value())
-            .filter(|x| target == x.node)
-            .map(|x| x.distance);
+            .filter_ok(|x| target == x.node)
+            .map_ok(|x| x.distance);
 
-        it.next()
+        match it.next() {
+            Some(distance) => {
+                let distance = distance?;
+                Ok(Some(distance))
+            }
+            None => Ok(None),
+        }
     }
     fn is_connected(
         &self,
@@ -239,16 +247,25 @@ impl GraphStorage for DiskAdjacencyListStorage {
         target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> bool {
+    ) -> Result<bool> {
         let max_distance = match max_distance {
             Bound::Unbounded => usize::max_value(),
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
         let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance)
-            .filter(|x| target == x.node);
+            .filter_ok(|x| target == x.node);
 
-        it.next().is_some()
+        match it.next() {
+            Some(next) => {
+                if let Err(e) = next {
+                    Err(e)
+                } else {
+                    Ok(true)
+                }
+            }
+            None => Ok(false),
+        }
     }
 
     fn copy(
@@ -259,17 +276,19 @@ impl GraphStorage for DiskAdjacencyListStorage {
         self.clear()?;
 
         for source in orig.source_nodes() {
+            let source = source?;
             for target in orig.get_outgoing_edges(source) {
+                let target = target?;
                 let e = Edge { source, target };
                 self.add_edge(e.clone())?;
-                for a in orig.get_anno_storage().get_annotations_for_item(&e) {
+                for a in orig.get_anno_storage().get_annotations_for_item(&e)? {
                     self.add_edge_annotation(e.clone(), a)?;
                 }
             }
         }
 
         self.stats = orig.get_statistics().cloned();
-        self.annos.calculate_statistics();
+        self.annos.calculate_statistics()?;
         Ok(())
     }
 
@@ -307,7 +326,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         self.edges.remove(edge)?;
         self.inverse_edges.remove(&edge.inverse())?;
 
-        let annos = self.annos.get_annotations_for_item(edge);
+        let annos = self.annos.get_annotations_for_item(edge)?;
         for a in annos {
             self.annos.remove_annotation_for_item(edge, &a.key)?;
         }
@@ -323,6 +342,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         let mut to_delete = std::collections::LinkedList::<Edge>::new();
 
         for target in self.get_outgoing_edges(node) {
+            let target = target?;
             to_delete.push_back(Edge {
                 source: node,
                 target,
@@ -330,6 +350,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         }
 
         for source in self.get_ingoing_edges(node) {
+            let source = source?;
             to_delete.push_back(Edge {
                 source,
                 target: node,
@@ -343,7 +364,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         Ok(())
     }
 
-    fn calculate_statistics(&mut self) {
+    fn calculate_statistics(&mut self) -> Result<()> {
         let mut stats = GraphStatistic {
             max_depth: 1,
             max_fan_out: 0,
@@ -356,7 +377,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
             dfs_visit_ratio: 0.0,
         };
 
-        self.annos.calculate_statistics();
+        self.annos.calculate_statistics()?;
 
         let mut has_incoming_edge: BTreeSet<NodeID> = BTreeSet::new();
 
@@ -364,7 +385,8 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         let mut roots: BTreeSet<NodeID> = BTreeSet::new();
         {
             let mut all_nodes: BTreeSet<NodeID> = BTreeSet::new();
-            for (e, _) in get_or_panic(|| self.edges.iter()) {
+            for edge in self.edges.iter()? {
+                let (e, _) = edge?;
                 roots.insert(e.source);
                 all_nodes.insert(e.source);
                 all_nodes.insert(e.target);
@@ -380,21 +402,22 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
             stats.nodes = all_nodes.len();
         }
 
-        let edges_empty = get_or_panic(|| self.edges.is_empty());
+        let edges_empty = self.edges.is_empty()?;
 
         if !edges_empty {
-            for (e, _) in get_or_panic(|| self.edges.iter()) {
+            for edge in self.edges.iter()? {
+                let (e, _) = edge?;
                 roots.remove(&e.target);
             }
         }
 
-        let fan_outs = get_fan_outs(&self.edges);
+        let fan_outs = get_fan_outs(&self.edges)?;
         let sum_fan_out: usize = fan_outs.iter().sum();
 
         if let Some(last) = fan_outs.last() {
             stats.max_fan_out = *last;
         }
-        let inverse_fan_outs = get_fan_outs(&self.inverse_edges);
+        let inverse_fan_outs = get_fan_outs(&self.inverse_edges)?;
 
         // get the percentile value(s)
         // set some default values in case there are not enough elements in the component
@@ -426,6 +449,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
             for root_node in &roots {
                 let mut dfs = CycleSafeDFS::new(self, *root_node, 0, usize::max_value());
                 for step in &mut dfs {
+                    let step = step?;
                     number_of_visits += 1;
                     stats.max_depth = std::cmp::max(stats.max_depth, step.distance);
                 }
@@ -449,6 +473,8 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         }
 
         self.stats = Some(stats);
+
+        Ok(())
     }
 
     fn clear(&mut self) -> Result<()> {
@@ -464,8 +490,6 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
 mod tests {
 
     use super::*;
-
-    use itertools::Itertools;
 
     #[test]
     fn multiple_paths_find_range() {
@@ -526,12 +550,12 @@ mod tests {
         })
         .unwrap();
 
-        let mut found: Vec<NodeID> = gs
+        let found: Result<Vec<NodeID>> = gs
             .find_connected(1, 3, std::ops::Bound::Included(3))
             .collect();
-
+        let mut found = found.unwrap();
         assert_eq!(2, found.len());
-        found.sort();
+        found.sort_unstable();
 
         assert_eq!(4, found[0]);
         assert_eq!(5, found[1]);
@@ -594,30 +618,52 @@ mod tests {
         })
         .unwrap();
 
-        assert_eq!(
-            vec![2, 3],
-            gs.get_outgoing_edges(1).sorted().collect::<Vec<NodeID>>()
-        );
-        assert_eq!(
-            vec![4, 5],
-            gs.get_outgoing_edges(3).sorted().collect::<Vec<NodeID>>()
-        );
-        assert_eq!(0, gs.get_outgoing_edges(6).count());
-        assert_eq!(vec![4], gs.get_outgoing_edges(2).collect::<Vec<NodeID>>());
+        let mut out1 = gs
+            .get_outgoing_edges(1)
+            .collect::<Result<Vec<_>>>()
+            .unwrap();
+        out1.sort_unstable();
+        assert_eq!(vec![2, 3], out1);
 
-        let mut reachable: Vec<NodeID> = gs.find_connected(1, 1, Bound::Included(100)).collect();
-        reachable.sort();
+        let mut out3 = gs
+            .get_outgoing_edges(3)
+            .collect::<Result<Vec<_>>>()
+            .unwrap();
+        out3.sort_unstable();
+        assert_eq!(vec![4, 5], out3);
+
+        let out6 = gs
+            .get_outgoing_edges(6)
+            .collect::<Result<Vec<_>>>()
+            .unwrap();
+        assert_eq!(0, out6.len());
+
+        let out2 = gs
+            .get_outgoing_edges(2)
+            .collect::<Result<Vec<_>>>()
+            .unwrap();
+        assert_eq!(vec![4], out2);
+
+        let reachable: Result<Vec<NodeID>> =
+            gs.find_connected(1, 1, Bound::Included(100)).collect();
+        let mut reachable = reachable.unwrap();
+        reachable.sort_unstable();
         assert_eq!(vec![2, 3, 4, 5, 6, 7], reachable);
 
-        let mut reachable: Vec<NodeID> = gs.find_connected(3, 2, Bound::Included(100)).collect();
-        reachable.sort();
+        let reachable: Result<Vec<NodeID>> =
+            gs.find_connected(3, 2, Bound::Included(100)).collect();
+        let mut reachable = reachable.unwrap();
+        reachable.sort_unstable();
         assert_eq!(vec![6, 7], reachable);
 
-        let mut reachable: Vec<NodeID> = gs.find_connected(1, 2, Bound::Included(4)).collect();
-        reachable.sort();
+        let reachable: Result<Vec<NodeID>> = gs.find_connected(1, 2, Bound::Included(4)).collect();
+        let mut reachable = reachable.unwrap();
+        reachable.sort_unstable();
         assert_eq!(vec![4, 5, 6, 7], reachable);
 
-        let reachable: Vec<NodeID> = gs.find_connected(7, 1, Bound::Included(100)).collect();
+        let reachable: Result<Vec<NodeID>> =
+            gs.find_connected(7, 1, Bound::Included(100)).collect();
+        let reachable = reachable.unwrap();
         assert_eq!(true, reachable.is_empty());
     }
 
@@ -655,7 +701,7 @@ mod tests {
         })
         .unwrap();
 
-        gs.calculate_statistics();
+        gs.calculate_statistics().unwrap();
         assert_eq!(true, gs.get_statistics().is_some());
         let stats = gs.get_statistics().unwrap();
         assert_eq!(true, stats.cyclic);
@@ -891,7 +937,7 @@ mod tests {
         })
         .unwrap();
 
-        gs.calculate_statistics();
+        gs.calculate_statistics().unwrap();
         assert_eq!(true, gs.get_statistics().is_some());
         let stats = gs.get_statistics().unwrap();
         assert_eq!(true, stats.cyclic);

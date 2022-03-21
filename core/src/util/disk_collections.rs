@@ -1,5 +1,6 @@
 use super::memory_estimation;
 use bincode::config::Options;
+use itertools::Itertools;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -15,64 +16,12 @@ use std::marker::PhantomData;
 use std::ops::{Bound, RangeBounds};
 use std::path::Path;
 
-/// Limits the number of sorted string tables the data might be fragmented into before compacting it into one large table.
-/// Since each table can use a certain amount of RAM for the block cache, limit the number of tables to limit RAM usage.
-pub const DEFAULT_MAX_NUMBER_OF_TABLES: usize = 32;
-
 const KB: usize = 1 << 10;
 const MB: usize = KB * KB;
 const BLOCK_MAX_SIZE: usize = 4 * KB;
 
 /// Uses a cache for each disk table with 1 MB capacity.
 pub const DEFAULT_BLOCK_CACHE_CAPACITY: usize = MB;
-
-/// Repeatedly call the given function and get the result, or panic if the error is permanent.
-fn get_or_panic<F, R>(f: F) -> R
-where
-    F: Fn() -> Result<R>,
-{
-    let mut last_err = None;
-    for _ in 0..5 {
-        match f() {
-            Ok(result) => return result,
-            Err(e) => last_err = Some(e),
-        }
-        // In case this is an intermediate error, wait some time before trying again
-        std::thread::sleep(std::time::Duration::from_secs(1));
-    }
-    panic!("Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.\nCause:\n{:?}", last_err.unwrap())
-}
-
-struct PanickingIterator<I, E, K, V>
-where
-    I: Iterator<Item = std::result::Result<(K, V), E>>,
-{
-    wrapped: I,
-}
-
-impl<I, E, K, V> Iterator for PanickingIterator<I, E, K, V>
-where
-    I: Iterator<Item = std::result::Result<(K, V), E>>,
-    E: std::fmt::Debug,
-{
-    type Item = (K, V);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut last_err = None;
-        for _ in 0..5 {
-            match self.wrapped.next() {
-                Some(v) => match v {
-                    Ok(result) => return Some(result),
-                    Err(e) => last_err = Some(e),
-                },
-                None => return None,
-            }
-            // In case this is an intermediate error, wait some time before trying again
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
-        panic!("Accessing the disk-database failed. This is a non-recoverable error since it means something serious is wrong with the disk or file system.\nCause:\n{:?}", last_err.unwrap())
-    }
-}
 
 #[derive(Serialize, Deserialize)]
 struct Entry<K, V>
@@ -289,14 +238,15 @@ where
         Ok(existing)
     }
 
-    pub fn iter<'a>(&'a self) -> Result<Box<dyn Iterator<Item = (K, V)> + 'a>> {
+    pub fn iter(&self) -> Result<ResultIterator<K, V>> {
         if let Some(c1) = &self.c1 {
             if self.c0.is_empty() && self.c2.is_none() {
                 // Create an iterator that skips the thombstone entries
                 let it = c1
                     .range(..)?
-                    .filter_map(|e| e.ok())
-                    .filter_map(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone())));
+                    .filter_map_ok(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone())))
+                    .map(|entry| entry.map_err(|e| e.into()));
+
                 return Ok(Box::new(it));
             }
         } else if let Some(c2) = &self.c2 {
@@ -314,7 +264,7 @@ where
             let it = self
                 .c0
                 .iter()
-                .filter_map(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone())));
+                .filter_map(|(k, v)| v.as_ref().map(|v| Ok((k.clone(), v.clone()))));
             return Ok(Box::new(it));
         }
 
@@ -323,19 +273,22 @@ where
     }
 
     /// Returns an iterator over a range of entries.
-    pub fn range<'a, R>(&'a self, range: R) -> Box<dyn Iterator<Item = (K, V)> + 'a>
+    pub fn range<'a, R>(&'a self, range: R) -> Box<dyn Iterator<Item = Result<(K, V)>> + 'a>
     where
         R: RangeBounds<K> + Clone,
     {
         // Check if C0, C1 or C2 are the only non-empty maps and return a specialized iterator
         if let Some(c1) = &self.c1 {
             if self.c0.is_empty() && self.c2.is_none() {
-                let c1_range = get_or_panic(|| c1.range(range.clone()).map_err(|e| e.into()));
+                let c1_range = match c1.range(range).map_err(|e| e.into()) {
+                    Ok(c1_range) => c1_range,
+                    Err(e) => return Box::new(std::iter::once(Err(e))),
+                };
                 // Return iterator over C1 that skips the tombstone entries
-                let c1_range = PanickingIterator { wrapped: c1_range };
-                return Box::new(
-                    c1_range.filter_map(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone()))),
-                );
+                let it = c1_range
+                    .filter_map_ok(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone())))
+                    .map(|entry| entry.map_err(|e| e.into()));
+                return Box::new(it);
             }
         } else if let Some(c2) = &self.c2 {
             if self.c0.is_empty() && self.c1.as_ref().map_or(true, |c1| c1.is_empty()) {
@@ -365,17 +318,20 @@ where
             let it = self
                 .c0
                 .range(range)
-                .filter_map(|(k, v)| v.as_ref().map(|v| (k.clone(), v.clone())));
+                .filter_map(|(k, v)| v.as_ref().map(|v| Ok((k.clone(), v.clone()))));
             return Box::new(it);
         }
         // Use a combined iterator as default
-        Box::new(CombinedRange::new(
+        match CombinedRange::new(
             range,
             &self.c0,
             self.c1.as_ref(),
             self.c2.as_ref(),
             self.serialization,
-        ))
+        ) {
+            Ok(result) => Box::new(result),
+            Err(e) => Box::new(std::iter::once(Err(e))),
+        }
     }
 
     pub fn is_empty(&self) -> Result<bool> {
@@ -405,7 +361,8 @@ where
             .create(true)
             .open(&location)?;
         let mut builder = TableBuilder::new(self.custom_options(), out_file);
-        for (key, value) in self.iter()? {
+        for entry in self.iter()? {
+            let (key, value) = entry?;
             let key = key.create_key();
             let value = Some(value);
             builder.add(&key, &self.serialization.serialize(&value)?)?;
@@ -469,17 +426,18 @@ where
     for<'de> K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
-    type Item = (K, V);
-    fn next(&mut self) -> Option<(K, V)> {
-        while let Some((key, value)) = self.table_iterator.next() {
-            let key = K::parse_key(&key);
-            let value: Option<V> = self
-                .serialization
-                .deserialize(&value)
-                .expect("Could not decode previously written data from disk.");
-            if let Some(value) = value {
-                return Some((key, value));
-            }
+    type Item = Result<(K, V)>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((key, value)) = self.table_iterator.next() {
+            let key = match K::parse_key(&key) {
+                Ok(key) => key,
+                Err(e) => return Some(Err(e.into())),
+            };
+            return match self.serialization.deserialize(&value) {
+                Ok(value) => Some(Ok((key, value))),
+                Err(e) => Some(Err(e.into())),
+            };
         }
         None
     }
@@ -492,14 +450,16 @@ where
 {
 }
 
+type ResultIterator<'a, K, V> = Box<dyn Iterator<Item = Result<(K, V)>> + 'a>;
+
 pub struct CombinedRange<'a, K, V>
 where
     for<'de> K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
     c0_iterator: Peekable<std::collections::btree_map::Range<'a, K, Option<V>>>,
-    c1_iterator: Peekable<Box<dyn Iterator<Item = (K, Option<V>)> + 'a>>,
-    c2_iterator: Peekable<Box<dyn Iterator<Item = (K, V)> + 'a>>,
+    c1_iterator: Peekable<ResultIterator<'a, K, Option<V>>>,
+    c2_iterator: Peekable<ResultIterator<'a, K, V>>,
 }
 
 impl<'a, K, V> CombinedRange<'a, K, V>
@@ -513,15 +473,17 @@ where
         c1: Option<&'a BtreeIndex<K, Option<V>>>,
         c2: Option<&Table>,
         serialization: bincode::config::DefaultOptions,
-    ) -> CombinedRange<'a, K, V> {
-        let c1_iterator: Box<dyn Iterator<Item = (K, Option<V>)>> = if let Some(c1) = c1 {
-            let it = get_or_panic(|| c1.range(range.clone()).map_err(|e| e.into()));
-            Box::new(PanickingIterator { wrapped: it })
+    ) -> Result<CombinedRange<'a, K, V>> {
+        let c1_iterator: Box<dyn Iterator<Item = Result<(K, Option<V>)>>> = if let Some(c1) = c1 {
+            let it = c1
+                .range(range.clone())?
+                .map(|entry| entry.map_err(|e| e.into()));
+            Box::new(it)
         } else {
             Box::new(std::iter::empty())
         };
 
-        let c2: Box<dyn Iterator<Item = (K, V)>> = if let Some(c2) = c2 {
+        let c2: Box<dyn Iterator<Item = Result<(K, V)>>> = if let Some(c2) = c2 {
             let table_start_bound = match range.start_bound() {
                 Bound::Included(end) => Bound::Included(K::create_key(end)),
                 Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),
@@ -540,11 +502,11 @@ where
             Box::new(std::iter::empty())
         };
 
-        CombinedRange {
+        Ok(CombinedRange {
             c0_iterator: c0.range(range).peekable(),
             c1_iterator: c1_iterator.peekable(),
             c2_iterator: c2.peekable(),
-        }
+        })
     }
 }
 
@@ -554,17 +516,23 @@ where
     for<'de> K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
-    type Item = (K, V);
+    type Item = Result<(K, V)>;
 
-    fn next(&mut self) -> Option<(K, V)> {
+    fn next(&mut self) -> Option<Self::Item> {
         while self.c0_iterator.peek().is_some()
             || self.c1_iterator.peek().is_some()
             || self.c2_iterator.peek().is_some()
         {
             // Get keys from all iterators and determine which is the smallest one
-            let c0 = self.c0_iterator.peek().map(|(k, _v)| *k);
-            let c1 = self.c1_iterator.peek().map(|(k, _v)| k);
-            let c3 = self.c2_iterator.peek().map(|(k, _v)| k);
+            let c0 = self.c0_iterator.peek().map(|(k, _v)| Some(*k));
+            let c1 = self.c1_iterator.peek().map(|entry| match entry {
+                Ok((k, _v)) => Some(k),
+                Err(_) => None,
+            });
+            let c3 = self.c2_iterator.peek().map(|entry| match entry {
+                Ok((k, _v)) => Some(k),
+                Err(_) => None,
+            });
 
             let min_key = vec![c0, c1, c3].into_iter().flatten().min();
             if let Some(min_key) = min_key {
@@ -592,20 +560,34 @@ where
                 // Output the value from the most recent map
                 if let Some((k, v)) = c0 {
                     if let Some(v) = v {
-                        return Some((k.clone(), v.clone()));
+                        return Some(Ok((k.clone(), v.clone())));
                     } else {
                         // Value was explicitly deleted, do not check the other maps
                         continue;
                     }
-                } else if let Some((k, v)) = c1 {
-                    if let Some(v) = v {
-                        return Some((k, v));
-                    } else {
-                        // Value was explicitly deleted, do not check the other maps
-                        continue;
+                } else if let Some(entry) = c1 {
+                    match entry {
+                        Ok((k, v)) => {
+                            if let Some(v) = v {
+                                return Some(Ok((k, v)));
+                            } else {
+                                // Value was explicitly deleted, do not check the other maps
+                                continue;
+                            }
+                        }
+                        Err(e) => {
+                            return Some(Err(e));
+                        }
+                    };
+                } else if let Some(entry) = c3 {
+                    match entry {
+                        Ok((k, v)) => {
+                            return Some(Ok((k, v)));
+                        }
+                        Err(e) => {
+                            return Some(Err(e));
+                        }
                     }
-                } else if let Some((k, v)) = c3 {
-                    return Some((k, v));
                 }
             }
         }
@@ -801,24 +783,29 @@ where
     for<'de> K: 'static + Clone + KeySerializer + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,
 {
-    type Item = (K, V);
+    type Item = Result<(K, V)>;
 
-    fn next(&mut self) -> Option<(K, V)> {
+    fn next(&mut self) -> Option<Self::Item> {
         while !self.exhausted && self.table_it.valid() {
             if self
                 .table_it
                 .current(&mut self.current_key, &mut self.current_value)
             {
                 if self.range_contains(&self.current_key) {
-                    let value: Option<V> = self
-                        .serialization
-                        .deserialize(&self.current_value)
-                        .expect("Could not decode previously written data from disk.");
+                    let value: Option<V> = match self.serialization.deserialize(&self.current_value)
+                    {
+                        Ok(value) => value,
+                        Err(e) => return Some(Err(e.into())),
+                    };
 
                     self.table_it.advance();
 
                     if let Some(value) = value {
-                        return Some((K::parse_key(&self.current_key), value));
+                        let key = match K::parse_key(&self.current_key) {
+                            Ok(key) => key,
+                            Err(e) => return Some(Err(e.into())),
+                        };
+                        return Some(Ok((key, value)));
                     }
                 } else {
                     self.exhausted = true;

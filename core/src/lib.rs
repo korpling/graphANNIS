@@ -1,3 +1,12 @@
+#![deny(
+    clippy::panic,
+    clippy::panic_in_result_fn,
+    clippy::expect_used,
+    clippy::exit,
+    clippy::todo,
+    clippy::unwrap_in_result
+)]
+
 #[macro_use]
 extern crate log;
 #[macro_use]

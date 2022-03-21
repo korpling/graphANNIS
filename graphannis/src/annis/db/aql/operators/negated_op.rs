@@ -5,6 +5,7 @@ use crate::{
         db::exec::nodesearch::NodeSearchSpec,
         operator::{BinaryOperator, BinaryOperatorBase, BinaryOperatorSpec, EstimationType},
     },
+    errors::Result,
     AnnotationGraph,
 };
 use graphannis_core::annostorage::Match;
@@ -30,13 +31,10 @@ impl BinaryOperatorSpec for NegatedOpSpec {
         self.negated_op.necessary_components(db)
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
-        if let Some(negated_op) = self.negated_op.create_operator(db) {
-            let op = NegatedOp { negated_op };
-            Some(BinaryOperator::Base(Box::new(op)))
-        } else {
-            None
-        }
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+        let negated_op = self.negated_op.create_operator(db)?;
+        let op = NegatedOp { negated_op };
+        Ok(BinaryOperator::Base(Box::new(op)))
     }
 
     fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
@@ -61,19 +59,22 @@ impl<'a> Display for NegatedOp<'a> {
 }
 
 impl<'a> BinaryOperatorBase for NegatedOp<'a> {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         // Invert the filtered logic by the actual operator
-        !self.negated_op.filter_match(lhs, rhs)
+        let orig = self.negated_op.filter_match(lhs, rhs)?;
+        Ok(!orig)
     }
 
     fn is_reflexive(&self) -> bool {
         self.negated_op.is_reflexive()
     }
 
-    fn estimation_type(&self) -> EstimationType {
-        match self.negated_op.estimation_type() {
-            EstimationType::Selectivity(orig_sel) => EstimationType::Selectivity(1.0 - orig_sel),
-            EstimationType::Min => EstimationType::Min,
+    fn estimation_type(&self) -> Result<EstimationType> {
+        match self.negated_op.estimation_type()? {
+            EstimationType::Selectivity(orig_sel) => {
+                Ok(EstimationType::Selectivity(1.0 - orig_sel))
+            }
+            EstimationType::Min => Ok(EstimationType::Min),
         }
     }
 }

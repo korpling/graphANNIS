@@ -1,9 +1,9 @@
 [package]
-name = "graphannis-tutorial"
-version = "1.5.0"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 edition = "2018"
+name = "graphannis-tutorial"
 publish = false
+version = "2.0.0"
 
 [dependencies]
-graphannis =  { path = "../../graphannis" }
+graphannis = {path = "../../graphannis"}

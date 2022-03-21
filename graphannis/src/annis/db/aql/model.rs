@@ -1,4 +1,5 @@
 use crate::{
+    annis::util::quicksort,
     errors::GraphAnnisError,
     graph::{Edge, EdgeContainer, GraphStorage, NodeID},
 };
@@ -107,7 +108,7 @@ impl AQLUpdateGraphIndex {
     ) -> std::result::Result<NodeID, ComponentTypeError> {
         if let Some(id) = self.node_ids.get(&node_name)? {
             return Ok(*id);
-        } else if let Some(id) = graph.get_node_id_from_name(&node_name) {
+        } else if let Some(id) = graph.get_node_id_from_name(&node_name)? {
             self.node_ids.insert(node_name.to_string(), id)?;
             return Ok(id);
         }
@@ -132,6 +133,7 @@ impl AQLUpdateGraphIndex {
 
         let dfs = CycleSafeDFS::new_inverse(&union, node, 0, usize::max_value());
         for step in dfs {
+            let step = step?;
             self.invalid_nodes.insert(step.node, true)?;
         }
 
@@ -170,17 +172,20 @@ impl AQLUpdateGraphIndex {
             gs_cov.clear()?;
         } else {
             // Remove existing left/right token edges for the invalidated nodes only
-            for (n, _) in self.invalid_nodes.iter()? {
+            for invalid in self.invalid_nodes.iter()? {
+                let (n, _) = invalid?;
                 gs_left.delete_node(n)?;
             }
 
             let gs_right = graph.get_or_create_writable(&component_right)?;
-            for (n, _) in self.invalid_nodes.iter()? {
+            for invalid in self.invalid_nodes.iter()? {
+                let (n, _) = invalid?;
                 gs_right.delete_node(n)?;
             }
 
             let gs_cov = graph.get_or_create_writable(&component_cov)?;
-            for (n, _) in self.invalid_nodes.iter()? {
+            for invalid in self.invalid_nodes.iter()? {
+                let (n, _) = invalid?;
                 gs_cov.delete_node(n)?;
             }
         }
@@ -203,7 +208,8 @@ impl AQLUpdateGraphIndex {
             .collect();
 
         // go over each node and calculate the left-most and right-most token
-        for (n, _) in self.invalid_nodes.iter()? {
+        for invalid in self.invalid_nodes.iter()? {
+            let (n, _) = invalid?;
             let covered_token = self.calculate_inherited_coverage_edges(
                 graph,
                 n,
@@ -240,14 +246,16 @@ impl AQLUpdateGraphIndex {
 
         for c in all_cov_components.iter() {
             if let Some(gs) = graph.get_graphstorage_as_ref(c) {
-                directly_covered_token.extend(gs.get_outgoing_edges(n));
+                let out: Result<Vec<u64>, graphannis_core::errors::GraphAnnisCoreError> =
+                    gs.get_outgoing_edges(n).collect();
+                directly_covered_token.extend(out?);
             }
         }
 
         if directly_covered_token.is_empty() {
             let has_token_anno = graph
                 .get_node_annos()
-                .get_value_for_item(&n, &TOKEN_KEY)
+                .get_value_for_item(&n, &TOKEN_KEY)?
                 .is_some();
             if has_token_anno {
                 // Even if technically a token does not cover itself, if we need to abort the recursion
@@ -260,6 +268,7 @@ impl AQLUpdateGraphIndex {
         // recursivly get the covered token from all children connected by a dominance relation
         for dom_gs in all_dom_gs {
             for out in dom_gs.get_outgoing_edges(n) {
+                let out = out?;
                 indirectly_covered_token.extend(self.calculate_inherited_coverage_edges(
                     graph,
                     out,
@@ -301,7 +310,7 @@ impl AQLUpdateGraphIndex {
         // if this is a token (and not only a segmentation node), return the token itself
         if graph
             .get_node_annos()
-            .get_value_for_item(&n, &TOKEN_KEY)
+            .get_value_for_item(&n, &TOKEN_KEY)?
             .is_some()
             && covered_token.is_empty()
         {
@@ -311,23 +320,24 @@ impl AQLUpdateGraphIndex {
         // if the node already has a left/right token, just return this value
         if let Some(alignment_gs) = graph.get_graphstorage_as_ref(&alignment_component) {
             if let Some(existing) = alignment_gs.get_outgoing_edges(n).next() {
+                let existing = existing?;
                 return Ok(Some(existing));
             }
         }
 
         // order the candidate token by their position in the order chain
         let mut candidates: Vec<_> = covered_token.iter().collect();
-        candidates.sort_unstable_by(move |a, b| {
+        quicksort::sort(&mut candidates, move |a, b| {
             if **a == **b {
-                return std::cmp::Ordering::Equal;
+                return Ok(std::cmp::Ordering::Equal);
             }
-            if gs_order.is_connected(**a, **b, 1, std::ops::Bound::Unbounded) {
-                return std::cmp::Ordering::Less;
-            } else if gs_order.is_connected(**b, **a, 1, std::ops::Bound::Unbounded) {
-                return std::cmp::Ordering::Greater;
+            if gs_order.is_connected(**a, **b, 1, std::ops::Bound::Unbounded)? {
+                return Ok(std::cmp::Ordering::Less);
+            } else if gs_order.is_connected(**b, **a, 1, std::ops::Bound::Unbounded)? {
+                return Ok(std::cmp::Ordering::Greater);
             }
-            std::cmp::Ordering::Equal
-        });
+            Ok(std::cmp::Ordering::Equal)
+        })?;
 
         // add edge to left/right most candidate token
         let t = if ctype == AnnotationComponentType::RightToken {
@@ -396,7 +406,7 @@ impl ComponentType for AnnotationComponentType {
 
         // Calculating the invalid nodes adds additional computational overhead. If there are no nodes yet in the graph,
         // we already know that all new nodes are invalid and don't need calculate the invalid ones.
-        let graph_without_nodes = graph.get_node_annos().is_empty();
+        let graph_without_nodes = graph.get_node_annos().is_empty()?;
 
         let invalid_nodes: DiskMap<NodeID, bool> = DiskMap::new(
             None,
@@ -533,6 +543,7 @@ impl ComponentType for AnnotationComponentType {
                 ValueSearch::Any,
             );
             for m in node_search {
+                let m = m?;
                 index.invalid_nodes.insert(m.node, true)?;
             }
         }

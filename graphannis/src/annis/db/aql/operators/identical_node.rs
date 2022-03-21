@@ -1,6 +1,7 @@
 use crate::AnnotationGraph;
 use crate::{
     annis::{db::aql::model::AnnotationComponentType, operator::*},
+    errors::Result,
     graph::Match,
 };
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
@@ -19,8 +20,8 @@ impl BinaryOperatorSpec for IdenticalNodeSpec {
         HashSet::default()
     }
 
-    fn create_operator<'a>(&self, _db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
-        Some(BinaryOperator::Index(Box::new(IdenticalNode {})))
+    fn create_operator<'a>(&self, _db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+        Ok(BinaryOperator::Index(Box::new(IdenticalNode {})))
     }
 
     fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
@@ -42,25 +43,28 @@ impl std::fmt::Display for IdenticalNode {
 }
 
 impl BinaryOperatorBase for IdenticalNode {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        lhs.node == rhs.node
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
+        Ok(lhs.node == rhs.node)
     }
 
-    fn estimation_type(&self) -> EstimationType {
-        EstimationType::Min
+    fn estimation_type(&self) -> Result<EstimationType> {
+        Ok(EstimationType::Min)
     }
 
-    fn get_inverse_operator<'a>(&self, _graph: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
-        Some(BinaryOperator::Index(Box::new(self.clone())))
+    fn get_inverse_operator<'a>(
+        &self,
+        _graph: &'a AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'a>>> {
+        Ok(Some(BinaryOperator::Index(Box::new(self.clone()))))
     }
 }
 
 impl BinaryOperatorIndex for IdenticalNode {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
-        Box::new(std::iter::once(Match {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
+        Box::new(std::iter::once(Ok(Match {
             node: lhs.node,
             anno_key: DEFAULT_ANNO_KEY.clone(),
-        }))
+        })))
     }
 
     fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {

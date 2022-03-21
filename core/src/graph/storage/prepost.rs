@@ -1,7 +1,7 @@
 use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use crate::{
-    annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage, Match},
-    dfs::{CycleSafeDFS, DFSStep},
+    annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage},
+    dfs::CycleSafeDFS,
     errors::Result,
     graph::NODE_NAME_KEY,
     types::{Edge, NodeID, NumValue},
@@ -118,23 +118,33 @@ where
     for<'de> OrderT: NumValue + Deserialize<'de> + Serialize,
     for<'de> LevelT: NumValue + Deserialize<'de> + Serialize,
 {
-    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_outgoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         self.find_connected(node, 1, Included(1))
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_ingoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         self.find_connected_inverse(node, 1, Included(1))
     }
 
-    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
-        let it = self.node_to_order.iter().filter_map(move |(n, _order)| {
-            // check if this is actual a source node (and not only a target node)
-            if self.get_outgoing_edges(*n).next().is_some() {
-                Some(*n)
-            } else {
-                None
-            }
-        });
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
+        let it = self
+            .node_to_order
+            .iter()
+            .filter_map(move |(n, _order)| {
+                // check if this is actual a source node (and not only a target node)
+                if self.get_outgoing_edges(*n).next().is_some() {
+                    Some(*n)
+                } else {
+                    None
+                }
+            })
+            .map(Ok);
         Box::new(it)
     }
 
@@ -179,7 +189,7 @@ where
         node: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(start_orders) = self.node_to_order.get(&node) {
             let mut visited = FxHashSet::<NodeID>::default();
 
@@ -226,7 +236,8 @@ where
                     }
                     _ => None,
                 })
-                .filter(move |n| visited.insert(*n));
+                .filter(move |n| visited.insert(*n))
+                .map(Ok);
             Box::new(it)
         } else {
             Box::new(std::iter::empty())
@@ -238,7 +249,7 @@ where
         start_node: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(start_orders) = self.node_to_order.get(&start_node) {
             let mut visited = FxHashSet::<NodeID>::default();
 
@@ -325,16 +336,17 @@ where
                         None
                     }
                 })
-                .filter(move |n| visited.insert(*n));
+                .filter(move |n| visited.insert(*n))
+                .map(Ok);
             Box::new(it)
         } else {
             Box::new(std::iter::empty())
         }
     }
 
-    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
+    fn distance(&self, source: NodeID, target: NodeID) -> Result<Option<usize>> {
         if source == target {
-            return Some(0);
+            return Ok(Some(0));
         }
 
         let mut min_level = usize::max_value();
@@ -364,9 +376,9 @@ where
         }
 
         if was_found {
-            Some(min_level)
+            Ok(Some(min_level))
         } else {
-            None
+            Ok(None)
         }
     }
     fn is_connected(
@@ -375,7 +387,7 @@ where
         target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> bool {
+    ) -> Result<bool> {
         if let (Some(order_source), Some(order_target)) = (
             self.node_to_order.get(&source),
             self.node_to_order.get(&target),
@@ -397,7 +409,7 @@ where
                         {
                             if source_level <= target_level {
                                 let diff_level = target_level - source_level;
-                                return min_distance <= diff_level && diff_level <= max_distance;
+                                return Ok(min_distance <= diff_level && diff_level <= max_distance);
                             }
                         }
                     }
@@ -405,7 +417,7 @@ where
             }
         }
 
-        false
+        Ok(false)
     }
 
     fn copy(
@@ -417,12 +429,12 @@ where
 
         // find all roots of the component
         let mut roots: FxHashSet<NodeID> = FxHashSet::default();
-        let nodes: Box<dyn Iterator<Item = Match>> =
+        let nodes =
             node_annos.exact_anno_search(Some(&NODE_NAME_KEY.ns), &NODE_NAME_KEY.name, None.into());
 
         // first add all nodes that are a source of an edge as possible roots
         for m in nodes {
-            let m: Match = m;
+            let m = m?;
             let n = m.node;
             // insert all nodes to the root candidate list which are part of this component
             if orig.get_outgoing_edges(n).next().is_some() {
@@ -430,21 +442,22 @@ where
             }
         }
 
-        let nodes: Box<dyn Iterator<Item = Match>> =
+        let nodes =
             node_annos.exact_anno_search(Some(&NODE_NAME_KEY.ns), &NODE_NAME_KEY.name, None.into());
         for m in nodes {
-            let m: Match = m;
+            let m = m?;
 
             let source = m.node;
 
             let out_edges = orig.get_outgoing_edges(source);
             for target in out_edges {
+                let target = target?;
                 // remove the nodes that have an incoming edge from the root list
                 roots.remove(&target);
 
                 // add the edge annotations for this edge
                 let e = Edge { source, target };
-                let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e);
+                let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e)?;
                 for a in edge_annos {
                     self.annos.insert(e.clone(), a)?;
                 }
@@ -468,7 +481,7 @@ where
             let dfs =
                 CycleSafeDFS::new(orig.as_edgecontainer(), *start_node, 1, usize::max_value());
             for step in dfs {
-                let step: DFSStep = step;
+                let step = step?;
                 if step.distance <= last_distance {
                     // Neighbor node, the last subtree was iterated completely, thus the last node
                     // can be assigned a post-order.
@@ -519,7 +532,7 @@ where
         }
 
         self.stats = orig.get_statistics().cloned();
-        self.annos.calculate_statistics();
+        self.annos.calculate_statistics()?;
 
         self.node_to_order.shrink_to_fit();
 

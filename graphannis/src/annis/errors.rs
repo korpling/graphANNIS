@@ -1,7 +1,10 @@
-use std::fmt::Display;
+use std::{fmt::Display, sync::PoisonError};
 
 use crate::annis::types::LineColumnRange;
-use graphannis_core::{errors::GraphAnnisCoreError, types::NodeID};
+use graphannis_core::{
+    errors::{ComponentTypeError, GraphAnnisCoreError},
+    types::NodeID,
+};
 use thiserror::Error;
 
 use super::db::relannis::TextProperty;
@@ -41,6 +44,8 @@ pub enum GraphAnnisError {
     LHSOperandNotFound,
     #[error("RHS operand not found")]
     RHSOperandNotFound,
+    #[error("Could not peek next element in index join: {0}")]
+    PeekInIndexJoin(String),
     #[error(
         "frequency definition must consists of two parts: \
     the referenced node and the annotation name or \"tok\" separated by \":\""
@@ -64,6 +69,14 @@ pub enum GraphAnnisError {
     Csv(#[from] csv::Error),
     #[error(transparent)]
     ParseIntError(#[from] std::num::ParseIntError),
+    #[error("Lock poisoning ({0})")]
+    LockPoisoning(String),
+}
+
+impl<T> From<PoisonError<T>> for GraphAnnisError {
+    fn from(e: PoisonError<T>) -> Self {
+        Self::LockPoisoning(e.to_string())
+    }
 }
 
 #[derive(Error, Debug)]
@@ -164,4 +177,34 @@ impl Display for AQLError {
             write!(f, "{}", self.desc)
         }
     }
+}
+
+impl From<GraphAnnisError> for ComponentTypeError {
+    fn from(e: GraphAnnisError) -> Self {
+        ComponentTypeError(Box::new(e))
+    }
+}
+
+#[macro_export]
+macro_rules! try_as_boxed_iter {
+    ($x:expr) => {
+        match $x {
+            Ok(v) => v,
+            Err(e) => {
+                return std::boxed::Box::new(std::iter::once(Err(e.into())));
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! try_as_option {
+    ($x:expr) => {
+        match $x {
+            Ok(v) => v,
+            Err(e) => {
+                return Some(Err(e.into()));
+            }
+        }
+    };
 }

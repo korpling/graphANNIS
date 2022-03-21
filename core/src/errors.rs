@@ -1,4 +1,4 @@
-use std::num::TryFromIntError;
+use std::{num::TryFromIntError, string::FromUtf8Error, sync::PoisonError};
 
 use thiserror::Error;
 
@@ -50,6 +50,20 @@ pub enum GraphAnnisCoreError {
     BtreeIndex(#[from] transient_btree_index::Error),
     #[error(transparent)]
     IntConversion(#[from] TryFromIntError),
+    #[error("Lock poisoning ({0})")]
+    LockPoisoning(String),
+    #[error(transparent)]
+    FromUtf8Error(#[from] FromUtf8Error),
+    #[error("Too man unique items added to symbol table")]
+    SymbolTableOverflow,
+    #[error(transparent)]
+    Other(#[from] Box<dyn std::error::Error + Send + Sync>),
+}
+
+impl<T> From<PoisonError<T>> for GraphAnnisCoreError {
+    fn from(e: PoisonError<T>) -> Self {
+        Self::LockPoisoning(e.to_string())
+    }
 }
 
 #[derive(Error, Debug)]

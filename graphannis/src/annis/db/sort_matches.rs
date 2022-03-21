@@ -1,5 +1,5 @@
 use crate::annis::db::token_helper::TokenHelper;
-use crate::{annis::db::AnnotationStorage, graph::Match};
+use crate::{annis::db::AnnotationStorage, errors::Result, graph::Match};
 use graphannis_core::{
     graph::{storage::GraphStorage, ANNIS_NS, NODE_NAME},
     types::{AnnoKey, NodeID},
@@ -22,7 +22,7 @@ pub fn compare_matchgroup_by_text_pos(
     gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
     reverse_path: bool,
-) -> Ordering {
+) -> Result<Ordering> {
     for i in 0..std::cmp::min(m1.len(), m2.len()) {
         let element_cmp = compare_match_by_text_pos(
             &m1[i],
@@ -32,21 +32,21 @@ pub fn compare_matchgroup_by_text_pos(
             gs_order,
             collation,
             reverse_path,
-        );
+        )?;
         if element_cmp != Ordering::Equal {
-            return element_cmp;
+            return Ok(element_cmp);
         }
     }
     // Sort longer vectors ("more specific") before shorter ones
     // This originates from the old SQL based system, where an "unfilled" match position had the NULL value.
     // NULL values where sorted *after* the ones with actual values. In practice, this means the more specific
     // matches come first.
-    m2.len().cmp(&m1.len())
+    Ok(m2.len().cmp(&m1.len()))
 }
 
 fn split_path_and_nodename(full_node_name: &str) -> (&str, &str) {
     full_node_name
-        .rsplit_once("#")
+        .rsplit_once('#')
         .unwrap_or((full_node_name, ""))
 }
 
@@ -119,14 +119,14 @@ pub fn compare_match_by_text_pos(
     gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
     quirks_mode: bool,
-) -> Ordering {
+) -> Result<Ordering> {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare
-        m1.anno_key.cmp(&m2.anno_key)
+        Ok(m1.anno_key.cmp(&m2.anno_key))
     } else {
         // get the node paths and names
-        let m1_anno_val = node_annos.get_value_for_item(&m1.node, &NODE_NAME_KEY);
-        let m2_anno_val = node_annos.get_value_for_item(&m2.node, &NODE_NAME_KEY);
+        let m1_anno_val = node_annos.get_value_for_item(&m1.node, &NODE_NAME_KEY)?;
+        let m2_anno_val = node_annos.get_value_for_item(&m2.node, &NODE_NAME_KEY)?;
 
         if let (Some(m1_anno_val), Some(m2_anno_val)) = (m1_anno_val, m2_anno_val) {
             let (m1_path, m1_name) = split_path_and_nodename(&m1_anno_val);
@@ -135,25 +135,29 @@ pub fn compare_match_by_text_pos(
             // 1. compare the path
             let path_cmp = compare_document_path(m1_path, m2_path, collation, quirks_mode);
             if path_cmp != Ordering::Equal {
-                return path_cmp;
+                return Ok(path_cmp);
             }
 
             // 2. compare the token ordering
             if let (Some(token_helper), Some(gs_order)) = (token_helper, gs_order) {
                 if let (Some(m1_lefttok), Some(m2_lefttok)) = (
-                    token_helper.left_token_for(m1.node),
-                    token_helper.left_token_for(m2.node),
+                    token_helper.left_token_for(m1.node)?,
+                    token_helper.left_token_for(m2.node)?,
                 ) {
-                    if gs_order.is_connected(m1_lefttok, m2_lefttok, 1, std::ops::Bound::Unbounded)
-                    {
-                        return Ordering::Less;
+                    if gs_order.is_connected(
+                        m1_lefttok,
+                        m2_lefttok,
+                        1,
+                        std::ops::Bound::Unbounded,
+                    )? {
+                        return Ok(Ordering::Less);
                     } else if gs_order.is_connected(
                         m2_lefttok,
                         m1_lefttok,
                         1,
                         std::ops::Bound::Unbounded,
-                    ) {
-                        return Ordering::Greater;
+                    )? {
+                        return Ok(Ordering::Greater);
                     }
                 }
             }
@@ -161,12 +165,12 @@ pub fn compare_match_by_text_pos(
             // 3. compare the name
             let name_cmp = compare_string(m1_name, m2_name, collation);
             if name_cmp != Ordering::Equal {
-                return name_cmp;
+                return Ok(name_cmp);
             }
         }
 
         // compare node IDs directly as last resort
-        m1.node.cmp(&m2.node)
+        Ok(m1.node.cmp(&m2.node))
     }
 }
 

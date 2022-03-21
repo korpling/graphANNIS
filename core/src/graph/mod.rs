@@ -168,10 +168,11 @@ impl<CT: ComponentType> Graph<CT> {
 
     /// Clear the graph content.
     /// This removes all node annotations, edges and knowledge about components.
-    fn clear(&mut self) {
-        self.reset_cached_size();
+    fn clear(&mut self) -> Result<()> {
+        self.reset_cached_size()?;
         self.node_annos = Box::new(crate::annostorage::inmemory::AnnoStorageImpl::new());
         self.components.clear();
+        Ok(())
     }
 
     /// Load the graph from an external location.
@@ -181,7 +182,7 @@ impl<CT: ComponentType> Graph<CT> {
     /// * `preload` - If `true`, all components are loaded from disk into main memory.
     pub fn load_from(&mut self, location: &Path, preload: bool) -> Result<()> {
         debug!("Loading corpus from {}", location.to_string_lossy());
-        self.clear();
+        self.clear()?;
 
         let location = PathBuf::from(location);
 
@@ -345,13 +346,13 @@ impl<CT: ComponentType> Graph<CT> {
         &self,
         node_name: Cow<String>,
         cache: &mut LFUCache<String, Option<NodeID>>,
-    ) -> Option<NodeID> {
+    ) -> Result<Option<NodeID>> {
         if let Some(id) = cache.get(node_name.as_ref()) {
-            *id
+            Ok(*id)
         } else {
-            let id = self.get_node_id_from_name(&node_name);
+            let id = self.get_node_id_from_name(&node_name)?;
             cache.set(node_name.to_string(), id);
-            id
+            Ok(id)
         }
     }
 
@@ -360,7 +361,7 @@ impl<CT: ComponentType> Graph<CT> {
     where
         F: Fn(&str),
     {
-        self.reset_cached_size();
+        self.reset_cached_size()?;
 
         let all_components = self.get_all_components(None, None);
 
@@ -371,7 +372,8 @@ impl<CT: ComponentType> Graph<CT> {
         // Iterate once over all changes in the same order as the updates have been added
         let total_nr_updates = u.len()?;
         progress_callback(&format!("applying {} atomic updates", total_nr_updates));
-        for (nr_updates, (id, change)) in u.iter()?.enumerate() {
+        for (nr_updates, update_event) in u.iter()?.enumerate() {
+            let (id, change) = update_event?;
             trace!("applying event {:?}", &change);
             ComponentType::before_update_event(&change, self, &mut update_graph_index)?;
             match &change {
@@ -379,12 +381,14 @@ impl<CT: ComponentType> Graph<CT> {
                     node_name,
                     node_type,
                 } => {
-                    let existing_node_id = self
-                        .get_cached_node_id_from_name(Cow::Borrowed(node_name), &mut node_id_cache);
+                    let existing_node_id = self.get_cached_node_id_from_name(
+                        Cow::Borrowed(node_name),
+                        &mut node_id_cache,
+                    )?;
                     // only add node if it does not exist yet
                     if existing_node_id.is_none() {
                         let new_node_id: NodeID =
-                            if let Some(id) = self.node_annos.get_largest_item() {
+                            if let Some(id) = self.node_annos.get_largest_item()? {
                                 id + 1
                             } else {
                                 0
@@ -408,12 +412,16 @@ impl<CT: ComponentType> Graph<CT> {
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
-                    if let Some(existing_node_id) = self
-                        .get_cached_node_id_from_name(Cow::Borrowed(node_name), &mut node_id_cache)
-                    {
+                    if let Some(existing_node_id) = self.get_cached_node_id_from_name(
+                        Cow::Borrowed(node_name),
+                        &mut node_id_cache,
+                    )? {
                         // delete all annotations
                         {
-                            for a in self.node_annos.get_annotations_for_item(&existing_node_id) {
+                            for a in self
+                                .node_annos
+                                .get_annotations_for_item(&existing_node_id)?
+                            {
                                 self.node_annos
                                     .remove_annotation_for_item(&existing_node_id, &a.key)?;
                             }
@@ -435,9 +443,10 @@ impl<CT: ComponentType> Graph<CT> {
                     anno_name,
                     anno_value,
                 } => {
-                    if let Some(existing_node_id) = self
-                        .get_cached_node_id_from_name(Cow::Borrowed(node_name), &mut node_id_cache)
-                    {
+                    if let Some(existing_node_id) = self.get_cached_node_id_from_name(
+                        Cow::Borrowed(node_name),
+                        &mut node_id_cache,
+                    )? {
                         let anno = Annotation {
                             key: AnnoKey {
                                 ns: anno_ns.into(),
@@ -453,9 +462,10 @@ impl<CT: ComponentType> Graph<CT> {
                     anno_ns,
                     anno_name,
                 } => {
-                    if let Some(existing_node_id) = self
-                        .get_cached_node_id_from_name(Cow::Borrowed(node_name), &mut node_id_cache)
-                    {
+                    if let Some(existing_node_id) = self.get_cached_node_id_from_name(
+                        Cow::Borrowed(node_name),
+                        &mut node_id_cache,
+                    )? {
                         let key = AnnoKey {
                             ns: anno_ns.into(),
                             name: anno_name.into(),
@@ -474,11 +484,11 @@ impl<CT: ComponentType> Graph<CT> {
                     let source = self.get_cached_node_id_from_name(
                         Cow::Borrowed(source_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     let target = self.get_cached_node_id_from_name(
                         Cow::Borrowed(target_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     // only add edge if both nodes already exist
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(component_type) {
@@ -498,11 +508,11 @@ impl<CT: ComponentType> Graph<CT> {
                     let source = self.get_cached_node_id_from_name(
                         Cow::Borrowed(source_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     let target = self.get_cached_node_id_from_name(
                         Cow::Borrowed(target_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
@@ -525,18 +535,18 @@ impl<CT: ComponentType> Graph<CT> {
                     let source = self.get_cached_node_id_from_name(
                         Cow::Borrowed(source_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     let target = self.get_cached_node_id_from_name(
                         Cow::Borrowed(target_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
-                            if gs.is_connected(source, target, 1, Included(1)) {
+                            if gs.is_connected(source, target, 1, Included(1))? {
                                 let anno = Annotation {
                                     key: AnnoKey {
                                         ns: anno_ns.into(),
@@ -561,18 +571,18 @@ impl<CT: ComponentType> Graph<CT> {
                     let source = self.get_cached_node_id_from_name(
                         Cow::Borrowed(source_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     let target = self.get_cached_node_id_from_name(
                         Cow::Borrowed(target_node),
                         &mut node_id_cache,
-                    );
+                    )?;
                     if let (Some(source), Some(target)) = (source, target) {
                         if let Ok(ctype) = CT::from_str(component_type) {
                             let c = Component::new(ctype, layer.into(), component_name.into());
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
-                            if gs.is_connected(source, target, 1, Included(1)) {
+                            if gs.is_connected(source, target, 1, Included(1))? {
                                 let key = AnnoKey {
                                     ns: anno_ns.into(),
                                     name: anno_name.into(),
@@ -597,7 +607,7 @@ impl<CT: ComponentType> Graph<CT> {
         } // end for each consistent update entry
 
         progress_callback("calculating node statistics");
-        self.get_node_annos_mut().calculate_statistics();
+        self.get_node_annos_mut().calculate_statistics()?;
 
         progress_callback("extending graph with model-specific index");
         ComponentType::apply_update_graph_index(update_graph_index, self)?;
@@ -659,7 +669,7 @@ impl<CT: ComponentType> Graph<CT> {
 
         if let Some(ref location) = self.location {
             // Acquire lock, so that only one thread can write background data at the same time
-            let _lock = self.background_persistance.lock().unwrap();
+            let _lock = self.background_persistance.lock()?;
 
             self.internal_save_with_backup(location)?;
         }
@@ -724,7 +734,7 @@ impl<CT: ComponentType> Graph<CT> {
         }
 
         // Component does exist, but is not writable, replace with writeable implementation
-        self.reset_cached_size();
+        self.reset_cached_size()?;
         let readonly_gs = self
             .components
             .get(c)
@@ -739,7 +749,7 @@ impl<CT: ComponentType> Graph<CT> {
 
     /// Makes sure the statistics for the given component are up-to-date.
     pub fn calculate_component_statistics(&mut self, c: &Component<CT>) -> Result<()> {
-        self.reset_cached_size();
+        self.reset_cached_size()?;
 
         let mut result: Result<()> = Ok(());
         let mut entry = self
@@ -750,7 +760,7 @@ impl<CT: ComponentType> Graph<CT> {
             if let Some(gs_mut) = Arc::get_mut(gs) {
                 // Since immutable graph storages can't change, only writable graph storage statistics need to be re-calculated
                 if let Some(writeable_gs) = gs_mut.as_writeable() {
-                    writeable_gs.calculate_statistics();
+                    writeable_gs.calculate_statistics()?;
                 }
             } else {
                 result = Err(GraphAnnisCoreError::NonExclusiveComponentReference(
@@ -770,7 +780,7 @@ impl<CT: ComponentType> Graph<CT> {
         &mut self,
         c: &Component<CT>,
     ) -> Result<&mut dyn WriteableGraphStorage> {
-        self.reset_cached_size();
+        self.reset_cached_size()?;
 
         if self.components.contains_key(c) {
             // make sure the component is actually writable and loaded
@@ -819,7 +829,7 @@ impl<CT: ComponentType> Graph<CT> {
             }
         }
 
-        self.reset_cached_size();
+        self.reset_cached_size()?;
 
         // load missing components in parallel
         let loaded_components: Vec<(_, Result<Arc<dyn GraphStorage>>)> = components_to_load
@@ -861,7 +871,7 @@ impl<CT: ComponentType> Graph<CT> {
             }
         }
         if cache_reset_needed {
-            self.reset_cached_size();
+            self.reset_cached_size()?;
         }
         Ok(())
     }
@@ -885,12 +895,13 @@ impl<CT: ComponentType> Graph<CT> {
                 .node_annos
                 .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Any)
             {
-                for anno in self.node_annos.get_annotations_for_item(&m.node) {
+                let m = m?;
+                for anno in self.node_annos.get_annotations_for_item(&m.node)? {
                     new_node_annos.insert(m.node, anno)?;
                 }
             }
             info!("re-calculating node annotation statistics");
-            new_node_annos.calculate_statistics();
+            new_node_annos.calculate_statistics()?;
             self.node_annos = new_node_annos;
         }
 
@@ -928,7 +939,7 @@ impl<CT: ComponentType> Graph<CT> {
                         false
                     };
                     if converted {
-                        self.reset_cached_size();
+                        self.reset_cached_size()?;
                         // insert into components map
                         info!(
                             "finished conversion of component {} to implementation {}",
@@ -943,16 +954,15 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    pub fn get_node_id_from_name(&self, node_name: &str) -> Option<NodeID> {
-        let mut all_nodes_with_anno = self.node_annos.exact_anno_search(
-            Some(&ANNIS_NS.to_owned()),
-            &NODE_NAME.to_owned(),
-            Some(node_name).into(),
-        );
+    pub fn get_node_id_from_name(&self, node_name: &str) -> Result<Option<NodeID>> {
+        let mut all_nodes_with_anno =
+            self.node_annos
+                .exact_anno_search(Some(ANNIS_NS), NODE_NAME, Some(node_name).into());
         if let Some(m) = all_nodes_with_anno.next() {
-            return Some(m.node);
+            let m = m?;
+            return Ok(Some(m.node));
         }
-        None
+        Ok(None)
     }
 
     /// Get a read-only graph storage copy for the given component `c`.
@@ -1037,21 +1047,22 @@ impl<CT: ComponentType> Graph<CT> {
         }
     }
 
-    pub fn size_of_cached(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut lock = self.cached_size.lock().unwrap();
+    pub fn size_of_cached(&self, ops: &mut MallocSizeOfOps) -> Result<usize> {
+        let mut lock = self.cached_size.lock()?;
         let cached_size: &mut Option<usize> = &mut *lock;
         if let Some(cached) = cached_size {
-            return *cached;
+            return Ok(*cached);
         }
         let calculated_size = self.size_of(ops);
         *cached_size = Some(calculated_size);
-        calculated_size
+        Ok(calculated_size)
     }
 
-    fn reset_cached_size(&self) {
-        let mut lock = self.cached_size.lock().unwrap();
+    fn reset_cached_size(&self) -> Result<()> {
+        let mut lock = self.cached_size.lock()?;
         let cached_size: &mut Option<usize> = &mut *lock;
         *cached_size = None;
+        Ok(())
     }
 }
 

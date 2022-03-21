@@ -132,31 +132,21 @@ impl KeySerializer for TextProperty {
         result
     }
 
-    fn parse_key(key: &[u8]) -> Self {
+    fn parse_key(
+        key: &[u8],
+    ) -> std::result::Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let id_size = std::mem::size_of::<u32>();
         let mut id_offset = key.len() - id_size * 3;
         let key_as_string: std::string::String = std::string::String::from_utf8_lossy(key).into();
         let segmentation_vector: Vec<_> = key_as_string.split_terminator('\0').collect();
 
-        let corpus_id = u32::from_be_bytes(
-            key[id_offset..(id_offset + id_size)]
-                .try_into()
-                .expect("TextProperty deserialization key was too small"),
-        );
+        let corpus_id = u32::from_be_bytes(key[id_offset..(id_offset + id_size)].try_into()?);
         id_offset += id_size;
 
-        let text_id = u32::from_be_bytes(
-            key[id_offset..(id_offset + id_size)]
-                .try_into()
-                .expect("TextProperty deserialization key was too small"),
-        );
+        let text_id = u32::from_be_bytes(key[id_offset..(id_offset + id_size)].try_into()?);
         id_offset += id_size;
 
-        let val = u32::from_be_bytes(
-            key[id_offset..(id_offset + id_size)]
-                .try_into()
-                .expect("TextProperty deserialization key was too small"),
-        );
+        let val = u32::from_be_bytes(key[id_offset..(id_offset + id_size)].try_into()?);
 
         let segmentation = if segmentation_vector.is_empty() {
             String::from("")
@@ -164,12 +154,12 @@ impl KeySerializer for TextProperty {
             segmentation_vector[0].into()
         };
 
-        TextProperty {
+        Ok(TextProperty {
             segmentation,
             corpus_id,
             text_id,
             val,
-        }
+        })
     }
 }
 
@@ -189,24 +179,18 @@ impl KeySerializer for TextKey {
         result
     }
 
-    fn parse_key(key: &[u8]) -> Self {
+    fn parse_key(
+        key: &[u8],
+    ) -> std::result::Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let id_size = std::mem::size_of::<u32>();
-        let id = u32::from_be_bytes(
-            key[0..id_size]
-                .try_into()
-                .expect("TextKey deserialization key was too small"),
-        );
+        let id = u32::from_be_bytes(key[0..id_size].try_into()?);
         let corpus_ref = if key.len() == id_size * 2 {
-            Some(u32::from_be_bytes(
-                key[id_size..]
-                    .try_into()
-                    .expect("TextKey deserialization key was too small"),
-            ))
+            Some(u32::from_be_bytes(key[id_size..].try_into()?))
         } else {
             None
         };
 
-        TextKey { id, corpus_ref }
+        Ok(TextKey { id, corpus_ref })
     }
 }
 
@@ -226,33 +210,23 @@ impl KeySerializer for NodeByTextEntry {
         result
     }
 
-    fn parse_key(key: &[u8]) -> Self {
+    fn parse_key(
+        key: &[u8],
+    ) -> std::result::Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let u32_size = std::mem::size_of::<u32>();
-        let text_id = u32::from_be_bytes(
-            key[0..u32_size]
-                .try_into()
-                .expect("NodeByTextEntry deserialization key was too small (text_id)"),
-        );
+        let text_id = u32::from_be_bytes(key[0..u32_size].try_into()?);
         let mut offset = u32_size;
 
-        let corpus_ref = u32::from_be_bytes(
-            key[offset..(offset + u32_size)]
-                .try_into()
-                .expect("NodeByTextEntry deserialization key was too small (corpus_ref)"),
-        );
+        let corpus_ref = u32::from_be_bytes(key[offset..(offset + u32_size)].try_into()?);
         offset += u32_size;
 
-        let node_id = NodeID::from_be_bytes(
-            key[offset..]
-                .try_into()
-                .expect("NodeByTextEntry deserialization key was too small (node_id)"),
-        );
+        let node_id = NodeID::from_be_bytes(key[offset..].try_into()?);
 
-        NodeByTextEntry {
+        Ok(NodeByTextEntry {
             text_id,
             corpus_ref,
             node_id,
-        }
+        })
     }
 }
 
@@ -377,12 +351,12 @@ where
         // TODO: implement handling the "virtual_tokenization_from_namespace" and "virtual_tokenization_mapping" corpus properties
 
         progress_callback("calculating node statistics (before update)");
-        db.get_node_annos_mut().calculate_statistics();
+        db.get_node_annos_mut().calculate_statistics()?;
 
         db.apply_update(&mut updates, &progress_callback)?;
 
         progress_callback("calculating node statistics (after update)");
-        db.get_node_annos_mut().calculate_statistics();
+        db.get_node_annos_mut().calculate_statistics()?;
 
         for c in db.get_all_components(None, None) {
             progress_callback(&format!("calculating statistics for component {}", c));
@@ -949,7 +923,7 @@ where
     Ok(ParsedCorpusTable {
         toplevel_corpus_name: corpus_by_id
             .get(toplevel_corpus_id)
-            .ok_or_else(|| RelAnnisError::CorpusNotFound(*toplevel_corpus_id))?
+            .ok_or(RelAnnisError::CorpusNotFound(*toplevel_corpus_id))?
             .name
             .clone(),
         corpus_by_preorder,
@@ -1030,7 +1004,8 @@ where
     let mut last_textprop: Option<TextProperty> = None;
     let mut last_token: Option<NodeID> = None;
 
-    for (current_textprop, current_token) in token_by_index.iter()? {
+    for token in token_by_index.iter()? {
+        let (current_textprop, current_token) = token?;
         // if the last token/text value is valid and we are still in the same text
         if let (Some(last_token), Some(last_textprop)) = (last_token, last_textprop) {
             if last_textprop.corpus_id == current_textprop.corpus_id
@@ -1209,11 +1184,12 @@ where
     // add explicit coverage edges for each node in the special annis namespace coverage component
     progress_callback("calculating the automatically generated Coverage edges");
 
-    for (n, textprop) in load_node_and_corpus_result
+    for item in load_node_and_corpus_result
         .textpos_table
         .node_to_left
         .iter()?
     {
+        let (n, textprop) = item?;
         // Do not calculate automatic coverage edges for token
         if textprop.segmentation.is_empty()
             && !load_node_and_corpus_result
@@ -1253,7 +1229,8 @@ where
     let mut added_whitespace_label_count = 0;
 
     // Iterate over all texts of the graph separately
-    for (text_key, text) in texts.iter()? {
+    for text in texts.iter()? {
+        let (text_key, text) = text?;
         let mut text_char_it = text.val.chars();
         let mut current_text_offset = 0;
 
@@ -1277,7 +1254,8 @@ where
             .token_by_index
             .range(min_text_prop..max_text_prop)
             .peekable();
-        while let Some((_, current_token_id)) = token_iterator.next() {
+        while let Some(token) = token_iterator.next() {
+            let (_, current_token_id) = token?;
             // Get the character borders for this token
             if let (Some(left_text_pos), Some(right_text_pos)) = (
                 textpos_table.node_to_left_char.get(&current_token_id)?,
@@ -1322,7 +1300,7 @@ where
                 // Get the token borders of the next token to determine where the whitespace after this token is
                 // The whitespace end position is non-inclusive.
                 let mut whitespace_end_pos = None;
-                if let Some((_, next_token_id)) = token_iterator.peek() {
+                if let Some(Ok((_, next_token_id))) = token_iterator.peek() {
                     if let Some(next_token_left_pos) =
                         textpos_table.node_to_left_char.get(next_token_id)?
                     {
@@ -2103,7 +2081,7 @@ fn add_subcorpora(
             let corpus = corpus_table
                 .corpus_by_id
                 .get(corpus_id)
-                .ok_or_else(|| RelAnnisError::CorpusNotFound(*corpus_id))?;
+                .ok_or(RelAnnisError::CorpusNotFound(*corpus_id))?;
 
             let corpus_name = &corpus.name;
 
@@ -2155,7 +2133,8 @@ fn add_subcorpora(
     } // end for each document/sub-corpus
 
     // add a node for each text and the connection between all sub-nodes of the text
-    for (text_key, text) in texts.iter()? {
+    for text in texts.iter()? {
+        let (text_key, text) = text?;
         // add text node (including its name)
         if let Some(corpus_ref) = text_key.corpus_ref {
             let text_name = utf8_percent_encode(&text.name, SALT_URI_ENCODE_SET).to_string();
@@ -2187,7 +2166,8 @@ fn add_subcorpora(
                 text_id: text_key.id,
                 node_id: NodeID::max_value(),
             };
-            for (text_entry, _) in node_node_result.nodes_by_text.range(min_key..=max_key) {
+            for item in node_node_result.nodes_by_text.range(min_key..=max_key) {
+                let (text_entry, _) = item?;
                 let n = text_entry.node_id;
                 updates.add_event(UpdateEvent::AddEdge {
                     source_node: node_node_result

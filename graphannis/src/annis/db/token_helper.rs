@@ -1,8 +1,12 @@
 use crate::{
-    annis::db::{
-        aql::model::{AnnotationComponentType, TOKEN_KEY},
-        AnnotationStorage,
+    annis::{
+        db::{
+            aql::model::{AnnotationComponentType, TOKEN_KEY},
+            AnnotationStorage,
+        },
+        errors::GraphAnnisError,
     },
+    errors::Result,
     graph::GraphStorage,
     AnnotationGraph,
 };
@@ -53,7 +57,7 @@ pub fn necessary_components(db: &AnnotationGraph) -> HashSet<Component<Annotatio
 }
 
 impl<'a> TokenHelper<'a> {
-    pub fn new(graph: &'a AnnotationGraph) -> Option<TokenHelper<'a>> {
+    pub fn new(graph: &'a AnnotationGraph) -> Result<TokenHelper<'a>> {
         let cov_edges: Vec<Arc<dyn GraphStorage>> = graph
             .get_all_components(Some(AnnotationComponentType::Coverage), None)
             .into_iter()
@@ -67,10 +71,23 @@ impl<'a> TokenHelper<'a> {
             })
             .collect();
 
-        Some(TokenHelper {
+        let left_edges = graph.get_graphstorage(&COMPONENT_LEFT).ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(
+                "LeftToken component is missing (needed for all text coverage related operators)"
+                    .to_string(),
+            )
+        })?;
+        let right_edges = graph.get_graphstorage(&COMPONENT_RIGHT).ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(
+                "RightToken component is missing (needed for all text coverage related operators)"
+                    .to_string(),
+            )
+        })?;
+
+        Ok(TokenHelper {
             node_annos: graph.get_node_annos(),
-            left_edges: graph.get_graphstorage(&COMPONENT_LEFT)?,
-            right_edges: graph.get_graphstorage(&COMPONENT_RIGHT)?,
+            left_edges,
+            right_edges,
             cov_edges,
         })
     }
@@ -86,50 +103,63 @@ impl<'a> TokenHelper<'a> {
         self.right_edges.as_ref()
     }
 
-    pub fn is_token(&self, id: NodeID) -> bool {
-        if self.node_annos.has_value_for_item(&id, &TOKEN_KEY) {
+    pub fn is_token(&self, id: NodeID) -> Result<bool> {
+        if self.node_annos.has_value_for_item(&id, &TOKEN_KEY)? {
             // check if there is no outgoing edge in any of the coverage components
-            !self.has_outgoing_coverage_edges(id)
+            let has_outgoing = self.has_outgoing_coverage_edges(id)?;
+            Ok(!has_outgoing)
         } else {
-            false
+            Ok(false)
         }
     }
 
-    pub fn has_outgoing_coverage_edges(&self, id: NodeID) -> bool {
+    pub fn has_outgoing_coverage_edges(&self, id: NodeID) -> Result<bool> {
         for c in self.cov_edges.iter() {
-            if c.has_outgoing_edges(id) {
-                return true;
+            if c.has_outgoing_edges(id)? {
+                return Ok(true);
             }
         }
-        false
+        Ok(false)
     }
 
-    pub fn right_token_for(&self, n: NodeID) -> Option<NodeID> {
-        if self.is_token(n) {
-            Some(n)
+    pub fn right_token_for(&self, n: NodeID) -> Result<Option<NodeID>> {
+        if self.is_token(n)? {
+            Ok(Some(n))
         } else {
             let mut out = self.right_edges.get_outgoing_edges(n);
-            out.next()
+            match out.next() {
+                Some(out) => Ok(Some(out?)),
+                None => Ok(None),
+            }
         }
     }
 
-    pub fn left_token_for(&self, n: NodeID) -> Option<NodeID> {
-        if self.is_token(n) {
-            Some(n)
+    pub fn left_token_for(&self, n: NodeID) -> Result<Option<NodeID>> {
+        if self.is_token(n)? {
+            Ok(Some(n))
         } else {
             let mut out = self.left_edges.get_outgoing_edges(n);
-            out.next()
+            match out.next() {
+                Some(out) => Ok(Some(out?)),
+                None => Ok(None),
+            }
         }
     }
 
-    pub fn left_right_token_for(&self, n: NodeID) -> (Option<NodeID>, Option<NodeID>) {
-        if self.is_token(n) {
-            (Some(n), Some(n))
+    pub fn left_right_token_for(&self, n: NodeID) -> Result<(Option<NodeID>, Option<NodeID>)> {
+        if self.is_token(n)? {
+            Ok((Some(n), Some(n)))
         } else {
-            let mut out_left = self.left_edges.get_outgoing_edges(n);
-            let mut out_right = self.right_edges.get_outgoing_edges(n);
+            let out_left = match self.left_edges.get_outgoing_edges(n).next() {
+                Some(out) => Some(out?),
+                None => None,
+            };
+            let out_right = match self.right_edges.get_outgoing_edges(n).next() {
+                Some(out) => Some(out?),
+                None => None,
+            };
 
-            (out_left.next(), out_right.next())
+            Ok((out_left, out_right))
         }
     }
 }

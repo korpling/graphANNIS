@@ -1,12 +1,14 @@
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::errors::GraphAnnisError;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
-use crate::AnnotationGraph;
 use crate::{
     annis::operator::{BinaryOperatorBase, BinaryOperatorSpec},
+    errors::Result,
     graph::{GraphStorage, Match},
     model::{AnnotationComponent, AnnotationComponentType},
 };
+use crate::{try_as_boxed_iter, AnnotationGraph};
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
     types::NodeID,
@@ -48,7 +50,7 @@ impl BinaryOperatorSpec for OverlapSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Option<BinaryOperator<'a>> {
+    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
         let optional_op = Overlap::new(db, self.reflexive);
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
@@ -63,11 +65,15 @@ impl BinaryOperatorSpec for OverlapSpec {
 }
 
 impl<'a> Overlap<'a> {
-    pub fn new(graph: &'a AnnotationGraph, reflexive: bool) -> Option<Overlap<'a>> {
-        let gs_order = graph.get_graphstorage(&COMPONENT_ORDER)?;
+    pub fn new(graph: &'a AnnotationGraph, reflexive: bool) -> Result<Overlap<'a>> {
+        let gs_order = graph.get_graphstorage(&COMPONENT_ORDER).ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(
+                "Ordering component missing (needed for _o_ operator)".to_string(),
+            )
+        })?;
         let tok_helper = TokenHelper::new(graph)?;
 
-        Some(Overlap {
+        Ok(Overlap {
             gs_order,
             tok_helper,
             reflexive,
@@ -86,42 +92,46 @@ impl<'a> std::fmt::Display for Overlap<'a> {
 }
 
 impl<'a> BinaryOperatorBase for Overlap<'a> {
-    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         if self.reflexive && lhs == rhs {
-            return true;
+            return Ok(true);
         }
 
         if let (Some(start_lhs), Some(end_lhs), Some(start_rhs), Some(end_rhs)) = (
-            self.tok_helper.left_token_for(lhs.node),
-            self.tok_helper.right_token_for(lhs.node),
-            self.tok_helper.left_token_for(rhs.node),
-            self.tok_helper.right_token_for(rhs.node),
+            self.tok_helper.left_token_for(lhs.node)?,
+            self.tok_helper.right_token_for(lhs.node)?,
+            self.tok_helper.left_token_for(rhs.node)?,
+            self.tok_helper.right_token_for(rhs.node)?,
         ) {
             // TODO: why not isConnected()? (instead of distance)
             // path between LHS left-most token and RHS right-most token exists in ORDERING component
-            if self.gs_order.distance(start_lhs, end_rhs).is_some()
+            if self.gs_order.distance(start_lhs, end_rhs)?.is_some()
                 // path between LHS left-most token and RHS right-most token exists in ORDERING component
-                && self.gs_order.distance(start_rhs, end_lhs).is_some()
+                && self.gs_order.distance(start_rhs, end_lhs)?.is_some()
             {
-                return true;
+                return Ok(true);
             }
         }
-        false
+        Ok(false)
     }
 
     fn is_reflexive(&self) -> bool {
         self.reflexive
     }
 
-    fn get_inverse_operator<'b>(&self, graph: &'b AnnotationGraph) -> Option<BinaryOperator<'b>> {
-        Some(BinaryOperator::Index(Box::new(Overlap {
+    fn get_inverse_operator<'b>(
+        &self,
+        graph: &'b AnnotationGraph,
+    ) -> Result<Option<BinaryOperator<'b>>> {
+        let inverse = BinaryOperator::Index(Box::new(Overlap {
             gs_order: self.gs_order.clone(),
             tok_helper: TokenHelper::new(graph)?,
             reflexive: self.reflexive,
-        })))
+        }));
+        Ok(Some(inverse))
     }
 
-    fn estimation_type(&self) -> EstimationType {
+    fn estimation_type(&self) -> Result<EstimationType> {
         if let Some(stats_order) = self.gs_order.get_statistics() {
             let mut sum_included = 0;
             let mut sum_cov_nodes = 0;
@@ -145,18 +155,20 @@ impl<'a> BinaryOperatorBase for Overlap<'a> {
 
             if sum_cov_nodes == 0 {
                 // only token in this corpus
-                return EstimationType::Selectivity(1.0 / num_of_token);
+                return Ok(EstimationType::Selectivity(1.0 / num_of_token));
             } else {
-                return EstimationType::Selectivity(sum_included as f64 / (sum_cov_nodes as f64));
+                return Ok(EstimationType::Selectivity(
+                    sum_included as f64 / (sum_cov_nodes as f64),
+                ));
             }
         }
 
-        EstimationType::Selectivity(0.1)
+        Ok(EstimationType::Selectivity(0.1))
     }
 }
 
 impl<'a> BinaryOperatorIndex for Overlap<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Match>> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
         // use set to filter out duplicates
         let mut result = FxHashSet::default();
 
@@ -165,7 +177,7 @@ impl<'a> BinaryOperatorIndex for Overlap<'a> {
             result.insert(lhs.node);
         }
 
-        let lhs_is_token = self.tok_helper.is_token(lhs.node);
+        let lhs_is_token = try_as_boxed_iter!(self.tok_helper.is_token(lhs.node));
         let coverage_gs = self.tok_helper.get_gs_coverage();
         if lhs_is_token && coverage_gs.is_empty() {
             // There are only token in this corpus and an thus the only covered node is the LHS itself
@@ -173,21 +185,24 @@ impl<'a> BinaryOperatorIndex for Overlap<'a> {
         } else {
             // Find covered nodes in all Coverage graph storages
             for gs_cov in coverage_gs.iter() {
-                let covered: Box<dyn Iterator<Item = NodeID>> = if lhs_is_token {
-                    Box::new(std::iter::once(lhs.node))
+                let covered: Box<dyn Iterator<Item = Result<NodeID>>> = if lhs_is_token {
+                    Box::new(std::iter::once(Ok(lhs.node)))
                 } else {
                     // all covered token
                     Box::new(
                         gs_cov
                             .find_connected(lhs.node, 1, std::ops::Bound::Included(1))
+                            .map(|m| m.map_err(GraphAnnisError::from))
                             .fuse(),
                     )
                 };
 
                 for t in covered {
+                    let t = try_as_boxed_iter!(t);
                     // get all nodes that are covering the token (in all coverage components)
                     for gs_cov in self.tok_helper.get_gs_coverage().iter() {
                         for n in gs_cov.get_ingoing_edges(t) {
+                            let n = try_as_boxed_iter!(n);
                             result.insert(n);
                         }
                     }
@@ -197,9 +212,11 @@ impl<'a> BinaryOperatorIndex for Overlap<'a> {
             }
         }
 
-        Box::new(result.into_iter().map(|n| Match {
-            node: n,
-            anno_key: DEFAULT_ANNO_KEY.clone(),
+        Box::new(result.into_iter().map(|n| {
+            Ok(Match {
+                node: n,
+                anno_key: DEFAULT_ANNO_KEY.clone(),
+            })
         }))
     }
 

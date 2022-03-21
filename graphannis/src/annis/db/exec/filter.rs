@@ -1,19 +1,21 @@
 use graphannis_core::annostorage::MatchGroup;
+use itertools::Itertools;
 
 use super::{CostEstimate, ExecutionNode, ExecutionNodeDesc};
 use crate::annis::db::aql::conjunction::{BinaryOperatorEntry, UnaryOperatorEntry};
 use crate::annis::operator::{BinaryOperatorBase, EstimationType, UnaryOperator};
+use crate::errors::Result;
 
 pub struct Filter<'a> {
-    it: Box<dyn Iterator<Item = MatchGroup> + 'a>,
+    it: Box<dyn Iterator<Item = Result<MatchGroup>> + 'a>,
     desc: Option<ExecutionNodeDesc>,
 }
 
-fn calculate_binary_outputsize(op: &dyn BinaryOperatorBase, num_tuples: usize) -> usize {
-    let output = match op.estimation_type() {
+fn calculate_binary_outputsize(op: &dyn BinaryOperatorBase, num_tuples: usize) -> Result<usize> {
+    let output = match op.estimation_type()? {
         EstimationType::Selectivity(selectivity) => {
             let num_tuples = num_tuples as f64;
-            if let Some(edge_sel) = op.edge_anno_selectivity() {
+            if let Some(edge_sel) = op.edge_anno_selectivity()? {
                 (num_tuples * selectivity * edge_sel).round() as usize
             } else {
                 (num_tuples * selectivity).round() as usize
@@ -22,7 +24,7 @@ fn calculate_binary_outputsize(op: &dyn BinaryOperatorBase, num_tuples: usize) -
         EstimationType::Min => num_tuples,
     };
     // always assume at least one output item otherwise very small selectivity can fool the planner
-    std::cmp::max(output, 1)
+    Ok(std::cmp::max(output, 1))
 }
 
 fn calculate_unary_outputsize(op: &dyn UnaryOperator, num_tuples: usize) -> usize {
@@ -39,15 +41,15 @@ fn calculate_unary_outputsize(op: &dyn UnaryOperator, num_tuples: usize) -> usiz
 
 impl<'a> Filter<'a> {
     pub fn new_binary(
-        exec: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
+        exec: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
         op_entry: BinaryOperatorEntry<'a>,
-    ) -> Filter<'a> {
+    ) -> Result<Filter<'a>> {
         let desc = if let Some(orig_desc) = exec.get_desc() {
             let cost_est = if let Some(ref orig_cost) = orig_desc.cost {
                 Some(CostEstimate {
-                    output: calculate_binary_outputsize(&op_entry.op, orig_cost.output),
+                    output: calculate_binary_outputsize(&op_entry.op, orig_cost.output)?,
                     processed_in_step: orig_cost.processed_in_step,
                     intermediate_sum: orig_cost.intermediate_sum + orig_cost.processed_in_step,
                 })
@@ -70,16 +72,25 @@ impl<'a> Filter<'a> {
         } else {
             None
         };
-        let it =
-            exec.filter(move |tuple| op_entry.op.filter_match(&tuple[lhs_idx], &tuple[rhs_idx]));
-        Filter {
+        let it = exec
+            .map(move |tuple| {
+                let tuple = tuple?;
+                let include = op_entry.op.filter_match(&tuple[lhs_idx], &tuple[rhs_idx])?;
+                if include {
+                    Ok(Some(tuple))
+                } else {
+                    Ok(None)
+                }
+            })
+            .filter_map_ok(|t| t);
+        Ok(Filter {
             desc,
             it: Box::new(it),
-        }
+        })
     }
 
     pub fn new_unary(
-        exec: Box<dyn ExecutionNode<Item = MatchGroup> + 'a>,
+        exec: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
         idx: usize,
         op_entry: UnaryOperatorEntry<'a>,
     ) -> Filter<'a> {
@@ -106,7 +117,16 @@ impl<'a> Filter<'a> {
         } else {
             None
         };
-        let it = exec.filter(move |tuple| op_entry.op.filter_match(&tuple[idx]));
+        let it = exec
+            .map(move |tuple| {
+                let tuple = tuple?;
+                if op_entry.op.filter_match(&tuple[idx])? {
+                    Ok(Some(tuple))
+                } else {
+                    Ok(None)
+                }
+            })
+            .filter_map_ok(|t| t);
         Filter {
             desc,
             it: Box::new(it),
@@ -115,7 +135,7 @@ impl<'a> Filter<'a> {
 }
 
 impl<'a> ExecutionNode for Filter<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = MatchGroup> {
+    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
         self
     }
 
@@ -125,9 +145,9 @@ impl<'a> ExecutionNode for Filter<'a> {
 }
 
 impl<'a> Iterator for Filter<'a> {
-    type Item = MatchGroup;
+    type Item = Result<MatchGroup>;
 
-    fn next(&mut self) -> Option<MatchGroup> {
+    fn next(&mut self) -> Option<Self::Item> {
         self.it.next()
     }
 }

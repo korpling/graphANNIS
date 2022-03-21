@@ -5,6 +5,7 @@ use crate::{
     errors::Result,
     types::{Edge, NodeID},
 };
+use itertools::Itertools;
 use num_traits::ToPrimitive;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Deserialize;
@@ -37,23 +38,29 @@ impl DenseAdjacencyListStorage {
 
 impl EdgeContainer for DenseAdjacencyListStorage {
     /// Get all outgoing edges for a given `node`.
-    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_outgoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(node) = node.to_usize() {
             if node < self.edges.len() {
                 if let Some(outgoing) = self.edges[node] {
-                    return Box::new(std::iter::once(outgoing));
+                    return Box::new(std::iter::once(Ok(outgoing)));
                 }
             }
         }
         Box::new(std::iter::empty())
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn get_ingoing_edges<'a>(
+        &'a self,
+        node: NodeID,
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(ingoing) = self.inverse_edges.get(&node) {
             return match ingoing.len() {
                 0 => Box::new(std::iter::empty()),
-                1 => Box::new(std::iter::once(ingoing[0])),
-                _ => Box::new(ingoing.iter().cloned()),
+                1 => Box::new(std::iter::once(Ok(ingoing[0]))),
+                _ => Box::new(ingoing.iter().map(|e| Ok(*e))),
             };
         }
         Box::new(std::iter::empty())
@@ -64,13 +71,14 @@ impl EdgeContainer for DenseAdjacencyListStorage {
     }
 
     /// Provides an iterator over all nodes of this edge container that are the source an edge
-    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let it = self
             .edges
             .iter()
             .enumerate()
             .filter(|(_, outgoing)| outgoing.is_some())
-            .filter_map(|(key, _)| key.to_u64());
+            .filter_map(|(key, _)| key.to_u64())
+            .map(Ok);
         Box::new(it)
     }
 }
@@ -81,7 +89,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
         node: NodeID,
         min_distance: usize,
         max_distance: Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
             Bound::Unbounded => usize::max_value(),
@@ -89,8 +97,8 @@ impl GraphStorage for DenseAdjacencyListStorage {
             Bound::Excluded(max_distance) => max_distance + 1,
         };
         let it = CycleSafeDFS::<'a>::new(self, node, min_distance, max_distance)
-            .map(|x| x.node)
-            .filter(move |n| visited.insert(*n));
+            .map_ok(|x| x.node)
+            .filter_ok(move |n| visited.insert(*n));
         Box::new(it)
     }
 
@@ -99,7 +107,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
         node: NodeID,
         min_distance: usize,
         max_distance: Bound<usize>,
-    ) -> Box<dyn Iterator<Item = NodeID> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
             Bound::Unbounded => usize::max_value(),
@@ -108,17 +116,23 @@ impl GraphStorage for DenseAdjacencyListStorage {
         };
 
         let it = CycleSafeDFS::<'a>::new_inverse(self, node, min_distance, max_distance)
-            .map(|x| x.node)
-            .filter(move |n| visited.insert(*n));
+            .map_ok(|x| x.node)
+            .filter_ok(move |n| visited.insert(*n));
         Box::new(it)
     }
 
-    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
+    fn distance(&self, source: NodeID, target: NodeID) -> Result<Option<usize>> {
         let mut it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value())
-            .filter(|x| target == x.node)
-            .map(|x| x.distance);
+            .filter_ok(|x| target == x.node)
+            .map_ok(|x| x.distance);
 
-        it.next()
+        match it.next() {
+            Some(distance) => {
+                let distance = distance?;
+                Ok(Some(distance))
+            }
+            None => Ok(None),
+        }
     }
     fn is_connected(
         &self,
@@ -126,16 +140,16 @@ impl GraphStorage for DenseAdjacencyListStorage {
         target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
-    ) -> bool {
+    ) -> Result<bool> {
         let max_distance = match max_distance {
             Bound::Unbounded => usize::max_value(),
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
         let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance)
-            .filter(|x| target == x.node);
+            .filter_ok(|x| target == x.node);
 
-        it.next().is_some()
+        Ok(it.next().is_some())
     }
 
     fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge> {
@@ -151,13 +165,18 @@ impl GraphStorage for DenseAdjacencyListStorage {
         self.edges.clear();
         self.inverse_edges.clear();
 
-        if let Some(largest_idx) = node_annos.get_largest_item().and_then(|idx| idx.to_usize()) {
+        if let Some(largest_idx) = node_annos
+            .get_largest_item()?
+            .and_then(|idx| idx.to_usize())
+        {
             debug!("Resizing dense adjacency list to size {}", largest_idx + 1);
             self.edges.resize(largest_idx + 1, None);
 
             for source in orig.source_nodes() {
+                let source = source?;
                 if let Some(idx) = source.to_usize() {
                     if let Some(target) = orig.get_outgoing_edges(source).next() {
+                        let target = target?;
                         // insert edge
                         self.edges[idx] = Some(target);
 
@@ -172,14 +191,14 @@ impl GraphStorage for DenseAdjacencyListStorage {
                             inverse_entry.insert(insertion_idx, e.source);
                         }
                         // insert annotation
-                        for a in orig.get_anno_storage().get_annotations_for_item(&e) {
+                        for a in orig.get_anno_storage().get_annotations_for_item(&e)? {
                             self.annos.insert(e.clone(), a)?;
                         }
                     }
                 }
             }
             self.stats = orig.get_statistics().cloned();
-            self.annos.calculate_statistics();
+            self.annos.calculate_statistics()?;
         }
         Ok(())
     }

@@ -8,7 +8,6 @@ use crate::{annostorage::symboltable::SymbolTable, errors::GraphAnnisCoreError};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
-use smallvec::SmallVec;
 use smartstring::alias::String;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
@@ -76,11 +75,11 @@ impl<
         self.anno_values.clear();
     }
 
-    fn create_sparse_anno(&mut self, orig: Annotation) -> SparseAnnotation {
-        SparseAnnotation {
-            key: self.anno_keys.insert(orig.key),
-            val: self.anno_values.insert(orig.val),
-        }
+    fn create_sparse_anno(&mut self, orig: Annotation) -> Result<SparseAnnotation> {
+        let key = self.anno_keys.insert(orig.key)?;
+        let val = self.anno_values.insert(orig.val)?;
+
+        Ok(SparseAnnotation { key, val })
     }
 
     fn create_annotation_from_sparse(&self, orig: &SparseAnnotation) -> Option<Annotation> {
@@ -149,14 +148,18 @@ where
         namespace: Option<&str>,
         name: &str,
         value: Option<&str>,
-    ) -> Box<dyn Iterator<Item = (T, Arc<AnnoKey>)> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<(T, Arc<AnnoKey>)>> + 'a> {
         let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
             vec![Arc::from(AnnoKey {
                 ns: ns.into(),
                 name: name.into(),
             })]
         } else {
-            self.get_qnames(name).into_iter().map(Arc::from).collect()
+            let qnames = match self.get_qnames(name) {
+                Ok(qnames) => qnames,
+                Err(e) => return Box::new(std::iter::once(Err(e))),
+            };
+            qnames.into_iter().map(Arc::from).collect()
         };
         // Create a vector fore each matching AnnoKey to the value map containing all items and their annotation values
         // for this key.
@@ -181,7 +184,8 @@ where
                         values.get(&target_value_symbol).map(|items| (items, key))
                     })
                     // flatten the hash set of all items, returns all items for the condition
-                    .flat_map(|(items, key)| items.iter().cloned().zip(std::iter::repeat(key)));
+                    .flat_map(|(items, key)| items.iter().cloned().zip(std::iter::repeat(key)))
+                    .map(Ok);
                 Box::new(it)
             } else {
                 // value is not known, return empty result
@@ -196,7 +200,8 @@ where
                         .iter()
                         .flat_map(|(_, items)| items.iter().cloned())
                         .zip(std::iter::repeat(key))
-                });
+                })
+                .map(Ok);
             Box::new(it)
         }
     }
@@ -217,7 +222,7 @@ where
 {
     fn insert(&mut self, item: T, anno: Annotation) -> Result<()> {
         let orig_anno_key = anno.key.clone();
-        let anno = self.create_sparse_anno(anno);
+        let anno = self.create_sparse_anno(anno)?;
 
         let existing_anno = {
             let existing_item_entry = self
@@ -335,7 +340,7 @@ where
         Ok(())
     }
 
-    fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
+    fn get_qnames(&self, name: &str) -> Result<Vec<AnnoKey>> {
         let it = self.anno_key_sizes.range(
             AnnoKey {
                 name: name.into(),
@@ -350,10 +355,10 @@ where
                 break;
             }
         }
-        result
+        Ok(result)
     }
 
-    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
+    fn get_annotations_for_item(&self, item: &T) -> Result<Vec<Annotation>> {
         if let Some(all_annos) = self.by_container.get(item) {
             let mut result: Vec<Annotation> = Vec::with_capacity(all_annos.len());
             for a in all_annos.iter() {
@@ -361,58 +366,61 @@ where
                     result.push(a);
                 }
             }
-            return result;
+            return Ok(result);
         }
         // return empty result if not found
-        Vec::new()
+        Ok(Vec::new())
     }
 
-    fn number_of_annotations(&self) -> usize {
-        self.total_number_of_annos
+    fn number_of_annotations(&self) -> Result<usize> {
+        Ok(self.total_number_of_annos)
     }
 
-    fn is_empty(&self) -> bool {
-        self.total_number_of_annos == 0
+    fn is_empty(&self) -> Result<bool> {
+        Ok(self.total_number_of_annos == 0)
     }
 
-    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<Cow<str>> {
-        let key_symbol = self.anno_keys.get_symbol(key)?;
-
-        if let Some(all_annos) = self.by_container.get(item) {
+    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>> {
+        if let (Some(key_symbol), Some(all_annos)) =
+            (self.anno_keys.get_symbol(key), self.by_container.get(item))
+        {
             let idx = all_annos.binary_search_by_key(&key_symbol, |a| a.key);
             if let Ok(idx) = idx {
                 if let Some(val) = self.anno_values.get_value_ref(all_annos[idx].val) {
-                    return Some(Cow::Borrowed(val));
+                    return Ok(Some(Cow::Borrowed(val)));
                 }
             }
         }
-        None
+        Ok(None)
     }
 
-    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> bool {
+    fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<bool> {
         if let Some(key_symbol) = self.anno_keys.get_symbol(key) {
             if let Some(all_annos) = self.by_container.get(item) {
                 if all_annos
                     .binary_search_by_key(&key_symbol, |a| a.key)
                     .is_ok()
                 {
-                    return true;
+                    return Ok(true);
                 }
             }
         }
-        false
+        Ok(false)
     }
 
-    fn get_keys_for_iterator(
-        &self,
+    fn get_keys_for_iterator<'b>(
+        &'b self,
         ns: Option<&str>,
         name: Option<&str>,
-        it: Box<dyn Iterator<Item = T>>,
-    ) -> SmallVec<[Match; 8]> {
+        it: Box<
+            dyn Iterator<Item = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>>
+                + 'b,
+        >,
+    ) -> Result<Vec<Match>> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // return the only possible annotation for each node
-                let mut matches = SmallVec::<[Match; 8]>::new();
+                let mut matches = Vec::new();
                 let key = Arc::from(AnnoKey {
                     ns: ns.into(),
                     name: name.into(),
@@ -420,6 +428,7 @@ where
 
                 if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
                     for item in it {
+                        let item = item?;
                         if let Some(all_annos) = self.by_container.get(&item) {
                             if all_annos
                                 .binary_search_by_key(&key_symbol, |a| a.key)
@@ -430,10 +439,10 @@ where
                         }
                     }
                 }
-                matches
+                Ok(matches)
             } else {
                 let matching_key_symbols: Vec<(usize, Arc<AnnoKey>)> = self
-                    .get_qnames(name)
+                    .get_qnames(name)?
                     .into_iter()
                     .filter_map(|key| {
                         self.anno_keys
@@ -442,8 +451,9 @@ where
                     })
                     .collect();
                 // return all annotations with the correct name for each node
-                let mut matches = SmallVec::<[Match; 8]>::new();
+                let mut matches = Vec::new();
                 for item in it {
+                    let item = item?;
                     for (key_symbol, key) in matching_key_symbols.iter() {
                         if let Some(all_annos) = self.by_container.get(&item) {
                             if all_annos
@@ -455,22 +465,23 @@ where
                         }
                     }
                 }
-                matches
+                Ok(matches)
             }
         } else {
             // return all annotations for each node
-            let mut matches = SmallVec::<[Match; 8]>::new();
+            let mut matches = Vec::new();
             for item in it {
-                let all_keys = self.get_all_keys_for_item(&item, None, None);
+                let item = item?;
+                let all_keys = self.get_all_keys_for_item(&item, None, None)?;
                 for anno_key in all_keys {
                     matches.push((item.clone(), anno_key).into());
                 }
             }
-            matches
+            Ok(matches)
         }
     }
 
-    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> usize {
+    fn number_of_annotations_by_name(&self, ns: Option<&str>, name: &str) -> Result<usize> {
         let qualified_keys = match ns {
             Some(ns) => self.anno_key_sizes.range((
                 Included(AnnoKey {
@@ -496,7 +507,7 @@ where
         for (_anno_key, anno_size) in qualified_keys {
             result += anno_size;
         }
-        result
+        Ok(result)
     }
 
     fn exact_anno_search<'a>(
@@ -504,14 +515,18 @@ where
         namespace: Option<&str>,
         name: &str,
         value: ValueSearch<&str>,
-    ) -> Box<dyn Iterator<Item = Match> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<Match>> + 'a> {
         let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
             vec![Arc::from(AnnoKey {
                 ns: ns.into(),
                 name: name.into(),
             })]
         } else {
-            self.get_qnames(name).into_iter().map(Arc::from).collect()
+            let qnames = match self.get_qnames(name) {
+                Ok(qnames) => qnames,
+                Err(e) => return Box::new(std::iter::once(Err(e))),
+            };
+            qnames.into_iter().map(Arc::from).collect()
         };
         // Create a vector for each matching AnnoKey to the value map containing all items and their annotation values
         // for this key.
@@ -537,7 +552,7 @@ where
                     })
                     // flatten the hash set of all items, returns all items for the condition
                     .flat_map(|(items, key)| items.iter().cloned().zip(std::iter::repeat(key)))
-                    .map(move |item| item.into());
+                    .map(move |item| Ok(item.into()));
                 Box::new(it)
             } else {
                 // value is not known, return empty result
@@ -558,17 +573,21 @@ where
             if let ValueSearch::NotSome(value) = value {
                 let value = value.to_string();
                 let it = matching_qname_annos
-                    .filter(move |(item, anno_key)| {
-                        if let Some(item_value) = self.get_value_for_item(item, anno_key) {
-                            item_value != value
-                        } else {
-                            false
-                        }
+                    .map(move |(item, anno_key)| {
+                        let value = self.get_value_for_item(&item, &anno_key)?;
+                        Ok((item, anno_key, value))
                     })
-                    .map(move |item| item.into());
+                    .filter_map_ok(move |(item, anno_key, item_value)| {
+                        if let Some(item_value) = item_value {
+                            if &item_value != &value {
+                                return Some((item, anno_key).into());
+                            }
+                        }
+                        None
+                    });
                 Box::new(it)
             } else {
-                Box::new(matching_qname_annos.map(move |item| item.into()))
+                Box::new(matching_qname_annos.map(move |item| Ok(item.into())))
             }
         }
     }
@@ -579,24 +598,29 @@ where
         name: &str,
         pattern: &str,
         negated: bool,
-    ) -> Box<dyn Iterator<Item = Match> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<Match>> + 'a> {
         let full_match_pattern = util::regex_full_match(pattern);
         let compiled_result = regex::Regex::new(&full_match_pattern);
         if let Ok(re) = compiled_result {
             let it = self
                 .matching_items(namespace, name, None)
-                .filter(move |(node, anno_key)| {
-                    if let Some(val) = self.get_value_for_item(node, anno_key) {
+                .map(move |item| {
+                    let (item, anno_key) = item?;
+                    let value = self.get_value_for_item(&item, &anno_key)?;
+                    Ok((item, anno_key, value))
+                })
+                .filter_ok(move |(_, _, value)| {
+                    if let Some(val) = value {
                         if negated {
-                            !re.is_match(&val)
+                            !re.is_match(val)
                         } else {
-                            re.is_match(&val)
+                            re.is_match(val)
                         }
                     } else {
                         false
                     }
                 })
-                .map(move |item| item.into());
+                .map_ok(move |(item, anno_key, _)| (item, anno_key).into());
             Box::new(it)
         } else if negated {
             // return all values
@@ -612,7 +636,7 @@ where
         item: &T,
         ns: Option<&str>,
         name: Option<&str>,
-    ) -> Vec<Arc<AnnoKey>> {
+    ) -> Result<Vec<Arc<AnnoKey>>> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // fully qualified search
@@ -626,19 +650,23 @@ where
                             .binary_search_by_key(&key_symbol, |a| a.key)
                             .is_ok()
                         {
-                            return vec![Arc::from(key)];
+                            return Ok(vec![Arc::from(key)]);
                         }
                     }
                 }
 
-                return vec![];
+                Ok(vec![])
             } else {
                 // get all qualified names for the given annotation name
-                let res: Vec<Arc<AnnoKey>> = self
-                    .get_qnames(name)
+                let res: Result<Vec<Arc<AnnoKey>>> = self
+                    .get_qnames(name)?
                     .into_iter()
-                    .filter(|key| self.get_value_for_item(item, key).is_some())
-                    .map(Arc::from)
+                    .map(|anno_key| {
+                        let value = self.get_value_for_item(item, &anno_key)?;
+                        Ok((anno_key, value))
+                    })
+                    .filter_ok(|(_key, value)| value.is_some())
+                    .map_ok(|(key, _)| Arc::from(key))
                     .collect();
                 res
             }
@@ -650,10 +678,10 @@ where
                     result.push(key);
                 }
             }
-            result
+            Ok(result)
         } else {
             // return empty result if not found
-            return vec![];
+            Ok(vec![])
         }
     }
 
@@ -663,14 +691,14 @@ where
         name: &str,
         lower_val: &str,
         upper_val: &str,
-    ) -> usize {
+    ) -> Result<usize> {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
             Some(ns) => vec![AnnoKey {
                 name: name.into(),
                 ns: ns.into(),
             }],
-            None => self.get_qnames(name),
+            None => self.get_qnames(name)?,
         };
 
         let mut universe_size: usize = 0;
@@ -708,13 +736,13 @@ where
 
         if sum_histogram_buckets > 0 {
             let selectivity: f64 = (count_matches as f64) / (sum_histogram_buckets as f64);
-            (selectivity * (universe_size as f64)).round() as usize
+            Ok((selectivity * (universe_size as f64)).round() as usize)
         } else {
-            0
+            Ok(0)
         }
     }
 
-    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> usize {
+    fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> Result<usize> {
         let full_match_pattern = util::regex_full_match(pattern);
 
         let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
@@ -731,17 +759,17 @@ where
             }
         }
 
-        0
+        Ok(0)
     }
 
-    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Option<Cow<str>> {
+    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Result<Option<Cow<str>>> {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
             Some(ns) => vec![AnnoKey {
                 name: name.into(),
                 ns: ns.into(),
             }],
-            None => self.get_qnames(name),
+            None => self.get_qnames(name)?,
         };
 
         let mut sampled_values: HashMap<&str, usize> = HashMap::default();
@@ -767,13 +795,13 @@ where
                     max_count = count;
                 }
             }
-            Some(max_value)
+            Ok(Some(max_value))
         } else {
-            None
+            Ok(None)
         }
     }
 
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Cow<str>> {
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Result<Vec<Cow<str>>> {
         if let Some(key) = self.anno_keys.get_symbol(key) {
             if let Some(values_for_key) = self.by_anno.get(&key) {
                 if most_frequent_first {
@@ -783,32 +811,33 @@ where
                             let val = self.anno_values.get_value_ref(*val)?;
                             Some((items.len(), val))
                         })
-                        .sorted();
-                    return result
+                        .sorted()
                         .rev()
                         .map(|(_, val)| Cow::Borrowed(&val[..]))
                         .collect();
+                    return Ok(result);
                 } else {
-                    return values_for_key
+                    let result = values_for_key
                         .iter()
                         .filter_map(|(val, _items)| self.anno_values.get_value_ref(*val))
                         .map(|val| Cow::Borrowed(&val[..]))
                         .collect();
+                    return Ok(result);
                 }
             }
         }
-        return vec![];
+        Ok(vec![])
     }
 
-    fn annotation_keys(&self) -> Vec<AnnoKey> {
-        self.anno_key_sizes.keys().cloned().collect()
+    fn annotation_keys(&self) -> Result<Vec<AnnoKey>> {
+        Ok(self.anno_key_sizes.keys().cloned().collect())
     }
 
-    fn get_largest_item(&self) -> Option<T> {
-        self.largest_item.clone()
+    fn get_largest_item(&self) -> Result<Option<T>> {
+        Ok(self.largest_item.clone())
     }
 
-    fn calculate_statistics(&mut self) {
+    fn calculate_statistics(&mut self) -> Result<()> {
         let max_histogram_buckets = 250;
         let max_sampled_annotations = 2500;
 
@@ -880,6 +909,7 @@ where
                 }
             }
         }
+        Ok(())
     }
 
     fn load_annotations_from(&mut self, location: &Path) -> Result<()> {
@@ -939,7 +969,7 @@ mod tests {
         a.insert(2, test_anno.clone()).unwrap();
         a.insert(3, test_anno).unwrap();
 
-        assert_eq!(3, a.number_of_annotations());
+        assert_eq!(3, a.number_of_annotations().unwrap());
         assert_eq!(3, a.by_container.len());
         assert_eq!(1, a.by_anno.len());
         assert_eq!(1, a.anno_keys.len());
@@ -953,6 +983,7 @@ mod tests {
                     ns: "annis".into()
                 }
             )
+            .unwrap()
             .unwrap()
         );
     }
@@ -986,9 +1017,9 @@ mod tests {
         a.insert(1, test_anno2.clone()).unwrap();
         a.insert(1, test_anno3.clone()).unwrap();
 
-        assert_eq!(3, a.number_of_annotations());
+        assert_eq!(3, a.number_of_annotations().unwrap());
 
-        let all = a.get_annotations_for_item(&1);
+        let all = a.get_annotations_for_item(&1).unwrap();
         assert_eq!(3, all.len());
 
         assert_eq!(test_anno1, all[0]);
@@ -1008,7 +1039,7 @@ mod tests {
         let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
         a.insert(1, test_anno.clone()).unwrap();
 
-        assert_eq!(1, a.number_of_annotations());
+        assert_eq!(1, a.number_of_annotations().unwrap());
         assert_eq!(1, a.by_container.len());
         assert_eq!(1, a.by_anno.len());
         assert_eq!(1, a.anno_key_sizes.len());
@@ -1016,7 +1047,7 @@ mod tests {
 
         a.remove_annotation_for_item(&1, &test_anno.key).unwrap();
 
-        assert_eq!(0, a.number_of_annotations());
+        assert_eq!(0, a.number_of_annotations().unwrap());
         assert_eq!(0, a.by_container.len());
         assert_eq!(0, a.by_anno.len());
         assert_eq!(&0, a.anno_key_sizes.get(&test_anno.key).unwrap_or(&0));

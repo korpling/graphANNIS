@@ -1,10 +1,11 @@
 use super::RangeSpec;
 use crate::annis::operator::EstimationType;
-use crate::annis::{
-    db::aql::model::AnnotationComponentType,
-    operator::{UnaryOperator, UnaryOperatorSpec},
-};
 use crate::{
+    annis::{
+        db::aql::model::AnnotationComponentType,
+        operator::{UnaryOperator, UnaryOperatorSpec},
+    },
+    errors::Result,
     graph::{GraphStorage, Match},
     AnnotationGraph,
 };
@@ -30,7 +31,7 @@ impl UnaryOperatorSpec for AritySpec {
         result
     }
 
-    fn create_operator(&self, db: &AnnotationGraph) -> Option<Box<dyn UnaryOperator>> {
+    fn create_operator(&self, db: &AnnotationGraph) -> Result<Box<dyn UnaryOperator>> {
         // collect all relevant graph storages
         let mut graphstorages = Vec::default();
 
@@ -45,7 +46,7 @@ impl UnaryOperatorSpec for AritySpec {
             }
         }
 
-        Some(Box::new(ArityOperator {
+        Ok(Box::new(ArityOperator {
             graphstorages,
             allowed_range: self.children.clone(),
         }))
@@ -64,10 +65,11 @@ impl std::fmt::Display for ArityOperator {
 }
 
 impl UnaryOperator for ArityOperator {
-    fn filter_match(&self, m: &Match) -> bool {
+    fn filter_match(&self, m: &Match) -> Result<bool> {
         let mut children: FxHashSet<NodeID> = FxHashSet::default();
         for gs in self.graphstorages.iter() {
             for out in gs.get_outgoing_edges(m.node) {
+                let out = out?;
                 children.insert(out);
             }
         }
@@ -75,12 +77,12 @@ impl UnaryOperator for ArityOperator {
         let num_children = children.len();
         if num_children >= self.allowed_range.min_dist() {
             match self.allowed_range.max_dist() {
-                std::ops::Bound::Unbounded => true,
-                std::ops::Bound::Included(max_dist) => num_children <= max_dist,
-                std::ops::Bound::Excluded(max_dist) => num_children < max_dist,
+                std::ops::Bound::Unbounded => Ok(true),
+                std::ops::Bound::Included(max_dist) => Ok(num_children <= max_dist),
+                std::ops::Bound::Excluded(max_dist) => Ok(num_children < max_dist),
             }
         } else {
-            false
+            Ok(false)
         }
     }
 

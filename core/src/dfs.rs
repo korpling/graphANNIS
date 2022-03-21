@@ -1,4 +1,4 @@
-use crate::{graph::storage::EdgeContainer, types::NodeID};
+use crate::{errors::Result, graph::storage::EdgeContainer, types::NodeID};
 use rustc_hash::FxHashSet;
 
 pub struct CycleSafeDFS<'a> {
@@ -62,7 +62,7 @@ impl<'a> CycleSafeDFS<'a> {
         self.cycle_detected
     }
 
-    fn enter_node(&mut self, entry: (NodeID, usize)) -> bool {
+    fn enter_node(&mut self, entry: (NodeID, usize)) -> Result<bool> {
         let node = entry.0;
         let dist = entry.1;
 
@@ -83,7 +83,7 @@ impl<'a> CycleSafeDFS<'a> {
             self.cycle_detected = true;
             trace!("removing from stack because of cycle");
             self.stack.pop();
-            false
+            Ok(false)
         } else {
             self.path.push(node);
             self.nodes_in_path.insert(node);
@@ -98,12 +98,14 @@ impl<'a> CycleSafeDFS<'a> {
                 if self.inverse {
                     // add all parent nodes to the stack
                     for o in self.container.get_ingoing_edges(node) {
+                        let o = o?;
                         self.stack.push((o, dist + 1));
                         trace!("adding {} to stack with new size {}", o, self.stack.len());
                     }
                 } else {
                     // add all child nodes to the stack
                     for o in self.container.get_outgoing_edges(node) {
+                        let o = o?;
                         self.stack.push((o, dist + 1));
                         trace!("adding {} to stack with new size {}", o, self.stack.len());
                     }
@@ -114,23 +116,29 @@ impl<'a> CycleSafeDFS<'a> {
                 found,
                 node
             );
-            found
+            Ok(found)
         }
     }
 }
 
 impl<'a> Iterator for CycleSafeDFS<'a> {
-    type Item = DFSStep;
+    type Item = Result<DFSStep>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut result: Option<DFSStep> = None;
+        let mut result: Option<Result<DFSStep>> = None;
         while result.is_none() && !self.stack.is_empty() {
-            let top = *self.stack.last().unwrap();
-            if self.enter_node(top) {
-                result = Some(DFSStep {
-                    node: top.0,
-                    distance: top.1,
-                });
+            if let Some(top) = self.stack.last().copied() {
+                match self.enter_node(top) {
+                    Ok(entered) => {
+                        if entered {
+                            result = Some(Ok(DFSStep {
+                                node: top.0,
+                                distance: top.1,
+                            }));
+                        }
+                    }
+                    Err(e) => return Some(Err(e)),
+                }
             }
         }
 

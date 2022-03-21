@@ -1,3 +1,11 @@
+#![deny(
+    clippy::panic,
+    clippy::expect_used,
+    clippy::exit,
+    clippy::todo,
+    clippy::unwrap_in_result
+)]
+
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -30,6 +38,7 @@ mod schema;
 mod settings;
 
 embed_migrations!("migrations");
+
 type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
 
 fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, DbPool)> {
