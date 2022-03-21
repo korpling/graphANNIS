@@ -116,7 +116,7 @@ where
     }
 
     pub fn get_symbol(&self, val: &T) -> Option<usize> {
-        self.by_value.get(val).cloned()
+        self.by_value.get(val).copied()
     }
 
     pub fn len(&self) -> usize {

@@ -539,8 +539,10 @@ impl<'a> NodeSearch<'a> {
                         &NODE_TYPE_KEY.name,
                         Some("node").into(),
                     )
-                    .map_ok(move |n| smallvec![n])
-                    .map(|n| n.map_err(GraphAnnisError::from));
+                    .map(|n| match n {
+                        Ok(n) => Ok(smallvec![n]),
+                        Err(e) => Err(e.into()),
+                    });
 
                 let filter_func: MatchValueFilterFunc = Box::new(move |m, node_annos| {
                     if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key)? {
@@ -608,14 +610,13 @@ impl<'a> NodeSearch<'a> {
                 // namespace), this can result in duplicates which needs to be
                 // filtered out.
                 if is_unique {
-                    Box::new(
-                        base_it
-                            .map_ok(move |m| Match {
-                                node: m.node,
-                                anno_key: const_output.clone(),
-                            })
-                            .map(|it| it.map_err(GraphAnnisError::from)),
-                    )
+                    Box::new(base_it.map(move |m| match m {
+                        Ok(m) => Ok(Match {
+                            node: m.node,
+                            anno_key: const_output.clone(),
+                        }),
+                        Err(e) => Err(e.into()),
+                    }))
                 } else {
                     Box::new(
                         base_it
@@ -625,11 +626,13 @@ impl<'a> NodeSearch<'a> {
                                 Ok(m) => Some(m.clone()),
                                 Err(_) => None,
                             })
-                            .map_ok(move |m| Match {
-                                node: m.node,
-                                anno_key: const_output.clone(),
-                            })
-                            .map(|it| it.map_err(GraphAnnisError::from)),
+                            .map(move |m| match m {
+                                Ok(m) => Ok(Match {
+                                    node: m.node,
+                                    anno_key: const_output.clone(),
+                                }),
+                                Err(e) => Err(e.into()),
+                            }),
                     )
                 }
             } else {
@@ -706,14 +709,13 @@ impl<'a> NodeSearch<'a> {
                 // Replace the result annotation with a constant value.
                 // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
                 if is_unique {
-                    Box::new(
-                        base_it
-                            .map_ok(move |m| Match {
-                                node: m.node,
-                                anno_key: const_output.clone(),
-                            })
-                            .map(|it| it.map_err(GraphAnnisError::from)),
-                    )
+                    Box::new(base_it.map(move |m| match m {
+                        Ok(m) => Ok(Match {
+                            node: m.node,
+                            anno_key: const_output.clone(),
+                        }),
+                        Err(e) => Err(e.into()),
+                    }))
                 } else {
                     Box::new(
                         base_it
@@ -721,11 +723,13 @@ impl<'a> NodeSearch<'a> {
                                 Ok(m) => Some(m.clone()),
                                 Err(_) => None,
                             })
-                            .map_ok(move |m| Match {
-                                node: m.node,
-                                anno_key: const_output.clone(),
-                            })
-                            .map(|it| it.map_err(GraphAnnisError::from)),
+                            .map(move |m| match m {
+                                Ok(m) => Ok(Match {
+                                    node: m.node,
+                                    anno_key: const_output.clone(),
+                                }),
+                                Err(e) => Err(e.into()),
+                            }),
                     )
                 }
             } else {

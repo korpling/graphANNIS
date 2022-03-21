@@ -93,12 +93,12 @@ impl<'a> IndexJoin<'a> {
                 .op
                 .retrieve_matches(&m_lhs[self.lhs_idx])
                 .fuse()
-                .map(|m| {
-                    m.map_err(|e| {
+                .map(|m| match m {
+                    Ok(m) => Ok(m.node),
+                    Err(e) => {
                         let e: Box<dyn Error + Send + Sync> = Box::new(e);
-                        e
-                    })
-                    .map(|m| m.node)
+                        Err(e)
+                    }
                 });
             let it_nodes: Box<
                 dyn Iterator<Item = std::result::Result<NodeID, Box<dyn Error + Send + Sync>>>,

@@ -140,16 +140,13 @@ impl<'a> Display for NonExistingUnaryOperatorIndex<'a> {
 impl<'a> UnaryOperator for NonExistingUnaryOperatorIndex<'a> {
     fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> Result<bool> {
         // Extract the annotation keys for the matches
-        let it = self
-            .negated_op
-            .retrieve_matches(m)
-            .map_ok(|m| m.node)
-            .map(|n| {
-                n.map_err(|e| {
-                    let e: Box<dyn Error + Send + Sync> = Box::new(e);
-                    e
-                })
-            });
+        let it = self.negated_op.retrieve_matches(m).map(|m| match m {
+            Ok(m) => Ok(m.node),
+            Err(e) => {
+                let e: Box<dyn Error + Send + Sync> = Box::new(e);
+                Err(e)
+            }
+        });
         let qname = self.target.get_anno_qname();
 
         let it: Box<
