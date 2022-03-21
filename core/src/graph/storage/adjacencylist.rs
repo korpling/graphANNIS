@@ -67,7 +67,7 @@ impl EdgeContainer for AdjacencyListStorage {
             return match outgoing.len() {
                 0 => Box::new(std::iter::empty()),
                 1 => Box::new(std::iter::once(Ok(outgoing[0]))),
-                _ => Box::new(outgoing.iter().map(|e| (Ok(*e)))),
+                _ => Box::new(outgoing.iter().copied().map(Ok)),
             };
         }
         Box::new(std::iter::empty())
@@ -143,9 +143,15 @@ impl GraphStorage for AdjacencyListStorage {
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
-        let it = CycleSafeDFS::<'a>::new(self, node, min_distance, max_distance)
-            .map_ok(|x| x.node)
-            .filter_ok(move |n| visited.insert(*n));
+        let it = CycleSafeDFS::<'a>::new(self, node, min_distance, max_distance).filter_map_ok(
+            move |x| {
+                if visited.insert(x.node) {
+                    Some(x.node)
+                } else {
+                    None
+                }
+            },
+        );
         Box::new(it)
     }
 
@@ -163,8 +169,13 @@ impl GraphStorage for AdjacencyListStorage {
         };
 
         let it = CycleSafeDFS::<'a>::new_inverse(self, node, min_distance, max_distance)
-            .map_ok(|x| x.node)
-            .filter_ok(move |n| visited.insert(*n));
+            .filter_map_ok(move |x| {
+                if visited.insert(x.node) {
+                    Some(x.node)
+                } else {
+                    None
+                }
+            });
         Box::new(it)
     }
 

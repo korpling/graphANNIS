@@ -434,14 +434,19 @@ impl BinaryOperatorIndex for BaseEdgeOp {
                             &self.spec.edge_anno,
                             self.gs[0].as_ref(),
                             candidate,
-                            lhs.clone().node,
+                            lhs.node,
                         )?;
                         Ok((candidate, has_annotation))
                     })
-                    .filter_ok(move |(_, has_annotation)| *has_annotation)
-                    .map_ok(|(n, _)| Match {
-                        node: n,
-                        anno_key: DEFAULT_ANNO_KEY.clone(),
+                    .filter_map_ok(move |(n, has_annotation)| {
+                        if has_annotation {
+                            Some(Match {
+                                node: n,
+                                anno_key: DEFAULT_ANNO_KEY.clone(),
+                            })
+                        } else {
+                            None
+                        }
                     })
                     .collect()
             } else {
@@ -453,15 +458,20 @@ impl BinaryOperatorIndex for BaseEdgeOp {
                         let has_annotation = check_edge_annotation(
                             &self.spec.edge_anno,
                             self.gs[0].as_ref(),
-                            lhs.clone().node,
+                            lhs.node,
                             candidate,
                         )?;
                         Ok((candidate, has_annotation))
                     })
-                    .filter_ok(move |(_, has_annotation)| *has_annotation)
-                    .map_ok(|(n, _)| Match {
-                        node: n,
-                        anno_key: DEFAULT_ANNO_KEY.clone(),
+                    .filter_map_ok(move |(n, has_annotation)| {
+                        if has_annotation {
+                            Some(Match {
+                                node: n,
+                                anno_key: DEFAULT_ANNO_KEY.clone(),
+                            })
+                        } else {
+                            None
+                        }
                     })
                     .collect()
             };
@@ -487,14 +497,19 @@ impl BinaryOperatorIndex for BaseEdgeOp {
                                     &self.spec.edge_anno,
                                     e.as_ref(),
                                     candidate,
-                                    lhs.clone().node,
+                                    lhs.node,
                                 )?;
                                 Ok((candidate, has_annotation))
                             })
-                            .filter_ok(move |(_, has_annotation)| *has_annotation)
-                            .map_ok(|(n, _)| Match {
-                                node: n,
-                                anno_key: DEFAULT_ANNO_KEY.clone(),
+                            .filter_map_ok(move |(n, has_annotation)| {
+                                if has_annotation {
+                                    Some(Match {
+                                        node: n,
+                                        anno_key: DEFAULT_ANNO_KEY.clone(),
+                                    })
+                                } else {
+                                    None
+                                }
                             })
                     })
                     .collect()
@@ -512,15 +527,20 @@ impl BinaryOperatorIndex for BaseEdgeOp {
                                 let has_annotation = check_edge_annotation(
                                     &self.spec.edge_anno,
                                     e.as_ref(),
-                                    lhs.clone().node,
+                                    lhs.node,
                                     candidate,
                                 )?;
                                 Ok((candidate, has_annotation))
                             })
-                            .filter_ok(move |(_, has_annotation)| *has_annotation)
-                            .map_ok(|(n, _)| Match {
-                                node: n,
-                                anno_key: DEFAULT_ANNO_KEY.clone(),
+                            .filter_map_ok(move |(n, has_annotation)| {
+                                if has_annotation {
+                                    Some(Match {
+                                        node: n,
+                                        anno_key: DEFAULT_ANNO_KEY.clone(),
+                                    })
+                                } else {
+                                    None
+                                }
                             })
                     })
                     .collect()
