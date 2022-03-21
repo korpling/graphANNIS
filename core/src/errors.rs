@@ -1,4 +1,4 @@
-use std::{num::TryFromIntError, sync::PoisonError};
+use std::{num::TryFromIntError, string::FromUtf8Error, sync::PoisonError};
 
 use thiserror::Error;
 
@@ -52,6 +52,8 @@ pub enum GraphAnnisCoreError {
     IntConversion(#[from] TryFromIntError),
     #[error("Lock poisoning ({0})")]
     LockPoisoning(String),
+    #[error(transparent)]
+    FromUtf8Error(#[from] FromUtf8Error),
     #[error(transparent)]
     Other(#[from] Box<dyn std::error::Error + Send + Sync>),
 }

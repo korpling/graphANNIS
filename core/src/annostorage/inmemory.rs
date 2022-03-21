@@ -601,9 +601,9 @@ where
                 .filter_ok(move |(_, _, value)| {
                     if let Some(val) = value {
                         if negated {
-                            !re.is_match(&val)
+                            !re.is_match(val)
                         } else {
-                            re.is_match(&val)
+                            re.is_match(val)
                         }
                     } else {
                         false
@@ -644,7 +644,7 @@ where
                     }
                 }
 
-                return Ok(vec![]);
+                Ok(vec![])
             } else {
                 // get all qualified names for the given annotation name
                 let res: Result<Vec<Arc<AnnoKey>>> = self
@@ -670,7 +670,7 @@ where
             Ok(result)
         } else {
             // return empty result if not found
-            return Ok(vec![]);
+            Ok(vec![])
         }
     }
 
@@ -815,7 +815,7 @@ where
                 }
             }
         }
-        return Ok(vec![]);
+        Ok(vec![])
     }
 
     fn annotation_keys(&self) -> Vec<AnnoKey> {

@@ -19,8 +19,6 @@ use smartstring::alias::String as SmartString;
 
 pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v1";
 
-const UTF_8_MSG: &str = "String must be valid UTF-8 but was corrupted";
-
 const KB: usize = 1 << 10;
 const MB: usize = KB * KB;
 
@@ -264,10 +262,6 @@ where
     }
 
     /// Parse the raw data and extract the node ID and the annotation.
-    ///
-    /// # Panics
-    /// Panics if the raw data is smaller than the length of a node ID bit-representation or if the strings are not valid
-    /// UTF-8.
     fn parse_by_anno_qname_key(&self, mut data: Vec<u8>) -> Result<(T, Arc<AnnoKey>, String)> {
         // get the item ID at the end
         let item_id_raw = data.split_off(data.len() - T::key_size());
@@ -278,7 +272,7 @@ where
 
         // split off the annotation value string
         let anno_val_raw = data.split_off(std::mem::size_of::<usize>());
-        let anno_val = String::from_utf8(anno_val_raw).expect(UTF_8_MSG);
+        let anno_val = String::from_utf8(anno_val_raw)?;
 
         // parse the remaining annotation key symbol
         let anno_key_symbol = usize::parse_key(&data)?;
