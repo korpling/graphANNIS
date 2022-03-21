@@ -482,7 +482,8 @@ struct AnnisVec_CString *annis_cs_list(const struct AnnisCorpusStorage *ptr, Ann
 AnnisMatrix_CString *annis_cs_list_node_annotations(const struct AnnisCorpusStorage *ptr,
                                                     const char *corpus_name,
                                                     bool list_values,
-                                                    bool only_most_frequent_values);
+                                                    bool only_most_frequent_values,
+                                                    AnnisErrorList **err);
 
 /**
  * Returns a list of all edge annotations of a corpus given by `corpus_name` and the component.
@@ -501,7 +502,8 @@ AnnisMatrix_CString *annis_cs_list_edge_annotations(const struct AnnisCorpusStor
                                                     const char *component_name,
                                                     const char *component_layer,
                                                     bool list_values,
-                                                    bool only_most_frequent_values);
+                                                    bool only_most_frequent_values,
+                                                    AnnisErrorList **err);
 
 /**
  * Parses a `query` and checks if it is valid.
@@ -800,7 +802,8 @@ struct AnnisIterPtr_NodeID *annis_graph_nodes_by_type(const AnnisAnnotationGraph
  * Return a vector of all annotations for the given `node` in the graph `g`.
  */
 struct AnnisVec_Annotation *annis_graph_annotations_for_node(const AnnisAnnotationGraph *g,
-                                                             AnnisNodeID node);
+                                                             AnnisNodeID node,
+                                                             AnnisErrorList **err);
 
 /**
  * Return a vector of all components for the graph `g`.
@@ -830,7 +833,8 @@ struct AnnisVec_Edge *annis_graph_outgoing_edges(const AnnisAnnotationGraph *g,
  */
 struct AnnisVec_Annotation *annis_graph_annotations_for_edge(const AnnisAnnotationGraph *g,
                                                              struct AnnisEdge edge,
-                                                             const AnnisAnnotationComponent *component);
+                                                             const AnnisAnnotationComponent *component,
+                                                             AnnisErrorList **err);
 
 /**
  * Initialize the logging of this library.
