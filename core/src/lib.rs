@@ -1,4 +1,4 @@
-#![warn(
+#![deny(
     clippy::panic,
     clippy::panic_in_result_fn,
     clippy::expect_used,
