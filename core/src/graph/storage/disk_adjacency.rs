@@ -26,7 +26,7 @@ pub struct DiskAdjacencyListStorage {
 
 fn get_fan_outs(edges: &DiskMap<Edge, bool>) -> Result<Vec<usize>> {
     let mut fan_outs: HashMap<NodeID, usize> = HashMap::default();
-    if edges.is_empty()? {
+    if !edges.is_empty()? {
         let all_edges = edges.iter()?;
         for e in all_edges {
             let (e, _) = e?;
