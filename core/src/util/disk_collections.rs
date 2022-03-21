@@ -280,7 +280,7 @@ where
         // Check if C0, C1 or C2 are the only non-empty maps and return a specialized iterator
         if let Some(c1) = &self.c1 {
             if self.c0.is_empty() && self.c2.is_none() {
-                let c1_range = match c1.range(range.clone()).map_err(|e| e.into()) {
+                let c1_range = match c1.range(range).map_err(|e| e.into()) {
                     Ok(c1_range) => c1_range,
                     Err(e) => return Box::new(std::iter::once(Err(e))),
                 };
@@ -790,10 +790,11 @@ where
                 .current(&mut self.current_key, &mut self.current_value)
             {
                 if self.range_contains(&self.current_key) {
-                    let value: Option<V> = self
-                        .serialization
-                        .deserialize(&self.current_value)
-                        .expect("Could not decode previously written data from disk.");
+                    let value: Option<V> = match self.serialization.deserialize(&self.current_value)
+                    {
+                        Ok(value) => value,
+                        Err(e) => return Some(Err(e.into())),
+                    };
 
                     self.table_it.advance();
 

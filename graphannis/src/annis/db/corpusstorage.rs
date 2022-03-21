@@ -585,7 +585,7 @@ impl CorpusStorage {
         mem_ops: &mut MallocSizeOfOps,
     ) -> Result<CorpusInfo> {
         let cache_entry = self.get_entry(corpus_name)?;
-        let lock = cache_entry.read().unwrap();
+        let lock = cache_entry.read()?;
 
         // Read configuration file or create a default one
         let config: CorpusConfiguration = self
@@ -656,7 +656,7 @@ impl CorpusStorage {
 
         {
             // test with read-only access if corpus is contained in cache
-            let cache_lock = self.corpus_cache.read().unwrap();
+            let cache_lock = self.corpus_cache.read()?;
             let cache = &*cache_lock;
             if let Some(e) = cache.get(&corpus_name) {
                 return Ok(e.clone());
@@ -664,7 +664,7 @@ impl CorpusStorage {
         }
 
         // if not yet available, change to write-lock and insert cache entry
-        let mut cache_lock = self.corpus_cache.write().unwrap();
+        let mut cache_lock = self.corpus_cache.write()?;
         let cache = &mut *cache_lock;
 
         let entry = cache
@@ -741,14 +741,14 @@ impl CorpusStorage {
 
         // check if basics (node annotation, strings) of the database are loaded
         let loaded = {
-            let lock = cache_entry.read().unwrap();
+            let lock = cache_entry.read()?;
             matches!(&*lock, CacheEntry::Loaded(_))
         };
 
         if loaded {
             Ok(cache_entry)
         } else {
-            let mut cache_lock = self.corpus_cache.write().unwrap();
+            let mut cache_lock = self.corpus_cache.write()?;
             self.load_entry_with_lock(&mut cache_lock, corpus_name, create_if_missing)
         }
     }
@@ -760,7 +760,7 @@ impl CorpusStorage {
     ) -> Result<Arc<RwLock<CacheEntry>>> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let missing_components = {
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             let db = get_read_or_error(&lock)?;
 
             let mut missing: HashSet<_> = HashSet::new();
@@ -773,7 +773,7 @@ impl CorpusStorage {
         };
         if !missing_components.is_empty() {
             // load the needed components
-            let mut lock = db_entry.write().unwrap();
+            let mut lock = db_entry.write()?;
             let db = get_write_or_error(&mut lock)?;
             for c in missing_components {
                 db.ensure_loaded(&c)?;
@@ -786,7 +786,7 @@ impl CorpusStorage {
     fn get_fully_loaded_entry(&self, corpus_name: &str) -> Result<Arc<RwLock<CacheEntry>>> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let missing_components = {
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             let db = get_read_or_error(&lock)?;
 
             let mut missing: HashSet<_> = HashSet::new();
@@ -799,7 +799,7 @@ impl CorpusStorage {
         };
         if !missing_components.is_empty() {
             // load the needed components
-            let mut lock = db_entry.write().unwrap();
+            let mut lock = db_entry.write()?;
             let db = get_write_or_error(&mut lock)?;
             for c in missing_components {
                 db.ensure_loaded(&c)?;
@@ -934,7 +934,9 @@ impl CorpusStorage {
             ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
                 progress_callback(status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
-                self.check_cache_size_and_remove(vec![], false);
+                if let Err(e) = self.check_cache_size_and_remove(vec![], false) {
+                    error!("Could not check cache size: {}", e);
+                };
             })?,
             ImportFormat::GraphML => {
                 let orig_corpus_name = if let Some(file_name) = path.file_stem() {
@@ -949,7 +951,9 @@ impl CorpusStorage {
                     |status| {
                         progress_callback(status);
                         // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
-                        self.check_cache_size_and_remove(vec![], false);
+                        if let Err(e) = self.check_cache_size_and_remove(vec![], false) {
+                            error!("Could not check cache size: {}", e);
+                        };
                     },
                 )?;
                 let config = if let Some(config_str) = config_str {
@@ -976,7 +980,7 @@ impl CorpusStorage {
         let mut db_path = PathBuf::from(&self.db_dir);
         db_path.push(escaped_corpus_name.to_string());
 
-        let mut cache_lock = self.corpus_cache.write().unwrap();
+        let mut cache_lock = self.corpus_cache.write()?;
         let cache = &mut *cache_lock;
 
         // make sure the cache is not too large before adding the new corpus
@@ -1176,12 +1180,12 @@ impl CorpusStorage {
 
         // Ensure all components are loaded
         {
-            let mut lock = entry.write().unwrap();
+            let mut lock = entry.write()?;
             let graph: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
             graph.ensure_loaded_all()?;
         }
         // Perform the export on a read-only reference
-        let lock = entry.read().unwrap();
+        let lock = entry.read()?;
         let graph: &AnnotationGraph = get_read_or_error(&lock)?;
 
         let config_as_str = if let Some(config) = self.get_corpus_config(corpus_name)? {
@@ -1242,12 +1246,12 @@ impl CorpusStorage {
 
         // Ensure all components are loaded
         {
-            let mut lock = entry.write().unwrap();
+            let mut lock = entry.write()?;
             let graph: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
             graph.ensure_loaded_all()?;
         }
         // Perform the export on a read-only reference
-        let lock = entry.read().unwrap();
+        let lock = entry.read()?;
         let graph: &AnnotationGraph = get_read_or_error(&lock)?;
 
         let config_as_str = if let Some(config) = self.get_corpus_config(corpus_name)? {
@@ -1343,7 +1347,7 @@ impl CorpusStorage {
         let mut db_path = PathBuf::from(&self.db_dir);
         db_path.push(corpus_name);
 
-        let mut cache_lock = self.corpus_cache.write().unwrap();
+        let mut cache_lock = self.corpus_cache.write()?;
 
         let cache = &mut *cache_lock;
 
@@ -1351,7 +1355,7 @@ impl CorpusStorage {
         if let Some(db_entry) = cache.remove(corpus_name) {
             // aquire exclusive lock for this cache entry because
             // other queries or background writer might still have access it and need to finish first
-            let mut _lock = db_entry.write().unwrap();
+            let mut _lock = db_entry.write()?;
 
             if db_path.is_dir() && db_path.exists() {
                 std::fs::remove_dir_all(db_path).map_err(|e| {
@@ -1374,7 +1378,7 @@ impl CorpusStorage {
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<()> {
         let db_entry = self.get_loaded_entry(corpus_name, true)?;
         {
-            let mut lock = db_entry.write().unwrap();
+            let mut lock = db_entry.write()?;
             let db: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
 
             db.apply_update(update, |_| {})?;
@@ -1384,7 +1388,7 @@ impl CorpusStorage {
         let active_background_workers = self.active_background_workers.clone();
         {
             let &(ref lock, ref _cvar) = &*active_background_workers;
-            let mut nr_active_background_workers = lock.lock().unwrap();
+            let mut nr_active_background_workers = lock.lock()?;
             *nr_active_background_workers += 1;
         }
         thread::spawn(move || {
@@ -1421,7 +1425,7 @@ impl CorpusStorage {
 
         // make sure the database is loaded with all necessary components
         let (q, missing_components) = {
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             let db = get_read_or_error(&lock)?;
 
             let q = match query_language {
@@ -1451,13 +1455,13 @@ impl CorpusStorage {
         if !missing_components.is_empty() {
             // load the needed components
             {
-                let mut lock = db_entry.write().unwrap();
+                let mut lock = db_entry.write()?;
                 let db = get_write_or_error(&mut lock)?;
                 for c in missing_components {
                     db.ensure_loaded(&c)?;
                 }
             }
-            self.check_cache_size_and_remove(vec![corpus_name], true);
+            self.check_cache_size_and_remove(vec![corpus_name], true)?;
         };
 
         Ok(PreparationResult { query: q, db_entry })
@@ -1467,19 +1471,20 @@ impl CorpusStorage {
     pub fn preload(&self, corpus_name: &str) -> Result<()> {
         {
             let db_entry = self.get_loaded_entry(corpus_name, false)?;
-            let mut lock = db_entry.write().unwrap();
+            let mut lock = db_entry.write()?;
             let db = get_write_or_error(&mut lock)?;
             db.ensure_loaded_all()?;
         }
-        self.check_cache_size_and_remove(vec![corpus_name], true);
+        self.check_cache_size_and_remove(vec![corpus_name], true)?;
         Ok(())
     }
 
     /// Unloads a corpus from the cache.
-    pub fn unload(&self, corpus_name: &str) {
-        let mut cache_lock = self.corpus_cache.write().unwrap();
+    pub fn unload(&self, corpus_name: &str) -> Result<()> {
+        let mut cache_lock = self.corpus_cache.write()?;
         let cache = &mut *cache_lock;
         cache.remove(corpus_name);
+        Ok(())
     }
 
     /// Optimize the node annotation and graph storage implementations of the given corpus.
@@ -1488,7 +1493,7 @@ impl CorpusStorage {
     #[doc(hidden)]
     pub fn reoptimize_implementation(&self, corpus_name: &str, disk_based: bool) -> Result<()> {
         let graph_entry = self.get_loaded_entry(corpus_name, false)?;
-        let mut lock = graph_entry.write().unwrap();
+        let mut lock = graph_entry.write()?;
         let graph: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
 
         graph.optimize_impl(disk_based)?;
@@ -1512,7 +1517,7 @@ impl CorpusStorage {
             let prep: PreparationResult =
                 self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
             // also get the semantic errors by creating an execution plan on the actual Graph
-            let lock = prep.db_entry.read().unwrap();
+            let lock = prep.db_entry.read()?;
             let db = get_read_or_error(&lock)?;
             ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
         }
@@ -1535,7 +1540,7 @@ impl CorpusStorage {
             let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
 
             // acquire read-only lock and plan
-            let lock = prep.db_entry.read().unwrap();
+            let lock = prep.db_entry.read()?;
             let db = get_read_or_error(&lock)?;
             let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
@@ -1556,7 +1561,7 @@ impl CorpusStorage {
                 self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
 
             // acquire read-only lock and execute query
-            let lock = prep.db_entry.read().unwrap();
+            let lock = prep.db_entry.read()?;
             let db = get_read_or_error(&lock)?;
             let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
@@ -1587,7 +1592,7 @@ impl CorpusStorage {
                 self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
 
             // acquire read-only lock and execute query
-            let lock = prep.db_entry.read().unwrap();
+            let lock = prep.db_entry.read()?;
             let db: &AnnotationGraph = get_read_or_error(&lock)?;
             let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
 
@@ -1782,7 +1787,7 @@ impl CorpusStorage {
         })?;
 
         // acquire read-only lock and execute query
-        let lock = prep.db_entry.read().unwrap();
+        let lock = prep.db_entry.read()?;
         let db = get_read_or_error(&lock)?;
 
         let quirks_mode = match query.query_language {
@@ -2194,7 +2199,7 @@ impl CorpusStorage {
 
         let subcorpus_components = {
             // make sure all subcorpus partitions are loaded
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             let db = get_read_or_error(&lock)?;
             db.get_all_components(Some(AnnotationComponentType::PartOf), None)
         };
@@ -2241,7 +2246,7 @@ impl CorpusStorage {
                 self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
 
             // acquire read-only lock and execute query
-            let lock = prep.db_entry.read().unwrap();
+            let lock = prep.db_entry.read()?;
             let db: &AnnotationGraph = get_read_or_error(&lock)?;
 
             // get the matching annotation keys for each definition entry
@@ -2342,14 +2347,14 @@ impl CorpusStorage {
         corpus_name: &str,
         ctype: Option<AnnotationComponentType>,
         name: Option<&str>,
-    ) -> Vec<Component<AnnotationComponentType>> {
+    ) -> Result<Vec<Component<AnnotationComponentType>>> {
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             if let Ok(db) = get_read_or_error(&lock) {
-                return db.get_all_components(ctype, name);
+                return Ok(db.get_all_components(ctype, name));
             }
         }
-        return vec![];
+        Ok(vec![])
     }
 
     /// Returns a list of all node annotations of a corpus given by `corpus_name`.
@@ -2364,7 +2369,7 @@ impl CorpusStorage {
     ) -> Result<Vec<Annotation>> {
         let mut result: Vec<Annotation> = Vec::new();
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             if let Ok(db) = get_read_or_error(&lock) {
                 let node_annos: &dyn AnnotationStorage<NodeID> = db.get_node_annos();
                 for key in node_annos.annotation_keys() {
@@ -2416,7 +2421,7 @@ impl CorpusStorage {
         if let Ok(db_entry) =
             self.get_loaded_entry_with_components(corpus_name, vec![component.clone()])
         {
-            let lock = db_entry.read().unwrap();
+            let lock = db_entry.read()?;
             if let Ok(db) = get_read_or_error(&lock) {
                 if let Some(gs) = db.get_graphstorage(component) {
                     let edge_annos = gs.get_anno_storage();
@@ -2455,8 +2460,12 @@ impl CorpusStorage {
         Ok(result)
     }
 
-    fn check_cache_size_and_remove(&self, keep: Vec<&str>, report_cache_status: bool) {
-        let mut cache_lock = self.corpus_cache.write().unwrap();
+    fn check_cache_size_and_remove(
+        &self,
+        keep: Vec<&str>,
+        report_cache_status: bool,
+    ) -> Result<()> {
+        let mut cache_lock = self.corpus_cache.write()?;
         let cache = &mut *cache_lock;
         check_cache_size_and_remove_with_cache(
             cache,
@@ -2464,6 +2473,7 @@ impl CorpusStorage {
             keep,
             report_cache_status,
         );
+        Ok(())
     }
 }
 

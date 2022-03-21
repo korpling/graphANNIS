@@ -368,7 +368,7 @@ where
         let start = create_by_container_key(item.clone(), usize::min_value());
         let end = create_by_container_key(item.clone(), usize::max_value());
         for anno in self.by_container.range(start..=end) {
-            let (key, val) = anno.expect("Iterator over annotations returned error");
+            let (key, val) = anno?;
             let parsed_key = self.parse_by_container_key(key)?;
             let anno = Annotation {
                 key: parsed_key.1.as_ref().clone(),
@@ -654,9 +654,9 @@ where
                 .filter_ok(move |(_, _, val)| {
                     if let Some(val) = val {
                         if negated {
-                            !re.is_match(&val)
+                            !re.is_match(val)
                         } else {
-                            re.is_match(&val)
+                            re.is_match(val)
                         }
                     } else {
                         false
@@ -841,10 +841,8 @@ where
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Result<Vec<Cow<str>>> {
         if most_frequent_first {
             let mut values_with_count: HashMap<String, usize> = HashMap::default();
-            for (data, _) in self
-                .get_by_anno_qname_range(key)
-                .map(|item| item.expect("Iterator over items for annotation key returned error"))
-            {
+            for item in self.get_by_anno_qname_range(key) {
+                let (data, _) = item?;
                 let (_, _, val) = self.parse_by_anno_qname_key(data)?;
 
                 let count = values_with_count.entry(val).or_insert(0);
@@ -863,8 +861,8 @@ where
         } else {
             let values_unique: Result<HashSet<Cow<str>>> = self
                 .get_by_anno_qname_range(key)
-                .map(|item| item.expect("Iterator over items for annotation key returned error"))
-                .map(|(data, _)| {
+                .map(|item| {
+                    let (data, _) = item?;
                     let (_, _, val) = self.parse_by_anno_qname_key(data)?;
                     Ok(Cow::Owned(val))
                 })

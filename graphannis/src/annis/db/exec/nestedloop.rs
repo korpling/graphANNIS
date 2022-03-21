@@ -119,9 +119,7 @@ impl<'a> Iterator for NestedLoop<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if let Some(Ok(m_outer)) = self.outer.peek() {
-                if self.pos_inner_cache.is_some() {
-                    let mut cache_pos = self.pos_inner_cache.unwrap();
-
+                if let Some(mut cache_pos) = self.pos_inner_cache {
                     while cache_pos < self.inner_cache.len() {
                         let m_inner = &self.inner_cache[cache_pos];
                         cache_pos += 1;

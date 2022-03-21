@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, sync::PoisonError};
 
 use crate::annis::types::LineColumnRange;
 use graphannis_core::{
@@ -69,6 +69,14 @@ pub enum GraphAnnisError {
     Csv(#[from] csv::Error),
     #[error(transparent)]
     ParseIntError(#[from] std::num::ParseIntError),
+    #[error("Lock poisoning ({0})")]
+    LockPoisoning(String),
+}
+
+impl<T> From<PoisonError<T>> for GraphAnnisError {
+    fn from(e: PoisonError<T>) -> Self {
+        Self::LockPoisoning(e.to_string())
+    }
 }
 
 #[derive(Error, Debug)]

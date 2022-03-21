@@ -91,7 +91,8 @@ impl EdgeContainer for DiskAdjacencyListStorage {
             source: node,
             target: NodeID::max_value(),
         };
-        if let Some(_) = self.edges.range(lower_bound..upper_bound).next() {
+        if let Some(edge) = self.edges.range(lower_bound..upper_bound).next() {
+            edge?;
             Ok(true)
         } else {
             Ok(false)

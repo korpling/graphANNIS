@@ -683,16 +683,20 @@ pub extern "C" fn annis_cs_export_to_fs(
 ///
 /// - `ptr` - The corpus storage object.
 /// - `ctype` -Filter by the component type.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
 pub extern "C" fn annis_cs_list_components_by_type(
     ptr: *mut CorpusStorage,
     corpus_name: *const libc::c_char,
     ctype: AnnotationComponentType,
+    err: *mut *mut ErrorList,
 ) -> *mut Vec<AnnotationComponent> {
     let cs: &CorpusStorage = cast_const(ptr);
     let corpus = cstr(corpus_name);
 
-    Box::into_raw(Box::new(cs.list_components(&corpus, Some(ctype), None)))
+    map_cerr(cs.list_components(&corpus, Some(ctype), None), err)
+        .map(|c| Box::into_raw(Box::new(c)))
+        .unwrap_or_else(std::ptr::null_mut)
 }
 
 /// Delete a corpus from this corpus storage.
@@ -713,12 +717,19 @@ pub extern "C" fn annis_cs_delete(
 }
 
 /// Unloads a corpus from the cache.
+///
+/// - `corpus` The name of the corpus to unload.
+/// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 #[no_mangle]
-pub extern "C" fn annis_cs_unload(ptr: *mut CorpusStorage, corpus: *const libc::c_char) {
+pub extern "C" fn annis_cs_unload(
+    ptr: *mut CorpusStorage,
+    corpus: *const libc::c_char,
+    err: *mut *mut ErrorList,
+) {
     let cs: &mut CorpusStorage = cast_mut(ptr);
     let corpus = cstr(corpus);
 
-    cs.unload(&corpus);
+    map_cerr(cs.unload(&corpus), err);
 }
 
 /// Apply a sequence of updates (`update` parameter) to this graph for a corpus given by the `corpus_name` parameter.

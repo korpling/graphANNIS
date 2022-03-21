@@ -287,18 +287,12 @@ impl fmt::Display for NodeSearchSpec {
                 ref val,
                 ..
             } => {
-                if ns.is_some() && val.is_some() {
-                    write!(
-                        f,
-                        "{}:{}=\"{}\"",
-                        ns.as_ref().unwrap(),
-                        name,
-                        val.as_ref().unwrap()
-                    )
-                } else if ns.is_some() {
-                    write!(f, "{}:{}", ns.as_ref().unwrap(), name)
-                } else if val.is_some() {
-                    write!(f, "{}=\"{}\"", name, val.as_ref().unwrap())
+                if let (Some(ns), Some(val)) = (ns, val) {
+                    write!(f, "{}:{}=\"{}\"", ns, name, val)
+                } else if let Some(ns) = ns {
+                    write!(f, "{}:{}", ns, name)
+                } else if let Some(val) = val {
+                    write!(f, "{}=\"{}\"", name, val)
                 } else {
                     write!(f, "{}", name)
                 }
@@ -321,8 +315,8 @@ impl fmt::Display for NodeSearchSpec {
                 ref val,
                 ..
             } => {
-                if ns.is_some() {
-                    write!(f, "{}:{}=/{}/", ns.as_ref().unwrap(), name, &val)
+                if let Some(ns) = ns {
+                    write!(f, "{}:{}=/{}/", ns, name, &val)
                 } else {
                     write!(f, "{}=/{}/", name, &val)
                 }

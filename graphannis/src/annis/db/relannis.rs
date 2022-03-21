@@ -143,18 +143,10 @@ impl KeySerializer for TextProperty {
         let corpus_id = u32::from_be_bytes(key[id_offset..(id_offset + id_size)].try_into()?);
         id_offset += id_size;
 
-        let text_id = u32::from_be_bytes(
-            key[id_offset..(id_offset + id_size)]
-                .try_into()
-                .expect("TextProperty deserialization key was too small"),
-        );
+        let text_id = u32::from_be_bytes(key[id_offset..(id_offset + id_size)].try_into()?);
         id_offset += id_size;
 
-        let val = u32::from_be_bytes(
-            key[id_offset..(id_offset + id_size)]
-                .try_into()
-                .expect("TextProperty deserialization key was too small"),
-        );
+        let val = u32::from_be_bytes(key[id_offset..(id_offset + id_size)].try_into()?);
 
         let segmentation = if segmentation_vector.is_empty() {
             String::from("")

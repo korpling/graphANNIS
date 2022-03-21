@@ -668,7 +668,7 @@ impl<CT: ComponentType> Graph<CT> {
 
         if let Some(ref location) = self.location {
             // Acquire lock, so that only one thread can write background data at the same time
-            let _lock = self.background_persistance.lock().unwrap();
+            let _lock = self.background_persistance.lock()?;
 
             self.internal_save_with_backup(location)?;
         }

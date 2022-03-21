@@ -113,20 +113,23 @@ impl<'a> BinaryOperatorBase for Near<'a> {
         } else {
             let start = self.tok_helper.right_token_for(lhs.node)?;
             let end = self.tok_helper.left_token_for(rhs.node)?;
-            if start.is_none() || end.is_none() {
+
+            if let (Some(start), Some(end)) = (start, end) {
+                (start, end)
+            } else {
                 return Ok(false);
             }
-            (start.unwrap(), end.unwrap())
         };
         let start_end_backward = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
         } else {
             let start = self.tok_helper.left_token_for(lhs.node)?;
             let end = self.tok_helper.right_token_for(rhs.node)?;
-            if start.is_none() || end.is_none() {
+            if let (Some(start), Some(end)) = (start, end) {
+                (start, end)
+            } else {
                 return Ok(false);
             }
-            (start.unwrap(), end.unwrap())
         };
 
         let result = self.gs_order.is_connected(

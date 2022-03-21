@@ -127,18 +127,18 @@ impl<'a> Iterator for CycleSafeDFS<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let mut result: Option<Result<DFSStep>> = None;
         while result.is_none() && !self.stack.is_empty() {
-            let top = *self.stack.last().unwrap();
-
-            match self.enter_node(top) {
-                Ok(entered) => {
-                    if entered {
-                        result = Some(Ok(DFSStep {
-                            node: top.0,
-                            distance: top.1,
-                        }));
+            if let Some(top) = self.stack.last().copied() {
+                match self.enter_node(top) {
+                    Ok(entered) => {
+                        if entered {
+                            result = Some(Ok(DFSStep {
+                                node: top.0,
+                                distance: top.1,
+                            }));
+                        }
                     }
+                    Err(e) => return Some(Err(e)),
                 }
-                Err(e) => return Some(Err(e)),
             }
         }
 

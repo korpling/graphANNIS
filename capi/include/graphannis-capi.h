@@ -576,10 +576,12 @@ void annis_cs_export_to_fs(struct AnnisCorpusStorage *ptr,
  *
  * - `ptr` - The corpus storage object.
  * - `ctype` -Filter by the component type.
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
  */
 struct AnnisVec_AnnotationComponent *annis_cs_list_components_by_type(struct AnnisCorpusStorage *ptr,
                                                                       const char *corpus_name,
-                                                                      enum AnnisAnnotationComponentType ctype);
+                                                                      enum AnnisAnnotationComponentType ctype,
+                                                                      AnnisErrorList **err);
 
 /**
  * Delete a corpus from this corpus storage.
@@ -592,8 +594,11 @@ bool annis_cs_delete(struct AnnisCorpusStorage *ptr, const char *corpus, AnnisEr
 
 /**
  * Unloads a corpus from the cache.
+ *
+ * - `corpus` The name of the corpus to unload.
+ * - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
  */
-void annis_cs_unload(struct AnnisCorpusStorage *ptr, const char *corpus);
+void annis_cs_unload(struct AnnisCorpusStorage *ptr, const char *corpus, AnnisErrorList **err);
 
 /**
  * Apply a sequence of updates (`update` parameter) to this graph for a corpus given by the `corpus_name` parameter.

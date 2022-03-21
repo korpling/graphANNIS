@@ -106,13 +106,14 @@ impl<'a> BinaryOperatorBase for IdenticalCoverage<'a> {
         let start_rhs = self.tok_helper.left_token_for(rhs.node)?;
         let end_rhs = self.tok_helper.right_token_for(rhs.node)?;
 
-        if start_lhs.is_none() || end_lhs.is_none() || start_rhs.is_none() || end_rhs.is_none() {
-            return Ok(false);
+        if let (Some(start_lhs), Some(end_lhs), Some(start_rhs), Some(end_rhs)) =
+            (start_lhs, end_lhs, start_rhs, end_rhs)
+        {
+            let result = start_lhs == start_rhs && end_lhs == end_rhs;
+            Ok(result)
+        } else {
+            Ok(false)
         }
-
-        let result =
-            start_lhs.unwrap() == start_rhs.unwrap() && end_lhs.unwrap() == end_rhs.unwrap();
-        Ok(result)
     }
 
     fn is_reflexive(&self) -> bool {

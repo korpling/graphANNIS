@@ -147,7 +147,7 @@ pub async fn list_components(
             corpus.as_str(),
             params.clone().ctype,
             params.name.as_deref(),
-        )
+        )?
         .into_iter()
         .map(|c| Component {
             ctype: c.get_type(),

@@ -76,7 +76,7 @@ fn deserialize_gum(bench: &mut Criterion) {
 
     bench.bench_function("deserialize_gum", move |b| {
         b.iter(|| {
-            cs.unload("GUM");
+            cs.unload("GUM").unwrap();
             cs.preload("GUM").unwrap();
         });
     });
