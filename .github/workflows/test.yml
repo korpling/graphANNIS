@@ -26,7 +26,7 @@ jobs:
         run: mdbook build docs/
   test_windows:
     name: Execute automated tests on Windows
-    runs-on: windows-2016
+    runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1.0.6

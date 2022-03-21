@@ -57,7 +57,7 @@ jobs:
           asset_name: graphannis-webservice
           asset_content_type: application/x-sharedlib
   deploy_windows_binaries:
-    runs-on: windows-2016
+    runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1.0.6
