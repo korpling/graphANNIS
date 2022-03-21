@@ -611,14 +611,14 @@ where
                         }
                         Err(e) => Err(e),
                     })
-                    .filter_ok(move |(_, _, item_value)| {
+                    .filter_map_ok(move |(item, anno_key, item_value)| {
                         if let Some(item_value) = item_value {
-                            item_value != &value
-                        } else {
-                            false
+                            if &item_value != &value {
+                                return Some((item, anno_key).into());
+                            }
                         }
-                    })
-                    .map_ok(move |(node, anno_key, _)| (node, anno_key).into());
+                        None
+                    });
                 Box::new(it)
             }
         }
