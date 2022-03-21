@@ -9,6 +9,7 @@ use crate::{
     graph::{GraphStorage, Match},
 };
 use crate::{try_as_boxed_iter, AnnotationGraph};
+use graphannis_core::types::NodeID;
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
     types::Component,
@@ -245,16 +246,14 @@ impl<'a> BinaryOperatorIndex for Near<'a> {
         };
 
         // materialize a set of all matches
-        let result: Result<FxHashSet<Match>> = it_forward
-            .chain(it_backward)
-            // map the result as match
-            .map_ok(|n| Match {
+        let result: Result<FxHashSet<NodeID>> = it_forward.chain(it_backward).collect();
+        let result = try_as_boxed_iter!(result);
+        Box::new(result.into_iter().map(|n| {
+            Ok(Match {
                 node: n,
                 anno_key: DEFAULT_ANNO_KEY.clone(),
             })
-            .collect();
-        let result = try_as_boxed_iter!(result);
-        Box::new(result.into_iter().map(Ok))
+        }))
     }
 
     fn as_binary_operator(&self) -> &dyn BinaryOperatorBase {
