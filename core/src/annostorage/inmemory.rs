@@ -577,14 +577,14 @@ where
                         let value = self.get_value_for_item(&item, &anno_key)?;
                         Ok((item, anno_key, value))
                     })
-                    .filter_ok(move |(_, _, item_value)| {
+                    .filter_map_ok(move |(item, anno_key, item_value)| {
                         if let Some(item_value) = item_value {
-                            item_value != &value
-                        } else {
-                            false
+                            if &item_value != &value {
+                                return Some((item, anno_key).into());
+                            }
                         }
-                    })
-                    .map_ok(|(item, anno_key, _)| (item, anno_key).into());
+                        None
+                    });
                 Box::new(it)
             } else {
                 Box::new(matching_qname_annos.map(move |item| Ok(item.into())))
