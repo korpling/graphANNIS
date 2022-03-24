@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * `annis_graph_annotations_for_node`
   * `annis_graph_outgoing_edges`
   * `annis_graph_annotations_for_edge`
-- Renamed the Criterion-based benchmark CLI to `bench_queries" and synchronize
+- Renamed the Criterion-based benchmark CLI to `bench_queries` and synchronize
   its arguments to the current version of Criterion.
 
 ### Fixed
