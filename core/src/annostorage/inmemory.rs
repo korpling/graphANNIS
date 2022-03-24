@@ -609,22 +609,18 @@ where
                     let value = self.get_value_for_item(&item, &anno_key)?;
                     Ok((item, anno_key, value))
                 })
-                .filter_map_ok(move |(node, anno_key, val)| {
-                    if let Some(val) = val {
-                        let matched = if negated {
-                            !re.is_match_at(&val, 0)
+                .filter_ok(move |(_, _, value)| {
+                    if let Some(val) = value {
+                        if negated {
+                            !re.is_match(val)
                         } else {
-                            re.is_match_at(&val, 0)
-                        };
-                        if matched {
-                            Some((node, anno_key).into())
-                        } else {
-                            None
+                            re.is_match(val)
                         }
                     } else {
-                        None
+                        false
                     }
-                });
+                })
+                .map_ok(move |(item, anno_key, _)| (item, anno_key).into());
             Box::new(it)
         } else if negated {
             // return all values

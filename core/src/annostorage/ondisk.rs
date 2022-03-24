@@ -643,22 +643,18 @@ where
                     }
                     Err(e) => Err(e),
                 })
-                .filter_map_ok(move |(node, anno_key, val)| {
+                .filter_ok(move |(_, _, val)| {
                     if let Some(val) = val {
-                        let matched = if negated {
-                            !re.is_match_at(&val, 0)
+                        if negated {
+                            !re.is_match(val)
                         } else {
-                            re.is_match_at(&val, 0)
-                        };
-                        if matched {
-                            Some((node, anno_key).into())
-                        } else {
-                            None
+                            re.is_match(val)
                         }
                     } else {
-                        None
+                        false
                     }
-                });
+                })
+                .map_ok(move |(node, anno_key, _val)| (node, anno_key).into());
             Box::new(it)
         } else if negated {
             // return all values
