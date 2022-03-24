@@ -26,4 +26,4 @@ toml = "0.5"
 name = "annis"
 
 [[bin]]
-name = "bench_annisqueries"
+name = "bench_queries"

@@ -61,61 +61,59 @@ pub fn create_query_input<M>(
 fn main() {
     let matches = App::new("graphANNIS search benchmark")
         .arg(
-            Arg::with_name("output-dir")
-                .long("output-dir")
-                .takes_value(true),
-        )
-        .arg(
             Arg::with_name("data")
                 .long("data")
                 .short("d")
                 .takes_value(true)
-                .required(true),
+                .required(true)
+                .help("Path to the data directory to use"),
         )
         .arg(
             Arg::with_name("queries")
                 .long("queries")
                 .short("q")
                 .takes_value(true)
-                .required(true),
+                .required(true)
+                .help("Path to the CSV file with the queries to benchmark (with the columns \"name\", \"aql\", \"corpus\", \"count\")"),
         )
         .arg(
             Arg::with_name("parallel")
                 .long("parallel")
                 .short("p")
                 .takes_value(false)
-                .required(false),
+                .required(false)
+                .help("Use parallel joins when possible"),
         )
         .arg(
             Arg::with_name("save-baseline")
                 .long("save-baseline")
                 .takes_value(true)
-                .required(false),
+                .required(false)
+                .help("Save results under a named baseline"),
         )
         .arg(
             Arg::with_name("baseline")
                 .long("baseline")
                 .takes_value(true)
-                .required(false),
+                .required(false)
+                .conflicts_with("save-baseline")
+                .help("Compare to a named baseline"),
         )
         .arg(
-            Arg::with_name("nsamples")
-                .long("nsamples")
+            Arg::with_name("sample-size")
+                .long("sample-size")
                 .takes_value(true)
-                .required(false),
+                .required(false)
+                .help("Changes the default size of the sample for this run. [default: 10]"),
         )
         .arg(Arg::with_name("FILTER").required(false))
         .get_matches();
 
     let mut crit: Criterion = Criterion::default().warm_up_time(Duration::from_millis(500));
-    if let Some(nsamples) = matches.value_of("nsamples") {
+    if let Some(nsamples) = matches.value_of("sample-size") {
         crit = crit.sample_size(nsamples.parse::<usize>().unwrap());
     } else {
         crit = crit.sample_size(10);
-    }
-
-    if let Some(out) = matches.value_of("output-dir") {
-        crit = crit.output_directory(&PathBuf::from(out));
     }
 
     if let Some(baseline) = matches.value_of("save-baseline") {
@@ -141,8 +139,8 @@ fn main() {
 
     let use_parallel_joins = matches.is_present("parallel");
 
-    let mut crit = crit.with_plots();
-    let mut group = crit.benchmark_group("count");
+    let mut crit = crit.with_plots().with_output_color(true);
+    let mut group = crit.benchmark_group("queries");
 
     create_query_input(&data_dir, &queries_dir, use_parallel_joins, &mut group);
     group.finish();
