@@ -168,4 +168,6 @@ fn main() {
         );
         group.finish();
     }
+
+    crit.final_summary();
 }
