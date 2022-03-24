@@ -151,7 +151,7 @@ fn check_edge_annotation(
                         }
                     }
 
-                    if !re.is_match(&*a.val) {
+                    if !re.is_match_at(&*a.val, 0) {
                         continue;
                     }
 
@@ -178,7 +178,7 @@ fn check_edge_annotation(
                         }
                     }
 
-                    if re.is_match(&*a.val) {
+                    if re.is_match_at(&*a.val, 0) {
                         continue;
                     }
 

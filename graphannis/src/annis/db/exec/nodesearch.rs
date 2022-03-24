@@ -158,7 +158,7 @@ impl NodeSearchSpec {
                             if let Some(val) =
                                 node_annos.get_value_for_item(&m.node, &m.anno_key)?
                             {
-                                Ok(re.is_match(&val))
+                                Ok(re.is_match_at(&val, 0))
                             } else {
                                 Ok(false)
                             }
@@ -181,7 +181,7 @@ impl NodeSearchSpec {
                             if let Some(val) =
                                 node_annos.get_value_for_item(&m.node, &m.anno_key)?
                             {
-                                Ok(!re.is_match(&val))
+                                Ok(!re.is_match_at(&val, 0))
                             } else {
                                 Ok(false)
                             }
@@ -224,7 +224,7 @@ impl NodeSearchSpec {
                 match re {
                     Ok(re) => filters.push(Box::new(move |m, node_annos| {
                         if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key)? {
-                            Ok(re.is_match(&val))
+                            Ok(re.is_match_at(&val, 0))
                         } else {
                             Ok(false)
                         }
@@ -246,7 +246,7 @@ impl NodeSearchSpec {
                 match re {
                     Ok(re) => filters.push(Box::new(move |m, node_annos| {
                         if let Some(val) = node_annos.get_value_for_item(&m.node, &m.anno_key)? {
-                            Ok(!re.is_match(&val))
+                            Ok(!re.is_match_at(&val, 0))
                         } else {
                             Ok(false)
                         }
