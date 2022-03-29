@@ -37,9 +37,11 @@ mod models;
 mod schema;
 mod settings;
 
-embed_migrations!("migrations");
+const API_VERSION: &str = "/v1";
 
 type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
+
+embed_migrations!("migrations");
 
 fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, DbPool)> {
     // Parse CLI arguments
@@ -144,8 +146,6 @@ async fn main() -> Result<()> {
     // Create a list of background jobs behind a Mutex
     let background_jobs = web::Data::new(BackgroundJobs::default());
 
-    let api_version = format!("/v{}", env!("CARGO_PKG_VERSION_MAJOR"),);
-
     // Run server
     HttpServer::new(move || {
         let logger = if settings.logging.debug {
@@ -167,7 +167,7 @@ async fn main() -> Result<()> {
             .app_data(background_jobs.clone())
             .wrap(logger)
             .service(
-                web::scope(&api_version)
+                web::scope(API_VERSION)
                     .route("openapi.yml", web::get().to(get_api_spec))
                     .route(
                         "/import",
