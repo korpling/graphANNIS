@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only written to C1 in O(n*log(n)). Before, multiple on disk maps might need to
   be merged, which had a much worse complexity. The C1 file uses the
   transient-btree-index crate.
+- Trim mapping entries when importing relANNIS resolver files (#222).
 
 ## [1.5.0] - 2022-01-06
 

@@ -517,7 +517,7 @@ where
                     .filter_map(|key_value| {
                         let splitted: Vec<_> = key_value.splitn(2, ':').collect();
                         if splitted.len() == 2 {
-                            Some((splitted[0].into(), splitted[1].into()))
+                            Some((splitted[0].trim().into(), splitted[1].trim().into()))
                         } else {
                             None
                         }
@@ -2265,5 +2265,39 @@ mod tests {
 
         // Check that the node was added to the missing segmentation span map
         assert_eq!(true, result.missing_seg_span.contains_key(&680).unwrap());
+    }
+
+    /// Regression Test for https://github.com/korpling/graphANNIS/issues/222
+    #[test]
+    fn trim_resolver_mappings() {
+        let resolver_entry =
+            "example	NULL	layer	node	htmldoc	edition	hidden	0	hide_tok:true;annos:abc, def   ; config: edition";
+        // Write resolver_entry to temporary file
+        let parent = tempfile::tempdir().unwrap();
+        let resolver_path = parent.path().join("resolver_vis_map.annis");
+        let mut f = std::fs::File::create(&resolver_path).unwrap();
+        writeln!(f, "{}", resolver_entry).unwrap();
+        f.flush().unwrap();
+
+        // Parse the resolver entry
+        let mut config = CorpusConfiguration::default();
+        load_resolver_vis_map(parent.path(), &mut config, true, &|_| {}).unwrap();
+        // 6 default rules and an additional rule from the file
+        assert_eq!(7, config.visualizers.len());
+
+        assert_eq!("edition", config.visualizers[1].display_name.as_str(),);
+        assert_eq!(3, config.visualizers[1].mappings.len());
+        assert_eq!(
+            Some(&"true".to_string()),
+            config.visualizers[1].mappings.get("hide_tok")
+        );
+        assert_eq!(
+            Some(&"abc, def".to_string()),
+            config.visualizers[1].mappings.get("annos")
+        );
+        assert_eq!(
+            Some(&"edition".to_string()),
+            config.visualizers[1].mappings.get("config")
+        );
     }
 }
