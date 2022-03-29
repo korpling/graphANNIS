@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be merged, which had a much worse complexity. The C1 file uses the
   transient-btree-index crate.
 - Trim mapping entries when importing relANNIS resolver files (#222).
+- Fixed schema errors in the Webservice OpenAPI file.
 
 ## [1.5.0] - 2022-01-06
 
