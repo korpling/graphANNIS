@@ -6,7 +6,7 @@ license = "Apache-2.0"
 name = "graphannis-capi"
 readme = "crate-info.md"
 repository = "https://github.com/korpling/graphANNIS"
-version = "2.0.0"
+version = "2.0.1"
 
 [lib]
 crate-type = ["staticlib", "cdylib"]
