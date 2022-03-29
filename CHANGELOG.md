@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Web service API version prefix should still be `/v1` and not `/v2` because
+  this API did not change and is still backward-compatible.
+
 ## [2.0.0] - 2022-03-29
 
 ### Changed
