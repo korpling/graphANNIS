@@ -1,6 +1,5 @@
-sign-commit = true
 sign-tag = true
 dev-version-ext = "dev"
-no-dev-version = true
+dev-version = false
 consolidate-commits = true
 pre-release-hook = ["cargo", "test"]

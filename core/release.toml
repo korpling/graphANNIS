@@ -1,2 +1,2 @@
-disable-tag = true
-disable-push = true
+tag = false
+push = false

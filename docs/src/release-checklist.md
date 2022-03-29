@@ -7,7 +7,7 @@ Language bindings can have their own version number, but should state which core
 
 1. Check the changelog (`CHANGELOG.md`): note the last release version number and which kind of changes have been made since the last release.
    **Determine if this is a major, minor or patch release** according to [semantic versioning](https://semver.org/). 
-2. **Release** the branch with the [cargo-release plugin](https://crates.io/crates/cargo-release)
+2. **Release** the branch with the [cargo-release plugin](https://crates.io/crates/cargo-release). Append the `--execute` argument to actually perform the release instead of a dry run.
    - `cargo release release` to release the current development version (e.g. 1.0.0-dev will be released as 1.0.0)
    - `cargo release patch` for patch updates (e.g. 1.0.0 to 1.0.1)
    - `cargo release minor` for minor updates (e.g. 1.0.1 to 1.1.0)
