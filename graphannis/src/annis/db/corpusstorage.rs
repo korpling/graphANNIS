@@ -1908,8 +1908,8 @@ impl CorpusStorage {
                             let re_encoded_name = node_name
                                 .split('/')
                                 .map(|n| {
-                                    let decoded_name = percent_encoding::percent_decode_str(&n)
-                                        .decode_utf8_lossy();
+                                    let decoded_name =
+                                        percent_encoding::percent_decode_str(n).decode_utf8_lossy();
                                     let re_encoded_name: Cow<str> = utf8_percent_encode(
                                         &decoded_name,
                                         QUIRKS_SALT_URI_ENCODE_SET,
