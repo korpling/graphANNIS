@@ -491,6 +491,9 @@ where
 
     let mut rules_by_order: Vec<(i64, bool, VisualizerRule)> = DEFAULT_VISUALIZER_RULES.clone();
 
+    let order_col = if is_annis_33 { 6 } else { 7 };
+    let mapping_col = if is_annis_33 { 7 } else { 8 };
+
     for result in resolver_tab_csv.records() {
         let line = result?;
 
@@ -506,11 +509,13 @@ where
 
         let visibility = get_field_not_null(&line, 6, "visibility", &resolver_tab_path)?;
 
-        let order = get_field(&line, 7, "order", &resolver_tab_path)?
+        let order = get_field(&line, order_col, "order", &resolver_tab_path)?
             .map(|order| order.parse::<i64>().unwrap_or_default())
             .unwrap_or_default();
         let mappings: BTreeMap<std::string::String, std::string::String> =
-            if let Ok(mappings_field) = get_field(&line, 8, "mappings", &resolver_tab_path) {
+            if let Ok(mappings_field) =
+                get_field(&line, mapping_col, "mappings", &resolver_tab_path)
+            {
                 mappings_field
                     .unwrap_or_default()
                     .split(';')
