@@ -491,8 +491,8 @@ where
 
     let mut rules_by_order: Vec<(i64, bool, VisualizerRule)> = DEFAULT_VISUALIZER_RULES.clone();
 
-    let order_col = if is_annis_33 { 6 } else { 7 };
-    let mapping_col = if is_annis_33 { 7 } else { 8 };
+    let order_col = if is_annis_33 { 7 } else { 6 };
+    let mapping_col = if is_annis_33 { 8 } else { 7 };
 
     for result in resolver_tab_csv.records() {
         let line = result?;
