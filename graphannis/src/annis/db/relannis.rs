@@ -2238,7 +2238,7 @@ mod tests {
             pre: 0,
             post: 3,
             name: "corpus".into(),
-            normalized_name: "document".into(),
+            normalized_name: "corpus".into(),
         };
         corpus_by_id.insert(0, document);
         corpus_by_id.insert(1, corpus);
