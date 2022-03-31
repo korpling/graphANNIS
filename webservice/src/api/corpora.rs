@@ -7,7 +7,21 @@ use actix_web::web::{self, HttpResponse};
 use graphannis::{
     corpusstorage::QueryLanguage, graph, model::AnnotationComponentType, CorpusStorage,
 };
-use std::path::PathBuf;
+use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
+use std::{borrow::Cow, path::PathBuf};
+
+pub const PATH_SEGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
+    .add(b' ')
+    .add(b'"')
+    .add(b'#')
+    .add(b'<')
+    .add(b'>')
+    .add(b'`')
+    .add(b'?')
+    .add(b'{')
+    .add(b'}')
+    .add(b'%')
+    .add(b'/');
 
 pub async fn list(
     cs: web::Data<CorpusStorage>,
@@ -225,9 +239,11 @@ pub async fn list_files(
     check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
 
     let mut found_files = Vec::default();
+    let escaped_corpus_name: Cow<str> =
+        utf8_percent_encode(&corpus, PATH_SEGMENT_ENCODE_SET).into();
     // Get the base path
     let base_path = PathBuf::from(settings.database.graphannis.as_str())
-        .join(corpus.as_str())
+        .join(escaped_corpus_name.to_string())
         .join("files")
         .canonicalize()?;
 
@@ -289,8 +305,10 @@ pub async fn file_content(
     }
 
     // Resolve against data folder
+    let escaped_corpus_name: Cow<str> =
+        utf8_percent_encode(&corpus, PATH_SEGMENT_ENCODE_SET).into();
     let path = PathBuf::from(settings.database.graphannis.as_str())
-        .join(corpus.as_str())
+        .join(escaped_corpus_name.to_string())
         .join("files")
         .join(&file_path);
 

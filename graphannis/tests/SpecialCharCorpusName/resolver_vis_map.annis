@@ -1,0 +1,3 @@
+Root Cörp/u%s	NULL	default_ns	node	grid	grid (default_ns)	hidden	1	NULL
+Root Cörp/u%s	NULL	syntax	node	tree	tree (syntax)	hidden	2	node_key:const;node_anno_ns:default_ns;edge_type:null
+Root Cörp/u%s	NULL	default_ns	edge	arch_dependency	anaphoric (default_ns)	hidden	3	NULL
