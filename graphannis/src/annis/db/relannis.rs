@@ -1,5 +1,5 @@
 use super::aql::model::{AnnotationComponentType, TOK_WHITESPACE_AFTER, TOK_WHITESPACE_BEFORE};
-use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
+use crate::annis::db::corpusstorage::NODE_NAME_ENCODE_SET;
 use crate::annis::errors::*;
 use crate::annis::util::create_str_vec_key;
 use crate::update::{GraphUpdate, UpdateEvent};
@@ -900,7 +900,7 @@ where
         let pre_order = get_field_not_null(&line, 4, "pre", &corpus_tab_path)?.parse::<u32>()?;
         let post_order = get_field_not_null(&line, 5, "post", &corpus_tab_path)?.parse::<u32>()?;
 
-        let normalized_name = utf8_percent_encode(&name, SALT_URI_ENCODE_SET);
+        let normalized_name = utf8_percent_encode(&name, NODE_NAME_ENCODE_SET);
 
         corpus_by_id.insert(
             id,
@@ -2137,7 +2137,7 @@ fn add_subcorpora(
         let (text_key, text) = text?;
         // add text node (including its name)
         if let Some(corpus_ref) = text_key.corpus_ref {
-            let text_name = utf8_percent_encode(&text.name, SALT_URI_ENCODE_SET).to_string();
+            let text_name = utf8_percent_encode(&text.name, NODE_NAME_ENCODE_SET).to_string();
             let subcorpus_full_name = get_corpus_path(corpus_ref, corpus_table)?;
             let text_full_name = format!("{}#{}", &subcorpus_full_name, &text_name);
 
@@ -2238,7 +2238,7 @@ mod tests {
             pre: 0,
             post: 3,
             name: "corpus".into(),
-            normalized_name: "document".into(),
+            normalized_name: "corpus".into(),
         };
         corpus_by_id.insert(0, document);
         corpus_by_id.insert(1, corpus);

@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use crate::annis::db::corpusstorage::get_read_or_error;
 use crate::annis::db::{aql::model::AnnotationComponentType, example_generator};
 use crate::annis::errors::GraphAnnisError;
-use crate::corpusstorage::{ImportFormat, QueryLanguage};
+use crate::corpusstorage::{ImportFormat, QueryLanguage, ResultOrder};
 use crate::errors::Result;
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::{AnnotationGraph, CorpusStorage};
@@ -399,6 +399,56 @@ fn import_salt_sample() {
     let db2 = get_read_or_error(&lock2).unwrap();
 
     compare_corpora(db1, db2, true);
+}
+
+#[test]
+fn import_special_character_corpus_name() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    let corpus_name = cs
+        .import_from_fs(
+            &cargo_dir.join("tests/SpecialCharCorpusName"),
+            ImportFormat::RelANNIS,
+            None,
+            false,
+            true,
+            |_| {},
+        )
+        .unwrap();
+    assert_eq!("Root:: Cörp/u%s", &corpus_name);
+
+    // Check that the special corpus name can be queried
+    let q = SearchQuery {
+        corpus_names: &vec![&corpus_name],
+        query: "lemma",
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+    let token = cs.count_extra(q.clone()).unwrap();
+    assert_eq!(44, token.match_count);
+    assert_eq!(4, token.document_count);
+
+    let matches = cs.find(q, 0, Some(1), ResultOrder::Normal).unwrap();
+    assert_eq!(1, matches.len());
+    assert_eq!(
+        "salt::lemma::Root%3A%3A%20C%C3%B6rp%2Fu%25s/subCorpus1/doc1#sTok1",
+        matches[0]
+    );
+
+    let q_quirks = SearchQuery {
+        corpus_names: &vec![&corpus_name],
+        query: "lemma",
+        query_language: QueryLanguage::AQLQuirksV3,
+        timeout: None,
+    };
+    let matches_quirks = cs.find(q_quirks, 0, Some(1), ResultOrder::Normal).unwrap();
+    assert_eq!(1, matches_quirks.len());
+    assert_eq!(
+        "salt::lemma::Root::%20C%C3%B6rp%2Fu%25s/subCorpus1/doc1#sTok1",
+        matches_quirks[0]
+    );
 }
 
 #[test]

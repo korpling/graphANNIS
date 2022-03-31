@@ -309,12 +309,57 @@ impl Default for CacheStrategy {
     }
 }
 
-pub const SALT_URI_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b':').add(b'%');
-const QUIRKS_SALT_URI_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'%');
-pub const PATH_SEGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
+/// An encoding set for corpus names when written to disk.
+///
+/// This is loosly oriented on URI path segments, but also encodes characters
+/// that are reserved on Windows.
+pub const PATH_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
     .add(b'"')
     .add(b'#')
+    .add(b'<')
+    .add(b'>')
+    .add(b'`')
+    .add(b'?')
+    .add(b'{')
+    .add(b'}')
+    .add(b'%')
+    .add(b'/')
+    .add(b':')
+    .add(b'"')
+    .add(b'|')
+    .add(b'*')
+    .add(b'\\');
+
+/// An encoding set for node names.
+///
+/// This disallows `:` to avoid any possible ambiguities with the `::` annotation
+/// match seperator. `/` disallowed so this separator can be used to build
+/// hierarchical node IDs and simplifies using node names as file names.
+/// Spaces ` ` are encoded to avoid problems with annotation names in the AQL syntax.
+/// Since node names might be used as file names, all reserved charactes for
+/// Windows file names are encoded as well.
+pub const NODE_NAME_ENCODE_SET: &AsciiSet = &CONTROLS
+    .add(b':')
+    .add(b'/')
+    .add(b' ')
+    .add(b'%')
+    .add(b'\\')
+    .add(b'<')
+    .add(b'>')
+    .add(b'"')
+    .add(b'|')
+    .add(b'?')
+    .add(b'*');
+
+/// An encoding set for parts of result URIs that would be valid in the path
+/// part of a Salt URI.
+///
+/// Same as [PATH_SEGMENT_ENCODE_SET], but `#` as fragment identifiers are
+/// allowed. In contrast to the more lenient [NODE_NAME_ENCODE_SET] this follows
+const QUIRKS_SALT_URI_ENCODE_SET: &AsciiSet = &CONTROLS
+    .add(b' ')
+    .add(b'"')
     .add(b'<')
     .add(b'>')
     .add(b'`')
@@ -569,7 +614,9 @@ impl CorpusStorage {
     }
 
     fn get_corpus_config(&self, corpus_name: &str) -> Result<Option<CorpusConfiguration>> {
-        let corpus_config_path = self.db_dir.join(corpus_name).join("corpus-config.toml");
+        let corpus_config_path = self
+            .corpus_directory_on_disk(corpus_name)
+            .join("corpus-config.toml");
         if corpus_config_path.is_file() {
             let file_content = std::fs::read_to_string(corpus_config_path)?;
             let config = toml::from_str(&file_content)?;
@@ -683,11 +730,7 @@ impl CorpusStorage {
         let cache = &mut *cache_lock;
 
         // if not loaded yet, get write-lock and load entry
-        let escaped_corpus_name: Cow<str> =
-            utf8_percent_encode(corpus_name, PATH_SEGMENT_ENCODE_SET).into();
-        let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &escaped_corpus_name]
-            .iter()
-            .collect();
+        let db_path = self.corpus_directory_on_disk(corpus_name);
 
         let create_corpus = if db_path.is_dir() {
             false
@@ -974,11 +1017,7 @@ impl CorpusStorage {
         }
 
         let corpus_name = corpus_name.unwrap_or_else(|| orig_name.into());
-        let escaped_corpus_name: Cow<str> =
-            utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
-
-        let mut db_path = PathBuf::from(&self.db_dir);
-        db_path.push(escaped_corpus_name.to_string());
+        let db_path = self.corpus_directory_on_disk(&corpus_name);
 
         let mut cache_lock = self.corpus_cache.write()?;
         let cache = &mut *cache_lock;
@@ -1113,7 +1152,7 @@ impl CorpusStorage {
             name: "file".into(),
         };
 
-        let base_path = self.db_dir.join(corpus_name).join("files");
+        let base_path = self.corpus_directory_on_disk(corpus_name).join("files");
         if base_path.is_dir() {
             let base_path = base_path.canonicalize()?;
 
@@ -1344,8 +1383,7 @@ impl CorpusStorage {
     /// Delete a corpus from this corpus storage.
     /// Returns `true` if the corpus was successfully deleted and `false` if no such corpus existed.
     pub fn delete(&self, corpus_name: &str) -> Result<bool> {
-        let mut db_path = PathBuf::from(&self.db_dir);
-        db_path.push(corpus_name);
+        let db_path = self.corpus_directory_on_disk(corpus_name);
 
         let mut cache_lock = self.corpus_cache.write()?;
 
@@ -1848,32 +1886,41 @@ impl CorpusStorage {
                     {
                         if !singlematch_anno_key.ns.is_empty() {
                             let encoded_anno_ns: Cow<str> =
-                                utf8_percent_encode(&singlematch_anno_key.ns, SALT_URI_ENCODE_SET)
+                                utf8_percent_encode(&singlematch_anno_key.ns, NODE_NAME_ENCODE_SET)
                                     .into();
                             match_desc.push_str(&encoded_anno_ns);
                             match_desc.push_str("::");
                         }
                         let encoded_anno_name: Cow<str> =
-                            utf8_percent_encode(&singlematch_anno_key.name, SALT_URI_ENCODE_SET)
+                            utf8_percent_encode(&singlematch_anno_key.name, NODE_NAME_ENCODE_SET)
                                 .into();
                         match_desc.push_str(&encoded_anno_name);
                         match_desc.push_str("::");
                     }
 
-                    if let Some(name) = db
+                    if let Some(node_name) = db
                         .get_node_annos()
                         .get_value_for_item(&singlematch.node, &NODE_NAME_KEY)?
                     {
                         if quirks_mode {
-                            // Unescape and re-escape with quirks-mode compatible character encoding set
-                            let decoded_name =
-                                percent_encoding::percent_decode_str(&name).decode_utf8_lossy();
-                            let re_encoded_name: Cow<str> =
-                                utf8_percent_encode(&decoded_name, QUIRKS_SALT_URI_ENCODE_SET)
+                            // Unescape all parts of the name and re-escape with
+                            // quirks-mode compatible character encoding set
+                            let re_encoded_name = node_name
+                                .split('/')
+                                .map(|n| {
+                                    let decoded_name =
+                                        percent_encoding::percent_decode_str(n).decode_utf8_lossy();
+                                    let re_encoded_name: Cow<str> = utf8_percent_encode(
+                                        &decoded_name,
+                                        QUIRKS_SALT_URI_ENCODE_SET,
+                                    )
                                     .into();
+                                    re_encoded_name.to_string()
+                                })
+                                .join("/");
                             match_desc.push_str(&re_encoded_name);
                         } else {
-                            match_desc.push_str(&name);
+                            match_desc.push_str(&node_name);
                         }
                     }
                 }
@@ -2474,6 +2521,15 @@ impl CorpusStorage {
             report_cache_status,
         )?;
         Ok(())
+    }
+
+    fn corpus_directory_on_disk(&self, corpus_name: &str) -> PathBuf {
+        let escaped_corpus_name: Cow<str> =
+            utf8_percent_encode(corpus_name, PATH_ENCODE_SET).into();
+        let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &escaped_corpus_name]
+            .iter()
+            .collect();
+        db_path
     }
 }
 
