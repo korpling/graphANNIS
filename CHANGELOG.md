@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix handling of corpora with special characters like umlauts or slashes in
+  when deleting corpora, getting the corpus configuration file, getting linked
+  files (both the `CorpusStorage` API and the web service)
+
 ## [2.0.1] - 2022-03-29
 
 ### Fixed
