@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expliclity escape `/` in node names so we can create hierarchical paths in
   node names. We already have this assumption at several places, but a corpus
   with slashes would create ambiguities. This also helps when creating linked
-  files base on the node name.
+  files base on the node name. Also, escape all characters that are invalid file
+  names on Windows, because the node name might be used as file name.
 
 ## [2.0.1] - 2022-03-29
 

@@ -309,7 +309,11 @@ impl Default for CacheStrategy {
     }
 }
 
-pub const PATH_SEGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
+/// An encoding set for corpus names when written to disk.
+///
+/// This is loosly oriented on URI path segments, but also encodes characters
+/// that are reserved on Windows.
+pub const PATH_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
     .add(b'"')
     .add(b'#')
@@ -320,14 +324,33 @@ pub const PATH_SEGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b'{')
     .add(b'}')
     .add(b'%')
-    .add(b'/');
+    .add(b'/')
+    .add(b':')
+    .add(b'"')
+    .add(b'|')
+    .add(b'*')
+    .add(b'\\');
 
 /// An encoding set for node names.
 ///
 /// This disallows `:` to avoid any possible ambiguities with the `::` annotation
-/// match seperator. `/` is disallowed so this separator can be used to build
-/// hierarchical node IDs.
-pub const NODE_NAME_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'%').add(b'/').add(b':');
+/// match seperator. `/` disallowed so this separator can be used to build
+/// hierarchical node IDs and simplifies using node names as file names.
+/// Spaces ` ` are encoded to avoid problems with annotation names in the AQL syntax.
+/// Since node names might be used as file names, all reserved charactes for
+/// Windows file names are encoded as well.
+pub const NODE_NAME_ENCODE_SET: &AsciiSet = &CONTROLS
+    .add(b':')
+    .add(b'/')
+    .add(b' ')
+    .add(b'%')
+    .add(b'\\')
+    .add(b'<')
+    .add(b'>')
+    .add(b'"')
+    .add(b'|')
+    .add(b'?')
+    .add(b'*');
 
 /// An encoding set for parts of result URIs that would be valid in the path
 /// part of a Salt URI.
@@ -2502,7 +2525,7 @@ impl CorpusStorage {
 
     fn corpus_directory_on_disk(&self, corpus_name: &str) -> PathBuf {
         let escaped_corpus_name: Cow<str> =
-            utf8_percent_encode(corpus_name, PATH_SEGMENT_ENCODE_SET).into();
+            utf8_percent_encode(corpus_name, PATH_ENCODE_SET).into();
         let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &escaped_corpus_name]
             .iter()
             .collect();
