@@ -321,8 +321,30 @@ pub const PATH_SEGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b'}')
     .add(b'%')
     .add(b'/');
-pub const SALT_URI_ENCODE_SET: &AsciiSet = &PATH_SEGMENT_ENCODE_SET.add(b':');
-const QUIRKS_SALT_URI_ENCODE_SET: &AsciiSet = PATH_SEGMENT_ENCODE_SET;
+
+/// An encoding set for node names.
+///
+/// This disallows `:` to avoid any possible ambiguities with the `::` annotation
+/// match seperator. `/` is disallowed so this separator can be used to build
+/// hierarchical node IDs.
+pub const NODE_NAME_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'%').add(b'/').add(b':');
+
+/// An encoding set for parts of result URIs that would be valid in the path
+/// part of a Salt URI.
+///
+/// Same as [PATH_SEGMENT_ENCODE_SET], but `#` as fragment identifiers are
+/// allowed. In contrast to the more lenient [NODE_NAME_ENCODE_SET] this follows
+const QUIRKS_SALT_URI_ENCODE_SET: &AsciiSet = &CONTROLS
+    .add(b' ')
+    .add(b'"')
+    .add(b'<')
+    .add(b'>')
+    .add(b'`')
+    .add(b'?')
+    .add(b'{')
+    .add(b'}')
+    .add(b'%')
+    .add(b'/');
 
 /// Common arguments to all search queries.
 #[derive(Debug, Clone)]
@@ -1841,13 +1863,13 @@ impl CorpusStorage {
                     {
                         if !singlematch_anno_key.ns.is_empty() {
                             let encoded_anno_ns: Cow<str> =
-                                utf8_percent_encode(&singlematch_anno_key.ns, SALT_URI_ENCODE_SET)
+                                utf8_percent_encode(&singlematch_anno_key.ns, NODE_NAME_ENCODE_SET)
                                     .into();
                             match_desc.push_str(&encoded_anno_ns);
                             match_desc.push_str("::");
                         }
                         let encoded_anno_name: Cow<str> =
-                            utf8_percent_encode(&singlematch_anno_key.name, SALT_URI_ENCODE_SET)
+                            utf8_percent_encode(&singlematch_anno_key.name, NODE_NAME_ENCODE_SET)
                                 .into();
                         match_desc.push_str(&encoded_anno_name);
                         match_desc.push_str("::");

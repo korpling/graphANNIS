@@ -417,12 +417,12 @@ fn import_special_character_corpus_name() {
             |_| {},
         )
         .unwrap();
-    assert_eq!("Root Cörp/u%s", &corpus_name);
+    assert_eq!("Root:: Cörp/u%s", &corpus_name);
 
     // Check that the special corpus name can be queried
     let q = SearchQuery {
         corpus_names: &vec![&corpus_name],
-        query: "tok",
+        query: "lemma",
         query_language: QueryLanguage::AQL,
         timeout: None,
     };
@@ -432,7 +432,23 @@ fn import_special_character_corpus_name() {
 
     let matches = cs.find(q, 0, Some(1), ResultOrder::Normal).unwrap();
     assert_eq!(1, matches.len());
-    assert_eq!("Root%20C%C3%B6rp%2Fu%25s/subCorpus1/doc1#sTok1", matches[0]);
+    assert_eq!(
+        "salt::lemma::Root%3A%3A%20C%C3%B6rp%2Fu%25s/subCorpus1/doc1#sTok1",
+        matches[0]
+    );
+
+    let q_quirks = SearchQuery {
+        corpus_names: &vec![&corpus_name],
+        query: "lemma",
+        query_language: QueryLanguage::AQLQuirksV3,
+        timeout: None,
+    };
+    let matches_quirks = cs.find(q_quirks, 0, Some(1), ResultOrder::Normal).unwrap();
+    assert_eq!(1, matches_quirks.len());
+    assert_eq!(
+        "salt::lemma::Root::%20C%C3%B6rp%2Fu%25s/subCorpus1/doc1#sTok1",
+        matches_quirks[0]
+    );
 }
 
 #[test]
