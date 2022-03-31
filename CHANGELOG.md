@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fix handling of corpora with special characters like umlauts or slashes in
-  when deleting corpora, getting the corpus configuration file, getting linked
-  files (both the `CorpusStorage` API and the web service)
+- Fix handling of corpora with special characters like umlauts or slashes when
+  deleting corpora, getting the corpus configuration file, getting linked files
+  (both the `CorpusStorage` API and the web service).
+- Expliclity escape `/` in node names so we can create hierarchical paths in
+  node names. We already have this assumption at several places, but a corpus
+  with slashes would create ambiguities. This also helps when creating linked
+  files base on the node name.
 
 ## [2.0.1] - 2022-03-29
 
