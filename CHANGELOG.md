@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.3] - 2022-03-31
+
 ### Fixed
 
 - Fix import of resolver mappings and order configuration for older relANNIS
