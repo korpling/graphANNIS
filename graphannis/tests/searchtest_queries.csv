@@ -103,3 +103,4 @@ Inclusion,"SEGMENT=""HSF"" _i_ TOPIC=""AB-2""",pcc2.1,6
 Benchmark1,"pos=""NN"" .2,10 pos=""ART""",pcc2.1,5484
 Benchmark2,"tok .2,10 tok",pcc2.1,304938
 ThisTokenized,"""T"" .diplomatic,1,10 ""tokenized""",subtok.demo,1
+NonExistingWithoutValue,"diplomatic !_o_ rend?",subtok.demo,10
