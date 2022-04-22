@@ -166,10 +166,18 @@ impl<'a> UnaryOperator for NonExistingUnaryOperatorIndex<'a> {
         // Only return true if no match was found which matches the operator and
         // the node value filter
         for c in candidates {
+            // The candidate is only a positive match if *all* filter match
+            let mut candidate_is_match = true;
             for f in value_filter.iter() {
-                if f(&c, self.graph.get_node_annos())? {
-                    return Ok(false);
+                if !f(&c, self.graph.get_node_annos())? {
+                    // Filter is false, and thus the candidate is not a match
+                    candidate_is_match = false;
                 }
+            }
+            if candidate_is_match {
+                // If there is an actual match, the non-existing filter for the
+                // LHS is false
+                return Ok(false);
             }
         }
         Ok(true)
