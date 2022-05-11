@@ -6,6 +6,7 @@ members = [
   "capi",
   "webservice",
   "examples/tutorial",
+  "loadtest",
 ]
 
 # Use release optimization of some of the performance sensitive crates even for debug builds.
