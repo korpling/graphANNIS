@@ -7,5 +7,6 @@ version = "0.1.0"
 
 [dependencies]
 goose = "^0.16"
+graphannis = {path = "../graphannis/", version = "^2"}
 serde_json = "1.0"
 tokio = "^1.12"

@@ -19,7 +19,7 @@ async fn loadtest_ddd(user: &mut GooseUser) -> TransactionResult {
     // first 10 matches. Randomize output order so we get different corpora all
     // the time.
     for q in DDD_QUERIES {
-        let json = serde_json::json!({
+        let json_query = serde_json::json!({
           "query": q,
           "query_language": "AQL",
           "corpora": ddd_corpora,
@@ -27,8 +27,24 @@ async fn loadtest_ddd(user: &mut GooseUser) -> TransactionResult {
           "offset": 0,
           "order": "Randomized"
         });
-        user.post_json("/v1/search/find", &json).await?;
-        // TODO: subgraph query
+        let matches: String = user
+            .post_json("/v1/search/find", &json_query)
+            .await?
+            .response?
+            .json()
+            .await?;
+
+        // subgraph query for each match
+        for m in matches.lines() {
+            let nodes = graphannis::util::node_names_from_match(m);
+            if let Some(first_node) = nodes.first() {
+                if let Some((corpus, _)) = first_node.split_once('/') {
+                    let json_subgraph = serde_json::json!({"node_ids": nodes, "segmentation" : "dipl", "left": 5u32, "right": 5u32});
+                    user.post_json(&format!("/v1/corpora/{}/subgraph", corpus), &json_subgraph)
+                        .await?;
+                }
+            }
+        }
     }
 
     Ok(())
