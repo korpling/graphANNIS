@@ -1,4 +1,12 @@
 [workspace]
+default-members = [
+  "core",
+  "graphannis",
+  "cli",
+  "capi",
+  "webservice",
+  "examples/tutorial",
+]
 members = [
   "core",
   "graphannis",
