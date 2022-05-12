@@ -21,6 +21,7 @@ use crate::{
             BinaryOperator, BinaryOperatorBase, BinaryOperatorIndex, BinaryOperatorSpec,
             EstimationType, UnaryOperator, UnaryOperatorSpec,
         },
+        util::TimeoutCheck,
     },
     AnnotationGraph,
 };
@@ -213,7 +214,13 @@ impl<'a> Display for NonExistingUnaryOperatorFilter<'a> {
 impl<'a> UnaryOperator for NonExistingUnaryOperatorFilter<'a> {
     fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> Result<bool> {
         // The candidate match is on one side and we need to get an iterator of all possible matches for the other side
-        if let Ok(node_search) = NodeSearch::from_spec(self.target.clone(), 0, self.graph, None) {
+        if let Ok(node_search) = NodeSearch::from_spec(
+            self.target.clone(),
+            0,
+            self.graph,
+            None,
+            TimeoutCheck::new(None),
+        ) {
             // Include if no nodes matches the conditions
             if self.target_left {
                 for lhs in node_search {

@@ -15,6 +15,7 @@ use crate::annis::operator::{
     BinaryOperator, BinaryOperatorBase, BinaryOperatorIndex, BinaryOperatorSpec, UnaryOperator,
     UnaryOperatorSpec,
 };
+use crate::annis::util::TimeoutCheck;
 use crate::AnnotationGraph;
 use crate::{
     annis::types::{LineColumnRange, QueryAttributeDescription},
@@ -422,6 +423,7 @@ impl Conjunction {
         &self,
         db: &AnnotationGraph,
         config: &Config,
+        timeout: TimeoutCheck,
     ) -> Result<Vec<usize>> {
         // check if there is something to optimize
         if self.binary_operators.is_empty() {
@@ -438,7 +440,7 @@ impl Conjunction {
 
         // TODO: cache the base estimates
         let initial_plan =
-            self.make_exec_plan_with_order(db, config, best_operator_order.clone())?;
+            self.make_exec_plan_with_order(db, config, best_operator_order.clone(), timeout)?;
         let mut best_cost: usize = initial_plan
             .get_desc()
             .ok_or(GraphAnnisError::PlanDescriptionMissing)?
@@ -480,7 +482,8 @@ impl Conjunction {
 
             let mut found_better_plan = false;
             for op_order in family_operators.iter().skip(1) {
-                let alt_plan = self.make_exec_plan_with_order(db, config, op_order.clone())?;
+                let alt_plan =
+                    self.make_exec_plan_with_order(db, config, op_order.clone(), timeout)?;
                 let alt_cost = alt_plan
                     .get_desc()
                     .ok_or(GraphAnnisError::PlanDescriptionMissing)?
@@ -519,6 +522,7 @@ impl Conjunction {
         desc: Option<&ExecutionNodeDesc>,
         op_spec_entries: Box<dyn Iterator<Item = &'a BinaryOperatorSpecEntry> + 'a>,
         db: &'a AnnotationGraph,
+        timeout: TimeoutCheck,
     ) -> Result<Option<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>>> {
         if let Some(desc) = desc {
             // check if we can replace this node search with a generic "all nodes from either of these components" search
@@ -559,6 +563,7 @@ impl Conjunction {
                                     Some(desc),
                                     components,
                                     op_spec.get_edge_anno_spec(),
+                                    timeout,
                                 );
                                 if let Ok(poc_search) = poc_search {
                                     // TODO: check if there is another operator with even better estimates
@@ -587,6 +592,7 @@ impl Conjunction {
         node2component: &mut BTreeMap<usize, usize>,
         node2cost: &mut BTreeMap<usize, CostEstimate>,
         node_search_errors: &mut Vec<GraphAnnisError>,
+        timeout: TimeoutCheck,
     ) -> Result<()> {
         let n_spec = &self.nodes[node_nr].spec;
         let n_var = &self.nodes[node_nr].var;
@@ -596,6 +602,7 @@ impl Conjunction {
             node_nr,
             g,
             self.location_in_query.get(n_var).cloned(),
+            timeout,
         );
         match node_search {
             Ok(mut node_search) => {
@@ -634,6 +641,7 @@ impl Conjunction {
                     node_search.get_desc(),
                     Box::new(self.binary_operators.iter()),
                     g,
+                    timeout,
                 )?;
 
                 // move to map
@@ -754,6 +762,7 @@ impl Conjunction {
         db: &'a AnnotationGraph,
         config: &Config,
         operator_order: Vec<usize>,
+        timeout: TimeoutCheck,
     ) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> {
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
 
@@ -779,6 +788,7 @@ impl Conjunction {
                     &mut node2component,
                     &mut node2cost,
                     &mut node_search_errors,
+                    timeout,
                 )?;
             }
         }
@@ -896,10 +906,11 @@ impl Conjunction {
         &'a self,
         db: &'a AnnotationGraph,
         config: &Config,
+        timeout: TimeoutCheck,
     ) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> {
         self.check_components_connected()?;
 
-        let operator_order = self.optimize_join_order_heuristics(db, config)?;
-        self.make_exec_plan_with_order(db, config, operator_order)
+        let operator_order = self.optimize_join_order_heuristics(db, config, timeout)?;
+        self.make_exec_plan_with_order(db, config, operator_order, timeout)
     }
 }
