@@ -116,7 +116,13 @@ impl TimeoutCheck {
     /// Check if too much time was used and return an error if this is the case.
     pub fn check(&self) -> Result<()> {
         if let Some(timeout) = self.timeout {
-            if self.start_time.elapsed() > timeout {
+            let elapsed = self.start_time.elapsed();
+            if elapsed > timeout {
+                debug!(
+                    "Timeout reached after {} ms (configured for {} ms)",
+                    elapsed.as_millis(),
+                    timeout.as_millis()
+                );
                 return Err(GraphAnnisError::Timeout);
             }
         }
