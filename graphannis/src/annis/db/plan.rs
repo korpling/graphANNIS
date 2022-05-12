@@ -1,6 +1,7 @@
 use crate::annis::db::aql::disjunction::Disjunction;
 use crate::annis::db::aql::Config;
 use crate::annis::db::exec::{EmptyResultSet, ExecutionNode, ExecutionNodeDesc};
+use crate::annis::util::TimeoutCheck;
 use crate::AnnotationGraph;
 use crate::{annis::errors::*, graph::Match};
 use graphannis_core::{
@@ -26,12 +27,13 @@ impl<'a> ExecutionPlan<'a> {
         query: &'a Disjunction,
         db: &'a AnnotationGraph,
         config: &Config,
+        timeout: TimeoutCheck,
     ) -> Result<ExecutionPlan<'a>> {
         let mut plans: Vec<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> = Vec::new();
         let mut descriptions = Vec::new();
         let mut inverse_node_pos = Vec::new();
         for alt in &query.alternatives {
-            let p = alt.make_exec_node(db, config);
+            let p = alt.make_exec_node(db, config, timeout);
             if let Ok(p) = p {
                 descriptions.push(p.get_desc().cloned());
 

@@ -1551,13 +1551,15 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<bool> {
+        let timeout = TimeoutCheck::new(None);
+
         for cn in corpus_names {
             let prep: PreparationResult =
                 self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
             // also get the semantic errors by creating an execution plan on the actual Graph
             let lock = prep.db_entry.read()?;
             let db = get_read_or_error(&lock)?;
-            ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
+            ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config, timeout)?;
         }
         Ok(true)
     }
@@ -1573,6 +1575,7 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<String> {
+        let timeout = TimeoutCheck::new(None);
         let mut all_plans = Vec::with_capacity(corpus_names.len());
         for cn in corpus_names {
             let prep = self.prepare_query(cn.as_ref(), query, query_language, |_| vec![])?;
@@ -1580,7 +1583,8 @@ impl CorpusStorage {
             // acquire read-only lock and plan
             let lock = prep.db_entry.read()?;
             let db = get_read_or_error(&lock)?;
-            let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
+            let plan =
+                ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config, timeout)?;
 
             all_plans.push(format!("{}:\n{}", cn.as_ref(), plan));
         }
@@ -1601,7 +1605,8 @@ impl CorpusStorage {
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read()?;
             let db = get_read_or_error(&lock)?;
-            let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
+            let plan =
+                ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config, timeout)?;
 
             for _ in plan {
                 total_count += 1;
@@ -1632,7 +1637,8 @@ impl CorpusStorage {
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read()?;
             let db: &AnnotationGraph = get_read_or_error(&lock)?;
-            let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
+            let plan =
+                ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config, timeout)?;
 
             let mut known_documents: HashSet<SmartString> = HashSet::new();
 
@@ -1677,6 +1683,7 @@ impl CorpusStorage {
         limit: Option<usize>,
         order: ResultOrder,
         quirks_mode: bool,
+        timeout: TimeoutCheck,
     ) -> Result<(FindIterator<'b>, Option<usize>)> {
         let mut query_config = self.query_config.clone();
         if order == ResultOrder::NotSorted {
@@ -1686,7 +1693,7 @@ impl CorpusStorage {
             query_config.use_parallel_joins = false;
         }
 
-        let plan = ExecutionPlan::from_disjunction(query, db, &query_config)?;
+        let plan = ExecutionPlan::from_disjunction(query, db, &query_config, timeout)?;
 
         // Try to find the relANNIS version by getting the attribute value which should be attached to the
         // toplevel corpus node.
@@ -1840,6 +1847,7 @@ impl CorpusStorage {
             limit,
             order,
             quirks_mode,
+            timeout,
         )?;
 
         let mut results: Vec<String> = if let Some(expected_size) = expected_size {
@@ -2125,7 +2133,14 @@ impl CorpusStorage {
                 query.alternatives.push(q);
             }
         }
-        extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config, None)
+        extract_subgraph_by_query(
+            &db_entry,
+            &query,
+            &[0],
+            &self.query_config,
+            None,
+            TimeoutCheck::new(None),
+        )
     }
 
     /// Return the copy of a subgraph which includes all nodes matched by the given `query`.
@@ -2158,6 +2173,7 @@ impl CorpusStorage {
             &match_idx,
             &self.query_config,
             component_type_filter,
+            TimeoutCheck::new(None),
         )
     }
 
@@ -2237,7 +2253,14 @@ impl CorpusStorage {
             }
         }
 
-        extract_subgraph_by_query(&db_entry, &query, &[1], &self.query_config, None)
+        extract_subgraph_by_query(
+            &db_entry,
+            &query,
+            &[1],
+            &self.query_config,
+            None,
+            TimeoutCheck::new(None),
+        )
     }
 
     /// Return the copy of the graph of the corpus structure given by `corpus_name`.
@@ -2270,6 +2293,7 @@ impl CorpusStorage {
             &[0],
             &self.query_config,
             Some(AnnotationComponentType::PartOf),
+            TimeoutCheck::new(None),
         )
     }
 
@@ -2316,7 +2340,8 @@ impl CorpusStorage {
                 }
             }
 
-            let plan = ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config)?;
+            let plan =
+                ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config, timeout)?;
 
             for mgroup in plan {
                 let mgroup = mgroup?;
@@ -2695,13 +2720,14 @@ fn extract_subgraph_by_query(
     match_idx: &[usize],
     query_config: &aql::Config,
     component_type_filter: Option<AnnotationComponentType>,
+    timeout: TimeoutCheck,
 ) -> Result<AnnotationGraph> {
     let t_before = std::time::SystemTime::now();
     // acquire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
 
-    let plan = ExecutionPlan::from_disjunction(query, orig_db, query_config)?;
+    let plan = ExecutionPlan::from_disjunction(query, orig_db, query_config, timeout)?;
 
     debug!("executing subgraph query\n{}", plan);
 

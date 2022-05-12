@@ -11,6 +11,7 @@ use crate::{
             plan::ExecutionPlan,
         },
         errors::GraphAnnisError::AQLSemanticError,
+        util::TimeoutCheck,
     },
     AnnotationGraph,
 };
@@ -145,7 +146,7 @@ fn semantic_error_unbound() {
     let g = AnnotationGraph::with_default_graphstorages(false).unwrap();
     // No syntax error
     let q = aql::parse("tok & tok", false).unwrap();
-    let plan = ExecutionPlan::from_disjunction(&q, &g, &config);
+    let plan = ExecutionPlan::from_disjunction(&q, &g, &config, TimeoutCheck::new(None));
     match plan {
         Err(AQLSemanticError(err)) => assert_eq!(
             "Variable \"#2\" not bound (use linguistic operators)",

@@ -6,6 +6,7 @@ use crate::annis::db::{aql::model::AnnotationComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::EdgeAnnoSearchSpec;
 use crate::annis::types::LineColumnRange;
+use crate::annis::util::TimeoutCheck;
 use crate::AnnotationGraph;
 use crate::{
     annis::{db::aql::model::TOKEN_KEY, util},
@@ -32,6 +33,7 @@ pub struct NodeSearch<'a> {
     desc: Option<ExecutionNodeDesc>,
     node_search_desc: Arc<NodeSearchDesc>,
     is_sorted: bool,
+    timeout: TimeoutCheck,
 }
 struct NodeDescArg {
     query_fragment: String,
@@ -392,6 +394,7 @@ impl<'a> NodeSearch<'a> {
         node_nr: usize,
         db: &'a AnnotationGraph,
         location_in_query: Option<LineColumnRange>,
+        timeout: TimeoutCheck,
     ) -> Result<NodeSearch<'a>> {
         let query_fragment = format!("{}", spec);
 
@@ -411,6 +414,7 @@ impl<'a> NodeSearch<'a> {
                 is_meta,
                 &query_fragment,
                 node_nr,
+                timeout,
             ),
             NodeSearchSpec::NotExactValue {
                 ns,
@@ -425,6 +429,7 @@ impl<'a> NodeSearch<'a> {
                 is_meta,
                 &query_fragment,
                 node_nr,
+                timeout,
             ),
             NodeSearchSpec::RegexValue {
                 ns,
@@ -446,6 +451,7 @@ impl<'a> NodeSearch<'a> {
                             query_fragment,
                             node_nr,
                         },
+                        timeout,
                     )
                 } else {
                     NodeSearch::new_annosearch_exact(
@@ -456,6 +462,7 @@ impl<'a> NodeSearch<'a> {
                         is_meta,
                         &query_fragment,
                         node_nr,
+                        timeout,
                     )
                 }
             }
@@ -479,6 +486,7 @@ impl<'a> NodeSearch<'a> {
                             query_fragment,
                             node_nr,
                         },
+                        timeout,
                     )
                 } else {
                     NodeSearch::new_annosearch_exact(
@@ -489,6 +497,7 @@ impl<'a> NodeSearch<'a> {
                         is_meta,
                         &query_fragment,
                         node_nr,
+                        timeout,
                     )
                 }
             }
@@ -500,6 +509,7 @@ impl<'a> NodeSearch<'a> {
                 false,
                 &query_fragment,
                 node_nr,
+                timeout,
             ),
             NodeSearchSpec::NotExactTokenValue { val } => NodeSearch::new_tokensearch(
                 db,
@@ -509,6 +519,7 @@ impl<'a> NodeSearch<'a> {
                 false,
                 &query_fragment,
                 node_nr,
+                timeout,
             ),
             NodeSearchSpec::RegexTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
                 db,
@@ -518,6 +529,7 @@ impl<'a> NodeSearch<'a> {
                 true,
                 &query_fragment,
                 node_nr,
+                timeout,
             ),
             NodeSearchSpec::NotRegexTokenValue { val } => NodeSearch::new_tokensearch(
                 db,
@@ -527,9 +539,10 @@ impl<'a> NodeSearch<'a> {
                 true,
                 &query_fragment,
                 node_nr,
+                timeout,
             ),
             NodeSearchSpec::AnyToken => {
-                NodeSearch::new_anytoken_search(db, &query_fragment, node_nr)
+                NodeSearch::new_anytoken_search(db, &query_fragment, node_nr, timeout)
             }
             NodeSearchSpec::AnyNode => {
                 let it = db
@@ -576,6 +589,7 @@ impl<'a> NodeSearch<'a> {
                         const_output: Some(NODE_TYPE_KEY.clone()),
                     }),
                     is_sorted: false,
+                    timeout,
                 })
             }
         }
@@ -589,6 +603,7 @@ impl<'a> NodeSearch<'a> {
         is_meta: bool,
         query_fragment: &str,
         node_nr: usize,
+        timeout: TimeoutCheck,
     ) -> Result<NodeSearch<'a>> {
         let base_it = db.get_node_annos().exact_anno_search(
             qname.0.as_deref(),
@@ -680,6 +695,7 @@ impl<'a> NodeSearch<'a> {
                 const_output,
             }),
             is_sorted: false,
+            timeout,
         })
     }
 
@@ -691,6 +707,7 @@ impl<'a> NodeSearch<'a> {
         filters: Vec<MatchValueFilterFunc>,
         is_meta: bool,
         node_desc_arg: NodeDescArg,
+        timeout: TimeoutCheck,
     ) -> Result<NodeSearch<'a>> {
         // match_regex works only with values
         let base_it =
@@ -769,6 +786,7 @@ impl<'a> NodeSearch<'a> {
                 const_output,
             }),
             is_sorted: false,
+            timeout,
         })
     }
 
@@ -780,6 +798,7 @@ impl<'a> NodeSearch<'a> {
         match_regex: bool,
         query_fragment: &str,
         node_nr: usize,
+        timeout: TimeoutCheck,
     ) -> Result<NodeSearch<'a>> {
         let it_base: Box<dyn Iterator<Item = Result<Match>>> = match val {
             ValueSearch::Any => {
@@ -920,6 +939,7 @@ impl<'a> NodeSearch<'a> {
                 const_output: Some(NODE_TYPE_KEY.clone()),
             }),
             is_sorted: false,
+            timeout,
         })
     }
 
@@ -927,6 +947,7 @@ impl<'a> NodeSearch<'a> {
         db: &'a AnnotationGraph,
         query_fragment: &str,
         node_nr: usize,
+        timeout: TimeoutCheck,
     ) -> Result<NodeSearch<'a>> {
         let it: Box<dyn Iterator<Item = Result<MatchGroup>>> = Box::from(AnyTokenSearch::new(db)?);
         // create filter functions
@@ -978,6 +999,7 @@ impl<'a> NodeSearch<'a> {
                 const_output: Some(NODE_TYPE_KEY.clone()),
             }),
             is_sorted: true,
+            timeout,
         })
     }
 
@@ -987,6 +1009,7 @@ impl<'a> NodeSearch<'a> {
         desc: Option<&ExecutionNodeDesc>,
         components: HashSet<Component<AnnotationComponentType>>,
         edge_anno_spec: Option<EdgeAnnoSearchSpec>,
+        timeout: TimeoutCheck,
     ) -> Result<NodeSearch<'a>> {
         let node_search_desc_1 = node_search_desc.clone();
         let node_search_desc_2 = node_search_desc.clone();
@@ -1066,6 +1089,7 @@ impl<'a> NodeSearch<'a> {
             desc: new_desc,
             node_search_desc,
             is_sorted: false,
+            timeout,
         })
     }
 
@@ -1100,6 +1124,9 @@ impl<'a> Iterator for NodeSearch<'a> {
     type Item = Result<MatchGroup>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if let Err(e) = self.timeout.check() {
+            return Some(Err(e));
+        }
         self.it.next()
     }
 }
