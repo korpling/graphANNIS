@@ -5,6 +5,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Actually apply timeout for `find` and `count` queries with less than 1000
+  matches. The timeout was only checked after each 1000th match. This caused
+  troubles for queries with complex temporary results that where discarded. The
+  query execution could take too long time and consume system resources in a
+  multi-user system even when the timeout was configured. The fix is to push
+  down the timeout check to the node search iterators.
+
 ## [2.0.4] - 2022-04-22
 
 ### Fixed
