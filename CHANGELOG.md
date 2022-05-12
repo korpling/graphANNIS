@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.5] - 2022-05-12
+
 ### Fixed
 
 - Fix timeout handling for queries with a lot of intermediate results, but less
