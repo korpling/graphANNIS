@@ -1,0 +1,576 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml>
+    <key id="k0" for="graph" attr.name="configuration" attr.type="string" />
+    <key id="k1" for="node" attr.name="description" attr.type="string" />
+    <key id="k2" for="node" attr.name="structure::diplomatic" attr.type="string" />
+    <key id="k3" for="node" attr.name="annis::doc" attr.type="string" />
+    <key id="k4" for="node" attr.name="language" attr.type="string" />
+    <key id="k5" for="node" attr.name="annis::layer" attr.type="string" />
+    <key id="k6" for="node" attr.name="grammar::lemma" attr.type="string" />
+    <key id="k7" for="node" attr.name="structure::line" attr.type="string" />
+    <key id="k8" for="node" attr.name="annis::node_type" attr.type="string" />
+    <key id="k9" for="node" attr.name="grammar::norm" attr.type="string" />
+    <key id="k10" for="node" attr.name="structure::page" attr.type="string" />
+    <key id="k11" for="node" attr.name="grammar::pos" attr.type="string" />
+    <key id="k12" for="node" attr.name="project" attr.type="string" />
+    <key id="k13" for="node" attr.name="annis::relannis-version" attr.type="string" />
+    <key id="k14" for="node" attr.name="structure::rend" attr.type="string" />
+    <key id="k16" for="node" attr.name="annis::tok" attr.type="string" />
+    <key id="k17" for="node" attr.name="annis::tok-whitespace-after" attr.type="string" />
+    <graph edgedefault="directed" parse.order="nodesfirst" parse.nodeids="free" parse.edgeids="canonical">
+        <data key="k0">
+            <![CDATA[[context]
+default = 5
+sizes = [
+    0,
+    1,
+    2,
+    5,
+    10,
+]
+
+[view]
+page_size = 10
+
+[[visualizers]]
+vis_type = 'grid'
+display_name = 'all'
+visibility = 'permanent'
+]]>
+        </data>
+        <node id="SegmentationWithGaps/doc01#tok_1">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">T</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_2">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">his</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan1">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k6">This</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_3">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">is</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan2">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k6">be</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_4">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">an</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan3">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k6">a</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_5">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">example</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan4">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k6">example</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_6">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">of</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan5">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k6">of</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_7">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">a</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan6">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k6">a</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_8">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">sub-</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_9">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">tokenized</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan7">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k6">subtokenize</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_10">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">corpus</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan8">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k6">corpus</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_11">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">.</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan9">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k6">.</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_12">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">Gaps</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_13">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">&#32;</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_14">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">it</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_15">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">has</data>
+            <data key="k17">&#32;</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#tok_16">
+            <data key="k8">node</data>
+            <data key="k5">token_subtok</data>
+            <data key="k16">.</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan10">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k16">This</data>
+            <data key="k9">This</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan11">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k16">is</data>
+            <data key="k9">is</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan12">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k16">an</data>
+            <data key="k9">an</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan13">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k16">example</data>
+            <data key="k9">example</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan14">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k16">of</data>
+            <data key="k9">of</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan15">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k16">a</data>
+            <data key="k9">a</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan16">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k16">subtokenized</data>
+            <data key="k9">subtokenized</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan17">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k16">corpus</data>
+            <data key="k9">corpus</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan18">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k16">.</data>
+            <data key="k9">.</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#norm12">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k16">Gaps</data>
+            <data key="k9">Gaps</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#norm14">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k16">it</data>
+            <data key="k9">it</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#norm15">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k16">has</data>
+            <data key="k9">has</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#norm16">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k16">.</data>
+            <data key="k9">.</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan19">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k11">DT</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan20">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k11">VBZ</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan21">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k11">DT</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan22">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k11">NN</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan23">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k11">IN</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan24">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k11">DT</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan25">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k11">VBN</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan26">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k11">NN</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan27">
+            <data key="k8">node</data>
+            <data key="k5">grammar</data>
+            <data key="k11">.</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan28">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k16">T</data>
+            <data key="k2">T</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan29">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k16">his</data>
+            <data key="k2">his</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan30">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k16">is</data>
+            <data key="k2">is</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan31">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k16">an</data>
+            <data key="k2">an</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan32">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k16">example</data>
+            <data key="k2">example</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan33">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k16">of</data>
+            <data key="k2">of</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan34">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k16">a</data>
+            <data key="k2">a</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan35">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k16">ſub⸗</data>
+            <data key="k2">ſub⸗</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan36">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k16">tokenized</data>
+            <data key="k2">tokenized</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan37">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k16">corpus</data>
+            <data key="k2">corpus</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan38">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k16">.</data>
+            <data key="k2">.</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan39">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k7">1</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan40">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k7">2</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan41">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k10">1</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#sSpan42">
+            <data key="k8">node</data>
+            <data key="k5">structure</data>
+            <data key="k14">illuminated red capital</data>
+        </node>
+        <node id="SegmentationWithGaps">
+            <data key="k8">corpus</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01">
+            <data key="k8">corpus</data>
+            <data key="k3">subtok.demo.doc01</data>
+        </node>
+        <node id="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml">
+            <data key="k8">datasource</data>
+        </node>
+        <edge source="SegmentationWithGaps/doc01#sSpan22" target="SegmentationWithGaps/doc01#tok_5" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan19" target="SegmentationWithGaps/doc01#tok_1" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan19" target="SegmentationWithGaps/doc01#tok_2" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan16" target="SegmentationWithGaps/doc01#tok_8" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan16" target="SegmentationWithGaps/doc01#tok_9" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan13" target="SegmentationWithGaps/doc01#tok_5" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan10" target="SegmentationWithGaps/doc01#tok_1" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan10" target="SegmentationWithGaps/doc01#tok_2" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan8" target="SegmentationWithGaps/doc01#tok_10" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan4" target="SegmentationWithGaps/doc01#tok_5" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan27" target="SegmentationWithGaps/doc01#tok_11" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan1" target="SegmentationWithGaps/doc01#tok_1" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan1" target="SegmentationWithGaps/doc01#tok_2" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan21" target="SegmentationWithGaps/doc01#tok_4" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan18" target="SegmentationWithGaps/doc01#tok_11" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan15" target="SegmentationWithGaps/doc01#tok_7" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan12" target="SegmentationWithGaps/doc01#tok_4" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan9" target="SegmentationWithGaps/doc01#tok_11" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan24" target="SegmentationWithGaps/doc01#tok_7" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan5" target="SegmentationWithGaps/doc01#tok_6" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan2" target="SegmentationWithGaps/doc01#tok_3" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan23" target="SegmentationWithGaps/doc01#tok_6" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan20" target="SegmentationWithGaps/doc01#tok_3" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan17" target="SegmentationWithGaps/doc01#tok_10" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan14" target="SegmentationWithGaps/doc01#tok_6" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan11" target="SegmentationWithGaps/doc01#tok_3" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan26" target="SegmentationWithGaps/doc01#tok_10" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan7" target="SegmentationWithGaps/doc01#tok_8" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan7" target="SegmentationWithGaps/doc01#tok_9" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan6" target="SegmentationWithGaps/doc01#tok_7" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan3" target="SegmentationWithGaps/doc01#tok_4" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan25" target="SegmentationWithGaps/doc01#tok_8" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan25" target="SegmentationWithGaps/doc01#tok_9" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#norm12" target="SegmentationWithGaps/doc01#tok_12" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#norm14" target="SegmentationWithGaps/doc01#tok_14" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#norm15" target="SegmentationWithGaps/doc01#tok_15" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#norm16" target="SegmentationWithGaps/doc01#tok_16" label="Coverage/grammar/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan42" target="SegmentationWithGaps/doc01#tok_1" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan39" target="SegmentationWithGaps/doc01#tok_1" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan39" target="SegmentationWithGaps/doc01#tok_2" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan39" target="SegmentationWithGaps/doc01#tok_3" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan39" target="SegmentationWithGaps/doc01#tok_4" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan39" target="SegmentationWithGaps/doc01#tok_5" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan39" target="SegmentationWithGaps/doc01#tok_6" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan39" target="SegmentationWithGaps/doc01#tok_7" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan39" target="SegmentationWithGaps/doc01#tok_8" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan36" target="SegmentationWithGaps/doc01#tok_9" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan33" target="SegmentationWithGaps/doc01#tok_6" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan30" target="SegmentationWithGaps/doc01#tok_3" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan41" target="SegmentationWithGaps/doc01#tok_1" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan41" target="SegmentationWithGaps/doc01#tok_2" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan41" target="SegmentationWithGaps/doc01#tok_3" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan41" target="SegmentationWithGaps/doc01#tok_4" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan41" target="SegmentationWithGaps/doc01#tok_5" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan41" target="SegmentationWithGaps/doc01#tok_6" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan41" target="SegmentationWithGaps/doc01#tok_7" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan41" target="SegmentationWithGaps/doc01#tok_8" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan41" target="SegmentationWithGaps/doc01#tok_9" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan41" target="SegmentationWithGaps/doc01#tok_10" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan41" target="SegmentationWithGaps/doc01#tok_11" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan38" target="SegmentationWithGaps/doc01#tok_11" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan35" target="SegmentationWithGaps/doc01#tok_8" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan32" target="SegmentationWithGaps/doc01#tok_5" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan29" target="SegmentationWithGaps/doc01#tok_2" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan40" target="SegmentationWithGaps/doc01#tok_9" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan40" target="SegmentationWithGaps/doc01#tok_10" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan40" target="SegmentationWithGaps/doc01#tok_11" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan37" target="SegmentationWithGaps/doc01#tok_10" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan34" target="SegmentationWithGaps/doc01#tok_7" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan31" target="SegmentationWithGaps/doc01#tok_4" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan28" target="SegmentationWithGaps/doc01#tok_1" label="Coverage/structure/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_10" target="SegmentationWithGaps/doc01#tok_11" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_9" target="SegmentationWithGaps/doc01#tok_10" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_8" target="SegmentationWithGaps/doc01#tok_9" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_7" target="SegmentationWithGaps/doc01#tok_8" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_6" target="SegmentationWithGaps/doc01#tok_7" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_5" target="SegmentationWithGaps/doc01#tok_6" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_4" target="SegmentationWithGaps/doc01#tok_5" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_3" target="SegmentationWithGaps/doc01#tok_4" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_2" target="SegmentationWithGaps/doc01#tok_3" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_1" target="SegmentationWithGaps/doc01#tok_2" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_11" target="SegmentationWithGaps/doc01#tok_12" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_12" target="SegmentationWithGaps/doc01#tok_13" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_13" target="SegmentationWithGaps/doc01#tok_14" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_14" target="SegmentationWithGaps/doc01#tok_15" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_15" target="SegmentationWithGaps/doc01#tok_16" label="Ordering/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan37" target="SegmentationWithGaps/doc01#sSpan38" label="Ordering/default_ns/diplomatic"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan36" target="SegmentationWithGaps/doc01#sSpan37" label="Ordering/default_ns/diplomatic"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan35" target="SegmentationWithGaps/doc01#sSpan36" label="Ordering/default_ns/diplomatic"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan34" target="SegmentationWithGaps/doc01#sSpan35" label="Ordering/default_ns/diplomatic"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan33" target="SegmentationWithGaps/doc01#sSpan34" label="Ordering/default_ns/diplomatic"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan32" target="SegmentationWithGaps/doc01#sSpan33" label="Ordering/default_ns/diplomatic"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan31" target="SegmentationWithGaps/doc01#sSpan32" label="Ordering/default_ns/diplomatic"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan30" target="SegmentationWithGaps/doc01#sSpan31" label="Ordering/default_ns/diplomatic"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan29" target="SegmentationWithGaps/doc01#sSpan30" label="Ordering/default_ns/diplomatic"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan28" target="SegmentationWithGaps/doc01#sSpan29" label="Ordering/default_ns/diplomatic"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan17" target="SegmentationWithGaps/doc01#sSpan18" label="Ordering/default_ns/norm"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan16" target="SegmentationWithGaps/doc01#sSpan17" label="Ordering/default_ns/norm"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan15" target="SegmentationWithGaps/doc01#sSpan16" label="Ordering/default_ns/norm"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan14" target="SegmentationWithGaps/doc01#sSpan15" label="Ordering/default_ns/norm"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan13" target="SegmentationWithGaps/doc01#sSpan14" label="Ordering/default_ns/norm"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan12" target="SegmentationWithGaps/doc01#sSpan13" label="Ordering/default_ns/norm"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan11" target="SegmentationWithGaps/doc01#sSpan12" label="Ordering/default_ns/norm"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan10" target="SegmentationWithGaps/doc01#sSpan11" label="Ordering/default_ns/norm"></edge>
+        <edge source="SegmentationWithGaps/doc01#norm12" target="SegmentationWithGaps/doc01#norm14" label="Ordering/default_ns/norm"></edge>
+        <edge source="SegmentationWithGaps/doc01#norm14" target="SegmentationWithGaps/doc01#norm15" label="Ordering/default_ns/norm"></edge>
+        <edge source="SegmentationWithGaps/doc01#norm15" target="SegmentationWithGaps/doc01#norm16" label="Ordering/default_ns/norm"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_1" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_2" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan1" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_3" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan2" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_4" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan3" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_5" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan4" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_6" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan5" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_7" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan6" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_8" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_9" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan7" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_10" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan8" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_11" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_12" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_13" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_14" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_15" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_16" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#tok_17" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan9" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan10" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan11" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan12" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan13" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan14" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan15" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan16" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan17" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan18" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan19" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan20" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan21" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan22" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan23" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan24" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan25" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan26" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan27" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan28" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan29" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan30" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan31" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan32" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan33" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan34" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan35" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan36" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan37" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan38" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan39" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan40" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan41" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#sSpan42" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+
+        <edge source="SegmentationWithGaps/doc01#norm12" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#norm14" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#norm15" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#norm16" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
+
+
+        <edge source="SegmentationWithGaps/doc01" target="SegmentationWithGaps" label="PartOf/annis/"></edge>
+        <edge source="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" target="SegmentationWithGaps/doc01" label="PartOf/annis/"></edge>
+    </graph>
+</graphml>
