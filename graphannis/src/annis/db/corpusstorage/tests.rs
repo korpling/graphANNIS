@@ -492,8 +492,8 @@ fn subgraph_context_generation() {
     let m = vec!["SegmentationWithGaps/doc01#norm12".to_string()];
 
     // Get the context using tokens
-    let g = cs.subgraph(&corpus_name, m, 1, 2, None).unwrap();
-    // Check that all token are included
+    let g = cs.subgraph(&corpus_name, m.clone(), 1, 2, None).unwrap();
+    // Check that all token and the page are included
     assert!(g
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
         .unwrap()
@@ -503,7 +503,29 @@ fn subgraph_context_generation() {
         .unwrap()
         .is_some());
     assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
+        .unwrap()
+        .is_some());
+
+    // Get the context using the norm segmentation
+    let g = cs
+        .subgraph(&corpus_name, m, 1, 1, Some("norm".to_string()))
+        .unwrap();
+    // Check that all token and the page are included
+    assert!(g
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
         .unwrap()
         .is_some());
     assert!(g
@@ -512,6 +534,10 @@ fn subgraph_context_generation() {
         .is_some());
     assert!(g
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
         .unwrap()
         .is_some());
 }
