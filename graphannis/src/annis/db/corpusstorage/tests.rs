@@ -2,6 +2,7 @@ extern crate log;
 extern crate tempfile;
 
 use std::path::PathBuf;
+use std::vec;
 
 use crate::annis::db::corpusstorage::get_read_or_error;
 use crate::annis::db::{aql::model::AnnotationComponentType, example_generator};
@@ -515,9 +516,41 @@ fn subgraph_context_generation() {
         .unwrap()
         .is_some());
 
-    // Get the context using the norm segmentation
+    // Get the context for the norm node using the norm segmentation
     let g = cs
         .subgraph(&corpus_name, m, 1, 1, Some("norm".to_string()))
+        .unwrap();
+    // Check that all token and the page are included
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
+        .unwrap()
+        .is_some());
+
+    // Get the context for the token using the norm segmentation
+    let g = cs
+        .subgraph(
+            &corpus_name,
+            vec!["SegmentationWithGaps/doc01#tok_12".to_string()],
+            1,
+            1,
+            Some("norm".to_string()),
+        )
         .unwrap();
     // Check that all token and the page are included
     assert!(g

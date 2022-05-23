@@ -513,9 +513,12 @@ visibility = 'permanent'
         <edge source="SegmentationWithGaps/doc01#sSpan12" target="SegmentationWithGaps/doc01#sSpan13" label="Ordering/default_ns/norm"></edge>
         <edge source="SegmentationWithGaps/doc01#sSpan11" target="SegmentationWithGaps/doc01#sSpan12" label="Ordering/default_ns/norm"></edge>
         <edge source="SegmentationWithGaps/doc01#sSpan10" target="SegmentationWithGaps/doc01#sSpan11" label="Ordering/default_ns/norm"></edge>
+
+        <edge source="SegmentationWithGaps/doc01#sSpan18" target="SegmentationWithGaps/doc01#norm12" label="Ordering/default_ns/norm"></edge>
         <edge source="SegmentationWithGaps/doc01#norm12" target="SegmentationWithGaps/doc01#norm14" label="Ordering/default_ns/norm"></edge>
         <edge source="SegmentationWithGaps/doc01#norm14" target="SegmentationWithGaps/doc01#norm15" label="Ordering/default_ns/norm"></edge>
         <edge source="SegmentationWithGaps/doc01#norm15" target="SegmentationWithGaps/doc01#norm16" label="Ordering/default_ns/norm"></edge>
+
         <edge source="SegmentationWithGaps/doc01#tok_1" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
         <edge source="SegmentationWithGaps/doc01#tok_2" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
         <edge source="SegmentationWithGaps/doc01#sSpan1" target="SegmentationWithGaps/doc01#subtok.demo.doc01.text.xml" label="PartOf/annis/"></edge>
