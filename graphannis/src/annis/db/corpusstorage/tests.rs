@@ -470,3 +470,48 @@ fn load_legacy_binary_corpus() {
 
     compare_corpora(db1, db2, false);
 }
+
+#[test]
+fn subgraph_context_generation() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    let corpus_name = cs
+        .import_from_fs(
+            &cargo_dir.join("tests/SegmentationWithGaps.graphml"),
+            ImportFormat::GraphML,
+            None,
+            false,
+            true,
+            |_| {},
+        )
+        .unwrap();
+
+    // Use the norm="Gaps" node as match
+    let m = vec!["SegmentationWithGaps/doc01#norm12".to_string()];
+
+    // Get the context using tokens
+    let g = cs.subgraph(&corpus_name, m, 1, 2, None).unwrap();
+    // Check that all token are included
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
+        .unwrap()
+        .is_some());
+}
