@@ -458,20 +458,30 @@ fn add_subgraph_precedence_with_segmentation(
     // Find any node that overlaps the matched node (including itself)
     // This is needed, since the following precedence query only works on nodes
     // with this segmentation anno (and the match can be any node)
-    // #m _o_ #start_seg
+    // When the context defines the left side, this is the end of the range,
+    // otherwise the start
+    // #m _o_ #start_seg / #m _o_ #end_seg
     let m = q.add_node(match_spec.clone(), Some("m"));
     let start_seg = q.add_node(NodeSearchSpec::AnyNode, Some("start_seg"));
-    q.add_operator(
-        Arc::new(operators::OverlapSpec { reflexive: true }),
-        &m,
-        &start_seg,
-        false,
-    )?;
-
-    // Include the segmentation node having the specified distance
-    // #start_seg .segmentation,0,ctx #end_seg (right context) or
-    // #end_seg .segmentation,0,ctx #start_seg (left context)
     let end_seg = q.add_node(NodeSearchSpec::AnyNode, Some("end_seg"));
+    if left_ctx {
+        q.add_operator(
+            Arc::new(operators::OverlapSpec { reflexive: true }),
+            &m,
+            &start_seg,
+            false,
+        )?;
+    } else {
+        q.add_operator(
+            Arc::new(operators::OverlapSpec { reflexive: true }),
+            &m,
+            &end_seg,
+            false,
+        )?;
+    }
+    // Define that the previously defined segmentation nodes have the specified
+    // distance
+    // #start_seg .segmentation,0,ctx #end_seg
     q.add_operator(
         Arc::new(operators::PrecedenceSpec {
             segmentation: Some(segmentation.to_string()),
@@ -480,54 +490,48 @@ fn add_subgraph_precedence_with_segmentation(
                 max_dist: ctx,
             },
         }),
-        if left_ctx { &end_seg } else { &start_seg },
-        if left_ctx { &start_seg } else { &end_seg },
+        &start_seg,
+        &end_seg,
+        false,
+    )?;
+
+    // Get the token left/right aligned to the end_seg/start_seg
+    let start_t = q.add_node(NodeSearchSpec::AnyToken, Some("start_t"));
+    let end_t = q.add_node(NodeSearchSpec::AnyToken, Some("end_t"));
+    q.add_operator(
+        Arc::new(operators::LeftAlignmentSpec),
+        &start_seg,
+        &start_t,
+        false,
+    )?;
+    q.add_operator(
+        Arc::new(operators::RightAlignmentSpec),
+        &end_seg,
+        &end_t,
         false,
     )?;
 
     // Get all token in that range (including the start/end token themselves)
     let t = q.add_node(NodeSearchSpec::AnyToken, Some("t"));
-    if left_ctx {
-        // #end_seg .* #t & #t .* start_seg
-        q.add_operator(
-            Arc::new(operators::PrecedenceSpec {
-                segmentation: None,
-                dist: RangeSpec::UnboundFromZero,
-            }),
-            &end_seg,
-            &t,
-            false,
-        )?;
-        q.add_operator(
-            Arc::new(operators::PrecedenceSpec {
-                segmentation: None,
-                dist: RangeSpec::UnboundFromZero,
-            }),
-            &t,
-            &start_seg,
-            false,
-        )?;
-    } else {
-        // #start_seg .* #t & #t .* end_seg
-        q.add_operator(
-            Arc::new(operators::PrecedenceSpec {
-                segmentation: None,
-                dist: RangeSpec::UnboundFromZero,
-            }),
-            &start_seg,
-            &t,
-            false,
-        )?;
-        q.add_operator(
-            Arc::new(operators::PrecedenceSpec {
-                segmentation: None,
-                dist: RangeSpec::UnboundFromZero,
-            }),
-            &t,
-            &end_seg,
-            false,
-        )?;
-    }
+    // #start_t .* #t & #t .* end_t
+    q.add_operator(
+        Arc::new(operators::PrecedenceSpec {
+            segmentation: None,
+            dist: RangeSpec::UnboundFromZero,
+        }),
+        &start_t,
+        &t,
+        false,
+    )?;
+    q.add_operator(
+        Arc::new(operators::PrecedenceSpec {
+            segmentation: None,
+            dist: RangeSpec::UnboundFromZero,
+        }),
+        &t,
+        &end_t,
+        false,
+    )?;
 
     // Get all the nodes that overlap the token in that range
     q.add_operator(
