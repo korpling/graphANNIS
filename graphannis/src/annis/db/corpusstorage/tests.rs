@@ -242,6 +242,109 @@ fn subgraph_with_segmentation() {
     assert_eq!(None, graph.get_node_id_from_name("root/doc1#seg3").unwrap());
 }
 
+#[test]
+fn subgraph_with_segmentation_and_gap() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    let corpus_name = cs
+        .import_from_fs(
+            &cargo_dir.join("tests/SegmentationWithGaps.graphml"),
+            ImportFormat::GraphML,
+            None,
+            false,
+            true,
+            |_| {},
+        )
+        .unwrap();
+
+    // Use the norm="Gaps" node as match
+    let m = vec!["SegmentationWithGaps/doc01#norm12".to_string()];
+
+    // Get the context using tokens
+    let g = cs.subgraph(&corpus_name, m.clone(), 1, 2, None).unwrap();
+    // Check that all token and the page are included
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
+        .unwrap()
+        .is_some());
+
+    // Get the context for the norm node using the norm segmentation
+    let g = cs
+        .subgraph(&corpus_name, m, 1, 1, Some("norm".to_string()))
+        .unwrap();
+    // Check that all token and the page are included
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
+        .unwrap()
+        .is_some());
+
+    // Get the context for the token using the norm segmentation
+    let g = cs
+        .subgraph(
+            &corpus_name,
+            vec!["SegmentationWithGaps/doc01#tok_12".to_string()],
+            1,
+            1,
+            Some("norm".to_string()),
+        )
+        .unwrap();
+    // Check that all token and the page are included
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
+        .unwrap()
+        .is_some());
+    assert!(g
+        .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
+        .unwrap()
+        .is_some());
+}
+
 fn compare_annos<T>(
     annos1: &dyn AnnotationStorage<T>,
     annos2: &dyn AnnotationStorage<T>,
@@ -470,107 +573,4 @@ fn load_legacy_binary_corpus() {
     let db2 = get_read_or_error(&lock2).unwrap();
 
     compare_corpora(db1, db2, false);
-}
-
-#[test]
-fn subgraph_context_generation() {
-    let tmp = tempfile::tempdir().unwrap();
-    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-
-    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
-    let corpus_name = cs
-        .import_from_fs(
-            &cargo_dir.join("tests/SegmentationWithGaps.graphml"),
-            ImportFormat::GraphML,
-            None,
-            false,
-            true,
-            |_| {},
-        )
-        .unwrap();
-
-    // Use the norm="Gaps" node as match
-    let m = vec!["SegmentationWithGaps/doc01#norm12".to_string()];
-
-    // Get the context using tokens
-    let g = cs.subgraph(&corpus_name, m.clone(), 1, 2, None).unwrap();
-    // Check that all token and the page are included
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
-        .unwrap()
-        .is_some());
-
-    // Get the context for the norm node using the norm segmentation
-    let g = cs
-        .subgraph(&corpus_name, m, 1, 1, Some("norm".to_string()))
-        .unwrap();
-    // Check that all token and the page are included
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
-        .unwrap()
-        .is_some());
-
-    // Get the context for the token using the norm segmentation
-    let g = cs
-        .subgraph(
-            &corpus_name,
-            vec!["SegmentationWithGaps/doc01#tok_12".to_string()],
-            1,
-            1,
-            Some("norm".to_string()),
-        )
-        .unwrap();
-    // Check that all token and the page are included
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
-        .unwrap()
-        .is_some());
 }
