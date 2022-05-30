@@ -242,6 +242,8 @@ fn subgraph_with_segmentation() {
     assert_eq!(None, graph.get_node_id_from_name("root/doc1#seg3").unwrap());
 }
 
+/// Test that context generation works with a corpus that has segmentations
+/// and gaps in the segments.
 #[test]
 fn subgraph_with_segmentation_and_gap() {
     let tmp = tempfile::tempdir().unwrap();
@@ -259,12 +261,13 @@ fn subgraph_with_segmentation_and_gap() {
         )
         .unwrap();
 
-    // Use the norm="Gaps" node as match
+    // Use the norm="Gaps" node as match which is an existing segmentation
     let m = vec!["SegmentationWithGaps/doc01#norm12".to_string()];
 
     // Get the context using tokens
     let g = cs.subgraph(&corpus_name, m.clone(), 1, 2, None).unwrap();
-    // Check that all token and the page are included
+    // Check that all token and the page are included, including the token
+    // that is not covered by a segmentation node.
     assert!(g
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
         .unwrap()
