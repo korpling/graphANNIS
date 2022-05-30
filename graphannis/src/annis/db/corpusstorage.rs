@@ -447,48 +447,100 @@ fn add_subgraph_precedence_with_segmentation(
     query: &mut Disjunction,
     ctx: usize,
     segmentation: &str,
-    m: &NodeSearchSpec,
-    left: bool,
+    match_spec: &NodeSearchSpec,
+    left_ctx: bool,
 ) -> Result<()> {
-    // nodes overlapping the ones directly left/right of match (using reflexive overlap):
-    // target _o_ node .seg,0,ctx m_node _o_ m
-    // m _o_ m_node .0.ctx node  _o_ target
-    {
-        let mut q = Conjunction::new();
-        // Since only the first node is included in the result, make sure the target node is the first node of th query
-        let target_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-        let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-        let m_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-        let m_idx = q.add_node(m.clone(), None);
+    let mut q = Conjunction::new();
 
+    // Add the node that defines the result first
+    let result_node = q.add_node(NodeSearchSpec::AnyNode, None);
+
+    // Find any node that overlaps the matched node (including itself)
+    // This is needed, since the following precedence query only works on nodes
+    // with this segmentation anno (and the match can be any node)
+    // When the context defines the left side, this is the end of the range,
+    // otherwise the start
+    // #m _o_ #start_seg / #m _o_ #end_seg
+    let m = q.add_node(match_spec.clone(), Some("m"));
+    let start_seg = q.add_node(NodeSearchSpec::AnyNode, Some("start_seg"));
+    let end_seg = q.add_node(NodeSearchSpec::AnyNode, Some("end_seg"));
+    if left_ctx {
         q.add_operator(
             Arc::new(operators::OverlapSpec { reflexive: true }),
-            &m_node_idx,
-            &m_idx,
+            &m,
+            &start_seg,
             false,
         )?;
-
+    } else {
         q.add_operator(
             Arc::new(operators::OverlapSpec { reflexive: true }),
-            &target_idx,
-            &node_idx,
+            &m,
+            &end_seg,
             false,
         )?;
-
-        q.add_operator(
-            Arc::new(operators::PrecedenceSpec {
-                segmentation: Some(segmentation.to_string()),
-                dist: RangeSpec::Bound {
-                    min_dist: 0,
-                    max_dist: ctx,
-                },
-            }),
-            if left { &node_idx } else { &m_node_idx },
-            if left { &m_node_idx } else { &node_idx },
-            false,
-        )?;
-        query.alternatives.push(q);
     }
+    // Define that the previously defined segmentation nodes have the specified
+    // distance
+    // #start_seg .segmentation,0,ctx #end_seg
+    q.add_operator(
+        Arc::new(operators::PrecedenceSpec {
+            segmentation: Some(segmentation.to_string()),
+            dist: RangeSpec::Bound {
+                min_dist: 0,
+                max_dist: ctx,
+            },
+        }),
+        &start_seg,
+        &end_seg,
+        false,
+    )?;
+
+    // Get the token left/right aligned to the end_seg/start_seg
+    let start_t = q.add_node(NodeSearchSpec::AnyToken, Some("start_t"));
+    let end_t = q.add_node(NodeSearchSpec::AnyToken, Some("end_t"));
+    q.add_operator(
+        Arc::new(operators::LeftAlignmentSpec),
+        &start_seg,
+        &start_t,
+        false,
+    )?;
+    q.add_operator(
+        Arc::new(operators::RightAlignmentSpec),
+        &end_seg,
+        &end_t,
+        false,
+    )?;
+
+    // Get all token in that range (including the start/end token themselves)
+    let t = q.add_node(NodeSearchSpec::AnyToken, Some("t"));
+    // #start_t .* #t & #t .* end_t
+    q.add_operator(
+        Arc::new(operators::PrecedenceSpec {
+            segmentation: None,
+            dist: RangeSpec::UnboundFromZero,
+        }),
+        &start_t,
+        &t,
+        false,
+    )?;
+    q.add_operator(
+        Arc::new(operators::PrecedenceSpec {
+            segmentation: None,
+            dist: RangeSpec::UnboundFromZero,
+        }),
+        &t,
+        &end_t,
+        false,
+    )?;
+
+    // Get all the nodes that overlap the token in that range
+    q.add_operator(
+        Arc::new(operators::OverlapSpec { reflexive: true }),
+        &t,
+        &result_node,
+        false,
+    )?;
+    query.alternatives.push(q);
 
     Ok(())
 }

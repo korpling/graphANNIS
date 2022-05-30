@@ -5,6 +5,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix subgraph generation when a segmentation was defined as context and the
+  match includes a token that is not covered by a segmentation node (there are
+  gaps in the segmentation). This is achieved by explicitly searching for all
+  token between the first and last matched segment and produces a more complex
+  query than before. Because token where missing from the graph, it could appear
+  in ANNIS that there are gaps in the data and that the token order is
+  incorrect.
+
 ## [2.0.5] - 2022-05-12
 
 ### Fixed
