@@ -65,6 +65,9 @@ impl Default for JWTVerification {
 #[derive(Debug, Deserialize, Default)]
 pub struct Auth {
     pub token_verification: JWTVerification,
+    /// If true, all corpora can be accessed (read-only) without any authentication
+    #[serde(default)]
+    pub allow_all_corpora: bool,
 }
 
 #[derive(Debug, Deserialize, Default)]

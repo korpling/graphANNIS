@@ -1,121 +1,94 @@
 {
-    "version": "2.0.0",
-    "presentation": {
-        "reveal": "always",
-        "panel": "shared"
+  "version": "2.0.0",
+  "presentation": {
+    "reveal": "always",
+    "panel": "shared"
+  },
+  "tasks": [
+    {
+      "label": "cargo build (release)",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build", "--release", "--all-features"],
+      "group": "build",
+      "problemMatcher": "$rustc"
     },
-    "tasks": [
-        {
-            "label": "cargo build (release)",
-            "type": "shell",
-            "command": "cargo",
-            "args": [
-                "build",
-                "--release",
-                "--all-features"
-            ],
-            "group": "build",
-            "problemMatcher": "$rustc"
-        },
-        {
-            "label": "cargo build (debug)",
-            "type": "shell",
-            "command": "cargo",
-            "args": [
-                "build",
-                "---all-features"
-            ],
-            "group": "build",
-            "problemMatcher": "$rustc"
-        },
-        {
-            "label": "cargo check",
-            "type": "shell",
-            "command": "cargo",
-            "args": [
-                "check",
-                "--tests",
-                "--benches",
-                "--all-features"
-            ],
-            "group": "build",
-            "problemMatcher": "$rustc"
-        },
-        {
-            "label": "cargo clippy",
-            "type": "shell",
-            "command": "cargo",
-            "args": [
-                "clippy"
-            ],
-            "group": "build",
-            "problemMatcher": "$rustc"
-        },
-        {
-            "label": "cargo run",
-            "type": "shell",
-            "command": "cargo",
-            "args": [
-                "run"
-            ],
-            "problemMatcher": "$rustc",
-            "presentation": {
-                "panel": "shared"
-            }
-        },
-        {
-            "label": "cargo test",
-            "type": "shell",
-            "command": "cargo",
-            "args": [
-                "test"
-            ],
-            "group": "test",
-            "problemMatcher": "$rustc"
-        },
-        {
-            "label": "cargo bench",
-            "type": "shell",
-            "command": "cargo",
-            "args": [
-                "bench"
-            ],
-            "problemMatcher": "$rustc"
-        },
-        {
-            "label": "cargo clean",
-            "type": "shell",
-            "command": "cargo",
-            "args": [
-                "clean"
-            ]
-        },
-        {
-            "label": "cargo doc",
-            "type": "shell",
-            "command": "cargo",
-            "args": [
-                "doc",
-                "--no-deps"
-            ],
-            "problemMatcher": [
-                "$rustc"
-            ]
-        },
-        {
-            "label": "Generate C Bindings Header",
-            "command": "cbindgen",
-            "args": [
-                "--lockfile",
-                "${workspaceFolder}/Cargo.lock",
-                "-o",
-                "include/graphannis-capi.h"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}/capi/"
-            },
-            "group": "build",
-            "problemMatcher": []
-        }
-    ]
+    {
+      "label": "cargo build (debug)",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build", "--all-features"],
+      "group": "build",
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "cargo check",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["check", "--tests", "--benches", "--all-features"],
+      "group": "build",
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "cargo clippy",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["clippy"],
+      "group": "build",
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "cargo run",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["run"],
+      "problemMatcher": "$rustc",
+      "presentation": {
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "cargo test",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["test"],
+      "group": "test",
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "cargo bench",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["bench"],
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "cargo clean",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["clean"]
+    },
+    {
+      "label": "cargo doc",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["doc", "--no-deps"],
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "Generate C Bindings Header",
+      "command": "cbindgen",
+      "args": [
+        "--lockfile",
+        "${workspaceFolder}/Cargo.lock",
+        "-o",
+        "include/graphannis-capi.h"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/capi/"
+      },
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
 }

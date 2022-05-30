@@ -1,4 +1,4 @@
-use super::{check_corpora_authorized, check_is_admin};
+use super::{check_corpora_authorized_read, check_is_admin};
 use crate::{
     actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool,
 };
@@ -27,11 +27,14 @@ pub async fn list(
     cs: web::Data<CorpusStorage>,
     claims: ClaimsFromAuth,
     db_pool: web::Data<DbPool>,
+    settings: web::Data<Settings>,
 ) -> Result<HttpResponse, ServiceError> {
     let all_corpora: Vec<String> = cs.list()?.into_iter().map(|c| c.name).collect();
 
     let allowed_corpora = if claims.0.roles.iter().any(|r| r.as_str() == "admin") {
         // Administrators always have access to all corpora
+        all_corpora
+    } else if settings.auth.allow_all_corpora {
         all_corpora
     } else {
         // Query the database for all allowed corpora of this user
@@ -65,8 +68,9 @@ pub async fn subgraph(
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
     claims: ClaimsFromAuth,
+    settings: web::Data<Settings>,
 ) -> Result<HttpResponse, ServiceError> {
-    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+    check_corpora_authorized_read(vec![corpus.clone()], claims.0, &settings, &db_pool).await?;
     let graph = cs.subgraph(
         &corpus,
         params.node_ids.clone(),
@@ -98,8 +102,9 @@ pub async fn subgraph_for_query(
     cs: web::Data<CorpusStorage>,
     db_pool: web::Data<DbPool>,
     claims: ClaimsFromAuth,
+    settings: web::Data<Settings>,
 ) -> Result<HttpResponse, ServiceError> {
-    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+    check_corpora_authorized_read(vec![corpus.clone()], claims.0, &settings, &db_pool).await?;
 
     let graph = cs.subgraph_for_query(
         &corpus,
@@ -121,8 +126,9 @@ pub async fn configuration(
     cs: web::Data<CorpusStorage>,
     claims: ClaimsFromAuth,
     db_pool: web::Data<DbPool>,
+    settings: web::Data<Settings>,
 ) -> Result<HttpResponse, ServiceError> {
-    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+    check_corpora_authorized_read(vec![corpus.clone()], claims.0, &settings, &db_pool).await?;
 
     let corpus_info = cs.info(corpus.as_str())?;
 
@@ -153,8 +159,9 @@ pub async fn list_components(
     cs: web::Data<CorpusStorage>,
     claims: ClaimsFromAuth,
     db_pool: web::Data<DbPool>,
+    settings: web::Data<Settings>,
 ) -> Result<HttpResponse, ServiceError> {
-    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+    check_corpora_authorized_read(vec![corpus.clone()], claims.0, &settings, &db_pool).await?;
 
     let components: Vec<_> = cs
         .list_components(
@@ -187,8 +194,9 @@ pub async fn node_annotations(
     cs: web::Data<CorpusStorage>,
     claims: ClaimsFromAuth,
     db_pool: web::Data<DbPool>,
+    settings: web::Data<Settings>,
 ) -> Result<HttpResponse, ServiceError> {
-    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+    check_corpora_authorized_read(vec![corpus.clone()], claims.0, &settings, &db_pool).await?;
 
     let annos = cs.list_node_annotations(
         corpus.as_str(),
@@ -204,9 +212,10 @@ pub async fn edge_annotations(
     cs: web::Data<CorpusStorage>,
     claims: ClaimsFromAuth,
     db_pool: web::Data<DbPool>,
+    settings: web::Data<Settings>,
 ) -> Result<HttpResponse, ServiceError> {
     let (corpus, ctype, layer, name) = path.as_ref();
-    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+    check_corpora_authorized_read(vec![corpus.clone()], claims.0, &settings, &db_pool).await?;
 
     let component = graph::Component::<AnnotationComponentType>::new(
         ctype.to_owned(),
@@ -236,7 +245,7 @@ pub async fn list_files(
     db_pool: web::Data<DbPool>,
     settings: web::Data<Settings>,
 ) -> Result<HttpResponse, ServiceError> {
-    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+    check_corpora_authorized_read(vec![corpus.clone()], claims.0, &settings, &db_pool).await?;
 
     let mut found_files = Vec::default();
     let escaped_corpus_name: Cow<str> =
@@ -290,7 +299,7 @@ pub async fn file_content(
 ) -> Result<NamedFile, ServiceError> {
     let name = percent_encoding::percent_decode_str(&name).decode_utf8_lossy();
 
-    check_corpora_authorized(vec![corpus.clone()], claims.0, &db_pool).await?;
+    check_corpora_authorized_read(vec![corpus.clone()], claims.0, &settings, &db_pool).await?;
 
     // Perform some sanity checks to make sure only the relative sub-folder is used
     let file_path = name.trim();

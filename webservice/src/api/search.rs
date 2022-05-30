@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use super::check_corpora_authorized;
+use super::check_corpora_authorized_read;
 use crate::{errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool};
 use actix_web::web::{self, Bytes, HttpResponse};
 use futures::stream::iter;
@@ -25,7 +25,9 @@ pub async fn count(
     settings: web::Data<Settings>,
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
-    let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
+    let corpora =
+        check_corpora_authorized_read(params.corpora.clone(), claims.0, &settings, &db_pool)
+            .await?;
     let query = SearchQuery {
         corpus_names: &corpora,
         query: &params.query,
@@ -72,7 +74,9 @@ pub async fn find(
     settings: web::Data<Settings>,
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
-    let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
+    let corpora =
+        check_corpora_authorized_read(params.corpora.clone(), claims.0, &settings, &db_pool)
+            .await?;
     let query = SearchQuery {
         corpus_names: &corpora,
         query: &params.query,
@@ -110,7 +114,9 @@ pub async fn frequency(
     settings: web::Data<Settings>,
     claims: ClaimsFromAuth,
 ) -> Result<HttpResponse, ServiceError> {
-    let corpora = check_corpora_authorized(params.corpora.clone(), claims.0, &db_pool).await?;
+    let corpora =
+        check_corpora_authorized_read(params.corpora.clone(), claims.0, &settings, &db_pool)
+            .await?;
     let query = SearchQuery {
         corpus_names: &corpora,
         query: &params.query,
