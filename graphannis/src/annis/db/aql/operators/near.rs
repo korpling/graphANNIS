@@ -9,6 +9,7 @@ use crate::{
     graph::{GraphStorage, Match},
 };
 use crate::{try_as_boxed_iter, AnnotationGraph};
+use graphannis_core::graph::DEFAULT_NS;
 use graphannis_core::types::NodeID;
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
@@ -39,9 +40,14 @@ impl BinaryOperatorSpec for NearSpec {
         &self,
         db: &AnnotationGraph,
     ) -> HashSet<Component<AnnotationComponentType>> {
+        let ordering_layer = if self.segmentation.is_none() {
+            ANNIS_NS.to_owned()
+        } else {
+            DEFAULT_NS.to_owned()
+        };
         let component_order = Component::new(
             AnnotationComponentType::Ordering,
-            ANNIS_NS.into(),
+            ordering_layer.into(),
             self.segmentation
                 .as_ref()
                 .map_or_else(smartstring::alias::String::default, |s| s.into()),
@@ -79,9 +85,14 @@ impl std::fmt::Display for NearSpec {
 
 impl<'a> Near<'a> {
     pub fn new(graph: &'a AnnotationGraph, spec: NearSpec) -> Result<Near<'a>> {
+        let ordering_layer = if spec.segmentation.is_none() {
+            ANNIS_NS.to_owned()
+        } else {
+            DEFAULT_NS.to_owned()
+        };
         let component_order = Component::new(
             AnnotationComponentType::Ordering,
-            ANNIS_NS.into(),
+            ordering_layer.into(),
             spec.segmentation.clone().unwrap_or_default().into(),
         );
 

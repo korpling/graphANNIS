@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Near operator failed to work with segmentation constraint (#238)
 - Remove corpus storage lock file when exiting the application (#230)
 
 ## [2.0.6] - 2022-05-30
