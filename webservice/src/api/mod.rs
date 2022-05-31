@@ -24,7 +24,7 @@ async fn check_corpora_authorized_read(
     if claims.roles.iter().any(|r| r.as_str() == "admin") {
         // Administrators always have access to all corpora
         return Ok(requested_corpora);
-    } else if settings.auth.allow_all_corpora {
+    } else if settings.auth.anonymous_access_all_corpora {
         // If configured, allow read access to all users
         return Ok(requested_corpora);
     }

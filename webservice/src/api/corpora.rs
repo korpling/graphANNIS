@@ -34,7 +34,7 @@ pub async fn list(
     let allowed_corpora = if claims.0.roles.iter().any(|r| r.as_str() == "admin") {
         // Administrators always have access to all corpora
         all_corpora
-    } else if settings.auth.allow_all_corpora {
+    } else if settings.auth.anonymous_access_all_corpora {
         all_corpora
     } else {
         // Query the database for all allowed corpora of this user

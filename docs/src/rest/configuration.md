@@ -18,6 +18,9 @@ cache = {PercentOfFreeMemory = 25.0}
 [logging]
 debug = false
 
+[auth]
+anonymous_access_all_corpora = false
+
 [auth.token_verification]
 secret = "not-a-random-secret"
 type = "HS256"

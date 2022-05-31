@@ -5,6 +5,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `anonymous_access_all_corpora` to `[auth]` section of the web service
+  configuration to allow read-only access to all corpora without any
+  authentication.
+- Added documentation on how to change configure which group can access which
+  corpora.
+
 ## [2.0.6] - 2022-05-30
 
 ### Fixed
