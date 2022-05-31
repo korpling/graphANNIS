@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Document how to change the stack size of the CLI in case the import aborts
   with a stack related error. (#229)
 
+### Fixed
+
+- Remove corpus storage lock file when exiting the application (#230)
+
 ## [2.0.6] - 2022-05-30
 
 ### Fixed

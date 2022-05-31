@@ -369,6 +369,8 @@ const QUIRKS_SALT_URI_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b'%')
     .add(b'/');
 
+const DB_LOCK_FILE_NAME: &str = "db.lock";
+
 /// Common arguments to all search queries.
 #[derive(Debug, Clone)]
 pub struct SearchQuery<'a, S: AsRef<str>> {
@@ -2628,6 +2630,21 @@ impl Drop for CorpusStorage {
             warn!("Could not unlock CorpusStorage lock file: {:?}", e);
         } else {
             trace!("Unlocked CorpusStorage lock file");
+            // Delete the file after it has been unlocked. This helps in case
+            // different users have acess to the corpus directory. The first
+            // user owns the lock file and closes the CLI/web service. The
+            // second user could take over the lock, but can't if the lock file
+            // still exists and is owned by the previous user. An example
+            // workflow is having a system user for the web service and
+            // occasionally adding new corpora on the command line using an
+            // administration account (see
+            // https://github.com/korpling/graphANNIS/issues/230).
+            let lock_file_path = self.db_dir.join(DB_LOCK_FILE_NAME);
+            if lock_file_path.exists() && lock_file_path.is_file() {
+                if let Err(e) = std::fs::remove_file(lock_file_path) {
+                    warn!("Could not remove CorpusStorage lock file: {:?}", e);
+                }
+            }
         }
     }
 }
@@ -2884,7 +2901,7 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
         path: db_dir.to_string_lossy().to_string(),
         source: e,
     })?;
-    let lock_file_path = db_dir.join("db.lock");
+    let lock_file_path = db_dir.join(DB_LOCK_FILE_NAME);
     // check if we can get the file lock
     let lock_file = OpenOptions::new()
         .read(true)
