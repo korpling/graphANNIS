@@ -32,11 +32,13 @@ You can also import a ZIP file (having the file ending `.zip`) to import multipl
 ZIP files can contain a mixture of relANNIS and graphML files.
 They also have the benefit of compression, which can be especially useful for the XML-based graphML format.
 
-Per default, graphANNIS will keep the whole corpus in main memory for faster query execution.
-You can enable the **"disk-based"** mode for a corpus by executing the command `set-disk-based on` before the 
-import command. This will use much less main memory when loading a corpus, but will also cause slower query execution.
-Please note that you will still need at least 4 GB of main memory during import for larger corpora even when
-this option is on, because of internal caching (memory usage will be less for querying the corpus).
+Per default, graphANNIS will keep the whole corpus in main memory for faster
+query execution. You can enable the **"disk-based"** mode for a corpus by
+executing the command `set-disk-based on` before the import command. This will
+use much less main memory when loading a corpus, but will also cause slower
+query execution. Please note that you will still need at least 4 GB of main
+memory during import for larger corpora even when this option is on[^stacksize], because of
+internal caching (memory usage will be less for querying the corpus).
 
 ### `list`
 
@@ -155,3 +157,9 @@ A corpus might not be fully loaded into memory if not all components have been n
 To load a corpus fully into main memory, use the `preload` command.
 
 [^rename]: When downloading a binary from the release page, on MacOS you might need to rename the downloaded file from `annis.osx` to `annis`. The executable is called `annis.exe` on Windows.
+
+[^stacksize]: For some corpora, the import process might need a lot of stack
+size (a different type of main memory used by programs) and would crash during
+import with an error. On Linux systems, you can run `ulimit -s unlimited` in the
+shell before starting the graphANNIS CLI to allow an unlimited stack size when
+the import fails otherwise.

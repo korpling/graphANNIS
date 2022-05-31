@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   authentication. (#234)
 - Added documentation on how to change configure which group can access which
   corpora.
+- Document how to change the stack size of the CLI in case the import aborts
+  with a stack related error. (#229)
 
 ## [2.0.6] - 2022-05-30
 
