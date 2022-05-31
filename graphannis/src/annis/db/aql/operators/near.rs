@@ -85,9 +85,14 @@ impl std::fmt::Display for NearSpec {
 
 impl<'a> Near<'a> {
     pub fn new(graph: &'a AnnotationGraph, spec: NearSpec) -> Result<Near<'a>> {
+        let ordering_layer = if spec.segmentation.is_none() {
+            ANNIS_NS.to_owned()
+        } else {
+            DEFAULT_NS.to_owned()
+        };
         let component_order = Component::new(
             AnnotationComponentType::Ordering,
-            ANNIS_NS.into(),
+            ordering_layer.into(),
             spec.segmentation.clone().unwrap_or_default().into(),
         );
 
