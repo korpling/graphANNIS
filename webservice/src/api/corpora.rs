@@ -31,10 +31,11 @@ pub async fn list(
 ) -> Result<HttpResponse, ServiceError> {
     let all_corpora: Vec<String> = cs.list()?.into_iter().map(|c| c.name).collect();
 
-    let allowed_corpora = if claims.0.roles.iter().any(|r| r.as_str() == "admin") {
-        // Administrators always have access to all corpora
-        all_corpora
-    } else if settings.auth.anonymous_access_all_corpora {
+    let allowed_corpora = if claims.0.roles.iter().any(|r| r.as_str() == "admin")
+        || settings.auth.anonymous_access_all_corpora
+    {
+        // Administrators always have access to all corpora or read-access is
+        // configured to be granted without login
         all_corpora
     } else {
         // Query the database for all allowed corpora of this user
