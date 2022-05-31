@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2022-05-31
+
 ### Added
 
 - Added `anonymous_access_all_corpora` to `[auth]` section of the web service
