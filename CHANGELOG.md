@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2022-06-02
+
 ### Added
 
 - Allow to configure the expected display order of (sub)-corpus meta annotations
