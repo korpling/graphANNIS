@@ -117,9 +117,15 @@ pub struct ViewConfiguration {
     pub base_text_segmentation: Option<String>,
     /// Default number of results to show at once for paginated queries.
     pub page_size: usize,
-    // A list of fully qualified annotation names that should be hidden when displayed.
+    /// A list of fully qualified annotation names that should be hidden when displayed.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub hidden_annos: Vec<String>,
+    /// A sorted list of fully qualified annotation names. When showing
+    /// (metadata) annotations for a (sub)-corpus, the given annotations should
+    /// be displayed first and in the given order. Annotations not listed should
+    /// be appended in alphabetical order to the given entries.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub corpus_annotation_order: Vec<String>,
 }
 
 impl Default for ViewConfiguration {
@@ -128,6 +134,7 @@ impl Default for ViewConfiguration {
             base_text_segmentation: None,
             page_size: 10,
             hidden_annos: Vec::default(),
+            corpus_annotation_order: Vec::default(),
         }
     }
 }
