@@ -1,0 +1,35 @@
+digraph CorpusGraph {
+  margin=0;
+  graph [dpi = 400];
+  {
+    node[shape=box];
+    top[label="node_name=top\nnode_type=corpus"];
+    s1[label="node_name=sub1\nnode_type=corpus"];
+    s2[label="node_name=sub2\nnode_type=corpus"]; 
+    d1[label="node_name=doc1\nnode_type=corpus"];
+    d2[label="node_name=doc2\nnode_type=corpus"];
+  }
+  {
+
+
+    n1[label="node_name=n1\nnode_type=node"];
+    n2[label="node_name=n2\nnode_type=node"];
+    n3[label="node_name=n3\nnode_type=node"];
+    n4[label="node_name=n4\nnode_type=node"];
+  }
+
+  {
+    edge[label="PartOf"];
+    s1 -> top;
+    s2 -> s1;
+    d1 -> s2;
+    d2 -> s2;
+
+    n1 -> d1;
+    n2 -> d1;
+
+    n3 -> d2;
+    n4 -> d2;
+    
+  }
+}
