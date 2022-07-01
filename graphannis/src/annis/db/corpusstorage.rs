@@ -470,14 +470,14 @@ fn add_subgraph_precedence_with_segmentation(
         q.add_operator(
             Arc::new(operators::OverlapSpec { reflexive: true }),
             &m,
-            &start_seg,
+            &end_seg,
             false,
         )?;
     } else {
         q.add_operator(
             Arc::new(operators::OverlapSpec { reflexive: true }),
             &m,
-            &end_seg,
+            &start_seg,
             false,
         )?;
     }
