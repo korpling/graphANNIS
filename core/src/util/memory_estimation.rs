@@ -50,11 +50,11 @@ pub fn size_of_option_tempdir(val: &Option<tempfile::TempDir>, ops: &mut MallocS
 pub mod platform {
     use std::os::raw::c_void;
 
-    /// Defines which actual function is used.
-    ///
-    /// We always use the system malloc instead of jemalloc.
-    /// On MacOS X, the external function is not called "malloc_usable_size", but "malloc_size"
-    /// (it basically does the same).
+    // Defines which actual function is used.
+    //
+    // We always use the system malloc instead of jemalloc.
+    // On MacOS X, the external function is not called "malloc_usable_size", but "malloc_size"
+    // (it basically does the same).
     extern "C" {
         #[cfg_attr(any(target_os = "macos", target_os = "ios"), link_name = "malloc_size")]
         fn malloc_usable_size(ptr: *const c_void) -> usize;
