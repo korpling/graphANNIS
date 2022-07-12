@@ -18,7 +18,7 @@ where
 ///
 /// This returns the original items and it is guaranteed that the items (0..n) are
 /// sorted and that all of these items are smaller or equal to the n-th item.
-pub fn sort_first_n_items<T, F>(items: &mut Vec<T>, n: usize, order_func: F) -> Result<()>
+pub fn sort_first_n_items<T, F>(items: &mut [T], n: usize, order_func: F) -> Result<()>
 where
     T: Send,
     F: Fn(&T, &T) -> Result<std::cmp::Ordering>,

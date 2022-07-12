@@ -21,6 +21,7 @@ regex = "1"
 [dependencies]
 boolean_expression = "0.4"
 csv = "1"
+extsort = "0.4"
 fs2 = "0.4"
 graphannis-core = {path = "../core/", version = "^2"}
 graphannis-malloc_size_of = "1.0"
@@ -31,6 +32,7 @@ lazy_static = "1.4"
 libc = "0.2"
 linked-hash-map = "0.5"
 log = "0.4"
+memmap2 = "0.5"
 page_size = "0.4"
 percent-encoding = "2.1"
 rand = {version = "0.8", features = ["small_rng"]}

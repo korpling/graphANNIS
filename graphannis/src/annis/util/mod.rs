@@ -1,3 +1,4 @@
+pub mod mapslice;
 pub mod quicksort;
 
 use graphannis_core::serializer::KeyVec;
