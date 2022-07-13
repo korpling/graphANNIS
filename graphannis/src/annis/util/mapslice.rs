@@ -43,17 +43,23 @@ where
     }
 }
 
-impl<T> SortableContainer<T> for transient_btree_index::BtreeIndex<usize, T>
+impl<T> SortableContainer<T> for transient_btree_index::BtreeIndex<usize, Option<T>>
 where
     T: Serialize + DeserializeOwned + Clone + Sync + Send + 'static,
 {
     fn try_swap(&mut self, a: usize, b: usize) -> Result<()> {
-        let val_a = self.get(&a)?;
-        let val_b = self.get(&b)?;
-        if let (Some(val_a), Some(val_b)) = (val_a, val_b) {
-            self.insert(b, val_a)?;
-            self.insert(a, val_b)?;
-        }
+        let val_a = self
+            .get(&a)?
+            .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(a))?
+            .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(a))?;
+        let val_b = self
+            .get(&b)?
+            .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(b))?
+            .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(b))?;
+
+        self.insert(b, Some(val_a))?;
+        self.insert(a, Some(val_b))?;
+
         Ok(())
     }
 
@@ -62,11 +68,11 @@ where
     }
 
     fn try_get<'b>(&'b self, index: usize) -> Result<Cow<'b, T>> {
-        if let Some(result) = self.get(&index)? {
-            Ok(Cow::Owned(result))
-        } else {
-            Err(GraphAnnisError::IndexOutOfBounds(index))
-        }
+        let result = self
+            .get(&index)?
+            .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(index))?
+            .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(index))?;
+        Ok(Cow::Owned(result))
     }
 
     fn try_split_off(&mut self, _at: usize) -> Result<Box<dyn SortableContainer<T>>> {
