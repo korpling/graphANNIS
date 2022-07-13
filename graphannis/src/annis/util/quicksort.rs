@@ -1,13 +1,15 @@
 use crate::errors::Result;
 use rand::Rng;
 
+use super::mapslice::SortableContainer;
+
 /// Make sure all items of the complete vector are sorted by the given comparision function.
-pub fn sort<T, F>(items: &mut Vec<T>, order_func: F) -> Result<()>
+pub fn sort<T, F>(items: &mut dyn SortableContainer<T>, order_func: F) -> Result<()>
 where
-    T: Send,
+    T: Clone + Send,
     F: Fn(&T, &T) -> Result<std::cmp::Ordering>,
 {
-    let item_len = items.len();
+    let item_len = items.try_len()?;
     if item_len > 0 {
         quicksort(items, item_len, &order_func)?;
     }
@@ -18,12 +20,16 @@ where
 ///
 /// This returns the original items and it is guaranteed that the items (0..n) are
 /// sorted and that all of these items are smaller or equal to the n-th item.
-pub fn sort_first_n_items<T, F>(items: &mut [T], n: usize, order_func: F) -> Result<()>
+pub fn sort_first_n_items<T, F>(
+    items: &mut dyn SortableContainer<T>,
+    n: usize,
+    order_func: F,
+) -> Result<()>
 where
-    T: Send,
+    T: Clone + Send,
     F: Fn(&T, &T) -> Result<std::cmp::Ordering>,
 {
-    let item_len = items.len();
+    let item_len = items.try_len()?;
     if item_len > 0 {
         quicksort(items, n, &order_func)?;
     }
@@ -37,18 +43,24 @@ where
 /// if at least `max_size` items at the beginning of the vector have been sorted.
 ///
 /// The algorithm used a randomized pivot element.
-fn quicksort<T, F>(items: &mut [T], max_size: usize, order_func: &F) -> Result<()>
+fn quicksort<T, F>(
+    items: &mut dyn SortableContainer<T>,
+    max_size: usize,
+    order_func: &F,
+) -> Result<()>
 where
+    T: Clone,
     F: Fn(&T, &T) -> Result<std::cmp::Ordering>,
 {
-    if items.len() > 1 {
+    if items.try_len()? > 1 {
         let q = randomized_partition(items, order_func)?;
-        let (lo, hi) = items.split_at_mut(q);
+        let mut hi = items.try_split_off(q)?;
+        let lo = items;
 
         quicksort(lo, max_size, order_func)?;
         if q < max_size {
             // only sort right partition if the left partition is not large enough
-            quicksort(hi, max_size, order_func)?;
+            quicksort(hi.as_mut(), max_size, order_func)?;
         }
     }
     Ok(())
@@ -58,12 +70,16 @@ where
 ///
 /// This returns the original items and it is guaranteed that the items (0..n) are
 /// sorted and that all of these items are smaller or equal to the n-th item.
-pub fn sort_first_n_items_parallel<T, F>(items: &mut [T], n: usize, order_func: F) -> Result<()>
+pub fn sort_first_n_items_parallel<T, F>(
+    items: &mut dyn SortableContainer<T>,
+    n: usize,
+    order_func: F,
+) -> Result<()>
 where
-    T: Send,
+    T: Clone + Send,
     F: Fn(&T, &T) -> Result<std::cmp::Ordering> + Sync,
 {
-    let item_len = items.len();
+    let item_len = items.try_len()?;
     if item_len > 0 {
         quicksort_parallel(items, n, &order_func)?;
     }
@@ -77,21 +93,26 @@ where
 /// if at least `max_size` items at the beginning of the vector have been sorted.
 ///
 /// The algorithm used a randomized pivot element and is executed in parallel.
-fn quicksort_parallel<T, F>(items: &mut [T], max_size: usize, order_func: &F) -> Result<()>
+fn quicksort_parallel<T, F>(
+    items: &mut dyn SortableContainer<T>,
+    max_size: usize,
+    order_func: &F,
+) -> Result<()>
 where
-    T: Send,
+    T: Clone + Send,
     F: Fn(&T, &T) -> Result<std::cmp::Ordering> + Sync,
 {
-    if items.len() > 1 {
+    if items.try_len()? > 1 {
         let q = randomized_partition(items, order_func)?;
-        let (lo, hi) = items.split_at_mut(q);
+        let mut hi = items.try_split_off(q)?;
+        let lo = items;
 
         let result = rayon::join(
             || quicksort_parallel(lo, max_size, order_func),
             || -> Result<()> {
                 if q < max_size {
                     // only sort right partition if the left partition is not large enough
-                    quicksort_parallel(hi, max_size, order_func)?;
+                    quicksort_parallel(hi.as_mut(), max_size, order_func)?;
                 }
                 Ok(())
             },
@@ -103,41 +124,45 @@ where
     Ok(())
 }
 
-fn randomized_partition<T, F>(items: &mut [T], order_func: &F) -> Result<usize>
+fn randomized_partition<T, F>(items: &mut dyn SortableContainer<T>, order_func: &F) -> Result<usize>
 where
+    T: Clone,
     F: Fn(&T, &T) -> Result<std::cmp::Ordering>,
 {
-    let items_len = items.len();
+    let items_len = items.try_len()?;
     if items_len == 0 {
         Ok(0)
     } else {
         let mut rng = rand::thread_rng();
         let i = rng.gen_range(0..items_len);
-        items.swap(items_len - 1, i);
+        items.try_swap(items_len - 1, i)?;
         partition(items, order_func)
     }
 }
 
-fn partition<T, F>(items: &mut [T], order_func: &F) -> Result<usize>
+fn partition<T, F>(items: &mut dyn SortableContainer<T>, order_func: &F) -> Result<usize>
 where
+    T: Clone,
     F: Fn(&T, &T) -> Result<std::cmp::Ordering>,
 {
-    let r = items.len() - 1;
+    let r = items.try_len()? - 1;
 
     let mut i = 0;
 
-    for j in 0..(items.len() - 1) {
-        let comparision = order_func(&items[j], &items[r])?;
+    for j in 0..(items.try_len()? - 1) {
+        let item_j = items.try_get(j)?;
+        let item_r = items.try_get(r)?;
+        let comparision = order_func(item_j.as_ref(), item_r.as_ref())?;
         match comparision {
             std::cmp::Ordering::Less | std::cmp::Ordering::Equal => {
-                items.swap(i, j);
+                items.try_swap(i, j)?;
                 i += 1;
             }
             _ => {}
         }
     }
 
-    items.swap(i, r);
+    items.try_swap(i, r)?;
 
     Ok(i)
 }

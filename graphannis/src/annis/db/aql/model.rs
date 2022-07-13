@@ -326,14 +326,14 @@ impl AQLUpdateGraphIndex {
         }
 
         // order the candidate token by their position in the order chain
-        let mut candidates: Vec<_> = covered_token.iter().collect();
+        let mut candidates: Vec<u64> = covered_token.iter().copied().collect();
         quicksort::sort(&mut candidates, move |a, b| {
-            if **a == **b {
+            if *a == *b {
                 return Ok(std::cmp::Ordering::Equal);
             }
-            if gs_order.is_connected(**a, **b, 1, std::ops::Bound::Unbounded)? {
+            if gs_order.is_connected(*a, *b, 1, std::ops::Bound::Unbounded)? {
                 return Ok(std::cmp::Ordering::Less);
-            } else if gs_order.is_connected(**b, **a, 1, std::ops::Bound::Unbounded)? {
+            } else if gs_order.is_connected(*b, *a, 1, std::ops::Bound::Unbounded)? {
                 return Ok(std::cmp::Ordering::Greater);
             }
             Ok(std::cmp::Ordering::Equal)
@@ -349,11 +349,11 @@ impl AQLUpdateGraphIndex {
             let gs = graph.get_or_create_writable(&alignment_component)?;
             let e = Edge {
                 source: n,
-                target: **t,
+                target: *t,
             };
             gs.add_edge(e)?;
 
-            Ok(Some(**t))
+            Ok(Some(*t))
         } else {
             Ok(None)
         }
