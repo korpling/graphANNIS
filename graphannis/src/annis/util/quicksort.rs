@@ -1,7 +1,7 @@
 use crate::errors::Result;
 use rand::Rng;
 
-use super::mapslice::SortableContainer;
+use super::sortablecontainer::SortableContainer;
 
 /// Make sure all items of the complete vector are sorted by the given comparision function.
 pub fn sort<T, F>(items: &mut dyn SortableContainer<T>, order_func: F) -> Result<()>

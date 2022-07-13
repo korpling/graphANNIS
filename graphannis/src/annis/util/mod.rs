@@ -1,5 +1,5 @@
-pub mod mapslice;
 pub mod quicksort;
+pub mod sortablecontainer;
 
 use graphannis_core::serializer::KeyVec;
 
