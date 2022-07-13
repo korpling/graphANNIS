@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use crate::annis::errors::{GraphAnnisError, Result};
 use serde::{de::DeserializeOwned, Serialize};
+use transient_btree_index::{BtreeConfig, BtreeIndex};
 
 pub trait SortableContainer<T: Clone>: Send {
     /// Swaps two elements in the container.
@@ -75,7 +76,19 @@ where
         Ok(Cow::Owned(result))
     }
 
-    fn try_split_off(&mut self, _at: usize) -> Result<Box<dyn SortableContainer<T>>> {
-        todo!()
+    fn try_split_off(&mut self, at: usize) -> Result<Box<dyn SortableContainer<T>>> {
+        // Create a new container which contains the right side
+        let mut new_container = BtreeIndex::with_capacity(BtreeConfig::default(), self.len() - at)?;
+        for i in at..self.len() {
+            let v = self
+                .get(&i)?
+                .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(i))?
+                .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(i))?;
+            // Insert into new container
+            new_container.insert(i, Some(v))?;
+            // Remove from the old one by adding a tombstone entry
+            self.insert(i, None)?;
+        }
+        Ok(Box::new(new_container))
     }
 }
