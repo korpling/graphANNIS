@@ -56,6 +56,9 @@
                     "--lib"
                 ]
             },
+            "sourceLanguages": [
+                "rust"
+            ],
             "cwd": "${workspaceRoot}"
         }
     ]
