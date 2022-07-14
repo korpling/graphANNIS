@@ -2,7 +2,6 @@ use std::borrow::Cow;
 
 use crate::annis::errors::{GraphAnnisError, Result};
 use serde::{de::DeserializeOwned, Serialize};
-use transient_btree_index::{BtreeConfig, BtreeIndex};
 
 pub trait SortableContainer<T: Clone>: Send {
     /// Swaps two elements in the container.
@@ -13,8 +12,6 @@ pub trait SortableContainer<T: Clone>: Send {
     fn try_len(&self) -> Result<usize>;
 
     fn try_get<'b>(&'b self, index: usize) -> Result<Cow<'b, T>>;
-
-    fn try_split_off(&mut self, at: usize) -> Result<Box<dyn SortableContainer<T>>>;
 }
 
 impl<T> SortableContainer<T> for Vec<T>
@@ -36,11 +33,6 @@ where
         } else {
             Err(GraphAnnisError::IndexOutOfBounds(index))
         }
-    }
-
-    fn try_split_off(&mut self, at: usize) -> Result<Box<dyn SortableContainer<T>>> {
-        let new_vec = self.split_off(at);
-        Ok(Box::new(new_vec))
     }
 }
 
@@ -74,21 +66,5 @@ where
             .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(index))?
             .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(index))?;
         Ok(Cow::Owned(result))
-    }
-
-    fn try_split_off(&mut self, at: usize) -> Result<Box<dyn SortableContainer<T>>> {
-        // Create a new container which contains the right side
-        let mut new_container = BtreeIndex::with_capacity(BtreeConfig::default(), self.len() - at)?;
-        for i in at..self.len() {
-            let v = self
-                .get(&i)?
-                .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(i))?
-                .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(i))?;
-            // Insert into new container
-            new_container.insert(i, Some(v))?;
-            // Remove from the old one by adding a tombstone entry
-            self.insert(i, None)?;
-        }
-        Ok(Box::new(new_container))
     }
 }

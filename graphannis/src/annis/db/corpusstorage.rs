@@ -1845,15 +1845,7 @@ impl CorpusStorage {
                     tmp_results.len()
                 };
 
-                if self.query_config.use_parallel_joins {
-                    quicksort::sort_first_n_items_parallel(
-                        &mut tmp_results,
-                        sort_size,
-                        order_func,
-                    )?;
-                } else {
-                    quicksort::sort_first_n_items(&mut tmp_results, sort_size, order_func)?;
-                }
+                quicksort::sort_first_n_items(&mut tmp_results, sort_size, order_func)?;
             }
             expected_size = Some(tmp_results.len());
             Box::from(tmp_results.into_iter().map(Ok))
