@@ -1782,7 +1782,7 @@ impl CorpusStorage {
         } else {
             let estimated_result_size = plan.estimated_output_size();
             let btree_config = BtreeConfig::default().fixed_key_size(size_of::<usize>());
-            let mut tmp_results: BtreeIndex<usize, Option<Vec<Match>>> =
+            let mut tmp_results: BtreeIndex<usize, Vec<Match>> =
                 BtreeIndex::with_capacity(btree_config, estimated_result_size)?;
 
             if order == ResultOrder::Randomized {
@@ -1795,7 +1795,7 @@ impl CorpusStorage {
                     while tmp_results.contains_key(&idx)? {
                         idx = rng.gen();
                     }
-                    tmp_results.insert(idx, Some(mgroup.to_vec()))?;
+                    tmp_results.insert(idx, mgroup.to_vec())?;
                 }
             } else {
                 // Insert results in the order as they are given by the iterator
@@ -1803,7 +1803,7 @@ impl CorpusStorage {
                 for (idx, mgroup) in plan.enumerate() {
                     let mgroup = mgroup?;
                     // add all matches to temporary container
-                    tmp_results.insert(idx, Some(mgroup.to_vec()))?;
+                    tmp_results.insert(idx, mgroup.to_vec())?;
                 }
 
                 let token_helper = TokenHelper::new(db).ok();
@@ -1858,11 +1858,10 @@ impl CorpusStorage {
                 quicksort::sort_first_n_items(&mut tmp_results, sort_size, order_func)?;
             }
             expected_size = Some(tmp_results.len());
-            // TODO: don' use unwrap
             let iterator = tmp_results
                 .into_iter()?
-                .filter_map(|m| m.unwrap().1)
-                .map(|m| Ok(MatchGroup::from(m)));
+                .map_ok(|m| MatchGroup::from(m.1))
+                .map(|item| item.map_err(GraphAnnisError::from));
             Box::from(iterator)
         };
 
