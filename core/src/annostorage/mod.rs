@@ -15,7 +15,7 @@ use std::{boxed::Box, path::Path};
 use crate::malloc_size_of::MallocSizeOf;
 
 /// A match is the result of a query on an annotation storage.
-#[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Match {
     /// The node identifier this match refers to.
     pub node: NodeID,
