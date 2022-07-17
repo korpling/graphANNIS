@@ -1781,7 +1781,9 @@ impl CorpusStorage {
             Box::from(plan)
         } else {
             let estimated_result_size = plan.estimated_output_size();
-            let btree_config = BtreeConfig::default().fixed_key_size(size_of::<usize>());
+            let btree_config = BtreeConfig::default()
+                .fixed_key_size(size_of::<usize>())
+                .max_value_size(512);
             let mut tmp_results: BtreeIndex<usize, Vec<Match>> =
                 BtreeIndex::with_capacity(btree_config, estimated_result_size)?;
 
@@ -1795,7 +1797,7 @@ impl CorpusStorage {
                     while tmp_results.contains_key(&idx)? {
                         idx = rng.gen();
                     }
-                    tmp_results.insert(idx, mgroup.to_vec())?;
+                    tmp_results.insert(idx, mgroup)?;
                 }
             } else {
                 // Insert results in the order as they are given by the iterator
@@ -1803,7 +1805,7 @@ impl CorpusStorage {
                 for (idx, mgroup) in plan.enumerate() {
                     let mgroup = mgroup?;
                     // add all matches to temporary container
-                    tmp_results.insert(idx, mgroup.to_vec())?;
+                    tmp_results.insert(idx, mgroup)?;
                 }
 
                 let token_helper = TokenHelper::new(db).ok();

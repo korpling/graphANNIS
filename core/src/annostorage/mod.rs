@@ -2,8 +2,6 @@ pub mod inmemory;
 pub mod ondisk;
 pub mod symboltable;
 
-use smallvec::SmallVec;
-
 use crate::{
     errors::Result,
     types::{AnnoKey, Annotation, Edge, NodeID},
@@ -26,7 +24,7 @@ pub struct Match {
 /// A group of single matched nodes.
 ///
 /// cbindgen:ignore
-pub type MatchGroup = SmallVec<[Match; 8]>;
+pub type MatchGroup = Vec<Match>;
 
 impl Match {
     /// Extract the annotation for this match . The annotation value

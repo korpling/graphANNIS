@@ -98,13 +98,14 @@ where
     F: Fn(&T, &T) -> Result<std::cmp::Ordering>,
 {
     let r = item_range.end - 1;
+    let item_r = items.try_get(r)?.into_owned();
 
     let mut i = item_range.start;
 
     for j in item_range.start..(item_range.end - 1) {
         let item_j = items.try_get(j)?;
-        let item_r = items.try_get(r)?;
-        let comparision = order_func(item_j.as_ref(), item_r.as_ref())?;
+
+        let comparision = order_func(item_j.as_ref(), &item_r)?;
         match comparision {
             std::cmp::Ordering::Less | std::cmp::Ordering::Equal => {
                 items.try_swap(i, j)?;
