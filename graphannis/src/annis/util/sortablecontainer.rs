@@ -19,6 +19,12 @@ where
     T: Clone + Send + 'static,
 {
     fn try_swap(&mut self, a: usize, b: usize) -> Result<()> {
+        if a >= self.len() {
+            return Err(GraphAnnisError::IndexOutOfBounds(a));
+        }
+        if b >= self.len() {
+            return Err(GraphAnnisError::IndexOutOfBounds(b));
+        }
         self.swap(a, b);
         Ok(())
     }
