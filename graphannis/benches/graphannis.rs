@@ -66,13 +66,13 @@ fn find_all_nouns_gum(bench: &mut Criterion) {
                 query_language: QueryLanguage::AQL,
                 timeout: None,
             };
-            let f = cs.find(query, 10, None, ResultOrder::Normal);
+            let f = cs.find(query, 0, None, ResultOrder::Normal);
             assert!(f.is_ok());
         })
     });
 }
 
-fn find_all_token_gum(bench: &mut Criterion) {
+fn find_first_ten_token_gum(bench: &mut Criterion) {
     if CORPUS_STORAGE.is_none() {
         return;
     }
@@ -90,7 +90,7 @@ fn find_all_token_gum(bench: &mut Criterion) {
         }
     }
 
-    bench.bench_function("find_all_token_gum", move |b| {
+    bench.bench_function("find_first_ten_token_gum", move |b| {
         cs.preload("GUM").unwrap();
         b.iter(|| {
             let query = SearchQuery {
@@ -99,7 +99,7 @@ fn find_all_token_gum(bench: &mut Criterion) {
                 query_language: QueryLanguage::AQL,
                 timeout: None,
             };
-            let f = cs.find(query, 10, None, ResultOrder::Normal);
+            let f = cs.find(query, 0, Some(10), ResultOrder::Normal);
             assert!(f.is_ok());
         })
     });
@@ -187,6 +187,5 @@ fn apply_update(bench: &mut Criterion) {
     //cs.delete("apply_update_test_corpus").unwrap();
 }
 
-criterion_group!(name=long_running; config= Criterion::default().sample_size(10); targets = find_all_nouns_gum);
-criterion_group!(name=short_running; config= Criterion::default().sample_size(50); targets = apply_update, deserialize_gum, find_all_token_gum);
-criterion_main!(long_running, short_running);
+criterion_group!(name=default; config= Criterion::default().sample_size(50); targets = apply_update, deserialize_gum, find_first_ten_token_gum, find_all_nouns_gum);
+criterion_main!(default);
