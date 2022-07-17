@@ -126,9 +126,33 @@ mod test {
     use rand;
     use rand::distributions::Distribution;
     use rand::Rng;
+    use serde::{de::DeserializeOwned, Serialize};
+    use transient_btree_index::{BtreeConfig, BtreeIndex};
+
+    fn index_from_vec<V>(items: Vec<V>) -> BtreeIndex<usize, V>
+    where
+        V: 'static + Serialize + DeserializeOwned + Clone + Send + Sync,
+    {
+        let mut result = BtreeIndex::with_capacity(BtreeConfig::default(), items.len()).unwrap();
+        for i in 0..items.len() {
+            result.insert(i, items[i].clone()).unwrap();
+        }
+        result
+    }
+
+    fn index_to_vec<V>(index: BtreeIndex<usize, V>) -> Vec<V>
+    where
+        V: 'static + Serialize + DeserializeOwned + Clone + Send + Sync,
+    {
+        let mut result = Vec::with_capacity(index.len());
+        for i in 0..index.len() {
+            result.push(index.get(&i).unwrap().unwrap());
+        }
+        result
+    }
 
     #[test]
-    fn canary_sort_test() {
+    fn canary_sort_vec() {
         let mut items = vec![4, 10, 100, 4, 5];
         let num_items = items.len();
         super::sort_first_n_items(&mut items, num_items, |x, y| Ok(x.cmp(y))).unwrap();
@@ -157,7 +181,7 @@ mod test {
     }
 
     #[test]
-    fn random_sort_test() {
+    fn random_sort_vec() {
         // compare 100 random arrays against the standard library sort
         let mut rng = rand::thread_rng();
         let random_item_gen = rand::distributions::Uniform::from(1..100);
@@ -174,6 +198,61 @@ mod test {
             sorted_by_stdlib.sort_unstable();
             super::sort_first_n_items(&mut items, items_size, |x, y| Ok(x.cmp(y))).unwrap();
             assert_eq!(items, sorted_by_stdlib);
+        }
+    }
+
+    #[test]
+    fn canary_sort_btree() {
+        let mut items = index_from_vec(vec![4, 10, 100, 4, 5]);
+        let num_items = items.len();
+
+        super::sort_first_n_items(&mut items, num_items, |x, y| Ok(x.cmp(y))).unwrap();
+
+        assert_eq!(vec![4, 4, 5, 10, 100], index_to_vec(items));
+
+        let mut items: BtreeIndex<usize, usize> = index_from_vec(vec![]);
+        super::sort_first_n_items(&mut items, 0, |x, y| Ok(x.cmp(y))).unwrap();
+        let empty_items: Vec<usize> = vec![];
+        assert_eq!(empty_items, index_to_vec(items));
+
+        let mut items = index_from_vec(vec![1]);
+        super::sort_first_n_items(&mut items, 0, |x, y| Ok(x.cmp(y))).unwrap();
+        assert_eq!(vec![1], index_to_vec(items));
+
+        let mut items = index_from_vec(vec![1, 2]);
+        super::sort_first_n_items(&mut items, 0, |x, y| Ok(x.cmp(y))).unwrap();
+        assert_eq!(vec![1, 2], index_to_vec(items));
+
+        let mut items = index_from_vec(vec![2, 1]);
+        super::sort_first_n_items(&mut items, 0, |x, y| Ok(x.cmp(y))).unwrap();
+        assert_eq!(vec![1, 2], index_to_vec(items));
+
+        let mut items = index_from_vec(vec![1, 2, 3, 4, 5]);
+        super::sort_first_n_items(&mut items, 0, |x, y| Ok(x.cmp(y))).unwrap();
+        assert_eq!(vec![1, 2, 3, 4, 5], index_to_vec(items));
+    }
+
+    #[test]
+    fn random_sort_btree() {
+        // compare 100 random arrays against the standard library sort
+        let mut rng = rand::thread_rng();
+        let random_item_gen = rand::distributions::Uniform::from(1..100);
+
+        for _i in 0..100 {
+            // the arrays should have a size from 10 to 50
+            let items_size = rng.gen_range(10..51);
+            let mut items = BtreeIndex::with_capacity(BtreeConfig::default(), items_size).unwrap();
+            let mut items_vec = Vec::new();
+            for j in 0..items_size {
+                let v = random_item_gen.sample(&mut rng);
+                items.insert(j, v).unwrap();
+                items_vec.push(v);
+            }
+
+            let mut sorted_by_stdlib = items_vec;
+            sorted_by_stdlib.sort_unstable();
+            super::sort_first_n_items(&mut items, items_size, |x, y| Ok(x.cmp(y))).unwrap();
+            assert_eq!(index_to_vec(items), sorted_by_stdlib);
         }
     }
 }
