@@ -184,7 +184,7 @@ fn apply_update(bench: &mut Criterion) {
         b.iter(|| cs.apply_update("apply_update_test_corpus", &mut u).unwrap());
     });
 
-    //cs.delete("apply_update_test_corpus").unwrap();
+    cs.delete("apply_update_test_corpus").unwrap();
 }
 
 criterion_group!(name=default; config= Criterion::default().sample_size(50); targets = apply_update, deserialize_gum, find_first_ten_token_gum, find_all_nouns_gum);
