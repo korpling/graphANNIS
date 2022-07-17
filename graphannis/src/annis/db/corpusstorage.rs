@@ -1797,7 +1797,7 @@ impl CorpusStorage {
                     while tmp_results.contains_key(&idx)? {
                         idx = rng.gen();
                     }
-                    tmp_results.insert(idx, mgroup)?;
+                    tmp_results.insert(idx, mgroup.to_vec())?;
                 }
             } else {
                 // Insert results in the order as they are given by the iterator
@@ -1805,7 +1805,7 @@ impl CorpusStorage {
                 for (idx, mgroup) in plan.enumerate() {
                     let mgroup = mgroup?;
                     // add all matches to temporary container
-                    tmp_results.insert(idx, mgroup)?;
+                    tmp_results.insert(idx, mgroup.to_vec())?;
                 }
 
                 let token_helper = TokenHelper::new(db).ok();

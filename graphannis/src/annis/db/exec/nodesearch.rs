@@ -20,6 +20,7 @@ use graphannis_core::{
     types::{Component, Edge, NodeID},
 };
 use itertools::Itertools;
+use smallvec::smallvec;
 use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
@@ -552,7 +553,7 @@ impl<'a> NodeSearch<'a> {
                         Some("node").into(),
                     )
                     .map(|n| match n {
-                        Ok(n) => Ok(vec![n]),
+                        Ok(n) => Ok(smallvec![n]),
                         Err(e) => Err(e.into()),
                     });
 
@@ -679,7 +680,7 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
-        let it = base_it.map_ok(|n| vec![n]);
+        let it = base_it.map_ok(|n| smallvec![n]);
 
         Ok(NodeSearch {
             it: Box::new(it),
@@ -770,7 +771,7 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
-        let it = base_it.map_ok(|n| vec![n]);
+        let it = base_it.map_ok(|n| smallvec![n]);
 
         Ok(NodeSearch {
             it: Box::new(it),
@@ -871,7 +872,7 @@ impl<'a> NodeSearch<'a> {
         };
         // map to vector
         let it = it_base.map_ok(move |n| {
-            vec![Match {
+            smallvec![Match {
                 node: n.node,
                 anno_key: NODE_TYPE_KEY.clone(),
             }]
@@ -1073,7 +1074,7 @@ impl<'a> NodeSearch<'a> {
                             return Ok(None);
                         }
                     }
-                    Ok(Some(vec![m]))
+                    Ok(Some(smallvec![m]))
                 }
                 Err(e) => Err(GraphAnnisError::from(e)),
             })

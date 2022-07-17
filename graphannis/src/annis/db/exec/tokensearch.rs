@@ -13,6 +13,7 @@ use graphannis_core::{
     graph::{storage::GraphStorage, ANNIS_NS, NODE_TYPE_KEY},
     types::{AnnoKey, Component, NodeID},
 };
+use smallvec::smallvec;
 
 use std::collections::HashSet;
 use std::fmt;
@@ -163,7 +164,7 @@ impl<'a> Iterator for AnyTokenSearch<'a> {
                 let it = &mut root_iterators[root_iterators_len - 1];
                 if let Some(n) = it.next() {
                     let result: Option<Result<MatchGroup>> = match n {
-                        Ok(n) => Some(Ok(vec![Match {
+                        Ok(n) => Some(Ok(smallvec![Match {
                             node: n,
                             anno_key: self.node_type_key.clone(),
                         }])),
