@@ -47,16 +47,7 @@ where
     T: Serialize + DeserializeOwned + Clone + Sync + Send + 'static,
 {
     fn try_swap(&mut self, a: usize, b: usize) -> Result<()> {
-        let val_a = self
-            .get(&a)?
-            .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(a))?;
-        let val_b = self
-            .get(&b)?
-            .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(b))?;
-
-        self.insert(b, val_a)?;
-        self.insert(a, val_b)?;
-
+        self.swap(&a, &b)?;
         Ok(())
     }
 
