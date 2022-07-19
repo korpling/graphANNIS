@@ -15,6 +15,22 @@ pub enum CollationType {
     Locale,
 }
 
+pub struct SortCache {
+    node_name: LruCache<NodeID, String>,
+    left_token: LruCache<NodeID, Option<NodeID>>,
+    is_connected: LruCache<(NodeID, NodeID), bool>,
+}
+
+impl Default for SortCache {
+    fn default() -> Self {
+        Self {
+            node_name: LruCache::new(1000),
+            left_token: LruCache::new(1000),
+            is_connected: LruCache::new(1000),
+        }
+    }
+}
+
 pub fn compare_matchgroup_by_text_pos(
     m1: &[Match],
     m2: &[Match],
@@ -23,7 +39,7 @@ pub fn compare_matchgroup_by_text_pos(
     gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
     reverse_path: bool,
-    left_token_cache: &mut LruCache<NodeID, Option<NodeID>>,
+    cache: &mut SortCache,
 ) -> Result<Ordering> {
     for i in 0..std::cmp::min(m1.len(), m2.len()) {
         let element_cmp = compare_match_by_text_pos(
@@ -34,7 +50,7 @@ pub fn compare_matchgroup_by_text_pos(
             gs_order,
             collation,
             reverse_path,
-            left_token_cache,
+            cache,
         )?;
         if element_cmp != Ordering::Equal {
             return Ok(element_cmp);
@@ -122,15 +138,33 @@ pub fn compare_match_by_text_pos(
     gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
     quirks_mode: bool,
-    left_token_cache: &mut LruCache<NodeID, Option<NodeID>>,
+    cache: &mut SortCache,
 ) -> Result<Ordering> {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare
         Ok(m1.anno_key.cmp(&m2.anno_key))
     } else {
         // get the node paths and names
-        let m1_anno_val = node_annos.get_value_for_item(&m1.node, &NODE_NAME_KEY)?;
-        let m2_anno_val = node_annos.get_value_for_item(&m2.node, &NODE_NAME_KEY)?;
+
+        let m1_anno_val = if let Some(val) = cache.node_name.get(&m1.node) {
+            Some(Cow::Owned(val.clone()))
+        } else {
+            let val = node_annos.get_value_for_item(&m1.node, &NODE_NAME_KEY)?;
+            if let Some(val) = &val {
+                cache.node_name.put(m1.node, val.to_string());
+            }
+            val
+        };
+
+        let m2_anno_val = if let Some(val) = cache.node_name.get(&m2.node) {
+            Some(Cow::Borrowed(val.as_str()))
+        } else {
+            let val = node_annos.get_value_for_item(&m2.node, &NODE_NAME_KEY)?;
+            if let Some(val) = &val {
+                cache.node_name.put(m2.node, val.to_string());
+            }
+            val
+        };
 
         if let (Some(m1_anno_val), Some(m2_anno_val)) = (m1_anno_val, m2_anno_val) {
             let (m1_path, m1_name) = split_path_and_nodename(&m1_anno_val);
@@ -145,32 +179,38 @@ pub fn compare_match_by_text_pos(
             // 2. compare the token ordering
             if let (Some(token_helper), Some(gs_order)) = (token_helper, gs_order) {
                 // Try to get left token from cache
-                let cached_m1_lefttok = left_token_cache.get(&m1.node).copied();
-                let cached_m2_lefttok = left_token_cache.get(&m1.node).copied();
 
-                let m1_lefttok = if let Some(lefttok) = cached_m1_lefttok {
+                let m1_lefttok = if let Some(lefttok) = cache.left_token.get(&m1.node).copied() {
                     lefttok.clone()
                 } else {
                     let result = token_helper.left_token_for(m1.node)?;
-                    left_token_cache.push(m1.node, result.clone());
+                    cache.left_token.put(m1.node, result.clone());
                     result
                 };
 
-                let m2_lefttok = if let Some(lefttok) = cached_m2_lefttok {
+                let m2_lefttok = if let Some(lefttok) = cache.left_token.get(&m1.node).copied() {
                     lefttok.clone()
                 } else {
                     let result = token_helper.left_token_for(m2.node)?;
-                    left_token_cache.push(m2.node, result.clone());
+                    cache.left_token.put(m2.node, result.clone());
                     result
                 };
 
                 if let (Some(m1_lefttok), Some(m2_lefttok)) = (m1_lefttok, m2_lefttok) {
-                    if gs_order.is_connected(
-                        m1_lefttok,
-                        m2_lefttok,
-                        1,
-                        std::ops::Bound::Unbounded,
-                    )? {
+                    let token_are_connected =
+                        if let Some(v) = cache.is_connected.get(&(m1_lefttok, m2_lefttok)) {
+                            *v
+                        } else {
+                            let v = gs_order.is_connected(
+                                m1_lefttok,
+                                m2_lefttok,
+                                1,
+                                std::ops::Bound::Unbounded,
+                            )?;
+                            v
+                        };
+
+                    if token_are_connected {
                         return Ok(Ordering::Less);
                     } else if gs_order.is_connected(
                         m2_lefttok,

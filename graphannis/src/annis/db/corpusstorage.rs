@@ -33,7 +33,6 @@ use graphannis_core::{
 };
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
-use lru::LruCache;
 use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, CONTROLS};
 use rand::Rng;
 use smartstring::alias::String as SmartString;
@@ -60,6 +59,8 @@ use std::{
 
 use aql::model::AnnotationComponentType;
 use db::AnnotationStorage;
+
+use super::sort_matches::SortCache;
 
 #[cfg(test)]
 mod tests;
@@ -1822,7 +1823,7 @@ impl CorpusStorage {
                     CollationType::Default
                 };
 
-                let mut left_token_cache = LruCache::new(1000);
+                let mut cache = SortCache::default();
                 let gs_order = db.get_graphstorage_as_ref(&component_order);
                 let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> Result<std::cmp::Ordering> {
                     if order == ResultOrder::Inverted {
@@ -1834,7 +1835,7 @@ impl CorpusStorage {
                             gs_order,
                             collation,
                             quirks_mode,
-                            &mut left_token_cache,
+                            &mut cache,
                         )?
                         .reverse();
                         Ok(result)
@@ -1847,7 +1848,7 @@ impl CorpusStorage {
                             gs_order,
                             collation,
                             quirks_mode,
-                            &mut left_token_cache,
+                            &mut cache,
                         )?;
                         Ok(result)
                     }
