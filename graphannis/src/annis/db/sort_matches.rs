@@ -4,6 +4,7 @@ use graphannis_core::{
     graph::{storage::GraphStorage, ANNIS_NS, NODE_NAME},
     types::{AnnoKey, NodeID},
 };
+use lru::LruCache;
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::ffi::CString;
@@ -22,6 +23,7 @@ pub fn compare_matchgroup_by_text_pos(
     gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
     reverse_path: bool,
+    left_token_cache: &mut LruCache<NodeID, Option<NodeID>>,
 ) -> Result<Ordering> {
     for i in 0..std::cmp::min(m1.len(), m2.len()) {
         let element_cmp = compare_match_by_text_pos(
@@ -32,6 +34,7 @@ pub fn compare_matchgroup_by_text_pos(
             gs_order,
             collation,
             reverse_path,
+            left_token_cache,
         )?;
         if element_cmp != Ordering::Equal {
             return Ok(element_cmp);
@@ -119,6 +122,7 @@ pub fn compare_match_by_text_pos(
     gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
     quirks_mode: bool,
+    left_token_cache: &mut LruCache<NodeID, Option<NodeID>>,
 ) -> Result<Ordering> {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare
@@ -140,10 +144,27 @@ pub fn compare_match_by_text_pos(
 
             // 2. compare the token ordering
             if let (Some(token_helper), Some(gs_order)) = (token_helper, gs_order) {
-                if let (Some(m1_lefttok), Some(m2_lefttok)) = (
-                    token_helper.left_token_for(m1.node)?,
-                    token_helper.left_token_for(m2.node)?,
-                ) {
+                // Try to get left token from cache
+                let cached_m1_lefttok = left_token_cache.get(&m1.node).copied();
+                let cached_m2_lefttok = left_token_cache.get(&m1.node).copied();
+
+                let m1_lefttok = if let Some(lefttok) = cached_m1_lefttok {
+                    lefttok.clone()
+                } else {
+                    let result = token_helper.left_token_for(m1.node)?;
+                    left_token_cache.push(m1.node, result.clone());
+                    result
+                };
+
+                let m2_lefttok = if let Some(lefttok) = cached_m2_lefttok {
+                    lefttok.clone()
+                } else {
+                    let result = token_helper.left_token_for(m2.node)?;
+                    left_token_cache.push(m2.node, result.clone());
+                    result
+                };
+
+                if let (Some(m1_lefttok), Some(m2_lefttok)) = (m1_lefttok, m2_lefttok) {
                     if gs_order.is_connected(
                         m1_lefttok,
                         m2_lefttok,

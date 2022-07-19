@@ -13,6 +13,7 @@ use graphannis_core::{
     graph::{storage::GraphStorage, ANNIS_NS, NODE_TYPE_KEY},
     types::{AnnoKey, Component, NodeID},
 };
+use lru::LruCache;
 use smallvec::smallvec;
 
 use std::collections::HashSet;
@@ -89,6 +90,9 @@ impl<'a> AnyTokenSearch<'a> {
                 });
             }
         }
+
+        let mut left_token_cache = LruCache::new(1000);
+
         quicksort::sort(&mut root_nodes, |a, b| {
             sort_matches::compare_match_by_text_pos(
                 b,
@@ -98,6 +102,7 @@ impl<'a> AnyTokenSearch<'a> {
                 self.order_gs,
                 CollationType::Default,
                 false,
+                &mut left_token_cache,
             )
         })?;
 

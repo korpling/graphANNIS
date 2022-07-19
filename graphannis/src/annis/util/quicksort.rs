@@ -6,14 +6,14 @@ use rand::Rng;
 use super::sortablecontainer::SortableContainer;
 
 /// Make sure all items of the complete vector are sorted by the given comparision function.
-pub fn sort<T, F>(items: &mut dyn SortableContainer<T>, order_func: F) -> Result<()>
+pub fn sort<T, F>(items: &mut dyn SortableContainer<T>, mut order_func: F) -> Result<()>
 where
     T: Clone + Send,
-    F: Fn(&T, &T) -> Result<std::cmp::Ordering>,
+    F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
     let item_len = items.try_len()?;
     if item_len > 0 {
-        quicksort(items, 0..item_len, item_len, &order_func)?;
+        quicksort(items, 0..item_len, item_len, &mut order_func)?;
     }
     Ok(())
 }
@@ -25,15 +25,15 @@ where
 pub fn sort_first_n_items<T, F>(
     items: &mut dyn SortableContainer<T>,
     n: usize,
-    order_func: F,
+    mut order_func: F,
 ) -> Result<()>
 where
     T: Clone + Send,
-    F: Fn(&T, &T) -> Result<std::cmp::Ordering>,
+    F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
     let item_len = items.try_len()?;
     if item_len > 0 {
-        quicksort(items, 0..item_len, n, &order_func)?;
+        quicksort(items, 0..item_len, n, &mut order_func)?;
     }
     Ok(())
 }
@@ -49,11 +49,11 @@ fn quicksort<T, F>(
     items: &mut dyn SortableContainer<T>,
     items_range: Range<usize>,
     max_size: usize,
-    order_func: &F,
+    order_func: &mut F,
 ) -> Result<()>
 where
     T: Clone,
-    F: Fn(&T, &T) -> Result<std::cmp::Ordering>,
+    F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
     if (items_range.end - items_range.start) > 1 {
         let q = randomized_partition(items, items_range.clone(), order_func)?;
@@ -72,11 +72,11 @@ where
 fn randomized_partition<T, F>(
     items: &mut dyn SortableContainer<T>,
     item_range: Range<usize>,
-    order_func: &F,
+    order_func: &mut F,
 ) -> Result<usize>
 where
     T: Clone,
-    F: Fn(&T, &T) -> Result<std::cmp::Ordering>,
+    F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
     if (item_range.end - item_range.start) == 1 {
         Ok(item_range.start)
@@ -91,11 +91,11 @@ where
 fn partition<T, F>(
     items: &mut dyn SortableContainer<T>,
     item_range: Range<usize>,
-    order_func: &F,
+    order_func: &mut F,
 ) -> Result<usize>
 where
     T: Clone,
-    F: Fn(&T, &T) -> Result<std::cmp::Ordering>,
+    F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
     let r = item_range.end - 1;
     let item_r = items.try_get(r)?.into_owned();
