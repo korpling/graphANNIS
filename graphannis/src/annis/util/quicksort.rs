@@ -152,6 +152,45 @@ where
     Ok(i)
 }
 
+fn partition_hoare<T, F>(
+    items: &mut dyn SortableContainer<T>,
+    item_range: Range<usize>,
+    order_func: &mut F,
+) -> Result<usize>
+where
+    T: Clone,
+    F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
+{
+    // We use Cormen et al. 2009 p. 185 as template but have to be careful about the
+    // index. They use vectors which start at index 1, Rust uses 0. To avoid
+    // problems with interger underflow, we also interpret p,r, i and j to start from
+    // 1, but when we access the items we translate it with an -1 offset.
+    let p = item_range.start + 1;
+    let r = item_range.end;
+    let mut i = p - 1;
+    let mut j = r + 1;
+
+    let x = items.try_get(p - 1)?.into_owned();
+
+    loop {
+        j -= 1;
+        while order_func(items.try_get(j - 1)?.as_ref(), &x)?.is_gt() {
+            j -= 1;
+        }
+
+        i += 1;
+        while order_func(items.try_get(i - 1)?.as_ref(), &x)?.is_lt() {
+            i += 1;
+        }
+
+        if i < j {
+            items.try_swap(i - 1, j - 1)?;
+        } else {
+            return Ok(j);
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
 
