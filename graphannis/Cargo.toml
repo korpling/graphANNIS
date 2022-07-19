@@ -51,7 +51,7 @@ sys-info = "0.9"
 tempfile = "3"
 thiserror = "1"
 toml = "0.5"
-transient-btree-index = {version = "0.4", git = 'https://github.com/thomaskrause/transient-btree-index', branch = 'feature/swap-values'}
+transient-btree-index = "0.5"
 zip = "0.5"
 
 [dev-dependencies]
