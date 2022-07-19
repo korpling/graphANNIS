@@ -38,6 +38,32 @@ where
     Ok(())
 }
 
+/// Sort the given range using insertion sort.
+fn insertion_sort<T, F>(
+    items: &mut dyn SortableContainer<T>,
+    items_range: Range<usize>,
+    order_func: &mut F,
+) -> Result<()>
+where
+    T: Clone,
+    F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
+{
+    // We use Cormen et al. 2009 p. 18 as template but have to be careful about the
+    // index. They use vectors which start at index 1, Rust uses 0. To avoid
+    // problems with interger underflow, we also interpret j and i to start from
+    // 1, but when we access the items we translate it with an -1 offset.
+    for j in (items_range.start + 2)..=items_range.end {
+        let key = items.try_get(j - 1)?.into_owned();
+        let mut i = j - 1;
+        while i > 0 && order_func(items.try_get(i - 1)?.as_ref(), &key)?.is_gt() {
+            items.try_set(i, items.try_get(i - 1)?.into_owned())?;
+            i -= 1;
+        }
+        items.try_set(i, key)?;
+    }
+    Ok(())
+}
+
 /// Classic implementation of a quicksort algorithm, see Cormen et al. 2009 "Introduction to Algorithms" p. 170ff
 /// for the specific algorithm used as a base here.
 ///
@@ -55,15 +81,21 @@ where
     T: Clone,
     F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
-    if (items_range.end - items_range.start) > 1 {
-        let q = randomized_partition(items, items_range.clone(), order_func)?;
-        let low_range = items_range.start..q;
-        let high_range = q..items_range.end;
+    let range_size = items_range.end - items_range.start;
+    if range_size > 1 {
+        if range_size <= 10 {
+            insertion_sort(items, items_range, order_func)?;
+        } else {
+            let q = randomized_partition(items, items_range.clone(), order_func)?;
+            let low_range = items_range.start..q;
+            let high_range = q..items_range.end;
 
-        quicksort(items, low_range, max_size, order_func)?;
-        if q < max_size {
+            quicksort(items, low_range, max_size, order_func)?;
+
             // only sort right partition if the left partition is not large enough
-            quicksort(items, high_range, max_size, order_func)?;
+            if q < max_size {
+                quicksort(items, high_range, max_size, order_func)?;
+            }
         }
     }
     Ok(())
@@ -153,6 +185,20 @@ mod test {
 
     #[test]
     fn canary_sort_vec() {
+        let mut items: Vec<usize> = vec![2, 1];
+        super::sort_first_n_items(&mut items, 0, |x, y| Ok(x.cmp(y))).unwrap();
+        assert_eq!(vec![1, 2], items);
+
+        let mut items = vec![
+            4, 10, 100, 4, 5, 20, 10, 5, 10, 32, 42, 5, 1, 1, 3, 101, 202, 99, 42, 23, 56,
+        ];
+        let num_items = items.len();
+        super::sort_first_n_items(&mut items, num_items, |x, y| Ok(x.cmp(y))).unwrap();
+        assert_eq!(
+            vec![1, 1, 3, 4, 4, 5, 5, 5, 10, 10, 10, 20, 23, 32, 42, 42, 56, 99, 100, 101, 202],
+            items
+        );
+
         let mut items = vec![4, 10, 100, 4, 5];
         let num_items = items.len();
         super::sort_first_n_items(&mut items, num_items, |x, y| Ok(x.cmp(y))).unwrap();
@@ -187,8 +233,8 @@ mod test {
         let random_item_gen = rand::distributions::Uniform::from(1..100);
 
         for _i in 0..100 {
-            // the arrays should have a size from 10 to 50
-            let items_size = rng.gen_range(10..51);
+            // the arrays should have a size from 40 to 50
+            let items_size = rng.gen_range(40..51);
             let mut items = Vec::with_capacity(items_size);
             for _j in 0..items_size {
                 items.push(random_item_gen.sample(&mut rng));
@@ -203,6 +249,16 @@ mod test {
 
     #[test]
     fn canary_sort_btree() {
+        let mut items = index_from_vec(vec![
+            4, 10, 100, 4, 5, 20, 10, 5, 10, 32, 42, 5, 1, 1, 3, 101, 202, 99, 42, 23, 56,
+        ]);
+        let num_items = items.len();
+        super::sort_first_n_items(&mut items, num_items, |x, y| Ok(x.cmp(y))).unwrap();
+        assert_eq!(
+            vec![1, 1, 3, 4, 4, 5, 5, 5, 10, 10, 10, 20, 23, 32, 42, 42, 56, 99, 100, 101, 202],
+            index_to_vec(items)
+        );
+
         let mut items = index_from_vec(vec![4, 10, 100, 4, 5]);
         let num_items = items.len();
 
@@ -239,8 +295,8 @@ mod test {
         let random_item_gen = rand::distributions::Uniform::from(1..100);
 
         for _i in 0..100 {
-            // the arrays should have a size from 10 to 50
-            let items_size = rng.gen_range(10..51);
+            // the arrays should have a size from 40 to 50
+            let items_size = rng.gen_range(40..51);
             let mut items = BtreeIndex::with_capacity(BtreeConfig::default(), items_size).unwrap();
             let mut items_vec = Vec::new();
             for j in 0..items_size {

@@ -12,6 +12,8 @@ pub trait SortableContainer<T: Clone>: Send {
     fn try_len(&self) -> Result<usize>;
 
     fn try_get<'b>(&'b self, index: usize) -> Result<Cow<'b, T>>;
+
+    fn try_set(&mut self, index: usize, val: T) -> Result<()>;
 }
 
 impl<T> SortableContainer<T> for Vec<T>
@@ -40,6 +42,11 @@ where
             Err(GraphAnnisError::IndexOutOfBounds(index))
         }
     }
+
+    fn try_set(&mut self, index: usize, val: T) -> Result<()> {
+        self[index] = val;
+        Ok(())
+    }
 }
 
 impl<T> SortableContainer<T> for transient_btree_index::BtreeIndex<usize, T>
@@ -60,5 +67,10 @@ where
             .get(&index)?
             .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(index))?;
         Ok(Cow::Owned(result))
+    }
+
+    fn try_set<'b>(&mut self, index: usize, val: T) -> Result<()> {
+        self.insert(index, val)?;
+        Ok(())
     }
 }
