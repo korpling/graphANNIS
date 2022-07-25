@@ -79,9 +79,7 @@ impl<'a> ExecutionPlan<'a> {
             plans.push(Box::new(no_results_exec));
             descriptions.push(None);
         }
-        let btree_config = BtreeConfig::default()
-            .fixed_key_size(std::mem::size_of::<(NodeID, usize)>())
-            .fixed_value_size(std::mem::size_of::<bool>());
+        let btree_config = BtreeConfig::default().fixed_value_size(std::mem::size_of::<bool>());
         Ok(ExecutionPlan {
             current_plan: 0,
             descriptions,
