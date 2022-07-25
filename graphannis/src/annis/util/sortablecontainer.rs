@@ -27,7 +27,9 @@ where
         if b >= self.len() {
             return Err(GraphAnnisError::IndexOutOfBounds(b));
         }
-        self.swap(a, b);
+        if a != b {
+            self.swap(a, b);
+        }
         Ok(())
     }
 
@@ -54,7 +56,9 @@ where
     T: Serialize + DeserializeOwned + Clone + Sync + Send + 'static,
 {
     fn try_swap(&mut self, a: usize, b: usize) -> Result<()> {
-        self.swap(&a, &b)?;
+        if a != b {
+            self.swap(&a, &b)?;
+        }
         Ok(())
     }
 

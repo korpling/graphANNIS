@@ -48,18 +48,14 @@ where
     T: Clone,
     F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
-    // We use Cormen et al. 2009 p. 18 as template but have to be careful about the
-    // index. They use vectors which start at index 1, Rust uses 0. To avoid
-    // problems with interger underflow, we also interpret j and i to start from
-    // 1, but when we access the items we translate it with an -1 offset.
-    for j in (items_range.start + 2)..=items_range.end {
-        let key = items.try_get(j - 1)?.into_owned();
-        let mut i = j - 1;
-        while i > 0 && order_func(items.try_get(i - 1)?.as_ref(), &key)?.is_gt() {
-            items.try_set(i, items.try_get(i - 1)?.into_owned())?;
-            i -= 1;
+    for i in items_range.start..items_range.end {
+        for j in (items_range.start..i).rev() {
+            if order_func(items.try_get(j)?.as_ref(), items.try_get(j + 1)?.as_ref())?.is_ge() {
+                items.try_swap(j, j + 1)?;
+            } else {
+                break;
+            }
         }
-        items.try_set(i, key)?;
     }
     Ok(())
 }
