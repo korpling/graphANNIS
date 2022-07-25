@@ -1,17 +1,18 @@
 use crate::annis::db::aql::disjunction::Disjunction;
 use crate::annis::db::aql::Config;
 use crate::annis::db::exec::{EmptyResultSet, ExecutionNode, ExecutionNodeDesc};
+use crate::annis::errors::*;
 use crate::annis::util::TimeoutCheck;
 use crate::AnnotationGraph;
-use crate::{annis::errors::*, graph::Match};
+use graphannis_core::annostorage::match_group_with_symbol_ids;
+use graphannis_core::annostorage::symboltable::SymbolTable;
 use graphannis_core::{
     annostorage::MatchGroup,
     types::{AnnoKey, NodeID},
 };
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::fmt::Formatter;
-use std::sync::Arc;
+use transient_btree_index::{BtreeConfig, BtreeIndex};
 
 pub struct ExecutionPlan<'a> {
     plans: Vec<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>>,
@@ -19,7 +20,8 @@ pub struct ExecutionPlan<'a> {
     descriptions: Vec<Option<ExecutionNodeDesc>>,
     inverse_node_pos: Vec<Option<Vec<usize>>>,
     proxy_mode: bool,
-    unique_result_set: HashSet<Vec<(NodeID, Arc<AnnoKey>)>>,
+    unique_result_set: BtreeIndex<Vec<(NodeID, usize)>, bool>,
+    anno_key_symbols: SymbolTable<AnnoKey>,
 }
 
 impl<'a> ExecutionPlan<'a> {
@@ -77,13 +79,17 @@ impl<'a> ExecutionPlan<'a> {
             plans.push(Box::new(no_results_exec));
             descriptions.push(None);
         }
+        let btree_config = BtreeConfig::default()
+            .fixed_key_size(std::mem::size_of::<(NodeID, usize)>())
+            .fixed_value_size(std::mem::size_of::<bool>());
         Ok(ExecutionPlan {
             current_plan: 0,
             descriptions,
             inverse_node_pos,
             proxy_mode: plans.len() == 1,
             plans,
-            unique_result_set: HashSet::new(),
+            unique_result_set: BtreeIndex::with_capacity(btree_config, 10_000)?,
+            anno_key_symbols: SymbolTable::new(),
         })
     }
 
@@ -132,6 +138,15 @@ impl<'a> ExecutionPlan<'a> {
             self.plans[0].is_sorted_by_text()
         }
     }
+
+    fn insert_into_unique_result_set(&mut self, n: &MatchGroup) -> Result<bool> {
+        let key = match_group_with_symbol_ids(&n, &mut self.anno_key_symbols)?;
+        if !self.unique_result_set.contains_key(&key)? {
+            self.unique_result_set.insert(key, true)?;
+            return Ok(true);
+        }
+        Ok(false)
+    }
 }
 
 impl<'a> std::fmt::Display for ExecutionPlan<'a> {
@@ -167,13 +182,14 @@ impl<'a> Iterator for ExecutionPlan<'a> {
                             let n = self.reorder_match(n);
 
                             // check if we already outputted this result
-                            let key: Vec<(NodeID, Arc<AnnoKey>)> = n
-                                .iter()
-                                .map(|m: &Match| (m.node, m.anno_key.clone()))
-                                .collect();
-                            if self.unique_result_set.insert(key) {
-                                // new result found, break out of while-loop and return the result
-                                return Some(Ok(n));
+                            match self.insert_into_unique_result_set(&n) {
+                                Ok(new_result) => {
+                                    if new_result {
+                                        // new result found, break out of while-loop and return the result
+                                        return Some(Ok(n));
+                                    }
+                                }
+                                Err(e) => return Some(Err(e)),
                             }
                         }
                         Err(e) => {
