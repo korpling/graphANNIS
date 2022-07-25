@@ -23,6 +23,8 @@ use crate::{
 };
 use fmt::Display;
 use fs2::FileExt;
+use graphannis_core::annostorage::symboltable::SymbolTable;
+use graphannis_core::annostorage::{match_group_resolve_symbol_ids, match_group_with_symbol_ids};
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
     graph::{
@@ -1786,7 +1788,8 @@ impl CorpusStorage {
             let btree_config = BtreeConfig::default()
                 .fixed_key_size(size_of::<usize>())
                 .max_value_size(512);
-            let mut tmp_results: BtreeIndex<usize, Vec<Match>> =
+            let mut anno_key_symbols: SymbolTable<AnnoKey> = SymbolTable::new();
+            let mut tmp_results: BtreeIndex<usize, Vec<(NodeID, usize)>> =
                 BtreeIndex::with_capacity(btree_config, estimated_result_size)?;
 
             if order == ResultOrder::Randomized {
@@ -1799,15 +1802,16 @@ impl CorpusStorage {
                     while tmp_results.contains_key(&idx)? {
                         idx = rng.gen();
                     }
-                    tmp_results.insert(idx, mgroup.to_vec())?;
+                    let m = match_group_with_symbol_ids(&mgroup, &mut anno_key_symbols)?;
+                    tmp_results.insert(idx, m)?;
                 }
             } else {
                 // Insert results in the order as they are given by the iterator
-
                 for (idx, mgroup) in plan.enumerate() {
                     let mgroup = mgroup?;
                     // add all matches to temporary container
-                    tmp_results.insert(idx, mgroup.to_vec())?;
+                    let m = match_group_with_symbol_ids(&mgroup, &mut anno_key_symbols)?;
+                    tmp_results.insert(idx, m)?;
                 }
 
                 let token_helper = TokenHelper::new(db).ok();
@@ -1825,11 +1829,18 @@ impl CorpusStorage {
 
                 let mut cache = SortCache::default();
                 let gs_order = db.get_graphstorage_as_ref(&component_order);
-                let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> Result<std::cmp::Ordering> {
+                let order_func = |m1: &Vec<(NodeID, usize)>,
+                                  m2: &Vec<(NodeID, usize)>|
+                 -> Result<std::cmp::Ordering> {
+                    // Get matches from symbol ID
+                    let m1 = match_group_resolve_symbol_ids(m1, &anno_key_symbols)?;
+                    let m2 = match_group_resolve_symbol_ids(m2, &anno_key_symbols)?;
+
+                    // Compare the matches
                     if order == ResultOrder::Inverted {
                         let result = db::sort_matches::compare_matchgroup_by_text_pos(
-                            m1,
-                            m2,
+                            &m1,
+                            &m2,
                             db.get_node_annos(),
                             token_helper.as_ref(),
                             gs_order,
@@ -1841,8 +1852,8 @@ impl CorpusStorage {
                         Ok(result)
                     } else {
                         let result = db::sort_matches::compare_matchgroup_by_text_pos(
-                            m1,
-                            m2,
+                            &m1,
+                            &m2,
                             db.get_node_annos(),
                             token_helper.as_ref(),
                             gs_order,
@@ -1865,10 +1876,18 @@ impl CorpusStorage {
                 quicksort::sort_first_n_items(&mut tmp_results, sort_size, order_func)?;
             }
             expected_size = Some(tmp_results.len());
-            let iterator = tmp_results
-                .into_iter()?
-                .map_ok(|m| MatchGroup::from(m.1))
-                .map(|item| item.map_err(GraphAnnisError::from));
+            let iterator = tmp_results.into_iter()?.map(move |unresolved_match_group| {
+                match unresolved_match_group {
+                    Ok((_idx, unresolved_match_group)) => {
+                        let result = match_group_resolve_symbol_ids(
+                            &unresolved_match_group,
+                            &anno_key_symbols,
+                        )?;
+                        Ok(result)
+                    }
+                    Err(e) => Err(e.into()),
+                }
+            });
             Box::from(iterator)
         };
 

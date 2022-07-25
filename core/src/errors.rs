@@ -56,6 +56,8 @@ pub enum GraphAnnisCoreError {
     FromUtf8Error(#[from] FromUtf8Error),
     #[error("Too man unique items added to symbol table")]
     SymbolTableOverflow,
+    #[error("Annotation key with ID {0} is not in symbol table")]
+    UnknownAnnoKeySymbolId(usize),
     #[error(transparent)]
     Other(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
