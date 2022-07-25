@@ -8,7 +8,7 @@ use super::sortablecontainer::SortableContainer;
 /// Make sure all items of the complete vector are sorted by the given comparision function.
 pub fn sort<T, F>(items: &mut dyn SortableContainer<T>, mut order_func: F) -> Result<()>
 where
-    T: Clone + Send,
+    T: Clone + Ord + Send,
     F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
     let item_len = items.try_len()?;
@@ -28,7 +28,7 @@ pub fn sort_first_n_items<T, F>(
     mut order_func: F,
 ) -> Result<()>
 where
-    T: Clone + Send,
+    T: Clone + Ord + Send,
     F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
     let item_len = items.try_len()?;
@@ -78,12 +78,12 @@ fn quicksort<T, F>(
     order_func: &mut F,
 ) -> Result<()>
 where
-    T: Clone,
+    T: Clone + Ord,
     F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
     let range_size = items_range.end - items_range.start;
     if range_size > 1 {
-        if range_size <= 10 {
+        if range_size <= 20 {
             insertion_sort(items, items_range, order_func)?;
         } else {
             let q = randomized_partition(items, items_range.clone(), order_func)?;
@@ -107,15 +107,26 @@ fn randomized_partition<T, F>(
     order_func: &mut F,
 ) -> Result<usize>
 where
-    T: Clone,
+    T: Clone + Ord,
     F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
     if (item_range.end - item_range.start) == 1 {
         Ok(item_range.start)
     } else {
         let mut rng = rand::thread_rng();
-        let i = rng.gen_range(item_range.clone());
-        items.try_swap(item_range.end - 1, i)?;
+        // Use the median of 3 random positions as pivot
+        let i1 = rng.gen_range(item_range.clone());
+        let i2 = rng.gen_range(item_range.clone());
+        let i3 = rng.gen_range(item_range.clone());
+
+        let v1 = (i1, items.try_get(i1)?.into_owned());
+        let v2 = (i2, items.try_get(i2)?.into_owned());
+        let v3 = (i3, items.try_get(i3)?.into_owned());
+
+        let mut v = [v1, v2, v3];
+        v.sort_unstable_by(|a, b| a.1.cmp(&b.1));
+
+        items.try_swap(item_range.end - 1, v[1].0)?;
         partition(items, item_range, order_func)
     }
 }
@@ -150,45 +161,6 @@ where
     items.try_swap(i, r)?;
 
     Ok(i)
-}
-
-fn partition_hoare<T, F>(
-    items: &mut dyn SortableContainer<T>,
-    item_range: Range<usize>,
-    order_func: &mut F,
-) -> Result<usize>
-where
-    T: Clone,
-    F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
-{
-    // We use Cormen et al. 2009 p. 185 as template but have to be careful about the
-    // index. They use vectors which start at index 1, Rust uses 0. To avoid
-    // problems with interger underflow, we also interpret p,r, i and j to start from
-    // 1, but when we access the items we translate it with an -1 offset.
-    let p = item_range.start + 1;
-    let r = item_range.end;
-    let mut i = p - 1;
-    let mut j = r + 1;
-
-    let x = items.try_get(p - 1)?.into_owned();
-
-    loop {
-        j -= 1;
-        while order_func(items.try_get(j - 1)?.as_ref(), &x)?.is_gt() {
-            j -= 1;
-        }
-
-        i += 1;
-        while order_func(items.try_get(i - 1)?.as_ref(), &x)?.is_lt() {
-            i += 1;
-        }
-
-        if i < j {
-            items.try_swap(i - 1, j - 1)?;
-        } else {
-            return Ok(j);
-        }
-    }
 }
 
 #[cfg(test)]
