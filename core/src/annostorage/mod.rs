@@ -49,7 +49,7 @@ pub fn match_group_resolve_symbol_ids(
 ) -> Result<MatchGroup> {
     let result: Result<MatchGroup> = unresolved_match_group
         .iter()
-        .map(|m| Match::from_annotation_key_symbol(*m, &anno_key_symbols))
+        .map(|m| Match::from_annotation_key_symbol(*m, anno_key_symbols))
         .collect();
     result
 }
@@ -61,7 +61,7 @@ impl Match {
     ) -> Result<Match> {
         let anno_key = symbols
             .get_value(m.1)
-            .ok_or_else(|| GraphAnnisCoreError::UnknownAnnoKeySymbolId(m.1))?;
+            .ok_or(GraphAnnisCoreError::UnknownAnnoKeySymbolId(m.1))?;
         Ok(Match {
             node: m.0,
             anno_key,

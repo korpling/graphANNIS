@@ -138,7 +138,7 @@ impl<'a> ExecutionPlan<'a> {
     }
 
     fn insert_into_unique_result_set(&mut self, n: &MatchGroup) -> Result<bool> {
-        let key = match_group_with_symbol_ids(&n, &mut self.anno_key_symbols)?;
+        let key = match_group_with_symbol_ids(n, &mut self.anno_key_symbols)?;
         if !self.unique_result_set.contains_key(&key)? {
             self.unique_result_set.insert(key, true)?;
             return Ok(true);
