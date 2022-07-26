@@ -31,8 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `anonymous_access_all_corpora` to `[auth]` section of the web service
   configuration to allow read-only access to all corpora without any
   authentication. (#234)
-- Added documentation on how to change configure which group can access which
-  corpora.
+- Added documentation on how to change configuration which group can access
+  which corpora.
 - Document how to change the stack size of the CLI in case the import aborts
   with a stack related error. (#229)
 
