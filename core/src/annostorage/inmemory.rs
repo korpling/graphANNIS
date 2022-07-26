@@ -745,21 +745,31 @@ where
     fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> Result<usize> {
         let full_match_pattern = util::regex_full_match(pattern);
 
+        // Try to parse the regular expression
         let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
         if let Ok(parsed) = parsed {
             let expr: regex_syntax::hir::Hir = parsed;
 
             let prefix_set = regex_syntax::hir::literal::Literals::prefixes(&expr);
-            let val_prefix = std::str::from_utf8(prefix_set.longest_common_prefix());
+            let mut guessed_count = 0;
 
-            if let Ok(lower_val) = val_prefix {
-                let mut upper_val = String::from(lower_val);
-                upper_val.push(std::char::MAX);
-                return self.guess_max_count(ns, name, lower_val, &upper_val);
+            // Add the guessed count for each prefix
+            for val_prefix in prefix_set.literals() {
+                let val_prefix = std::str::from_utf8(&val_prefix);
+                if let Ok(lower_val) = val_prefix {
+                    let mut upper_val = String::from(lower_val);
+                    upper_val.push(std::char::MAX);
+                    guessed_count += self.guess_max_count(ns, name, lower_val, &upper_val)?;
+                }
             }
-        }
 
-        Ok(0)
+            // Get the total number of annotations with the namespace/name. We
+            // can't get larger than this number
+            let total = self.number_of_annotations_by_name(ns, name)?;
+            Ok(guessed_count.min(total))
+        } else {
+            Ok(0)
+        }
     }
 
     fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Result<Option<Cow<str>>> {

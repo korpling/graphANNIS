@@ -757,12 +757,18 @@ impl<'a> NodeSearch<'a> {
             let total = db
                 .get_node_annos()
                 .number_of_annotations_by_name(qname.0.as_deref(), &qname.1)?;
-            total
-                - db.get_node_annos().guess_max_count_regex(
-                    qname.0.as_deref(),
-                    &qname.1,
-                    pattern,
-                )?
+            let est_for_regex =
+                db.get_node_annos()
+                    .guess_max_count_regex(qname.0.as_deref(), &qname.1, pattern)?;
+            if total == est_for_regex {
+                // The regex estimation did  a fallback to "every value is
+                // possible" and thus is not really an accurate representation
+                // of the possible values. Return the worst case estimate for
+                // negation (all matches) instead.
+                total
+            } else {
+                total - est_for_regex
+            }
         } else {
             db.get_node_annos()
                 .guess_max_count_regex(qname.0.as_deref(), &qname.1, pattern)?
