@@ -5,7 +5,7 @@ pub mod symboltable;
 use smallvec::SmallVec;
 
 use crate::{
-    errors::Result,
+    errors::{GraphAnnisCoreError, Result},
     types::{AnnoKey, Annotation, Edge, NodeID},
 };
 use std::sync::Arc;
@@ -14,8 +14,10 @@ use std::{boxed::Box, path::Path};
 
 use crate::malloc_size_of::MallocSizeOf;
 
+use self::symboltable::SymbolTable;
+
 /// A match is the result of a query on an annotation storage.
-#[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Match {
     /// The node identifier this match refers to.
     pub node: NodeID,
@@ -28,7 +30,52 @@ pub struct Match {
 /// cbindgen:ignore
 pub type MatchGroup = SmallVec<[Match; 8]>;
 
+/// Convert a `MatchGroup` to a vector of node and annotation key symbol IDs.
+pub fn match_group_with_symbol_ids(
+    match_group: &MatchGroup,
+    anno_key_symbols: &mut SymbolTable<AnnoKey>,
+) -> Result<Vec<(NodeID, usize)>> {
+    let result: Result<Vec<_>> = match_group
+        .iter()
+        .map(|m| m.as_annotation_key_symbol(anno_key_symbols))
+        .collect();
+    result
+}
+
+/// Convert a slice of node and annotation key symbol IDs to a `MatchGroup`.
+pub fn match_group_resolve_symbol_ids(
+    unresolved_match_group: &[(NodeID, usize)],
+    anno_key_symbols: &SymbolTable<AnnoKey>,
+) -> Result<MatchGroup> {
+    let result: Result<MatchGroup> = unresolved_match_group
+        .iter()
+        .map(|m| Match::from_annotation_key_symbol(*m, anno_key_symbols))
+        .collect();
+    result
+}
+
 impl Match {
+    fn from_annotation_key_symbol(
+        m: (NodeID, usize),
+        symbols: &SymbolTable<AnnoKey>,
+    ) -> Result<Match> {
+        let anno_key = symbols
+            .get_value(m.1)
+            .ok_or(GraphAnnisCoreError::UnknownAnnoKeySymbolId(m.1))?;
+        Ok(Match {
+            node: m.0,
+            anno_key,
+        })
+    }
+
+    fn as_annotation_key_symbol(
+        &self,
+        symbols: &mut SymbolTable<AnnoKey>,
+    ) -> Result<(NodeID, usize)> {
+        let anno_key_id = symbols.insert_shared(self.anno_key.clone())?;
+        Ok((self.node, anno_key_id))
+    }
+
     /// Extract the annotation for this match . The annotation value
     /// is retrieved from the `node_annos` given as argument.
     pub fn extract_annotation(

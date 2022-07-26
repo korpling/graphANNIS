@@ -41,6 +41,7 @@ impl ConsoleHelper {
         known_commands.insert("corpus".to_string());
         known_commands.insert("set-offset".to_string());
         known_commands.insert("set-limit".to_string());
+        known_commands.insert("set-order".to_string());
         known_commands.insert("set-timeout".to_string());
         known_commands.insert("preload".to_string());
         known_commands.insert("count".to_string());
@@ -121,6 +122,7 @@ struct AnnisRunner {
     current_corpus: Vec<String>,
     offset: usize,
     limit: Option<usize>,
+    result_order: ResultOrder,
     data_dir: PathBuf,
     use_parallel_joins: bool,
     use_disk: bool,
@@ -140,6 +142,7 @@ impl AnnisRunner {
             offset: 0,
             limit: None,
             timeout: None,
+            result_order: ResultOrder::default(),
         })
     }
 
@@ -204,6 +207,7 @@ impl AnnisRunner {
                 "corpus" => self.corpus(&args),
                 "set-offset" => self.set_offset(&args),
                 "set-limit" => self.set_limit(&args),
+                "set-order" => self.set_order(&args),
                 "set-timeout" => self.set_timeout(&args),
                 "preload" => self.preload(),
                 "plan" => self.plan(&args),
@@ -426,6 +430,28 @@ impl AnnisRunner {
         Ok(())
     }
 
+    fn set_order(&mut self, args: &str) -> Result<()> {
+        if args.is_empty() {
+            self.result_order = ResultOrder::default();
+        } else {
+            self.result_order = match args.to_lowercase().as_str() {
+                "normal" => ResultOrder::Normal,
+                "inverted" => ResultOrder::Inverted,
+                "random" => ResultOrder::Randomized,
+                "unsorted" => ResultOrder::NotSorted,
+                _ => {
+                    return Err(anyhow!(
+                        "Non-existing order with name {}. 
+                        Must be one of \"normal\", \"inverted\", \"random\", \"unsorted\"",
+                        args
+                    ));
+                }
+            };
+            println!("New result order is \"{:?}\"", &self.result_order);
+        }
+        Ok(())
+    }
+
     fn set_timeout(&mut self, args: &str) -> Result<()> {
         if args.is_empty() {
             self.timeout = None;
@@ -541,7 +567,7 @@ impl AnnisRunner {
                     self.create_query_from_args(args),
                     self.offset,
                     self.limit,
-                    ResultOrder::Normal,
+                    self.result_order,
                 )?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {

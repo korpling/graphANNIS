@@ -71,6 +71,10 @@ pub enum GraphAnnisError {
     ParseIntError(#[from] std::num::ParseIntError),
     #[error("Lock poisoning ({0})")]
     LockPoisoning(String),
+    #[error(transparent)]
+    BtreeIndex(#[from] transient_btree_index::Error),
+    #[error("index out of bounds {0}")]
+    IndexOutOfBounds(usize),
 }
 
 impl<T> From<PoisonError<T>> for GraphAnnisError {

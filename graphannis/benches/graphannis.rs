@@ -15,6 +15,7 @@ use graphannis::corpusstorage::{QueryLanguage, SearchQuery};
 use graphannis::update::{GraphUpdate, UpdateEvent};
 use graphannis::CorpusStorage;
 use std::collections::HashSet;
+use std::path::Path;
 use std::path::PathBuf;
 
 lazy_static! {
@@ -22,6 +23,9 @@ lazy_static! {
 static ref CORPUS_STORAGE : Option<CorpusStorage> = {
         let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
             path
+        }
+        else if Path::new("data").is_dir() {
+            String::from("data")
         } else {
             String::from("../data")
         });
@@ -45,7 +49,7 @@ fn find_all_nouns_gum(bench: &mut Criterion) {
     let corpora = cs.list();
     if let Ok(corpora) = corpora {
         let corpora: HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
-        // ignore of corpus does not exist
+        // ignore if corpus does not exist
         if corpora.contains("GUM") {
             cs.preload("GUM").unwrap();
         } else {
@@ -54,6 +58,7 @@ fn find_all_nouns_gum(bench: &mut Criterion) {
     }
 
     bench.bench_function("find_all_nouns_gum", move |b| {
+        cs.preload("GUM").unwrap();
         b.iter(|| {
             let query = SearchQuery {
                 corpus_names: &["GUM"],
@@ -61,7 +66,73 @@ fn find_all_nouns_gum(bench: &mut Criterion) {
                 query_language: QueryLanguage::AQL,
                 timeout: None,
             };
-            let f = cs.find(query, usize::min_value(), None, ResultOrder::Normal);
+            let f = cs.find(query, 0, None, ResultOrder::Normal);
+            assert!(f.is_ok());
+        })
+    });
+}
+
+fn find_first_ten_nouns_gum(bench: &mut Criterion) {
+    if CORPUS_STORAGE.is_none() {
+        return;
+    }
+
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+
+    let corpora = cs.list();
+    if let Ok(corpora) = corpora {
+        let corpora: HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
+        // ignore if corpus does not exist
+        if corpora.contains("GUM") {
+            cs.preload("GUM").unwrap();
+        } else {
+            return;
+        }
+    }
+
+    bench.bench_function("find_first_ten_nouns_gum", move |b| {
+        cs.preload("GUM").unwrap();
+        b.iter(|| {
+            let query = SearchQuery {
+                corpus_names: &["GUM"],
+                query: "pos=\"NN\"",
+                query_language: QueryLanguage::AQL,
+                timeout: None,
+            };
+            let f = cs.find(query, 0, Some(10), ResultOrder::Normal);
+            assert!(f.is_ok());
+        })
+    });
+}
+
+fn find_first_ten_token_gum(bench: &mut Criterion) {
+    if CORPUS_STORAGE.is_none() {
+        return;
+    }
+
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+
+    let corpora = cs.list();
+    if let Ok(corpora) = corpora {
+        let corpora: HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
+        // ignore if corpus does not exist
+        if corpora.contains("GUM") {
+            cs.preload("GUM").unwrap();
+        } else {
+            return;
+        }
+    }
+
+    bench.bench_function("find_first_ten_token_gum", move |b| {
+        cs.preload("GUM").unwrap();
+        b.iter(|| {
+            let query = SearchQuery {
+                corpus_names: &["GUM"],
+                query: "tok",
+                query_language: QueryLanguage::AQL,
+                timeout: None,
+            };
+            let f = cs.find(query, 0, Some(10), ResultOrder::Normal);
             assert!(f.is_ok());
         })
     });
@@ -73,6 +144,16 @@ fn deserialize_gum(bench: &mut Criterion) {
     }
 
     let cs = CORPUS_STORAGE.as_ref().unwrap();
+    let corpora = cs.list();
+    if let Ok(corpora) = corpora {
+        let corpora: HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
+        // ignore if corpus does not exist
+        if corpora.contains("GUM") {
+            cs.preload("GUM").unwrap();
+        } else {
+            return;
+        }
+    }
 
     bench.bench_function("deserialize_gum", move |b| {
         b.iter(|| {
@@ -139,6 +220,10 @@ fn apply_update(bench: &mut Criterion) {
     cs.delete("apply_update_test_corpus").unwrap();
 }
 
-criterion_group!(name=long_running; config= Criterion::default().sample_size(10); targets = find_all_nouns_gum);
-criterion_group!(name=short_running; config= Criterion::default().sample_size(50); targets = apply_update, deserialize_gum);
-criterion_main!(long_running, short_running);
+criterion_group!(name=default; config= Criterion::default().sample_size(50); targets = 
+    apply_update, 
+    deserialize_gum, 
+    find_first_ten_token_gum, 
+    find_first_ten_nouns_gum, 
+    find_all_nouns_gum);
+criterion_main!(default);

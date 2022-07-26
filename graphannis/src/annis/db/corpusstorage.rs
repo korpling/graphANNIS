@@ -23,6 +23,8 @@ use crate::{
 };
 use fmt::Display;
 use fs2::FileExt;
+use graphannis_core::annostorage::symboltable::SymbolTable;
+use graphannis_core::annostorage::{match_group_resolve_symbol_ids, match_group_with_symbol_ids};
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
     graph::{
@@ -34,17 +36,20 @@ use graphannis_core::{
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, CONTROLS};
+use rand::Rng;
 use smartstring::alias::String as SmartString;
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
+use std::mem::size_of;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::{Arc, Condvar, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::thread;
 use std::{borrow::Cow, time::Duration};
+use transient_btree_index::{BtreeConfig, BtreeIndex};
 
 use rustc_hash::FxHashMap;
 
@@ -57,10 +62,10 @@ use std::{
 use aql::model::AnnotationComponentType;
 use db::AnnotationStorage;
 
+use super::sort_matches::SortCache;
+
 #[cfg(test)]
 mod tests;
-
-const MAX_VECTOR_RESERVATION: usize = 10_000_000;
 
 enum CacheEntry {
     Loaded(AnnotationGraph),
@@ -1780,22 +1785,35 @@ impl CorpusStorage {
             Box::from(plan)
         } else {
             let estimated_result_size = plan.estimated_output_size();
-            // Estimations can be wrong on the upper limit, so limit the maximal reserved vector size
-            let expected_len = std::cmp::min(estimated_result_size, MAX_VECTOR_RESERVATION);
-            let mut tmp_results: Vec<MatchGroup> =
-                new_vector_with_memory_aligned_capacity(expected_len);
+            let btree_config = BtreeConfig::default()
+                .fixed_key_size(size_of::<usize>())
+                .max_value_size(512);
+            let mut anno_key_symbols: SymbolTable<AnnoKey> = SymbolTable::new();
+            let mut tmp_results: BtreeIndex<usize, Vec<(NodeID, usize)>> =
+                BtreeIndex::with_capacity(btree_config, estimated_result_size)?;
 
-            for mgroup in plan {
-                let mgroup = mgroup?;
-                // add all matches to temporary vector
-                tmp_results.push(mgroup);
-            }
-
-            // either sort or randomly shuffle results
             if order == ResultOrder::Randomized {
+                // Use a unique random index for each match to force a random order
                 let mut rng = rand::thread_rng();
-                tmp_results.shuffle(&mut rng);
+
+                for mgroup in plan {
+                    let mgroup = mgroup?;
+                    let mut idx: usize = rng.gen();
+                    while tmp_results.contains_key(&idx)? {
+                        idx = rng.gen();
+                    }
+                    let m = match_group_with_symbol_ids(&mgroup, &mut anno_key_symbols)?;
+                    tmp_results.insert(idx, m)?;
+                }
             } else {
+                // Insert results in the order as they are given by the iterator
+                for (idx, mgroup) in plan.enumerate() {
+                    let mgroup = mgroup?;
+                    // add all matches to temporary container
+                    let m = match_group_with_symbol_ids(&mgroup, &mut anno_key_symbols)?;
+                    tmp_results.insert(idx, m)?;
+                }
+
                 let token_helper = TokenHelper::new(db).ok();
                 let component_order = Component::new(
                     AnnotationComponentType::Ordering,
@@ -1809,29 +1827,39 @@ impl CorpusStorage {
                     CollationType::Default
                 };
 
+                let mut cache = SortCache::default();
                 let gs_order = db.get_graphstorage_as_ref(&component_order);
-                let order_func = |m1: &MatchGroup, m2: &MatchGroup| -> Result<std::cmp::Ordering> {
+                let order_func = |m1: &Vec<(NodeID, usize)>,
+                                  m2: &Vec<(NodeID, usize)>|
+                 -> Result<std::cmp::Ordering> {
+                    // Get matches from symbol ID
+                    let m1 = match_group_resolve_symbol_ids(m1, &anno_key_symbols)?;
+                    let m2 = match_group_resolve_symbol_ids(m2, &anno_key_symbols)?;
+
+                    // Compare the matches
                     if order == ResultOrder::Inverted {
                         let result = db::sort_matches::compare_matchgroup_by_text_pos(
-                            m1,
-                            m2,
+                            &m1,
+                            &m2,
                             db.get_node_annos(),
                             token_helper.as_ref(),
                             gs_order,
                             collation,
                             quirks_mode,
+                            &mut cache,
                         )?
                         .reverse();
                         Ok(result)
                     } else {
                         let result = db::sort_matches::compare_matchgroup_by_text_pos(
-                            m1,
-                            m2,
+                            &m1,
+                            &m2,
                             db.get_node_annos(),
                             token_helper.as_ref(),
                             gs_order,
                             collation,
                             quirks_mode,
+                            &mut cache,
                         )?;
                         Ok(result)
                     }
@@ -1845,18 +1873,22 @@ impl CorpusStorage {
                     tmp_results.len()
                 };
 
-                if self.query_config.use_parallel_joins {
-                    quicksort::sort_first_n_items_parallel(
-                        &mut tmp_results,
-                        sort_size,
-                        order_func,
-                    )?;
-                } else {
-                    quicksort::sort_first_n_items(&mut tmp_results, sort_size, order_func)?;
-                }
+                quicksort::sort_first_n_items(&mut tmp_results, sort_size, order_func)?;
             }
             expected_size = Some(tmp_results.len());
-            Box::from(tmp_results.into_iter().map(Ok))
+            let iterator = tmp_results.into_iter()?.map(move |unresolved_match_group| {
+                match unresolved_match_group {
+                    Ok((_idx, unresolved_match_group)) => {
+                        let result = match_group_resolve_symbol_ids(
+                            &unresolved_match_group,
+                            &anno_key_symbols,
+                        )?;
+                        Ok(result)
+                    }
+                    Err(e) => Err(e.into()),
+                }
+            });
+            Box::from(iterator)
         };
 
         Ok((base_it, expected_size))

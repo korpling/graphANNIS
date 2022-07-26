@@ -2,6 +2,7 @@ use crate::annis::db::exec::ExecutionNode;
 use crate::annis::db::exec::ExecutionNodeDesc;
 use crate::annis::db::sort_matches;
 use crate::annis::db::sort_matches::CollationType;
+use crate::annis::db::sort_matches::SortCache;
 use crate::annis::db::token_helper;
 use crate::annis::util::quicksort;
 use crate::{
@@ -13,8 +14,8 @@ use graphannis_core::{
     graph::{storage::GraphStorage, ANNIS_NS, NODE_TYPE_KEY},
     types::{AnnoKey, Component, NodeID},
 };
-
 use smallvec::smallvec;
+
 use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
@@ -89,6 +90,9 @@ impl<'a> AnyTokenSearch<'a> {
                 });
             }
         }
+
+        let mut cache = SortCache::default();
+
         quicksort::sort(&mut root_nodes, |a, b| {
             sort_matches::compare_match_by_text_pos(
                 b,
@@ -98,6 +102,7 @@ impl<'a> AnyTokenSearch<'a> {
                 self.order_gs,
                 CollationType::Default,
                 false,
+                &mut cache,
             )
         })?;
 

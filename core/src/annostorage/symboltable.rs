@@ -60,11 +60,14 @@ where
 
     pub fn insert(&mut self, val: T) -> Result<usize> {
         let val = Arc::from(val);
-        {
-            if let Some(existing_idx) = self.by_value.get(&val) {
-                return Ok(*existing_idx);
-            }
+        self.insert_shared(val)
+    }
+
+    pub fn insert_shared(&mut self, val: Arc<T>) -> Result<usize> {
+        if let Some(existing_idx) = self.by_value.get(&val) {
+            return Ok(*existing_idx);
         }
+
         // non-existing: add a new value
 
         // if array is still small enough, just add the value to the end

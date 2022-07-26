@@ -164,7 +164,7 @@ impl<'a> NestedLoop<'a> {
                             for m_inner in &mut self.inner {
                                 match m_inner {
                                     Ok(m_inner) => {
-                                        let m_inner = Arc::from(m_inner);
+                                        let m_inner: Arc<MatchGroup> = Arc::from(m_inner);
 
                                         self.inner_cache.push(m_inner.clone());
 
