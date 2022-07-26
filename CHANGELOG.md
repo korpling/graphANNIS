@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.2] - 2022-07-26
+
 ### Fixed
 
 - Use external sorting for match results to avoid out of memory errors for large
