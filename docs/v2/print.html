@@ -1,0 +1,1413 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>graphANNIS documentation</title>
+        
+        <meta name="robots" content="noindex" />
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+        <!-- MathJax -->
+        <script async type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div id="sidebar-scrollbox" class="sidebar-scrollbox">
+                <ol class="chapter"><li class="expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="expanded "><a href="data-model.html"><strong aria-hidden="true">2.</strong> Data model</a></li><li><ol class="section"><li class="expanded "><a href="annotation-graph.html"><strong aria-hidden="true">2.1.</strong> Annotations as graph</a></li><li class="expanded "><a href="data-model-indexes.html"><strong aria-hidden="true">2.2.</strong> Indexes for faster query execution</a></li></ol></li><li class="expanded "><a href="embed.html"><strong aria-hidden="true">3.</strong> How to embed into applications</a></li><li><ol class="section"><li class="expanded "><a href="embed-python.html"><strong aria-hidden="true">3.1.</strong> Python Tutorial</a></li><li class="expanded "><a href="embed-java.html"><strong aria-hidden="true">3.2.</strong> Java Tutorial</a></li><li class="expanded "><a href="embed-rust.html"><strong aria-hidden="true">3.3.</strong> Rust Tutorial</a></li></ol></li><li class="expanded "><a href="rest/index.html"><strong aria-hidden="true">4.</strong> REST service</a></li><li><ol class="section"><li class="expanded "><a href="rest/configuration.html"><strong aria-hidden="true">4.1.</strong> Configuration</a></li><li class="expanded "><a href="rest/auth.html"><strong aria-hidden="true">4.2.</strong> Authentication and authorization</a></li></ol></li><li class="expanded "><a href="cli.html"><strong aria-hidden="true">5.</strong> Interactive command-line</a></li><li class="expanded "><a href="release-checklist.html"><strong aria-hidden="true">6.</strong> Release checklist</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">graphANNIS documentation</h1>
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#introduction" id="introduction">Introduction</a></h1>
+<p>The graphANNIS library is a new backend implementation of the <a href="http://corpus-tools.org/annis/">ANNIS linguistic search and visualization system</a>.</p>
+<p>It is part of the larger system with a web-based front-end, a REST-service (both written in the Java programming language).
+<img src="images/graphannis-architecture.png" alt="graphANNIS architecture overview" />
+As a backend, it is in charge of performing the actual AQL queries and returning the results, which can be either
+the number of matches, the IDs of the matches or sub-graphs for a specific set of matches.</p>
+<h2><a class="header" href="#crates" id="crates">Crates</a></h2>
+<p>GraphANNIS currently consists of the following sub-crates:</p>
+<ul>
+<li>graphannis-core (<code>core/</code>): Generic functionality for representing, storing and querying a generic property graph.</li>
+<li>graphannis (<code>graphannis/</code>): The complete library with support for linguistic corpora and AQL</li>
+<li>graphannis-cli (<code>cli/</code>) : A command line interface to e.g. import corpora or search them.</li>
+<li>graphannis-capi (<code>cli/</code>) : A C-API for graphANNIS.</li>
+<li>graphannis-tutorial (<code>examples/tutorial</code>): An example how to use the API.</li>
+</ul>
+<h1><a class="header" href="#data-model" id="data-model">Data model</a></h1>
+<p>The data model and concepts used by graphANNIS are similar to the ones of <a href="http://corpus-tools.org/salt/">Salt</a> (see the <a href="https://github.com/korpling/salt/raw/master/gh-site/doc/salt_modelGuide.pdf">Salt model guide</a> for more information).
+Historically, Salt and ANNIS with its query language AQL have been developed in parallel, sharing concepts and ideas
+how a linguistic corpus should be modeled as a directed labeled graph.
+Still, there are differences because of the purpose of each model: Salt should represent the annotation and data sources without loosing
+information while the ANNIS data model transforms the data model to allow an efficient search.</p>
+<p>GraphANNIS uses a data model that allows performing searches with AQL (and thus is compatible with its data model).
+By using graphs, as Salt does, it is more flexible in modeling the data and can be more close to Salt than the relational database scheme of older ANNIS version could be.
+Some parts of the data model are exposed to the outside, e.g. when a user applies changes to a graph.
+Others are internal and are used to index structures needed for AQL, but which can be deduced from the information in the public data model.</p>
+<h1><a class="header" href="#representing-annotations-as-graph" id="representing-annotations-as-graph">Representing annotations as graph</a></h1>
+<h2><a class="header" href="#elements-of-the-graph" id="elements-of-the-graph">Elements of the graph</a></h2>
+<p>The following figure gives an overview of the elements of the graphANNIS model, which is based on a directed graph (see Cormen et al. 2009, p. 1168<sup class="footnote-reference"><a href="#cormen">1</a></sup>).</p>
+<p><img src="images/graphannis-model.png" alt="Elements of the graphANNIS model" /></p>
+<p>GraphANNIS does not partition the data documents like it was done in relANNIS, graphANNIS partitions the corpora into </p>
+<ul>
+<li>information about the nodes and node labels, and</li>
+<li>edges and edge label information which are partitioned again into components.</li>
+</ul>
+<p>In this model, each node is internally identified by a unique ID.
+Node labels consist of a namespace, a name, and a value and are connected to a node by its ID.
+No explicit representation of nodes exists: If a node exists there must be at least one label for this node.
+There is a special label named &quot;annis::node_name&quot;<sup class="footnote-reference"><a href="#qname">2</a></sup> that can be applied to any node to mark its existence.</p>
+<p>GraphANNIS has the concept of components for edges.
+A component has a type, a name, and a layer. 
+It consists of edges and edge labels.
+Edges between two nodes are uniquely defined inside a component with the source and target node ID.
+There can not be more than one edge between the same two nodes inside the same component.
+Each edge can have multiple edge labels.
+In addition to the source and target node ID, edge labels also have namespaces, names and values.
+For one edge, only one edge label having the same namespace and name can exist.
+Graphs are the aggregation of node labels and edge components.</p>
+<h2><a class="header" href="#corpus-structure" id="corpus-structure">Corpus structure</a></h2>
+<p>GraphANNIS has two kinds of nodes:</p>
+<ul>
+<li>annotation graph nodes and</li>
+<li>corpus graph nodes.</li>
+</ul>
+<p>They are both parts of the same graph structure but are distinguished by the special label &quot;annis::node_type&quot;.
+It can either have the value &quot;node&quot; for nodes belonging to the annotation graph or &quot;corpus&quot; for nodes belonging to the corpus graph.
+Nodes that belong to a corpus graph are connected with edges that belong to a component of the type <code>PartOf</code>.
+The source node is always the node that is part of the (sub-) corpus, and the target node is the node which is higher in the corpus graph hierarchy.</p>
+<p><img src="images/corpusgraph.png" alt="Example corpus graph representation in graphANNIS" /></p>
+<p>In this example, each annotation graph node belongs to exactly one document and the corpus graph is a tree.
+However, the data model allows to add an annotation node to several documents, and a document or sub-corpus can be part of several (sub-) corpora.
+In this regard, graphANNIS is more flexible than Salt.
+In addition to &quot;corpus&quot; and &quot;node&quot;, you can add your own types of node, e.g. &quot;datasource&quot; for nodes that should not be 
+treated like a document in meta-data searches, but represent a data source like a text.</p>
+<h2><a class="header" href="#tokens" id="tokens">Tokens</a></h2>
+<p>Since AQL has no concept of textual data sources, the leafs of the annotation graph in graphANNIS are the tokens.
+Tokens have a special label &quot;annis::tok&quot; which has the spanned text as its value.
+Additionally, tokens are connected with edges that belong to a component of type <code>Ordering</code>.</p>
+<p><img src="images/token.png" alt="Example for token representation in graphANNIS" /></p>
+<p>The ordering edges are very similar to the explicit <code>SOrderRelation</code> edges in Salt, except that they are not obligatory but are needed to determine the order of the tokens in the absence of any character index.
+They also support multiple tokenizations because there can be more than one component of the type <code>Ordering</code>.
+When there are multiple components with this type, the name of the component corresponds to the name of the tokenization and is empty for the default tokenization.</p>
+<h2><a class="header" href="#spans" id="spans">Spans</a></h2>
+<p>Spans are nodes that are not a token but cover a set of tokens.
+They also implicitly cover the original text that is covered by these tokens.
+GraphANNIS expresses these coverage relations by using explicit edges between the spans and each token it covers.
+These edges are part of a component of the type <code>Coverage</code>.</p>
+<p><img src="images//span.png" alt="Example for spans represented in graphANNIS" /></p>
+<h2><a class="header" href="#dominance-relations" id="dominance-relations">Dominance relations</a></h2>
+<p>While spans are used to describe non-hierarchical node structures, hierarchical structures like constituent trees are modeled using edges of the type <code>Dominance</code>.</p>
+<p><img src="images/constituent.png" alt="Example for a constituent tree represented in graphANNIS" /></p>
+<p>These edges can also have additional labels if the annotation scheme requires it.
+In contrast to Salt, where nodes have different types, in graphANNIS, only the edges are typed.
+Thus, <code>Dominance</code> edges can be in theory added to any node.
+Since they imply text-coverage, these components should be non-cyclic.</p>
+<h2><a class="header" href="#pointing-relations" id="pointing-relations">Pointing relations</a></h2>
+<p>For relations that are not implying text-coverage, edges of type <code>Pointing</code> can be used.
+These have the same semantics as the <code>SPointingRelation</code> of Salt and can have additional labels for expressing edge annotations.
+The type of pointing relation in AQL corresponds to the name of the edge component in graphANNIS.</p>
+<div class="footnote-definition" id="cormen"><sup class="footnote-definition-label">1</sup>
+<p>T. H. Cormen, C. E. Leiserson, R. L. Rivest, and C. Stein, Introduction to Algorithms, 3rd ed. The MIT Press, 2009.</p>
+</div>
+<div class="footnote-definition" id="qname"><sup class="footnote-definition-label">2</sup>
+<p>This is a fully qualified representation of the label name which includes the reserved namespace &quot;annis&quot;.</p>
+</div>
+<h1><a class="header" href="#indexes-for-faster-query-execution" id="indexes-for-faster-query-execution">Indexes for faster query execution</a></h1>
+<p>GraphANNIS uses helper edges to speed-up AQL query execution.
+These are automatically created or updated when a graph update is executed via the <code>apply_update(...)</code> function of the <code>CorpusStorage</code> structure.
+Users of the API do not have to add these edges by their-self.</p>
+<h2><a class="header" href="#inherited-coverage" id="inherited-coverage">Inherited coverage</a></h2>
+<p>Dominance relations imply text-coverage and thus any node connected inherits the covered token from its child nodes.
+Instead of traversing the dominance edges on query time, inherited coverage relations are explicitly added to the nodes.</p>
+<p><img src="images/constituent-index.png" alt="Example of inherited coverage edges for a constituent tree" /></p>
+<h2><a class="header" href="#left-most-and-right-most-token-of-a-node" id="left-most-and-right-most-token-of-a-node">Left-most and right-most token of a node</a></h2>
+<p>These components of type <code>LeftToken</code> and <code>RightToken</code> allow providing faster implementations for some operators that deal with text coverage or precedence.
+Their target node is the left-most or right-most covered token of a node.
+The covered token are ordered by their position in the chain of <code>Ordering</code> relations.
+If there is a path of any length from token \({t_1}\) to \({t_2}\), \({t_1}\) is more “left” than \({t_2}\).</p>
+<p><img src="images/span-index.png" alt="LeftToken and RightToken example for span" /></p>
+<p>While the coverage edges are similar to the <code>SSpanningRelation</code>, the left and right token edges are inspired from the two columns of the <code>node</code> table in relANNIS (the legacy relational database implementation of ANNIS) with the same name.
+Each node of the annotation graph that is not a token must have a left and right token edge because AQL implicitly requires all nodes to be connected to tokens.
+Lookup for all left- or right-aligned nodes of a token is possible by accessing the inverse edges of the <code>LeftToken</code> and <code>RightToken</code> component.</p>
+<h1><a class="header" href="#how-to-embed-into-applications" id="how-to-embed-into-applications">How to embed into applications</a></h1>
+<p>GraphANNIS was developed as a new backend for the ANNIS linguistic search and visualization system but can be embedded
+into other applications as well.
+It provides an API to add annotation graphs, querying them with AQL and retrieving subgraphs for matches.
+This chapter is a tutorial in to how to embed graphANNIS into your own application.</p>
+<p>Currently, graphANNIS can be embedded into programs written in these programming languages:</p>
+<ul>
+<li><a href="./embed-python.html">Python (version 3.6 or later)</a></li>
+<li><a href="./embed-java.html">Java (version 8 or later)</a></li>
+<li><a href="./embed-rust.html">Rust</a></li>
+<li>C (No tutorial yet)</li>
+</ul>
+<h1><a class="header" href="#python-tutorial" id="python-tutorial">Python Tutorial</a></h1>
+<h2><a class="header" href="#installation" id="installation">Installation</a></h2>
+<p>GraphANNIS works with applications written for Python 3.6 or later.
+You can download the graphANNIS library with pip</p>
+<pre><code class="language-bash">pip install graphannis
+</code></pre>
+<p>In some environments (e.g. Ubuntu Linux), you have to use <code>pip3</code> instead to select Python 3.</p>
+<pre><code class="language-bash">pip3 install graphannis
+</code></pre>
+<h2><a class="header" href="#api-documentation" id="api-documentation">API documentation</a></h2>
+<p>The API documentation is available at <a href="http://graphannis-python.readthedocs.io/">http://graphannis-python.readthedocs.io/</a>.</p>
+<h2><a class="header" href="#corpus-data-directory" id="corpus-data-directory">Corpus data directory</a></h2>
+<p>Data is organized in corpora, where each corpus has a name and annotations can only refer to other annotations in the same corpus.
+A <code>CorpusStorageManager</code> is used to access a collection corpora by their name.</p>
+<pre><code class="language-python">from graphannis.cs import CorpusStorageManager
+with CorpusStorageManager() as cs:
+    print(cs.list())
+</code></pre>
+<p>This will print an empty list, because no corpora have been created yet.
+Per default, the <code>CorpusStorageManager</code> uses the sub-directory <code>data</code> of the current working directory to store the corpora.
+You can change the location with the <code>db_dir</code> parameter:</p>
+<pre><code class="language-python">from graphannis.cs import CorpusStorageManager
+with CorpusStorageManager(db_dir='/tmp/graphannis-data') as cs:
+    print(cs.list())
+</code></pre>
+<p>Only one process can access a graphANNIS data directory, other processes will fail to open it if there is another process holding a lock.
+The <code>CorpusStorageManager</code> is thread-safe, thus multiple threads of the same process can call all functions in parallel.</p>
+<h2><a class="header" href="#adding-corpus-data" id="adding-corpus-data">Adding corpus data</a></h2>
+<p>Linguistic annotations as represented in graphANNIS as directed graphs (see the <a href="./annotation-graph.html">data model</a> section for more information).
+You can add nodes and edges via the <code>apply_update(...)</code> function.
+It takes the corpus name and a list of graph updates as argument.
+These graph update lists are represented by the class <code>graphannis.graph.GraphUpdate</code>.
+E.g the following code creates a graph update for the tokenized sentence “That is a Category 3 storm.”
+Normally, you would not add all events manually in the source code, which gets a bit verbose, but have input data that you map to update events.</p>
+<pre><code class="language-python">from graphannis.graph import GraphUpdate
+g = GraphUpdate()
+
+# First argument is the node name.
+g.add_node(&quot;tutorial/doc1#t1&quot;)
+# First argument is the node name, 
+# then comes the annotation namespace, name and value.
+g.add_node_label(&quot;tutorial/doc1#t1&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;That&quot;)
+
+g.add_node(&quot;tutorial/doc1#t2&quot;)
+g.add_node_label(&quot;tutorial/doc1#t2&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;is&quot;)
+
+g.add_node(&quot;tutorial/doc1#t3&quot;)
+g.add_node_label(&quot;tutorial/doc1#t3&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;a&quot;)
+
+g.add_node(&quot;tutorial/doc1#t4&quot;)
+g.add_node_label(&quot;tutorial/doc1#t4&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;Category&quot;)
+
+g.add_node(&quot;tutorial/doc1#t5&quot;)
+g.add_node_label(&quot;tutorial/doc1#t5&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;3&quot;)
+
+g.add_node(&quot;tutorial/doc1#t6&quot;)
+g.add_node_label(&quot;tutorial/doc1#t6&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;storm&quot;)
+
+g.add_node(&quot;tutorial/doc1#t7&quot;)
+g.add_node_label(&quot;tutorial/doc1#t7&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;.&quot;)
+
+# Add the ordering edges to specify token order.
+# The names of the source and target nodes are given as arguments, 
+# followed by the component layer, type and name.
+g.add_edge(&quot;tutorial/doc1#t1&quot;, &quot;tutorial/doc1#t2&quot;, &quot;annis&quot;, &quot;Ordering&quot;, &quot;&quot;)
+g.add_edge(&quot;tutorial/doc1#t2&quot;, &quot;tutorial/doc1#t3&quot;, &quot;annis&quot;, &quot;Ordering&quot;, &quot;&quot;)
+g.add_edge(&quot;tutorial/doc1#t3&quot;, &quot;tutorial/doc1#t4&quot;, &quot;annis&quot;, &quot;Ordering&quot;, &quot;&quot;)
+g.add_edge(&quot;tutorial/doc1#t4&quot;, &quot;tutorial/doc1#t5&quot;, &quot;annis&quot;, &quot;Ordering&quot;, &quot;&quot;)
+g.add_edge(&quot;tutorial/doc1#t5&quot;, &quot;tutorial/doc1#t6&quot;, &quot;annis&quot;, &quot;Ordering&quot;, &quot;&quot;)
+g.add_edge(&quot;tutorial/doc1#t6&quot;, &quot;tutorial/doc1#t7&quot;, &quot;annis&quot;, &quot;Ordering&quot;, &quot;&quot;)
+</code></pre>
+<p>You could add additional annotations like part of speech as labels on nodes.
+For labels on edges, you can use the <code>add_edge_label(...)</code> function.</p>
+<p>This <code>GraphUpdate</code> object can then be used with the <code>applyUpdate(...)</code> function:</p>
+<pre><code class="language-python">with CorpusStorageManager() as cs:
+    cs.apply_update(&quot;tutorial&quot;, g)
+    # this now includes the &quot;tutorial&quot;
+    print(cs.list())
+</code></pre>
+<h2><a class="header" href="#querying" id="querying">Querying</a></h2>
+<p>There are two functions to query a corpus with AQL:</p>
+<ul>
+<li><code>count(...)</code> returns the number of matches, and</li>
+<li><code>find(...)</code> returns a paginated list of matched node IDs.</li>
+</ul>
+<p>You have to give the corpus name and the query as arguments to both functions.
+The following example searches for all tokens that contain a <code>s</code> character.<sup class="footnote-reference"><a href="#aql">1</a></sup></p>
+<pre><code class="language-python">with CorpusStorageManager() as cs: 
+    number_of_matches = cs.count(&quot;tutorial&quot;, 'tok=/.*s.*/')
+    print(number_of_matches)
+    matches = cs.find(&quot;tutorial&quot;, 'tok=/.*s.*/', offset=0, limit=100)
+    print(matches)
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-ignore">2
+[['tutorial/doc1#t2'], ['tutorial/doc1#t6']]
+</code></pre>
+<h2><a class="header" href="#getting-subgraphs" id="getting-subgraphs">Getting subgraphs</a></h2>
+<p>The result from the <code>find(...)</code> function can be used to generate a subgraph for the matches.
+It will contain all covered nodes of the matches and additionally a given context (defined in tokens).</p>
+<pre><code class="language-python">from graphannis.util import node_name_from_match
+with CorpusStorageManager() as cs: 
+    matches = cs.find(&quot;tutorial&quot;, 'tok . tok', offset=0, limit=100)
+    for m in matches:
+        print(m)
+        G = cs.subgraph(&quot;tutorial&quot;, node_name_from_match(m), ctx_left=2, ctx_right=2)
+        print(&quot;Number of nodes in subgraph: &quot; + str(len(G.nodes)))
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-ignore">['tutorial/doc1#t1', 'tutorial/doc1#t2']
+Number of nodes in subgraph: 4
+['tutorial/doc1#t2', 'tutorial/doc1#t3']
+Number of nodes in subgraph: 5
+['tutorial/doc1#t3', 'tutorial/doc1#t4']
+Number of nodes in subgraph: 6
+['tutorial/doc1#t4', 'tutorial/doc1#t5']
+Number of nodes in subgraph: 6
+['tutorial/doc1#t5', 'tutorial/doc1#t6']
+Number of nodes in subgraph: 5
+['tutorial/doc1#t6', 'tutorial/doc1#t7']
+Number of nodes in subgraph: 4
+
+</code></pre>
+<p>The result object of the <code>subgraph(...)</code> function is the type <a href="https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html">NetworkX MultiDiGraph</a>.
+<a href="https://networkx.github.io/documentation/stable/tutorial.html">NetworkX</a> is a graph library, that provides basic graph access and manipulation functions, but also implements graph traversal and other graph algorithms.</p>
+<p><strong>Note:</strong> The <code>subgraph(...)</code> function takes a single corpus name as argument instead of a list, so you need to know to which corpus a matched node belongs to.</p>
+<p>Normally a corpus is structured into subcorpora and documents.
+GraphANNIS uses node types and relations of type <code>PartOf</code> to <a href="annotation-graph.html#corpus-structure">model the corpus structure</a>.
+If you have document nodes and the <code>PartOf</code> relation between the annotation nodes and its document, you can use the
+<code>subcorpus_graph(...)</code> function to get all annotation nodes for a given list of document names.</p>
+<pre><code class="language-python">with CorpusStorageManager() as cs:
+    g = GraphUpdate()
+    # create the corpus and document node
+    g.add_node('tutorial', node_type='corpus')
+    g.add_node('tutorial/doc1', node_type='corpus')
+    g.add_edge('tutorial/doc1','tutorial', 'annis', 'PartOf', '')
+    # add the corpus structure to the existing nodes
+    g.add_edge('tutorial/doc1#t1','tutorial/doc1', 'annis', 'PartOf', '')
+    g.add_edge('tutorial/doc1#t2','tutorial/doc1', 'annis', 'PartOf', '')
+    g.add_edge('tutorial/doc1#t3','tutorial/doc1', 'annis', 'PartOf', '')
+    g.add_edge('tutorial/doc1#t4','tutorial/doc1', 'annis', 'PartOf', '')
+    g.add_edge('tutorial/doc1#t5','tutorial/doc1', 'annis', 'PartOf', '')
+    g.add_edge('tutorial/doc1#t6','tutorial/doc1', 'annis', 'PartOf', '')
+    g.add_edge('tutorial/doc1#t7','tutorial/doc1', 'annis', 'PartOf', '')
+    # apply the changes
+    cs.apply_update('tutorial', g)
+    # get the whole document as graph
+    G = cs.subcorpus_graph('tutorial', ['tutorial/doc1'])
+    print(G.nodes)
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-ignore">['tutorial/doc1#t1', 'tutorial/doc1#t6', 'tutorial/doc1#t4', 'tutorial/doc1#t2', 'tutorial/doc1#t7', 'tutorial/doc1#t5', 'tutorial/doc1#t3']
+</code></pre>
+<div class="footnote-definition" id="aql"><sup class="footnote-definition-label">1</sup>
+<p>You can get an overview of AQL <a href="http://corpus-tools.org/annis/aql.html">here</a> or detailed information in the
+<a href="http://korpling.github.io/ANNIS/3.6/user-guide/aql.html">User Guide</a>.</p>
+</div>
+<h1><a class="header" href="#java-tutorial" id="java-tutorial">Java Tutorial</a></h1>
+<h2><a class="header" href="#installation-1" id="installation-1">Installation</a></h2>
+<p>GraphANNIS works with applications written for Java 8 or later.
+If you are using Apache Maven as your build system, you can add a dependency to graphANNIS with the following Maven dependency configuration:</p>
+<pre><code class="language-xml">&lt;dependency&gt;
+  &lt;groupId&gt;org.corpus-tools&lt;/groupId&gt;
+  &lt;artifactId&gt;graphannis&lt;/artifactId&gt;
+  &lt;version&gt;__version__&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<p>Replace <code>__version__</code> with the latest released version of the Java language bindings, e.g. 
+by searching for it on <a href="https://search.maven.org/search?q=g:org.corpus-tools%20AND%20a:graphannis">Maven Central</a>.</p>
+<h2><a class="header" href="#api-documentation-1" id="api-documentation-1">API documentation</a></h2>
+<p>The API documentation is available at 
+<a href="http://www.javadoc.io/doc/org.corpus-tools/graphannis/">http://www.javadoc.io/doc/org.corpus-tools/graphannis/</a>.</p>
+<h2><a class="header" href="#corpus-data-directory-1" id="corpus-data-directory-1">Corpus data directory</a></h2>
+<p>Data is organized in corpora, where each corpus has a name and annotations can only refer to other annotations in the same corpus.
+A <code>CorpusStorageManager</code> is used to access a collection corpora by their name.</p>
+<pre><code class="language-java">package org.corpus_tools;
+
+import org.corpus_tools.graphannis.CorpusStorageManager;
+import org.corpus_tools.graphannis.errors.GraphANNISException;
+
+public class ListCorpora {
+    public static void main(String[] args) throws GraphANNISException {
+        CorpusStorageManager cs = new CorpusStorageManager(&quot;data&quot;);
+        String[] corpora = cs.list();
+        System.out.println(corpora.length);
+    }
+}
+</code></pre>
+<p>This will print a <code>0</code>, because no corpora have been created yet.
+In this example, the <code>CorpusStorageManager</code> uses the sub-directory <code>data</code> of the current working directory to store the corpora.
+You can also use an absolute path as argument:</p>
+<pre><code class="language-java">CorpusStorageManager cs = new CorpusStorageManager(&quot;/tmp/graphannis-data&quot;);
+</code></pre>
+<p>Only one process can access a graphANNIS data directory, other processes will fail to open it if there is another process holding a lock.
+The <code>CorpusStorageManager</code> is thread-safe, thus multiple threads of the same process can call all functions in parallel.</p>
+<h2><a class="header" href="#adding-corpus-data-1" id="adding-corpus-data-1">Adding corpus data</a></h2>
+<p>Linguistic annotations as represented in graphANNIS as directed graphs (see the <a href="annotation-graph.html">data model</a> section for more information).
+You can add nodes and edges via the <code>applyUpdate(...)</code> function.
+It takes the corpus name and a list of graph updates as argument.
+These graph update lists are represented by the class <code>GraphUpdate</code>.
+E.g the following code creates a graph update for the tokenized sentence “That is a Category 3 storm.”.
+Normally, you would not add all events manually in the source code, which gets a bit verbose, but have input data that you map to update events.
+The resulting <code>GraphUpdate</code> object can then be used with the <code>applyUpdate(...)</code> function to insert the changes into the corpus.</p>
+<pre><code class="language-java">package org.corpus_tools;
+
+import org.corpus_tools.graphannis.CorpusStorageManager;
+import org.corpus_tools.graphannis.GraphUpdate;
+import org.corpus_tools.graphannis.errors.GraphANNISException;
+
+public class ApplyUpdate {
+    public static void main(String[] args) throws GraphANNISException {
+        CorpusStorageManager cs = new CorpusStorageManager(&quot;data&quot;);
+
+        GraphUpdate g = new GraphUpdate();
+
+        // First argument is the node name.
+        g.addNode(&quot;tutorial/doc1#t1&quot;);
+        // First argument is the node name, 
+        // then comes the annotation namespace, name and value.
+        g.addNodeLabel(&quot;tutorial/doc1#t1&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;That&quot;);
+
+        g.addNode(&quot;tutorial/doc1#t2&quot;);
+        g.addNodeLabel(&quot;tutorial/doc1#t2&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;is&quot;);
+
+        g.addNode(&quot;tutorial/doc1#t3&quot;);
+        g.addNodeLabel(&quot;tutorial/doc1#t3&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;a&quot;);
+
+        g.addNode(&quot;tutorial/doc1#t4&quot;);
+        g.addNodeLabel(&quot;tutorial/doc1#t4&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;Category&quot;);
+
+        g.addNode(&quot;tutorial/doc1#t5&quot;);
+        g.addNodeLabel(&quot;tutorial/doc1#t5&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;3&quot;);
+
+        g.addNode(&quot;tutorial/doc1#t6&quot;);
+        g.addNodeLabel(&quot;tutorial/doc1#t6&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;storm&quot;);
+
+        g.addNode(&quot;tutorial/doc1#t7&quot;);
+        g.addNodeLabel(&quot;tutorial/doc1#t7&quot;, &quot;annis&quot;, &quot;tok&quot;, &quot;.&quot;);
+
+        // Add the ordering edges to specify token order.
+        // The names of the source and target nodes are given as arguments, 
+        // followed by the component layer, type and name.
+        g.addEdge(&quot;tutorial/doc1#t1&quot;, &quot;tutorial/doc1#t2&quot;, &quot;annis&quot;, &quot;Ordering&quot;, &quot;&quot;);
+        g.addEdge(&quot;tutorial/doc1#t2&quot;, &quot;tutorial/doc1#t3&quot;, &quot;annis&quot;, &quot;Ordering&quot;, &quot;&quot;);
+        g.addEdge(&quot;tutorial/doc1#t3&quot;, &quot;tutorial/doc1#t4&quot;, &quot;annis&quot;, &quot;Ordering&quot;, &quot;&quot;);
+        g.addEdge(&quot;tutorial/doc1#t4&quot;, &quot;tutorial/doc1#t5&quot;, &quot;annis&quot;, &quot;Ordering&quot;, &quot;&quot;);
+        g.addEdge(&quot;tutorial/doc1#t5&quot;, &quot;tutorial/doc1#t6&quot;, &quot;annis&quot;, &quot;Ordering&quot;, &quot;&quot;);
+        g.addEdge(&quot;tutorial/doc1#t6&quot;, &quot;tutorial/doc1#t7&quot;, &quot;annis&quot;, &quot;Ordering&quot;, &quot;&quot;);
+
+        cs.applyUpdate(&quot;tutorial&quot;, g);
+        String[] corpora = cs.list();
+        if(corpora.length &gt; 0) {
+            System.out.println(corpora[0]);
+        } else {
+            System.out.println(&quot;No corpus found&quot;);
+        }
+        
+    }
+}
+</code></pre>
+<p>You could add additional annotations like part of speech as labels on nodes.
+For labels on edges, you can use the <code>addEdgeLabel(...)</code> function.</p>
+<h2><a class="header" href="#querying-1" id="querying-1">Querying</a></h2>
+<p>There are two functions to query a corpus with AQL:</p>
+<ul>
+<li><code>count(...)</code> returns the number of matches, and</li>
+<li><code>find(...)</code> returns a paginated list of matched node IDs.</li>
+</ul>
+<p>You have to give name of the corpus and the query as arguments to both functions.
+The following example searches for all tokens that contain a <code>s</code> character.<sup class="footnote-reference"><a href="#aql">1</a></sup></p>
+<pre><code class="language-java">package org.corpus_tools;
+
+import java.util.Arrays;
+import java.util.Optional;
+
+import org.corpus_tools.graphannis.CorpusStorageManager;
+import org.corpus_tools.graphannis.CorpusStorageManager.QueryLanguage;
+import org.corpus_tools.graphannis.errors.GraphANNISException;
+
+public class Query {
+    public static void main(String[] args) throws GraphANNISException {
+        CorpusStorageManager cs = new CorpusStorageManager(&quot;data&quot;);
+        long number_of_matches = cs.count(Arrays.asList(&quot;tutorial&quot;), &quot;tok=/.*s.*/&quot;, QueryLanguage.AQL);
+        System.out.println(&quot;Number of matches: &quot; + number_of_matches);
+        String[] matches = cs.find(Arrays.asList(&quot;tutorial&quot;), &quot;tok=/.*s.*/&quot;, QueryLanguage.AQL, 0, Optional.of(100l));
+        for (int i = 0; i &lt; matches.length; i++) {
+            System.out.println(&quot;Match &quot; + i + &quot;: &quot; + matches[i]);
+        }
+    }
+}
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-ignore">Number of matches: 2
+Match 0: tutorial/doc1#t2
+Match 1: tutorial/doc1#t6
+</code></pre>
+<h2><a class="header" href="#getting-subgraphs-1" id="getting-subgraphs-1">Getting subgraphs</a></h2>
+<p>The result from the <code>find(...)</code> function can be used to generate a subgraph for the matches.
+It will contain all covered nodes of the matches and additionally a given context (defined in tokens).</p>
+<pre><code class="language-java">package org.corpus_tools;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import org.corpus_tools.graphannis.CorpusStorageManager;
+import org.corpus_tools.graphannis.Util;
+import org.corpus_tools.graphannis.CorpusStorageManager.QueryLanguage;
+import org.corpus_tools.graphannis.errors.GraphANNISException;
+import org.corpus_tools.graphannis.model.Graph;
+import org.corpus_tools.graphannis.model.Node;
+
+public class FindSubgraph {
+    public static void main(String[] args) throws GraphANNISException {
+        CorpusStorageManager cs = new CorpusStorageManager(&quot;data&quot;);
+        String[] matches = cs.find(Arrays.asList(&quot;tutorial&quot;), &quot;tok . tok&quot;, QueryLanguage.AQL, 0, Optional.of(100l));
+        for (String m : matches) {
+            System.out.println(m);
+            // convert the match string to a list of node IDs
+            List&lt;String&gt; node_names = Util.nodeNamesFromMatch(m);
+            Graph g = cs.subgraph(&quot;tutorial&quot;, node_names, 2, 2, Optional.empty());
+            // iterate over all nodes of type &quot;node&quot; and output the name
+            int numberOfNodes = 0;
+            for (Node n : g.getNodesByType(&quot;node&quot;)) {
+                numberOfNodes++;
+            }
+            System.out.println(&quot;Number of nodes in subgraph: &quot; + numberOfNodes);
+        }
+    }
+}
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-ignore">tutorial/doc1#t1 tutorial/doc1#t2
+Number of nodes in subgraph: 4
+tutorial/doc1#t2 tutorial/doc1#t3
+Number of nodes in subgraph: 5
+tutorial/doc1#t3 tutorial/doc1#t4
+Number of nodes in subgraph: 6
+tutorial/doc1#t4 tutorial/doc1#t5
+Number of nodes in subgraph: 6
+tutorial/doc1#t5 tutorial/doc1#t6
+Number of nodes in subgraph: 5
+tutorial/doc1#t6 tutorial/doc1#t7
+Number of nodes in subgraph: 4
+</code></pre>
+<p>The result object of the <code>subgraph(...)</code> function is the type <code>Graph</code>, which provides basic graph access functions (see the Javadoc for details).</p>
+<p><strong>Note:</strong> The <code>subgraph(...)</code> function takes a single corpus name as argument instead of a list, so you need to know to which corpus a matched node belongs to.</p>
+<p>Normally a corpus is structured into subcorpora and documents.
+GraphANNIS uses node types and relations of type <code>PartOf</code> to <a href="../data-model/annotation-graph.html#corpus-structure">model the corpus structure</a>.
+If you have document nodes and the <code>PartOf</code> relation between the annotation nodes and its document, you can use the
+<code>subcorpus_graph(...)</code> function to get all annotation nodes for a given list of document names.</p>
+<pre><code class="language-java">package org.corpus_tools;
+
+import java.util.Arrays;
+
+import org.corpus_tools.graphannis.CorpusStorageManager;
+import org.corpus_tools.graphannis.GraphUpdate;
+import org.corpus_tools.graphannis.errors.GraphANNISException;
+import org.corpus_tools.graphannis.model.Graph;
+import org.corpus_tools.graphannis.model.Node;
+
+public class SubcorpusGraph {
+    public static void main(String[] args) throws GraphANNISException {
+        CorpusStorageManager cs = new CorpusStorageManager(&quot;data&quot;);
+        GraphUpdate g = new GraphUpdate();
+        // create the corpus and document node
+        g.addNode(&quot;tutorial&quot;, &quot;corpus&quot;);
+        g.addNode(&quot;tutorial/doc1&quot;, &quot;corpus&quot;);
+        g.addEdge(&quot;tutorial/doc1&quot;, &quot;tutorial&quot;, &quot;annis&quot;, &quot;PartOf&quot;, &quot;&quot;);
+        // add the corpus structure to the existing nodes
+        g.addEdge(&quot;tutorial/doc1#t1&quot;, &quot;tutorial/doc1&quot;, &quot;annis&quot;, &quot;PartOf&quot;, &quot;&quot;);
+        g.addEdge(&quot;tutorial/doc1#t2&quot;, &quot;tutorial/doc1&quot;, &quot;annis&quot;, &quot;PartOf&quot;, &quot;&quot;);
+        g.addEdge(&quot;tutorial/doc1#t3&quot;, &quot;tutorial/doc1&quot;, &quot;annis&quot;, &quot;PartOf&quot;, &quot;&quot;);
+        g.addEdge(&quot;tutorial/doc1#t4&quot;, &quot;tutorial/doc1&quot;, &quot;annis&quot;, &quot;PartOf&quot;, &quot;&quot;);
+        g.addEdge(&quot;tutorial/doc1#t5&quot;, &quot;tutorial/doc1&quot;, &quot;annis&quot;, &quot;PartOf&quot;, &quot;&quot;);
+        g.addEdge(&quot;tutorial/doc1#t6&quot;, &quot;tutorial/doc1&quot;, &quot;annis&quot;, &quot;PartOf&quot;, &quot;&quot;);
+        g.addEdge(&quot;tutorial/doc1#t7&quot;, &quot;tutorial/doc1&quot;, &quot;annis&quot;, &quot;PartOf&quot;, &quot;&quot;);
+        // apply the changes
+        cs.applyUpdate(&quot;tutorial&quot;, g);
+        // get the whole document as graph
+        Graph subgraph = cs.subcorpusGraph(&quot;tutorial&quot;, Arrays.asList(&quot;tutorial/doc1&quot;));
+        for (Node n : subgraph.getNodesByType(&quot;node&quot;)) {
+            System.out.println(n.getName());
+        }
+    }
+}
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-ignore">tutorial/doc1#t1
+tutorial/doc1#t2
+tutorial/doc1#t3
+tutorial/doc1#t4
+tutorial/doc1#t5
+tutorial/doc1#t6
+tutorial/doc1#t7
+</code></pre>
+<div class="footnote-definition" id="aql"><sup class="footnote-definition-label">1</sup>
+<p>You can get an overview of AQL <a href="http://corpus-tools.org/annis/aql.html">here</a> or detailed information in the
+<a href="http://korpling.github.io/ANNIS/3.6/user-guide/aql.html">User Guide</a>.</p>
+</div>
+<h1><a class="header" href="#rust-tutorial" id="rust-tutorial">Rust Tutorial</a></h1>
+<h2><a class="header" href="#installation-2" id="installation-2">Installation</a></h2>
+<p>Add a dependency to graphANNIS in you <code>Cargo.toml</code> file:</p>
+<pre><code class="language-toml">graphannis = &quot;2.2.2&quot;
+</code></pre>
+<h2><a class="header" href="#api-documentation-2" id="api-documentation-2">API documentation</a></h2>
+<p>The API documentation is available at <a href="https://docs.rs/graphannis/">https://docs.rs/graphannis/</a>.</p>
+<h2><a class="header" href="#corpus-data-directory-2" id="corpus-data-directory-2">Corpus data directory</a></h2>
+<p>Data is organized in corpora, where each corpus has a name and annotations can only refer to other annotations in the same corpus.
+A <code>CorpusStorage</code> is used to access a collection corpora by their name.</p>
+<pre><code class="language-rust no_run noplaypen">use graphannis::CorpusStorage;
+use std::path::PathBuf;
+
+fn main() {
+    let cs = CorpusStorage::with_auto_cache_size(&amp;PathBuf::from(&quot;data&quot;), true).unwrap();
+    let corpora = cs.list().unwrap();
+    let corpus_names: Vec&lt;String&gt; = corpora
+        .into_iter()
+        .map(|corpus_info| corpus_info.name)
+        .collect();
+    println!(&quot;{:?}&quot;, corpus_names);
+}
+</code></pre>
+<p>This will print an empty list, because no corpora have been created yet.
+In this example, the <code>CorpusStorage</code> uses the sub-directory <code>data</code> of the current working directory to store the corpora.
+You can also use an absolute path as argument:</p>
+<pre><code class="language-rust noplaypen ignore">let cs = CorpusStorage::with_auto_cache_size(&amp;PathBuf::from(&quot;/tmp/graphannis-data&quot;), true)?;
+</code></pre>
+<p>Only one process can access a graphANNIS data directory, other processes will fail to open it if there is another process holding a lock.
+The <code>CorpusStorage</code> is thread-safe, thus multiple threads of the same process can call all functions in parallel.</p>
+<h2><a class="header" href="#adding-corpus-data-2" id="adding-corpus-data-2">Adding corpus data</a></h2>
+<p>Linguistic annotations as represented in graphANNIS as directed graphs (see the <a href="annotation-graph.html">data model</a> section for more information).
+You can add nodes and edges via the <code>apply_update(...)</code> function.
+It takes the corpus name and a list of graph updates as argument.
+These graph update lists are represented by the class <code>GraphUpdate</code>.
+E.g the following code creates a graph update for the tokenized sentence “That is a Category 3 storm.”.
+Normally, you would not add all events manually in the source code, which gets a bit verbose, but have input data that you map to update events.
+The resulting <code>GraphUpdate</code> object can then be used with the <code>apply_update(...)</code> function to insert the changes into the corpus.</p>
+<pre><code class="language-rust noplaypen">use graphannis::update::{GraphUpdate, UpdateEvent};
+use graphannis::CorpusStorage;
+use std::path::PathBuf;
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let cs = CorpusStorage::with_auto_cache_size(&amp;PathBuf::from(&quot;data&quot;), true).unwrap();
+
+    let mut g = GraphUpdate::new();
+
+    // First add the node (with the default type &quot;node&quot;),
+    // then all node labels for the node.
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t1&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t1&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;That&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t2&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t2&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;is&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t3&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t3&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;a&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t4&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t4&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;Category&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t5&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t5&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;3&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t6&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t6&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;storm&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1#t7&quot;.to_string(),
+        node_type: &quot;node&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: &quot;tutorial/doc1#t7&quot;.to_string(),
+        anno_ns: &quot;annis&quot;.to_string(),
+        anno_name: &quot;tok&quot;.to_string(),
+        anno_value: &quot;.&quot;.to_string(),
+    })?;
+
+    // Add the ordering edges to specify token order.
+    // The names of the source and target nodes are given as in the enum as fields,
+    // followed by the component layer, type and name.
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t1&quot;.to_string(),
+        target_node: &quot;tutorial/doc1#t2&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;Ordering&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t2&quot;.to_string(),
+        target_node: &quot;tutorial/doc1#t3&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;Ordering&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t3&quot;.to_string(),
+        target_node: &quot;tutorial/doc1#t4&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;Ordering&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t4&quot;.to_string(),
+        target_node: &quot;tutorial/doc1#t5&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;Ordering&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t5&quot;.to_string(),
+        target_node: &quot;tutorial/doc1#t6&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;Ordering&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t6&quot;.to_string(),
+        target_node: &quot;tutorial/doc1#t7&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;Ordering&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+
+    // Insert the changes in the corpus with the name &quot;tutorial&quot;
+    cs.apply_update(&quot;tutorial&quot;, &amp;mut g).unwrap();
+
+    // List newly created corpus
+    let corpora = cs.list().unwrap();
+    let corpus_names: Vec&lt;String&gt; = corpora
+        .into_iter()
+        .map(|corpus_info| corpus_info.name)
+        .collect();
+    println!(&quot;{:?}&quot;, corpus_names);
+
+    Ok(())
+}
+</code></pre>
+<p>You could add additional annotations like part of speech as labels on nodes.
+For labels on edges, you can use the <code>UpdateEvent::AddEdgeLabel</code> enumeration variant.</p>
+<h2><a class="header" href="#querying-2" id="querying-2">Querying</a></h2>
+<p>There are two functions to query a corpus with AQL:</p>
+<ul>
+<li><code>count(...)</code> returns the number of matches, and</li>
+<li><code>find(...)</code> returns a paginated list of matched node IDs.</li>
+</ul>
+<p>You have to give the list of corpora and the query as arguments to both functions.
+The following example searches for all tokens that contain a <code>s</code> character.<sup class="footnote-reference"><a href="#aql">1</a></sup></p>
+<pre><code class="language-rust no_run noplaypen">use graphannis::corpusstorage::{QueryLanguage, ResultOrder, SearchQuery};
+use graphannis::CorpusStorage;
+use std::path::PathBuf;
+
+fn main() {
+    let cs = CorpusStorage::with_auto_cache_size(&amp;PathBuf::from(&quot;data&quot;), true).unwrap();
+    let search_query = SearchQuery {
+        corpus_names: &amp;[&quot;tutorial&quot;],
+        query: &quot;tok=/.*s.*/&quot;,
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+
+    let number_of_matches = cs.count(search_query.clone()).unwrap();
+    println!(&quot;Number of matches: {}&quot;, number_of_matches);
+
+    let matches = cs
+        .find(search_query, 0, Some(100), ResultOrder::Normal)
+        .unwrap();
+    for (i, m) in matches.iter().enumerate() {
+        println!(&quot;Match {}: {}&quot;, i, m);
+    }
+}
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-ignore">Number of matches: 2
+Match 0: tutorial/doc1#t2
+Match 1: tutorial/doc1#t6
+</code></pre>
+<h2><a class="header" href="#getting-subgraphs-2" id="getting-subgraphs-2">Getting subgraphs</a></h2>
+<p>The result from the <code>find(...)</code> function can be used to generate a subgraph for the matches.
+It will contain all covered nodes of the matches and additionally a given context (defined in tokens).</p>
+<pre><code class="language-rust no_run noplaypen">use graphannis::corpusstorage::{QueryLanguage, ResultOrder, SearchQuery};
+use graphannis::util;
+use graphannis::CorpusStorage;
+use std::path::PathBuf;
+
+fn main() {
+    let cs = CorpusStorage::with_auto_cache_size(&amp;PathBuf::from(&quot;data&quot;), true).unwrap();
+    let search_query = SearchQuery {
+        corpus_names: &amp;[&quot;tutorial&quot;],
+        query: &quot;tok . tok&quot;,
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+
+    let matches = cs
+        .find(search_query, 0, Some(100), ResultOrder::Normal)
+        .unwrap();
+    for m in matches {
+        println!(&quot;{}&quot;, m);
+        // convert the match string to a list of node IDs
+        let node_names = util::node_names_from_match(&amp;m);
+        let g = cs.subgraph(&quot;tutorial&quot;, node_names, 2, 2, None).unwrap();
+        // find all nodes of type &quot;node&quot; (regular annotation nodes)
+        let node_search =
+            g.get_node_annos()
+                .exact_anno_search(Some(&quot;annis&quot;), &quot;node_type&quot;, Some(&quot;node&quot;).into());
+        println!(&quot;Number of nodes in subgraph: {}&quot;, node_search.count());
+    }
+}
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-ignore">tutorial/doc1#t1 tutorial/doc1#t2
+Number of nodes in subgraph: 4
+tutorial/doc1#t2 tutorial/doc1#t3
+Number of nodes in subgraph: 5
+tutorial/doc1#t3 tutorial/doc1#t4
+Number of nodes in subgraph: 6
+tutorial/doc1#t4 tutorial/doc1#t5
+Number of nodes in subgraph: 6
+tutorial/doc1#t5 tutorial/doc1#t6
+Number of nodes in subgraph: 5
+tutorial/doc1#t6 tutorial/doc1#t7
+Number of nodes in subgraph: 4
+</code></pre>
+<p>The result object of the <code>subgraph(...)</code> function is the type <code>Graph</code>, which provides basic graph access functions (see the API documentation for details).</p>
+<p><strong>Note:</strong> The <code>subgraph(...)</code> function takes a single corpus name as argument instead of a list, so you need to know to which corpus a matched node belongs to.</p>
+<p>Normally a corpus is structured into subcorpora and documents.
+GraphANNIS uses node types and relations of type <code>PartOf</code> to <a href="../data-model/annotation-graph.html#corpus-structure">model the corpus structure</a>.
+If you have document nodes and the <code>PartOf</code> relation between the annotation nodes and its document, you can use the
+<code>subcorpus_graph(...)</code> function to get all annotation nodes for a given list of document names.</p>
+<pre><code class="language-rust no_run noplaypen">use graphannis::update::{GraphUpdate, UpdateEvent};
+use graphannis::CorpusStorage;
+use std::path::PathBuf;
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let cs = CorpusStorage::with_auto_cache_size(&amp;PathBuf::from(&quot;data&quot;), true).unwrap();
+    let mut g = GraphUpdate::new();
+    // create the corpus and document node
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial&quot;.to_string(),
+        node_type: &quot;corpus&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddNode {
+        node_name: &quot;tutorial/doc1&quot;.to_string(),
+        node_type: &quot;corpus&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1&quot;.to_string(),
+        target_node: &quot;tutorial&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    // add the corpus structure to the existing nodes
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t1&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t2&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t3&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t4&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t5&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t6&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: &quot;tutorial/doc1#t7&quot;.to_string(),
+        target_node: &quot;tutorial/doc1&quot;.to_string(),
+        layer: &quot;annis&quot;.to_string(),
+        component_type: &quot;PartOf&quot;.to_string(),
+        component_name: &quot;&quot;.to_string(),
+    })?;
+    // apply the changes
+    cs.apply_update(&quot;tutorial&quot;, &amp;mut g).unwrap();
+
+    // get the whole document as graph
+    let subgraph = cs
+        .subcorpus_graph(&quot;tutorial&quot;, vec![&quot;tutorial/doc1&quot;.to_string()])
+        .unwrap();
+    let node_search = subgraph.get_node_annos().exact_anno_search(
+        Some(&quot;annis&quot;),
+        &quot;node_type&quot;,
+        Some(&quot;node&quot;).into(),
+    );
+    for m in node_search {
+        let m = m?;
+        // get the numeric node ID from the match
+        let id = m.node;
+        // get the node name from the ID by searching for the label with the name &quot;annis::node_name&quot;
+        let matched_node_name = subgraph
+            .get_node_annos()
+            .get_annotations_for_item(&amp;id)?
+            .into_iter()
+            .filter(|anno| anno.key.ns == &quot;annis&quot; &amp;&amp; anno.key.name == &quot;node_name&quot;)
+            .map(|anno| anno.val)
+            .next()
+            .unwrap();
+        println!(&quot;{}&quot;, matched_node_name);
+    }
+
+    Ok(())
+}
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-ignore">tutorial/doc1#t2
+tutorial/doc1#t4
+tutorial/doc1#t5
+tutorial/doc1#t6
+tutorial/doc1#t7
+tutorial/doc1#t1
+tutorial/doc1#t3
+</code></pre>
+<div class="footnote-definition" id="aql"><sup class="footnote-definition-label">1</sup>
+<p>You can get an overview of AQL <a href="http://corpus-tools.org/annis/aql.html">here</a> or detailed information in the
+<a href="http://korpling.github.io/ANNIS/3.6/user-guide/aql.html">User Guide</a>.</p>
+</div>
+<h1><a class="header" href="#rest-service" id="rest-service">REST service</a></h1>
+<p>GraphANNIS includes a tool to start a complete REST service that can be used to query and administrate corpora.
+The <a href="https://github.com/korpling/ANNIS">ANNIS web-frontend</a> uses this REST service for executing the AQL searches.
+Using this REST service, it is also possible to implement a custom AQL web-interface e.g. for a specific corpus or analysis workflow with minimal effort.
+In addition to <a href="rest/../embed.html">using graphANNIS as a library in you application</a>, the REST API allows you to implement a web interface for a remote graphANNIS server.</p>
+<p>You can just execute the <code>graphannis-webservice</code> executable<sup class="footnote-reference"><a href="#rename">1</a></sup> to start a web-server with default settings and on port 5711 which will listen to requests from <code>localhost</code>.
+SSL is not supported, so if you want to make the service accessible from the outside you should use a proxy server with encryption enabled and a valid certificate.</p>
+<p>The graphANNIS REST API is specified and documented in <a href="https://swagger.io/docs/specification/about/">OpenAPI 3</a>.
+The specification file can also be used to auto-generate client code, e.g. with the <a href="https://github.com/OpenAPITools/openapi-generator#overview">OpenAPI Generator</a>.
+The documentation can be displayed with any OpenAPI 3 viewer using the URL to the <a href="https://raw.githubusercontent.com/korpling/graphANNIS/main/webservice/src/openapi.yml">released openapi.yml file</a>.
+We also include the <code>webservice/api-docs.html</code> file in our repository which includes an interactive rendering of the documentation.</p>
+<div class="footnote-definition" id="rename"><sup class="footnote-definition-label">1</sup>
+<p>When downloading a binary from the release page, on MacOS you might need to rename the downloaded file from <code>graphannis-webservice.osx</code> to <code>graphannis-webservice</code>. The executable is called <code>graphannis-webservice.exe</code> on Windows.</p>
+</div>
+<h1><a class="header" href="#configuration" id="configuration">Configuration</a></h1>
+<p>The executable takes a <code>--config</code> argument, which must point to a configuration file in the <a href="https://toml.io">TOML format</a>.</p>
+<p>The following is an example file with most settings set to their default value.</p>
+<pre><code class="language-toml">[bind]
+port = 5711
+host = &quot;localhost&quot;
+
+[database]
+graphannis = &quot;data/&quot;
+sqlite = &quot;service.sqlite&quot;
+disk_based = false
+cache = {PercentOfFreeMemory = 25.0}
+
+[logging]
+debug = false
+
+[auth]
+anonymous_access_all_corpora = false
+
+[auth.token_verification]
+secret = &quot;not-a-random-secret&quot;
+type = &quot;HS256&quot;
+</code></pre>
+<h2><a class="header" href="#bind-section" id="bind-section">[bind] section</a></h2>
+<p>This section describes to what <code>port</code> and <code>host</code> name the server should bind to.</p>
+<h2><a class="header" href="#database-section" id="database-section">[database] section</a></h2>
+<p>GraphANNIS needs to know where the data directory is located, which must be a path given by the value for the <code>graphannis</code> key and must point to a directory on the file system of the server.
+For configuration unique to the REST service, a small SQLite database is used, which path is given in the value for the <code>sqlite</code> key.
+A new database file will be created at this path when the service is started and the file does not exist yet.
+Also, you can decide if you want to prefer disk-based storage of annotations by setting the value for the <code>disk_based</code> key to <code>true</code>.</p>
+<p>You can configure how much memory is used by the service for caching loaded corpora with the <code>cache</code> key.
+There are two types of strategies: </p>
+<ul>
+<li><code>PercentOfFreeMemory</code> estimates the free space of memory for the system during startup and only uses the given value (as percent) of the available free space. </li>
+<li><code>FixedMaxMemory</code> will use at most the given value in Megabytes.</li>
+</ul>
+<p>For example, setting the configuration value to</p>
+<pre><code class="language-toml">cache = {PercentOfFreeMemory = 80.0}
+</code></pre>
+<p>will use 80% of the available free memory and </p>
+<pre><code class="language-toml">cache = {FixedMaxMemory = 8000}
+</code></pre>
+<p>at most 8 GB of RAM.</p>
+<h2><a class="header" href="#logging-section" id="logging-section">[logging] section</a></h2>
+<p>Per default, graphANNIS will only output information, warning and error messages.
+To also enable debug output, set the value for the <code>debug</code> field to <code>true</code>.</p>
+<h2><a class="header" href="#auth-section" id="auth-section">[auth] section</a></h2>
+<p>This section configures the <a href="rest/auth.html">authentication and authorization</a> of the REST service.</p>
+<h1><a class="header" href="#authentication-and-authorization" id="authentication-and-authorization">Authentication and authorization</a></h1>
+<p>The graphANNIS service uses <a href="https://jwt.io/">JSON Web Tokens (JWT)</a> to authorize access to restricted parts of the REST API.
+The authorization is performed using these tokens and graphANNIS requires certain claims as payload, but how they are generated is up to the administrator of the service.
+You can use an external commercial service like e.g. <a href="https://auth0.com/">Auth0</a> or install an open source solution like <a href="https://www.keycloak.org/">Keycloak</a> to generate the secret tokens.
+Both services allow flexible authentication and authorization scenarios, like logging in using an institutional account or using e.g. Google or Facebook accounts, but can also be used when you simply want to generate custom users with a user-name and password.
+To implement authentication with an application based on the graphANNIS API, your application will need to redirect to the login-page provided by these services when the user wants to log in.
+These services then generate a JWT token which should be used as Bearer-Token in the <code>Authorization</code> header of each HTTP request to the API.</p>
+<h2><a class="header" href="#jwt-token-verification" id="jwt-token-verification">JWT Token Verification</a></h2>
+<p>For an JWT token to be accepted, it must be signed.
+You can choose between HMAC with SHA-256 (HS256) algorithm and a shared secret or a RSA Signature with SHA-256 (RS256) and a public and private key pair.</p>
+<h3><a class="header" href="#hmac-with-sha-256-hs256" id="hmac-with-sha-256-hs256">HMAC with SHA-256 (HS256)</a></h3>
+<p>Create a random secret and add this secret as value to the <code>token_verification</code> key in the <code>[auth]</code> section in the graphANNIS configuration and in the external JWT token provider service.</p>
+<pre><code class="language-toml">[auth.token_verification]
+type = &quot;HS256&quot;
+secret = &quot;&lt;some-very-private-and-secret-key&gt;&quot;
+</code></pre>
+<h3><a class="header" href="#rsa-signature-with-sha-256-rs256" id="rsa-signature-with-sha-256-rs256">RSA Signature with SHA-256 (RS256)</a></h3>
+<p>If you use a local account manager like Keycloak, you have to create both a private and public key pair and add the public key as value to the <code>token_verification</code> key in the <code>[auth]</code> section.</p>
+<pre><code class="language-toml">[auth.token_verification]
+type = &quot;RS256&quot;
+public_key = &quot;&quot;&quot;
+-----BEGIN PUBLIC KEY-----
+&lt;you can share this PEM encoded public key with everyone&gt;
+-----END PUBLIC KEY-----
+&quot;&quot;&quot;
+</code></pre>
+<h2><a class="header" href="#claims" id="claims">Claims</a></h2>
+<p>JWT tokens can contain the following claims:</p>
+<ul>
+<li><code>sub</code> (mandatory): The subject the token was issued to.</li>
+<li><code>https://corpus-tools.org/annis/groups</code>: A possible empty list of strings to which corpus groups the subject belongs to. All users (even when not logged-in) are part of the <code>anonymous</code> group. You can use the API to configure which groups have access to which corpus.</li>
+<li><code>exp</code>: An optional expiration date as unix timestamp in seconds since epoch and UTC.</li>
+<li><code>https://corpus-tools.org/annis/roles</code>: A list of roles this user has. If the user is an administrator, this user must have the &quot;admin&quot; role.</li>
+</ul>
+<h2><a class="header" href="#configuring-groups-and-corpora" id="configuring-groups-and-corpora">Configuring groups and corpora</a></h2>
+<p>Which corpora can be accessed for members of a certain group is stored in a small SQLite database.
+The location of the database file is part of the <a href="rest/configuration.html#database-section">database section of the configuration</a>.
+You can alter this database with the <a href="https://sqlite.org/cli.html">SQLite command line tool</a> or a graphical interface like the <a href="https://sqlitebrowser.org/">DB Browser for SQLite</a>.</p>
+<p>When started, the graphANNIS web service creates two tables in the database:</p>
+<ul>
+<li><code>groups</code> contains the names of all groups (in the <code>name</code> column)</li>
+<li><code>corpus_groups</code> maps the group name (<code>group</code> column) to the corpus name (<code>corpus</code> column)</li>
+</ul>
+<p>Thus, to add a corpus (e.g. named &quot;pcc2&quot;) to a group (e.g. named &quot;anonymous&quot;), you can modify the two tables using a graphical user interface or open the configured database file with the SQLite command line:</p>
+<pre><code class="language-bash">sqlite3 service.sqlite
+</code></pre>
+<p>Then execute the following SQL (adjust the group and corpus names):</p>
+<pre><code class="language-sql">INSERT OR IGNORE INTO groups(name) VALUES('anonymous');
+INSERT INTO corpus_groups(&quot;group&quot;, corpus) VALUES('anonymous', 'pcc2');
+</code></pre>
+<h2><a class="header" href="#allowing-anonymous-access-to-all-corpora" id="allowing-anonymous-access-to-all-corpora">Allowing anonymous access to all corpora</a></h2>
+<p>Configuring an authorization service can be a lot of work, especially when all corpora should be accessible without any authorization.
+In this case, you can set the <code>anonymous_access_all_corpora</code> parameter in the <code>[auth]</code> section to <code>true</code>.
+All corpora will be readable by the REST-API calls without any authorization.</p>
+<h2><a class="header" href="#creating-jwt-tokens-for-development-or-testing" id="creating-jwt-tokens-for-development-or-testing">Creating JWT tokens for development or testing</a></h2>
+<p>If you don't want to rely on web services like <a href="https://auth0.com/">Auth0</a> or <a href="http://jwt.io">jwt.io</a> when testing the graphANNIS API, you can use a command line tool to generate new JWT token.
+In our case, we will use the <a href="https://github.com/mike-engel/jwt-cli">https://github.com/mike-engel/jwt-cli</a> project which also provides <a href="https://github.com/mike-engel/jwt-cli/releases/latest">pre-compiled binaries</a> for most operating systems.</p>
+<p>Generate a random secret, add it to you configuration file as <code>HS256</code> token verification.
+To create a token for an adminstrator user, simply execute</p>
+<pre><code class="language-bash">jwt encode --secret &quot;&lt;some-very-private-and-secret-key&gt;&quot; --sub someone -- '{&quot;https://corpus-tools.org/annis/roles&quot;: [&quot;admin&quot;]}'
+</code></pre>
+<h1><a class="header" href="#interactive-command-line" id="interactive-command-line">Interactive command-line</a></h1>
+<p>The <code>annis</code> command<sup class="footnote-reference"><a href="#rename">1</a></sup> must be started with the data directory as argument.
+When running, it will provide you with an interactive prompt where you can execute commands using the generic <code>command-name arguments</code> syntax.
+E.g, to list all corpora in the data directory just enter the <code>list</code> command without arguments.</p>
+<pre><code>&gt;&gt; list
+GUM (not loaded)
+RIDGES_Herbology_Version7.0 (not loaded)
+pcc2 (not loaded)
+pcc2.1 (not loaded)
+tiger2 (not loaded)
+</code></pre>
+<p>The interactive CLI supports auto-completion by pressing the <kbd>Tab</kbd> key and you can navigate to old executed commands using the arrow up and down keys.</p>
+<p>You can also use the <code>-c</code> argument at startup to execute a single command instead of starting the interactive command line.
+This is useful for e.g. importing or exporting corpora from a script.
+More than one <code>-c</code> argument can be given: multiple arguments are executed in the order they where given.
+E.g., <code>annis data -c 'set-disk-based on' -c 'import relannis/pcc2.1'</code> would first set the &quot;use the disk&quot; mode and then import the corpus with this setting.</p>
+<h2><a class="header" href="#commands" id="commands">Commands</a></h2>
+<h3><a class="header" href="#import" id="import"><code>import</code></a></h3>
+<p>The <code>import</code> command takes the directory of file to import as argument.
+If this is a directory, it is assumed that the corpus is in the <a href="http://korpling.github.io/ANNIS/4.0/developer-guide/annisimportformat.html">relANNIS format</a>.
+To import a corpus in the graphML based format, give a single file with the ending <code>.graphml</code> as argument.</p>
+<p>You can also import a ZIP file (having the file ending <code>.zip</code>) to import multiple corpora at once.
+ZIP files can contain a mixture of relANNIS and graphML files.
+They also have the benefit of compression, which can be especially useful for the XML-based graphML format.</p>
+<p>Per default, graphANNIS will keep the whole corpus in main memory for faster
+query execution. You can enable the <strong>&quot;disk-based&quot;</strong> mode for a corpus by
+executing the command <code>set-disk-based on</code> before the import command. This will
+use much less main memory when loading a corpus, but will also cause slower
+query execution. Please note that you will still need at least 4 GB of main
+memory during import for larger corpora even when this option is on<sup class="footnote-reference"><a href="#stacksize">2</a></sup>, because of
+internal caching (memory usage will be less for querying the corpus).</p>
+<h3><a class="header" href="#list" id="list"><code>list</code></a></h3>
+<p>To list the names of all imported corpora, use the <code>list</code> command.
+When a corpus is loaded, it will also output the estimated memory size currently used by this corpus.</p>
+<pre><code>tiger2&gt; list
+GUM (partially loaded, 89.58 MB)
+RIDGES_Herbology_Version7.0 (not loaded)
+pcc2 (not loaded)
+pcc2.1 (not loaded)
+tiger2 (fully loaded, 1420.22 MB )
+</code></pre>
+<h3><a class="header" href="#corpus" id="corpus"><code>corpus</code></a></h3>
+<p>Initially, the CLI will start with an empty corpus selection.
+To select one or more corpora, call <code>corpus</code> with the corpus names separated by space as argument.</p>
+<pre><code>&gt;&gt; corpus pcc2 GUM
+pcc2,GUM&gt;
+</code></pre>
+<p>The prompt will change from <code>&gt;&gt;</code> to the list of corpus names and <code>&gt;</code>.</p>
+<h3><a class="header" href="#export" id="export"><code>export</code></a></h3>
+<p>This command allows to export the currently selected corpus into a graphML file, which is given as argument.
+When using the file ending <code>.zip</code> instead of <code>.graphml</code>, the graphML output will be packaged into a compressed ZIP-file.
+You can also use a directory as argument, in this case all selected corpora will be exported into separate graphML files in this directory and with the corpus name as part of the file name.</p>
+<h3><a class="header" href="#count" id="count"><code>count</code></a></h3>
+<p>When one or more corpus is selected, you can use <code>count &lt;query&gt;</code> to get the number of matches for an AQL query.</p>
+<pre><code>GUM&gt; count tok
+15:18:52 [ INFO] Executed query in 13 ms
+result: 44079 matches
+</code></pre>
+<h3><a class="header" href="#find" id="find"><code>find</code></a></h3>
+<p><code>find</code> also allows executing AQL queries, but instead of counting the results it will list all matching IDs.</p>
+<pre><code>GUM&gt; find tok=&quot;Some&quot; . pos=/N.*/
+15:23:19 [ INFO] Executed query in 5 ms
+GUM/GUM_interview_ants#tok_139 GUM::pos::GUM/GUM_interview_ants#tok_140
+GUM/GUM_news_hackers#tok_489 GUM::pos::GUM/GUM_news_hackers#tok_490
+GUM/GUM_voyage_cuba#tok_279 GUM::pos::GUM/GUM_voyage_cuba#tok_280
+GUM/GUM_whow_joke#tok_657 GUM::pos::GUM/GUM_whow_joke#tok_658
+GUM/GUM_whow_parachute#tok_722 GUM::pos::GUM/GUM_whow_parachute#tok_723
+</code></pre>
+<p>You can use the <code>set-limit &lt;number&gt;</code> and <code>set-offset &lt;number&gt;</code> commands to limit the number of matches <code>find</code> will output or to set the offset to where to output the results from.</p>
+<h3><a class="header" href="#frequency" id="frequency"><code>frequency</code></a></h3>
+<p>This command takes two arguments: the frequency definition and the AQL query.
+The frequency definition consists of comma-separated descriptions which annotations to include in the frequency table.
+Each annotation description must consist of the query node ID, followed by colon and the name of the annotation, e.g. <code>1:pos</code> to get the <code>pos</code> annotation value for the first node in the AQL query.</p>
+<pre><code>&gt; frequency 1:pos,2:pos tok=&quot;Some&quot; . pos=/N.*/
+15:33:25 [ INFO] Executed query in 5 ms
++-------+-------+-------+
+| 1#pos | 2#pos | count |
++-------+-------+-------+
+| DT    | NNS   | 5     |
++-------+-------+-------+
+</code></pre>
+<h3><a class="header" href="#plan" id="plan"><code>plan</code></a></h3>
+<p>To debug queries, you the <code>plan</code> command with the query as argument, which will output an execution plan.</p>
+<pre><code>GUM&gt; plan tok=&quot;Some&quot; . pos=/N.*/
+15:26:20 [ INFO] Planned query in 4 ms
+GUM:
++|indexjoin (parallel) (#1 . #2) [out: 92, sum: 268, instep: 268]
+    #1 (tok=&quot;Some&quot;) [out: 176, sum: 0, instep: 0]
+    #2 (pos=/N.*/) [out: 11461, sum: 0, instep: 0]
+</code></pre>
+<h3><a class="header" href="#info" id="info"><code>info</code></a></h3>
+<p>This command will output information about the currently selected corpus, like the total main memory consumption and the memory consumption for the node annotation storage and the different edge components.
+It will also output which internal implementation is used to store an edge component.</p>
+<pre><code>GUM&gt; info
+Status: &quot;partially loaded&quot;
+Total memory: 89.58 MB
+Node Annotations: 37.70 MB
+------------
+Component Coverage/annis/: 0 annnotations
+Stats: nodes=0, avg_fan_out=0.00, max_fan_out=0, max_depth=1, tree
+Implementation: AdjacencyListV1
+Status: &quot;fully loaded&quot;
+Memory: 0.00 MB
+------------
+Component Coverage/default_layer/: 0 annnotations
+Stats: nodes=89395, avg_fan_out=7.36, max_fan_out=1867, max_depth=1
+Implementation: AdjacencyListV1
+Status: &quot;fully loaded&quot;
+Memory: 14.86 MB
+------------
+[...]
+</code></pre>
+<p>A corpus might not be fully loaded into memory if not all components have been needed yet.
+To load a corpus fully into main memory, use the <code>preload</code> command.</p>
+<div class="footnote-definition" id="rename"><sup class="footnote-definition-label">1</sup>
+<p>When downloading a binary from the release page, on MacOS you might need to rename the downloaded file from <code>annis.osx</code> to <code>annis</code>. The executable is called <code>annis.exe</code> on Windows.</p>
+</div>
+<div class="footnote-definition" id="stacksize"><sup class="footnote-definition-label">2</sup>
+<p>For some corpora, the import process might need a lot of stack
+size (a different type of main memory used by programs) and would crash during
+import with an error. On Linux systems, you can run <code>ulimit -s unlimited</code> in the
+shell before starting the graphANNIS CLI to allow an unlimited stack size when
+the import fails otherwise.</p>
+</div>
+<h1><a class="header" href="#release-checklist" id="release-checklist">Release checklist</a></h1>
+<p>This is a list of steps needed to perform a new graphANNIS release.</p>
+<p>GraphANNIS uses <a href="https://semver.org/">semantic versioning</a>.
+Language bindings can have their own version number, but should state which core version is used in its documentation.</p>
+<ol>
+<li>Check the changelog (<code>CHANGELOG.md</code>): note the last release version number and which kind of changes have been made since the last release.
+<strong>Determine if this is a major, minor or patch release</strong> according to <a href="https://semver.org/">semantic versioning</a>. </li>
+<li><strong>Release</strong> the branch with the <a href="https://crates.io/crates/cargo-release">cargo-release plugin</a>. Append the <code>--execute</code> argument to actually perform the release instead of a dry run.
+<ul>
+<li><code>cargo release release</code> to release the current development version (e.g. 1.0.0-dev will be released as 1.0.0)</li>
+<li><code>cargo release patch</code> for patch updates (e.g. 1.0.0 to 1.0.1)</li>
+<li><code>cargo release minor</code> for minor updates (e.g. 1.0.1 to 1.1.0)</li>
+<li><code>cargo release major</code> for major updates (e.g. 1.1.0 to 2.0.0)</li>
+</ul>
+</li>
+<li>Create the <strong>release on GitHub</strong>, copy the changelog entry as release notes and <strong>publish the release</strong>.
+The release artifacts will be created and attached to this release automatically by the <code>deploy</code> GitHub Actions workflow.</li>
+<li>Update and release language bindings 
+<ul>
+<li><a href="https://github.com/korpling/graphANNIS-python#release-process">Python</a></li>
+<li><a href="https://github.com/korpling/graphANNIS-java#release-process">Java</a></li>
+</ul>
+</li>
+</ol>
+<p>In addition, for the binaries, CI will also build and publish the documentation using the <code>gh-pages</code> branch and a sub-folder <code>docs/&lt;short-version&gt;</code>, e.g. https://korpling.github.io/graphANNIS/docs/v1.1/.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+        
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            MathJax.Hub.Register.StartupHook('End', function() {
+                window.setTimeout(window.print, 100);
+            });
+        });
+        </script>
+        
+        
+
+    </body>
+</html>
