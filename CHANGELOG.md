@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Estimation for negated regex was extremely off when the regex could possibly
+  match all values. This caused problematic query plans including those with
+  nested loop joins and long execution times.
+
 ## [2.2.2] - 2022-07-26
 
 ### Fixed
