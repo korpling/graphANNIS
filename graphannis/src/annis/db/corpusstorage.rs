@@ -25,6 +25,7 @@ use fmt::Display;
 use fs2::FileExt;
 use graphannis_core::annostorage::symboltable::SymbolTable;
 use graphannis_core::annostorage::{match_group_resolve_symbol_ids, match_group_with_symbol_ids};
+use graphannis_core::graph::Graph;
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
     graph::{
@@ -2832,6 +2833,25 @@ fn extract_subgraph_by_query(
 
     debug!("executing subgraph query\n{}", plan);
 
+    let result = create_subgraph_for_iterator(plan, match_idx, orig_db, component_type_filter)?;
+
+    let load_time = t_before.elapsed();
+    if let Ok(t) = load_time {
+        debug! {"Extracted subgraph in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+    }
+
+    Ok(result)
+}
+
+fn create_subgraph_for_iterator<I>(
+    it: I,
+    match_idx: &[usize],
+    orig_graph: &Graph<AnnotationComponentType>,
+    component_type_filter: Option<AnnotationComponentType>,
+) -> Result<AnnotationGraph>
+where
+    I: Iterator<Item = Result<MatchGroup>>,
+{
     // We have to keep our own unique set because the query will return "duplicates" whenever the other parts of the
     // match vector differ.
     let mut match_result: BTreeSet<Match> = BTreeSet::new();
@@ -2839,7 +2859,7 @@ fn extract_subgraph_by_query(
     let mut result = AnnotationGraph::new(false)?;
 
     // create the subgraph description
-    for r in plan {
+    for r in it {
         let r = r?;
         trace!("subgraph query found match {:?}", r);
         for i in match_idx.iter().cloned() {
@@ -2848,21 +2868,16 @@ fn extract_subgraph_by_query(
                 if !match_result.contains(m) {
                     match_result.insert(m.clone());
                     trace!("subgraph query extracted node {:?}", m.node);
-                    create_subgraph_node(m.node, &mut result, orig_db)?;
+                    create_subgraph_node(m.node, &mut result, orig_graph)?;
                 }
             }
         }
     }
 
-    let components = orig_db.get_all_components(component_type_filter, None);
+    let components = orig_graph.get_all_components(component_type_filter, None);
 
     for m in &match_result {
-        create_subgraph_edge(m.node, &mut result, orig_db, &components)?;
-    }
-
-    let load_time = t_before.elapsed();
-    if let Ok(t) = load_time {
-        debug! {"Extracted subgraph in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+        create_subgraph_edge(m.node, &mut result, orig_graph, &components)?;
     }
 
     Ok(result)
