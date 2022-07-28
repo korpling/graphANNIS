@@ -62,6 +62,8 @@ use std::{
 use aql::model::AnnotationComponentType;
 use db::AnnotationStorage;
 
+use self::subgraph::SubgraphIterator;
+
 use super::sort_matches::SortCache;
 
 mod subgraph;
@@ -2140,95 +2142,13 @@ impl CorpusStorage {
         segmentation: Option<String>,
     ) -> Result<AnnotationGraph> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
+        let lock = db_entry.read().unwrap();
+        let graph = get_read_or_error(&lock)?;
 
-        let mut query = Disjunction {
-            alternatives: vec![],
-        };
+        let it = SubgraphIterator::new(graph, node_ids, ctx_left, ctx_right, segmentation)?;
 
-        // find all nodes covering the same token
-        for source_node_id in node_ids {
-            // remove the obsolete "salt:/" prefix
-            let source_node_id: &str = source_node_id
-                .strip_prefix("salt:/")
-                .unwrap_or(&source_node_id);
-
-            let m = NodeSearchSpec::ExactValue {
-                ns: Some(ANNIS_NS.to_string()),
-                name: NODE_NAME.to_string(),
-                val: Some(source_node_id.to_string()),
-                is_meta: false,
-            };
-
-            // nodes overlapping the match: m _o_ node
-            {
-                let mut q = Conjunction::new();
-                let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-                let m_idx = q.add_node(m.clone(), None);
-                q.add_operator(
-                    Arc::new(operators::OverlapSpec { reflexive: true }),
-                    &m_idx,
-                    &node_idx,
-                    false,
-                )?;
-                query.alternatives.push(q);
-            }
-
-            // token left/right and their overlapped nodes
-            if let Some(ref segmentation) = segmentation {
-                add_subgraph_precedence_with_segmentation(
-                    &mut query,
-                    ctx_left,
-                    segmentation,
-                    &m,
-                    true,
-                )?;
-                add_subgraph_precedence_with_segmentation(
-                    &mut query,
-                    ctx_right,
-                    segmentation,
-                    &m,
-                    false,
-                )?;
-            } else {
-                add_subgraph_precedence(&mut query, ctx_left, &m, true)?;
-                add_subgraph_precedence(&mut query, ctx_right, &m, false)?;
-            }
-
-            // add the textual data sources (which are not part of the corpus graph)
-            {
-                let mut q = Conjunction::new();
-                let datasource_idx = q.add_node(
-                    NodeSearchSpec::ExactValue {
-                        ns: Some(ANNIS_NS.to_string()),
-                        name: NODE_TYPE.to_string(),
-                        val: Some("datasource".to_string()),
-                        is_meta: false,
-                    },
-                    None,
-                );
-                let m_idx = q.add_node(m.clone(), None);
-                q.add_operator(
-                    Arc::new(operators::PartOfSubCorpusSpec {
-                        dist: RangeSpec::Bound {
-                            min_dist: 1,
-                            max_dist: 1,
-                        },
-                    }),
-                    &m_idx,
-                    &datasource_idx,
-                    false,
-                )?;
-                query.alternatives.push(q);
-            }
-        }
-        extract_subgraph_by_query(
-            &db_entry,
-            &query,
-            &[0],
-            &self.query_config,
-            None,
-            TimeoutCheck::new(None),
-        )
+        let result = subgraph::create_subgraph_for_iterator(it, &[0], graph, None)?;
+        Ok(result)
     }
 
     /// Return the copy of a subgraph which includes all nodes matched by the given `query`.
