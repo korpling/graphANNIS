@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   nested loop joins and long execution times.
 - Better estimation of result sizes for regular expressions with multiple
   prefixes.
+- Fix compilation issues in Rust projects that use the 2021 Rust edition.
+  https://github.com/lalrpop/lalrpop/issues/650
 
 ## [2.2.2] - 2022-07-26
 
