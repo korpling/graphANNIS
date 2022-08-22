@@ -3,12 +3,17 @@ use std::sync::Arc;
 
 use graphannis_core::errors::{GraphAnnisCoreError, Result as CoreResult};
 use graphannis_core::graph::storage::GraphStorage;
+use graphannis_core::graph::NODE_NAME_KEY;
+use graphannis_core::types::AnnoKey;
 use graphannis_core::{
     annostorage::{Match, MatchGroup},
     graph::{Graph, ANNIS_NS, DEFAULT_NS},
     types::{Component, Edge, NodeID},
 };
+use smallvec::smallvec;
 
+use crate::annis::db::token_helper::TokenHelper;
+use crate::try_as_option;
 use crate::{
     annis::{
         db::token_helper,
@@ -18,10 +23,32 @@ use crate::{
     AnnotationGraph,
 };
 
+enum State {
+    CoveringToken {
+        seg_node: NodeID,
+        covering: Vec<NodeID>,
+    },
+    Finish,
+}
+
 pub struct SubgraphIterator<'a> {
     graph: &'a Graph<AnnotationComponentType>,
     gs_segmentation_order: Arc<dyn GraphStorage>,
-    context_start_node: u64,
+    token_helper: TokenHelper<'a>,
+    context_start_node: NodeID,
+    context_end_node: NodeID,
+    state: State,
+}
+
+fn next_covering_token_state(seg_node: NodeID, token_helper: &TokenHelper) -> Result<State> {
+    let mut covering = Vec::new();
+    for gs_cov in token_helper.get_gs_coverage() {
+        for n in gs_cov.get_ingoing_edges(seg_node) {
+            let n = n?;
+            covering.push(n);
+        }
+    }
+    Ok(State::CoveringToken { seg_node, covering })
 }
 
 impl<'a> SubgraphIterator<'a> {
@@ -106,7 +133,7 @@ impl<'a> SubgraphIterator<'a> {
             gs_token_order
         };
 
-        let left_most_seg_node = if let Some(segmentation) = segmentation {
+        let left_most_seg_node = if segmentation.is_some() {
             // Get the segmentation node that covers this token
             let result: CoreResult<Vec<_>> = token_helper
                 .get_gs_left_token()
@@ -127,12 +154,61 @@ impl<'a> SubgraphIterator<'a> {
             .next()
             .unwrap_or_else(|| Ok(left_most_seg_node))?;
 
+        let right_most_seg_node = if segmentation.is_some() {
+            // Get the segmentation node that covers this token
+            let result: CoreResult<Vec<_>> = token_helper
+                .get_gs_right_token_()
+                .get_ingoing_edges(right_most_token)
+                .collect();
+            let result = result?;
+            result[0]
+        } else {
+            right_most_token
+        };
+        let context_end_node = gs_segmentation_order
+            .find_connected(
+                right_most_seg_node,
+                ctx_right,
+                std::ops::Bound::Excluded(ctx_right),
+            )
+            .next()
+            .unwrap_or_else(|| Ok(right_most_seg_node))?;
+
+        let state = next_covering_token_state(context_start_node, &token_helper)?;
         let it = SubgraphIterator {
             graph,
             gs_segmentation_order,
             context_start_node,
+            context_end_node,
+            token_helper,
+            state,
         };
         Ok(it)
+    }
+
+    fn calculate_state(&mut self) -> Result<()> {
+        match &mut self.state {
+            State::CoveringToken { seg_node, covering } => {
+                if covering.is_empty() {
+                    // Get the next segmentation node in the chain
+                    if let Some(next_seg_node) = self
+                        .gs_segmentation_order
+                        .get_outgoing_edges(*seg_node)
+                        .next()
+                    {
+                        let next_seg_node = next_seg_node?;
+                        if next_seg_node == self.context_end_node {
+                            self.state = State::Finish;
+                        } else {
+                            self.state =
+                                next_covering_token_state(next_seg_node, &self.token_helper)?;
+                        }
+                    }
+                }
+            }
+            State::Finish => {}
+        }
+        Ok(())
     }
 }
 
@@ -140,6 +216,24 @@ impl<'a> Iterator for SubgraphIterator<'a> {
     type Item = Result<MatchGroup>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        try_as_option!(self.calculate_state());
+
+        match self.state {
+            State::CoveringToken {
+                ref mut covering, ..
+            } => {
+                if let Some(next_covering) = covering.pop() {
+                    Some(Ok(smallvec![Match {
+                        node: next_covering,
+                        anno_key: NODE_NAME_KEY.clone(),
+                    }]))
+                } else {
+                    todo!()
+                }
+            }
+            State::Finish => None,
+        }
+
         // // find all nodes covering the same token
         // for source_node_id in node_ids {
         //     // remove the obsolete "salt:/" prefix
@@ -216,7 +310,6 @@ impl<'a> Iterator for SubgraphIterator<'a> {
         //         query.alternatives.push(q);
         //     }
         // }
-        todo!()
     }
 }
 
