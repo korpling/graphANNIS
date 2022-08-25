@@ -1,8 +1,11 @@
 use std::collections::BTreeSet;
+use std::sync::Arc;
 
+use graphannis_core::graph::storage::GraphStorage;
 use graphannis_core::graph::NODE_NAME_KEY;
 use graphannis_core::{
     annostorage::{Match, MatchGroup},
+    errors::Result as CoreResult,
     graph::Graph,
     types::{Component, Edge, NodeID},
 };
@@ -11,6 +14,35 @@ use smallvec::smallvec;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::GraphAnnisError;
 use crate::{annis::errors::Result, model::AnnotationComponentType, AnnotationGraph};
+
+struct TokenIterator {
+    n: NodeID,
+    end: NodeID,
+    gs_ordering: Arc<dyn GraphStorage>,
+}
+
+impl Iterator for TokenIterator {
+    type Item = Result<NodeID>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let out: CoreResult<Vec<NodeID>> = self.gs_ordering.get_outgoing_edges(self.n).collect();
+        match out {
+            Ok(out) => {
+                if let Some(next_node) = out.into_iter().next() {
+                    if next_node == self.end {
+                        None
+                    } else {
+                        self.n = next_node;
+                        Some(Ok(next_node))
+                    }
+                } else {
+                    None
+                }
+            }
+            Err(e) => Some(Err(e.into())),
+        }
+    }
+}
 
 /// Creates a new iterator over all token of the match with the context without gaps.
 fn new_token_iterator<'a>(
@@ -21,10 +53,44 @@ fn new_token_iterator<'a>(
     ctx_right: usize,
     segmentation: Option<String>,
 ) -> Result<Box<dyn Iterator<Item = Result<u64>> + 'a>> {
-    let left_without_context = token_helper.left_token_for_group(node_ids)?;
-    let right_without_context = token_helper.right_token_for_group(node_ids)?;
+    let left_without_context = token_helper
+        .left_token_for_group(node_ids)?
+        .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
+    let right_without_context = token_helper
+        .right_token_for_group(node_ids)?
+        .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
 
-    todo!()
+    if let Some(segmentation) = segmentation {
+        todo!()
+    } else {
+        // Get the token at the border of the context
+        let start = token_helper
+            .get_gs_ordering()
+            .find_connected_inverse(
+                left_without_context,
+                ctx_left,
+                std::ops::Bound::Included(ctx_left),
+            )
+            .next()
+            .unwrap_or(Ok(left_without_context))?;
+        let end = token_helper
+            .get_gs_ordering()
+            .find_connected(
+                right_without_context,
+                ctx_right,
+                std::ops::Bound::Included(ctx_right),
+            )
+            .next()
+            .unwrap_or(Ok(right_without_context))?;
+        // Create an iterator using the ordering edges for the given token range
+        let gs_ordering = token_helper.get_gs_ordering();
+        let it = TokenIterator {
+            n: start,
+            end,
+            gs_ordering,
+        };
+        Ok(Box::new(it))
+    }
 }
 
 /// Creates an iterator over all overlapped non-token nodes of the match with gaps.

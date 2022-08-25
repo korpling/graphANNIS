@@ -112,6 +112,14 @@ impl<'a> TokenHelper<'a> {
         self.right_edges.as_ref()
     }
 
+    pub fn get_gs_ordering_ref(&'a self) -> &'a dyn GraphStorage {
+        self.ordering_edges.as_ref()
+    }
+
+    pub fn get_gs_ordering(&self) -> Arc<dyn GraphStorage> {
+        self.ordering_edges.clone()
+    }
+
     pub fn is_token(&self, id: NodeID) -> Result<bool> {
         if self.node_annos.has_value_for_item(&id, &TOKEN_KEY)? {
             // check if there is no outgoing edge in any of the coverage components
