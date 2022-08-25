@@ -85,7 +85,7 @@ impl<'a> BinaryOperatorBase for RightAlignment<'a> {
     }
 
     fn estimation_type(&self) -> Result<EstimationType> {
-        if let Some(stats_right) = self.tok_helper.get_gs_right_token_().get_statistics() {
+        if let Some(stats_right) = self.tok_helper.get_gs_right_token().get_statistics() {
             let aligned_nodes_per_token: f64 = stats_right.inverse_fan_out_99_percentile as f64;
             return Ok(EstimationType::Selectivity(
                 aligned_nodes_per_token / (stats_right.nodes as f64),
@@ -109,7 +109,7 @@ impl<'a> BinaryOperatorIndex for RightAlignment<'a> {
             }));
             aligned.extend(
                 self.tok_helper
-                    .get_gs_right_token_()
+                    .get_gs_right_token()
                     .get_ingoing_edges(lhs_token)
                     .map_ok(|n| Match {
                         node: n,

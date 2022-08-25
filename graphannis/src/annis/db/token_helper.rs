@@ -11,12 +11,14 @@ use crate::{
     AnnotationGraph,
 };
 use graphannis_core::{
+    errors::GraphAnnisCoreError,
     graph::ANNIS_NS,
     types::{Component, NodeID},
 };
+use itertools::Itertools;
 
 use std::collections::HashSet;
-use std::sync::Arc;
+use std::{cmp::Ordering, sync::Arc};
 
 #[derive(Clone)]
 pub struct TokenHelper<'a> {
@@ -24,6 +26,7 @@ pub struct TokenHelper<'a> {
     left_edges: Arc<dyn GraphStorage>,
     right_edges: Arc<dyn GraphStorage>,
     cov_edges: Vec<Arc<dyn GraphStorage>>,
+    ordering_edges: Arc<dyn GraphStorage>,
 }
 
 lazy_static! {
@@ -37,6 +40,13 @@ lazy_static! {
     static ref COMPONENT_RIGHT: Component<AnnotationComponentType> = {
         Component::new(
             AnnotationComponentType::RightToken,
+            ANNIS_NS.into(),
+            "".into(),
+        )
+    };
+    static ref COMPONENT_ORDERING: Component<AnnotationComponentType> = {
+        Component::new(
+            AnnotationComponentType::Ordering,
             ANNIS_NS.into(),
             "".into(),
         )
@@ -71,24 +81,23 @@ impl<'a> TokenHelper<'a> {
             })
             .collect();
 
-        let left_edges = graph.get_graphstorage(&COMPONENT_LEFT).ok_or_else(|| {
-            GraphAnnisError::ImpossibleSearch(
-                "LeftToken component is missing (needed for all text coverage related operators)"
-                    .to_string(),
-            )
-        })?;
-        let right_edges = graph.get_graphstorage(&COMPONENT_RIGHT).ok_or_else(|| {
-            GraphAnnisError::ImpossibleSearch(
-                "RightToken component is missing (needed for all text coverage related operators)"
-                    .to_string(),
-            )
-        })?;
+        let left_edges = graph
+            .get_graphstorage(&COMPONENT_LEFT)
+            .ok_or_else(|| GraphAnnisCoreError::MissingComponent(COMPONENT_LEFT.to_string()))?;
+        let right_edges = graph
+            .get_graphstorage(&COMPONENT_RIGHT)
+            .ok_or_else(|| GraphAnnisCoreError::MissingComponent(COMPONENT_RIGHT.to_string()))?;
+
+        let ordering_edges = graph
+            .get_graphstorage(&COMPONENT_ORDERING)
+            .ok_or_else(|| GraphAnnisCoreError::MissingComponent(COMPONENT_ORDERING.to_string()))?;
 
         Ok(TokenHelper {
             node_annos: graph.get_node_annos(),
             left_edges,
             right_edges,
             cov_edges,
+            ordering_edges,
         })
     }
     pub fn get_gs_coverage(&self) -> &Vec<Arc<dyn GraphStorage>> {
@@ -99,7 +108,7 @@ impl<'a> TokenHelper<'a> {
         self.left_edges.as_ref()
     }
 
-    pub fn get_gs_right_token_(&self) -> &dyn GraphStorage {
+    pub fn get_gs_right_token(&self) -> &dyn GraphStorage {
         self.right_edges.as_ref()
     }
 
@@ -134,6 +143,33 @@ impl<'a> TokenHelper<'a> {
         }
     }
 
+    pub fn right_token_for_group(&self, nodes: &[NodeID]) -> Result<Option<NodeID>> {
+        // Collect the right token for all the nodes
+        let right_token: Result<Vec<NodeID>> = nodes
+            .iter()
+            .map(|n| self.right_token_for(*n))
+            .filter_map_ok(|t| t)
+            .collect();
+        let right_token = right_token?;
+        if right_token.is_empty() {
+            Ok(None)
+        } else {
+            // Get the right-most token of the list
+            let mut result = right_token[0];
+            for i in 1..right_token.len() {
+                if self.ordering_edges.is_connected(
+                    result,
+                    right_token[i],
+                    1,
+                    std::ops::Bound::Unbounded,
+                )? {
+                    result = right_token[i];
+                }
+            }
+            Ok(Some(result))
+        }
+    }
+
     pub fn left_token_for(&self, n: NodeID) -> Result<Option<NodeID>> {
         if self.is_token(n)? {
             Ok(Some(n))
@@ -143,6 +179,33 @@ impl<'a> TokenHelper<'a> {
                 Some(out) => Ok(Some(out?)),
                 None => Ok(None),
             }
+        }
+    }
+
+    pub fn left_token_for_group(&self, nodes: &[NodeID]) -> Result<Option<NodeID>> {
+        // Collect the left token for all the nodes
+        let left_token: Result<Vec<NodeID>> = nodes
+            .iter()
+            .map(|n| self.left_token_for(*n))
+            .filter_map_ok(|t| t)
+            .collect();
+        let left_token = left_token?;
+        if left_token.is_empty() {
+            Ok(None)
+        } else {
+            // Get the left-most token of the list
+            let mut result = left_token[0];
+            for i in 1..left_token.len() {
+                if self.ordering_edges.is_connected(
+                    left_token[i],
+                    result,
+                    1,
+                    std::ops::Bound::Unbounded,
+                )? {
+                    result = left_token[i];
+                }
+            }
+            Ok(Some(result))
         }
     }
 

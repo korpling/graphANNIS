@@ -21,6 +21,9 @@ fn new_token_iterator<'a>(
     ctx_right: usize,
     segmentation: Option<String>,
 ) -> Result<Box<dyn Iterator<Item = Result<u64>> + 'a>> {
+    let left_without_context = token_helper.left_token_for_group(node_ids)?;
+    let right_without_context = token_helper.right_token_for_group(node_ids)?;
+
     todo!()
 }
 

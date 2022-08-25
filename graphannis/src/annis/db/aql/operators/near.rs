@@ -239,7 +239,7 @@ impl<'a> BinaryOperatorIndex for Near<'a> {
             let it = connected
                 // find all right aligned nodes for this token and add it together with the token itself
                 .map_ok(move |t| {
-                    let it_aligned = self.tok_helper.get_gs_right_token_().get_ingoing_edges(t);
+                    let it_aligned = self.tok_helper.get_gs_right_token().get_ingoing_edges(t);
                     std::iter::once(Ok(t)).chain(it_aligned)
                 })
                 .flatten_ok()

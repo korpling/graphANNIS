@@ -194,7 +194,7 @@ impl<'a> BinaryOperatorIndex for Inclusion<'a> {
                             NodeType::Other(n) => {
                                 // get right-aligned token of candidate
                                 let mut end_n =
-                                    self.tok_helper.get_gs_right_token_().get_outgoing_edges(n);
+                                    self.tok_helper.get_gs_right_token().get_outgoing_edges(n);
                                 if let Some(end_n) = end_n.next() {
                                     let end_n = end_n?;
                                     if self.gs_order.is_connected(
