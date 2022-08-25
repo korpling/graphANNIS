@@ -62,7 +62,7 @@ use std::{
 use aql::model::AnnotationComponentType;
 use db::AnnotationStorage;
 
-use self::subgraph::SubgraphIterator;
+use self::subgraph::new_subgraph_iterator;
 
 use super::sort_matches::SortCache;
 
@@ -2145,7 +2145,7 @@ impl CorpusStorage {
         let lock = db_entry.read().unwrap();
         let graph = get_read_or_error(&lock)?;
 
-        let it = SubgraphIterator::new(graph, node_ids, ctx_left, ctx_right, segmentation)?;
+        let it = new_subgraph_iterator(graph, node_ids, ctx_left, ctx_right, segmentation)?;
 
         let result = subgraph::create_subgraph_for_iterator(it, &[0], graph, None)?;
         Ok(result)
