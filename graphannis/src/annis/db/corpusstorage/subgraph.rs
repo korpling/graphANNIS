@@ -8,12 +8,15 @@ use graphannis_core::{
 };
 use smallvec::smallvec;
 
+use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::errors::GraphAnnisError;
 use crate::{annis::errors::Result, model::AnnotationComponentType, AnnotationGraph};
 
 /// Creates a new iterator over all token of the match with the context without gaps.
 fn new_token_iterator<'a>(
     graph: &'a Graph<AnnotationComponentType>,
-    node_ids: &[String],
+    token_helper: TokenHelper<'a>,
+    node_ids: &[NodeID],
     ctx_left: usize,
     ctx_right: usize,
     segmentation: Option<String>,
@@ -24,7 +27,7 @@ fn new_token_iterator<'a>(
 /// Creates an iterator over all overlapped non-token nodes of the match with gaps.
 fn new_overlapped_nodes_iterator<'a>(
     graph: &'a Graph<AnnotationComponentType>,
-    node_ids: &[String],
+    node_ids: &[NodeID],
     ctx_left: usize,
     ctx_right: usize,
     segmentation: Option<String>,
@@ -35,7 +38,7 @@ fn new_overlapped_nodes_iterator<'a>(
 /// Creates an iterator over all parent nodes of the matched nodes in the corpus graph
 fn new_parent_nodes_iterator<'a>(
     graph: &'a Graph<AnnotationComponentType>,
-    node_ids: &[String],
+    node_ids: &[NodeID],
     ctx_left: usize,
     ctx_right: usize,
     segmentation: Option<String>,
@@ -50,7 +53,27 @@ pub fn new_subgraph_iterator<'a>(
     ctx_right: usize,
     segmentation: Option<String>,
 ) -> Result<Box<dyn Iterator<Item = Result<MatchGroup>> + 'a>> {
-    let tokens = new_token_iterator(graph, &node_ids, ctx_left, ctx_right, segmentation.clone())?;
+    let token_helper = TokenHelper::new(graph)?;
+
+    // Get the node IDs for the whole match
+    let node_ids: Result<Vec<NodeID>> = node_ids
+        .into_iter()
+        .map(|node_name| {
+            let id = graph.get_node_id_from_name(&node_name)?;
+            let id = id.ok_or(GraphAnnisError::NoSuchNodeID(node_name))?;
+            Ok(id)
+        })
+        .collect();
+    let node_ids = node_ids?;
+
+    let tokens = new_token_iterator(
+        graph,
+        token_helper,
+        &node_ids,
+        ctx_left,
+        ctx_right,
+        segmentation.clone(),
+    )?;
     let overlapped_nodes =
         new_overlapped_nodes_iterator(graph, &node_ids, ctx_left, ctx_right, segmentation.clone())?;
     let parent_nodes =
