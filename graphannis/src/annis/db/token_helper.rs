@@ -1,10 +1,7 @@
 use crate::{
-    annis::{
-        db::{
-            aql::model::{AnnotationComponentType, TOKEN_KEY},
-            AnnotationStorage,
-        },
-        errors::GraphAnnisError,
+    annis::db::{
+        aql::model::{AnnotationComponentType, TOKEN_KEY},
+        AnnotationStorage,
     },
     errors::Result,
     graph::GraphStorage,
@@ -18,7 +15,7 @@ use graphannis_core::{
 use itertools::Itertools;
 
 use std::collections::HashSet;
-use std::{cmp::Ordering, sync::Arc};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct TokenHelper<'a> {

@@ -1,9 +1,7 @@
 use std::collections::{BTreeSet, HashSet};
-use std::sync::Arc;
 
 use graphannis_core::errors::GraphAnnisCoreError;
-use graphannis_core::graph::storage::GraphStorage;
-use graphannis_core::graph::{ANNIS_NS, DEFAULT_NS, NODE_NAME_KEY};
+use graphannis_core::graph::{DEFAULT_NS, NODE_NAME_KEY};
 use graphannis_core::{
     annostorage::{Match, MatchGroup},
     errors::Result as CoreResult,
@@ -14,19 +12,76 @@ use smallvec::smallvec;
 
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::GraphAnnisError;
+use crate::try_as_option;
 use crate::{annis::errors::Result, model::AnnotationComponentType, AnnotationGraph};
 
-struct TokenIterator {
+struct TokenIterator<'a> {
     n: NodeID,
     end: NodeID,
-    gs_ordering: Arc<dyn GraphStorage>,
+    covering_nodes: Box<dyn Iterator<Item = NodeID>>,
+    token_helper: TokenHelper<'a>,
+    include_covering_nodes: bool,
 }
 
-impl Iterator for TokenIterator {
+impl<'a> TokenIterator<'a> {
+    fn calculate_covering_nodes(&mut self) -> Result<()> {
+        let mut covering_nodes = HashSet::new();
+
+        // add token  itself
+        covering_nodes.insert(self.n);
+
+        let n_is_token = self.token_helper.is_token(self.n)?;
+        let coverage_gs = self.token_helper.get_gs_coverage();
+
+        // Find covered nodes in all Coverage graph storages
+        for gs_cov in coverage_gs.iter() {
+            let covered: Box<dyn Iterator<Item = Result<NodeID>>> = if n_is_token {
+                Box::new(std::iter::once(Ok(self.n)))
+            } else {
+                // all covered token
+                Box::new(
+                    gs_cov
+                        .find_connected(self.n, 1, std::ops::Bound::Included(1))
+                        .map(|m| m.map_err(GraphAnnisError::from))
+                        .fuse(),
+                )
+            };
+
+            for t in covered {
+                let t = t?;
+                // get all nodes that are covering the token (in all coverage components)
+                for gs_cov in self.token_helper.get_gs_coverage().iter() {
+                    for n in gs_cov.get_ingoing_edges(t) {
+                        let n = n?;
+                        covering_nodes.insert(n);
+                    }
+                }
+                // also add the token itself
+                covering_nodes.insert(t);
+            }
+        }
+        self.covering_nodes = Box::new(covering_nodes.into_iter());
+        Ok(())
+    }
+}
+
+impl<'a> Iterator for TokenIterator<'a> {
     type Item = Result<NodeID>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let out: CoreResult<Vec<NodeID>> = self.gs_ordering.get_outgoing_edges(self.n).collect();
+        // Check if we still need to output some covering nodes for the current node
+        if self.include_covering_nodes {
+            if let Some(next_covering_node) = self.covering_nodes.next() {
+                return Some(Ok(next_covering_node));
+            }
+        }
+
+        // Get the next token in the chain
+        let out: CoreResult<Vec<NodeID>> = self
+            .token_helper
+            .get_gs_ordering_ref()
+            .get_outgoing_edges(self.n)
+            .collect();
         match out {
             Ok(out) => {
                 if let Some(next_node) = out.into_iter().next() {
@@ -34,6 +89,9 @@ impl Iterator for TokenIterator {
                         None
                     } else {
                         self.n = next_node;
+                        if self.include_covering_nodes {
+                            try_as_option!(self.calculate_covering_nodes());
+                        }
                         Some(Ok(next_node))
                     }
                 } else {
@@ -192,13 +250,70 @@ fn new_token_iterator<'a>(
         segmentation,
     )?;
     // Create an iterator using the ordering edges for the given token range
-    let gs_ordering = token_helper.get_gs_ordering();
     let it = TokenIterator {
         n: start,
         end,
-        gs_ordering,
+        token_helper,
+        include_covering_nodes: false,
+        covering_nodes: Box::new(std::iter::empty()),
     };
     Ok(Box::new(it))
+}
+
+#[derive(Clone)]
+struct TokenRegion<'a> {
+    start_token: NodeID,
+    end_token: NodeID,
+    token_helper: TokenHelper<'a>,
+}
+
+impl<'a> TokenRegion<'a> {
+    fn from_node_with_context(
+        graph: &'a Graph<AnnotationComponentType>,
+        node_id: NodeID,
+        ctx_left: usize,
+        ctx_right: usize,
+        segmentation: Option<String>,
+    ) -> Result<TokenRegion<'a>> {
+        let token_helper = TokenHelper::new(graph)?;
+        let (left_without_context, right_without_context) =
+            token_helper.left_right_token_for(node_id)?;
+        let left_without_context =
+            left_without_context.ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
+        let right_without_context =
+            right_without_context.ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
+
+        // Get the token at the borders of the context
+        let start_token = get_left_token_with_offset(
+            graph,
+            &token_helper,
+            left_without_context,
+            ctx_left,
+            segmentation.clone(),
+        )?;
+        let end_token = get_right_token_with_offset(
+            graph,
+            &token_helper,
+            right_without_context,
+            ctx_right,
+            segmentation,
+        )?;
+        Ok(TokenRegion {
+            start_token,
+            end_token,
+            token_helper,
+        })
+    }
+
+    fn into_token_iterator_with_coverage(self) -> TokenIterator<'a> {
+        TokenIterator {
+            n: self.start_token,
+            end: self.end_token,
+            token_helper: self.token_helper,
+            include_covering_nodes: true,
+            covering_nodes: Box::new(std::iter::empty()),
+        }
+    }
 }
 
 /// Creates an iterator over all overlapped non-token nodes of the match with gaps.
@@ -209,7 +324,20 @@ fn new_overlapped_nodes_iterator<'a>(
     ctx_right: usize,
     segmentation: Option<String>,
 ) -> Result<Box<dyn Iterator<Item = Result<u64>> + 'a>> {
-    todo!()
+    let mut token_iterators = Vec::default();
+    for n in node_ids {
+        let token_region = TokenRegion::from_node_with_context(
+            graph,
+            *n,
+            ctx_left,
+            ctx_right,
+            segmentation.clone(),
+        )?;
+        token_iterators.push(token_region.into_token_iterator_with_coverage());
+    }
+    // Chain all iterators ov the vector
+    let result = token_iterators.into_iter().flat_map(|it| it);
+    Ok(Box::new(result))
 }
 
 /// Creates an iterator over all parent nodes of the matched nodes in the
