@@ -263,14 +263,16 @@ impl<'a> TokenRegion<'a> {
         })
     }
 
-    fn into_token_iterator_with_coverage(self) -> TokenIterator<'a> {
-        TokenIterator {
+    fn into_token_iterator_with_coverage(self) -> Result<TokenIterator<'a>> {
+        let mut result = TokenIterator {
             n: self.start_token,
             end: self.end_token,
             token_helper: self.token_helper,
             include_covering_nodes: true,
             covering_nodes: Box::new(std::iter::empty()),
-        }
+        };
+        result.calculate_covering_nodes()?;
+        Ok(result)
     }
 }
 
@@ -291,7 +293,7 @@ fn new_overlapped_nodes_iterator<'a>(
             ctx_right,
             segmentation.clone(),
         )?;
-        token_iterators.push(token_region.into_token_iterator_with_coverage());
+        token_iterators.push(token_region.into_token_iterator_with_coverage()?);
     }
     // Chain all iterators ov the vector
     let result = token_iterators.into_iter().flat_map(|it| it);
@@ -340,10 +342,9 @@ pub fn new_subgraph_iterator<'a>(
         .collect();
     let node_ids = node_ids?;
 
-    // TODO: sort overlapped regions and add special gap tokens when neighbours don't overlap
+    // TODO: sort overlapped regions and add maybe add special gap tokens when neighbours don't overlap
     let overlapped_nodes =
         new_overlapped_nodes_iterator(graph, &node_ids, ctx_left, ctx_right, segmentation.clone())?;
-    // TODO: also add textual data sources
     let parent_nodes = new_parent_nodes_iterator(graph, &node_ids)?;
 
     // Chain iterators into a single iterator
