@@ -1,7 +1,7 @@
 use std::collections::{BTreeSet, HashSet};
 
 use graphannis_core::errors::GraphAnnisCoreError;
-use graphannis_core::graph::{DEFAULT_NS, NODE_NAME_KEY};
+use graphannis_core::graph::{ANNIS_NS, DEFAULT_NS, NODE_NAME_KEY};
 use graphannis_core::{
     annostorage::{Match, MatchGroup},
     errors::Result as CoreResult,
@@ -218,48 +218,6 @@ fn get_right_token_with_offset(
     }
 }
 
-/// Creates a new iterator over all token of the match with the context without gaps.
-fn new_token_iterator<'a>(
-    graph: &'a Graph<AnnotationComponentType>,
-    token_helper: TokenHelper<'a>,
-    node_ids: &[NodeID],
-    ctx_left: usize,
-    ctx_right: usize,
-    segmentation: Option<String>,
-) -> Result<Box<dyn Iterator<Item = Result<u64>> + 'a>> {
-    let left_without_context = token_helper
-        .left_token_for_group(node_ids)?
-        .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
-    let right_without_context = token_helper
-        .right_token_for_group(node_ids)?
-        .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
-
-    // Get the token at the borders of the context
-    let start = get_left_token_with_offset(
-        graph,
-        &token_helper,
-        left_without_context,
-        ctx_left,
-        segmentation.clone(),
-    )?;
-    let end = get_right_token_with_offset(
-        graph,
-        &token_helper,
-        right_without_context,
-        ctx_right,
-        segmentation,
-    )?;
-    // Create an iterator using the ordering edges for the given token range
-    let it = TokenIterator {
-        n: start,
-        end,
-        token_helper,
-        include_covering_nodes: false,
-        covering_nodes: Box::new(std::iter::empty()),
-    };
-    Ok(Box::new(it))
-}
-
 #[derive(Clone)]
 struct TokenRegion<'a> {
     start_token: NodeID,
@@ -316,7 +274,7 @@ impl<'a> TokenRegion<'a> {
     }
 }
 
-/// Creates an iterator over all overlapped non-token nodes of the match with gaps.
+/// Creates an iterator over all overlapped nodes of the match with gaps.
 fn new_overlapped_nodes_iterator<'a>(
     graph: &'a Graph<AnnotationComponentType>,
     node_ids: &[NodeID],
@@ -345,11 +303,23 @@ fn new_overlapped_nodes_iterator<'a>(
 fn new_parent_nodes_iterator<'a>(
     graph: &'a Graph<AnnotationComponentType>,
     node_ids: &[NodeID],
-    ctx_left: usize,
-    ctx_right: usize,
-    segmentation: Option<String>,
 ) -> Result<Box<dyn Iterator<Item = Result<u64>> + 'a>> {
-    todo!()
+    let component_part_of =
+        Component::new(AnnotationComponentType::PartOf, ANNIS_NS.into(), "".into());
+    let gs_part_of =
+        graph
+            .get_graphstorage(&component_part_of)
+            .ok_or(GraphAnnisCoreError::MissingComponent(
+                component_part_of.to_string(),
+            ))?;
+    let mut parents = HashSet::new();
+    for n in node_ids {
+        for p in gs_part_of.find_connected_inverse(*n, 1, std::ops::Bound::Unbounded) {
+            let p = p?;
+            parents.insert(p);
+        }
+    }
+    Ok(Box::new(parents.into_iter().map(|p| Ok(p))))
 }
 
 pub fn new_subgraph_iterator<'a>(
@@ -359,8 +329,6 @@ pub fn new_subgraph_iterator<'a>(
     ctx_right: usize,
     segmentation: Option<String>,
 ) -> Result<Box<dyn Iterator<Item = Result<MatchGroup>> + 'a>> {
-    let token_helper = TokenHelper::new(graph)?;
-
     // Get the node IDs for the whole match
     let node_ids: Result<Vec<NodeID>> = node_ids
         .into_iter()
@@ -372,21 +340,14 @@ pub fn new_subgraph_iterator<'a>(
         .collect();
     let node_ids = node_ids?;
 
-    let tokens = new_token_iterator(
-        graph,
-        token_helper,
-        &node_ids,
-        ctx_left,
-        ctx_right,
-        segmentation.clone(),
-    )?;
+    // TODO: sort overlapped regions and add special gap tokens when neighbours don't overlap
     let overlapped_nodes =
         new_overlapped_nodes_iterator(graph, &node_ids, ctx_left, ctx_right, segmentation.clone())?;
-    let parent_nodes =
-        new_parent_nodes_iterator(graph, &node_ids, ctx_left, ctx_right, segmentation)?;
+    // TODO: also add textual data sources
+    let parent_nodes = new_parent_nodes_iterator(graph, &node_ids)?;
 
     // Chain iterators into a single iterator
-    let result = tokens.chain(overlapped_nodes).chain(parent_nodes).map(|n| {
+    let result = overlapped_nodes.chain(parent_nodes).map(|n| {
         let n = n?;
         let m: MatchGroup = smallvec![Match {
             node: n,

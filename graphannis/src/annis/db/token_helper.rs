@@ -12,7 +12,6 @@ use graphannis_core::{
     graph::ANNIS_NS,
     types::{Component, NodeID},
 };
-use itertools::Itertools;
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -148,33 +147,6 @@ impl<'a> TokenHelper<'a> {
         }
     }
 
-    pub fn right_token_for_group(&self, nodes: &[NodeID]) -> Result<Option<NodeID>> {
-        // Collect the right token for all the nodes
-        let right_token: Result<Vec<NodeID>> = nodes
-            .iter()
-            .map(|n| self.right_token_for(*n))
-            .filter_map_ok(|t| t)
-            .collect();
-        let right_token = right_token?;
-        if right_token.is_empty() {
-            Ok(None)
-        } else {
-            // Get the right-most token of the list
-            let mut result = right_token[0];
-            for i in 1..right_token.len() {
-                if self.ordering_edges.is_connected(
-                    result,
-                    right_token[i],
-                    1,
-                    std::ops::Bound::Unbounded,
-                )? {
-                    result = right_token[i];
-                }
-            }
-            Ok(Some(result))
-        }
-    }
-
     pub fn left_token_for(&self, n: NodeID) -> Result<Option<NodeID>> {
         if self.is_token(n)? {
             Ok(Some(n))
@@ -184,33 +156,6 @@ impl<'a> TokenHelper<'a> {
                 Some(out) => Ok(Some(out?)),
                 None => Ok(None),
             }
-        }
-    }
-
-    pub fn left_token_for_group(&self, nodes: &[NodeID]) -> Result<Option<NodeID>> {
-        // Collect the left token for all the nodes
-        let left_token: Result<Vec<NodeID>> = nodes
-            .iter()
-            .map(|n| self.left_token_for(*n))
-            .filter_map_ok(|t| t)
-            .collect();
-        let left_token = left_token?;
-        if left_token.is_empty() {
-            Ok(None)
-        } else {
-            // Get the left-most token of the list
-            let mut result = left_token[0];
-            for i in 1..left_token.len() {
-                if self.ordering_edges.is_connected(
-                    left_token[i],
-                    result,
-                    1,
-                    std::ops::Bound::Unbounded,
-                )? {
-                    result = left_token[i];
-                }
-            }
-            Ok(Some(result))
         }
     }
 
