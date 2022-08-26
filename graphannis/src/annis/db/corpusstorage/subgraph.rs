@@ -16,50 +16,26 @@ use crate::try_as_option;
 use crate::{annis::errors::Result, model::AnnotationComponentType, AnnotationGraph};
 
 struct TokenIterator<'a> {
-    n: NodeID,
-    end: NodeID,
+    end_token: NodeID,
+    current_token: Option<NodeID>,
     covering_nodes: Box<dyn Iterator<Item = NodeID>>,
     token_helper: TokenHelper<'a>,
-    include_covering_nodes: bool,
 }
 
 impl<'a> TokenIterator<'a> {
     fn calculate_covering_nodes(&mut self) -> Result<()> {
         let mut covering_nodes = HashSet::new();
 
-        // add token  itself
-        covering_nodes.insert(self.n);
-
-        let n_is_token = self.token_helper.is_token(self.n)?;
-        let coverage_gs = self.token_helper.get_gs_coverage();
-
-        // Find covered nodes in all Coverage graph storages
-        for gs_cov in coverage_gs.iter() {
-            let covered: Box<dyn Iterator<Item = Result<NodeID>>> = if n_is_token {
-                Box::new(std::iter::once(Ok(self.n)))
-            } else {
-                // all covered token
-                Box::new(
-                    gs_cov
-                        .find_connected(self.n, 1, std::ops::Bound::Included(1))
-                        .map(|m| m.map_err(GraphAnnisError::from))
-                        .fuse(),
-                )
-            };
-
-            for t in covered {
-                let t = t?;
-                // get all nodes that are covering the token (in all coverage components)
-                for gs_cov in self.token_helper.get_gs_coverage().iter() {
-                    for n in gs_cov.get_ingoing_edges(t) {
-                        let n = n?;
-                        covering_nodes.insert(n);
-                    }
+        if let Some(current_token) = self.current_token {
+            // get all nodes that are covering the token (in all coverage components)
+            for gs_cov in self.token_helper.get_gs_coverage().iter() {
+                for n in gs_cov.get_ingoing_edges(current_token) {
+                    let n = n?;
+                    covering_nodes.insert(n);
                 }
-                // also add the token itself
-                covering_nodes.insert(t);
             }
         }
+
         self.covering_nodes = Box::new(covering_nodes.into_iter());
         Ok(())
     }
@@ -70,36 +46,38 @@ impl<'a> Iterator for TokenIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         // Check if we still need to output some covering nodes for the current node
-        if self.include_covering_nodes {
-            if let Some(next_covering_node) = self.covering_nodes.next() {
-                return Some(Ok(next_covering_node));
+        if let Some(next_covering_node) = self.covering_nodes.next() {
+            return Some(Ok(next_covering_node));
+        }
+
+        if let Some(old_current_token) = self.current_token {
+            if old_current_token == self.end_token {
+                self.current_token = None;
+                return Some(Ok(old_current_token));
+            }
+
+            // Get the next token in the chain
+            let out: CoreResult<Vec<NodeID>> = self
+                .token_helper
+                .get_gs_ordering_ref()
+                .get_outgoing_edges(old_current_token)
+                .collect();
+            match out {
+                Ok(out) => {
+                    let next_token = out.into_iter().next();
+                    self.current_token = next_token;
+                    try_as_option!(self.calculate_covering_nodes());
+
+                    // Return the previous current token
+                    return Some(Ok(old_current_token));
+                }
+                Err(e) => {
+                    return Some(Err(e.into()));
+                }
             }
         }
 
-        // Get the next token in the chain
-        let out: CoreResult<Vec<NodeID>> = self
-            .token_helper
-            .get_gs_ordering_ref()
-            .get_outgoing_edges(self.n)
-            .collect();
-        match out {
-            Ok(out) => {
-                if let Some(next_node) = out.into_iter().next() {
-                    if next_node == self.end {
-                        None
-                    } else {
-                        self.n = next_node;
-                        if self.include_covering_nodes {
-                            try_as_option!(self.calculate_covering_nodes());
-                        }
-                        Some(Ok(next_node))
-                    }
-                } else {
-                    None
-                }
-            }
-            Err(e) => Some(Err(e.into())),
-        }
+        None
     }
 }
 
@@ -265,10 +243,9 @@ impl<'a> TokenRegion<'a> {
 
     fn into_token_iterator_with_coverage(self) -> Result<TokenIterator<'a>> {
         let mut result = TokenIterator {
-            n: self.start_token,
-            end: self.end_token,
+            current_token: Some(self.start_token),
+            end_token: self.end_token,
             token_helper: self.token_helper,
-            include_covering_nodes: true,
             covering_nodes: Box::new(std::iter::empty()),
         };
         result.calculate_covering_nodes()?;
