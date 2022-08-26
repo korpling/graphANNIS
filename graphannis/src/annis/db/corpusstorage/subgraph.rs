@@ -1,8 +1,9 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 use std::sync::Arc;
 
+use graphannis_core::errors::GraphAnnisCoreError;
 use graphannis_core::graph::storage::GraphStorage;
-use graphannis_core::graph::NODE_NAME_KEY;
+use graphannis_core::graph::{ANNIS_NS, DEFAULT_NS, NODE_NAME_KEY};
 use graphannis_core::{
     annostorage::{Match, MatchGroup},
     errors::Result as CoreResult,
@@ -44,6 +45,121 @@ impl Iterator for TokenIterator {
     }
 }
 
+fn get_left_token_with_offset(
+    graph: &Graph<AnnotationComponentType>,
+    token_helper: &TokenHelper,
+    token: NodeID,
+    ctx_left: usize,
+    segmentation: Option<String>,
+) -> Result<NodeID> {
+    if let Some(segmentation) = segmentation {
+        // Get the ordering component for this segmentation
+        let component_ordering = Component::new(
+            AnnotationComponentType::Ordering,
+            DEFAULT_NS.into(),
+            segmentation.into(),
+        );
+        let gs_ordering = graph.get_graphstorage_as_ref(&component_ordering).ok_or(
+            GraphAnnisCoreError::MissingComponent(component_ordering.to_string()),
+        )?;
+        // Get all nodes coverging the token and that are part of
+        // the matching ordering component
+        let mut covering_segmentation_nodes = BTreeSet::new();
+        for gs_cov in token_helper.get_gs_coverage() {
+            for n in gs_cov.get_ingoing_edges(token) {
+                let n = n?;
+                if let Some(first_incoming_edge) = gs_ordering.get_ingoing_edges(n).next() {
+                    first_incoming_edge?;
+                    covering_segmentation_nodes.insert(n);
+                }
+            }
+        }
+        // Get the first matching node of the ordering component and
+        // retrieve the left-context segmentation node from it
+        let first_segmentation_node = covering_segmentation_nodes
+            .into_iter()
+            .next()
+            .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
+        let left_segmentation_node = gs_ordering
+            .find_connected_inverse(
+                first_segmentation_node,
+                ctx_left,
+                std::ops::Bound::Included(ctx_left),
+            )
+            .next()
+            .unwrap_or(Ok(first_segmentation_node))?;
+        // Use the left-most token of this node as start of the context
+        let result = token_helper
+            .left_token_for(left_segmentation_node)?
+            .unwrap_or(token);
+        Ok(result)
+    } else {
+        let result = token_helper
+            .get_gs_ordering()
+            .find_connected_inverse(token, ctx_left, std::ops::Bound::Included(ctx_left))
+            .next()
+            .unwrap_or(Ok(token))?;
+        Ok(result)
+    }
+}
+
+fn get_right_token_with_offset(
+    graph: &Graph<AnnotationComponentType>,
+    token_helper: &TokenHelper,
+    token: NodeID,
+    ctx_right: usize,
+    segmentation: Option<String>,
+) -> Result<NodeID> {
+    if let Some(segmentation) = segmentation {
+        // Get the ordering component for this segmentation
+        let component_ordering = Component::new(
+            AnnotationComponentType::Ordering,
+            DEFAULT_NS.into(),
+            segmentation.into(),
+        );
+        let gs_ordering = graph.get_graphstorage_as_ref(&component_ordering).ok_or(
+            GraphAnnisCoreError::MissingComponent(component_ordering.to_string()),
+        )?;
+        // Get all nodes coverging the token and that are part of
+        // the matching ordering component
+        let mut covering_segmentation_nodes = BTreeSet::new();
+        for gs_cov in token_helper.get_gs_coverage() {
+            for n in gs_cov.get_ingoing_edges(token) {
+                let n = n?;
+                if gs_ordering.has_outgoing_edges(n)? {
+                    covering_segmentation_nodes.insert(n);
+                }
+            }
+        }
+        // Get the first matching node of the ordering component and
+        // retrieve the right-context segmentation node from it
+        let first_segmentation_node = covering_segmentation_nodes
+            .into_iter()
+            .next()
+            .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
+        let right_segmentation_node = gs_ordering
+            .find_connected(
+                first_segmentation_node,
+                ctx_right,
+                std::ops::Bound::Included(ctx_right),
+            )
+            .next()
+            .unwrap_or(Ok(first_segmentation_node))?;
+        // Use the right-most token of this node as end of the context
+        let result = token_helper
+            .right_token_for(right_segmentation_node)?
+            .unwrap_or(token);
+        Ok(result)
+    } else {
+        let result = token_helper
+            .get_gs_ordering()
+            .find_connected(token, ctx_right, std::ops::Bound::Included(ctx_right))
+            .next()
+            .unwrap_or(Ok(token))?;
+        Ok(result)
+    }
+}
+
 /// Creates a new iterator over all token of the match with the context without gaps.
 fn new_token_iterator<'a>(
     graph: &'a Graph<AnnotationComponentType>,
@@ -60,37 +176,29 @@ fn new_token_iterator<'a>(
         .right_token_for_group(node_ids)?
         .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
 
-    if let Some(segmentation) = segmentation {
-        todo!()
-    } else {
-        // Get the token at the border of the context
-        let start = token_helper
-            .get_gs_ordering()
-            .find_connected_inverse(
-                left_without_context,
-                ctx_left,
-                std::ops::Bound::Included(ctx_left),
-            )
-            .next()
-            .unwrap_or(Ok(left_without_context))?;
-        let end = token_helper
-            .get_gs_ordering()
-            .find_connected(
-                right_without_context,
-                ctx_right,
-                std::ops::Bound::Included(ctx_right),
-            )
-            .next()
-            .unwrap_or(Ok(right_without_context))?;
-        // Create an iterator using the ordering edges for the given token range
-        let gs_ordering = token_helper.get_gs_ordering();
-        let it = TokenIterator {
-            n: start,
-            end,
-            gs_ordering,
-        };
-        Ok(Box::new(it))
-    }
+    // Get the token at the borders of the context
+    let start = get_left_token_with_offset(
+        graph,
+        &token_helper,
+        left_without_context,
+        ctx_left,
+        segmentation.clone(),
+    )?;
+    let end = get_right_token_with_offset(
+        graph,
+        &token_helper,
+        right_without_context,
+        ctx_right,
+        segmentation,
+    )?;
+    // Create an iterator using the ordering edges for the given token range
+    let gs_ordering = token_helper.get_gs_ordering();
+    let it = TokenIterator {
+        n: start,
+        end,
+        gs_ordering,
+    };
+    Ok(Box::new(it))
 }
 
 /// Creates an iterator over all overlapped non-token nodes of the match with gaps.
@@ -104,7 +212,8 @@ fn new_overlapped_nodes_iterator<'a>(
     todo!()
 }
 
-/// Creates an iterator over all parent nodes of the matched nodes in the corpus graph
+/// Creates an iterator over all parent nodes of the matched nodes in the
+/// corpus graph, including data sources.
 fn new_parent_nodes_iterator<'a>(
     graph: &'a Graph<AnnotationComponentType>,
     node_ids: &[NodeID],
