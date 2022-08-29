@@ -8,7 +8,7 @@ use super::sortablecontainer::SortableContainer;
 /// Make sure all items of the complete vector are sorted by the given comparision function.
 pub fn sort<T, F>(items: &mut dyn SortableContainer<T>, mut order_func: F) -> Result<()>
 where
-    T: Clone + Ord + Send,
+    T: Clone + Send,
     F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
     let item_len = items.try_len()?;
@@ -28,7 +28,7 @@ pub fn sort_first_n_items<T, F>(
     mut order_func: F,
 ) -> Result<()>
 where
-    T: Clone + Ord + Send,
+    T: Clone + Send,
     F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
     let item_len = items.try_len()?;
@@ -74,7 +74,7 @@ fn quicksort<T, F>(
     order_func: &mut F,
 ) -> Result<()>
 where
-    T: Clone + Ord,
+    T: Clone,
     F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
     let range_size = items_range.end - items_range.start;
@@ -103,7 +103,7 @@ fn randomized_partition<T, F>(
     order_func: &mut F,
 ) -> Result<usize>
 where
-    T: Clone + Ord,
+    T: Clone,
     F: FnMut(&T, &T) -> Result<std::cmp::Ordering>,
 {
     if (item_range.end - item_range.start) == 1 {
@@ -119,10 +119,24 @@ where
         let v2 = (i2, items.try_get(i2)?.into_owned());
         let v3 = (i3, items.try_get(i3)?.into_owned());
 
-        let mut v = [v1, v2, v3];
-        v.sort_unstable_by(|a, b| a.1.cmp(&b.1));
-
-        items.try_swap(item_range.end - 1, v[1].0)?;
+        let mut v = vec![v1, v2, v3];
+        // Adapted median creation using swaps from
+        // https://en.wikipedia.org/wiki/Quicksort#Choice_of_pivot
+        let low = 0;
+        let mid = 1;
+        let high = 2;
+        if order_func(&v[mid].1, &v[low].1)?.is_lt() {
+            v.swap(low, mid);
+        }
+        if order_func(&v[high].1, &v[low].1)?.is_lt() {
+            v.swap(low, high)
+        }
+        if order_func(&v[mid].1, &v[high].1)?.is_lt() {
+            v.swap(mid, high)
+        }
+        let pivot = v[high].0;
+        // Position the pivot element at the end
+        items.try_swap(item_range.end - 1, pivot)?;
         partition(items, item_range, order_func)
     }
 }

@@ -18,7 +18,7 @@ pub trait SortableContainer<T: Clone>: Send {
 
 impl<T> SortableContainer<T> for Vec<T>
 where
-    T: Clone + Send + 'static,
+    T: Clone + Send,
 {
     fn try_swap(&mut self, a: usize, b: usize) -> Result<()> {
         if a >= self.len() {
