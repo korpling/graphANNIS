@@ -120,6 +120,154 @@ fn apply_update_add_and_delete_nodes() {
 }
 
 #[test]
+fn subgraphs_simple() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+    let mut g = GraphUpdate::new();
+    // Add corpus structure
+    example_generator::create_corpus_structure_simple(&mut g);
+    // Use the default tokenization as minimal tokens
+    example_generator::create_tokens(&mut g, Some("root/doc1"));
+
+    // Add some spans
+    example_generator::make_span(
+        &mut g,
+        "root/doc1#span1",
+        &["root/doc1#tok1", "root/doc1#tok2"],
+        true,
+    );
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "root/doc1#span1".to_string(),
+        target_node: "root/doc1".to_string(),
+        layer: "".to_string(),
+        component_type: "PartOf".to_string(),
+        component_name: "".to_string(),
+    })
+    .unwrap();
+
+    example_generator::make_span(
+        &mut g,
+        "root/doc1#span2",
+        &["root/doc1#tok3", "root/doc1#tok4", "root/doc1#tok5"],
+        true,
+    );
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "root/doc1#span2".to_string(),
+        target_node: "root/doc1".to_string(),
+        layer: "".to_string(),
+        component_type: "PartOf".to_string(),
+        component_name: "".to_string(),
+    })
+    .unwrap();
+
+    example_generator::make_span(
+        &mut g,
+        "root/doc1#span3",
+        &["root/doc1#tok5", "root/doc1#tok6", "root/doc1#tok7"],
+        true,
+    );
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "root/doc1#span3".to_string(),
+        target_node: "root/doc1".to_string(),
+        layer: "".to_string(),
+        component_type: "PartOf".to_string(),
+        component_name: "".to_string(),
+    })
+    .unwrap();
+
+    example_generator::make_span(
+        &mut g,
+        "root/doc1#span4",
+        &["root/doc1#tok9", "root/doc1#tok10"],
+        true,
+    );
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "root/doc1#span4".to_string(),
+        target_node: "root/doc1".to_string(),
+        layer: "".to_string(),
+        component_type: "PartOf".to_string(),
+        component_name: "".to_string(),
+    })
+    .unwrap();
+
+    cs.apply_update("root", &mut g).unwrap();
+
+    // get the subgraph for a token ("complicated")
+    // This should return the following token and their covering spans
+    // example[tok2] more[tok3] complicated[tok4] than[tok5] it[tok6] appears[tok7] to[tok8]
+    let graph = cs
+        .subgraph("root", vec!["root/doc1#tok4".to_string()], 2, 4, None)
+        .unwrap();
+
+    let cov_components = graph.get_all_components(Some(AnnotationComponentType::Coverage), None);
+    assert_eq!(1, cov_components.len());
+    let gs_cov = graph.get_graphstorage(&cov_components[0]).unwrap();
+
+    let ordering_components =
+        graph.get_all_components(Some(AnnotationComponentType::Ordering), None);
+    assert_eq!(1, ordering_components.len());
+    let gs_ordering = graph.get_graphstorage(&ordering_components[0]).unwrap();
+
+    // Check that all token exist and are connected
+    for i in 2..8 {
+        let t = format!("root/doc1#tok{}", i);
+        let t_id = graph.get_node_id_from_name(&t).unwrap();
+        assert_eq!(true, t_id.is_some());
+        let next_token = format!("root/doc1#tok{}", i + 1);
+        let next_token_id = graph.get_node_id_from_name(&next_token).unwrap();
+        assert_eq!(true, next_token_id.is_some());
+        assert_eq!(
+            true,
+            gs_ordering
+                .is_connected(
+                    t_id.unwrap(),
+                    next_token_id.unwrap(),
+                    1,
+                    std::ops::Bound::Included(1)
+                )
+                .unwrap()
+        );
+    }
+    // Also check, that the token outside the context do not exists
+    for t in 0..2 {
+        let t = format!("root/doc1#tok{}", t);
+        assert_eq!(false, graph.get_node_id_from_name(&t).unwrap().is_some());
+    }
+    for t in 9..10 {
+        let t = format!("root/doc1#tok{}", t);
+        assert_eq!(false, graph.get_node_id_from_name(&t).unwrap().is_some());
+    }
+
+    // Check the (non-) existance of the spans
+    let span1 = graph
+        .get_node_id_from_name("root/doc1#span1")
+        .unwrap()
+        .unwrap();
+    let span2 = graph
+        .get_node_id_from_name("root/doc1#span2")
+        .unwrap()
+        .unwrap();
+    let span3 = graph
+        .get_node_id_from_name("root/doc1#span3")
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(
+        false,
+        graph
+            .get_node_id_from_name("root/doc1#span4")
+            .unwrap()
+            .is_some()
+    );
+
+    assert_eq!(1, gs_cov.get_outgoing_edges(span1).count());
+    assert_eq!(3, gs_cov.get_outgoing_edges(span2).count());
+    assert_eq!(3, gs_cov.get_outgoing_edges(span3).count());
+}
+
+#[test]
 fn subgraph_with_segmentation() {
     let tmp = tempfile::tempdir().unwrap();
     let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
@@ -163,11 +311,13 @@ fn subgraph_with_segmentation() {
         &mut g,
         "root/doc1#seg0",
         &["root/doc1#tok0", "root/doc1#tok1", "root/doc1#tok2"],
+        false,
     );
     example_generator::make_span(
         &mut g,
         "root/doc1#seg1",
         &["root/doc1#tok3", "root/doc1#tok4"],
+        false,
     );
     example_generator::make_span(
         &mut g,
@@ -179,8 +329,9 @@ fn subgraph_with_segmentation() {
             "root/doc1#tok8",
             "root/doc1#tok9",
         ],
+        false,
     );
-    example_generator::make_span(&mut g, "root/doc1#seg3", &["root/doc1#tok10"]);
+    example_generator::make_span(&mut g, "root/doc1#seg3", &["root/doc1#tok10"], false);
 
     cs.apply_update("root", &mut g).unwrap();
 

@@ -236,7 +236,20 @@ pub fn create_token_node(
     }
 }
 
-pub fn make_span(update: &mut GraphUpdate, node_name: &str, covered_token_names: &[&str]) {
+pub fn make_span(
+    update: &mut GraphUpdate,
+    node_name: &str,
+    covered_token_names: &[&str],
+    create_source: bool,
+) {
+    if create_source {
+        update
+            .add_event(UpdateEvent::AddNode {
+                node_name: node_name.to_string(),
+                node_type: "node".to_string(),
+            })
+            .unwrap();
+    }
     for c in covered_token_names {
         update
             .add_event(UpdateEvent::AddEdge {
