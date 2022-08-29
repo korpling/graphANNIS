@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::{BTreeSet, HashSet};
 
 use graphannis_core::errors::GraphAnnisCoreError;
@@ -12,6 +13,7 @@ use smallvec::smallvec;
 
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::GraphAnnisError;
+use crate::annis::util::quicksort;
 use crate::try_as_option;
 use crate::{annis::errors::Result, model::AnnotationComponentType, AnnotationGraph};
 
@@ -261,7 +263,7 @@ fn new_overlapped_nodes_iterator<'a>(
     ctx_right: usize,
     segmentation: Option<String>,
 ) -> Result<Box<dyn Iterator<Item = Result<u64>> + 'a>> {
-    let mut token_iterators = Vec::default();
+    let mut regions: Vec<TokenRegion<'a>> = Vec::default();
     for n in node_ids {
         let token_region = TokenRegion::from_node_with_context(
             graph,
@@ -270,10 +272,47 @@ fn new_overlapped_nodes_iterator<'a>(
             ctx_right,
             segmentation.clone(),
         )?;
-        token_iterators.push(token_region.into_token_iterator_with_coverage()?);
+        regions.push(token_region);
     }
-    // Chain all iterators ov the vector
-    let result = token_iterators.into_iter().flat_map(|it| it);
+    let component_ordering = Component::new(
+        AnnotationComponentType::Ordering,
+        ANNIS_NS.into(),
+        "".into(),
+    );
+    let gs_ordering = graph.get_graphstorage(&component_ordering).ok_or(
+        GraphAnnisCoreError::MissingComponent(component_ordering.to_string()),
+    )?;
+    // Sort regions by position in the text
+    quicksort::sort(&mut regions, move |a, b| {
+        if a.start_token == b.start_token && a.end_token == b.end_token {
+            Ok(Ordering::Equal)
+        } else if gs_ordering.is_connected(
+            a.end_token,
+            b.start_token,
+            1,
+            std::ops::Bound::Unbounded,
+        )? {
+            Ok(Ordering::Less)
+        } else if gs_ordering.is_connected(
+            b.end_token,
+            a.start_token,
+            1,
+            std::ops::Bound::Unbounded,
+        )? {
+            Ok(Ordering::Greater)
+        } else {
+            Ok((a.start_token, a.end_token).cmp(&(b.start_token, b.end_token)))
+        }
+    })?;
+
+    // TODO: Find overlapped regions and add a special gap tokens when neighbours don't overlap
+
+    // Create and chain all iterators of the vector
+    let mut iterators = Vec::new();
+    for token_region in regions.into_iter() {
+        iterators.push(token_region.into_token_iterator_with_coverage()?);
+    }
+    let result = iterators.into_iter().flat_map(|it| it);
     Ok(Box::new(result))
 }
 
@@ -319,7 +358,6 @@ pub fn new_subgraph_iterator<'a>(
         .collect();
     let node_ids = node_ids?;
 
-    // TODO: sort overlapped regions and add maybe add special gap tokens when neighbours don't overlap
     let overlapped_nodes =
         new_overlapped_nodes_iterator(graph, &node_ids, ctx_left, ctx_right, segmentation.clone())?;
     let parent_nodes = new_parent_nodes_iterator(graph, &node_ids)?;
