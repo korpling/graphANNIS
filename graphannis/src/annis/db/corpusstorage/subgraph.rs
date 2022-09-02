@@ -332,7 +332,7 @@ fn new_parent_nodes_iterator<'a>(
             ))?;
     let mut parents = HashSet::new();
     for n in node_ids {
-        for p in gs_part_of.find_connected_inverse(*n, 1, std::ops::Bound::Unbounded) {
+        for p in gs_part_of.find_connected(*n, 1, std::ops::Bound::Unbounded) {
             let p = p?;
             parents.insert(p);
         }

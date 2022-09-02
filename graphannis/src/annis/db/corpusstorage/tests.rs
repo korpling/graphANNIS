@@ -12,7 +12,7 @@ use crate::errors::Result;
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::{AnnotationGraph, CorpusStorage};
 use graphannis_core::annostorage::{AnnotationStorage, ValueSearch};
-use graphannis_core::graph::NODE_NAME_KEY;
+use graphannis_core::graph::{ANNIS_NS, NODE_NAME_KEY};
 use graphannis_core::types::Edge;
 use graphannis_core::{graph::DEFAULT_NS, types::NodeID};
 use itertools::Itertools;
@@ -72,8 +72,16 @@ fn apply_update_add_and_delete_nodes() {
 
     let mut g = GraphUpdate::new();
     example_generator::create_corpus_structure(&mut g);
-    example_generator::create_tokens(&mut g, Some("root/subCorpus1/doc1"));
-    example_generator::create_tokens(&mut g, Some("root/subCorpus1/doc2"));
+    example_generator::create_tokens(
+        &mut g,
+        Some("root/subCorpus1/doc1"),
+        Some("root/subCorpus1/doc1"),
+    );
+    example_generator::create_tokens(
+        &mut g,
+        Some("root/subCorpus1/doc2"),
+        Some("root/subCorpus1/doc2"),
+    );
 
     g.add_event(UpdateEvent::AddEdge {
         source_node: "root/subCorpus1/doc1#tok1".to_owned(),
@@ -124,75 +132,83 @@ fn subgraphs_simple() {
     let tmp = tempfile::tempdir().unwrap();
     let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
-    let mut g = GraphUpdate::new();
+    let mut complete_graph_def = GraphUpdate::new();
     // Add corpus structure
-    example_generator::create_corpus_structure_simple(&mut g);
+    example_generator::create_corpus_structure_simple(&mut complete_graph_def);
     // Use the default tokenization as minimal tokens
-    example_generator::create_tokens(&mut g, Some("root/doc1"));
+    example_generator::create_tokens(
+        &mut complete_graph_def,
+        Some("root/doc1"),
+        Some("root/doc1#text1"),
+    );
 
     // Add some spans
     example_generator::make_span(
-        &mut g,
+        &mut complete_graph_def,
         "root/doc1#span1",
         &["root/doc1#tok1", "root/doc1#tok2"],
         true,
     );
 
-    g.add_event(UpdateEvent::AddEdge {
-        source_node: "root/doc1#span1".to_string(),
-        target_node: "root/doc1".to_string(),
-        layer: "".to_string(),
-        component_type: "PartOf".to_string(),
-        component_name: "".to_string(),
-    })
-    .unwrap();
+    complete_graph_def
+        .add_event(UpdateEvent::AddEdge {
+            source_node: "root/doc1#span1".to_string(),
+            target_node: "root/doc1#text1".to_string(),
+            layer: ANNIS_NS.to_string(),
+            component_type: "PartOf".to_string(),
+            component_name: "".to_string(),
+        })
+        .unwrap();
 
     example_generator::make_span(
-        &mut g,
+        &mut complete_graph_def,
         "root/doc1#span2",
         &["root/doc1#tok3", "root/doc1#tok4", "root/doc1#tok5"],
         true,
     );
-    g.add_event(UpdateEvent::AddEdge {
-        source_node: "root/doc1#span2".to_string(),
-        target_node: "root/doc1".to_string(),
-        layer: "".to_string(),
-        component_type: "PartOf".to_string(),
-        component_name: "".to_string(),
-    })
-    .unwrap();
+    complete_graph_def
+        .add_event(UpdateEvent::AddEdge {
+            source_node: "root/doc1#span2".to_string(),
+            target_node: "root/doc1#text1".to_string(),
+            layer: ANNIS_NS.to_string(),
+            component_type: "PartOf".to_string(),
+            component_name: "".to_string(),
+        })
+        .unwrap();
 
     example_generator::make_span(
-        &mut g,
+        &mut complete_graph_def,
         "root/doc1#span3",
         &["root/doc1#tok5", "root/doc1#tok6", "root/doc1#tok7"],
         true,
     );
-    g.add_event(UpdateEvent::AddEdge {
-        source_node: "root/doc1#span3".to_string(),
-        target_node: "root/doc1".to_string(),
-        layer: "".to_string(),
-        component_type: "PartOf".to_string(),
-        component_name: "".to_string(),
-    })
-    .unwrap();
+    complete_graph_def
+        .add_event(UpdateEvent::AddEdge {
+            source_node: "root/doc1#span3".to_string(),
+            target_node: "root/doc1#text1".to_string(),
+            layer: ANNIS_NS.to_string(),
+            component_type: "PartOf".to_string(),
+            component_name: "".to_string(),
+        })
+        .unwrap();
 
     example_generator::make_span(
-        &mut g,
+        &mut complete_graph_def,
         "root/doc1#span4",
         &["root/doc1#tok9", "root/doc1#tok10"],
         true,
     );
-    g.add_event(UpdateEvent::AddEdge {
-        source_node: "root/doc1#span4".to_string(),
-        target_node: "root/doc1".to_string(),
-        layer: "".to_string(),
-        component_type: "PartOf".to_string(),
-        component_name: "".to_string(),
-    })
-    .unwrap();
+    complete_graph_def
+        .add_event(UpdateEvent::AddEdge {
+            source_node: "root/doc1#span4".to_string(),
+            target_node: "root/doc1#text1".to_string(),
+            layer: ANNIS_NS.to_string(),
+            component_type: "PartOf".to_string(),
+            component_name: "".to_string(),
+        })
+        .unwrap();
 
-    cs.apply_update("root", &mut g).unwrap();
+    cs.apply_update("root", &mut complete_graph_def).unwrap();
 
     // get the subgraph for a token ("complicated")
     // This should return the following token and their covering spans
@@ -265,6 +281,51 @@ fn subgraphs_simple() {
     assert_eq!(1, gs_cov.get_outgoing_edges(span1).count());
     assert_eq!(3, gs_cov.get_outgoing_edges(span2).count());
     assert_eq!(3, gs_cov.get_outgoing_edges(span3).count());
+
+    // Check that the corpus structure for the matched node is included
+
+    let corpus_nodes: graphannis_core::errors::Result<Vec<_>> = graph
+        .get_node_annos()
+        .exact_anno_search(Some(ANNIS_NS), "node_type", ValueSearch::Some("corpus"))
+        .collect();
+    let corpus_nodes = corpus_nodes.unwrap();
+    assert_eq!(2, corpus_nodes.len());
+    let ds_nodes: graphannis_core::errors::Result<Vec<_>> = graph
+        .get_node_annos()
+        .exact_anno_search(Some(ANNIS_NS), "node_type", ValueSearch::Some("datasource"))
+        .collect();
+    let ds_nodes = ds_nodes.unwrap();
+    assert_eq!(1, ds_nodes.len());
+
+    let text_id = graph.get_node_id_from_name("root/doc1#text1").unwrap();
+    assert_eq!(true, text_id.is_some());
+
+    let doc_id = graph.get_node_id_from_name("root/doc1").unwrap();
+    assert_eq!(true, doc_id.is_some());
+
+    let toplevel_id = graph.get_node_id_from_name("root").unwrap();
+    assert_eq!(true, toplevel_id.is_some());
+
+    let part_of_components = graph.get_all_components(Some(AnnotationComponentType::PartOf), None);
+    assert_eq!(1, part_of_components.len());
+    let gs_partof = graph.get_graphstorage(&part_of_components[0]).unwrap();
+
+    assert_eq!(
+        doc_id.unwrap(),
+        gs_partof
+            .get_outgoing_edges(text_id.unwrap())
+            .next()
+            .unwrap()
+            .unwrap()
+    );
+    assert_eq!(
+        toplevel_id.unwrap(),
+        gs_partof
+            .get_outgoing_edges(doc_id.unwrap())
+            .next()
+            .unwrap()
+            .unwrap()
+    );
 }
 
 #[test]
@@ -276,7 +337,7 @@ fn subgraph_with_segmentation() {
     // Add corpus structure
     example_generator::create_corpus_structure_simple(&mut g);
     // Use the default tokenization as minimal tokens
-    example_generator::create_tokens(&mut g, Some("root/doc1"));
+    example_generator::create_tokens(&mut g, Some("root/doc1"), Some("root/doc1#text1"));
 
     // Add first segmentation
     let seg_tokens = vec![
@@ -521,14 +582,14 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph, rhs_remove_annis_
     // Check all nodes and node annotations exist in both corpora
     let nodes1: Vec<String> = g1
         .get_node_annos()
-        .exact_anno_search(Some("annis"), "node_name", ValueSearch::Any)
+        .exact_anno_search(Some(ANNIS_NS), "node_name", ValueSearch::Any)
         .filter_map(|m| m.unwrap().extract_annotation(g1.get_node_annos()).unwrap())
         .map(|a| a.val.into())
         .sorted()
         .collect();
     let nodes2: Vec<String> = g2
         .get_node_annos()
-        .exact_anno_search(Some("annis"), "node_name", ValueSearch::Any)
+        .exact_anno_search(Some(ANNIS_NS), "node_name", ValueSearch::Any)
         .filter_map(|m| m.unwrap().extract_annotation(g1.get_node_annos()).unwrap())
         .map(|a| a.val.into())
         .sorted()
@@ -554,7 +615,7 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph, rhs_remove_annis_
         components2.retain(|c| {
             c.get_type() != AnnotationComponentType::Coverage
                 || !c.name.is_empty()
-                || c.layer != "annis"
+                || c.layer != ANNIS_NS
         });
     }
     components2.sort();
