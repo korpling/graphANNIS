@@ -13,7 +13,7 @@ use crate::update::{GraphUpdate, UpdateEvent};
 use crate::{AnnotationGraph, CorpusStorage};
 use graphannis_core::annostorage::{AnnotationStorage, ValueSearch};
 use graphannis_core::graph::{ANNIS_NS, NODE_NAME_KEY};
-use graphannis_core::types::Edge;
+use graphannis_core::types::{Component, Edge};
 use graphannis_core::{graph::DEFAULT_NS, types::NodeID};
 use itertools::Itertools;
 use malloc_size_of::MallocSizeOf;
@@ -127,11 +127,7 @@ fn apply_update_add_and_delete_nodes() {
     assert_eq!(0, edge_count);
 }
 
-#[test]
-fn subgraphs_simple() {
-    let tmp = tempfile::tempdir().unwrap();
-    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
-
+fn create_simple_graph(cs: &mut CorpusStorage) {
     let mut complete_graph_def = GraphUpdate::new();
     // Add corpus structure
     example_generator::create_corpus_structure_simple(&mut complete_graph_def);
@@ -209,6 +205,14 @@ fn subgraphs_simple() {
         .unwrap();
 
     cs.apply_update("root", &mut complete_graph_def).unwrap();
+}
+
+#[test]
+fn subgraphs_simple() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+    create_simple_graph(&mut cs);
 
     // get the subgraph for a token ("complicated")
     // This should return the following token and their covering spans
@@ -283,7 +287,6 @@ fn subgraphs_simple() {
     assert_eq!(3, gs_cov.get_outgoing_edges(span3).count());
 
     // Check that the corpus structure for the matched node is included
-
     let corpus_nodes: graphannis_core::errors::Result<Vec<_>> = graph
         .get_node_annos()
         .exact_anno_search(Some(ANNIS_NS), "node_type", ValueSearch::Some("corpus"))
@@ -326,6 +329,115 @@ fn subgraphs_simple() {
             .unwrap()
             .unwrap()
     );
+}
+
+#[test]
+fn subgraphs_non_overlapping_regions() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+    create_simple_graph(&mut cs);
+
+    // get the subgraph for a token ("example" and "it")
+    // This should return the following token and their covering spans
+    // this[tok1] example[tok2] more[tok3] ... than[tok5] it[tok6] appears[tok7]
+    let graph = cs
+        .subgraph(
+            "root",
+            vec!["root/doc1#tok2".to_string(), "root/doc1#tok6".to_string()],
+            1,
+            1,
+            None,
+        )
+        .unwrap();
+    let ordering_components =
+        graph.get_all_components(Some(AnnotationComponentType::Ordering), Some(""));
+    assert_eq!(1, ordering_components.len());
+    let gs_ordering = graph.get_graphstorage(&ordering_components[0]).unwrap();
+
+    // Check that all token exist and are connected
+    let t1_id = graph.get_node_id_from_name("root/doc1#tok1").unwrap();
+    assert_eq!(true, t1_id.is_some());
+    let t2_id = graph.get_node_id_from_name("root/doc1#tok2").unwrap();
+    assert_eq!(true, t2_id.is_some());
+    let t3_id = graph.get_node_id_from_name("root/doc1#tok3").unwrap();
+    assert_eq!(true, t3_id.is_some());
+
+    let t5_id = graph.get_node_id_from_name("root/doc1#tok5").unwrap();
+    assert_eq!(true, t1_id.is_some());
+    let t6_id = graph.get_node_id_from_name("root/doc1#tok6").unwrap();
+    assert_eq!(true, t2_id.is_some());
+    let t7_id = graph.get_node_id_from_name("root/doc1#tok7").unwrap();
+    assert_eq!(true, t3_id.is_some());
+
+    assert_eq!(
+        true,
+        gs_ordering
+            .is_connected(
+                t1_id.unwrap(),
+                t2_id.unwrap(),
+                1,
+                std::ops::Bound::Included(1)
+            )
+            .unwrap()
+    );
+    assert_eq!(
+        true,
+        gs_ordering
+            .is_connected(
+                t2_id.unwrap(),
+                t3_id.unwrap(),
+                1,
+                std::ops::Bound::Included(1)
+            )
+            .unwrap()
+    );
+    assert_eq!(
+        false,
+        gs_ordering
+            .is_connected(
+                t3_id.unwrap(),
+                t5_id.unwrap(),
+                1,
+                std::ops::Bound::Included(1)
+            )
+            .unwrap()
+    );
+    assert_eq!(
+        true,
+        gs_ordering
+            .is_connected(
+                t5_id.unwrap(),
+                t6_id.unwrap(),
+                1,
+                std::ops::Bound::Included(1)
+            )
+            .unwrap()
+    );
+    assert_eq!(
+        true,
+        gs_ordering
+            .is_connected(
+                t6_id.unwrap(),
+                t7_id.unwrap(),
+                1,
+                std::ops::Bound::Included(1)
+            )
+            .unwrap()
+    );
+
+    // The last and first node of the context region should be connected by a special ordering edge
+    let gs_ds_ordering = graph
+        .get_graphstorage(&Component::new(
+            AnnotationComponentType::Ordering,
+            ANNIS_NS.into(),
+            "datasource-gap".into(),
+        ))
+        .unwrap();
+    let out: graphannis_core::errors::Result<Vec<_>> =
+        gs_ds_ordering.get_outgoing_edges(t3_id.unwrap()).collect();
+    let out = out.unwrap();
+    assert_eq!(vec![t5_id.unwrap()], out);
 }
 
 #[test]

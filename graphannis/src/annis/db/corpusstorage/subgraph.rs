@@ -407,6 +407,20 @@ where
 
     let mut result = AnnotationGraph::new(false)?;
 
+    let gs_orig_ordering = orig_graph.get_graphstorage(&Component::new(
+        AnnotationComponentType::Ordering,
+        ANNIS_NS.into(),
+        "".into(),
+    ));
+    let ds_ordering_component = Component::new(
+        AnnotationComponentType::Ordering,
+        ANNIS_NS.into(),
+        "datasource-gap".into(),
+    );
+    let token_helper = TokenHelper::new(&orig_graph)?;
+
+    let mut previous_token = None;
+
     // create the subgraph description
     for r in it {
         let r = r?;
@@ -417,6 +431,26 @@ where
                 if !match_result.contains(m) {
                     match_result.insert(m.clone());
                     trace!("subgraph query extracted node {:?}", m.node);
+
+                    if token_helper.is_token(m.node)? {
+                        if let (Some(gs_ordering), Some(previous_node)) =
+                            (&gs_orig_ordering, previous_token)
+                        {
+                            if let Some(distance) = gs_ordering.distance(previous_node, m.node)? {
+                                if distance > 1 {
+                                    let gs_result_ds_ordering_ =
+                                        result.get_or_create_writable(&ds_ordering_component)?;
+
+                                    gs_result_ds_ordering_.add_edge(Edge {
+                                        source: previous_node,
+                                        target: m.node,
+                                    })?;
+                                }
+                            }
+                        }
+                        previous_token = Some(m.node);
+                    }
+
                     create_subgraph_node(m.node, &mut result, orig_graph)?;
                 }
             }

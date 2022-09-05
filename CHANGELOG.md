@@ -14,11 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   prefixes.
 - Fix compilation issues in Rust projects that use the 2021 Rust edition.
   https://github.com/lalrpop/lalrpop/issues/650
-- Faster subgraph generation for subgraph queries with context. The previous
+- Faster subgraph generation for `subgraph` queries with context. The previous
   implementation used an AQL query that got quite complex over time and was
   difficult to execute. The new implemenation directly implements the logic
   using iterators. It also sorts the nodes in the iterator by the order of the
   node in the text.
+
+### Added
+
+- Add edges to the special `Ordering/annis/datasource-gap` between the last and
+  first token of context regions in `subgraph` when the returned context regions
+  do not overlap. This allows sorting the context regions that belong to the
+  same data source but are not connected by ordinary `Ordering/annis/` edges.
   
 
 ## [2.2.2] - 2022-07-26
