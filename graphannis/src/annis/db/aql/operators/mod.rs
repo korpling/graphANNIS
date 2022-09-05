@@ -4,7 +4,6 @@ use std::fmt;
 pub enum RangeSpec {
     Bound { min_dist: usize, max_dist: usize },
     Unbound,
-    UnboundFromZero,
 }
 
 impl RangeSpec {
@@ -12,7 +11,6 @@ impl RangeSpec {
         match &self {
             RangeSpec::Bound { max_dist, .. } => std::ops::Bound::Included(*max_dist),
             RangeSpec::Unbound => std::ops::Bound::Unbounded,
-            RangeSpec::UnboundFromZero => std::ops::Bound::Unbounded,
         }
     }
 
@@ -20,7 +18,6 @@ impl RangeSpec {
         match &self {
             RangeSpec::Bound { min_dist, .. } => *min_dist,
             RangeSpec::Unbound => 1,
-            RangeSpec::UnboundFromZero => 0,
         }
     }
 }
@@ -36,7 +33,6 @@ impl fmt::Display for RangeSpec {
                 }
             }
             RangeSpec::Unbound => write!(f, "*"),
-            RangeSpec::UnboundFromZero => write!(f, "0,*"),
         }
     }
 }
