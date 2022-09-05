@@ -1,7 +1,9 @@
 use std::cmp::Ordering;
 use std::collections::{BTreeSet, HashSet};
+use std::sync::Arc;
 
 use graphannis_core::errors::GraphAnnisCoreError;
+use graphannis_core::graph::storage::GraphStorage;
 use graphannis_core::graph::{ANNIS_NS, DEFAULT_NS, NODE_NAME_KEY};
 use graphannis_core::{
     annostorage::{Match, MatchGroup},
@@ -22,6 +24,7 @@ struct TokenIterator<'a> {
     current_token: Option<NodeID>,
     covering_nodes: Box<dyn Iterator<Item = NodeID>>,
     token_helper: TokenHelper<'a>,
+    ordering_edges: Arc<dyn GraphStorage>,
 }
 
 impl<'a> TokenIterator<'a> {
@@ -60,8 +63,7 @@ impl<'a> Iterator for TokenIterator<'a> {
 
             // Get the next token in the chain
             let out: CoreResult<Vec<NodeID>> = self
-                .token_helper
-                .get_gs_ordering_ref()
+                .ordering_edges
                 .get_outgoing_edges(old_current_token)
                 .collect();
             match out {
@@ -86,6 +88,7 @@ impl<'a> Iterator for TokenIterator<'a> {
 fn get_left_token_with_offset(
     graph: &Graph<AnnotationComponentType>,
     token_helper: &TokenHelper,
+    ordering_edges: &dyn GraphStorage,
     token: NodeID,
     ctx_left: usize,
     segmentation: Option<String>,
@@ -132,8 +135,7 @@ fn get_left_token_with_offset(
             .unwrap_or(token);
         Ok(result)
     } else {
-        let result = token_helper
-            .get_gs_ordering()
+        let result = ordering_edges
             .find_connected_inverse(token, ctx_left, std::ops::Bound::Included(ctx_left))
             .next()
             .unwrap_or(Ok(token))?;
@@ -144,6 +146,7 @@ fn get_left_token_with_offset(
 fn get_right_token_with_offset(
     graph: &Graph<AnnotationComponentType>,
     token_helper: &TokenHelper,
+    ordering_edges: &dyn GraphStorage,
     token: NodeID,
     ctx_right: usize,
     segmentation: Option<String>,
@@ -189,8 +192,7 @@ fn get_right_token_with_offset(
             .unwrap_or(token);
         Ok(result)
     } else {
-        let result = token_helper
-            .get_gs_ordering()
+        let result = ordering_edges
             .find_connected(token, ctx_right, std::ops::Bound::Included(ctx_right))
             .next()
             .unwrap_or(Ok(token))?;
@@ -203,6 +205,7 @@ struct TokenRegion<'a> {
     start_token: NodeID,
     end_token: NodeID,
     token_helper: TokenHelper<'a>,
+    ordering_edges: Arc<dyn GraphStorage>,
 }
 
 impl<'a> TokenRegion<'a> {
@@ -214,6 +217,15 @@ impl<'a> TokenRegion<'a> {
         segmentation: Option<String>,
     ) -> Result<TokenRegion<'a>> {
         let token_helper = TokenHelper::new(graph)?;
+        let ordering_edges = graph
+            .get_graphstorage(&Component::new(
+                AnnotationComponentType::Ordering,
+                ANNIS_NS.into(),
+                "".into(),
+            ))
+            .ok_or(GraphAnnisCoreError::MissingComponent(
+                "Ordering/annis/".into(),
+            ))?;
         let (left_without_context, right_without_context) =
             token_helper.left_right_token_for(node_id)?;
         let left_without_context =
@@ -225,6 +237,7 @@ impl<'a> TokenRegion<'a> {
         let start_token = get_left_token_with_offset(
             graph,
             &token_helper,
+            ordering_edges.as_ref(),
             left_without_context,
             ctx_left,
             segmentation.clone(),
@@ -232,6 +245,7 @@ impl<'a> TokenRegion<'a> {
         let end_token = get_right_token_with_offset(
             graph,
             &token_helper,
+            ordering_edges.as_ref(),
             right_without_context,
             ctx_right,
             segmentation,
@@ -240,6 +254,7 @@ impl<'a> TokenRegion<'a> {
             start_token,
             end_token,
             token_helper,
+            ordering_edges,
         })
     }
 
@@ -249,6 +264,7 @@ impl<'a> TokenRegion<'a> {
             end_token: self.end_token,
             token_helper: self.token_helper,
             covering_nodes: Box::new(std::iter::empty()),
+            ordering_edges: self.ordering_edges,
         };
         result.calculate_covering_nodes()?;
         Ok(result)

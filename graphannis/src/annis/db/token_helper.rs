@@ -22,7 +22,6 @@ pub struct TokenHelper<'a> {
     left_edges: Arc<dyn GraphStorage>,
     right_edges: Arc<dyn GraphStorage>,
     cov_edges: Vec<Arc<dyn GraphStorage>>,
-    ordering_edges: Arc<dyn GraphStorage>,
 }
 
 lazy_static! {
@@ -84,16 +83,11 @@ impl<'a> TokenHelper<'a> {
             .get_graphstorage(&COMPONENT_RIGHT)
             .ok_or_else(|| GraphAnnisCoreError::MissingComponent(COMPONENT_RIGHT.to_string()))?;
 
-        let ordering_edges = graph
-            .get_graphstorage(&COMPONENT_ORDERING)
-            .ok_or_else(|| GraphAnnisCoreError::MissingComponent(COMPONENT_ORDERING.to_string()))?;
-
         Ok(TokenHelper {
             node_annos: graph.get_node_annos(),
             left_edges,
             right_edges,
             cov_edges,
-            ordering_edges,
         })
     }
     pub fn get_gs_coverage(&self) -> &Vec<Arc<dyn GraphStorage>> {
@@ -106,14 +100,6 @@ impl<'a> TokenHelper<'a> {
 
     pub fn get_gs_right_token(&self) -> &dyn GraphStorage {
         self.right_edges.as_ref()
-    }
-
-    pub fn get_gs_ordering_ref(&'a self) -> &'a dyn GraphStorage {
-        self.ordering_edges.as_ref()
-    }
-
-    pub fn get_gs_ordering(&self) -> Arc<dyn GraphStorage> {
-        self.ordering_edges.clone()
     }
 
     pub fn is_token(&self, id: NodeID) -> Result<bool> {
