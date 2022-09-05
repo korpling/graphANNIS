@@ -301,7 +301,8 @@ fn new_overlapped_nodes_iterator<'a>(
     let gs_ordering = graph.get_graphstorage(&component_ordering).ok_or(
         GraphAnnisCoreError::MissingComponent(component_ordering.to_string()),
     )?;
-    // Sort regions by position in the text
+    // Sort regions by position in the text, so the iterator of nodes
+    // keeps the order of the nodes as given by the text.
     quicksort::sort(&mut regions, move |a, b| {
         if a.start_token == b.start_token && a.end_token == b.end_token {
             Ok(Ordering::Equal)
@@ -323,8 +324,6 @@ fn new_overlapped_nodes_iterator<'a>(
             Ok((a.start_token, a.end_token).cmp(&(b.start_token, b.end_token)))
         }
     })?;
-
-    // TODO: Find overlapped regions and add a special gap tokens when neighbours don't overlap
 
     // Create and chain all iterators of the vector
     let mut iterators = Vec::new();
