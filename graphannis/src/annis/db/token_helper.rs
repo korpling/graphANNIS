@@ -39,13 +39,6 @@ lazy_static! {
             "".into(),
         )
     };
-    static ref COMPONENT_ORDERING: Component<AnnotationComponentType> = {
-        Component::new(
-            AnnotationComponentType::Ordering,
-            ANNIS_NS.into(),
-            "".into(),
-        )
-    };
 }
 
 pub fn necessary_components(db: &AnnotationGraph) -> HashSet<Component<AnnotationComponentType>> {
