@@ -109,7 +109,10 @@ fn get_left_token_with_offset(
         for gs_cov in token_helper.get_gs_coverage() {
             for n in gs_cov.get_ingoing_edges(token) {
                 let n = n?;
-                if let Some(first_incoming_edge) = gs_ordering.get_ingoing_edges(n).next() {
+                if let Some(first_outgoing_edge) = gs_ordering.get_outgoing_edges(n).next() {
+                    first_outgoing_edge?;
+                    covering_segmentation_nodes.insert(n);
+                } else if let Some(first_incoming_edge) = gs_ordering.get_ingoing_edges(n).next() {
                     first_incoming_edge?;
                     covering_segmentation_nodes.insert(n);
                 }
