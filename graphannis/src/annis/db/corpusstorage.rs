@@ -2001,7 +2001,7 @@ impl CorpusStorage {
         segmentation: Option<String>,
     ) -> Result<AnnotationGraph> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
-        let lock = db_entry.read().unwrap();
+        let lock = db_entry.read()?;
         let graph = get_read_or_error(&lock)?;
 
         let it = new_subgraph_iterator(graph, node_ids, ctx_left, ctx_right, segmentation)?;
