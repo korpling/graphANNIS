@@ -1996,10 +1996,11 @@ impl CorpusStorage {
     /// ## Changes to the subgraph in comparision to the original graph
     ///
     /// The context definition can cause gaps in the returned subgraph, e.g. if
-    /// the given node ids are too far apart for their context to overlap. Since
+    /// the given node IDs are too far apart for their context to overlap. Since
     /// only edges for the nodes of the contexts are included, it is impossible
-    /// use the original Ordering edges to sort the results alone, since there will be no
-    /// connection between the tokens of the non-overlapping context regions.
+    /// use the original ordering edges to sort the results alone, since there
+    /// will be no connection between the tokens of the non-overlapping context
+    /// regions.
     ///
     /// To allow sorting the non-overlapping context regions by their order in
     /// the datasource, an edge in the special `Ordering/annis/datasource-gap`
