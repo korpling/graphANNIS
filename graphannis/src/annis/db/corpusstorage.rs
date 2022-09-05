@@ -1993,7 +1993,7 @@ impl CorpusStorage {
     /// - `ctx_left` and `ctx_right` - Left and right context in token distance to be included in the subgraph.
     /// - `segmentation` - The name of the segmentation which should be used to as base for the context. Use `None` to define the context in the default token layer.
     ///
-    /// ## Changes to the subgraph in comparision to the original graph
+    /// ## Handling of gaps
     ///
     /// The context definition can cause gaps in the returned subgraph, e.g. if
     /// the given node IDs are too far apart for their context to overlap. Since
