@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   nested loop joins and long execution times.
 - Better estimation of result sizes for regular expressions with multiple
   prefixes.
+- Faster subgraph generation for subgraph queries with context. The previous
+  implementation used an AQL query that got quite complex over time and was
+  difficult to execute. The new implemenation directly implements the logic
+  using iterators. It also sorts the nodes in the iterator by the order of the
+  node in the text.
+  
 
 ## [2.2.2] - 2022-07-26
 
