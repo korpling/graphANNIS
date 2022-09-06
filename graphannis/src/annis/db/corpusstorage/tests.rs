@@ -350,10 +350,6 @@ fn subgraphs_non_overlapping_regions() {
             None,
         )
         .unwrap();
-    let ordering_components =
-        graph.get_all_components(Some(AnnotationComponentType::Ordering), Some(""));
-    assert_eq!(1, ordering_components.len());
-    let gs_ordering = graph.get_graphstorage(&ordering_components[0]).unwrap();
 
     // Check that all token exist and are connected
     let t1_id = graph.get_node_id_from_name("root/doc1#tok1").unwrap();
@@ -364,11 +360,16 @@ fn subgraphs_non_overlapping_regions() {
     assert_eq!(true, t3_id.is_some());
 
     let t5_id = graph.get_node_id_from_name("root/doc1#tok5").unwrap();
-    assert_eq!(true, t1_id.is_some());
+    assert_eq!(true, t5_id.is_some());
     let t6_id = graph.get_node_id_from_name("root/doc1#tok6").unwrap();
-    assert_eq!(true, t2_id.is_some());
+    assert_eq!(true, t6_id.is_some());
     let t7_id = graph.get_node_id_from_name("root/doc1#tok7").unwrap();
-    assert_eq!(true, t3_id.is_some());
+    assert_eq!(true, t7_id.is_some());
+
+    let ordering_components =
+        graph.get_all_components(Some(AnnotationComponentType::Ordering), Some(""));
+    assert_eq!(1, ordering_components.len());
+    let gs_ordering = graph.get_graphstorage(&ordering_components[0]).unwrap();
 
     assert_eq!(
         true,

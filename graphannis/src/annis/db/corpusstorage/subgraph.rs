@@ -126,7 +126,7 @@ fn get_left_token_with_offset(
             .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
         // The context might be larger than the actual document, try to get the
         // largest possible context
-        for ctx in (0..ctx_left).rev() {
+        for ctx in (0..=ctx_left).rev() {
             if let Some(left_segmentation_node) = gs_ordering
                 .find_connected_inverse(
                     first_segmentation_node,
@@ -145,7 +145,7 @@ fn get_left_token_with_offset(
     } else {
         // The context might be larger than the actual document, try to get the
         // largest possible context
-        for ctx in (0..ctx_left).rev() {
+        for ctx in (0..=ctx_left).rev() {
             if let Some(result) = ordering_edges
                 .find_connected_inverse(token, ctx, std::ops::Bound::Included(ctx))
                 .next()
@@ -197,7 +197,7 @@ fn get_right_token_with_offset(
 
         // The context might be larger than the actual document, try to get the
         // largest possible context
-        for ctx in (0..ctx_right).rev() {
+        for ctx in (0..=ctx_right).rev() {
             if let Some(right_segmentation_node) = gs_ordering
                 .find_connected(first_segmentation_node, ctx, std::ops::Bound::Included(ctx))
                 .next()
@@ -212,7 +212,7 @@ fn get_right_token_with_offset(
     } else {
         // The context might be larger than the actual document, try to get the
         // largest possible context
-        for ctx in (0..ctx_right).rev() {
+        for ctx in (0..=ctx_right).rev() {
             if let Some(result) = ordering_edges
                 .find_connected(token, ctx, std::ops::Bound::Included(ctx))
                 .next()
