@@ -7,7 +7,7 @@ license = "Apache-2.0"
 name = "graphannis-cli"
 readme = "crate-info.md"
 repository = "https://github.com/korpling/graphANNIS"
-version = "2.2.2"
+version = "2.3.0"
 
 [dependencies]
 anyhow = "1"
