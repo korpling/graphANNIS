@@ -110,3 +110,108 @@ fn reorder_and_negation() {
     let result = cs.count(q);
     assert_eq!(true, result.is_ok());
 }
+
+#[ignore]
+#[test]
+fn find_order() {
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+
+    // This is defacto a token search, but not presorted
+    let q = SearchQuery {
+        corpus_names: &["GUM"],
+        query: "pos",
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+    let result = cs
+        .find(
+            q.clone(),
+            0,
+            Some(5),
+            graphannis::corpusstorage::ResultOrder::Normal,
+        )
+        .unwrap();
+
+    assert_eq!(
+        vec![
+            "GUM::pos::GUM/GUM_interview_ants#tok_1",
+            "GUM::pos::GUM/GUM_interview_ants#tok_2",
+            "GUM::pos::GUM/GUM_interview_ants#tok_3",
+            "GUM::pos::GUM/GUM_interview_ants#tok_4",
+            "GUM::pos::GUM/GUM_interview_ants#tok_5",
+        ],
+        result
+    );
+
+    let result = cs
+        .find(
+            q,
+            0,
+            Some(5),
+            graphannis::corpusstorage::ResultOrder::Inverted,
+        )
+        .unwrap();
+
+    assert_eq!(
+        vec![
+            "GUM::pos::GUM/GUM_whow_skittles#tok_954",
+            "GUM::pos::GUM/GUM_whow_skittles#tok_953",
+            "GUM::pos::GUM/GUM_whow_skittles#tok_952",
+            "GUM::pos::GUM/GUM_whow_skittles#tok_951",
+            "GUM::pos::GUM/GUM_whow_skittles#tok_950",
+        ],
+        result
+    );
+}
+
+#[ignore]
+#[test]
+fn find_order_presorted() {
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+
+    let q = SearchQuery {
+        corpus_names: &["GUM"],
+        query: "tok",
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+    let result = cs
+        .find(
+            q.clone(),
+            0,
+            Some(5),
+            graphannis::corpusstorage::ResultOrder::Normal,
+        )
+        .unwrap();
+
+    assert_eq!(
+        vec![
+            "GUM/GUM_interview_ants#tok_1",
+            "GUM/GUM_interview_ants#tok_2",
+            "GUM/GUM_interview_ants#tok_3",
+            "GUM/GUM_interview_ants#tok_4",
+            "GUM/GUM_interview_ants#tok_5",
+        ],
+        result
+    );
+
+    let result = cs
+        .find(
+            q,
+            0,
+            Some(5),
+            graphannis::corpusstorage::ResultOrder::Inverted,
+        )
+        .unwrap();
+
+    assert_eq!(
+        vec![
+            "GUM/GUM_whow_skittles#tok_954",
+            "GUM/GUM_whow_skittles#tok_953",
+            "GUM/GUM_whow_skittles#tok_952",
+            "GUM/GUM_whow_skittles#tok_951",
+            "GUM/GUM_whow_skittles#tok_950",
+        ],
+        result
+    );
+}
