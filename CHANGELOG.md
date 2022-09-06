@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed wrong result order for non-token searches.
 - Estimation for negated regex was extremely off when the regex could possibly
   match all values. This caused problematic query plans including those with
   nested loop joins and long execution times.

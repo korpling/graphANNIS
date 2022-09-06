@@ -188,7 +188,7 @@ pub fn compare_match_by_text_pos(
                     result
                 };
 
-                let m2_lefttok = if let Some(lefttok) = cache.left_token.get(&m1.node).copied() {
+                let m2_lefttok = if let Some(lefttok) = cache.left_token.get(&m2.node).copied() {
                     lefttok.clone()
                 } else {
                     let result = token_helper.left_token_for(m2.node)?;
