@@ -124,26 +124,39 @@ fn get_left_token_with_offset(
             .into_iter()
             .next()
             .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
-        let left_segmentation_node = gs_ordering
-            .find_connected_inverse(
-                first_segmentation_node,
-                ctx_left,
-                std::ops::Bound::Included(ctx_left),
-            )
-            .next()
-            .unwrap_or(Ok(first_segmentation_node))?;
-        // Use the left-most token of this node as start of the context
-        let result = token_helper
-            .left_token_for(left_segmentation_node)?
-            .unwrap_or(token);
-        Ok(result)
+        // The context might be larger than the actual document, try to get the
+        // largest possible context
+        for ctx in (0..ctx_left).rev() {
+            if let Some(left_segmentation_node) = gs_ordering
+                .find_connected_inverse(
+                    first_segmentation_node,
+                    ctx,
+                    std::ops::Bound::Included(ctx),
+                )
+                .next()
+            {
+                // Use the left-most token of this node as start of the context
+                let result = token_helper
+                    .left_token_for(left_segmentation_node?)?
+                    .unwrap_or(token);
+                return Ok(result);
+            }
+        }
     } else {
-        let result = ordering_edges
-            .find_connected_inverse(token, ctx_left, std::ops::Bound::Included(ctx_left))
-            .next()
-            .unwrap_or(Ok(token))?;
-        Ok(result)
+        // The context might be larger than the actual document, try to get the
+        // largest possible context
+        for ctx in (0..ctx_left).rev() {
+            if let Some(result) = ordering_edges
+                .find_connected_inverse(token, ctx, std::ops::Bound::Included(ctx))
+                .next()
+            {
+                return Ok(result?);
+            }
+        }
     }
+    // Fallback to the token itself
+
+    Ok(token)
 }
 
 fn get_right_token_with_offset(
@@ -181,26 +194,36 @@ fn get_right_token_with_offset(
             .into_iter()
             .next()
             .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
-        let right_segmentation_node = gs_ordering
-            .find_connected(
-                first_segmentation_node,
-                ctx_right,
-                std::ops::Bound::Included(ctx_right),
-            )
-            .next()
-            .unwrap_or(Ok(first_segmentation_node))?;
-        // Use the right-most token of this node as end of the context
-        let result = token_helper
-            .right_token_for(right_segmentation_node)?
-            .unwrap_or(token);
-        Ok(result)
+
+        // The context might be larger than the actual document, try to get the
+        // largest possible context
+        for ctx in (0..ctx_right).rev() {
+            if let Some(right_segmentation_node) = gs_ordering
+                .find_connected(first_segmentation_node, ctx, std::ops::Bound::Included(ctx))
+                .next()
+            {
+                // Use the right-most token of this node as end of the context
+                let result = token_helper
+                    .right_token_for(right_segmentation_node?)?
+                    .unwrap_or(token);
+                return Ok(result);
+            }
+        }
     } else {
-        let result = ordering_edges
-            .find_connected(token, ctx_right, std::ops::Bound::Included(ctx_right))
-            .next()
-            .unwrap_or(Ok(token))?;
-        Ok(result)
+        // The context might be larger than the actual document, try to get the
+        // largest possible context
+        for ctx in (0..ctx_right).rev() {
+            if let Some(result) = ordering_edges
+                .find_connected(token, ctx, std::ops::Bound::Included(ctx))
+                .next()
+            {
+                return Ok(result?);
+            }
+        }
     }
+
+    // Fallback to the token itself
+    Ok(token)
 }
 
 #[derive(Clone)]
@@ -290,8 +313,15 @@ fn new_overlapped_nodes_iterator<'a>(
             ctx_left,
             ctx_right,
             segmentation.clone(),
-        )?;
-        regions.push(token_region);
+        );
+        match token_region {
+            Ok(token_region) => regions.push(token_region),
+            Err(e) => match e {
+                // Ignore match nodes without covered token in this itertor
+                GraphAnnisError::NoCoveredTokenForSubgraph => {}
+                _ => return Err(e),
+            },
+        };
     }
     let component_ordering = Component::new(
         AnnotationComponentType::Ordering,
