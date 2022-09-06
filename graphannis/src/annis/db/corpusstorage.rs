@@ -30,7 +30,7 @@ use graphannis_core::{
     graph::{
         storage::GraphStatistic, update::GraphUpdate, ANNIS_NS, NODE_NAME, NODE_NAME_KEY, NODE_TYPE,
     },
-    types::{AnnoKey, Annotation, Component, Edge, NodeID},
+    types::{AnnoKey, Annotation, Component, NodeID},
     util::memory_estimation,
 };
 use itertools::Itertools;
@@ -38,7 +38,7 @@ use linked_hash_map::LinkedHashMap;
 use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, CONTROLS};
 use rand::Rng;
 use smartstring::alias::String as SmartString;
-use std::collections::{BTreeSet, HashSet};
+use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -62,7 +62,11 @@ use std::{
 use aql::model::AnnotationComponentType;
 use db::AnnotationStorage;
 
+use self::subgraph::new_subgraph_iterator;
+
 use super::sort_matches::SortCache;
+
+mod subgraph;
 
 #[cfg(test)]
 mod tests;
@@ -409,147 +413,6 @@ fn init_locale() {
         let locale = CString::new("").unwrap_or_default();
         libc::setlocale(libc::LC_COLLATE, locale.as_ptr());
     }
-}
-
-fn add_subgraph_precedence(
-    query: &mut Disjunction,
-    ctx: usize,
-    m: &NodeSearchSpec,
-    left: bool,
-) -> Result<()> {
-    // nodes overlapping tokens left/right of match (using reflexive overlap to include the token itself):
-    // node _o_ tok .0,ctx m
-    // m .0,ctx tok _o_ node
-    {
-        let mut q = Conjunction::new();
-
-        let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-        let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
-        let m_idx = q.add_node(m.clone(), None);
-        q.add_operator(
-            Arc::new(operators::OverlapSpec { reflexive: true }),
-            &node_idx,
-            &tok_idx,
-            true,
-        )?;
-        q.add_operator(
-            Arc::new(operators::PrecedenceSpec {
-                segmentation: None,
-                dist: RangeSpec::Bound {
-                    min_dist: 0,
-                    max_dist: ctx,
-                },
-            }),
-            if left { &tok_idx } else { &m_idx },
-            if left { &m_idx } else { &tok_idx },
-            true,
-        )?;
-        query.alternatives.push(q);
-    }
-
-    Ok(())
-}
-
-fn add_subgraph_precedence_with_segmentation(
-    query: &mut Disjunction,
-    ctx: usize,
-    segmentation: &str,
-    match_spec: &NodeSearchSpec,
-    left_ctx: bool,
-) -> Result<()> {
-    let mut q = Conjunction::new();
-
-    // Add the node that defines the result first
-    let result_node = q.add_node(NodeSearchSpec::AnyNode, None);
-
-    // Find any node that overlaps the matched node (including itself)
-    // This is needed, since the following precedence query only works on nodes
-    // with this segmentation anno (and the match can be any node)
-    // When the context defines the left side, this is the end of the range,
-    // otherwise the start
-    // #m _o_ #start_seg / #m _o_ #end_seg
-    let m = q.add_node(match_spec.clone(), Some("m"));
-    let start_seg = q.add_node(NodeSearchSpec::AnyNode, Some("start_seg"));
-    let end_seg = q.add_node(NodeSearchSpec::AnyNode, Some("end_seg"));
-    if left_ctx {
-        q.add_operator(
-            Arc::new(operators::OverlapSpec { reflexive: true }),
-            &m,
-            &end_seg,
-            false,
-        )?;
-    } else {
-        q.add_operator(
-            Arc::new(operators::OverlapSpec { reflexive: true }),
-            &m,
-            &start_seg,
-            false,
-        )?;
-    }
-    // Define that the previously defined segmentation nodes have the specified
-    // distance
-    // #start_seg .segmentation,0,ctx #end_seg
-    q.add_operator(
-        Arc::new(operators::PrecedenceSpec {
-            segmentation: Some(segmentation.to_string()),
-            dist: RangeSpec::Bound {
-                min_dist: 0,
-                max_dist: ctx,
-            },
-        }),
-        &start_seg,
-        &end_seg,
-        false,
-    )?;
-
-    // Get the token left/right aligned to the end_seg/start_seg
-    let start_t = q.add_node(NodeSearchSpec::AnyToken, Some("start_t"));
-    let end_t = q.add_node(NodeSearchSpec::AnyToken, Some("end_t"));
-    q.add_operator(
-        Arc::new(operators::LeftAlignmentSpec),
-        &start_seg,
-        &start_t,
-        false,
-    )?;
-    q.add_operator(
-        Arc::new(operators::RightAlignmentSpec),
-        &end_seg,
-        &end_t,
-        false,
-    )?;
-
-    // Get all token in that range (including the start/end token themselves)
-    let t = q.add_node(NodeSearchSpec::AnyToken, Some("t"));
-    // #start_t .* #t & #t .* end_t
-    q.add_operator(
-        Arc::new(operators::PrecedenceSpec {
-            segmentation: None,
-            dist: RangeSpec::UnboundFromZero,
-        }),
-        &start_t,
-        &t,
-        false,
-    )?;
-    q.add_operator(
-        Arc::new(operators::PrecedenceSpec {
-            segmentation: None,
-            dist: RangeSpec::UnboundFromZero,
-        }),
-        &t,
-        &end_t,
-        false,
-    )?;
-
-    // Get all the nodes that overlap the token in that range
-    q.add_operator(
-        Arc::new(operators::OverlapSpec { reflexive: true }),
-        &t,
-        &result_node,
-        false,
-    )?;
-    query.alternatives.push(q);
-
-    Ok(())
 }
 
 /// Creates a new vector with the capacity to hold the expected number of items, but make sure the
@@ -2129,6 +1992,21 @@ impl CorpusStorage {
     /// - `node_ids` - A set of node annotation identifiers describing the subgraph.
     /// - `ctx_left` and `ctx_right` - Left and right context in token distance to be included in the subgraph.
     /// - `segmentation` - The name of the segmentation which should be used to as base for the context. Use `None` to define the context in the default token layer.
+    ///
+    /// ## Handling of gaps
+    ///
+    /// The context definition can cause gaps in the returned subgraph, e.g. if
+    /// the given node IDs are too far apart for their context to overlap. Since
+    /// only edges for the nodes of the contexts are included, it is impossible
+    /// use the original ordering edges to sort the results alone, since there
+    /// will be no connection between the tokens of the non-overlapping context
+    /// regions.
+    ///
+    /// To allow sorting the non-overlapping context regions by their order in
+    /// the datasource, an edge in the special `Ordering/annis/datasource-gap`
+    /// component is added between the last token of each context region and the
+    /// first token of the next one.
+
     pub fn subgraph(
         &self,
         corpus_name: &str,
@@ -2138,95 +2016,13 @@ impl CorpusStorage {
         segmentation: Option<String>,
     ) -> Result<AnnotationGraph> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
+        let lock = db_entry.read()?;
+        let graph = get_read_or_error(&lock)?;
 
-        let mut query = Disjunction {
-            alternatives: vec![],
-        };
+        let it = new_subgraph_iterator(graph, node_ids, ctx_left, ctx_right, segmentation)?;
 
-        // find all nodes covering the same token
-        for source_node_id in node_ids {
-            // remove the obsolete "salt:/" prefix
-            let source_node_id: &str = source_node_id
-                .strip_prefix("salt:/")
-                .unwrap_or(&source_node_id);
-
-            let m = NodeSearchSpec::ExactValue {
-                ns: Some(ANNIS_NS.to_string()),
-                name: NODE_NAME.to_string(),
-                val: Some(source_node_id.to_string()),
-                is_meta: false,
-            };
-
-            // nodes overlapping the match: m _o_ node
-            {
-                let mut q = Conjunction::new();
-                let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
-                let m_idx = q.add_node(m.clone(), None);
-                q.add_operator(
-                    Arc::new(operators::OverlapSpec { reflexive: true }),
-                    &m_idx,
-                    &node_idx,
-                    false,
-                )?;
-                query.alternatives.push(q);
-            }
-
-            // token left/right and their overlapped nodes
-            if let Some(ref segmentation) = segmentation {
-                add_subgraph_precedence_with_segmentation(
-                    &mut query,
-                    ctx_left,
-                    segmentation,
-                    &m,
-                    true,
-                )?;
-                add_subgraph_precedence_with_segmentation(
-                    &mut query,
-                    ctx_right,
-                    segmentation,
-                    &m,
-                    false,
-                )?;
-            } else {
-                add_subgraph_precedence(&mut query, ctx_left, &m, true)?;
-                add_subgraph_precedence(&mut query, ctx_right, &m, false)?;
-            }
-
-            // add the textual data sources (which are not part of the corpus graph)
-            {
-                let mut q = Conjunction::new();
-                let datasource_idx = q.add_node(
-                    NodeSearchSpec::ExactValue {
-                        ns: Some(ANNIS_NS.to_string()),
-                        name: NODE_TYPE.to_string(),
-                        val: Some("datasource".to_string()),
-                        is_meta: false,
-                    },
-                    None,
-                );
-                let m_idx = q.add_node(m.clone(), None);
-                q.add_operator(
-                    Arc::new(operators::PartOfSubCorpusSpec {
-                        dist: RangeSpec::Bound {
-                            min_dist: 1,
-                            max_dist: 1,
-                        },
-                    }),
-                    &m_idx,
-                    &datasource_idx,
-                    false,
-                )?;
-                query.alternatives.push(q);
-            }
-        }
-        extract_subgraph_by_query(
-            &db_entry,
-            &query,
-            &[0],
-            &self.query_config,
-            None,
-            TimeoutCheck::new(None),
-        )
+        let result = subgraph::create_subgraph_for_iterator(it, &[0], graph, None)?;
+        Ok(result)
     }
 
     /// Return the copy of a subgraph which includes all nodes matched by the given `query`.
@@ -2832,33 +2628,8 @@ fn extract_subgraph_by_query(
 
     debug!("executing subgraph query\n{}", plan);
 
-    // We have to keep our own unique set because the query will return "duplicates" whenever the other parts of the
-    // match vector differ.
-    let mut match_result: BTreeSet<Match> = BTreeSet::new();
-
-    let mut result = AnnotationGraph::new(false)?;
-
-    // create the subgraph description
-    for r in plan {
-        let r = r?;
-        trace!("subgraph query found match {:?}", r);
-        for i in match_idx.iter().cloned() {
-            if i < r.len() {
-                let m: &Match = &r[i];
-                if !match_result.contains(m) {
-                    match_result.insert(m.clone());
-                    trace!("subgraph query extracted node {:?}", m.node);
-                    create_subgraph_node(m.node, &mut result, orig_db)?;
-                }
-            }
-        }
-    }
-
-    let components = orig_db.get_all_components(component_type_filter, None);
-
-    for m in &match_result {
-        create_subgraph_edge(m.node, &mut result, orig_db, &components)?;
-    }
+    let result =
+        subgraph::create_subgraph_for_iterator(plan, match_idx, orig_db, component_type_filter)?;
 
     let load_time = t_before.elapsed();
     if let Ok(t) = load_time {
@@ -2866,66 +2637,6 @@ fn extract_subgraph_by_query(
     }
 
     Ok(result)
-}
-
-fn create_subgraph_node(
-    id: NodeID,
-    db: &mut AnnotationGraph,
-    orig_db: &AnnotationGraph,
-) -> Result<()> {
-    // add all node labels with the same node ID
-    for a in orig_db.get_node_annos().get_annotations_for_item(&id)? {
-        db.get_node_annos_mut().insert(id, a)?;
-    }
-    Ok(())
-}
-fn create_subgraph_edge(
-    source_id: NodeID,
-    db: &mut AnnotationGraph,
-    orig_db: &AnnotationGraph,
-    components: &[Component<AnnotationComponentType>],
-) -> Result<()> {
-    // find outgoing edges
-    for c in components {
-        // don't include index components
-        let ctype = c.get_type();
-        if !((ctype == AnnotationComponentType::Coverage
-            && c.layer == "annis"
-            && !c.name.is_empty())
-            || ctype == AnnotationComponentType::RightToken
-            || ctype == AnnotationComponentType::LeftToken)
-        {
-            if let Some(orig_gs) = orig_db.get_graphstorage(c) {
-                for target in orig_gs.get_outgoing_edges(source_id) {
-                    let target = target?;
-                    if !db
-                        .get_node_annos()
-                        .get_all_keys_for_item(&target, None, None)?
-                        .is_empty()
-                    {
-                        let e = Edge {
-                            source: source_id,
-                            target,
-                        };
-                        if let Ok(new_gs) = db.get_or_create_writable(c) {
-                            new_gs.add_edge(e.clone())?;
-                        }
-
-                        for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
-                            source: source_id,
-                            target,
-                        })? {
-                            if let Ok(new_gs) = db.get_or_create_writable(c) {
-                                new_gs.add_edge_annotation(e.clone(), a)?;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(())
 }
 
 fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {

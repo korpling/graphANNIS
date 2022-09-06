@@ -32,6 +32,10 @@ pub enum GraphAnnisError {
     CorpusExists(String),
     #[error("could not get internal node ID for node {0}")]
     NoSuchNodeID(String),
+    #[error("could not covered token for node {0}")]
+    NoCoveredTokenForNode(String),
+    #[error("could not covered token for subgraph")]
+    NoCoveredTokenForSubgraph,
     #[error("plan description missing")]
     PlanDescriptionMissing,
     #[error("plan cost missing")]

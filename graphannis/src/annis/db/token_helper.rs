@@ -1,16 +1,14 @@
 use crate::{
-    annis::{
-        db::{
-            aql::model::{AnnotationComponentType, TOKEN_KEY},
-            AnnotationStorage,
-        },
-        errors::GraphAnnisError,
+    annis::db::{
+        aql::model::{AnnotationComponentType, TOKEN_KEY},
+        AnnotationStorage,
     },
     errors::Result,
     graph::GraphStorage,
     AnnotationGraph,
 };
 use graphannis_core::{
+    errors::GraphAnnisCoreError,
     graph::ANNIS_NS,
     types::{Component, NodeID},
 };
@@ -71,18 +69,12 @@ impl<'a> TokenHelper<'a> {
             })
             .collect();
 
-        let left_edges = graph.get_graphstorage(&COMPONENT_LEFT).ok_or_else(|| {
-            GraphAnnisError::ImpossibleSearch(
-                "LeftToken component is missing (needed for all text coverage related operators)"
-                    .to_string(),
-            )
-        })?;
-        let right_edges = graph.get_graphstorage(&COMPONENT_RIGHT).ok_or_else(|| {
-            GraphAnnisError::ImpossibleSearch(
-                "RightToken component is missing (needed for all text coverage related operators)"
-                    .to_string(),
-            )
-        })?;
+        let left_edges = graph
+            .get_graphstorage(&COMPONENT_LEFT)
+            .ok_or_else(|| GraphAnnisCoreError::MissingComponent(COMPONENT_LEFT.to_string()))?;
+        let right_edges = graph
+            .get_graphstorage(&COMPONENT_RIGHT)
+            .ok_or_else(|| GraphAnnisCoreError::MissingComponent(COMPONENT_RIGHT.to_string()))?;
 
         Ok(TokenHelper {
             node_annos: graph.get_node_annos(),
@@ -99,7 +91,7 @@ impl<'a> TokenHelper<'a> {
         self.left_edges.as_ref()
     }
 
-    pub fn get_gs_right_token_(&self) -> &dyn GraphStorage {
+    pub fn get_gs_right_token(&self) -> &dyn GraphStorage {
         self.right_edges.as_ref()
     }
 

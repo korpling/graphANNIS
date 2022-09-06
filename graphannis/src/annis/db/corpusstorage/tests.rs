@@ -12,8 +12,8 @@ use crate::errors::Result;
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::{AnnotationGraph, CorpusStorage};
 use graphannis_core::annostorage::{AnnotationStorage, ValueSearch};
-use graphannis_core::graph::NODE_NAME_KEY;
-use graphannis_core::types::Edge;
+use graphannis_core::graph::{ANNIS_NS, NODE_NAME_KEY};
+use graphannis_core::types::{Component, Edge};
 use graphannis_core::{graph::DEFAULT_NS, types::NodeID};
 use itertools::Itertools;
 use malloc_size_of::MallocSizeOf;
@@ -72,8 +72,16 @@ fn apply_update_add_and_delete_nodes() {
 
     let mut g = GraphUpdate::new();
     example_generator::create_corpus_structure(&mut g);
-    example_generator::create_tokens(&mut g, Some("root/subCorpus1/doc1"));
-    example_generator::create_tokens(&mut g, Some("root/subCorpus1/doc2"));
+    example_generator::create_tokens(
+        &mut g,
+        Some("root/subCorpus1/doc1"),
+        Some("root/subCorpus1/doc1"),
+    );
+    example_generator::create_tokens(
+        &mut g,
+        Some("root/subCorpus1/doc2"),
+        Some("root/subCorpus1/doc2"),
+    );
 
     g.add_event(UpdateEvent::AddEdge {
         source_node: "root/subCorpus1/doc1#tok1".to_owned(),
@@ -119,6 +127,320 @@ fn apply_update_add_and_delete_nodes() {
     assert_eq!(0, edge_count);
 }
 
+fn create_simple_graph(cs: &mut CorpusStorage) {
+    let mut complete_graph_def = GraphUpdate::new();
+    // Add corpus structure
+    example_generator::create_corpus_structure_simple(&mut complete_graph_def);
+    // Use the default tokenization as minimal tokens
+    example_generator::create_tokens(
+        &mut complete_graph_def,
+        Some("root/doc1"),
+        Some("root/doc1#text1"),
+    );
+
+    // Add some spans
+    example_generator::make_span(
+        &mut complete_graph_def,
+        "root/doc1#span1",
+        &["root/doc1#tok1", "root/doc1#tok2"],
+        true,
+    );
+
+    complete_graph_def
+        .add_event(UpdateEvent::AddEdge {
+            source_node: "root/doc1#span1".to_string(),
+            target_node: "root/doc1#text1".to_string(),
+            layer: ANNIS_NS.to_string(),
+            component_type: "PartOf".to_string(),
+            component_name: "".to_string(),
+        })
+        .unwrap();
+
+    example_generator::make_span(
+        &mut complete_graph_def,
+        "root/doc1#span2",
+        &["root/doc1#tok3", "root/doc1#tok4", "root/doc1#tok5"],
+        true,
+    );
+    complete_graph_def
+        .add_event(UpdateEvent::AddEdge {
+            source_node: "root/doc1#span2".to_string(),
+            target_node: "root/doc1#text1".to_string(),
+            layer: ANNIS_NS.to_string(),
+            component_type: "PartOf".to_string(),
+            component_name: "".to_string(),
+        })
+        .unwrap();
+
+    example_generator::make_span(
+        &mut complete_graph_def,
+        "root/doc1#span3",
+        &["root/doc1#tok5", "root/doc1#tok6", "root/doc1#tok7"],
+        true,
+    );
+    complete_graph_def
+        .add_event(UpdateEvent::AddEdge {
+            source_node: "root/doc1#span3".to_string(),
+            target_node: "root/doc1#text1".to_string(),
+            layer: ANNIS_NS.to_string(),
+            component_type: "PartOf".to_string(),
+            component_name: "".to_string(),
+        })
+        .unwrap();
+
+    example_generator::make_span(
+        &mut complete_graph_def,
+        "root/doc1#span4",
+        &["root/doc1#tok9", "root/doc1#tok10"],
+        true,
+    );
+    complete_graph_def
+        .add_event(UpdateEvent::AddEdge {
+            source_node: "root/doc1#span4".to_string(),
+            target_node: "root/doc1#text1".to_string(),
+            layer: ANNIS_NS.to_string(),
+            component_type: "PartOf".to_string(),
+            component_name: "".to_string(),
+        })
+        .unwrap();
+
+    cs.apply_update("root", &mut complete_graph_def).unwrap();
+}
+
+#[test]
+fn subgraphs_simple() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+    create_simple_graph(&mut cs);
+
+    // get the subgraph for a token ("complicated")
+    // This should return the following token and their covering spans
+    // example[tok2] more[tok3] complicated[tok4] than[tok5] it[tok6] appears[tok7] to[tok8]
+    let graph = cs
+        .subgraph("root", vec!["root/doc1#tok4".to_string()], 2, 4, None)
+        .unwrap();
+
+    let cov_components = graph.get_all_components(Some(AnnotationComponentType::Coverage), None);
+    assert_eq!(1, cov_components.len());
+    let gs_cov = graph.get_graphstorage(&cov_components[0]).unwrap();
+
+    let ordering_components =
+        graph.get_all_components(Some(AnnotationComponentType::Ordering), Some(""));
+    assert_eq!(1, ordering_components.len());
+    let gs_ordering = graph.get_graphstorage(&ordering_components[0]).unwrap();
+
+    // Check that all token exist and are connected
+    for i in 2..8 {
+        let t = format!("root/doc1#tok{}", i);
+        let t_id = graph.get_node_id_from_name(&t).unwrap();
+        assert_eq!(true, t_id.is_some());
+        let next_token = format!("root/doc1#tok{}", i + 1);
+        let next_token_id = graph.get_node_id_from_name(&next_token).unwrap();
+        assert_eq!(true, next_token_id.is_some());
+        assert_eq!(
+            true,
+            gs_ordering
+                .is_connected(
+                    t_id.unwrap(),
+                    next_token_id.unwrap(),
+                    1,
+                    std::ops::Bound::Included(1)
+                )
+                .unwrap()
+        );
+    }
+    // Also check, that the token outside the context do not exists
+    for t in 0..2 {
+        let t = format!("root/doc1#tok{}", t);
+        assert_eq!(false, graph.get_node_id_from_name(&t).unwrap().is_some());
+    }
+    for t in 9..10 {
+        let t = format!("root/doc1#tok{}", t);
+        assert_eq!(false, graph.get_node_id_from_name(&t).unwrap().is_some());
+    }
+
+    // Check the (non-) existance of the spans
+    let span1 = graph
+        .get_node_id_from_name("root/doc1#span1")
+        .unwrap()
+        .unwrap();
+    let span2 = graph
+        .get_node_id_from_name("root/doc1#span2")
+        .unwrap()
+        .unwrap();
+    let span3 = graph
+        .get_node_id_from_name("root/doc1#span3")
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(
+        false,
+        graph
+            .get_node_id_from_name("root/doc1#span4")
+            .unwrap()
+            .is_some()
+    );
+
+    assert_eq!(1, gs_cov.get_outgoing_edges(span1).count());
+    assert_eq!(3, gs_cov.get_outgoing_edges(span2).count());
+    assert_eq!(3, gs_cov.get_outgoing_edges(span3).count());
+
+    // Check that the corpus structure for the matched node is included
+    let corpus_nodes: graphannis_core::errors::Result<Vec<_>> = graph
+        .get_node_annos()
+        .exact_anno_search(Some(ANNIS_NS), "node_type", ValueSearch::Some("corpus"))
+        .collect();
+    let corpus_nodes = corpus_nodes.unwrap();
+    assert_eq!(2, corpus_nodes.len());
+    let ds_nodes: graphannis_core::errors::Result<Vec<_>> = graph
+        .get_node_annos()
+        .exact_anno_search(Some(ANNIS_NS), "node_type", ValueSearch::Some("datasource"))
+        .collect();
+    let ds_nodes = ds_nodes.unwrap();
+    assert_eq!(1, ds_nodes.len());
+
+    let text_id = graph.get_node_id_from_name("root/doc1#text1").unwrap();
+    assert_eq!(true, text_id.is_some());
+
+    let doc_id = graph.get_node_id_from_name("root/doc1").unwrap();
+    assert_eq!(true, doc_id.is_some());
+
+    let toplevel_id = graph.get_node_id_from_name("root").unwrap();
+    assert_eq!(true, toplevel_id.is_some());
+
+    let part_of_components = graph.get_all_components(Some(AnnotationComponentType::PartOf), None);
+    assert_eq!(1, part_of_components.len());
+    let gs_partof = graph.get_graphstorage(&part_of_components[0]).unwrap();
+
+    assert_eq!(
+        doc_id.unwrap(),
+        gs_partof
+            .get_outgoing_edges(text_id.unwrap())
+            .next()
+            .unwrap()
+            .unwrap()
+    );
+    assert_eq!(
+        toplevel_id.unwrap(),
+        gs_partof
+            .get_outgoing_edges(doc_id.unwrap())
+            .next()
+            .unwrap()
+            .unwrap()
+    );
+}
+
+#[test]
+fn subgraphs_non_overlapping_regions() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+    create_simple_graph(&mut cs);
+
+    // get the subgraph for a token ("example" and "it")
+    // This should return the following token and their covering spans
+    // this[tok1] example[tok2] more[tok3] ... than[tok5] it[tok6] appears[tok7]
+    let graph = cs
+        .subgraph(
+            "root",
+            vec!["root/doc1#tok2".to_string(), "root/doc1#tok6".to_string()],
+            1,
+            1,
+            None,
+        )
+        .unwrap();
+
+    // Check that all token exist and are connected
+    let t1_id = graph.get_node_id_from_name("root/doc1#tok1").unwrap();
+    assert_eq!(true, t1_id.is_some());
+    let t2_id = graph.get_node_id_from_name("root/doc1#tok2").unwrap();
+    assert_eq!(true, t2_id.is_some());
+    let t3_id = graph.get_node_id_from_name("root/doc1#tok3").unwrap();
+    assert_eq!(true, t3_id.is_some());
+
+    let t5_id = graph.get_node_id_from_name("root/doc1#tok5").unwrap();
+    assert_eq!(true, t5_id.is_some());
+    let t6_id = graph.get_node_id_from_name("root/doc1#tok6").unwrap();
+    assert_eq!(true, t6_id.is_some());
+    let t7_id = graph.get_node_id_from_name("root/doc1#tok7").unwrap();
+    assert_eq!(true, t7_id.is_some());
+
+    let ordering_components =
+        graph.get_all_components(Some(AnnotationComponentType::Ordering), Some(""));
+    assert_eq!(1, ordering_components.len());
+    let gs_ordering = graph.get_graphstorage(&ordering_components[0]).unwrap();
+
+    assert_eq!(
+        true,
+        gs_ordering
+            .is_connected(
+                t1_id.unwrap(),
+                t2_id.unwrap(),
+                1,
+                std::ops::Bound::Included(1)
+            )
+            .unwrap()
+    );
+    assert_eq!(
+        true,
+        gs_ordering
+            .is_connected(
+                t2_id.unwrap(),
+                t3_id.unwrap(),
+                1,
+                std::ops::Bound::Included(1)
+            )
+            .unwrap()
+    );
+    assert_eq!(
+        false,
+        gs_ordering
+            .is_connected(
+                t3_id.unwrap(),
+                t5_id.unwrap(),
+                1,
+                std::ops::Bound::Included(1)
+            )
+            .unwrap()
+    );
+    assert_eq!(
+        true,
+        gs_ordering
+            .is_connected(
+                t5_id.unwrap(),
+                t6_id.unwrap(),
+                1,
+                std::ops::Bound::Included(1)
+            )
+            .unwrap()
+    );
+    assert_eq!(
+        true,
+        gs_ordering
+            .is_connected(
+                t6_id.unwrap(),
+                t7_id.unwrap(),
+                1,
+                std::ops::Bound::Included(1)
+            )
+            .unwrap()
+    );
+
+    // The last and first node of the context region should be connected by a special ordering edge
+    let gs_ds_ordering = graph
+        .get_graphstorage(&Component::new(
+            AnnotationComponentType::Ordering,
+            ANNIS_NS.into(),
+            "datasource-gap".into(),
+        ))
+        .unwrap();
+    let out: graphannis_core::errors::Result<Vec<_>> =
+        gs_ds_ordering.get_outgoing_edges(t3_id.unwrap()).collect();
+    let out = out.unwrap();
+    assert_eq!(vec![t5_id.unwrap()], out);
+}
+
 #[test]
 fn subgraph_with_segmentation() {
     let tmp = tempfile::tempdir().unwrap();
@@ -128,7 +450,7 @@ fn subgraph_with_segmentation() {
     // Add corpus structure
     example_generator::create_corpus_structure_simple(&mut g);
     // Use the default tokenization as minimal tokens
-    example_generator::create_tokens(&mut g, Some("root/doc1"));
+    example_generator::create_tokens(&mut g, Some("root/doc1"), Some("root/doc1#text1"));
 
     // Add first segmentation
     let seg_tokens = vec![
@@ -163,11 +485,13 @@ fn subgraph_with_segmentation() {
         &mut g,
         "root/doc1#seg0",
         &["root/doc1#tok0", "root/doc1#tok1", "root/doc1#tok2"],
+        false,
     );
     example_generator::make_span(
         &mut g,
         "root/doc1#seg1",
         &["root/doc1#tok3", "root/doc1#tok4"],
+        false,
     );
     example_generator::make_span(
         &mut g,
@@ -179,8 +503,9 @@ fn subgraph_with_segmentation() {
             "root/doc1#tok8",
             "root/doc1#tok9",
         ],
+        false,
     );
-    example_generator::make_span(&mut g, "root/doc1#seg3", &["root/doc1#tok10"]);
+    example_generator::make_span(&mut g, "root/doc1#seg3", &["root/doc1#tok10"], false);
 
     cs.apply_update("root", &mut g).unwrap();
 
@@ -370,14 +695,14 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph, rhs_remove_annis_
     // Check all nodes and node annotations exist in both corpora
     let nodes1: Vec<String> = g1
         .get_node_annos()
-        .exact_anno_search(Some("annis"), "node_name", ValueSearch::Any)
+        .exact_anno_search(Some(ANNIS_NS), "node_name", ValueSearch::Any)
         .filter_map(|m| m.unwrap().extract_annotation(g1.get_node_annos()).unwrap())
         .map(|a| a.val.into())
         .sorted()
         .collect();
     let nodes2: Vec<String> = g2
         .get_node_annos()
-        .exact_anno_search(Some("annis"), "node_name", ValueSearch::Any)
+        .exact_anno_search(Some(ANNIS_NS), "node_name", ValueSearch::Any)
         .filter_map(|m| m.unwrap().extract_annotation(g1.get_node_annos()).unwrap())
         .map(|a| a.val.into())
         .sorted()
@@ -403,7 +728,7 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph, rhs_remove_annis_
         components2.retain(|c| {
             c.get_type() != AnnotationComponentType::Coverage
                 || !c.name.is_empty()
-                || c.layer != "annis"
+                || c.layer != ANNIS_NS
         });
     }
     components2.sort();
