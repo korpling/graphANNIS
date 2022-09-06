@@ -226,7 +226,7 @@ fn subgraphs_simple() {
     let gs_cov = graph.get_graphstorage(&cov_components[0]).unwrap();
 
     let ordering_components =
-        graph.get_all_components(Some(AnnotationComponentType::Ordering), None);
+        graph.get_all_components(Some(AnnotationComponentType::Ordering), Some(""));
     assert_eq!(1, ordering_components.len());
     let gs_ordering = graph.get_graphstorage(&ordering_components[0]).unwrap();
 
