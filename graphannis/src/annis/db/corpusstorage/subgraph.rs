@@ -410,15 +410,21 @@ pub fn new_subgraph_iterator<'a>(
         new_overlapped_nodes_iterator(graph, &node_ids, ctx_left, ctx_right, segmentation.clone())?;
     let parent_nodes = new_parent_nodes_iterator(graph, &node_ids)?;
 
-    // Chain iterators into a single iterator
-    let result = overlapped_nodes.chain(parent_nodes).map(|n| {
-        let n = n?;
-        let m: MatchGroup = smallvec![Match {
-            node: n,
-            anno_key: NODE_NAME_KEY.clone(),
-        }];
-        Ok(m)
-    });
+    // Chain iterators into a single iterator, also include the matched node IDs
+    // in the result
+    let result = node_ids
+        .into_iter()
+        .map(|n| Ok(n))
+        .chain(overlapped_nodes)
+        .chain(parent_nodes)
+        .map(|n| {
+            let n = n?;
+            let m: MatchGroup = smallvec![Match {
+                node: n,
+                anno_key: NODE_NAME_KEY.clone(),
+            }];
+            Ok(m)
+        });
     Ok(Box::new(result))
 }
 
