@@ -85,29 +85,79 @@ impl<'a> Iterator for TokenIterator<'a> {
     }
 }
 
-fn get_left_token_with_offset(
+fn get_left_right_token_with_offset_with_token(
+    ordering_edges: &dyn GraphStorage,
+    ordered_covered_token: &[NodeID],
+    ctx_left: usize,
+    ctx_right: usize,
+) -> Result<(NodeID, NodeID)> {
+    // Get the token with the correct offset from the left-most and right-most covered token
+    let left_most_covered_token = *ordered_covered_token
+        .first()
+        .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
+    let right_most_covered_token = *ordered_covered_token
+        .last()
+        .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
+
+    // The context might be larger than the actual document, try to get the
+    // largest possible context
+    let mut left_with_context = left_most_covered_token;
+    for ctx in (0..=ctx_left).rev() {
+        if let Some(result) = ordering_edges
+            .find_connected_inverse(left_most_covered_token, ctx, std::ops::Bound::Included(ctx))
+            .next()
+        {
+            left_with_context = result?;
+            break;
+        }
+    }
+    let mut right_with_context = right_most_covered_token;
+    for ctx in (0..=ctx_right).rev() {
+        if let Some(result) = ordering_edges
+            .find_connected(
+                right_most_covered_token,
+                ctx,
+                std::ops::Bound::Included(ctx),
+            )
+            .next()
+        {
+            right_with_context = result?;
+            break;
+        }
+    }
+    Ok((left_with_context, right_with_context))
+}
+
+fn get_left_right_token_with_offset_with_segmentation(
     graph: &Graph<AnnotationComponentType>,
     token_helper: &TokenHelper,
-    ordering_edges: &dyn GraphStorage,
-    token: NodeID,
+    ordered_covered_token: &[NodeID],
     ctx_left: usize,
-    segmentation: Option<String>,
-) -> Result<NodeID> {
-    if let Some(segmentation) = segmentation {
-        // Get the ordering component for this segmentation
-        let component_ordering = Component::new(
-            AnnotationComponentType::Ordering,
-            DEFAULT_NS.into(),
-            segmentation.into(),
-        );
-        let gs_ordering = graph.get_graphstorage_as_ref(&component_ordering).ok_or(
-            GraphAnnisCoreError::MissingComponent(component_ordering.to_string()),
-        )?;
-        // Get all nodes coverging the token and that are part of
-        // the matching ordering component
-        let mut covering_segmentation_nodes = BTreeSet::new();
-        for gs_cov in token_helper.get_gs_coverage() {
-            for n in gs_cov.get_ingoing_edges(token) {
+    ctx_right: usize,
+    segmentation: &str,
+) -> Result<(NodeID, NodeID)> {
+    let left_most_covered_token = *ordered_covered_token
+        .first()
+        .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
+    let right_most_covered_token = *ordered_covered_token
+        .last()
+        .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
+
+    // Get the ordering component for this segmentation
+    let component_ordering = Component::new(
+        AnnotationComponentType::Ordering,
+        DEFAULT_NS.into(),
+        segmentation.into(),
+    );
+    let gs_ordering = graph.get_graphstorage_as_ref(&component_ordering).ok_or(
+        GraphAnnisCoreError::MissingComponent(component_ordering.to_string()),
+    )?;
+    // Get all nodes covering the token and that are part of
+    // the matching ordering component
+    let mut covering_segmentation_nodes = HashSet::new();
+    for gs_cov in token_helper.get_gs_coverage() {
+        for token in ordered_covered_token {
+            for n in gs_cov.get_ingoing_edges(*token) {
                 let n = n?;
                 if let Some(first_outgoing_edge) = gs_ordering.get_outgoing_edges(n).next() {
                     first_outgoing_edge?;
@@ -118,112 +168,57 @@ fn get_left_token_with_offset(
                 }
             }
         }
-        // Get the first matching node of the ordering component and
-        // retrieve the left-context segmentation node from it
-        let first_segmentation_node = covering_segmentation_nodes
-            .into_iter()
-            .next()
-            .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
-        // The context might be larger than the actual document, try to get the
-        // largest possible context
-        for ctx in (0..=ctx_left).rev() {
-            if let Some(left_segmentation_node) = gs_ordering
-                .find_connected_inverse(
-                    first_segmentation_node,
-                    ctx,
-                    std::ops::Bound::Included(ctx),
-                )
-                .next()
-            {
-                // Use the left-most token of this node as start of the context
-                let result = token_helper
-                    .left_token_for(left_segmentation_node?)?
-                    .unwrap_or(token);
-                return Ok(result);
-            }
+    }
+    // Sort the covering segmentation nodes by their ordering edges
+    let mut covering_segmentation_nodes: Vec<_> = covering_segmentation_nodes.into_iter().collect();
+    quicksort::sort(&mut covering_segmentation_nodes, |a, b| {
+        if a == b {
+            Ok(Ordering::Equal)
+        } else if gs_ordering.is_connected(*a, *b, 1, std::ops::Bound::Unbounded)? {
+            Ok(Ordering::Less)
+        } else if gs_ordering.is_connected(*b, *a, 1, std::ops::Bound::Unbounded)? {
+            Ok(Ordering::Greater)
+        } else {
+            Ok(a.cmp(b))
         }
-    } else {
-        // The context might be larger than the actual document, try to get the
-        // largest possible context
-        for ctx in (0..=ctx_left).rev() {
-            if let Some(result) = ordering_edges
-                .find_connected_inverse(token, ctx, std::ops::Bound::Included(ctx))
-                .next()
-            {
-                return Ok(result?);
-            }
+    })?;
+
+    let left_seg = *covering_segmentation_nodes
+        .first()
+        .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
+    let right_seg = *covering_segmentation_nodes
+        .last()
+        .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
+
+    // The context might be larger than the actual document, try to get the
+    // largest possible context
+    let mut left_with_context = left_seg;
+    for ctx in (0..=ctx_left).rev() {
+        if let Some(result) = gs_ordering
+            .find_connected_inverse(left_seg, ctx, std::ops::Bound::Included(ctx))
+            .next()
+        {
+            left_with_context = result?;
+            break;
         }
     }
-    // Fallback to the token itself
-
-    Ok(token)
-}
-
-fn get_right_token_with_offset(
-    graph: &Graph<AnnotationComponentType>,
-    token_helper: &TokenHelper,
-    ordering_edges: &dyn GraphStorage,
-    token: NodeID,
-    ctx_right: usize,
-    segmentation: Option<String>,
-) -> Result<NodeID> {
-    if let Some(segmentation) = segmentation {
-        // Get the ordering component for this segmentation
-        let component_ordering = Component::new(
-            AnnotationComponentType::Ordering,
-            DEFAULT_NS.into(),
-            segmentation.into(),
-        );
-        let gs_ordering = graph.get_graphstorage_as_ref(&component_ordering).ok_or(
-            GraphAnnisCoreError::MissingComponent(component_ordering.to_string()),
-        )?;
-        // Get all nodes coverging the token and that are part of
-        // the matching ordering component
-        let mut covering_segmentation_nodes = BTreeSet::new();
-        for gs_cov in token_helper.get_gs_coverage() {
-            for n in gs_cov.get_ingoing_edges(token) {
-                let n = n?;
-                if gs_ordering.has_outgoing_edges(n)? {
-                    covering_segmentation_nodes.insert(n);
-                }
-            }
-        }
-        // Get the first matching node of the ordering component and
-        // retrieve the right-context segmentation node from it
-        let first_segmentation_node = covering_segmentation_nodes
-            .into_iter()
+    let mut right_with_context = right_seg;
+    for ctx in (0..=ctx_right).rev() {
+        if let Some(result) = gs_ordering
+            .find_connected(right_seg, ctx, std::ops::Bound::Included(ctx))
             .next()
-            .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
-
-        // The context might be larger than the actual document, try to get the
-        // largest possible context
-        for ctx in (0..=ctx_right).rev() {
-            if let Some(right_segmentation_node) = gs_ordering
-                .find_connected(first_segmentation_node, ctx, std::ops::Bound::Included(ctx))
-                .next()
-            {
-                // Use the right-most token of this node as end of the context
-                let result = token_helper
-                    .right_token_for(right_segmentation_node?)?
-                    .unwrap_or(token);
-                return Ok(result);
-            }
-        }
-    } else {
-        // The context might be larger than the actual document, try to get the
-        // largest possible context
-        for ctx in (0..=ctx_right).rev() {
-            if let Some(result) = ordering_edges
-                .find_connected(token, ctx, std::ops::Bound::Included(ctx))
-                .next()
-            {
-                return Ok(result?);
-            }
+        {
+            right_with_context = result?;
+            break;
         }
     }
-
-    // Fallback to the token itself
-    Ok(token)
+    let left_token = token_helper
+        .left_token_for(left_with_context)?
+        .unwrap_or(left_most_covered_token);
+    let right_token = token_helper
+        .right_token_for(right_with_context)?
+        .unwrap_or(right_most_covered_token);
+    Ok((left_token, right_token))
 }
 
 #[derive(Clone)]
@@ -252,30 +247,53 @@ impl<'a> TokenRegion<'a> {
             .ok_or(GraphAnnisCoreError::MissingComponent(
                 "Ordering/annis/".into(),
             ))?;
-        let (left_without_context, right_without_context) =
-            token_helper.left_right_token_for(node_id)?;
-        let left_without_context =
-            left_without_context.ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
-        let right_without_context =
-            right_without_context.ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
+        // Get all covered token for this node
+        let mut covered_token = HashSet::new();
+        if token_helper.is_token(node_id)? {
+            covered_token.insert(node_id);
+        } else {
+            for gs_cov in token_helper.get_gs_coverage() {
+                for candidate in gs_cov.get_outgoing_edges(node_id) {
+                    let candidate = candidate?;
+                    if token_helper.is_token(candidate)? {
+                        covered_token.insert(candidate);
+                    }
+                }
+            }
+        }
+        // Sort the covered token by their position in the text
+        let mut covered_token: Vec<_> = covered_token.into_iter().collect();
+        quicksort::sort(&mut covered_token, |a, b| {
+            if a == b {
+                Ok(Ordering::Equal)
+            } else if ordering_edges.is_connected(*a, *b, 1, std::ops::Bound::Unbounded)? {
+                Ok(Ordering::Less)
+            } else if ordering_edges.is_connected(*b, *a, 1, std::ops::Bound::Unbounded)? {
+                Ok(Ordering::Greater)
+            } else {
+                Ok(a.cmp(b))
+            }
+        })?;
 
         // Get the token at the borders of the context
-        let start_token = get_left_token_with_offset(
-            graph,
-            &token_helper,
-            ordering_edges.as_ref(),
-            left_without_context,
-            ctx_left,
-            segmentation.clone(),
-        )?;
-        let end_token = get_right_token_with_offset(
-            graph,
-            &token_helper,
-            ordering_edges.as_ref(),
-            right_without_context,
-            ctx_right,
-            segmentation,
-        )?;
+        let (start_token, end_token) = if let Some(segmentation) = &segmentation {
+            get_left_right_token_with_offset_with_segmentation(
+                graph,
+                &token_helper,
+                &covered_token,
+                ctx_left,
+                ctx_right,
+                segmentation,
+            )?
+        } else {
+            get_left_right_token_with_offset_with_token(
+                ordering_edges.as_ref(),
+                &covered_token,
+                ctx_left,
+                ctx_right,
+            )?
+        };
+
         Ok(TokenRegion {
             start_token,
             end_token,
