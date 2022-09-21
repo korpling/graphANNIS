@@ -5,6 +5,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Allow to configure how spans should be interpreted in the view when the token
+  layer is representing a timeline with the `timeline_strategy` parameter in the
+  `view` section of the corpus configuration. This allows the view to
+  reconstruct an implicit relation between spans and their segmentation nodes
+  (which is not possible to represent in the legacy relANNIS data model). New
+  corpora should use explicit `Coverage` edges between spans and their
+  segmentation nodes, but in order to maintain backward compatibility with
+  relANNIS, we need to support these older corpus configuration values
+  (`virtual_tokenization_mapping` and `virtual_tokenization_from_namespace`),
+  which only affect the display of the corpora.
+
 ## [2.3.0] - 2022-09-06
 
 ### Fixed

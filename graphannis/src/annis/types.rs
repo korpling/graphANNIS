@@ -110,6 +110,40 @@ impl Default for ContextConfiguration {
     }
 }
 
+/// Strategy how to display corpora where token represent the timeline.
+///
+/// When the tokens represent a timeline, annotation spans  must be assigned to
+/// their actual corresponding segmentation nodes. Segmentation nodes have an
+/// `annis:tok` annotation, but they also have outgoing `Coverage` edges to the
+/// timeline items. This could be explicit (by using `Coverage` edges between
+/// the span and the segmentation nodes) or implicit by one of the given
+/// strategies.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum TimelineStrategy {
+    /// Do not assume any relation between spans and segmentation nodes if not
+    /// explicitly given by a `Coverage` edge.
+    Explicit,
+    /// Use the namespace of an annotated span to map them to a segmentation
+    /// node. E.g. a span with the annotation `speaker1:pause` would need to be
+    /// mapped to all overlapping nodes that are part of the `speaker1`
+    /// segmentation.
+    ImplicitFromNamespace,
+    /// Map annotation names to the segmentation names.
+    ImplicitFromMapping(BTreeMap<String, String>),
+}
+
+impl TimelineStrategy {
+    pub fn is_explicit(&self) -> bool {
+        self == &TimelineStrategy::Explicit
+    }
+}
+
+impl Default for TimelineStrategy {
+    fn default() -> Self {
+        TimelineStrategy::Explicit
+    }
+}
+
 /// Configuration how the results of a query should be shown
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ViewConfiguration {
@@ -126,6 +160,9 @@ pub struct ViewConfiguration {
     /// be appended in alphabetical order to the given entries.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub corpus_annotation_order: Vec<String>,
+    /// Configure strategy on how to display virtual tokenizations that mimic a timeline.
+    #[serde(default, skip_serializing_if = "TimelineStrategy::is_explicit")]
+    pub timeline_strategy: TimelineStrategy,
 }
 
 impl Default for ViewConfiguration {
@@ -135,6 +172,7 @@ impl Default for ViewConfiguration {
             page_size: 10,
             hidden_annos: Vec::default(),
             corpus_annotation_order: Vec::default(),
+            timeline_strategy: TimelineStrategy::Explicit,
         }
     }
 }
