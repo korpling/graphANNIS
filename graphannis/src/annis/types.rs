@@ -119,16 +119,17 @@ impl Default for ContextConfiguration {
 /// the span and the segmentation nodes) or implicit by one of the given
 /// strategies.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type")]
 pub enum TimelineStrategy {
     /// Do not assume any relation between spans and segmentation nodes if not
     /// explicitly given by a `Coverage` edge.
     Explicit,
     /// Use the namespace of an annotated span to map them to a segmentation
-    /// node. E.g. a span with the annotation `speaker1:pause` would need to be
+    /// node. E.g. a span with the annotation `speaker1::pause` would need to be
     /// mapped to all overlapping nodes that are part of the `speaker1`
     /// segmentation.
     ImplicitFromNamespace,
-    /// Map annotation names to the segmentation names.
+    /// Map qualified annotation names (e.g. `speaker1::pause`) to the segmentation names.
     ImplicitFromMapping(BTreeMap<String, String>),
 }
 
