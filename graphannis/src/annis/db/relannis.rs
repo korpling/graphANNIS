@@ -702,7 +702,7 @@ where
                             })
                             .collect();
                         config.view.timeline_strategy =
-                            TimelineStrategy::ImplicitFromMapping(mappings);
+                            TimelineStrategy::ImplicitFromMapping { mappings };
                     }
                 }
                 _ => {}
@@ -2355,13 +2355,13 @@ mod tests {
             TimelineStrategy::ImplicitFromNamespace => {
                 panic!("virtual_tokenization_strategy was FromNamespace, should have been Mapping")
             }
-            TimelineStrategy::ImplicitFromMapping(m) => {
+            TimelineStrategy::ImplicitFromMapping { mappings } => {
                 // Check that all entries exist
-                assert_eq!(4, m.len());
-                assert_eq!(Some(&"norm".into()), m.get("anno1"));
-                assert_eq!(Some(&"norm".into()), m.get("anno2"));
-                assert_eq!(Some(&"dipl".into()), m.get("anotherspan"));
-                assert_eq!(Some(&"clean".into()), m.get("testspan"));
+                assert_eq!(4, mappings.len());
+                assert_eq!(Some(&"norm".into()), mappings.get("anno1"));
+                assert_eq!(Some(&"norm".into()), mappings.get("anno2"));
+                assert_eq!(Some(&"dipl".into()), mappings.get("anotherspan"));
+                assert_eq!(Some(&"clean".into()), mappings.get("testspan"));
             }
         }
     }

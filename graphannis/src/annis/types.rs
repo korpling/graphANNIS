@@ -119,7 +119,7 @@ impl Default for ContextConfiguration {
 /// the span and the segmentation nodes) or implicit by one of the given
 /// strategies.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "type")]
+#[serde(tag = "strategy")]
 pub enum TimelineStrategy {
     /// Do not assume any relation between spans and segmentation nodes if not
     /// explicitly given by a `Coverage` edge.
@@ -130,7 +130,7 @@ pub enum TimelineStrategy {
     /// segmentation.
     ImplicitFromNamespace,
     /// Map qualified annotation names (e.g. `speaker1::pause`) to the segmentation names.
-    ImplicitFromMapping(BTreeMap<String, String>),
+    ImplicitFromMapping { mappings: BTreeMap<String, String> },
 }
 
 impl TimelineStrategy {
