@@ -1,6 +1,7 @@
 use super::aql::model::{AnnotationComponentType, TOK_WHITESPACE_AFTER, TOK_WHITESPACE_BEFORE};
 use crate::annis::db::corpusstorage::NODE_NAME_ENCODE_SET;
 use crate::annis::errors::*;
+use crate::annis::types::TimelineStrategy;
 use crate::annis::util::create_str_vec_key;
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::{
@@ -684,6 +685,24 @@ where
                         // Entry is a comma-separated list
                         config.view.hidden_annos =
                             value.split(',').map(|a| a.trim().to_owned()).collect();
+                    }
+                }
+                "virtual_tokenization_from_namespace" => {
+                    if value.to_lowercase() == "true" {
+                        config.view.timeline_strategy = TimelineStrategy::ImplicitFromNamespace
+                    }
+                }
+                "virtual_tokenization_mapping" => {
+                    if !value.is_empty() {
+                        let mappings: BTreeMap<_, _> = value
+                            .split(',')
+                            .filter_map(|e| e.split_once('='))
+                            .map(|(anno, segmentation)| {
+                                (anno.to_string(), segmentation.to_string())
+                            })
+                            .collect();
+                        config.view.timeline_strategy =
+                            TimelineStrategy::ImplicitFromMapping { mappings };
                     }
                 }
                 _ => {}
@@ -2203,6 +2222,10 @@ fn component_type_from_short_name(short_type: &str) -> Result<AnnotationComponen
 
 #[cfg(test)]
 mod tests {
+    use tempfile::TempDir;
+
+    use crate::annis::types::TimelineStrategy;
+
     use super::*;
 
     #[test]
@@ -2272,17 +2295,25 @@ mod tests {
         assert_eq!(true, result.missing_seg_span.contains_key(&680).unwrap());
     }
 
+    fn create_temporary_corpus_dir_file(file_content: &str, file_path: &str) -> TempDir {
+        let parent = tempfile::tempdir().unwrap();
+        let path = parent.path().join(file_path);
+        // The file path could contain directories that need to be created
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).unwrap();
+        };
+        let mut f = std::fs::File::create(&path).unwrap();
+        writeln!(f, "{}", file_content).unwrap();
+        f.flush().unwrap();
+        parent
+    }
+
     /// Regression Test for https://github.com/korpling/graphANNIS/issues/222
     #[test]
     fn trim_resolver_mappings() {
-        let resolver_entry =
-            "example	NULL	layer	node	htmldoc	edition	hidden	0	hide_tok:true;annos:abc, def   ; config: edition";
-        // Write resolver_entry to temporary file
-        let parent = tempfile::tempdir().unwrap();
-        let resolver_path = parent.path().join("resolver_vis_map.annis");
-        let mut f = std::fs::File::create(&resolver_path).unwrap();
-        writeln!(f, "{}", resolver_entry).unwrap();
-        f.flush().unwrap();
+        let parent = create_temporary_corpus_dir_file(
+            "example	NULL	layer	node	htmldoc	edition	hidden	0	hide_tok:true;annos:abc, def   ; config: edition", 
+            "resolver_vis_map.annis");
 
         // Parse the resolver entry
         let mut config = CorpusConfiguration::default();
@@ -2303,6 +2334,73 @@ mod tests {
         assert_eq!(
             Some(&"edition".to_string()),
             config.visualizers[1].mappings.get("config")
+        );
+    }
+
+    #[test]
+    fn parse_virtual_tokenization_mapping() {
+        let parent = create_temporary_corpus_dir_file(
+            "virtual_tokenization_mapping=anno1=norm,anno2=norm,anotherspan=dipl,testspan=clean",
+            "ExtData/corpus.properties",
+        );
+
+        // Parse the corpus configuration
+        let mut config = CorpusConfiguration::default();
+        load_corpus_properties(parent.path(), &mut config, &|_| {}).unwrap();
+
+        match config.view.timeline_strategy {
+            TimelineStrategy::Explicit => {
+                panic!("virtual_tokenization_strategy was None, should have been Mapping")
+            }
+            TimelineStrategy::ImplicitFromNamespace => {
+                panic!("virtual_tokenization_strategy was FromNamespace, should have been Mapping")
+            }
+            TimelineStrategy::ImplicitFromMapping { mappings } => {
+                // Check that all entries exist
+                assert_eq!(4, mappings.len());
+                assert_eq!(Some(&"norm".into()), mappings.get("anno1"));
+                assert_eq!(Some(&"norm".into()), mappings.get("anno2"));
+                assert_eq!(Some(&"dipl".into()), mappings.get("anotherspan"));
+                assert_eq!(Some(&"clean".into()), mappings.get("testspan"));
+            }
+        }
+    }
+    #[test]
+    fn parse_virtual_tokenization_from_namespace() {
+        // Basic case: not set
+        let parent = create_temporary_corpus_dir_file("", "ExtData/corpus_config.properties");
+        let mut config = CorpusConfiguration::default();
+        load_corpus_properties(parent.path(), &mut config, &|_| {}).unwrap();
+        assert_eq!(TimelineStrategy::Explicit, config.view.timeline_strategy);
+
+        // Set to "false"
+        let parent = create_temporary_corpus_dir_file(
+            "virtual_tokenization_from_namespace=false",
+            "ExtData/corpus.properties",
+        );
+        let mut config = CorpusConfiguration::default();
+        load_corpus_properties(parent.path(), &mut config, &|_| {}).unwrap();
+        assert_eq!(TimelineStrategy::Explicit, config.view.timeline_strategy);
+
+        // Set to invalid value
+        let parent = create_temporary_corpus_dir_file(
+            "virtual_tokenization_from_namespace=sdsg",
+            "ExtData/corpus.properties",
+        );
+        let mut config = CorpusConfiguration::default();
+        load_corpus_properties(parent.path(), &mut config, &|_| {}).unwrap();
+        assert_eq!(TimelineStrategy::Explicit, config.view.timeline_strategy);
+
+        // Set to "true"
+        let parent = create_temporary_corpus_dir_file(
+            "virtual_tokenization_from_namespace=true",
+            "ExtData/corpus.properties",
+        );
+        let mut config = CorpusConfiguration::default();
+        load_corpus_properties(parent.path(), &mut config, &|_| {}).unwrap();
+        assert_eq!(
+            TimelineStrategy::ImplicitFromNamespace,
+            config.view.timeline_strategy
         );
     }
 }
