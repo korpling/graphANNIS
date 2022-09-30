@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- When importing relANNIS corpora with sub-corpora, add the `PartOf` edge to the
+  parent corpus node of the document or sub-corpora, but not automatically to
+  the top-level corpus.
+
 ## [2.4.0] - 2022-09-22
 
 ### Added
