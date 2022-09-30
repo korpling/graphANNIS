@@ -1759,15 +1759,15 @@ visibility = 'hidden'
         </edge>
         <edge id="e488" source="rootCorpus/subCorpus1" target="rootCorpus" label="PartOf/annis/">
         </edge>
-        <edge id="e489" source="rootCorpus/subCorpus1/doc1" target="rootCorpus" label="PartOf/annis/">
+        <edge id="e489" source="rootCorpus/subCorpus1/doc1" target="rootCorpus/subCorpus1" label="PartOf/annis/">
         </edge>
-        <edge id="e490" source="rootCorpus/subCorpus1/doc2" target="rootCorpus" label="PartOf/annis/">
+        <edge id="e490" source="rootCorpus/subCorpus1/doc2" target="rootCorpus/subCorpus1" label="PartOf/annis/">
         </edge>
         <edge id="e491" source="rootCorpus/subCorpus2" target="rootCorpus" label="PartOf/annis/">
         </edge>
-        <edge id="e492" source="rootCorpus/subCorpus2/doc3" target="rootCorpus" label="PartOf/annis/">
+        <edge id="e492" source="rootCorpus/subCorpus2/doc3" target="rootCorpus/subCorpus2" label="PartOf/annis/">
         </edge>
-        <edge id="e493" source="rootCorpus/subCorpus2/doc4" target="rootCorpus" label="PartOf/annis/">
+        <edge id="e493" source="rootCorpus/subCorpus2/doc4" target="rootCorpus/subCorpus2" label="PartOf/annis/">
         </edge>
         <edge id="e494" source="rootCorpus/subCorpus1/doc2#sText1" target="rootCorpus/subCorpus1/doc2" label="PartOf/annis/">
         </edge>
