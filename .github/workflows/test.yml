@@ -65,7 +65,7 @@ jobs:
             relannis
             data
             data_ondisk
-          key: ${{ runner.os }}-search-v1-compatible-${{ hashFiles('graphannis/tests/searchtest.rs','graphannis/tests/searchtest_queries.csv', 'graphannis/build.rs') }}
+          key: ${{ runner.os }}-search-compatible-${{ hashFiles('graphannis/tests/searchtest.rs','graphannis/tests/searchtest_queries.csv', 'graphannis/build.rs') }}
       - name: Download test corpora
         if: steps.corpus-cache.outputs.cache-hit != 'true'
         run: test -d relannis/GUM/ -a -d relannis/pcc2.1/ -a -d relannis/subtok.demo || "./misc/download-test-corpora.sh"
@@ -98,5 +98,5 @@ jobs:
       - name: Run integration tests (ondisk)
         run: cargo test --release -- --ignored
         working-directory: graphannis
-        env: 
+        env:
           ANNIS4_TEST_DATA: "../data_ondisk"
