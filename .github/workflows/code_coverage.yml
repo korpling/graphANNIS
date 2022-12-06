@@ -20,13 +20,13 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           version: latest
       - uses: actions/cache@v2
-        id: corpus-cache
+        id: code-coverage-corpus-cache
         with:
           path: |
             relannis
             data
             data_ondisk
-          key: ${{ runner.os }}-search-v1-compatible-${{ hashFiles('graphannis/tests/searchtest.rs','graphannis/tests/searchtest_queries.csv', 'graphannis/build.rs') }}
+          key: ${{ runner.os }}-codecov-${{ hashFiles('graphannis/tests/searchtest.rs','graphannis/tests/searchtest_queries.csv', 'graphannis/build.rs') }}
       - name: Download test corpora
         if: steps.corpus-cache.outputs.cache-hit != 'true'
         run: test -d relannis/GUM/ -a -d relannis/pcc2.1/ -a -d relannis/subtok.demo || "./misc/download-test-corpora.sh"
@@ -72,13 +72,13 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           version: latest
       - uses: actions/cache@v2
-        id: corpus-cache
+        id: code-coverage-corpus-cache
         with:
           path: |
             relannis
             data
             data_ondisk
-          key: ${{ runner.os }}-search-v1-compatible-${{ hashFiles('graphannis/tests/searchtest.rs','graphannis/tests/searchtest_queries.csv', 'graphannis/build.rs') }}
+          key: ${{ runner.os }}-codecov-${{ hashFiles('graphannis/tests/searchtest.rs','graphannis/tests/searchtest_queries.csv', 'graphannis/build.rs') }}
       - name: Download test corpora
         if: steps.corpus-cache.outputs.cache-hit != 'true'
         run: test -d relannis/GUM/ -a -d relannis/pcc2.1/ -a -d relannis/subtok.demo || "./misc/download-test-corpora.sh"
