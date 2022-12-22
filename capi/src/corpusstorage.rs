@@ -79,7 +79,8 @@ pub unsafe extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
         return;
     }
     // take ownership and destroy the pointer
-    Box::from_raw(ptr);
+    let ptr = Box::from_raw(ptr);
+    std::mem::drop(ptr);
 }
 
 /// Count the number of results for a `query`.
