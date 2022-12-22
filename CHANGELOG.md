@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- After re-using a deleted symbol ID (used in the annotation storage), the
+  retrieved value was empty.
+
 ## [2.4.1] - 2022-09-30
 
 ### Fixed

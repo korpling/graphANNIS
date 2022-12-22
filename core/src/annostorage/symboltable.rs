@@ -79,6 +79,7 @@ where
         } else {
             return Err(GraphAnnisCoreError::SymbolTableOverflow);
         };
+        self.by_id[id] = Some(val.clone());
         self.by_value.insert(val, id);
 
         Ok(id)
@@ -161,6 +162,41 @@ mod tests {
         }
         s.clear();
         assert_eq!(0, s.len());
+    }
+
+    #[test]
+    fn reuse_id() {
+        let mut s = SymbolTable::<String>::new();
+
+        let id1 = s.insert("abc".to_owned()).unwrap();
+        assert_eq!(1, s.len());
+        let val = s.get_value(id1).unwrap();
+        assert_eq!("abc", val.as_str());
+
+        assert_eq!(1, s.by_id.len());
+        assert_eq!(1, s.by_value.len());
+
+        assert_eq!(Some(val), s.by_id[id1]);
+        assert_eq!(0, s.empty_slots.len());
+
+        s.remove(0);
+
+        assert_eq!(1, s.by_id.len());
+        assert_eq!(None, s.by_id[0]);
+
+        assert_eq!(0, s.by_value.len());
+        assert_eq!(vec![id1], s.empty_slots);
+
+        let id2 = s.insert("abc".to_owned()).unwrap();
+        // Inserting a new value must use the empty slot
+        assert_eq!(id1, id2);
+        let val = s.get_value(id2).unwrap();
+
+        assert_eq!(1, s.by_id.len());
+        assert_eq!(1, s.by_value.len());
+
+        assert_eq!(Some(val), s.by_id[id2]);
+        assert_eq!(0, s.empty_slots.len());
     }
 
     #[test]
