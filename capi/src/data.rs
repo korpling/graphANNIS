@@ -23,7 +23,8 @@ pub unsafe extern "C" fn annis_free(ptr: *mut c_void) {
         return;
     }
     // take ownership and destroy the pointer
-    Box::from_raw(ptr);
+    let ptr = Box::from_raw(ptr);
+    std::mem::drop(ptr);
 }
 
 /// Frees the string given as `s` argument.
