@@ -72,6 +72,7 @@ where
 
         // if array is still small enough, just add the value to the end
         let id = if let Some(slot) = self.empty_slots.pop() {
+            self.by_id[slot] = Some(val.clone());
             slot
         } else if self.by_id.len() < usize::max_value() {
             self.by_id.push(Some(val.clone()));
@@ -79,7 +80,6 @@ where
         } else {
             return Err(GraphAnnisCoreError::SymbolTableOverflow);
         };
-        self.by_id[id] = Some(val.clone());
         self.by_value.insert(val, id);
 
         Ok(id)
