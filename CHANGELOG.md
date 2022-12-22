@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.2] - 2022-12-22
+
 ### Fixed
 
 - After re-using a deleted symbol ID (used in the annotation storage), the
