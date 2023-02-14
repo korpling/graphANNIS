@@ -17,4 +17,4 @@ graphannis = {path = "../graphannis/", version = "^2"}
 itertools = "0.10"
 libc = "0.2"
 log = "0.4"
-simplelog = {version = "0.10"}
+simplelog = {version = "0.12"}
