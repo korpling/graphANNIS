@@ -12,7 +12,7 @@ version = "2.4.2"
 
 [dependencies]
 bincode = "1.2"
-graphannis-malloc_size_of = {version = "1.1", features = ["smartstring"]}
+graphannis-malloc_size_of = {version = "2", features = ["smartstring"]}
 graphannis-malloc_size_of_derive = "2.0"
 itertools = "0.10"
 lazy_static = "1.4"
@@ -29,7 +29,7 @@ rustc-hash = "1.0"
 serde = {version = "1.0", features = ["rc"]}
 serde_derive = "1.0"
 smallvec = "1.6"
-smartstring = {version = "0.2", features = ["serde"]}
+smartstring = {version = "1", features = ["serde"]}
 sstable = "0.10"
 strum = "0.21"
 strum_macros = "0.21"

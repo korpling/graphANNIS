@@ -24,7 +24,7 @@ csv = "1"
 extsort = "0.4"
 fs2 = "0.4"
 graphannis-core = {path = "../core/", version = "^2"}
-graphannis-malloc_size_of = "1.0"
+graphannis-malloc_size_of = "2"
 graphannis-malloc_size_of_derive = "2.0"
 itertools = "0.10"
 lalrpop-util = {version = "0.19", features = ["lexer"]}
@@ -44,7 +44,7 @@ rustc-hash = "1.0"
 serde = {version = "1.0", features = ["rc"]}
 serde_derive = "1.0"
 smallvec = "1.6"
-smartstring = {version = "0.2", features = ["serde"]}
+smartstring = {version = "1", features = ["serde"]}
 strum = "0.21"
 strum_macros = "0.21"
 sys-info = "0.9"
