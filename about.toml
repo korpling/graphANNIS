@@ -9,6 +9,7 @@ accepted = [
   "ISC",
   "Zlib",
   "OpenSSL",
+  "Unicode-DFS-2016",
 ]
 
 workarounds = [
