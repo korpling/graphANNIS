@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Fixed
+
+- Update smartstring crate to version 1 to avoid issues with newer Rust
+  versions.
+
 ## [2.4.2] - 2022-12-22
 
 ### Fixed
