@@ -95,7 +95,7 @@ display_name = 'urml'
 visibility = 'hidden'
 ]]>
         </data>
-        <node id="rootCorpus/linked_file.txt">
+        <node id="linked_file.txt">
             <data key="k6">file</data>
             <data key="k11">linked_file.txt</data>
         </node>

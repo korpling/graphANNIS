@@ -903,6 +903,22 @@ fn import_relative_corpus_with_linked_file() {
         )
         .unwrap();
     assert_eq!("CorpusWithLinkedFile", &corpus_name);
+    // Check that the linked file was copied
+    let entry = cs.get_loaded_entry("CorpusWithLinkedFile", false).unwrap();
+    let lock = entry.read().unwrap();
+    let g: &AnnotationGraph = get_read_or_error(&lock).unwrap();
+
+    let files = cs.get_linked_files("CorpusWithLinkedFile", &g).unwrap();
+    let mut files = files.unwrap();
+    let first_file = files.next().unwrap().unwrap();
+    assert_eq!("linked_file.txt", first_file.0);
+    assert_eq!(
+        tmp.path()
+            .join("CorpusWithLinkedFile/files/linked_file.txt"),
+        first_file.1
+    );
+    let file_content = std::fs::read_to_string(first_file.1).unwrap();
+    assert_eq!("The content of this file is not important.", file_content);
 }
 
 #[test]
