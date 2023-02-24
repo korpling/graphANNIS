@@ -1,6 +1,7 @@
 extern crate log;
 extern crate tempfile;
 
+use same_file::is_same_file;
 use std::path::{Path, PathBuf};
 use std::vec;
 
@@ -912,11 +913,12 @@ fn import_relative_corpus_with_linked_file() {
     let mut files = files.unwrap();
     let first_file = files.next().unwrap().unwrap();
     assert_eq!("linked_file.txt", first_file.0);
-    assert_eq!(
+    assert!(is_same_file(
         tmp.path()
             .join("CorpusWithLinkedFile/files/linked_file.txt"),
-        first_file.1
-    );
+        &first_file.1
+    )
+    .unwrap());
     let file_content = std::fs::read_to_string(first_file.1).unwrap();
     assert_eq!("The content of this file is not important.", file_content);
 }

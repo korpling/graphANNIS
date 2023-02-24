@@ -57,6 +57,7 @@ zip = "0.6.4"
 [dev-dependencies]
 criterion = "0.4"
 fake = "2.2"
+same-file = "1.0.6"
 
 [[bench]]
 harness = false
