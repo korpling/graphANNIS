@@ -5,9 +5,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Importing a corpus with a relative path directly under the current working
+  directory would fail if the corpus has linked files.
+
 ## [2.4.3] - 2023-02-15
 
-## Fixed
+### Fixed
 
 - Update smartstring crate to version 1 to avoid issues with newer Rust
   versions.

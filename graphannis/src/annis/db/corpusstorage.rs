@@ -973,11 +973,11 @@ impl CorpusStorage {
         let current_dir = PathBuf::from(".");
         let files_dir = db_path.join("files");
         std::fs::create_dir_all(&files_dir)?;
-        self.copy_linked_files_and_update_references(
-            path.parent().unwrap_or(&current_dir),
-            &files_dir,
-            &mut graph,
-        )?;
+        let old_base_path = path
+            .parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .unwrap_or(&current_dir);
+        self.copy_linked_files_and_update_references(old_base_path, &files_dir, &mut graph)?;
 
         // save to its location
         info!("saving corpus {} to disk", corpus_name);
@@ -1024,6 +1024,7 @@ impl CorpusStorage {
             ns: ANNIS_NS.into(),
             name: "file".into(),
         };
+        let old_base_path = old_base_path.canonicalize()?;
         // Find all nodes of the type "file"
         let node_annos: &mut dyn AnnotationStorage<NodeID> = graph.get_node_annos_mut();
         let file_nodes: Result<Vec<_>> = node_annos
@@ -1034,13 +1035,16 @@ impl CorpusStorage {
         for node in file_nodes? {
             // Get the linked file for this node
             if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key)? {
-                let original_path = old_base_path
-                    .canonicalize()?
-                    .join(&PathBuf::from(original_path.as_ref()));
+                let original_path = old_base_path.join(&PathBuf::from(original_path.as_ref()));
                 if original_path.is_file() {
                     if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY)? {
                         // Create a new file name based on the node name and copy the file
                         let new_path = new_base_path.join(node_name.as_ref());
+                        debug!(
+                            "Copying file from {} to {}",
+                            original_path.as_path().to_string_lossy(),
+                            new_path.to_string_lossy()
+                        );
                         if let Some(parent) = new_path.parent() {
                             std::fs::create_dir_all(parent)?;
                         }
