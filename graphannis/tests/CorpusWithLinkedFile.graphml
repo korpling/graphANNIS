@@ -1,0 +1,2283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml>
+    <key id="k0" for="graph" attr.name="configuration" attr.type="string" />
+    <key id="k1" for="node" attr.name="default_ns::Inf-Struct" attr.type="string" />
+    <key id="k2" for="node" attr.name="default_ns::const" attr.type="string" />
+    <key id="k3" for="node" attr.name="annis::doc" attr.type="string" />
+    <key id="k4" for="node" attr.name="annis::layer" attr.type="string" />
+    <key id="k5" for="node" attr.name="salt::lemma" attr.type="string" />
+    <key id="k6" for="node" attr.name="annis::node_type" attr.type="string" />
+    <key id="k7" for="node" attr.name="salt::pos" attr.type="string" />
+    <key id="k8" for="node" attr.name="annis::relannis-version" attr.type="string" />
+    <key id="k9" for="node" attr.name="annis::tok" attr.type="string" />
+    <key id="k10" for="node" attr.name="annis::tok-whitespace-after" attr.type="string" />
+    <key id="k11" for="node" attr.name="annis::file" attr.type="string" />
+    <graph edgedefault="directed" parse.order="nodesfirst" parse.nodeids="free"
+        parse.edgeids="canonical">
+        <data key="k0">
+            <![CDATA[[context]
+default = 5
+sizes = [
+    0,
+    1,
+    2,
+    5,
+    10,
+]
+
+[view]
+page_size = 10
+
+[[visualizers]]
+vis_type = 'kwic'
+display_name = 'kwic'
+visibility = 'permanent'
+
+[[visualizers]]
+element = 'node'
+layer = 'default_ns'
+vis_type = 'grid'
+display_name = 'grid (default_ns)'
+visibility = 'hidden'
+
+[[visualizers]]
+element = 'node'
+layer = 'syntax'
+vis_type = 'tree'
+display_name = 'tree (syntax)'
+visibility = 'hidden'
+
+[visualizers.mappings]
+edge_type = 'null'
+node_anno_ns = 'default_ns'
+node_key = 'const'
+
+[[visualizers]]
+element = 'edge'
+layer = 'default_ns'
+vis_type = 'arch_dependency'
+display_name = 'anaphoric (default_ns)'
+visibility = 'hidden'
+
+[[visualizers]]
+element = 'node'
+layer = 'tiger'
+vis_type = 'tree'
+display_name = 'tree'
+visibility = 'hidden'
+
+[[visualizers]]
+element = 'node'
+layer = 'exmaralda'
+vis_type = 'grid'
+display_name = 'exmaralda'
+visibility = 'hidden'
+
+[[visualizers]]
+element = 'node'
+layer = 'mmax'
+vis_type = 'grid'
+display_name = 'mmax'
+visibility = 'hidden'
+
+[[visualizers]]
+element = 'edge'
+layer = 'mmax'
+vis_type = 'discourse'
+display_name = 'coref'
+visibility = 'hidden'
+
+[[visualizers]]
+element = 'node'
+layer = 'urml'
+vis_type = 'grid'
+display_name = 'urml'
+visibility = 'hidden'
+]]>
+        </data>
+        <node id="rootCorpus/linked_file.txt">
+            <data key="k6">file</data>
+            <data key="k11">linked_file.txt</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#sText1">
+            <data key="k6">datasource</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#sText1">
+            <data key="k6">datasource</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#sText1">
+            <data key="k6">datasource</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#sText1">
+            <data key="k6">datasource</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#IS_span1">
+            <data key="k6">node</data>
+            <data key="k4">default_ns</data>
+            <data key="k1">contrast-focus</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#sTok1">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">Is</data>
+            <data key="k5">be</data>
+            <data key="k7">VBZ</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#IS_span2">
+            <data key="k6">node</data>
+            <data key="k4">default_ns</data>
+            <data key="k1">topic</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#sTok2">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">this</data>
+            <data key="k5">this</data>
+            <data key="k7">DT</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#sTok3">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">example</data>
+            <data key="k5">example</data>
+            <data key="k7">NN</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#sTok4">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">more</data>
+            <data key="k5">more</data>
+            <data key="k7">RBR</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#sTok5">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">complicated</data>
+            <data key="k5">complicated</data>
+            <data key="k7">JJ</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#sTok6">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">than</data>
+            <data key="k5">than</data>
+            <data key="k7">IN</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#sTok7">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">it</data>
+            <data key="k5">it</data>
+            <data key="k7">PRP</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#sTok8">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">appears</data>
+            <data key="k5">appear</data>
+            <data key="k7">VBZ</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#sTok9">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">to</data>
+            <data key="k5">to</data>
+            <data key="k7">TO</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#sTok10">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">be</data>
+            <data key="k5">be</data>
+            <data key="k7">VB</data>
+            <data key="k10"></data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#sTok11">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">?</data>
+            <data key="k5">?</data>
+            <data key="k7">.</data>
+            <data key="k10"></data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#sSpan3">
+            <data key="k6">node</data>
+            <data key="k4">default_ns</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#sTok7">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">it</data>
+            <data key="k5">it</data>
+            <data key="k7">PRP</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#sSpan3">
+            <data key="k6">node</data>
+            <data key="k4">default_ns</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#IS_span1">
+            <data key="k6">node</data>
+            <data key="k4">default_ns</data>
+            <data key="k1">contrast-focus</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#sTok1">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">Is</data>
+            <data key="k5">be</data>
+            <data key="k7">VBZ</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#IS_span2">
+            <data key="k6">node</data>
+            <data key="k4">default_ns</data>
+            <data key="k1">topic</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#sTok2">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">this</data>
+            <data key="k5">this</data>
+            <data key="k7">DT</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#sTok3">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">example</data>
+            <data key="k5">example</data>
+            <data key="k7">NN</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#sTok4">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">more</data>
+            <data key="k5">more</data>
+            <data key="k7">RBR</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#sTok5">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">complicated</data>
+            <data key="k5">complicated</data>
+            <data key="k7">JJ</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#sTok6">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">than</data>
+            <data key="k5">than</data>
+            <data key="k7">IN</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#sTok8">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">appears</data>
+            <data key="k5">appear</data>
+            <data key="k7">VBZ</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#sTok9">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">to</data>
+            <data key="k5">to</data>
+            <data key="k7">TO</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#sTok10">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">be</data>
+            <data key="k5">be</data>
+            <data key="k7">VB</data>
+            <data key="k10"></data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#sTok11">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">?</data>
+            <data key="k5">?</data>
+            <data key="k7">.</data>
+            <data key="k10"></data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#sTok7">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">it</data>
+            <data key="k5">it</data>
+            <data key="k7">PRP</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#sSpan3">
+            <data key="k6">node</data>
+            <data key="k4">default_ns</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#structure1">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">ROOT</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#structure2">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">SQ</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#structure3">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">NP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#structure4">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">ADJP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#structure5">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">ADJP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#structure6">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">SBar</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#structure7">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">S</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#structure8">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">NP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#structure9">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">VP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#structure10">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">S</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#structure11">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">VP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3#structure12">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">VP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#sTok7">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">it</data>
+            <data key="k5">it</data>
+            <data key="k7">PRP</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#sSpan3">
+            <data key="k6">node</data>
+            <data key="k4">default_ns</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#structure1">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">ROOT</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#structure2">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">SQ</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#structure3">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">NP</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#structure4">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">ADJP</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#structure5">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">ADJP</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#structure6">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">SBar</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#structure7">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">S</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#structure8">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">NP</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#structure9">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">VP</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#structure10">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">S</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#structure11">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">VP</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2#structure12">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">VP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#IS_span1">
+            <data key="k6">node</data>
+            <data key="k4">default_ns</data>
+            <data key="k1">contrast-focus</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#sTok1">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">Is</data>
+            <data key="k5">be</data>
+            <data key="k7">VBZ</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#IS_span2">
+            <data key="k6">node</data>
+            <data key="k4">default_ns</data>
+            <data key="k1">topic</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#sTok2">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">this</data>
+            <data key="k5">this</data>
+            <data key="k7">DT</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#sTok3">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">example</data>
+            <data key="k5">example</data>
+            <data key="k7">NN</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#sTok4">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">more</data>
+            <data key="k5">more</data>
+            <data key="k7">RBR</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#sTok5">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">complicated</data>
+            <data key="k5">complicated</data>
+            <data key="k7">JJ</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#sTok6">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">than</data>
+            <data key="k5">than</data>
+            <data key="k7">IN</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#sTok8">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">appears</data>
+            <data key="k5">appear</data>
+            <data key="k7">VBZ</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#sTok9">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">to</data>
+            <data key="k5">to</data>
+            <data key="k7">TO</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#sTok10">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">be</data>
+            <data key="k5">be</data>
+            <data key="k7">VB</data>
+            <data key="k10"></data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#sTok11">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">?</data>
+            <data key="k5">?</data>
+            <data key="k7">.</data>
+            <data key="k10"></data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#IS_span1">
+            <data key="k6">node</data>
+            <data key="k4">default_ns</data>
+            <data key="k1">contrast-focus</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#sTok1">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">Is</data>
+            <data key="k5">be</data>
+            <data key="k7">VBZ</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#IS_span2">
+            <data key="k6">node</data>
+            <data key="k4">default_ns</data>
+            <data key="k1">topic</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#sTok2">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">this</data>
+            <data key="k5">this</data>
+            <data key="k7">DT</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#sTok4">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">more</data>
+            <data key="k5">more</data>
+            <data key="k7">RBR</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#sTok5">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">complicated</data>
+            <data key="k5">complication</data>
+            <data key="k7">NN</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#sTok6">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">than</data>
+            <data key="k5">than</data>
+            <data key="k7">IN</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#sTok8">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">appears</data>
+            <data key="k5">appear</data>
+            <data key="k7">VBZ</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#sTok9">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">to</data>
+            <data key="k5">to</data>
+            <data key="k7">TO</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#sTok10">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">be</data>
+            <data key="k5">be</data>
+            <data key="k7">VB</data>
+            <data key="k10"></data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#sTok11">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">?</data>
+            <data key="k5">?</data>
+            <data key="k7">.</data>
+            <data key="k10"></data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#structure1">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">ROOT</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#structure2">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">SQ</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#structure3">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">NP</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#sTok3">
+            <data key="k6">node</data>
+            <data key="k4">morphology</data>
+            <data key="k9">example</data>
+            <data key="k5">example</data>
+            <data key="k7">NN</data>
+            <data key="k10"> </data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#structure4">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">ADJP</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#structure5">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">ADJP</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#structure6">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">SBar</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#structure7">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">S</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#structure8">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">NP</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#structure9">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">VP</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#structure10">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">S</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#structure11">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">VP</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1#structure12">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">VP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#structure1">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">ROOT</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#structure2">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">SQ</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#structure3">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">NP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#structure4">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">ADJP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#structure5">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">ADJP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#structure6">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">SBar</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#structure7">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">S</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#structure8">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">NP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#structure9">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">VP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#structure10">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">S</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#structure11">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">VP</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4#structure12">
+            <data key="k6">node</data>
+            <data key="k4">syntax</data>
+            <data key="k2">VP</data>
+        </node>
+        <node id="rootCorpus">
+            <data key="k6">corpus</data>
+            <data key="k8">3.3</data>
+        </node>
+        <node id="rootCorpus/subCorpus1">
+            <data key="k6">corpus</data>
+            <data key="k3">subCorpus1</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc1">
+            <data key="k6">corpus</data>
+            <data key="k3">doc1</data>
+        </node>
+        <node id="rootCorpus/subCorpus1/doc2">
+            <data key="k6">corpus</data>
+            <data key="k3">doc2</data>
+        </node>
+        <node id="rootCorpus/subCorpus2">
+            <data key="k6">corpus</data>
+            <data key="k3">subCorpus2</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc3">
+            <data key="k6">corpus</data>
+            <data key="k3">doc3</data>
+        </node>
+        <node id="rootCorpus/subCorpus2/doc4">
+            <data key="k6">corpus</data>
+            <data key="k3">doc4</data>
+        </node>
+        <edge id="e0" source="rootCorpus/subCorpus1/doc2#structure12"
+            target="rootCorpus/subCorpus1/doc2#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e1" source="rootCorpus/subCorpus1/doc2#structure9"
+            target="rootCorpus/subCorpus1/doc2#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e2" source="rootCorpus/subCorpus1/doc2#structure9"
+            target="rootCorpus/subCorpus1/doc2#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e3" source="rootCorpus/subCorpus1/doc2#structure9"
+            target="rootCorpus/subCorpus1/doc2#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e4" source="rootCorpus/subCorpus1/doc2#structure6"
+            target="rootCorpus/subCorpus1/doc2#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e5" source="rootCorpus/subCorpus1/doc2#structure6"
+            target="rootCorpus/subCorpus1/doc2#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e6" source="rootCorpus/subCorpus1/doc2#structure6"
+            target="rootCorpus/subCorpus1/doc2#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e7" source="rootCorpus/subCorpus1/doc2#structure6"
+            target="rootCorpus/subCorpus1/doc2#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e8" source="rootCorpus/subCorpus1/doc2#structure6"
+            target="rootCorpus/subCorpus1/doc2#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e9" source="rootCorpus/subCorpus1/doc2#structure3"
+            target="rootCorpus/subCorpus1/doc2#sTok2" label="Coverage//">
+        </edge>
+        <edge id="e10" source="rootCorpus/subCorpus1/doc2#structure3"
+            target="rootCorpus/subCorpus1/doc2#sTok3" label="Coverage//">
+        </edge>
+        <edge id="e11" source="rootCorpus/subCorpus2/doc3#structure11"
+            target="rootCorpus/subCorpus2/doc3#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e12" source="rootCorpus/subCorpus2/doc3#structure11"
+            target="rootCorpus/subCorpus2/doc3#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e13" source="rootCorpus/subCorpus2/doc3#structure8"
+            target="rootCorpus/subCorpus2/doc3#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e14" source="rootCorpus/subCorpus2/doc3#structure5"
+            target="rootCorpus/subCorpus2/doc3#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e15" source="rootCorpus/subCorpus2/doc3#structure5"
+            target="rootCorpus/subCorpus2/doc3#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e16" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e17" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#sTok1" label="Coverage//">
+        </edge>
+        <edge id="e18" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#sTok2" label="Coverage//">
+        </edge>
+        <edge id="e19" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#sTok3" label="Coverage//">
+        </edge>
+        <edge id="e20" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e21" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e22" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e23" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e24" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e25" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e26" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e27" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#sTok1" label="Coverage//">
+        </edge>
+        <edge id="e28" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#sTok2" label="Coverage//">
+        </edge>
+        <edge id="e29" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#sTok3" label="Coverage//">
+        </edge>
+        <edge id="e30" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e31" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e32" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e33" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e34" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e35" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e36" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#sTok11" label="Coverage//">
+        </edge>
+        <edge id="e37" source="rootCorpus/subCorpus2/doc4#structure4"
+            target="rootCorpus/subCorpus2/doc4#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e38" source="rootCorpus/subCorpus2/doc4#structure4"
+            target="rootCorpus/subCorpus2/doc4#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e39" source="rootCorpus/subCorpus2/doc4#structure4"
+            target="rootCorpus/subCorpus2/doc4#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e40" source="rootCorpus/subCorpus2/doc4#structure4"
+            target="rootCorpus/subCorpus2/doc4#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e41" source="rootCorpus/subCorpus2/doc4#structure4"
+            target="rootCorpus/subCorpus2/doc4#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e42" source="rootCorpus/subCorpus2/doc4#structure4"
+            target="rootCorpus/subCorpus2/doc4#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e43" source="rootCorpus/subCorpus2/doc4#structure4"
+            target="rootCorpus/subCorpus2/doc4#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e44" source="rootCorpus/subCorpus2/doc4#structure7"
+            target="rootCorpus/subCorpus2/doc4#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e45" source="rootCorpus/subCorpus2/doc4#structure7"
+            target="rootCorpus/subCorpus2/doc4#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e46" source="rootCorpus/subCorpus2/doc4#structure7"
+            target="rootCorpus/subCorpus2/doc4#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e47" source="rootCorpus/subCorpus2/doc4#structure7"
+            target="rootCorpus/subCorpus2/doc4#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e48" source="rootCorpus/subCorpus1/doc1#structure4"
+            target="rootCorpus/subCorpus1/doc1#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e49" source="rootCorpus/subCorpus1/doc1#structure4"
+            target="rootCorpus/subCorpus1/doc1#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e50" source="rootCorpus/subCorpus1/doc1#structure4"
+            target="rootCorpus/subCorpus1/doc1#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e51" source="rootCorpus/subCorpus1/doc1#structure4"
+            target="rootCorpus/subCorpus1/doc1#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e52" source="rootCorpus/subCorpus1/doc1#structure4"
+            target="rootCorpus/subCorpus1/doc1#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e53" source="rootCorpus/subCorpus1/doc1#structure4"
+            target="rootCorpus/subCorpus1/doc1#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e54" source="rootCorpus/subCorpus1/doc1#structure4"
+            target="rootCorpus/subCorpus1/doc1#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e55" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e56" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#sTok1" label="Coverage//">
+        </edge>
+        <edge id="e57" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#sTok2" label="Coverage//">
+        </edge>
+        <edge id="e58" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e59" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e60" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e61" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e62" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e63" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e64" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#sTok3" label="Coverage//">
+        </edge>
+        <edge id="e65" source="rootCorpus/subCorpus1/doc1#structure7"
+            target="rootCorpus/subCorpus1/doc1#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e66" source="rootCorpus/subCorpus1/doc1#structure7"
+            target="rootCorpus/subCorpus1/doc1#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e67" source="rootCorpus/subCorpus1/doc1#structure7"
+            target="rootCorpus/subCorpus1/doc1#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e68" source="rootCorpus/subCorpus1/doc1#structure7"
+            target="rootCorpus/subCorpus1/doc1#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e69" source="rootCorpus/subCorpus2/doc4#structure10"
+            target="rootCorpus/subCorpus2/doc4#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e70" source="rootCorpus/subCorpus2/doc4#structure10"
+            target="rootCorpus/subCorpus2/doc4#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e71" source="rootCorpus/subCorpus1/doc1#structure10"
+            target="rootCorpus/subCorpus1/doc1#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e72" source="rootCorpus/subCorpus1/doc1#structure10"
+            target="rootCorpus/subCorpus1/doc1#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e73" source="rootCorpus/subCorpus1/doc2#structure10"
+            target="rootCorpus/subCorpus1/doc2#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e74" source="rootCorpus/subCorpus1/doc2#structure10"
+            target="rootCorpus/subCorpus1/doc2#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e75" source="rootCorpus/subCorpus1/doc2#structure7"
+            target="rootCorpus/subCorpus1/doc2#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e76" source="rootCorpus/subCorpus1/doc2#structure7"
+            target="rootCorpus/subCorpus1/doc2#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e77" source="rootCorpus/subCorpus1/doc2#structure7"
+            target="rootCorpus/subCorpus1/doc2#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e78" source="rootCorpus/subCorpus1/doc2#structure7"
+            target="rootCorpus/subCorpus1/doc2#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e79" source="rootCorpus/subCorpus1/doc2#structure4"
+            target="rootCorpus/subCorpus1/doc2#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e80" source="rootCorpus/subCorpus1/doc2#structure4"
+            target="rootCorpus/subCorpus1/doc2#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e81" source="rootCorpus/subCorpus1/doc2#structure4"
+            target="rootCorpus/subCorpus1/doc2#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e82" source="rootCorpus/subCorpus1/doc2#structure4"
+            target="rootCorpus/subCorpus1/doc2#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e83" source="rootCorpus/subCorpus1/doc2#structure4"
+            target="rootCorpus/subCorpus1/doc2#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e84" source="rootCorpus/subCorpus1/doc2#structure4"
+            target="rootCorpus/subCorpus1/doc2#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e85" source="rootCorpus/subCorpus1/doc2#structure4"
+            target="rootCorpus/subCorpus1/doc2#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e86" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#sTok1" label="Coverage//">
+        </edge>
+        <edge id="e87" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#sTok2" label="Coverage//">
+        </edge>
+        <edge id="e88" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#sTok3" label="Coverage//">
+        </edge>
+        <edge id="e89" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e90" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e91" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e92" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e93" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e94" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e95" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e96" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#sTok11" label="Coverage//">
+        </edge>
+        <edge id="e97" source="rootCorpus/subCorpus2/doc3#structure12"
+            target="rootCorpus/subCorpus2/doc3#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e98" source="rootCorpus/subCorpus2/doc3#structure9"
+            target="rootCorpus/subCorpus2/doc3#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e99" source="rootCorpus/subCorpus2/doc3#structure9"
+            target="rootCorpus/subCorpus2/doc3#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e100" source="rootCorpus/subCorpus2/doc3#structure9"
+            target="rootCorpus/subCorpus2/doc3#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e101" source="rootCorpus/subCorpus2/doc3#structure6"
+            target="rootCorpus/subCorpus2/doc3#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e102" source="rootCorpus/subCorpus2/doc3#structure6"
+            target="rootCorpus/subCorpus2/doc3#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e103" source="rootCorpus/subCorpus2/doc3#structure6"
+            target="rootCorpus/subCorpus2/doc3#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e104" source="rootCorpus/subCorpus2/doc3#structure6"
+            target="rootCorpus/subCorpus2/doc3#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e105" source="rootCorpus/subCorpus2/doc3#structure6"
+            target="rootCorpus/subCorpus2/doc3#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e106" source="rootCorpus/subCorpus2/doc3#structure3"
+            target="rootCorpus/subCorpus2/doc3#sTok2" label="Coverage//">
+        </edge>
+        <edge id="e107" source="rootCorpus/subCorpus2/doc3#structure3"
+            target="rootCorpus/subCorpus2/doc3#sTok3" label="Coverage//">
+        </edge>
+        <edge id="e108" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e109" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#sTok1" label="Coverage//">
+        </edge>
+        <edge id="e110" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#sTok2" label="Coverage//">
+        </edge>
+        <edge id="e111" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#sTok3" label="Coverage//">
+        </edge>
+        <edge id="e112" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e113" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e114" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e115" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e116" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e117" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e118" source="rootCorpus/subCorpus2/doc4#structure5"
+            target="rootCorpus/subCorpus2/doc4#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e119" source="rootCorpus/subCorpus2/doc4#structure5"
+            target="rootCorpus/subCorpus2/doc4#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e120" source="rootCorpus/subCorpus2/doc4#structure8"
+            target="rootCorpus/subCorpus2/doc4#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e121" source="rootCorpus/subCorpus1/doc1#structure5"
+            target="rootCorpus/subCorpus1/doc1#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e122" source="rootCorpus/subCorpus1/doc1#structure5"
+            target="rootCorpus/subCorpus1/doc1#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e123" source="rootCorpus/subCorpus1/doc1#structure3"
+            target="rootCorpus/subCorpus1/doc1#sTok2" label="Coverage//">
+        </edge>
+        <edge id="e124" source="rootCorpus/subCorpus1/doc1#structure3"
+            target="rootCorpus/subCorpus1/doc1#sTok3" label="Coverage//">
+        </edge>
+        <edge id="e125" source="rootCorpus/subCorpus1/doc1#structure8"
+            target="rootCorpus/subCorpus1/doc1#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e126" source="rootCorpus/subCorpus2/doc4#structure11"
+            target="rootCorpus/subCorpus2/doc4#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e127" source="rootCorpus/subCorpus2/doc4#structure11"
+            target="rootCorpus/subCorpus2/doc4#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e128" source="rootCorpus/subCorpus1/doc1#structure11"
+            target="rootCorpus/subCorpus1/doc1#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e129" source="rootCorpus/subCorpus1/doc1#structure11"
+            target="rootCorpus/subCorpus1/doc1#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e130" source="rootCorpus/subCorpus1/doc2#structure11"
+            target="rootCorpus/subCorpus1/doc2#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e131" source="rootCorpus/subCorpus1/doc2#structure11"
+            target="rootCorpus/subCorpus1/doc2#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e132" source="rootCorpus/subCorpus1/doc2#structure8"
+            target="rootCorpus/subCorpus1/doc2#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e133" source="rootCorpus/subCorpus1/doc2#structure5"
+            target="rootCorpus/subCorpus1/doc2#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e134" source="rootCorpus/subCorpus1/doc2#structure5"
+            target="rootCorpus/subCorpus1/doc2#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e135" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#sTok1" label="Coverage//">
+        </edge>
+        <edge id="e136" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#sTok2" label="Coverage//">
+        </edge>
+        <edge id="e137" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#sTok3" label="Coverage//">
+        </edge>
+        <edge id="e138" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e139" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e140" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e141" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e142" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e143" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e144" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e145" source="rootCorpus/subCorpus2/doc3#structure10"
+            target="rootCorpus/subCorpus2/doc3#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e146" source="rootCorpus/subCorpus2/doc3#structure10"
+            target="rootCorpus/subCorpus2/doc3#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e147" source="rootCorpus/subCorpus2/doc3#structure7"
+            target="rootCorpus/subCorpus2/doc3#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e148" source="rootCorpus/subCorpus2/doc3#structure7"
+            target="rootCorpus/subCorpus2/doc3#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e149" source="rootCorpus/subCorpus2/doc3#structure7"
+            target="rootCorpus/subCorpus2/doc3#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e150" source="rootCorpus/subCorpus2/doc3#structure7"
+            target="rootCorpus/subCorpus2/doc3#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e151" source="rootCorpus/subCorpus2/doc3#structure4"
+            target="rootCorpus/subCorpus2/doc3#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e152" source="rootCorpus/subCorpus2/doc3#structure4"
+            target="rootCorpus/subCorpus2/doc3#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e153" source="rootCorpus/subCorpus2/doc3#structure4"
+            target="rootCorpus/subCorpus2/doc3#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e154" source="rootCorpus/subCorpus2/doc3#structure4"
+            target="rootCorpus/subCorpus2/doc3#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e155" source="rootCorpus/subCorpus2/doc3#structure4"
+            target="rootCorpus/subCorpus2/doc3#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e156" source="rootCorpus/subCorpus2/doc3#structure4"
+            target="rootCorpus/subCorpus2/doc3#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e157" source="rootCorpus/subCorpus2/doc3#structure4"
+            target="rootCorpus/subCorpus2/doc3#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e158" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e159" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#sTok1" label="Coverage//">
+        </edge>
+        <edge id="e160" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#sTok2" label="Coverage//">
+        </edge>
+        <edge id="e161" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#sTok3" label="Coverage//">
+        </edge>
+        <edge id="e162" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e163" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e164" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e165" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e166" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e167" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e168" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#sTok11" label="Coverage//">
+        </edge>
+        <edge id="e169" source="rootCorpus/subCorpus2/doc4#structure3"
+            target="rootCorpus/subCorpus2/doc4#sTok2" label="Coverage//">
+        </edge>
+        <edge id="e170" source="rootCorpus/subCorpus2/doc4#structure3"
+            target="rootCorpus/subCorpus2/doc4#sTok3" label="Coverage//">
+        </edge>
+        <edge id="e171" source="rootCorpus/subCorpus2/doc4#structure6"
+            target="rootCorpus/subCorpus2/doc4#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e172" source="rootCorpus/subCorpus2/doc4#structure6"
+            target="rootCorpus/subCorpus2/doc4#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e173" source="rootCorpus/subCorpus2/doc4#structure6"
+            target="rootCorpus/subCorpus2/doc4#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e174" source="rootCorpus/subCorpus2/doc4#structure6"
+            target="rootCorpus/subCorpus2/doc4#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e175" source="rootCorpus/subCorpus2/doc4#structure6"
+            target="rootCorpus/subCorpus2/doc4#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e176" source="rootCorpus/subCorpus1/doc1#structure6"
+            target="rootCorpus/subCorpus1/doc1#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e177" source="rootCorpus/subCorpus1/doc1#structure6"
+            target="rootCorpus/subCorpus1/doc1#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e178" source="rootCorpus/subCorpus1/doc1#structure6"
+            target="rootCorpus/subCorpus1/doc1#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e179" source="rootCorpus/subCorpus1/doc1#structure6"
+            target="rootCorpus/subCorpus1/doc1#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e180" source="rootCorpus/subCorpus1/doc1#structure6"
+            target="rootCorpus/subCorpus1/doc1#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e181" source="rootCorpus/subCorpus2/doc4#structure9"
+            target="rootCorpus/subCorpus2/doc4#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e182" source="rootCorpus/subCorpus2/doc4#structure9"
+            target="rootCorpus/subCorpus2/doc4#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e183" source="rootCorpus/subCorpus2/doc4#structure9"
+            target="rootCorpus/subCorpus2/doc4#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e184" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#sTok7" label="Coverage//">
+        </edge>
+        <edge id="e185" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#sTok1" label="Coverage//">
+        </edge>
+        <edge id="e186" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#sTok2" label="Coverage//">
+        </edge>
+        <edge id="e187" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#sTok4" label="Coverage//">
+        </edge>
+        <edge id="e188" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#sTok5" label="Coverage//">
+        </edge>
+        <edge id="e189" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#sTok6" label="Coverage//">
+        </edge>
+        <edge id="e190" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e191" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e192" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e193" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#sTok11" label="Coverage//">
+        </edge>
+        <edge id="e194" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#sTok3" label="Coverage//">
+        </edge>
+        <edge id="e195" source="rootCorpus/subCorpus1/doc1#structure9"
+            target="rootCorpus/subCorpus1/doc1#sTok8" label="Coverage//">
+        </edge>
+        <edge id="e196" source="rootCorpus/subCorpus1/doc1#structure9"
+            target="rootCorpus/subCorpus1/doc1#sTok9" label="Coverage//">
+        </edge>
+        <edge id="e197" source="rootCorpus/subCorpus1/doc1#structure9"
+            target="rootCorpus/subCorpus1/doc1#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e198" source="rootCorpus/subCorpus1/doc1#structure12"
+            target="rootCorpus/subCorpus1/doc1#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e199" source="rootCorpus/subCorpus2/doc4#structure12"
+            target="rootCorpus/subCorpus2/doc4#sTok10" label="Coverage//">
+        </edge>
+        <edge id="e200" source="rootCorpus/subCorpus1/doc2#IS_span1"
+            target="rootCorpus/subCorpus1/doc2#sTok1" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e201" source="rootCorpus/subCorpus1/doc2#sSpan3"
+            target="rootCorpus/subCorpus1/doc2#sTok2" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e202" source="rootCorpus/subCorpus1/doc2#sSpan3"
+            target="rootCorpus/subCorpus1/doc2#sTok3" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e203" source="rootCorpus/subCorpus2/doc3#IS_span1"
+            target="rootCorpus/subCorpus2/doc3#sTok1" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e204" source="rootCorpus/subCorpus1/doc1#sSpan3"
+            target="rootCorpus/subCorpus1/doc1#sTok2" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e205" source="rootCorpus/subCorpus1/doc1#sSpan3"
+            target="rootCorpus/subCorpus1/doc1#sTok3" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e206" source="rootCorpus/subCorpus1/doc1#IS_span1"
+            target="rootCorpus/subCorpus1/doc1#sTok1" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e207" source="rootCorpus/subCorpus2/doc4#IS_span2"
+            target="rootCorpus/subCorpus2/doc4#sTok7" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e208" source="rootCorpus/subCorpus2/doc4#IS_span2"
+            target="rootCorpus/subCorpus2/doc4#sTok2" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e209" source="rootCorpus/subCorpus2/doc4#IS_span2"
+            target="rootCorpus/subCorpus2/doc4#sTok3" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e210" source="rootCorpus/subCorpus2/doc4#IS_span2"
+            target="rootCorpus/subCorpus2/doc4#sTok4" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e211" source="rootCorpus/subCorpus2/doc4#IS_span2"
+            target="rootCorpus/subCorpus2/doc4#sTok5" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e212" source="rootCorpus/subCorpus2/doc4#IS_span2"
+            target="rootCorpus/subCorpus2/doc4#sTok6" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e213" source="rootCorpus/subCorpus2/doc4#IS_span2"
+            target="rootCorpus/subCorpus2/doc4#sTok8" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e214" source="rootCorpus/subCorpus2/doc4#IS_span2"
+            target="rootCorpus/subCorpus2/doc4#sTok9" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e215" source="rootCorpus/subCorpus2/doc4#IS_span2"
+            target="rootCorpus/subCorpus2/doc4#sTok10" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e216" source="rootCorpus/subCorpus2/doc4#IS_span2"
+            target="rootCorpus/subCorpus2/doc4#sTok11" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e217" source="rootCorpus/subCorpus2/doc4#sSpan3"
+            target="rootCorpus/subCorpus2/doc4#sTok2" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e218" source="rootCorpus/subCorpus2/doc4#sSpan3"
+            target="rootCorpus/subCorpus2/doc4#sTok3" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e219" source="rootCorpus/subCorpus2/doc4#IS_span1"
+            target="rootCorpus/subCorpus2/doc4#sTok1" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e220" source="rootCorpus/subCorpus1/doc2#IS_span2"
+            target="rootCorpus/subCorpus1/doc2#sTok2" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e221" source="rootCorpus/subCorpus1/doc2#IS_span2"
+            target="rootCorpus/subCorpus1/doc2#sTok3" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e222" source="rootCorpus/subCorpus1/doc2#IS_span2"
+            target="rootCorpus/subCorpus1/doc2#sTok4" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e223" source="rootCorpus/subCorpus1/doc2#IS_span2"
+            target="rootCorpus/subCorpus1/doc2#sTok5" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e224" source="rootCorpus/subCorpus1/doc2#IS_span2"
+            target="rootCorpus/subCorpus1/doc2#sTok6" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e225" source="rootCorpus/subCorpus1/doc2#IS_span2"
+            target="rootCorpus/subCorpus1/doc2#sTok7" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e226" source="rootCorpus/subCorpus1/doc2#IS_span2"
+            target="rootCorpus/subCorpus1/doc2#sTok8" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e227" source="rootCorpus/subCorpus1/doc2#IS_span2"
+            target="rootCorpus/subCorpus1/doc2#sTok9" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e228" source="rootCorpus/subCorpus1/doc2#IS_span2"
+            target="rootCorpus/subCorpus1/doc2#sTok10" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e229" source="rootCorpus/subCorpus1/doc2#IS_span2"
+            target="rootCorpus/subCorpus1/doc2#sTok11" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e230" source="rootCorpus/subCorpus2/doc3#IS_span2"
+            target="rootCorpus/subCorpus2/doc3#sTok7" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e231" source="rootCorpus/subCorpus2/doc3#IS_span2"
+            target="rootCorpus/subCorpus2/doc3#sTok2" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e232" source="rootCorpus/subCorpus2/doc3#IS_span2"
+            target="rootCorpus/subCorpus2/doc3#sTok3" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e233" source="rootCorpus/subCorpus2/doc3#IS_span2"
+            target="rootCorpus/subCorpus2/doc3#sTok4" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e234" source="rootCorpus/subCorpus2/doc3#IS_span2"
+            target="rootCorpus/subCorpus2/doc3#sTok5" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e235" source="rootCorpus/subCorpus2/doc3#IS_span2"
+            target="rootCorpus/subCorpus2/doc3#sTok6" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e236" source="rootCorpus/subCorpus2/doc3#IS_span2"
+            target="rootCorpus/subCorpus2/doc3#sTok8" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e237" source="rootCorpus/subCorpus2/doc3#IS_span2"
+            target="rootCorpus/subCorpus2/doc3#sTok9" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e238" source="rootCorpus/subCorpus2/doc3#IS_span2"
+            target="rootCorpus/subCorpus2/doc3#sTok10" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e239" source="rootCorpus/subCorpus2/doc3#IS_span2"
+            target="rootCorpus/subCorpus2/doc3#sTok11" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e240" source="rootCorpus/subCorpus2/doc3#sSpan3"
+            target="rootCorpus/subCorpus2/doc3#sTok2" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e241" source="rootCorpus/subCorpus2/doc3#sSpan3"
+            target="rootCorpus/subCorpus2/doc3#sTok3" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e242" source="rootCorpus/subCorpus1/doc1#IS_span2"
+            target="rootCorpus/subCorpus1/doc1#sTok7" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e243" source="rootCorpus/subCorpus1/doc1#IS_span2"
+            target="rootCorpus/subCorpus1/doc1#sTok2" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e244" source="rootCorpus/subCorpus1/doc1#IS_span2"
+            target="rootCorpus/subCorpus1/doc1#sTok4" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e245" source="rootCorpus/subCorpus1/doc1#IS_span2"
+            target="rootCorpus/subCorpus1/doc1#sTok5" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e246" source="rootCorpus/subCorpus1/doc1#IS_span2"
+            target="rootCorpus/subCorpus1/doc1#sTok6" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e247" source="rootCorpus/subCorpus1/doc1#IS_span2"
+            target="rootCorpus/subCorpus1/doc1#sTok8" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e248" source="rootCorpus/subCorpus1/doc1#IS_span2"
+            target="rootCorpus/subCorpus1/doc1#sTok9" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e249" source="rootCorpus/subCorpus1/doc1#IS_span2"
+            target="rootCorpus/subCorpus1/doc1#sTok10" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e250" source="rootCorpus/subCorpus1/doc1#IS_span2"
+            target="rootCorpus/subCorpus1/doc1#sTok11" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e251" source="rootCorpus/subCorpus1/doc1#IS_span2"
+            target="rootCorpus/subCorpus1/doc1#sTok3" label="Coverage/default_ns/">
+        </edge>
+        <edge id="e252" source="rootCorpus/subCorpus1/doc2#structure12"
+            target="rootCorpus/subCorpus1/doc2#sTok10" label="Dominance/syntax/">
+        </edge>
+        <edge id="e253" source="rootCorpus/subCorpus1/doc2#structure6"
+            target="rootCorpus/subCorpus1/doc2#structure7" label="Dominance/syntax/">
+        </edge>
+        <edge id="e254" source="rootCorpus/subCorpus1/doc2#structure6"
+            target="rootCorpus/subCorpus1/doc2#sTok6" label="Dominance/syntax/">
+        </edge>
+        <edge id="e255" source="rootCorpus/subCorpus2/doc3#structure8"
+            target="rootCorpus/subCorpus2/doc3#sTok7" label="Dominance/syntax/">
+        </edge>
+        <edge id="e256" source="rootCorpus/subCorpus2/doc4#structure7"
+            target="rootCorpus/subCorpus2/doc4#structure9" label="Dominance/syntax/">
+        </edge>
+        <edge id="e257" source="rootCorpus/subCorpus2/doc4#structure7"
+            target="rootCorpus/subCorpus2/doc4#structure8" label="Dominance/syntax/">
+        </edge>
+        <edge id="e258" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#structure4" label="Dominance/syntax/">
+        </edge>
+        <edge id="e259" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#structure3" label="Dominance/syntax/">
+        </edge>
+        <edge id="e260" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#sTok1" label="Dominance/syntax/">
+        </edge>
+        <edge id="e261" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#structure2" label="Dominance/syntax/">
+        </edge>
+        <edge id="e262" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#sTok11" label="Dominance/syntax/">
+        </edge>
+        <edge id="e263" source="rootCorpus/subCorpus1/doc1#structure7"
+            target="rootCorpus/subCorpus1/doc1#structure9" label="Dominance/syntax/">
+        </edge>
+        <edge id="e264" source="rootCorpus/subCorpus1/doc1#structure7"
+            target="rootCorpus/subCorpus1/doc1#structure8" label="Dominance/syntax/">
+        </edge>
+        <edge id="e265" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#structure4" label="Dominance/syntax/">
+        </edge>
+        <edge id="e266" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#structure3" label="Dominance/syntax/">
+        </edge>
+        <edge id="e267" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#sTok1" label="Dominance/syntax/">
+        </edge>
+        <edge id="e268" source="rootCorpus/subCorpus1/doc2#structure7"
+            target="rootCorpus/subCorpus1/doc2#structure9" label="Dominance/syntax/">
+        </edge>
+        <edge id="e269" source="rootCorpus/subCorpus1/doc2#structure7"
+            target="rootCorpus/subCorpus1/doc2#structure8" label="Dominance/syntax/">
+        </edge>
+        <edge id="e270" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#structure2" label="Dominance/syntax/">
+        </edge>
+        <edge id="e271" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#sTok11" label="Dominance/syntax/">
+        </edge>
+        <edge id="e272" source="rootCorpus/subCorpus2/doc3#structure9"
+            target="rootCorpus/subCorpus2/doc3#structure10" label="Dominance/syntax/">
+        </edge>
+        <edge id="e273" source="rootCorpus/subCorpus2/doc3#structure9"
+            target="rootCorpus/subCorpus2/doc3#sTok8" label="Dominance/syntax/">
+        </edge>
+        <edge id="e274" source="rootCorpus/subCorpus2/doc4#structure8"
+            target="rootCorpus/subCorpus2/doc4#sTok7" label="Dominance/syntax/">
+        </edge>
+        <edge id="e275" source="rootCorpus/subCorpus2/doc3#structure3"
+            target="rootCorpus/subCorpus2/doc3#sTok3" label="Dominance/syntax/">
+        </edge>
+        <edge id="e276" source="rootCorpus/subCorpus2/doc3#structure3"
+            target="rootCorpus/subCorpus2/doc3#sTok2" label="Dominance/syntax/">
+        </edge>
+        <edge id="e277" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#structure4" label="Dominance/syntax/">
+        </edge>
+        <edge id="e278" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#structure3" label="Dominance/syntax/">
+        </edge>
+        <edge id="e279" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#sTok1" label="Dominance/syntax/">
+        </edge>
+        <edge id="e280" source="rootCorpus/subCorpus1/doc1#structure8"
+            target="rootCorpus/subCorpus1/doc1#sTok7" label="Dominance/syntax/">
+        </edge>
+        <edge id="e281" source="rootCorpus/subCorpus1/doc1#structure3"
+            target="rootCorpus/subCorpus1/doc1#sTok3" label="Dominance/syntax/">
+        </edge>
+        <edge id="e282" source="rootCorpus/subCorpus1/doc1#structure3"
+            target="rootCorpus/subCorpus1/doc1#sTok2" label="Dominance/syntax/">
+        </edge>
+        <edge id="e283" source="rootCorpus/subCorpus1/doc2#structure8"
+            target="rootCorpus/subCorpus1/doc2#sTok7" label="Dominance/syntax/">
+        </edge>
+        <edge id="e284" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#structure4" label="Dominance/syntax/">
+        </edge>
+        <edge id="e285" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#structure3" label="Dominance/syntax/">
+        </edge>
+        <edge id="e286" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#sTok1" label="Dominance/syntax/">
+        </edge>
+        <edge id="e287" source="rootCorpus/subCorpus2/doc3#structure10"
+            target="rootCorpus/subCorpus2/doc3#structure11" label="Dominance/syntax/">
+        </edge>
+        <edge id="e288" source="rootCorpus/subCorpus2/doc4#structure9"
+            target="rootCorpus/subCorpus2/doc4#structure10" label="Dominance/syntax/">
+        </edge>
+        <edge id="e289" source="rootCorpus/subCorpus2/doc4#structure9"
+            target="rootCorpus/subCorpus2/doc4#sTok8" label="Dominance/syntax/">
+        </edge>
+        <edge id="e290" source="rootCorpus/subCorpus2/doc3#structure4"
+            target="rootCorpus/subCorpus2/doc3#structure6" label="Dominance/syntax/">
+        </edge>
+        <edge id="e291" source="rootCorpus/subCorpus2/doc3#structure4"
+            target="rootCorpus/subCorpus2/doc3#structure5" label="Dominance/syntax/">
+        </edge>
+        <edge id="e292" source="rootCorpus/subCorpus2/doc4#structure3"
+            target="rootCorpus/subCorpus2/doc4#sTok3" label="Dominance/syntax/">
+        </edge>
+        <edge id="e293" source="rootCorpus/subCorpus2/doc4#structure3"
+            target="rootCorpus/subCorpus2/doc4#sTok2" label="Dominance/syntax/">
+        </edge>
+        <edge id="e294" source="rootCorpus/subCorpus1/doc1#structure9"
+            target="rootCorpus/subCorpus1/doc1#structure10" label="Dominance/syntax/">
+        </edge>
+        <edge id="e295" source="rootCorpus/subCorpus1/doc1#structure9"
+            target="rootCorpus/subCorpus1/doc1#sTok8" label="Dominance/syntax/">
+        </edge>
+        <edge id="e296" source="rootCorpus/subCorpus1/doc2#structure9"
+            target="rootCorpus/subCorpus1/doc2#structure10" label="Dominance/syntax/">
+        </edge>
+        <edge id="e297" source="rootCorpus/subCorpus1/doc2#structure9"
+            target="rootCorpus/subCorpus1/doc2#sTok8" label="Dominance/syntax/">
+        </edge>
+        <edge id="e298" source="rootCorpus/subCorpus1/doc2#structure3"
+            target="rootCorpus/subCorpus1/doc2#sTok3" label="Dominance/syntax/">
+        </edge>
+        <edge id="e299" source="rootCorpus/subCorpus1/doc2#structure3"
+            target="rootCorpus/subCorpus1/doc2#sTok2" label="Dominance/syntax/">
+        </edge>
+        <edge id="e300" source="rootCorpus/subCorpus2/doc3#structure11"
+            target="rootCorpus/subCorpus2/doc3#structure12" label="Dominance/syntax/">
+        </edge>
+        <edge id="e301" source="rootCorpus/subCorpus2/doc3#structure11"
+            target="rootCorpus/subCorpus2/doc3#sTok9" label="Dominance/syntax/">
+        </edge>
+        <edge id="e302" source="rootCorpus/subCorpus2/doc4#structure10"
+            target="rootCorpus/subCorpus2/doc4#structure11" label="Dominance/syntax/">
+        </edge>
+        <edge id="e303" source="rootCorpus/subCorpus2/doc3#structure5"
+            target="rootCorpus/subCorpus2/doc3#sTok5" label="Dominance/syntax/">
+        </edge>
+        <edge id="e304" source="rootCorpus/subCorpus2/doc3#structure5"
+            target="rootCorpus/subCorpus2/doc3#sTok4" label="Dominance/syntax/">
+        </edge>
+        <edge id="e305" source="rootCorpus/subCorpus2/doc4#structure4"
+            target="rootCorpus/subCorpus2/doc4#structure6" label="Dominance/syntax/">
+        </edge>
+        <edge id="e306" source="rootCorpus/subCorpus2/doc4#structure4"
+            target="rootCorpus/subCorpus2/doc4#structure5" label="Dominance/syntax/">
+        </edge>
+        <edge id="e307" source="rootCorpus/subCorpus1/doc1#structure10"
+            target="rootCorpus/subCorpus1/doc1#structure11" label="Dominance/syntax/">
+        </edge>
+        <edge id="e308" source="rootCorpus/subCorpus1/doc1#structure4"
+            target="rootCorpus/subCorpus1/doc1#structure6" label="Dominance/syntax/">
+        </edge>
+        <edge id="e309" source="rootCorpus/subCorpus1/doc1#structure4"
+            target="rootCorpus/subCorpus1/doc1#structure5" label="Dominance/syntax/">
+        </edge>
+        <edge id="e310" source="rootCorpus/subCorpus1/doc2#structure10"
+            target="rootCorpus/subCorpus1/doc2#structure11" label="Dominance/syntax/">
+        </edge>
+        <edge id="e311" source="rootCorpus/subCorpus1/doc2#structure4"
+            target="rootCorpus/subCorpus1/doc2#structure6" label="Dominance/syntax/">
+        </edge>
+        <edge id="e312" source="rootCorpus/subCorpus1/doc2#structure4"
+            target="rootCorpus/subCorpus1/doc2#structure5" label="Dominance/syntax/">
+        </edge>
+        <edge id="e313" source="rootCorpus/subCorpus2/doc3#structure12"
+            target="rootCorpus/subCorpus2/doc3#sTok10" label="Dominance/syntax/">
+        </edge>
+        <edge id="e314" source="rootCorpus/subCorpus2/doc4#structure11"
+            target="rootCorpus/subCorpus2/doc4#structure12" label="Dominance/syntax/">
+        </edge>
+        <edge id="e315" source="rootCorpus/subCorpus2/doc4#structure11"
+            target="rootCorpus/subCorpus2/doc4#sTok9" label="Dominance/syntax/">
+        </edge>
+        <edge id="e316" source="rootCorpus/subCorpus2/doc3#structure6"
+            target="rootCorpus/subCorpus2/doc3#structure7" label="Dominance/syntax/">
+        </edge>
+        <edge id="e317" source="rootCorpus/subCorpus2/doc3#structure6"
+            target="rootCorpus/subCorpus2/doc3#sTok6" label="Dominance/syntax/">
+        </edge>
+        <edge id="e318" source="rootCorpus/subCorpus2/doc4#structure5"
+            target="rootCorpus/subCorpus2/doc4#sTok5" label="Dominance/syntax/">
+        </edge>
+        <edge id="e319" source="rootCorpus/subCorpus2/doc4#structure5"
+            target="rootCorpus/subCorpus2/doc4#sTok4" label="Dominance/syntax/">
+        </edge>
+        <edge id="e320" source="rootCorpus/subCorpus1/doc1#structure11"
+            target="rootCorpus/subCorpus1/doc1#structure12" label="Dominance/syntax/">
+        </edge>
+        <edge id="e321" source="rootCorpus/subCorpus1/doc1#structure11"
+            target="rootCorpus/subCorpus1/doc1#sTok9" label="Dominance/syntax/">
+        </edge>
+        <edge id="e322" source="rootCorpus/subCorpus1/doc1#structure5"
+            target="rootCorpus/subCorpus1/doc1#sTok5" label="Dominance/syntax/">
+        </edge>
+        <edge id="e323" source="rootCorpus/subCorpus1/doc1#structure5"
+            target="rootCorpus/subCorpus1/doc1#sTok4" label="Dominance/syntax/">
+        </edge>
+        <edge id="e324" source="rootCorpus/subCorpus1/doc2#structure11"
+            target="rootCorpus/subCorpus1/doc2#structure12" label="Dominance/syntax/">
+        </edge>
+        <edge id="e325" source="rootCorpus/subCorpus1/doc2#structure11"
+            target="rootCorpus/subCorpus1/doc2#sTok9" label="Dominance/syntax/">
+        </edge>
+        <edge id="e326" source="rootCorpus/subCorpus1/doc2#structure5"
+            target="rootCorpus/subCorpus1/doc2#sTok5" label="Dominance/syntax/">
+        </edge>
+        <edge id="e327" source="rootCorpus/subCorpus1/doc2#structure5"
+            target="rootCorpus/subCorpus1/doc2#sTok4" label="Dominance/syntax/">
+        </edge>
+        <edge id="e328" source="rootCorpus/subCorpus2/doc4#structure12"
+            target="rootCorpus/subCorpus2/doc4#sTok10" label="Dominance/syntax/">
+        </edge>
+        <edge id="e329" source="rootCorpus/subCorpus2/doc3#structure7"
+            target="rootCorpus/subCorpus2/doc3#structure9" label="Dominance/syntax/">
+        </edge>
+        <edge id="e330" source="rootCorpus/subCorpus2/doc3#structure7"
+            target="rootCorpus/subCorpus2/doc3#structure8" label="Dominance/syntax/">
+        </edge>
+        <edge id="e331" source="rootCorpus/subCorpus2/doc4#structure6"
+            target="rootCorpus/subCorpus2/doc4#structure7" label="Dominance/syntax/">
+        </edge>
+        <edge id="e332" source="rootCorpus/subCorpus2/doc4#structure6"
+            target="rootCorpus/subCorpus2/doc4#sTok6" label="Dominance/syntax/">
+        </edge>
+        <edge id="e333" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#structure2" label="Dominance/syntax/">
+        </edge>
+        <edge id="e334" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#sTok11" label="Dominance/syntax/">
+        </edge>
+        <edge id="e335" source="rootCorpus/subCorpus1/doc1#structure12"
+            target="rootCorpus/subCorpus1/doc1#sTok10" label="Dominance/syntax/">
+        </edge>
+        <edge id="e336" source="rootCorpus/subCorpus1/doc1#structure6"
+            target="rootCorpus/subCorpus1/doc1#structure7" label="Dominance/syntax/">
+        </edge>
+        <edge id="e337" source="rootCorpus/subCorpus1/doc1#structure6"
+            target="rootCorpus/subCorpus1/doc1#sTok6" label="Dominance/syntax/">
+        </edge>
+        <edge id="e338" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#structure2" label="Dominance/syntax/">
+        </edge>
+        <edge id="e339" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#sTok11" label="Dominance/syntax/">
+        </edge>
+        <edge id="e340" source="rootCorpus/subCorpus1/doc2#sTok7"
+            target="rootCorpus/subCorpus1/doc2#sSpan3" label="Pointing/default_ns/anaphoric">
+        </edge>
+        <edge id="e341" source="rootCorpus/subCorpus2/doc4#sTok7"
+            target="rootCorpus/subCorpus2/doc4#sSpan3" label="Pointing/default_ns/anaphoric">
+        </edge>
+        <edge id="e342" source="rootCorpus/subCorpus1/doc1#sTok7"
+            target="rootCorpus/subCorpus1/doc1#sSpan3" label="Pointing/default_ns/anaphoric">
+        </edge>
+        <edge id="e343" source="rootCorpus/subCorpus2/doc3#sTok7"
+            target="rootCorpus/subCorpus2/doc3#sSpan3" label="Pointing/default_ns/anaphoric">
+        </edge>
+        <edge id="e344" source="rootCorpus/subCorpus1/doc1#sTok10"
+            target="rootCorpus/subCorpus1/doc1#sTok11" label="Ordering/annis/">
+        </edge>
+        <edge id="e345" source="rootCorpus/subCorpus1/doc1#sTok9"
+            target="rootCorpus/subCorpus1/doc1#sTok10" label="Ordering/annis/">
+        </edge>
+        <edge id="e346" source="rootCorpus/subCorpus1/doc1#sTok8"
+            target="rootCorpus/subCorpus1/doc1#sTok9" label="Ordering/annis/">
+        </edge>
+        <edge id="e347" source="rootCorpus/subCorpus1/doc1#sTok7"
+            target="rootCorpus/subCorpus1/doc1#sTok8" label="Ordering/annis/">
+        </edge>
+        <edge id="e348" source="rootCorpus/subCorpus1/doc1#sTok6"
+            target="rootCorpus/subCorpus1/doc1#sTok7" label="Ordering/annis/">
+        </edge>
+        <edge id="e349" source="rootCorpus/subCorpus1/doc1#sTok5"
+            target="rootCorpus/subCorpus1/doc1#sTok6" label="Ordering/annis/">
+        </edge>
+        <edge id="e350" source="rootCorpus/subCorpus1/doc1#sTok4"
+            target="rootCorpus/subCorpus1/doc1#sTok5" label="Ordering/annis/">
+        </edge>
+        <edge id="e351" source="rootCorpus/subCorpus1/doc1#sTok3"
+            target="rootCorpus/subCorpus1/doc1#sTok4" label="Ordering/annis/">
+        </edge>
+        <edge id="e352" source="rootCorpus/subCorpus1/doc1#sTok2"
+            target="rootCorpus/subCorpus1/doc1#sTok3" label="Ordering/annis/">
+        </edge>
+        <edge id="e353" source="rootCorpus/subCorpus1/doc1#sTok1"
+            target="rootCorpus/subCorpus1/doc1#sTok2" label="Ordering/annis/">
+        </edge>
+        <edge id="e354" source="rootCorpus/subCorpus1/doc2#sTok10"
+            target="rootCorpus/subCorpus1/doc2#sTok11" label="Ordering/annis/">
+        </edge>
+        <edge id="e355" source="rootCorpus/subCorpus1/doc2#sTok9"
+            target="rootCorpus/subCorpus1/doc2#sTok10" label="Ordering/annis/">
+        </edge>
+        <edge id="e356" source="rootCorpus/subCorpus1/doc2#sTok8"
+            target="rootCorpus/subCorpus1/doc2#sTok9" label="Ordering/annis/">
+        </edge>
+        <edge id="e357" source="rootCorpus/subCorpus1/doc2#sTok7"
+            target="rootCorpus/subCorpus1/doc2#sTok8" label="Ordering/annis/">
+        </edge>
+        <edge id="e358" source="rootCorpus/subCorpus1/doc2#sTok6"
+            target="rootCorpus/subCorpus1/doc2#sTok7" label="Ordering/annis/">
+        </edge>
+        <edge id="e359" source="rootCorpus/subCorpus1/doc2#sTok5"
+            target="rootCorpus/subCorpus1/doc2#sTok6" label="Ordering/annis/">
+        </edge>
+        <edge id="e360" source="rootCorpus/subCorpus1/doc2#sTok4"
+            target="rootCorpus/subCorpus1/doc2#sTok5" label="Ordering/annis/">
+        </edge>
+        <edge id="e361" source="rootCorpus/subCorpus1/doc2#sTok3"
+            target="rootCorpus/subCorpus1/doc2#sTok4" label="Ordering/annis/">
+        </edge>
+        <edge id="e362" source="rootCorpus/subCorpus1/doc2#sTok2"
+            target="rootCorpus/subCorpus1/doc2#sTok3" label="Ordering/annis/">
+        </edge>
+        <edge id="e363" source="rootCorpus/subCorpus1/doc2#sTok1"
+            target="rootCorpus/subCorpus1/doc2#sTok2" label="Ordering/annis/">
+        </edge>
+        <edge id="e364" source="rootCorpus/subCorpus2/doc3#sTok10"
+            target="rootCorpus/subCorpus2/doc3#sTok11" label="Ordering/annis/">
+        </edge>
+        <edge id="e365" source="rootCorpus/subCorpus2/doc3#sTok9"
+            target="rootCorpus/subCorpus2/doc3#sTok10" label="Ordering/annis/">
+        </edge>
+        <edge id="e366" source="rootCorpus/subCorpus2/doc3#sTok8"
+            target="rootCorpus/subCorpus2/doc3#sTok9" label="Ordering/annis/">
+        </edge>
+        <edge id="e367" source="rootCorpus/subCorpus2/doc3#sTok7"
+            target="rootCorpus/subCorpus2/doc3#sTok8" label="Ordering/annis/">
+        </edge>
+        <edge id="e368" source="rootCorpus/subCorpus2/doc3#sTok6"
+            target="rootCorpus/subCorpus2/doc3#sTok7" label="Ordering/annis/">
+        </edge>
+        <edge id="e369" source="rootCorpus/subCorpus2/doc3#sTok5"
+            target="rootCorpus/subCorpus2/doc3#sTok6" label="Ordering/annis/">
+        </edge>
+        <edge id="e370" source="rootCorpus/subCorpus2/doc3#sTok4"
+            target="rootCorpus/subCorpus2/doc3#sTok5" label="Ordering/annis/">
+        </edge>
+        <edge id="e371" source="rootCorpus/subCorpus2/doc3#sTok3"
+            target="rootCorpus/subCorpus2/doc3#sTok4" label="Ordering/annis/">
+        </edge>
+        <edge id="e372" source="rootCorpus/subCorpus2/doc3#sTok2"
+            target="rootCorpus/subCorpus2/doc3#sTok3" label="Ordering/annis/">
+        </edge>
+        <edge id="e373" source="rootCorpus/subCorpus2/doc3#sTok1"
+            target="rootCorpus/subCorpus2/doc3#sTok2" label="Ordering/annis/">
+        </edge>
+        <edge id="e374" source="rootCorpus/subCorpus2/doc4#sTok10"
+            target="rootCorpus/subCorpus2/doc4#sTok11" label="Ordering/annis/">
+        </edge>
+        <edge id="e375" source="rootCorpus/subCorpus2/doc4#sTok9"
+            target="rootCorpus/subCorpus2/doc4#sTok10" label="Ordering/annis/">
+        </edge>
+        <edge id="e376" source="rootCorpus/subCorpus2/doc4#sTok8"
+            target="rootCorpus/subCorpus2/doc4#sTok9" label="Ordering/annis/">
+        </edge>
+        <edge id="e377" source="rootCorpus/subCorpus2/doc4#sTok7"
+            target="rootCorpus/subCorpus2/doc4#sTok8" label="Ordering/annis/">
+        </edge>
+        <edge id="e378" source="rootCorpus/subCorpus2/doc4#sTok6"
+            target="rootCorpus/subCorpus2/doc4#sTok7" label="Ordering/annis/">
+        </edge>
+        <edge id="e379" source="rootCorpus/subCorpus2/doc4#sTok5"
+            target="rootCorpus/subCorpus2/doc4#sTok6" label="Ordering/annis/">
+        </edge>
+        <edge id="e380" source="rootCorpus/subCorpus2/doc4#sTok4"
+            target="rootCorpus/subCorpus2/doc4#sTok5" label="Ordering/annis/">
+        </edge>
+        <edge id="e381" source="rootCorpus/subCorpus2/doc4#sTok3"
+            target="rootCorpus/subCorpus2/doc4#sTok4" label="Ordering/annis/">
+        </edge>
+        <edge id="e382" source="rootCorpus/subCorpus2/doc4#sTok2"
+            target="rootCorpus/subCorpus2/doc4#sTok3" label="Ordering/annis/">
+        </edge>
+        <edge id="e383" source="rootCorpus/subCorpus2/doc4#sTok1"
+            target="rootCorpus/subCorpus2/doc4#sTok2" label="Ordering/annis/">
+        </edge>
+        <edge id="e384" source="rootCorpus/subCorpus1/doc2#IS_span1"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e385" source="rootCorpus/subCorpus1/doc2#sTok1"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e386" source="rootCorpus/subCorpus1/doc2#IS_span2"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e387" source="rootCorpus/subCorpus1/doc2#sTok2"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e388" source="rootCorpus/subCorpus1/doc2#sTok3"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e389" source="rootCorpus/subCorpus1/doc2#sTok4"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e390" source="rootCorpus/subCorpus1/doc2#sTok5"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e391" source="rootCorpus/subCorpus1/doc2#sTok6"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e392" source="rootCorpus/subCorpus1/doc2#sTok7"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e393" source="rootCorpus/subCorpus1/doc2#sTok8"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e394" source="rootCorpus/subCorpus1/doc2#sTok9"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e395" source="rootCorpus/subCorpus1/doc2#sTok10"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e396" source="rootCorpus/subCorpus1/doc2#sTok11"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e397" source="rootCorpus/subCorpus1/doc2#sSpan3"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e398" source="rootCorpus/subCorpus2/doc3#sTok7"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e399" source="rootCorpus/subCorpus2/doc3#sSpan3"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e400" source="rootCorpus/subCorpus2/doc3#IS_span1"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e401" source="rootCorpus/subCorpus2/doc3#sTok1"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e402" source="rootCorpus/subCorpus2/doc3#IS_span2"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e403" source="rootCorpus/subCorpus2/doc3#sTok2"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e404" source="rootCorpus/subCorpus2/doc3#sTok3"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e405" source="rootCorpus/subCorpus2/doc3#sTok4"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e406" source="rootCorpus/subCorpus2/doc3#sTok5"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e407" source="rootCorpus/subCorpus2/doc3#sTok6"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e408" source="rootCorpus/subCorpus2/doc3#sTok8"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e409" source="rootCorpus/subCorpus2/doc3#sTok9"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e410" source="rootCorpus/subCorpus2/doc3#sTok10"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e411" source="rootCorpus/subCorpus2/doc3#sTok11"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e412" source="rootCorpus/subCorpus1/doc1#sTok7"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e413" source="rootCorpus/subCorpus1/doc1#sSpan3"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e414" source="rootCorpus/subCorpus2/doc3#structure1"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e415" source="rootCorpus/subCorpus2/doc3#structure2"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e416" source="rootCorpus/subCorpus2/doc3#structure3"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e417" source="rootCorpus/subCorpus2/doc3#structure4"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e418" source="rootCorpus/subCorpus2/doc3#structure5"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e419" source="rootCorpus/subCorpus2/doc3#structure6"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e420" source="rootCorpus/subCorpus2/doc3#structure7"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e421" source="rootCorpus/subCorpus2/doc3#structure8"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e422" source="rootCorpus/subCorpus2/doc3#structure9"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e423" source="rootCorpus/subCorpus2/doc3#structure10"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e424" source="rootCorpus/subCorpus2/doc3#structure11"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e425" source="rootCorpus/subCorpus2/doc3#structure12"
+            target="rootCorpus/subCorpus2/doc3#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e426" source="rootCorpus/subCorpus2/doc4#sTok7"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e427" source="rootCorpus/subCorpus2/doc4#sSpan3"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e428" source="rootCorpus/subCorpus1/doc2#structure1"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e429" source="rootCorpus/subCorpus1/doc2#structure2"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e430" source="rootCorpus/subCorpus1/doc2#structure3"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e431" source="rootCorpus/subCorpus1/doc2#structure4"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e432" source="rootCorpus/subCorpus1/doc2#structure5"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e433" source="rootCorpus/subCorpus1/doc2#structure6"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e434" source="rootCorpus/subCorpus1/doc2#structure7"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e435" source="rootCorpus/subCorpus1/doc2#structure8"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e436" source="rootCorpus/subCorpus1/doc2#structure9"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e437" source="rootCorpus/subCorpus1/doc2#structure10"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e438" source="rootCorpus/subCorpus1/doc2#structure11"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e439" source="rootCorpus/subCorpus1/doc2#structure12"
+            target="rootCorpus/subCorpus1/doc2#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e440" source="rootCorpus/subCorpus2/doc4#IS_span1"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e441" source="rootCorpus/subCorpus2/doc4#sTok1"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e442" source="rootCorpus/subCorpus2/doc4#IS_span2"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e443" source="rootCorpus/subCorpus2/doc4#sTok2"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e444" source="rootCorpus/subCorpus2/doc4#sTok3"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e445" source="rootCorpus/subCorpus2/doc4#sTok4"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e446" source="rootCorpus/subCorpus2/doc4#sTok5"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e447" source="rootCorpus/subCorpus2/doc4#sTok6"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e448" source="rootCorpus/subCorpus2/doc4#sTok8"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e449" source="rootCorpus/subCorpus2/doc4#sTok9"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e450" source="rootCorpus/subCorpus2/doc4#sTok10"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e451" source="rootCorpus/subCorpus2/doc4#sTok11"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e452" source="rootCorpus/subCorpus1/doc1#IS_span1"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e453" source="rootCorpus/subCorpus1/doc1#sTok1"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e454" source="rootCorpus/subCorpus1/doc1#IS_span2"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e455" source="rootCorpus/subCorpus1/doc1#sTok2"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e456" source="rootCorpus/subCorpus1/doc1#sTok4"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e457" source="rootCorpus/subCorpus1/doc1#sTok5"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e458" source="rootCorpus/subCorpus1/doc1#sTok6"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e459" source="rootCorpus/subCorpus1/doc1#sTok8"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e460" source="rootCorpus/subCorpus1/doc1#sTok9"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e461" source="rootCorpus/subCorpus1/doc1#sTok10"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e462" source="rootCorpus/subCorpus1/doc1#sTok11"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e463" source="rootCorpus/subCorpus1/doc1#structure1"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e464" source="rootCorpus/subCorpus1/doc1#structure2"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e465" source="rootCorpus/subCorpus1/doc1#structure3"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e466" source="rootCorpus/subCorpus1/doc1#sTok3"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e467" source="rootCorpus/subCorpus1/doc1#structure4"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e468" source="rootCorpus/subCorpus1/doc1#structure5"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e469" source="rootCorpus/subCorpus1/doc1#structure6"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e470" source="rootCorpus/subCorpus1/doc1#structure7"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e471" source="rootCorpus/subCorpus1/doc1#structure8"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e472" source="rootCorpus/subCorpus1/doc1#structure9"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e473" source="rootCorpus/subCorpus1/doc1#structure10"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e474" source="rootCorpus/subCorpus1/doc1#structure11"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e475" source="rootCorpus/subCorpus1/doc1#structure12"
+            target="rootCorpus/subCorpus1/doc1#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e476" source="rootCorpus/subCorpus2/doc4#structure1"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e477" source="rootCorpus/subCorpus2/doc4#structure2"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e478" source="rootCorpus/subCorpus2/doc4#structure3"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e479" source="rootCorpus/subCorpus2/doc4#structure4"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e480" source="rootCorpus/subCorpus2/doc4#structure5"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e481" source="rootCorpus/subCorpus2/doc4#structure6"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e482" source="rootCorpus/subCorpus2/doc4#structure7"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e483" source="rootCorpus/subCorpus2/doc4#structure8"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e484" source="rootCorpus/subCorpus2/doc4#structure9"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e485" source="rootCorpus/subCorpus2/doc4#structure10"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e486" source="rootCorpus/subCorpus2/doc4#structure11"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e487" source="rootCorpus/subCorpus2/doc4#structure12"
+            target="rootCorpus/subCorpus2/doc4#sText1" label="PartOf/annis/">
+        </edge>
+        <edge id="e488" source="rootCorpus/subCorpus1" target="rootCorpus" label="PartOf/annis/">
+        </edge>
+        <edge id="e489" source="rootCorpus/subCorpus1/doc1" target="rootCorpus/subCorpus1"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e490" source="rootCorpus/subCorpus1/doc2" target="rootCorpus/subCorpus1"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e491" source="rootCorpus/subCorpus2" target="rootCorpus" label="PartOf/annis/">
+        </edge>
+        <edge id="e492" source="rootCorpus/subCorpus2/doc3" target="rootCorpus/subCorpus2"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e493" source="rootCorpus/subCorpus2/doc4" target="rootCorpus/subCorpus2"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e494" source="rootCorpus/subCorpus1/doc2#sText1"
+            target="rootCorpus/subCorpus1/doc2" label="PartOf/annis/">
+        </edge>
+        <edge id="e495" source="rootCorpus/subCorpus2/doc3#sText1"
+            target="rootCorpus/subCorpus2/doc3" label="PartOf/annis/">
+        </edge>
+        <edge id="e496" source="rootCorpus/subCorpus1/doc1#sText1"
+            target="rootCorpus/subCorpus1/doc1" label="PartOf/annis/">
+        </edge>
+        <edge id="e497" source="rootCorpus/subCorpus2/doc4#sText1"
+            target="rootCorpus/subCorpus2/doc4" label="PartOf/annis/">
+        </edge>
+    </graph>
+</graphml>

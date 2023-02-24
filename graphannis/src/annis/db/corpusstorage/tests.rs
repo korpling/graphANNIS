@@ -1,7 +1,7 @@
 extern crate log;
 extern crate tempfile;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::vec;
 
 use crate::annis::db::corpusstorage::get_read_or_error;
@@ -881,6 +881,28 @@ fn import_special_character_corpus_name() {
         "salt::lemma::Root::%20C%C3%B6rp%2Fu%25s/subCorpus1/doc1#sTok1",
         matches_quirks[0]
     );
+}
+
+#[test]
+fn import_relative_corpus_with_linked_file() {
+    let tmp = tempfile::tempdir().unwrap();
+
+    // Set the relative path so that the corpus file is in the current folder
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    std::env::set_current_dir(cargo_dir.join("tests")).unwrap();
+
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    let corpus_name = cs
+        .import_from_fs(
+            Path::new("CorpusWithLinkedFile.graphml"),
+            ImportFormat::GraphML,
+            None,
+            false,
+            true,
+            |_| {},
+        )
+        .unwrap();
+    assert_eq!("CorpusWithLinkedFile", &corpus_name);
 }
 
 #[test]
