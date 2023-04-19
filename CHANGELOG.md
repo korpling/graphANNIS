@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.4] - 2023-04-19
+
 ### Fixed
 
 - Importing a corpus with a relative path directly under the current working
