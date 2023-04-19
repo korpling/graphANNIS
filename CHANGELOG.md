@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Importing a corpus with a relative path directly under the current working
   directory would fail if the corpus has linked files.
+- Output of data items in GraphML for node/edge annotations could be unordered
+  and cause test failures if comparing GraphML files.
 
 ## [2.4.3] - 2023-02-15
 

@@ -130,13 +130,21 @@ fn write_nodes<CT: ComponentType, W: std::io::Write>(
             .get_value_for_item(&m.node, &NODE_NAME_KEY)?
         {
             node_start.push_attribute(("id", id.as_ref()));
-            let node_annotations = graph.get_node_annos().get_annotations_for_item(&m.node)?;
+            let mut node_annotations = graph.get_node_annos().get_annotations_for_item(&m.node)?;
             if node_annotations.is_empty() {
                 // Write an empty XML element without child nodes
                 writer.write_event(Event::Empty(node_start))?;
             } else {
                 writer.write_event(Event::Start(node_start))?;
-                // Write all annotations of the node as "data" element
+                // Write all annotations of the node as "data" element, but sort
+                // them using the internal annotation key (k0, k1, k2, etc.)
+                node_annotations.sort_unstable_by_key(|anno| {
+                    key_id_mapping
+                        .get(&anno.key)
+                        .map(|internal_key| internal_key.as_str())
+                        .unwrap_or("")
+                });
+
                 for anno in node_annotations {
                     if anno.key.ns != ANNIS_NS || anno.key.name != NODE_NAME {
                         write_data(anno, writer, key_id_mapping)?;
@@ -191,8 +199,17 @@ fn write_edges<CT: ComponentType, W: std::io::Write>(
 
                                 writer.write_event(Event::Start(edge_start))?;
 
-                                // Write all annotations of the edge as "data" element
-                                for anno in gs.get_anno_storage().get_annotations_for_item(&edge)? {
+                                // Write all annotations of the node as "data" element, but sort
+                                // them using the internal annotation key (k0, k1, k2, etc.)
+                                let mut edge_annotations =
+                                    gs.get_anno_storage().get_annotations_for_item(&edge)?;
+                                edge_annotations.sort_unstable_by_key(|anno| {
+                                    key_id_mapping
+                                        .get(&anno.key)
+                                        .map(|internal_key| internal_key.as_str())
+                                        .unwrap_or("")
+                                });
+                                for anno in edge_annotations {
                                     write_data(anno, writer, key_id_mapping)?;
                                 }
                                 writer.write_event(Event::End(BytesEnd::borrowed(b"edge")))?;
@@ -575,6 +592,7 @@ mod tests {
         graph::{GraphUpdate, DEFAULT_NS},
         types::DefaultComponentType,
     };
+    use pretty_assertions::assert_eq;
     use std::borrow::Cow;
 
     const TEST_CONFIG: &str = r#"[some]

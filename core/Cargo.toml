@@ -43,3 +43,4 @@ winapi = {version = "0.3", features = ["heapapi"]}
 [dev-dependencies]
 env_logger = "0.9"
 fake = "2.2"
+pretty_assertions = "1.3"
