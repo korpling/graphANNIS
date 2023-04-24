@@ -12,16 +12,16 @@ extern crate log;
 extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
-#[macro_use]
-extern crate diesel_migrations;
 
 use actix_cors::Cors;
 use actix_web::{http, middleware::Logger, web, App, HttpRequest, HttpResponse, HttpServer};
 use administration::BackgroundJobs;
+use anyhow::{anyhow, bail};
 use api::administration;
 use clap::Arg;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::{
     io::{Error, ErrorKind, Result},
@@ -31,6 +31,7 @@ use std::{
 mod actions;
 mod api;
 mod auth;
+
 mod errors;
 mod extractors;
 mod models;
@@ -41,7 +42,7 @@ const API_VERSION: &str = "/v1";
 
 type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
 
-embed_migrations!("migrations");
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, DbPool)> {
     // Parse CLI arguments
@@ -105,8 +106,10 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
     let db_pool = r2d2::Pool::builder().build(manager)?;
 
     // Make sure the database has all migrations applied
-    let conn = db_pool.get()?;
-    embedded_migrations::run(&conn)?;
+    let mut conn = db_pool.get()?;
+    if let Err(e) = conn.run_pending_migrations(MIGRATIONS) {
+        bail!("Database migration failed: {e}");
+    }
 
     info!(
         "Using database {} with at most {} of RAM for the corpus cache.",

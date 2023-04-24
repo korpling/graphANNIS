@@ -48,9 +48,9 @@ pub async fn list_groups(
 ) -> Result<HttpResponse, ServiceError> {
     check_is_admin(&claims.0)?;
 
-    let conn = db_pool.get()?;
+    let mut conn = db_pool.get()?;
     let corpus_groups = web::block::<_, Result<_, ServiceError>>(move || {
-        let result = actions::list_groups(&conn)?;
+        let result = actions::list_groups(&mut conn)?;
         Ok(result)
     })
     .await??;
@@ -65,8 +65,8 @@ pub async fn delete_group(
 ) -> Result<HttpResponse, ServiceError> {
     check_is_admin(&claims.0)?;
 
-    let conn = db_pool.get()?;
-    web::block::<_, Result<_, ServiceError>>(move || actions::delete_group(&group_name, &conn))
+    let mut conn = db_pool.get()?;
+    web::block::<_, Result<_, ServiceError>>(move || actions::delete_group(&group_name, &mut conn))
         .await??;
 
     Ok(HttpResponse::Ok().json("Group deleted"))
@@ -84,9 +84,9 @@ pub async fn put_group(
         return Ok(HttpResponse::BadRequest().json("Group name in path and object need to match."));
     }
 
-    let conn = db_pool.get()?;
+    let mut conn = db_pool.get()?;
     web::block::<_, Result<_, ServiceError>>(move || {
-        actions::add_or_replace_group(group.clone(), &conn)
+        actions::add_or_replace_group(group.clone(), &mut conn)
     })
     .await??;
 

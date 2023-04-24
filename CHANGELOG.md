@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update sstable to version 0.11 to avoid issues in future Rust versions
 - Update actix-web to version 4 to avoid issues in future Rust versions
 - Update config crate to version 0.13 to avoid issues in future Rust versions
+- Update diesel to version 2.0 due to issue in sqlite dependency
 
 ## [2.4.4] - 2023-04-19
 

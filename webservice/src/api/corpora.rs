@@ -39,9 +39,10 @@ pub async fn list(
         all_corpora
     } else {
         // Query the database for all allowed corpora of this user
-        let conn = db_pool.get()?;
+        let mut conn = db_pool.get()?;
         let corpora_by_group =
-            web::block(move || actions::authorized_corpora_from_groups(&claims.0, &conn)).await??;
+            web::block(move || actions::authorized_corpora_from_groups(&claims.0, &mut conn))
+                .await??;
         // Filter out non-existing corpora
         all_corpora
             .into_iter()

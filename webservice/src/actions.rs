@@ -5,7 +5,7 @@ use std::collections::{BTreeSet, HashSet};
 
 pub fn authorized_corpora_from_groups(
     claims: &Claims,
-    conn: &SqliteConnection,
+    conn: &mut SqliteConnection,
 ) -> Result<BTreeSet<String>, ServiceError> {
     use crate::schema::corpus_groups::dsl::*;
 
@@ -22,11 +22,11 @@ pub fn authorized_corpora_from_groups(
     Ok(allowed_corpora)
 }
 
-pub fn list_groups(conn: &SqliteConnection) -> Result<Vec<Group>, ServiceError> {
+pub fn list_groups(conn: &mut SqliteConnection) -> Result<Vec<Group>, ServiceError> {
     use crate::schema::corpus_groups::dsl::*;
     use crate::schema::groups::dsl::*;
 
-    let result = conn.transaction::<_, ServiceError, _>(move || {
+    let result = conn.transaction::<_, ServiceError, _>(move |conn| {
         let mut result: Vec<Group> = Vec::new();
         // Collect the corpora for each group name
         for group_name in groups.select(name).load::<String>(conn)? {
@@ -44,7 +44,7 @@ pub fn list_groups(conn: &SqliteConnection) -> Result<Vec<Group>, ServiceError> 
     Ok(result)
 }
 
-pub fn delete_group(group_name: &str, conn: &SqliteConnection) -> Result<(), ServiceError> {
+pub fn delete_group(group_name: &str, conn: &mut SqliteConnection) -> Result<(), ServiceError> {
     use crate::schema::groups::dsl;
 
     diesel::delete(dsl::groups)
@@ -54,11 +54,11 @@ pub fn delete_group(group_name: &str, conn: &SqliteConnection) -> Result<(), Ser
     Ok(())
 }
 
-pub fn add_or_replace_group(group: Group, conn: &SqliteConnection) -> Result<(), ServiceError> {
+pub fn add_or_replace_group(group: Group, conn: &mut SqliteConnection) -> Result<(), ServiceError> {
     use crate::schema::corpus_groups::dsl as cg_dsl;
     use crate::schema::groups::dsl as g_dsl;
 
-    conn.transaction::<_, ServiceError, _>(move || {
+    conn.transaction::<_, ServiceError, _>(move |conn| {
         // Delete all group corpus relations for this group name
         diesel::delete(cg_dsl::corpus_groups)
             .filter(cg_dsl::group.eq(group.name.as_str()))
