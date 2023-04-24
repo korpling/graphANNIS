@@ -21,7 +21,6 @@ fn verify_token(token: &str, settings: &Settings) -> Result<Claims, ServiceError
 impl FromRequest for ClaimsFromAuth {
     type Error = ServiceError;
     type Future = Ready<Result<Self, Self::Error>>;
-    type Config = Settings;
 
     fn from_request(
         req: &actix_web::HttpRequest,

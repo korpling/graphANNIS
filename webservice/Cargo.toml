@@ -9,10 +9,9 @@ repository = "https://github.com/korpling/graphANNIS"
 version = "2.4.4"
 
 [dependencies]
-actix-cors = "0.5"
-actix-files = "0.5"
-actix-rt = "1.1.1"
-actix-web = {version = "3", default-features = false}
+actix-cors = "0.6"
+actix-files = "0.6"
+actix-web = "4"
 anyhow = "1"
 bcrypt = "0.10"
 chrono = "0.4"

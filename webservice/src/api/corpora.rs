@@ -3,7 +3,7 @@ use crate::{
     actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool,
 };
 use actix_files::NamedFile;
-use actix_web::web::{self, HttpResponse};
+use actix_web::{web, HttpResponse};
 use graphannis::{
     corpusstorage::QueryLanguage, graph, model::AnnotationComponentType, CorpusStorage,
 };
@@ -41,7 +41,7 @@ pub async fn list(
         // Query the database for all allowed corpora of this user
         let conn = db_pool.get()?;
         let corpora_by_group =
-            web::block(move || actions::authorized_corpora_from_groups(&claims.0, &conn)).await?;
+            web::block(move || actions::authorized_corpora_from_groups(&claims.0, &conn)).await??;
         // Filter out non-existing corpora
         all_corpora
             .into_iter()
@@ -167,7 +167,7 @@ pub async fn list_components(
     let components: Vec<_> = cs
         .list_components(
             corpus.as_str(),
-            params.clone().ctype,
+            params.ctype.clone(),
             params.name.as_deref(),
         )?
         .into_iter()
@@ -293,11 +293,12 @@ pub async fn list_files(
 }
 
 pub async fn file_content(
-    web::Path((corpus, name)): web::Path<(String, String)>,
+    path: web::Path<(String, String)>,
     claims: ClaimsFromAuth,
     db_pool: web::Data<DbPool>,
     settings: web::Data<Settings>,
 ) -> Result<NamedFile, ServiceError> {
+    let (corpus, name) = path.into_inner();
     let name = percent_encoding::percent_decode_str(&name).decode_utf8_lossy();
 
     check_corpora_authorized_read(vec![corpus.clone()], claims.0, &settings, &db_pool).await?;

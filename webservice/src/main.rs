@@ -16,7 +16,7 @@ extern crate diesel;
 extern crate diesel_migrations;
 
 use actix_cors::Cors;
-use actix_web::{http, middleware::Logger, web, App, HttpRequest, HttpServer};
+use actix_web::{http, middleware::Logger, web, App, HttpRequest, HttpResponse, HttpServer};
 use administration::BackgroundJobs;
 use api::administration;
 use clap::Arg;
@@ -122,13 +122,13 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
     Ok((cs, settings, db_pool))
 }
 
-async fn get_api_spec(_req: HttpRequest) -> web::HttpResponse {
-    web::HttpResponse::Ok()
+async fn get_api_spec(_req: HttpRequest) -> HttpResponse {
+    HttpResponse::Ok()
         .content_type("application/x-yaml")
         .body(include_str!("openapi.yml"))
 }
 
-#[actix_rt::main]
+#[actix_web::main]
 async fn main() -> Result<()> {
     // Initialize application and its state
     let (cs, settings, db_pool) = init_app().map_err(|e| {

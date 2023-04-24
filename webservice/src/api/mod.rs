@@ -31,8 +31,7 @@ async fn check_corpora_authorized_read(
 
     let conn = db_pool.get()?;
     let allowed_corpora =
-        web::block(move || actions::authorized_corpora_from_groups(&claims, &conn)).await?;
-
+        web::block(move || actions::authorized_corpora_from_groups(&claims, &conn)).await??;
     if requested_corpora
         .iter()
         .all(|c| allowed_corpora.contains(c))
