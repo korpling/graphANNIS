@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Update quick-xml to version 0.28 to avoid issues in future Rust versions
+- Update sstable to version 0.11 to avoid issues in future Rust versions
 
 ## [2.4.4] - 2023-04-19
 
