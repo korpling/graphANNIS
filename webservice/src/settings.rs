@@ -91,6 +91,6 @@ impl Settings {
             config = config.add_source(config::File::new(&config_file, config::FileFormat::Toml));
         }
         let config = config.build()?;
-        Ok(config.try_deserialize()?)
+        config.try_deserialize()
     }
 }

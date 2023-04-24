@@ -322,7 +322,7 @@ pub async fn file_content(
     let path = PathBuf::from(settings.database.graphannis.as_str())
         .join(escaped_corpus_name.to_string())
         .join("files")
-        .join(&file_path);
+        .join(file_path);
 
     Ok(NamedFile::open(path)?)
 }

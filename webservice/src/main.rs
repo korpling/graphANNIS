@@ -16,7 +16,7 @@ extern crate diesel;
 use actix_cors::Cors;
 use actix_web::{http, middleware::Logger, web, App, HttpRequest, HttpResponse, HttpServer};
 use administration::BackgroundJobs;
-use anyhow::{anyhow, bail};
+use anyhow::bail;
 use api::administration;
 use clap::Arg;
 use diesel::prelude::*;
