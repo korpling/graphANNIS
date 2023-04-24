@@ -42,6 +42,8 @@ pub enum GraphAnnisCoreError {
     SortedStringTable(#[from] sstable::error::Status),
     #[error(transparent)]
     Xml(#[from] quick_xml::Error),
+    #[error(transparent)]
+    XmlAttr(#[from] quick_xml::events::attributes::AttrError),
     #[error("Cache error: {0}")]
     LfuCache(String),
     #[error("File to persist graph updates is missing.")]
