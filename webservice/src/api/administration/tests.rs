@@ -77,4 +77,20 @@ async fn test_user_groups() {
         body.as_str(),
         "[{\"name\":\"academic\",\"corpora\":[\"GUM\",\"pcc2\"]}]"
     );
+
+    // Delete group again and check it has been removed
+    let resp = delete_group(
+        Path::from("academic".to_string()),
+        db_pool.clone(),
+        admin_claims.clone(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(resp.status(), http::StatusCode::OK);
+    let resp = list_groups(db_pool.clone(), admin_claims.clone())
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), http::StatusCode::OK);
+    let body = to_bytes(resp.into_body()).await.unwrap();
+    assert_eq!(body.as_str(), "[]");
 }
