@@ -300,3 +300,6 @@ pub async fn jobs(
     }
     Ok(HttpResponse::NotFound().finish())
 }
+
+#[cfg(test)]
+mod tests;
