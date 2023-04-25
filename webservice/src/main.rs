@@ -13,7 +13,10 @@ extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
 
+use ::r2d2::Pool;
 use actix_cors::Cors;
+use actix_web::body::MessageBody;
+use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
 use actix_web::{http, middleware::Logger, web, App, HttpRequest, HttpResponse, HttpServer};
 use administration::BackgroundJobs;
 use anyhow::bail;
@@ -22,6 +25,8 @@ use clap::Arg;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use graphannis::CorpusStorage;
+use settings::Settings;
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::{
     io::{Error, ErrorKind, Result},
@@ -44,7 +49,7 @@ type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
-fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, DbPool)> {
+fn init_app_state() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, DbPool)> {
     // Parse CLI arguments
     let matches = clap::App::new("graphANNIS web service")
         .version(env!("CARGO_PKG_VERSION"))
@@ -125,6 +130,103 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
     Ok((cs, settings, db_pool))
 }
 
+fn create_app(
+    cs: web::Data<CorpusStorage>,
+    settings: web::Data<Settings>,
+    db_pool: web::Data<Pool<ConnectionManager<SqliteConnection>>>,
+) -> App<
+    impl ServiceFactory<
+        ServiceRequest,
+        Response = ServiceResponse<impl MessageBody>,
+        Config = (),
+        InitError = (),
+        Error = actix_web::Error,
+    >,
+> {
+    let logger = if settings.logging.debug {
+        // Log all requests in debug
+        Logger::default()
+    } else {
+        Logger::default().exclude_regex(".*")
+    };
+
+    // Create a list of background jobs behind a Mutex
+    let background_jobs = web::Data::new(BackgroundJobs::default());
+
+    let app = App::new()
+        .wrap(
+            Cors::default()
+                .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                .allowed_header(http::header::CONTENT_TYPE),
+        )
+        .app_data(cs)
+        .app_data(settings)
+        .app_data(db_pool.clone())
+        .app_data(background_jobs.clone())
+        .wrap(logger)
+        .service(
+            web::scope(API_VERSION)
+                .route("openapi.yml", web::get().to(get_api_spec))
+                .route(
+                    "/import",
+                    web::post().to(api::administration::import_corpus),
+                )
+                .route(
+                    "/export",
+                    web::post().to(api::administration::export_corpus),
+                )
+                .route("/jobs/{uuid}", web::get().to(api::administration::jobs))
+                .service(
+                    web::scope("/search")
+                        .route("/count", web::post().to(api::search::count))
+                        .route("/find", web::post().to(api::search::find))
+                        .route("/frequency", web::post().to(api::search::frequency))
+                        .route(
+                            "/node-descriptions",
+                            web::get().to(api::search::node_descriptions),
+                        ),
+                )
+                .service(
+                    web::scope("/corpora")
+                        .route("", web::get().to(api::corpora::list))
+                        .route("/{corpus}", web::delete().to(api::corpora::delete))
+                        .route(
+                            "/{corpus}/configuration",
+                            web::get().to(api::corpora::configuration),
+                        )
+                        .route(
+                            "/{corpus}/node-annotations",
+                            web::get().to(api::corpora::node_annotations),
+                        )
+                        .route(
+                            "/{corpus}/components",
+                            web::get().to(api::corpora::list_components),
+                        )
+                        .route(
+                            "/{corpus}/edge-annotations/{type}/{layer}/{name}/",
+                            web::get().to(api::corpora::edge_annotations),
+                        )
+                        .route("/{corpus}/subgraph", web::post().to(api::corpora::subgraph))
+                        .route(
+                            "/{corpus}/subgraph-for-query",
+                            web::get().to(api::corpora::subgraph_for_query),
+                        )
+                        .route(
+                            "/{corpus}/files/{name}",
+                            web::get().to(api::corpora::file_content),
+                        )
+                        .route("/{corpus}/files", web::get().to(api::corpora::list_files)),
+                )
+                .service(
+                    web::scope("/groups")
+                        .route("", web::get().to(administration::list_groups))
+                        .route("/{name}", web::delete().to(administration::delete_group))
+                        .route("/{name}", web::put().to(administration::put_group)),
+                ),
+        );
+    app
+}
+
 async fn get_api_spec(_req: HttpRequest) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("application/x-yaml")
@@ -134,7 +236,7 @@ async fn get_api_spec(_req: HttpRequest) -> HttpResponse {
 #[actix_web::main]
 async fn main() -> Result<()> {
     // Initialize application and its state
-    let (cs, settings, db_pool) = init_app().map_err(|e| {
+    let (cs, settings, db_pool) = init_app_state().map_err(|e| {
         Error::new(
             ErrorKind::Other,
             format!("Could not initialize graphANNIS service: {:?}", e),
@@ -146,91 +248,9 @@ async fn main() -> Result<()> {
     let settings = web::Data::new(settings);
     let db_pool = web::Data::new(db_pool);
 
-    // Create a list of background jobs behind a Mutex
-    let background_jobs = web::Data::new(BackgroundJobs::default());
-
     // Run server
-    HttpServer::new(move || {
-        let logger = if settings.logging.debug {
-            // Log all requests in debug
-            Logger::default()
-        } else {
-            Logger::default().exclude_regex(".*")
-        };
-
-        App::new()
-            .wrap(
-                Cors::default()
-                    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-                    .allowed_header(http::header::CONTENT_TYPE),
-            )
-            .app_data(cs.clone())
-            .app_data(settings.clone())
-            .app_data(db_pool.clone())
-            .app_data(background_jobs.clone())
-            .wrap(logger)
-            .service(
-                web::scope(API_VERSION)
-                    .route("openapi.yml", web::get().to(get_api_spec))
-                    .route(
-                        "/import",
-                        web::post().to(api::administration::import_corpus),
-                    )
-                    .route(
-                        "/export",
-                        web::post().to(api::administration::export_corpus),
-                    )
-                    .route("/jobs/{uuid}", web::get().to(api::administration::jobs))
-                    .service(
-                        web::scope("/search")
-                            .route("/count", web::post().to(api::search::count))
-                            .route("/find", web::post().to(api::search::find))
-                            .route("/frequency", web::post().to(api::search::frequency))
-                            .route(
-                                "/node-descriptions",
-                                web::get().to(api::search::node_descriptions),
-                            ),
-                    )
-                    .service(
-                        web::scope("/corpora")
-                            .route("", web::get().to(api::corpora::list))
-                            .route("/{corpus}", web::delete().to(api::corpora::delete))
-                            .route(
-                                "/{corpus}/configuration",
-                                web::get().to(api::corpora::configuration),
-                            )
-                            .route(
-                                "/{corpus}/node-annotations",
-                                web::get().to(api::corpora::node_annotations),
-                            )
-                            .route(
-                                "/{corpus}/components",
-                                web::get().to(api::corpora::list_components),
-                            )
-                            .route(
-                                "/{corpus}/edge-annotations/{type}/{layer}/{name}/",
-                                web::get().to(api::corpora::edge_annotations),
-                            )
-                            .route("/{corpus}/subgraph", web::post().to(api::corpora::subgraph))
-                            .route(
-                                "/{corpus}/subgraph-for-query",
-                                web::get().to(api::corpora::subgraph_for_query),
-                            )
-                            .route(
-                                "/{corpus}/files/{name}",
-                                web::get().to(api::corpora::file_content),
-                            )
-                            .route("/{corpus}/files", web::get().to(api::corpora::list_files)),
-                    )
-                    .service(
-                        web::scope("/groups")
-                            .route("", web::get().to(administration::list_groups))
-                            .route("/{name}", web::delete().to(administration::delete_group))
-                            .route("/{name}", web::put().to(administration::put_group)),
-                    ),
-            )
-    })
-    .bind(bind_address)?
-    .run()
-    .await
+    HttpServer::new(move || create_app(cs.clone(), settings.clone(), db_pool.clone()))
+        .bind(bind_address)?
+        .run()
+        .await
 }
