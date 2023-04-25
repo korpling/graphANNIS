@@ -6,7 +6,7 @@ use super::*;
 use actix_web::{
     body::{to_bytes, MessageBody},
     dev::{ServiceFactory, ServiceRequest, ServiceResponse},
-    http::{self, header::ContentType, StatusCode},
+    http::{self, StatusCode},
     test,
     web::{Bytes, Path},
     App,
@@ -133,7 +133,9 @@ async fn needs_bearer_token() {
 
     let req = test::TestRequest::post()
         .uri("/v1/export")
-        .insert_header(ContentType::json())
+        .set_json(ExportParams {
+            corpora: vec!["pcc2".to_string()],
+        })
         .to_request();
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
@@ -148,8 +150,12 @@ async fn needs_bearer_token() {
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 
-    let req = test::TestRequest::post()
+    let req = test::TestRequest::put()
         .uri("/v1/groups/newgroup")
+        .set_json(Group {
+            name: "newgroup".to_string(),
+            corpora: vec![],
+        })
         .to_request();
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);

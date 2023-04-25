@@ -176,7 +176,7 @@ pub async fn import_corpus(
     }))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ExportParams {
     corpora: Vec<String>,
 }
