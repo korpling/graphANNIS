@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.5] - 2023-04-25
+
 ### Changed
 
 - Compile releases on Ubuntu 22.04 instead of 18.04, which means the minimal
