@@ -1,7 +1,7 @@
 use crate::{auth::Claims, errors::ServiceError, settings::Settings};
 use actix_web::{web, FromRequest};
 use futures::future::{err, ok, ready, Ready};
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ClaimsFromAuth(pub Claims);
 
 fn verify_token(token: &str, settings: &Settings) -> Result<Claims, ServiceError> {
