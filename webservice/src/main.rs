@@ -253,3 +253,83 @@ async fn main() -> Result<()> {
         .run()
         .await
 }
+
+#[cfg(test)]
+pub mod tests {
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    use actix_web::{
+        body::MessageBody,
+        dev::{ServiceFactory, ServiceRequest, ServiceResponse},
+        web, App,
+    };
+    use diesel::{r2d2::ConnectionManager, SqliteConnection};
+    use diesel_migrations::MigrationHarness;
+    use jsonwebtoken::EncodingKey;
+
+    use crate::{
+        auth::Claims,
+        settings::{JWTVerification, Settings},
+    };
+
+    const JWT_SECRET: &str = "not-a-secret";
+
+    pub fn create_empty_dbpool() -> r2d2::Pool<ConnectionManager<SqliteConnection>> {
+        let manager = ConnectionManager::<SqliteConnection>::new(":memory:");
+        let db_pool = r2d2::Pool::builder().build(manager).unwrap();
+        let mut conn = db_pool.get().unwrap();
+        conn.run_pending_migrations(crate::MIGRATIONS).unwrap();
+
+        db_pool
+    }
+
+    pub fn create_test_app() -> App<
+        impl ServiceFactory<
+            ServiceRequest,
+            Response = ServiceResponse<impl MessageBody>,
+            Config = (),
+            InitError = (),
+            Error = actix_web::Error,
+        >,
+    > {
+        // Create an app that uses a string as secret so we can sign our own JWT
+        // token.
+        let mut settings = Settings::default();
+        settings.auth.token_verification = JWTVerification::HS256 {
+            secret: "not-a-secret".to_string(),
+        };
+
+        let db_dir = tempfile::TempDir::new().unwrap();
+        let cs = graphannis::CorpusStorage::with_auto_cache_size(db_dir.path(), false).unwrap();
+        let db_pool = create_empty_dbpool();
+
+        let cs = web::Data::new(cs);
+        let settings = web::Data::new(settings);
+        let db_pool = web::Data::new(db_pool);
+
+        let app = crate::create_app(cs, settings, db_pool);
+        app
+    }
+
+    pub fn create_auth_header() -> (&'static str, String) {
+        // Create an auth header for an admin
+        let in_sixty_minutes = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .checked_add(Duration::from_secs(3600))
+            .unwrap();
+        let admin_claims = Claims {
+            sub: "admin".to_string(),
+            exp: Some(in_sixty_minutes.as_millis() as i64),
+            roles: vec!["admin".to_string()],
+            groups: vec![],
+        };
+        let bearer_token = jsonwebtoken::encode(
+            &jsonwebtoken::Header::default(),
+            &admin_claims,
+            &EncodingKey::from_secret(JWT_SECRET.as_ref()),
+        )
+        .unwrap();
+        ("Authorization", format!("Bearer {bearer_token}"))
+    }
+}
