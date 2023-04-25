@@ -153,7 +153,7 @@ fn create_app(
     // Create a list of background jobs behind a Mutex
     let background_jobs = web::Data::new(BackgroundJobs::default());
 
-    let app = App::new()
+    App::new()
         .wrap(
             Cors::default()
                 .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
@@ -161,8 +161,8 @@ fn create_app(
         )
         .app_data(cs)
         .app_data(settings)
-        .app_data(db_pool.clone())
-        .app_data(background_jobs.clone())
+        .app_data(db_pool)
+        .app_data(background_jobs)
         .wrap(logger)
         .service(
             web::scope(API_VERSION)
@@ -223,8 +223,7 @@ fn create_app(
                         .route("/{name}", web::delete().to(administration::delete_group))
                         .route("/{name}", web::put().to(administration::put_group)),
                 ),
-        );
-    app
+        )
 }
 
 async fn get_api_spec(_req: HttpRequest) -> HttpResponse {
