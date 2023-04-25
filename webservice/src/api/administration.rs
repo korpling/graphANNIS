@@ -3,10 +3,7 @@ use crate::{
     actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool,
 };
 use actix_files::NamedFile;
-use actix_web::{
-    web::{self, HttpResponse},
-    HttpRequest,
-};
+use actix_web::{web, HttpRequest, HttpResponse};
 use futures::prelude::*;
 use graphannis::CorpusStorage;
 use std::io::Seek;
@@ -51,12 +48,12 @@ pub async fn list_groups(
 ) -> Result<HttpResponse, ServiceError> {
     check_is_admin(&claims.0)?;
 
-    let conn = db_pool.get()?;
-    let corpus_groups = web::block::<_, _, ServiceError>(move || {
-        let result = actions::list_groups(&conn)?;
+    let mut conn = db_pool.get()?;
+    let corpus_groups = web::block::<_, Result<_, ServiceError>>(move || {
+        let result = actions::list_groups(&mut conn)?;
         Ok(result)
     })
-    .await?;
+    .await??;
 
     Ok(HttpResponse::Ok().json(corpus_groups))
 }
@@ -68,8 +65,9 @@ pub async fn delete_group(
 ) -> Result<HttpResponse, ServiceError> {
     check_is_admin(&claims.0)?;
 
-    let conn = db_pool.get()?;
-    web::block::<_, _, ServiceError>(move || actions::delete_group(&group_name, &conn)).await?;
+    let mut conn = db_pool.get()?;
+    web::block::<_, Result<_, ServiceError>>(move || actions::delete_group(&group_name, &mut conn))
+        .await??;
 
     Ok(HttpResponse::Ok().json("Group deleted"))
 }
@@ -86,9 +84,11 @@ pub async fn put_group(
         return Ok(HttpResponse::BadRequest().json("Group name in path and object need to match."));
     }
 
-    let conn = db_pool.get()?;
-    web::block::<_, _, ServiceError>(move || actions::add_or_replace_group(group.clone(), &conn))
-        .await?;
+    let mut conn = db_pool.get()?;
+    web::block::<_, Result<_, ServiceError>>(move || {
+        actions::add_or_replace_group(group.clone(), &mut conn)
+    })
+    .await??;
 
     Ok(HttpResponse::Ok().json("Group added/replaced"))
 }
@@ -118,7 +118,7 @@ pub async fn import_corpus(
     let mut tmp = tempfile::tempfile()?;
     while let Some(chunk) = body.next().await {
         let data = chunk?;
-        tmp = web::block(move || tmp.write_all(&data).map(|_| tmp)).await?;
+        tmp = web::block(move || tmp.write_all(&data).map(|_| tmp)).await??;
     }
 
     // Create a UUID which is used for the background job
@@ -176,7 +176,7 @@ pub async fn import_corpus(
     }))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ExportParams {
     corpora: Vec<String>,
 }
@@ -289,7 +289,7 @@ pub async fn jobs(
             JobStatus::Finished(result) => {
                 if let Some((tmp_file, file_name)) = result {
                     let named_file = NamedFile::from_file(tmp_file, file_name)?;
-                    let response = named_file.into_response(&req)?;
+                    let response = named_file.into_response(&req);
                     return Ok(response);
                 } else {
                     return Ok(HttpResponse::Ok().json(j.messages));
@@ -300,3 +300,6 @@ pub async fn jobs(
     }
     Ok(HttpResponse::NotFound().finish())
 }
+
+#[cfg(test)]
+mod tests;

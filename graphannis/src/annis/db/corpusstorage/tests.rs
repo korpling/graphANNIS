@@ -18,6 +18,7 @@ use graphannis_core::types::{Component, Edge};
 use graphannis_core::{graph::DEFAULT_NS, types::NodeID};
 use itertools::Itertools;
 use malloc_size_of::MallocSizeOf;
+use pretty_assertions::assert_eq;
 
 use super::SearchQuery;
 
@@ -804,15 +805,6 @@ fn import_salt_sample() {
     let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
     // Import both the GraphML and the relANNIS files as corpus
     cs.import_from_fs(
-        &cargo_dir.join("tests/SaltSampleCorpus"),
-        ImportFormat::RelANNIS,
-        Some("test-relannis".into()),
-        false,
-        true,
-        |_| {},
-    )
-    .unwrap();
-    cs.import_from_fs(
         &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
         ImportFormat::GraphML,
         Some("test-graphml".into()),
@@ -822,16 +814,26 @@ fn import_salt_sample() {
     )
     .unwrap();
 
+    cs.import_from_fs(
+        &cargo_dir.join("tests/SaltSampleCorpus"),
+        ImportFormat::RelANNIS,
+        Some("test-relannis".into()),
+        false,
+        true,
+        |_| {},
+    )
+    .unwrap();
+
     // compare both corpora, they should be exactly equal
-    let e1 = cs.get_fully_loaded_entry("test-graphml").unwrap();
-    let lock1 = e1.read().unwrap();
-    let db1 = get_read_or_error(&lock1).unwrap();
+    let entry_graphml = cs.get_fully_loaded_entry("test-graphml").unwrap();
+    let lock_graphml = entry_graphml.read().unwrap();
+    let db_graphml = get_read_or_error(&lock_graphml).unwrap();
 
-    let e2 = cs.get_fully_loaded_entry("test-relannis").unwrap();
-    let lock2 = e2.read().unwrap();
-    let db2 = get_read_or_error(&lock2).unwrap();
+    let entry_relannis = cs.get_fully_loaded_entry("test-relannis").unwrap();
+    let lock_relannis = entry_relannis.read().unwrap();
+    let db_relannis = get_read_or_error(&lock_relannis).unwrap();
 
-    compare_corpora(db1, db2, true);
+    compare_corpora(db_graphml, db_relannis, true);
 }
 
 #[test]

@@ -9,14 +9,14 @@ env:
 jobs:
   test_linux:
     name: Execute automated tests on Ubuntu Linux
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: stable
           profile: minimal
-      - uses: Swatinem/rust-cache@v1.3.0
+      - uses: Swatinem/rust-cache@v2.2.1
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
       - run: misc/download-mdbook.sh 0.3.5
@@ -33,7 +33,7 @@ jobs:
         with:
           toolchain: stable
           profile: minimal
-      - uses: Swatinem/rust-cache@v1.3.0
+      - uses: Swatinem/rust-cache@v2.2.1
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
   test_mac:
@@ -45,19 +45,19 @@ jobs:
         with:
           toolchain: stable
           profile: minimal
-      - uses: Swatinem/rust-cache@v1.3.0
+      - uses: Swatinem/rust-cache@v2.2.1
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
   long_running_tests:
     name: Execute search tests
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: stable
           profile: minimal
-      - uses: Swatinem/rust-cache@v1.3.0
+      - uses: Swatinem/rust-cache@v2.2.1
       - uses: actions/cache@v2
         id: corpus-cache
         with:

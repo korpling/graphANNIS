@@ -12,16 +12,21 @@ extern crate log;
 extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
-#[macro_use]
-extern crate diesel_migrations;
 
+use ::r2d2::Pool;
 use actix_cors::Cors;
-use actix_web::{http, middleware::Logger, web, App, HttpRequest, HttpServer};
+use actix_web::body::MessageBody;
+use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
+use actix_web::{http, middleware::Logger, web, App, HttpRequest, HttpResponse, HttpServer};
 use administration::BackgroundJobs;
+use anyhow::bail;
 use api::administration;
 use clap::Arg;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use graphannis::CorpusStorage;
+use settings::Settings;
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::{
     io::{Error, ErrorKind, Result},
@@ -31,6 +36,7 @@ use std::{
 mod actions;
 mod api;
 mod auth;
+
 mod errors;
 mod extractors;
 mod models;
@@ -41,9 +47,9 @@ const API_VERSION: &str = "/v1";
 
 type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
 
-embed_migrations!("migrations");
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
-fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, DbPool)> {
+fn init_app_state() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, DbPool)> {
     // Parse CLI arguments
     let matches = clap::App::new("graphANNIS web service")
         .version(env!("CARGO_PKG_VERSION"))
@@ -105,8 +111,10 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
     let db_pool = r2d2::Pool::builder().build(manager)?;
 
     // Make sure the database has all migrations applied
-    let conn = db_pool.get()?;
-    embedded_migrations::run(&conn)?;
+    let mut conn = db_pool.get()?;
+    if let Err(e) = conn.run_pending_migrations(MIGRATIONS) {
+        bail!("Database migration failed: {e}");
+    }
 
     info!(
         "Using database {} with at most {} of RAM for the corpus cache.",
@@ -122,16 +130,112 @@ fn init_app() -> anyhow::Result<(graphannis::CorpusStorage, settings::Settings, 
     Ok((cs, settings, db_pool))
 }
 
-async fn get_api_spec(_req: HttpRequest) -> web::HttpResponse {
-    web::HttpResponse::Ok()
+fn create_app(
+    cs: web::Data<CorpusStorage>,
+    settings: web::Data<Settings>,
+    db_pool: web::Data<Pool<ConnectionManager<SqliteConnection>>>,
+) -> App<
+    impl ServiceFactory<
+        ServiceRequest,
+        Response = ServiceResponse<impl MessageBody>,
+        Config = (),
+        InitError = (),
+        Error = actix_web::Error,
+    >,
+> {
+    let logger = if settings.logging.debug {
+        // Log all requests in debug
+        Logger::default()
+    } else {
+        Logger::default().exclude_regex(".*")
+    };
+
+    // Create a list of background jobs behind a Mutex
+    let background_jobs = web::Data::new(BackgroundJobs::default());
+
+    App::new()
+        .wrap(
+            Cors::default()
+                .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                .allowed_header(http::header::CONTENT_TYPE),
+        )
+        .app_data(cs)
+        .app_data(settings)
+        .app_data(db_pool)
+        .app_data(background_jobs)
+        .wrap(logger)
+        .service(
+            web::scope(API_VERSION)
+                .route("openapi.yml", web::get().to(get_api_spec))
+                .route(
+                    "/import",
+                    web::post().to(api::administration::import_corpus),
+                )
+                .route(
+                    "/export",
+                    web::post().to(api::administration::export_corpus),
+                )
+                .route("/jobs/{uuid}", web::get().to(api::administration::jobs))
+                .service(
+                    web::scope("/search")
+                        .route("/count", web::post().to(api::search::count))
+                        .route("/find", web::post().to(api::search::find))
+                        .route("/frequency", web::post().to(api::search::frequency))
+                        .route(
+                            "/node-descriptions",
+                            web::get().to(api::search::node_descriptions),
+                        ),
+                )
+                .service(
+                    web::scope("/corpora")
+                        .route("", web::get().to(api::corpora::list))
+                        .route("/{corpus}", web::delete().to(api::corpora::delete))
+                        .route(
+                            "/{corpus}/configuration",
+                            web::get().to(api::corpora::configuration),
+                        )
+                        .route(
+                            "/{corpus}/node-annotations",
+                            web::get().to(api::corpora::node_annotations),
+                        )
+                        .route(
+                            "/{corpus}/components",
+                            web::get().to(api::corpora::list_components),
+                        )
+                        .route(
+                            "/{corpus}/edge-annotations/{type}/{layer}/{name}/",
+                            web::get().to(api::corpora::edge_annotations),
+                        )
+                        .route("/{corpus}/subgraph", web::post().to(api::corpora::subgraph))
+                        .route(
+                            "/{corpus}/subgraph-for-query",
+                            web::get().to(api::corpora::subgraph_for_query),
+                        )
+                        .route(
+                            "/{corpus}/files/{name}",
+                            web::get().to(api::corpora::file_content),
+                        )
+                        .route("/{corpus}/files", web::get().to(api::corpora::list_files)),
+                )
+                .service(
+                    web::scope("/groups")
+                        .route("", web::get().to(administration::list_groups))
+                        .route("/{name}", web::delete().to(administration::delete_group))
+                        .route("/{name}", web::put().to(administration::put_group)),
+                ),
+        )
+}
+
+async fn get_api_spec(_req: HttpRequest) -> HttpResponse {
+    HttpResponse::Ok()
         .content_type("application/x-yaml")
         .body(include_str!("openapi.yml"))
 }
 
-#[actix_rt::main]
+#[actix_web::main]
 async fn main() -> Result<()> {
     // Initialize application and its state
-    let (cs, settings, db_pool) = init_app().map_err(|e| {
+    let (cs, settings, db_pool) = init_app_state().map_err(|e| {
         Error::new(
             ErrorKind::Other,
             format!("Could not initialize graphANNIS service: {:?}", e),
@@ -143,91 +247,89 @@ async fn main() -> Result<()> {
     let settings = web::Data::new(settings);
     let db_pool = web::Data::new(db_pool);
 
-    // Create a list of background jobs behind a Mutex
-    let background_jobs = web::Data::new(BackgroundJobs::default());
-
     // Run server
-    HttpServer::new(move || {
-        let logger = if settings.logging.debug {
-            // Log all requests in debug
-            Logger::default()
-        } else {
-            Logger::default().exclude_regex(".*")
+    HttpServer::new(move || create_app(cs.clone(), settings.clone(), db_pool.clone()))
+        .bind(bind_address)?
+        .run()
+        .await
+}
+
+#[cfg(test)]
+pub mod tests {
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    use actix_web::{
+        body::MessageBody,
+        dev::{ServiceFactory, ServiceRequest, ServiceResponse},
+        web, App,
+    };
+    use diesel::{r2d2::ConnectionManager, SqliteConnection};
+    use diesel_migrations::MigrationHarness;
+    use jsonwebtoken::EncodingKey;
+
+    use crate::{
+        auth::Claims,
+        settings::{JWTVerification, Settings},
+    };
+
+    const JWT_SECRET: &str = "not-a-secret";
+
+    pub fn create_empty_dbpool() -> r2d2::Pool<ConnectionManager<SqliteConnection>> {
+        let manager = ConnectionManager::<SqliteConnection>::new(":memory:");
+        let db_pool = r2d2::Pool::builder().build(manager).unwrap();
+        let mut conn = db_pool.get().unwrap();
+        conn.run_pending_migrations(crate::MIGRATIONS).unwrap();
+
+        db_pool
+    }
+
+    pub fn create_test_app() -> App<
+        impl ServiceFactory<
+            ServiceRequest,
+            Response = ServiceResponse<impl MessageBody>,
+            Config = (),
+            InitError = (),
+            Error = actix_web::Error,
+        >,
+    > {
+        // Create an app that uses a string as secret so we can sign our own JWT
+        // token.
+        let mut settings = Settings::default();
+        settings.auth.token_verification = JWTVerification::HS256 {
+            secret: "not-a-secret".to_string(),
         };
 
-        App::new()
-            .wrap(
-                Cors::default()
-                    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-                    .allowed_header(http::header::CONTENT_TYPE),
-            )
-            .app_data(cs.clone())
-            .app_data(settings.clone())
-            .app_data(db_pool.clone())
-            .app_data(background_jobs.clone())
-            .wrap(logger)
-            .service(
-                web::scope(API_VERSION)
-                    .route("openapi.yml", web::get().to(get_api_spec))
-                    .route(
-                        "/import",
-                        web::post().to(api::administration::import_corpus),
-                    )
-                    .route(
-                        "/export",
-                        web::post().to(api::administration::export_corpus),
-                    )
-                    .route("/jobs/{uuid}", web::get().to(api::administration::jobs))
-                    .service(
-                        web::scope("/search")
-                            .route("/count", web::post().to(api::search::count))
-                            .route("/find", web::post().to(api::search::find))
-                            .route("/frequency", web::post().to(api::search::frequency))
-                            .route(
-                                "/node-descriptions",
-                                web::get().to(api::search::node_descriptions),
-                            ),
-                    )
-                    .service(
-                        web::scope("/corpora")
-                            .route("", web::get().to(api::corpora::list))
-                            .route("/{corpus}", web::delete().to(api::corpora::delete))
-                            .route(
-                                "/{corpus}/configuration",
-                                web::get().to(api::corpora::configuration),
-                            )
-                            .route(
-                                "/{corpus}/node-annotations",
-                                web::get().to(api::corpora::node_annotations),
-                            )
-                            .route(
-                                "/{corpus}/components",
-                                web::get().to(api::corpora::list_components),
-                            )
-                            .route(
-                                "/{corpus}/edge-annotations/{type}/{layer}/{name}/",
-                                web::get().to(api::corpora::edge_annotations),
-                            )
-                            .route("/{corpus}/subgraph", web::post().to(api::corpora::subgraph))
-                            .route(
-                                "/{corpus}/subgraph-for-query",
-                                web::get().to(api::corpora::subgraph_for_query),
-                            )
-                            .route(
-                                "/{corpus}/files/{name}",
-                                web::get().to(api::corpora::file_content),
-                            )
-                            .route("/{corpus}/files", web::get().to(api::corpora::list_files)),
-                    )
-                    .service(
-                        web::scope("/groups")
-                            .route("", web::get().to(administration::list_groups))
-                            .route("/{name}", web::delete().to(administration::delete_group))
-                            .route("/{name}", web::put().to(administration::put_group)),
-                    ),
-            )
-    })
-    .bind(bind_address)?
-    .run()
-    .await
+        let db_dir = tempfile::TempDir::new().unwrap();
+        let cs = graphannis::CorpusStorage::with_auto_cache_size(db_dir.path(), false).unwrap();
+        let db_pool = create_empty_dbpool();
+
+        let cs = web::Data::new(cs);
+        let settings = web::Data::new(settings);
+        let db_pool = web::Data::new(db_pool);
+
+        let app = crate::create_app(cs, settings, db_pool);
+        app
+    }
+
+    pub fn create_auth_header() -> (&'static str, String) {
+        // Create an auth header for an admin
+        let in_sixty_minutes = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .checked_add(Duration::from_secs(3600))
+            .unwrap();
+        let admin_claims = Claims {
+            sub: "admin".to_string(),
+            exp: Some(in_sixty_minutes.as_millis() as i64),
+            roles: vec!["admin".to_string()],
+            groups: vec![],
+        };
+        let bearer_token = jsonwebtoken::encode(
+            &jsonwebtoken::Header::default(),
+            &admin_claims,
+            &EncodingKey::from_secret(JWT_SECRET.as_ref()),
+        )
+        .unwrap();
+        ("Authorization", format!("Bearer {bearer_token}"))
+    }
 }

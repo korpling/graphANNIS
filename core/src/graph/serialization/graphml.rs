@@ -9,7 +9,9 @@ use crate::{
     util::{join_qname, split_qname},
 };
 use quick_xml::{
-    events::{attributes::Attributes, BytesDecl, BytesEnd, BytesStart, BytesText, Event},
+    events::{
+        attributes::Attributes, BytesCData, BytesDecl, BytesEnd, BytesStart, BytesText, Event,
+    },
     Reader, Writer,
 };
 use std::{
@@ -30,7 +32,7 @@ fn write_annotation_keys<CT: ComponentType, W: std::io::Write>(
         let new_id = format!("k{}", id_counter);
         id_counter += 1;
 
-        let mut key_start = BytesStart::borrowed_name(b"key");
+        let mut key_start = BytesStart::new("key");
         key_start.push_attribute(("id", new_id.as_str()));
         key_start.push_attribute(("for", "graph"));
         key_start.push_attribute(("attr.name", "configuration"));
@@ -47,7 +49,7 @@ fn write_annotation_keys<CT: ComponentType, W: std::io::Write>(
 
             let qname = join_qname(&key.ns, &key.name);
 
-            let mut key_start = BytesStart::borrowed_name(b"key");
+            let mut key_start = BytesStart::new("key");
             key_start.push_attribute(("id", new_id.as_str()));
             key_start.push_attribute(("for", "node"));
             key_start.push_attribute(("attr.name", qname.as_str()));
@@ -75,7 +77,7 @@ fn write_annotation_keys<CT: ComponentType, W: std::io::Write>(
 
                         let qname = join_qname(&key.ns, &key.name);
 
-                        let mut key_start = BytesStart::borrowed_name(b"key");
+                        let mut key_start = BytesStart::new("key");
                         key_start.push_attribute(("id", new_id.as_str()));
                         key_start.push_attribute(("for", "node"));
                         key_start.push_attribute(("attr.name", qname.as_str()));
@@ -98,7 +100,7 @@ fn write_data<W: std::io::Write>(
     writer: &mut Writer<W>,
     key_id_mapping: &BTreeMap<AnnoKey, String>,
 ) -> Result<()> {
-    let mut data_start = BytesStart::borrowed_name(b"data");
+    let mut data_start = BytesStart::new("data");
 
     let key_id = key_id_mapping
         .get(&anno.key)
@@ -107,8 +109,8 @@ fn write_data<W: std::io::Write>(
     data_start.push_attribute(("key", key_id.as_str()));
     writer.write_event(Event::Start(data_start))?;
     // Add the annotation value as internal text node
-    writer.write_event(Event::Text(BytesText::from_plain(anno.val.as_bytes())))?;
-    writer.write_event(Event::End(BytesEnd::borrowed(b"data")))?;
+    writer.write_event(Event::Text(BytesText::new(&anno.val)))?;
+    writer.write_event(Event::End(BytesEnd::new("data")))?;
 
     Ok(())
 }
@@ -123,7 +125,7 @@ fn write_nodes<CT: ComponentType, W: std::io::Write>(
         .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Any)
     {
         let m = m?;
-        let mut node_start = BytesStart::borrowed_name(b"node");
+        let mut node_start = BytesStart::new("node");
 
         if let Some(id) = graph
             .get_node_annos()
@@ -150,7 +152,7 @@ fn write_nodes<CT: ComponentType, W: std::io::Write>(
                         write_data(anno, writer, key_id_mapping)?;
                     }
                 }
-                writer.write_event(Event::End(BytesEnd::borrowed(b"node")))?;
+                writer.write_event(Event::End(BytesEnd::new("node")))?;
             }
         }
     }
@@ -190,7 +192,7 @@ fn write_edges<CT: ComponentType, W: std::io::Write>(
                                 edge_counter += 1;
                                 edge_id.insert(0, 'e');
 
-                                let mut edge_start = BytesStart::borrowed_name(b"edge");
+                                let mut edge_start = BytesStart::new("edge");
                                 edge_start.push_attribute(("id", edge_id.as_str()));
                                 edge_start.push_attribute(("source", source_id.as_ref()));
                                 edge_start.push_attribute(("target", target_id.as_ref()));
@@ -212,7 +214,7 @@ fn write_edges<CT: ComponentType, W: std::io::Write>(
                                 for anno in edge_annotations {
                                     write_data(anno, writer, key_id_mapping)?;
                                 }
-                                writer.write_event(Event::End(BytesEnd::borrowed(b"edge")))?;
+                                writer.write_event(Event::End(BytesEnd::new("edge")))?;
                             }
                         }
                     }
@@ -237,18 +239,18 @@ where
     let mut writer = Writer::new_with_indent(output, b' ', 4);
 
     // Add XML declaration
-    let xml_decl = BytesDecl::new(b"1.0", Some(b"UTF-8"), None);
+    let xml_decl = BytesDecl::new("1.0", Some("UTF-8"), None);
     writer.write_event(Event::Decl(xml_decl))?;
 
     // Always write the root element
-    writer.write_event(Event::Start(BytesStart::borrowed_name(b"graphml")))?;
+    writer.write_event(Event::Start(BytesStart::new("graphml")))?;
 
     // Define all valid annotation ns/name pairs
     progress_callback("exporting all available annotation keys");
     let key_id_mapping = write_annotation_keys(graph, graph_configuration.is_some(), &mut writer)?;
 
     // We are writing a single graph
-    let mut graph_start = BytesStart::borrowed_name(b"graph");
+    let mut graph_start = BytesStart::new("graph");
     graph_start.push_attribute(("edgedefault", "directed"));
     // Add parse helper information to allow more efficient parsing
     graph_start.push_attribute(("parse.order", "nodesfirst"));
@@ -259,13 +261,13 @@ where
 
     // If graph configuration is given, add it as data element to the graph
     if let Some(config) = graph_configuration {
-        let mut data_start = BytesStart::borrowed_name(b"data");
+        let mut data_start = BytesStart::new("data");
         // This is always the first key ID
         data_start.push_attribute(("key", "k0"));
         writer.write_event(Event::Start(data_start))?;
         // Add the annotation value as internal text node
-        writer.write_event(Event::CData(BytesText::from_escaped_str(config)))?;
-        writer.write_event(Event::End(BytesEnd::borrowed(b"data")))?;
+        writer.write_event(Event::CData(BytesCData::new(config)))?;
+        writer.write_event(Event::End(BytesEnd::new("data")))?;
     }
 
     // Write out all nodes
@@ -276,8 +278,8 @@ where
     progress_callback("exporting edges");
     write_edges(graph, &mut writer, &key_id_mapping)?;
 
-    writer.write_event(Event::End(BytesEnd::borrowed(b"graph")))?;
-    writer.write_event(Event::End(BytesEnd::borrowed(b"graphml")))?;
+    writer.write_event(Event::End(BytesEnd::new("graph")))?;
+    writer.write_event(Event::End(BytesEnd::new("graphml")))?;
 
     // Make sure to flush the buffered writer
     writer.into_inner().flush()?;
@@ -295,7 +297,7 @@ fn add_annotation_key(keys: &mut BTreeMap<String, AnnoKey>, attributes: Attribut
 
         let att_value = String::from_utf8_lossy(&att.value);
 
-        match att.key {
+        match att.key.0 {
             b"id" => {
                 id = Some(att_value.to_string());
             }
@@ -399,6 +401,7 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
     let mut current_source_id: Option<String> = None;
     let mut current_target_id: Option<String> = None;
     let mut current_component: Option<String> = None;
+    let mut current_data_value: Option<String> = None;
     let mut data: HashMap<AnnoKey, String> = HashMap::new();
 
     let mut config = None;
@@ -407,11 +410,11 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
 
     let mut buf = Vec::new();
     loop {
-        match reader.read_event(&mut buf)? {
+        match reader.read_event_into(&mut buf)? {
             Event::Start(ref e) => {
                 level += 1;
 
-                match e.name() {
+                match e.name().0 {
                     b"graph" => {
                         if level == 2 {
                             in_graph = true;
@@ -428,7 +431,7 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
                             // Get the ID of this node
                             for att in e.attributes() {
                                 let att = att?;
-                                if att.key == b"id" {
+                                if att.key.0 == b"id" {
                                     current_node_id =
                                         Some(String::from_utf8_lossy(&att.value).to_string());
                                 }
@@ -441,13 +444,13 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
                             // Get the source and target node IDs
                             for att in e.attributes() {
                                 let att = att?;
-                                if att.key == b"source" {
+                                if att.key.0 == b"source" {
                                     current_source_id =
                                         Some(String::from_utf8_lossy(&att.value).to_string());
-                                } else if att.key == b"target" {
+                                } else if att.key.0 == b"target" {
                                     current_target_id =
                                         Some(String::from_utf8_lossy(&att.value).to_string());
-                                } else if att.key == b"label" {
+                                } else if att.key.0 == b"label" {
                                     current_component =
                                         Some(String::from_utf8_lossy(&att.value).to_string());
                                 }
@@ -457,7 +460,7 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
                     b"data" => {
                         for att in e.attributes() {
                             let att = att?;
-                            if att.key == b"key" {
+                            if att.key.0 == b"key" {
                                 current_data_key =
                                     Some(String::from_utf8_lossy(&att.value).to_string());
                             }
@@ -467,26 +470,20 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
                 }
             }
             Event::Text(t) => {
-                if let Some(current_data_key) = &current_data_key {
-                    if in_graph && level == 4 {
-                        if let Some(anno_key) = keys.get(current_data_key) {
-                            // Copy all data attributes into our own map
-                            data.insert(anno_key.clone(), t.unescape_and_decode(&reader)?);
-                        }
-                    }
+                if in_graph && level == 4 && current_data_key.is_some() {
+                    current_data_value = Some(t.unescape()?.to_string());
                 }
             }
             Event::CData(t) => {
                 if let Some(current_data_key) = &current_data_key {
                     if in_graph && level == 3 && current_data_key == "k0" {
                         // This is the configuration content
-                        let t_unescaped = t.unescaped()?;
-                        config = Some(String::from_utf8_lossy(&t_unescaped).to_string());
+                        config = Some(String::from_utf8_lossy(&t).to_string());
                     }
                 }
             }
             Event::End(ref e) => {
-                match e.name() {
+                match e.name().0 {
                     b"graph" => {
                         in_graph = false;
                     }
@@ -521,6 +518,21 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
                         }
                     }
                     b"data" => {
+                        if let Some(current_data_key) = current_data_key {
+                            if let Some(anno_key) = keys.get(&current_data_key) {
+                                // Copy all data attributes into our own map
+                                if let Some(v) = current_data_value.take() {
+                                    data.insert(anno_key.clone(), v);
+                                } else {
+                                    // If there is an end tag without any text
+                                    // data event, the value exists but is
+                                    // empty.
+                                    data.insert(anno_key.clone(), String::default());
+                                }
+                            }
+                        }
+
+                        current_data_value = None;
                         current_data_key = None;
                     }
                     _ => {}

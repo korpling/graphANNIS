@@ -20,7 +20,7 @@ lfu = "0.2"
 log = "0.4"
 num-traits = "0.2"
 percent-encoding = "2.1"
-quick-xml = "0.22"
+quick-xml = "0.28"
 rand = {version = "0.8", features = ["small_rng"]}
 rayon = {version = "1.3", default-features = false}
 regex = "1"
@@ -30,7 +30,7 @@ serde = {version = "1.0", features = ["rc"]}
 serde_derive = "1.0"
 smallvec = "1.6"
 smartstring = {version = "1", features = ["serde"]}
-sstable = "0.10"
+sstable = "0.11"
 strum = "0.21"
 strum_macros = "0.21"
 tempfile = "3.1"

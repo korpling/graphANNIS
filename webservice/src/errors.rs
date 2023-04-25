@@ -138,8 +138,8 @@ impl From<walkdir::Error> for ServiceError {
     }
 }
 
-impl<T: std::fmt::Debug> From<BlockingError<T>> for ServiceError {
-    fn from(e: BlockingError<T>) -> Self {
+impl From<BlockingError> for ServiceError {
+    fn from(e: BlockingError) -> Self {
         ServiceError::InternalServerError(e.to_string())
     }
 }
