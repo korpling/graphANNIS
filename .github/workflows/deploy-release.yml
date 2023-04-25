@@ -5,7 +5,7 @@ on:
 name: Deploy released binaries
 jobs:
   deploy_linux_binaries:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1.0.6
@@ -164,7 +164,7 @@ jobs:
           asset_name: graphannis-webservice.osx
           asset_content_type: application/x-mach-binary
   deploy_documentation:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v1

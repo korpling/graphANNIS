@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Compile releases on Ubuntu 22.04 instead of 18.04, which means the minimal GLIBC version is 2.31.
+  This is necessary, since GitHub actions deprecated this Ubuntu version.
+  
+
 ### Fixed
 
 - Update quick-xml to version 0.28 to avoid issues in future Rust versions
