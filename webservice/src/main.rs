@@ -265,6 +265,7 @@ pub mod tests {
     };
     use diesel::{r2d2::ConnectionManager, SqliteConnection};
     use diesel_migrations::MigrationHarness;
+    use graphannis::CorpusStorage;
     use jsonwebtoken::EncodingKey;
 
     use crate::{
@@ -272,7 +273,7 @@ pub mod tests {
         settings::{JWTVerification, Settings},
     };
 
-    const JWT_SECRET: &str = "not-a-secret";
+    pub const JWT_SECRET: &str = "not-a-secret";
 
     pub fn create_empty_dbpool() -> r2d2::Pool<ConnectionManager<SqliteConnection>> {
         let manager = ConnectionManager::<SqliteConnection>::new(":memory:");
@@ -283,7 +284,9 @@ pub mod tests {
         db_pool
     }
 
-    pub fn create_test_app() -> App<
+    pub fn create_test_app(
+        cs: web::Data<CorpusStorage>,
+    ) -> App<
         impl ServiceFactory<
             ServiceRequest,
             Response = ServiceResponse<impl MessageBody>,
@@ -296,14 +299,11 @@ pub mod tests {
         // token.
         let mut settings = Settings::default();
         settings.auth.token_verification = JWTVerification::HS256 {
-            secret: "not-a-secret".to_string(),
+            secret: JWT_SECRET.to_string(),
         };
 
-        let db_dir = tempfile::TempDir::new().unwrap();
-        let cs = graphannis::CorpusStorage::with_auto_cache_size(db_dir.path(), false).unwrap();
         let db_pool = create_empty_dbpool();
 
-        let cs = web::Data::new(cs);
         let settings = web::Data::new(settings);
         let db_pool = web::Data::new(db_pool);
 

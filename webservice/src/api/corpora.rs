@@ -31,7 +31,7 @@ pub async fn list(
 ) -> Result<HttpResponse, ServiceError> {
     let all_corpora: Vec<String> = cs.list()?.into_iter().map(|c| c.name).collect();
 
-    let allowed_corpora = if claims.0.roles.iter().any(|r| r.as_str() == "admin")
+    let mut allowed_corpora = if claims.0.roles.iter().any(|r| r.as_str() == "admin")
         || settings.auth.anonymous_access_all_corpora
     {
         // Administrators always have access to all corpora or read-access is
@@ -49,6 +49,8 @@ pub async fn list(
             .filter(|c| corpora_by_group.contains(c))
             .collect()
     };
+
+    allowed_corpora.sort_unstable();
 
     Ok(HttpResponse::Ok().json(allowed_corpora))
 }
@@ -339,3 +341,6 @@ pub async fn delete(
         Ok(HttpResponse::NotFound().finish())
     }
 }
+
+#[cfg(test)]
+mod tests;
