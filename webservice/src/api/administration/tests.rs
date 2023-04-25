@@ -11,7 +11,9 @@ use pretty_assertions::assert_eq;
 /// when no auth info is given.
 #[actix_web::test]
 async fn needs_bearer_token() {
-    let app = test::init_service(create_test_app()).await;
+    let db_dir = tempfile::TempDir::new().unwrap();
+    let cs = graphannis::CorpusStorage::with_auto_cache_size(db_dir.path(), false).unwrap();
+    let app = test::init_service(create_test_app(web::Data::new(cs))).await;
 
     let req = test::TestRequest::post().uri("/v1/import").to_request();
     let resp = test::call_service(&app, req).await;
@@ -55,7 +57,9 @@ async fn needs_bearer_token() {
 
 #[actix_web::test]
 async fn test_user_groups() {
-    let app = test::init_service(create_test_app()).await;
+    let db_dir = tempfile::TempDir::new().unwrap();
+    let cs = graphannis::CorpusStorage::with_auto_cache_size(db_dir.path(), false).unwrap();
+    let app = test::init_service(create_test_app(web::Data::new(cs))).await;
 
     // Initial list of groups, this should be empty
     let req = test::TestRequest::get()
