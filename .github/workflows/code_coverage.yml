@@ -14,7 +14,7 @@ jobs:
           toolchain: stable
           profile: minimal
           components: llvm-tools-preview
-      - uses: Swatinem/rust-cache@v1.3.0
+      - uses: Swatinem/rust-cache@v2.2.1
       - uses: SierraSoftworks/setup-grcov@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -66,7 +66,7 @@ jobs:
           toolchain: stable
           profile: minimal
           components: llvm-tools-preview
-      - uses: Swatinem/rust-cache@v1.3.0
+      - uses: Swatinem/rust-cache@v2.2.1
       - uses: SierraSoftworks/setup-grcov@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
