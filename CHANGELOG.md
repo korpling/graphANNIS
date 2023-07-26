@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Compile release for macOS on version 11 (Big Sur). This is necessary, since
+  GitHub actions deprecated the older macOS version.
+
 ## [2.4.5] - 2023-04-25
 
 ### Changed
