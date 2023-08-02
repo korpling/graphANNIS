@@ -1,9 +1,11 @@
 name: Automated tests
 on:
   push:
-    branches: [main, staging, trying]
+    branches: [main]
   pull_request:
     branches: [main]
+  merge_group:
+
 env:
   RUSTFLAGS: "-C debuginfo=0"
 jobs:
@@ -38,7 +40,7 @@ jobs:
       - run: cargo test --all-features --verbose
   test_mac:
     name: Execute automated tests on OSX
-    runs-on: macos-10.15
+    runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1.0.6

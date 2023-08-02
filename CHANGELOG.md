@@ -5,9 +5,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.6] - 2023-07-26
+
 ### Changed
 
-- Compile releases on Ubuntu 22.04 instead of 18.04, which means the minimal
+- Compile release for macOS on version 11 (Big Sur). This is necessary, since
+  GitHub actions deprecated the older macOS version.
+
+## [2.4.5] - 2023-04-25
+
+### Changed
+
+- Compile releases on Ubuntu 20.04 instead of 18.04, which means the minimal
   GLIBC version is 2.31. This is necessary, since GitHub actions deprecated this
   Ubuntu version.
   
