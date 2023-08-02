@@ -372,9 +372,20 @@ impl Conjunction {
         self.include_in_output.contains(variable)
     }
 
+    /// Return the variable name for a given position in the match output list.
+    ///
+    /// Optional nodes that are not part of the output are ignored. If there are
+    /// no optional nodes, this corresponds to the index of the node in the
+    /// query.
     pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
-        if pos < self.nodes.len() {
-            return Some(self.nodes[pos].var.clone());
+        let mut output_pos = 0;
+        for n in self.nodes.iter() {
+            if self.is_included_in_output(&n.var) {
+                if output_pos == pos {
+                    return Some(n.var.clone());
+                }
+                output_pos += 1;
+            }
         }
         None
     }

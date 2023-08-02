@@ -944,3 +944,80 @@ fn load_legacy_binary_corpus() {
 
     compare_corpora(db1, db2, false);
 }
+
+/// This is a regression test for
+/// https://github.com/korpling/graphANNIS/issues/267
+///
+/// It test that having an optional node (for negation) in the first position of
+/// the query does not affect extracting the correct node name in the "find"
+/// query.
+#[test]
+fn optional_node_first_in_query() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    // Import both the GraphML and the relANNIS files as corpus
+    cs.import_from_fs(
+        &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
+        ImportFormat::GraphML,
+        None,
+        false,
+        true,
+        |_| {},
+    )
+    .unwrap();
+
+    // Execute a "find" search for a query that has an optional node
+    let q = SearchQuery {
+        corpus_names: &["SaltSampleCorpus"],
+        query: "node? !> Inf-Struct=\"contrast-focus\"",
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+    let result = cs.find(q, 0, None, ResultOrder::Normal).unwrap();
+    assert_eq!(4, result.len());
+    assert_eq!(
+        "default_ns::Inf-Struct::rootCorpus/subCorpus1/doc1#IS_span1",
+        result[0]
+    );
+    assert_eq!(
+        "default_ns::Inf-Struct::rootCorpus/subCorpus1/doc2#IS_span1",
+        result[1]
+    );
+    assert_eq!(
+        "default_ns::Inf-Struct::rootCorpus/subCorpus2/doc3#IS_span1",
+        result[2]
+    );
+    assert_eq!(
+        "default_ns::Inf-Struct::rootCorpus/subCorpus2/doc4#IS_span1",
+        result[3]
+    );
+
+    // Execute a "find" search but reverse the order of the nodes, this should
+    // give the same result
+    let q = SearchQuery {
+        corpus_names: &["SaltSampleCorpus"],
+        query: "Inf-Struct=\"contrast-focus\" & node? & #2 !> #1",
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+    let result = cs.find(q, 0, None, ResultOrder::Normal).unwrap();
+    assert_eq!(4, result.len());
+    assert_eq!(
+        "default_ns::Inf-Struct::rootCorpus/subCorpus1/doc1#IS_span1",
+        result[0]
+    );
+    assert_eq!(
+        "default_ns::Inf-Struct::rootCorpus/subCorpus1/doc2#IS_span1",
+        result[1]
+    );
+    assert_eq!(
+        "default_ns::Inf-Struct::rootCorpus/subCorpus2/doc3#IS_span1",
+        result[2]
+    );
+    assert_eq!(
+        "default_ns::Inf-Struct::rootCorpus/subCorpus2/doc4#IS_span1",
+        result[3]
+    );
+}
