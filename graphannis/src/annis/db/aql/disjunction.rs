@@ -35,6 +35,11 @@ impl Disjunction {
         None
     }
 
+    /// Return the variable name for a given position in the match output list.
+    ///
+    /// Optional nodes that are not part of the output are ignored. If there are
+    /// no optional nodes, this corresponds to the index of the node in the
+    /// query.
     pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
         for alt in &self.alternatives {
             if let Some(var) = alt.get_variable_by_pos(pos) {
