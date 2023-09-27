@@ -693,7 +693,7 @@ fn compare_annos<T>(
     }
 }
 
-fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph, rhs_remove_annis_coverage: bool) {
+fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph) {
     // Check all nodes and node annotations exist in both corpora
     let nodes1: Vec<String> = g1
         .get_node_annos()
@@ -725,14 +725,6 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph, rhs_remove_annis_
     let mut components1 = g1.get_all_components(None, None);
     components1.sort();
     let mut components2 = g2.get_all_components(None, None);
-    if rhs_remove_annis_coverage {
-        // Remove the special annis coverage component created during relANNIS import
-        components2.retain(|c| {
-            c.get_type() != AnnotationComponentType::Coverage
-                || !c.name.is_empty()
-                || c.layer != ANNIS_NS
-        });
-    }
     components2.sort();
     assert_eq!(components1, components2);
 
@@ -833,7 +825,7 @@ fn import_salt_sample() {
     let lock_relannis = entry_relannis.read().unwrap();
     let db_relannis = get_read_or_error(&lock_relannis).unwrap();
 
-    compare_corpora(db_graphml, db_relannis, true);
+    compare_corpora(db_graphml, db_relannis);
 }
 
 #[test]
@@ -942,7 +934,7 @@ fn load_legacy_binary_corpus() {
     let lock2 = e2.read().unwrap();
     let db2 = get_read_or_error(&lock2).unwrap();
 
-    compare_corpora(db1, db2, false);
+    compare_corpora(db1, db2);
 }
 
 /// This is a regression test for

@@ -561,7 +561,7 @@ where
 {
     // Always buffer the read operations
     let mut input = BufReader::new(input);
-    let mut g = Graph::new(disk_based)?;
+    let mut g = Graph::with_default_graphstorages(disk_based)?;
     let mut updates = GraphUpdate::default();
     let mut edge_updates = GraphUpdate::default();
 
