@@ -6,7 +6,7 @@ license = "Apache-2.0"
 name = "graphannis-webservice"
 readme = "crate-info.md"
 repository = "https://github.com/korpling/graphANNIS"
-version = "2.4.6"
+version = "2.4.7"
 
 [dependencies]
 actix-cors = "0.6"

@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.7] - 2023-10-23
+
 ### Fixed
 
 - When an optional node (for negation without existence) was not at the end of
