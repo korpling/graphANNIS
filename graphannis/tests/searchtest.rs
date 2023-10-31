@@ -223,7 +223,7 @@ fn meta_node_output_quirks() {
 
     let q = SearchQuery {
         corpus_names: &["GUM"],
-        query: "\"researching\" & meta:: type=\"interview\"",
+        query: "\"researching\" & meta::type=\"interview\"",
         query_language: QueryLanguage::AQLQuirksV3,
         timeout: None,
     };
