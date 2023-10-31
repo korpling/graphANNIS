@@ -48,13 +48,4 @@ impl Disjunction {
         }
         None
     }
-
-    pub fn is_included_in_output(&self, variable: &str) -> bool {
-        for alt in &self.alternatives {
-            if alt.is_included_in_output(variable) {
-                return true;
-            }
-        }
-        false
-    }
 }

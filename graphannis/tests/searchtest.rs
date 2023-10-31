@@ -215,3 +215,54 @@ fn find_order_presorted() {
         result
     );
 }
+
+#[ignore]
+#[test]
+fn meta_node_output_quirks() {
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+
+    let q = SearchQuery {
+        corpus_names: &["GUM"],
+        query: "\"researching\" & meta::type=\"interview\"",
+        query_language: QueryLanguage::AQLQuirksV3,
+        timeout: None,
+    };
+    let result = cs
+        .find(
+            q.clone(),
+            0,
+            Some(5),
+            graphannis::corpusstorage::ResultOrder::Normal,
+        )
+        .unwrap();
+
+    // Only the token node should be part of the output
+    assert_eq!(vec!["GUM/GUM_interview_ants#tok_309",], result);
+}
+
+#[ignore]
+#[test]
+fn meta_node_output_standard() {
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+
+    let q = SearchQuery {
+        corpus_names: &["GUM"],
+        query: "\"researching\" @* type=\"interview\"",
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+    let result = cs
+        .find(
+            q.clone(),
+            0,
+            Some(5),
+            graphannis::corpusstorage::ResultOrder::Normal,
+        )
+        .unwrap();
+
+    // Both nodes should be part of the output
+    assert_eq!(
+        vec!["GUM/GUM_interview_ants#tok_309 type::GUM/GUM_interview_ants",],
+        result
+    );
+}
