@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Do not output document nodes in `find` query when using quirks mode and
+  `meta::` queries.
+
+
 ## [2.4.7] - 2023-10-23
 
 ### Fixed
