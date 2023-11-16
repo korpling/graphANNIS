@@ -2,7 +2,7 @@ use crate::annostorage::symboltable::SymbolTable;
 use crate::annostorage::AnnotationStorage;
 use crate::annostorage::{Match, ValueSearch};
 use crate::errors::Result;
-use crate::graph::{ANNIS_NS, NODE_NAME};
+use crate::graph::NODE_NAME_KEY;
 use crate::serializer::{FixedSizeKeySerializer, KeySerializer};
 use crate::types::{AnnoKey, Annotation, Edge, NodeID};
 use crate::util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY};
@@ -989,11 +989,7 @@ where
 
 impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
     fn get_node_id_from_name(&self, node_name: &str) -> Result<Option<NodeID>> {
-        let node_name_key = AnnoKey {
-            ns: ANNIS_NS.into(),
-            name: NODE_NAME.into(),
-        };
-        if let Some(node_name_symbol) = self.anno_key_symbols.get_symbol(&node_name_key) {
+        if let Some(node_name_symbol) = self.anno_key_symbols.get_symbol(&NODE_NAME_KEY) {
             let lower_bound = create_by_anno_qname_key(NodeID::MIN, node_name_symbol, node_name);
             let upper_bound = create_by_anno_qname_key(NodeID::MAX, node_name_symbol, &node_name);
 
@@ -1005,6 +1001,17 @@ impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
             }
         }
         Ok(None)
+    }
+
+    fn has_node_name(&self, node_name: &str) -> Result<bool> {
+        if let Some(node_name_symbol) = self.anno_key_symbols.get_symbol(&NODE_NAME_KEY) {
+            let lower_bound = create_by_anno_qname_key(NodeID::MIN, node_name_symbol, node_name);
+            let upper_bound = create_by_anno_qname_key(NodeID::MAX, node_name_symbol, &node_name);
+
+            let mut results = self.by_anno_qname.range(lower_bound..=upper_bound);
+            return Ok(results.next().is_some());
+        }
+        Ok(false)
     }
 }
 
@@ -1158,9 +1165,15 @@ mod tests {
         assert_eq!(Some(1), a.get_node_id_from_name("node1").unwrap());
         assert_eq!(Some(2), a.get_node_id_from_name("node2").unwrap());
         assert_eq!(Some(3), a.get_node_id_from_name("node3").unwrap());
+        assert_eq!(true, a.has_node_name("node1").unwrap());
+        assert_eq!(true, a.has_node_name("node2").unwrap());
+        assert_eq!(true, a.has_node_name("node3").unwrap());
 
         assert_eq!(None, a.get_node_id_from_name("node0").unwrap());
         assert_eq!(None, a.get_node_id_from_name("").unwrap());
         assert_eq!(None, a.get_node_id_from_name("somenode").unwrap());
+        assert_eq!(false, a.has_node_name("node0").unwrap());
+        assert_eq!(false, a.has_node_name("").unwrap());
+        assert_eq!(false, a.has_node_name("somenode").unwrap());
     }
 }

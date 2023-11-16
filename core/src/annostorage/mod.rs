@@ -317,6 +317,10 @@ pub trait NodeAnnotationStorage: AnnotationStorage<NodeID> {
     /// Return the internal [`NodeID`] for the node that has the given
     /// `node_name` as `annis::node_name` annotation.
     fn get_node_id_from_name(&self, node_name: &str) -> Result<Option<NodeID>>;
+
+    /// Returns true if there is a node with the given `node_name` as value for
+    /// the `annis::node_name` annotation.
+    fn has_node_name(&self, node_name: &str) -> Result<bool>;
 }
 
 /// An annotation storage for edges.

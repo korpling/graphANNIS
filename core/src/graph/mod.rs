@@ -381,12 +381,8 @@ impl<CT: ComponentType> Graph<CT> {
                     node_name,
                     node_type,
                 } => {
-                    let existing_node_id = self.get_cached_node_id_from_name(
-                        Cow::Borrowed(node_name),
-                        &mut node_id_cache,
-                    )?;
                     // only add node if it does not exist yet
-                    if existing_node_id.is_none() {
+                    if !self.node_annos.has_node_name(node_name)? {
                         let new_node_id: NodeID =
                             if let Some(id) = self.node_annos.get_largest_item()? {
                                 id + 1

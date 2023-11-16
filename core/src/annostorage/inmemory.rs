@@ -969,6 +969,22 @@ impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
 
         Ok(None)
     }
+
+    fn has_node_name(&self, node_name: &str) -> Result<bool> {
+        if let (Some(anno_name_symbol), Some(value_symbol)) = (
+            self.anno_keys.get_symbol(&NODE_NAME_KEY),
+            self.anno_values
+                .get_symbol(&SmartString::<LazyCompact>::from(node_name)),
+        ) {
+            if let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol) {
+                if let Some(items) = items_with_anno.get(&value_symbol) {
+                    return Ok(!items.is_empty());
+                }
+            }
+        }
+
+        Ok(false)
+    }
 }
 
 impl EdgeAnnotationStorage for AnnoStorageImpl<Edge> {}
@@ -1117,9 +1133,15 @@ mod tests {
         assert_eq!(Some(1), a.get_node_id_from_name("node1").unwrap());
         assert_eq!(Some(2), a.get_node_id_from_name("node2").unwrap());
         assert_eq!(Some(3), a.get_node_id_from_name("node3").unwrap());
+        assert_eq!(true, a.has_node_name("node1").unwrap());
+        assert_eq!(true, a.has_node_name("node2").unwrap());
+        assert_eq!(true, a.has_node_name("node3").unwrap());
 
         assert_eq!(None, a.get_node_id_from_name("node0").unwrap());
         assert_eq!(None, a.get_node_id_from_name("").unwrap());
         assert_eq!(None, a.get_node_id_from_name("somenode").unwrap());
+        assert_eq!(false, a.has_node_name("node0").unwrap());
+        assert_eq!(false, a.has_node_name("").unwrap());
+        assert_eq!(false, a.has_node_name("somenode").unwrap());
     }
 }
