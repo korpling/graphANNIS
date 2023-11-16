@@ -899,7 +899,9 @@ fn import_relative_corpus_with_linked_file() {
         .unwrap();
     assert_eq!("CorpusWithLinkedFile", &corpus_name);
     // Check that the linked file was copied
-    let entry = cs.get_loaded_entry("CorpusWithLinkedFile", false).unwrap();
+    let entry = cs
+        .get_loaded_entry("CorpusWithLinkedFile", false, false)
+        .unwrap();
     let lock = entry.read().unwrap();
     let g: &AnnotationGraph = get_read_or_error(&lock).unwrap();
 
