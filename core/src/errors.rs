@@ -60,6 +60,8 @@ pub enum GraphAnnisCoreError {
     SymbolTableOverflow,
     #[error("Annotation key with ID {0} is not in symbol table")]
     UnknownAnnoKeySymbolId(usize),
+    #[error("The choose cache size is zero, which is not allowed.")]
+    ZeroCacheSize,
     #[error(transparent)]
     Other(#[from] Box<dyn std::error::Error + Send + Sync>),
 }

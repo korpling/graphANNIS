@@ -11,11 +11,10 @@ use crate::{
     errors::GraphAnnisCoreError,
     types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID},
 };
-use lfu::LFUCache;
+use clru::CLruCache;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
 use smartstring::alias::String as SmartString;
-use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
@@ -24,6 +23,7 @@ use std::{
     borrow::Cow,
     sync::{Arc, Mutex},
 };
+use std::{collections::BTreeMap, num::NonZeroUsize};
 use update::{GraphUpdate, UpdateEvent};
 
 pub const ANNIS_NS: &str = "annis";
@@ -345,13 +345,13 @@ impl<CT: ComponentType> Graph<CT> {
     fn get_cached_node_id_from_name(
         &self,
         node_name: Cow<String>,
-        cache: &mut LFUCache<String, Option<NodeID>>,
+        cache: &mut CLruCache<String, Option<NodeID>>,
     ) -> Result<Option<NodeID>> {
         if let Some(id) = cache.get(node_name.as_ref()) {
             Ok(*id)
         } else {
             let id = self.node_annos.get_node_id_from_name(&node_name)?;
-            cache.set(node_name.to_string(), id);
+            cache.put(node_name.to_string(), id);
             Ok(id)
         }
     }
@@ -367,8 +367,8 @@ impl<CT: ComponentType> Graph<CT> {
 
         let mut update_graph_index = ComponentType::init_update_graph_index(self)?;
         // Cache the expensive mapping of node names to IDs
-        let mut node_id_cache = LFUCache::with_capacity(1_000)
-            .map_err(|err| GraphAnnisCoreError::LfuCache(err.to_string()))?;
+        let cache_size = NonZeroUsize::new(1_000).ok_or(GraphAnnisCoreError::ZeroCacheSize)?;
+        let mut node_id_cache = CLruCache::new(cache_size);
         // Iterate once over all changes in the same order as the updates have been added
         let total_nr_updates = u.len()?;
         progress_callback(&format!("applying {} atomic updates", total_nr_updates));
@@ -404,7 +404,7 @@ impl<CT: ComponentType> Graph<CT> {
                         self.node_annos.insert(new_node_id, new_anno_type)?;
 
                         // update the internal cache
-                        node_id_cache.set(node_name.clone(), Some(new_node_id));
+                        node_id_cache.put(node_name.clone(), Some(new_node_id));
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
@@ -430,7 +430,7 @@ impl<CT: ComponentType> Graph<CT> {
                         }
 
                         // update the internal cache
-                        node_id_cache.set(node_name.clone(), None);
+                        node_id_cache.put(node_name.clone(), None);
                     }
                 }
                 UpdateEvent::AddNodeLabel {
