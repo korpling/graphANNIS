@@ -1,6 +1,8 @@
 use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use crate::{
-    annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage},
+    annostorage::{
+        inmemory::AnnoStorageImpl, AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage,
+    },
     dfs::CycleSafeDFS,
     errors::Result,
     types::{Edge, NodeID},
@@ -92,7 +94,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
-            Bound::Unbounded => usize::max_value(),
+            Bound::Unbounded => usize::MAX,
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
@@ -110,7 +112,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
-            Bound::Unbounded => usize::max_value(),
+            Bound::Unbounded => usize::MAX,
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
@@ -122,7 +124,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
     }
 
     fn distance(&self, source: NodeID, target: NodeID) -> Result<Option<usize>> {
-        let mut it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value())
+        let mut it = CycleSafeDFS::new(self, source, usize::MIN, usize::MAX)
             .filter_ok(|x| target == x.node)
             .map_ok(|x| x.distance);
 
@@ -142,7 +144,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
         max_distance: std::ops::Bound<usize>,
     ) -> Result<bool> {
         let max_distance = match max_distance {
-            Bound::Unbounded => usize::max_value(),
+            Bound::Unbounded => usize::MAX,
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
@@ -152,13 +154,13 @@ impl GraphStorage for DenseAdjacencyListStorage {
         Ok(it.next().is_some())
     }
 
-    fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge> {
+    fn get_anno_storage(&self) -> &dyn EdgeAnnotationStorage {
         &self.annos
     }
 
     fn copy(
         &mut self,
-        node_annos: &dyn AnnotationStorage<NodeID>,
+        node_annos: &dyn NodeAnnotationStorage,
         orig: &dyn GraphStorage,
     ) -> Result<()> {
         self.annos.clear()?;

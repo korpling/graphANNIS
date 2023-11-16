@@ -108,7 +108,7 @@ impl AQLUpdateGraphIndex {
     ) -> std::result::Result<NodeID, ComponentTypeError> {
         if let Some(id) = self.node_ids.get(&node_name)? {
             return Ok(*id);
-        } else if let Some(id) = graph.get_node_id_from_name(&node_name)? {
+        } else if let Some(id) = graph.get_node_annos().get_node_id_from_name(&node_name)? {
             self.node_ids.insert(node_name.to_string(), id)?;
             return Ok(id);
         }
@@ -131,7 +131,7 @@ impl AQLUpdateGraphIndex {
 
         let union = UnionEdgeContainer::new(containers);
 
-        let dfs = CycleSafeDFS::new_inverse(&union, node, 0, usize::max_value());
+        let dfs = CycleSafeDFS::new_inverse(&union, node, 0, usize::MAX);
         for step in dfs {
             let step = step?;
             self.invalid_nodes.insert(step.node, true)?;

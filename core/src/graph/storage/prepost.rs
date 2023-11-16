@@ -1,6 +1,8 @@
 use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use crate::{
-    annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage},
+    annostorage::{
+        inmemory::AnnoStorageImpl, AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage,
+    },
     dfs::CycleSafeDFS,
     errors::Result,
     graph::NODE_NAME_KEY,
@@ -158,7 +160,7 @@ where
     for<'de> OrderT: NumValue + Deserialize<'de> + Serialize,
     for<'de> LevelT: NumValue + Deserialize<'de> + Serialize,
 {
-    fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge> {
+    fn get_anno_storage(&self) -> &dyn EdgeAnnotationStorage {
         &self.annos
     }
 
@@ -194,7 +196,7 @@ where
             let mut visited = FxHashSet::<NodeID>::default();
 
             let max_distance = match max_distance {
-                Unbounded => usize::max_value(),
+                Unbounded => usize::MAX,
                 Included(max_distance) => max_distance,
                 Excluded(max_distance) => max_distance - 1,
             };
@@ -254,7 +256,7 @@ where
             let mut visited = FxHashSet::<NodeID>::default();
 
             let max_distance = match max_distance {
-                Unbounded => usize::max_value(),
+                Unbounded => usize::MAX,
                 Included(max_distance) => max_distance,
                 Excluded(max_distance) => max_distance - 1,
             };
@@ -349,7 +351,7 @@ where
             return Ok(Some(0));
         }
 
-        let mut min_level = usize::max_value();
+        let mut min_level = usize::MAX;
         let mut was_found = false;
 
         if let (Some(order_source), Some(order_target)) = (
@@ -393,7 +395,7 @@ where
             self.node_to_order.get(&target),
         ) {
             let max_distance = match max_distance {
-                Unbounded => usize::max_value(),
+                Unbounded => usize::MAX,
                 Included(max_distance) => max_distance,
                 Excluded(max_distance) => max_distance - 1,
             };
@@ -422,7 +424,7 @@ where
 
     fn copy(
         &mut self,
-        node_annos: &dyn AnnotationStorage<NodeID>,
+        node_annos: &dyn NodeAnnotationStorage,
         orig: &dyn GraphStorage,
     ) -> Result<()> {
         self.clear()?;
@@ -478,8 +480,7 @@ where
                 &mut node_stack,
             );
 
-            let dfs =
-                CycleSafeDFS::new(orig.as_edgecontainer(), *start_node, 1, usize::max_value());
+            let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), *start_node, 1, usize::MAX);
             for step in dfs {
                 let step = step?;
                 if step.distance <= last_distance {

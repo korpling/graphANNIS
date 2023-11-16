@@ -417,7 +417,7 @@ pub fn new_subgraph_iterator<'a>(
     let node_ids: Result<Vec<NodeID>> = node_ids
         .into_iter()
         .map(|node_name| {
-            let id = graph.get_node_id_from_name(&node_name)?;
+            let id = graph.get_node_annos().get_node_id_from_name(&node_name)?;
             let id = id.ok_or(GraphAnnisError::NoSuchNodeID(node_name))?;
             Ok(id)
         })

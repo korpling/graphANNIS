@@ -3,13 +3,13 @@ mod tests;
 
 use super::disjunction::Disjunction;
 use super::Config;
+use crate::annis::db::aql::model::AnnotationComponentType;
 use crate::annis::db::exec::filter::Filter;
 use crate::annis::db::exec::indexjoin::IndexJoin;
 use crate::annis::db::exec::nestedloop::NestedLoop;
 use crate::annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use crate::annis::db::exec::parallel;
 use crate::annis::db::exec::{CostEstimate, ExecutionNode, ExecutionNodeDesc, NodeSearchDesc};
-use crate::annis::db::{aql::model::AnnotationComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorBase, BinaryOperatorIndex, BinaryOperatorSpec, UnaryOperator,
@@ -21,11 +21,8 @@ use crate::{
     annis::types::{LineColumnRange, QueryAttributeDescription},
     errors::Result,
 };
-use graphannis_core::{
-    annostorage::MatchGroup,
-    graph::storage::GraphStatistic,
-    types::{Component, Edge},
-};
+use graphannis_core::annostorage::EdgeAnnotationStorage;
+use graphannis_core::{annostorage::MatchGroup, graph::storage::GraphStatistic, types::Component};
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
 use rand::rngs::SmallRng;
@@ -551,7 +548,7 @@ impl Conjunction {
                                 if let Some(gs) = db.get_graphstorage(c) {
                                     // check if we can apply an even more restrictive edge annotation search
                                     if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
-                                        let anno_storage: &dyn AnnotationStorage<Edge> =
+                                        let anno_storage: &dyn EdgeAnnotationStorage =
                                             gs.get_anno_storage();
                                         let edge_anno_est =
                                             edge_anno_spec.guess_max_count(anno_storage)?;

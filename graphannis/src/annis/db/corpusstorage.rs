@@ -24,7 +24,9 @@ use crate::{
 use fmt::Display;
 use fs2::FileExt;
 use graphannis_core::annostorage::symboltable::SymbolTable;
-use graphannis_core::annostorage::{match_group_resolve_symbol_ids, match_group_with_symbol_ids};
+use graphannis_core::annostorage::{
+    match_group_resolve_symbol_ids, match_group_with_symbol_ids, NodeAnnotationStorage,
+};
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
     graph::{
@@ -60,7 +62,6 @@ use std::{
 };
 
 use aql::model::AnnotationComponentType;
-use db::AnnotationStorage;
 
 use self::subgraph::new_subgraph_iterator;
 
@@ -1033,7 +1034,7 @@ impl CorpusStorage {
         };
         let old_base_path = old_base_path.canonicalize()?;
         // Find all nodes of the type "file"
-        let node_annos: &mut dyn AnnotationStorage<NodeID> = graph.get_node_annos_mut();
+        let node_annos: &mut dyn NodeAnnotationStorage = graph.get_node_annos_mut();
         let file_nodes: Result<Vec<_>> = node_annos
             .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
             .map_ok(|m| m.node)
@@ -1090,7 +1091,7 @@ impl CorpusStorage {
             let base_path = base_path.canonicalize()?;
 
             // Find all nodes of the type "file"
-            let node_annos: &dyn AnnotationStorage<NodeID> = graph.get_node_annos();
+            let node_annos: &dyn NodeAnnotationStorage = graph.get_node_annos();
             let it = node_annos
                 .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
                 // Get the linked file for this node
@@ -2350,7 +2351,7 @@ impl CorpusStorage {
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false, false) {
             let lock = db_entry.read()?;
             if let Ok(db) = get_read_or_error(&lock) {
-                let node_annos: &dyn AnnotationStorage<NodeID> = db.get_node_annos();
+                let node_annos: &dyn NodeAnnotationStorage = db.get_node_annos();
                 for key in node_annos.annotation_keys()? {
                     if list_values {
                         if only_most_frequent_values {

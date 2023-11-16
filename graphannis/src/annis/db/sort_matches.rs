@@ -1,5 +1,6 @@
 use crate::annis::db::token_helper::TokenHelper;
-use crate::{annis::db::AnnotationStorage, errors::Result, graph::Match};
+use crate::{errors::Result, graph::Match};
+use graphannis_core::annostorage::NodeAnnotationStorage;
 use graphannis_core::{
     graph::{storage::GraphStorage, ANNIS_NS, NODE_NAME},
     types::{AnnoKey, NodeID},
@@ -34,7 +35,7 @@ impl Default for SortCache {
 pub fn compare_matchgroup_by_text_pos(
     m1: &[Match],
     m2: &[Match],
-    node_annos: &dyn AnnotationStorage<NodeID>,
+    node_annos: &dyn NodeAnnotationStorage,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
@@ -133,7 +134,7 @@ lazy_static! {
 pub fn compare_match_by_text_pos(
     m1: &Match,
     m2: &Match,
-    node_annos: &dyn AnnotationStorage<NodeID>,
+    node_annos: &dyn NodeAnnotationStorage,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,

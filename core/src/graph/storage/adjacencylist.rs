@@ -1,5 +1,7 @@
 use crate::{
-    annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage},
+    annostorage::{
+        inmemory::AnnoStorageImpl, AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage,
+    },
     dfs::CycleSafeDFS,
     errors::Result,
     types::{AnnoKey, Annotation, Edge, NodeID},
@@ -109,7 +111,7 @@ impl EdgeContainer for AdjacencyListStorage {
 }
 
 impl GraphStorage for AdjacencyListStorage {
-    fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge> {
+    fn get_anno_storage(&self) -> &dyn EdgeAnnotationStorage {
         &self.annos
     }
 
@@ -139,7 +141,7 @@ impl GraphStorage for AdjacencyListStorage {
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
-            Bound::Unbounded => usize::max_value(),
+            Bound::Unbounded => usize::MAX,
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
@@ -163,7 +165,7 @@ impl GraphStorage for AdjacencyListStorage {
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
-            Bound::Unbounded => usize::max_value(),
+            Bound::Unbounded => usize::MAX,
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
@@ -180,7 +182,7 @@ impl GraphStorage for AdjacencyListStorage {
     }
 
     fn distance(&self, source: NodeID, target: NodeID) -> Result<Option<usize>> {
-        let mut it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value())
+        let mut it = CycleSafeDFS::new(self, source, usize::MIN, usize::MAX)
             .filter_ok(|x| target == x.node)
             .map_ok(|x| x.distance);
         match it.next() {
@@ -199,7 +201,7 @@ impl GraphStorage for AdjacencyListStorage {
         max_distance: std::ops::Bound<usize>,
     ) -> Result<bool> {
         let max_distance = match max_distance {
-            Bound::Unbounded => usize::max_value(),
+            Bound::Unbounded => usize::MAX,
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
@@ -211,7 +213,7 @@ impl GraphStorage for AdjacencyListStorage {
 
     fn copy(
         &mut self,
-        _node_annos: &dyn AnnotationStorage<NodeID>,
+        _node_annos: &dyn NodeAnnotationStorage,
         orig: &dyn GraphStorage,
     ) -> Result<()> {
         self.clear()?;
@@ -411,7 +413,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             stats.cyclic = true;
         } else {
             for root_node in &roots {
-                let mut dfs = CycleSafeDFS::new(self, *root_node, 0, usize::max_value());
+                let mut dfs = CycleSafeDFS::new(self, *root_node, 0, usize::MAX);
                 for step in &mut dfs {
                     let step = step?;
                     number_of_visits += 1;

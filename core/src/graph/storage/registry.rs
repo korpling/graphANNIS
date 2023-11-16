@@ -109,35 +109,35 @@ fn get_prepostorder_by_size(stats: &GraphStatistic) -> GSInfo {
     if stats.rooted_tree {
         // There are exactly two order values per node and there can be only one order value per node
         // in a tree.
-        if stats.nodes < (u16::max_value() / 2) as usize {
-            if stats.max_depth < u8::max_value() as usize {
+        if stats.nodes < (u16::MAX / 2) as usize {
+            if stats.max_depth < u8::MAX as usize {
                 return create_info::<PrePostOrderStorage<u16, u8>>();
-            } else if stats.max_depth < u32::max_value() as usize {
+            } else if stats.max_depth < u32::MAX as usize {
                 return create_info::<PrePostOrderStorage<u16, u32>>();
             }
-        } else if stats.nodes < (u32::max_value() / 2) as usize {
-            if stats.max_depth < u8::max_value() as usize {
+        } else if stats.nodes < (u32::MAX / 2) as usize {
+            if stats.max_depth < u8::MAX as usize {
                 return create_info::<PrePostOrderStorage<u32, u8>>();
-            } else if stats.max_depth < u32::max_value() as usize {
+            } else if stats.max_depth < u32::MAX as usize {
                 return create_info::<PrePostOrderStorage<u32, u32>>();
             }
-        } else if stats.max_depth < u8::max_value() as usize {
+        } else if stats.max_depth < u8::MAX as usize {
             return create_info::<PrePostOrderStorage<u64, u8>>();
-        } else if stats.max_depth < u32::max_value() as usize {
+        } else if stats.max_depth < u32::MAX as usize {
             return create_info::<PrePostOrderStorage<u64, u32>>();
         }
-    } else if stats.max_depth < u8::max_value() as usize {
+    } else if stats.max_depth < u8::MAX as usize {
         return create_info::<PrePostOrderStorage<u64, u8>>();
     }
     create_info::<PrePostOrderStorage<u64, u64>>()
 }
 
 fn get_linear_by_size(stats: &GraphStatistic) -> GSInfo {
-    if stats.max_depth < u8::max_value() as usize {
+    if stats.max_depth < u8::MAX as usize {
         create_info::<LinearGraphStorage<u8>>()
-    } else if stats.max_depth < u16::max_value() as usize {
+    } else if stats.max_depth < u16::MAX as usize {
         create_info::<LinearGraphStorage<u16>>()
-    } else if stats.max_depth < u32::max_value() as usize {
+    } else if stats.max_depth < u32::MAX as usize {
         create_info::<LinearGraphStorage<u32>>()
     } else {
         create_info::<LinearGraphStorage<u64>>()

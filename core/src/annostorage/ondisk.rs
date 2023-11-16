@@ -2,8 +2,9 @@ use crate::annostorage::symboltable::SymbolTable;
 use crate::annostorage::AnnotationStorage;
 use crate::annostorage::{Match, ValueSearch};
 use crate::errors::Result;
+use crate::graph::{ANNIS_NS, NODE_NAME};
 use crate::serializer::{FixedSizeKeySerializer, KeySerializer};
-use crate::types::{AnnoKey, Annotation, NodeID};
+use crate::types::{AnnoKey, Annotation, Edge, NodeID};
 use crate::util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY};
 use crate::util::{self, memory_estimation};
 use core::ops::Bound::*;
@@ -16,6 +17,8 @@ use std::sync::Arc;
 use transient_btree_index::BtreeConfig;
 
 use smartstring::alias::String as SmartString;
+
+use super::{EdgeAnnotationStorage, NodeAnnotationStorage};
 
 pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v1";
 
@@ -202,11 +205,8 @@ where
             .filter_map(move |k| self.anno_key_symbols.get_symbol(&k))
             .flat_map(move |anno_key_symbol| {
                 let lower_bound_value = if let Some(value) = &value { value } else { "" };
-                let lower_bound = create_by_anno_qname_key(
-                    NodeID::min_value(),
-                    anno_key_symbol,
-                    lower_bound_value,
-                );
+                let lower_bound =
+                    create_by_anno_qname_key(NodeID::MIN, anno_key_symbol, lower_bound_value);
 
                 let upper_bound_value = if let Some(value) = &value {
                     Cow::Borrowed(value)
@@ -214,11 +214,8 @@ where
                     Cow::Owned(std::char::MAX.to_string())
                 };
 
-                let upper_bound = create_by_anno_qname_key(
-                    NodeID::max_value(),
-                    anno_key_symbol,
-                    &upper_bound_value,
-                );
+                let upper_bound =
+                    create_by_anno_qname_key(NodeID::MAX, anno_key_symbol, &upper_bound_value);
                 self.by_anno_qname.range(lower_bound..upper_bound)
             })
             .fuse()
@@ -284,13 +281,10 @@ where
         anno_key: &AnnoKey,
     ) -> Box<dyn Iterator<Item = Result<(Vec<u8>, bool)>> + 'a> {
         if let Some(anno_key_symbol) = self.anno_key_symbols.get_symbol(anno_key) {
-            let lower_bound = create_by_anno_qname_key(NodeID::min_value(), anno_key_symbol, "");
+            let lower_bound = create_by_anno_qname_key(NodeID::MIN, anno_key_symbol, "");
 
-            let upper_bound = create_by_anno_qname_key(
-                NodeID::max_value(),
-                anno_key_symbol,
-                &std::char::MAX.to_string(),
-            );
+            let upper_bound =
+                create_by_anno_qname_key(NodeID::MAX, anno_key_symbol, &std::char::MAX.to_string());
 
             Box::new(self.by_anno_qname.range(lower_bound..upper_bound))
         } else {
@@ -357,8 +351,8 @@ where
 
     fn get_annotations_for_item(&self, item: &T) -> Result<Vec<Annotation>> {
         let mut result = Vec::default();
-        let start = create_by_container_key(item.clone(), usize::min_value());
-        let end = create_by_container_key(item.clone(), usize::max_value());
+        let start = create_by_container_key(item.clone(), usize::MIN);
+        let end = create_by_container_key(item.clone(), usize::MAX);
         for anno in self.by_container.range(start..=end) {
             let (key, val) = anno?;
             let parsed_key = self.parse_by_container_key(key)?;
@@ -540,8 +534,8 @@ where
             let mut matches = Vec::new();
             for item in it {
                 let item = item?;
-                let start = create_by_container_key(item.clone(), usize::min_value());
-                let end = create_by_container_key(item, usize::max_value());
+                let start = create_by_container_key(item.clone(), usize::MIN);
+                let end = create_by_container_key(item, usize::MAX);
                 for anno in self.by_container.range(start..=end) {
                     let (data, _) = anno?;
                     let m = self.parse_by_container_key(data)?.into();
@@ -993,8 +987,33 @@ where
     }
 }
 
+impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
+    fn get_node_id_from_name(&self, node_name: &str) -> Result<Option<NodeID>> {
+        let node_name_key = AnnoKey {
+            ns: ANNIS_NS.into(),
+            name: NODE_NAME.into(),
+        };
+        if let Some(node_name_symbol) = self.anno_key_symbols.get_symbol(&node_name_key) {
+            let lower_bound = create_by_anno_qname_key(NodeID::MIN, node_name_symbol, node_name);
+            let upper_bound = create_by_anno_qname_key(NodeID::MAX, node_name_symbol, &node_name);
+
+            let mut results = self.by_anno_qname.range(lower_bound..=upper_bound);
+            if let Some(item) = results.next() {
+                let (data, _) = item?;
+                let item_id = NodeID::parse_key(&data[data.len() - NodeID::key_size()..])?;
+                return Ok(Some(item_id));
+            }
+        }
+        Ok(None)
+    }
+}
+
+impl EdgeAnnotationStorage for AnnoStorageImpl<Edge> {}
+
 #[cfg(test)]
 mod tests {
+    use crate::graph::NODE_NAME_KEY;
+
     use super::*;
 
     use std::sync::Once;
@@ -1105,5 +1124,43 @@ mod tests {
 
         assert_eq!(0, a.number_of_annotations().unwrap());
         assert_eq!(&0, a.anno_key_sizes.get(&test_anno.key).unwrap_or(&0));
+    }
+
+    #[test]
+    fn get_node_id_from_name() {
+        let key = NODE_NAME_KEY.as_ref().clone();
+        let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new(None).unwrap();
+        a.insert(
+            1,
+            Annotation {
+                key: key.clone(),
+                val: "node1".into(),
+            },
+        )
+        .unwrap();
+        a.insert(
+            2,
+            Annotation {
+                key: key.clone(),
+                val: "node2".into(),
+            },
+        )
+        .unwrap();
+        a.insert(
+            3,
+            Annotation {
+                key: key.clone(),
+                val: "node3".into(),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(Some(1), a.get_node_id_from_name("node1").unwrap());
+        assert_eq!(Some(2), a.get_node_id_from_name("node2").unwrap());
+        assert_eq!(Some(3), a.get_node_id_from_name("node3").unwrap());
+
+        assert_eq!(None, a.get_node_id_from_name("node0").unwrap());
+        assert_eq!(None, a.get_node_id_from_name("").unwrap());
+        assert_eq!(None, a.get_node_id_from_name("somenode").unwrap());
     }
 }

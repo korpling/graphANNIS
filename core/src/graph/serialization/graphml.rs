@@ -665,8 +665,16 @@ value = "test""#;
         let (g, config_str) = import(input_xml, false, |_| {}).unwrap();
 
         // Check that all nodes, edges and annotations have been created
-        let first_node_id = g.get_node_id_from_name("first_node").unwrap().unwrap();
-        let second_node_id = g.get_node_id_from_name("second_node").unwrap().unwrap();
+        let first_node_id = g
+            .node_annos
+            .get_node_id_from_name("first_node")
+            .unwrap()
+            .unwrap();
+        let second_node_id = g
+            .node_annos
+            .get_node_id_from_name("second_node")
+            .unwrap()
+            .unwrap();
 
         let first_node_annos = g
             .get_node_annos()

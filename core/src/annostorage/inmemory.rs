@@ -1,14 +1,16 @@
-use super::{AnnotationStorage, Match};
+use super::{AnnotationStorage, EdgeAnnotationStorage, Match, NodeAnnotationStorage};
 use crate::annostorage::ValueSearch;
 use crate::errors::Result;
+use crate::graph::NODE_NAME_KEY;
 use crate::malloc_size_of::MallocSizeOf;
-use crate::types::{AnnoKey, Annotation, Edge};
+use crate::types::{AnnoKey, Annotation, Edge, NodeID};
 use crate::util::{self, memory_estimation};
 use crate::{annostorage::symboltable::SymbolTable, errors::GraphAnnisCoreError};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smartstring::alias::String;
+use smartstring::{LazyCompact, SmartString};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
@@ -951,6 +953,26 @@ where
     }
 }
 
+impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
+    fn get_node_id_from_name(&self, node_name: &str) -> Result<Option<NodeID>> {
+        if let (Some(anno_name_symbol), Some(value_symbol)) = (
+            self.anno_keys.get_symbol(&NODE_NAME_KEY),
+            self.anno_values
+                .get_symbol(&SmartString::<LazyCompact>::from(node_name)),
+        ) {
+            if let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol) {
+                if let Some(items) = items_with_anno.get(&value_symbol) {
+                    return Ok(items.into_iter().copied().next());
+                }
+            }
+        }
+
+        Ok(None)
+    }
+}
+
+impl EdgeAnnotationStorage for AnnoStorageImpl<Edge> {}
+
 impl AnnoStorageImpl<Edge> {
     pub fn after_deserialization(&mut self) {
         self.anno_keys.after_deserialization();
@@ -1061,5 +1083,43 @@ mod tests {
         assert_eq!(0, a.by_container.len());
         assert_eq!(0, a.by_anno.len());
         assert_eq!(&0, a.anno_key_sizes.get(&test_anno.key).unwrap_or(&0));
+    }
+
+    #[test]
+    fn get_node_id_from_name() {
+        let key = NODE_NAME_KEY.as_ref().clone();
+        let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
+        a.insert(
+            1,
+            Annotation {
+                key: key.clone(),
+                val: "node1".into(),
+            },
+        )
+        .unwrap();
+        a.insert(
+            2,
+            Annotation {
+                key: key.clone(),
+                val: "node2".into(),
+            },
+        )
+        .unwrap();
+        a.insert(
+            3,
+            Annotation {
+                key: key.clone(),
+                val: "node3".into(),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(Some(1), a.get_node_id_from_name("node1").unwrap());
+        assert_eq!(Some(2), a.get_node_id_from_name("node2").unwrap());
+        assert_eq!(Some(3), a.get_node_id_from_name("node3").unwrap());
+
+        assert_eq!(None, a.get_node_id_from_name("node0").unwrap());
+        assert_eq!(None, a.get_node_id_from_name("").unwrap());
+        assert_eq!(None, a.get_node_id_from_name("somenode").unwrap());
     }
 }

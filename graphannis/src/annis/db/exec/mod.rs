@@ -1,14 +1,11 @@
 use self::nodesearch::NodeSearch;
-use crate::annis::db::AnnotationStorage;
 use crate::{
     annis::operator::{BinaryOperatorBase, EstimationType},
     errors::Result,
     graph::Match,
 };
-use graphannis_core::{
-    annostorage::MatchGroup,
-    types::{AnnoKey, NodeID},
-};
+use graphannis_core::annostorage::NodeAnnotationStorage;
+use graphannis_core::{annostorage::MatchGroup, types::AnnoKey};
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -187,7 +184,7 @@ impl ExecutionNodeDesc {
 /// Filter function for the value of a given match, but assumes the given match has already the
 /// correct annotation namespace/name.
 pub type MatchValueFilterFunc =
-    Box<dyn Fn(&Match, &dyn AnnotationStorage<NodeID>) -> Result<bool> + Send + Sync>;
+    Box<dyn Fn(&Match, &dyn NodeAnnotationStorage) -> Result<bool> + Send + Sync>;
 
 pub struct NodeSearchDesc {
     pub qname: (Option<String>, Option<String>),

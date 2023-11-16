@@ -41,7 +41,6 @@ static ref CORPUS_STORAGE : Option<CorpusStorage> = {
 
 const TOK_COUNT: usize = 100_000;
 
-
 fn find_all_nouns_gum(bench: &mut Criterion) {
     if CORPUS_STORAGE.is_none() {
         return;
@@ -284,13 +283,13 @@ fn apply_update_ondisk(bench: &mut Criterion) {
     cs.delete("apply_update_test_corpus").unwrap();
 }
 
-criterion_group!(name=default; config= Criterion::default().sample_size(50); targets = 
+criterion_group!(name=default; config= Criterion::default().sample_size(50); targets =
     deserialize_gum, 
     find_first_ten_token_gum, 
     find_first_ten_nouns_gum, 
     find_all_nouns_gum);
-criterion_group!(name=apply_update; config= Criterion::default().sample_size(20); targets = 
+criterion_group!(name=apply_update; config= Criterion::default().sample_size(20); targets =
     apply_update_inmemory,
-    apply_update_ondisk, 
+    apply_update_ondisk,
 );
 criterion_main!(default, apply_update);

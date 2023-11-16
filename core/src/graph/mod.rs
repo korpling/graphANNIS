@@ -3,7 +3,7 @@ pub mod storage;
 pub mod update;
 
 use crate::{
-    annostorage::{AnnotationStorage, ValueSearch},
+    annostorage::{AnnotationStorage, NodeAnnotationStorage, ValueSearch},
     errors::Result,
     graph::storage::{registry, GraphStorage, WriteableGraphStorage},
 };
@@ -52,7 +52,7 @@ lazy_static! {
 /// In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
 ///
 pub struct Graph<CT: ComponentType> {
-    node_annos: Box<dyn AnnotationStorage<NodeID>>,
+    node_annos: Box<dyn NodeAnnotationStorage>,
 
     location: Option<PathBuf>,
 
@@ -130,7 +130,7 @@ fn component_path<CT: ComponentType>(
 impl<CT: ComponentType> Graph<CT> {
     /// Create a new and empty instance without any location on the disk.
     pub fn new(disk_based: bool) -> Result<Self> {
-        let node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
+        let node_annos: Box<dyn NodeAnnotationStorage> = if disk_based {
             Box::new(crate::annostorage::ondisk::AnnoStorageImpl::new(None)?)
         } else {
             Box::new(crate::annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
@@ -350,7 +350,7 @@ impl<CT: ComponentType> Graph<CT> {
         if let Some(id) = cache.get(node_name.as_ref()) {
             Ok(*id)
         } else {
-            let id = self.get_node_id_from_name(&node_name)?;
+            let id = self.node_annos.get_node_id_from_name(&node_name)?;
             cache.set(node_name.to_string(), id);
             Ok(id)
         }
@@ -883,7 +883,7 @@ impl<CT: ComponentType> Graph<CT> {
             self.disk_based = disk_based;
 
             // Change the node annotation implementation
-            let mut new_node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
+            let mut new_node_annos: Box<dyn NodeAnnotationStorage> = if disk_based {
                 Box::new(crate::annostorage::ondisk::AnnoStorageImpl::new(None)?)
             } else {
                 Box::new(crate::annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
@@ -954,17 +954,6 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    pub fn get_node_id_from_name(&self, node_name: &str) -> Result<Option<NodeID>> {
-        let mut all_nodes_with_anno =
-            self.node_annos
-                .exact_anno_search(Some(ANNIS_NS), NODE_NAME, Some(node_name).into());
-        if let Some(m) = all_nodes_with_anno.next() {
-            let m = m?;
-            return Ok(Some(m.node));
-        }
-        Ok(None)
-    }
-
     /// Get a read-only graph storage copy for the given component `c`.
     pub fn get_graphstorage(&self, c: &Component<CT>) -> Option<Arc<dyn GraphStorage>> {
         // get and return the reference to the entry if loaded
@@ -983,12 +972,12 @@ impl<CT: ComponentType> Graph<CT> {
     }
 
     /// Get a read-only reference to the node annotations of this graph
-    pub fn get_node_annos(&self) -> &dyn AnnotationStorage<NodeID> {
+    pub fn get_node_annos(&self) -> &dyn NodeAnnotationStorage {
         self.node_annos.as_ref()
     }
 
     /// Get a mutable reference to the node annotations of this graph
-    pub fn get_node_annos_mut(&mut self) -> &mut dyn AnnotationStorage<NodeID> {
+    pub fn get_node_annos_mut(&mut self) -> &mut dyn NodeAnnotationStorage {
         self.node_annos.as_mut()
     }
 
