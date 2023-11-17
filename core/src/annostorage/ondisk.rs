@@ -26,6 +26,7 @@ const KB: usize = 1 << 10;
 const MB: usize = KB * KB;
 
 const EVICTION_STRATEGY: EvictionStrategy = EvictionStrategy::MaximumBytes(512 * MB);
+pub const BLOCK_CACHE_CAPACITY: usize = 10 * MB;
 
 /// An on-disk implementation of an annotation storage.
 #[derive(MallocSizeOf)]
@@ -121,13 +122,13 @@ where
                 by_container: DiskMap::new(
                     Some(&path_by_container),
                     EVICTION_STRATEGY,
-                    DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BLOCK_CACHE_CAPACITY,
                     BtreeConfig::default().fixed_key_size(T::key_size() + 16),
                 )?,
                 by_anno_qname: DiskMap::new(
                     Some(&path_by_anno_qname),
                     EVICTION_STRATEGY,
-                    DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BLOCK_CACHE_CAPACITY,
                     BtreeConfig::default(),
                 )?,
                 anno_key_symbols: SymbolTable::default(),
@@ -157,12 +158,12 @@ where
             Ok(AnnoStorageImpl {
                 by_container: DiskMap::new_temporary(
                     EVICTION_STRATEGY,
-                    DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BLOCK_CACHE_CAPACITY,
                     BtreeConfig::default().fixed_key_size(T::key_size() + 16),
                 ),
                 by_anno_qname: DiskMap::new_temporary(
                     EVICTION_STRATEGY,
-                    DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BLOCK_CACHE_CAPACITY,
                     BtreeConfig::default(),
                 ),
                 anno_key_symbols: SymbolTable::default(),
