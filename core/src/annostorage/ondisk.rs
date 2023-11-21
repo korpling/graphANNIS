@@ -296,7 +296,7 @@ where
     }
 }
 
-impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
+impl<T> AnnotationStorage<T> for AnnoStorageImpl<T>
 where
     T: FixedSizeKeySerializer
         + Send
@@ -610,7 +610,7 @@ where
                     })
                     .filter_map_ok(move |(item, anno_key, item_value)| {
                         if let Some(item_value) = item_value {
-                            if &item_value != &value {
+                            if item_value != value {
                                 return Some((item, anno_key).into());
                             }
                         }
@@ -783,7 +783,7 @@ where
 
             // Add the guessed count for each prefix
             for val_prefix in prefix_set.literals() {
-                let val_prefix = std::str::from_utf8(&val_prefix);
+                let val_prefix = std::str::from_utf8(val_prefix);
                 if let Ok(lower_val) = val_prefix {
                     let mut upper_val = String::from(lower_val);
                     upper_val.push(std::char::MAX);
@@ -911,10 +911,7 @@ where
                 max_histogram_buckets + 1
             };
 
-            let hist = self
-                .histogram_bounds
-                .entry(anno_key.clone())
-                .or_insert_with(std::vec::Vec::new);
+            let hist = self.histogram_bounds.entry(anno_key.clone()).or_default();
 
             if num_hist_bounds >= 2 {
                 hist.resize(num_hist_bounds, String::from(""));
@@ -994,7 +991,7 @@ impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
     fn get_node_id_from_name(&self, node_name: &str) -> Result<Option<NodeID>> {
         if let Some(node_name_symbol) = self.anno_key_symbols.get_symbol(&NODE_NAME_KEY) {
             let lower_bound = create_by_anno_qname_key(NodeID::MIN, node_name_symbol, node_name);
-            let upper_bound = create_by_anno_qname_key(NodeID::MAX, node_name_symbol, &node_name);
+            let upper_bound = create_by_anno_qname_key(NodeID::MAX, node_name_symbol, node_name);
 
             let mut results = self.by_anno_qname.range(lower_bound..=upper_bound);
             if let Some(item) = results.next() {
@@ -1009,7 +1006,7 @@ impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
     fn has_node_name(&self, node_name: &str) -> Result<bool> {
         if let Some(node_name_symbol) = self.anno_key_symbols.get_symbol(&NODE_NAME_KEY) {
             let lower_bound = create_by_anno_qname_key(NodeID::MIN, node_name_symbol, node_name);
-            let upper_bound = create_by_anno_qname_key(NodeID::MAX, node_name_symbol, &node_name);
+            let upper_bound = create_by_anno_qname_key(NodeID::MAX, node_name_symbol, node_name);
 
             let mut results = self.by_anno_qname.range(lower_bound..=upper_bound);
             return Ok(results.next().is_some());

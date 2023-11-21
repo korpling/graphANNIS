@@ -44,7 +44,6 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
 }
 
 impl<
-        'de_impl,
         T: Ord
             + Hash
             + Clone
@@ -132,7 +131,7 @@ impl<
     }
 }
 
-impl<'de_impl, T> AnnoStorageImpl<T>
+impl<T> AnnoStorageImpl<T>
 where
     T: Ord
         + Hash
@@ -227,10 +226,7 @@ where
         let anno = self.create_sparse_anno(anno)?;
 
         let existing_anno = {
-            let existing_item_entry = self
-                .by_container
-                .entry(item.clone())
-                .or_insert_with(Vec::new);
+            let existing_item_entry = self.by_container.entry(item.clone()).or_default();
 
             // check if there is already an item with the same annotation key
             let existing_entry_idx = existing_item_entry.binary_search_by_key(&anno.key, |a| a.key);
@@ -262,9 +258,9 @@ where
         // if set is not existing yet it is created
         self.by_anno
             .entry(anno.key)
-            .or_insert_with(FxHashMap::default)
+            .or_default()
             .entry(anno.val)
-            .or_insert_with(Vec::default)
+            .or_default()
             .push(item.clone());
 
         if existing_anno.is_none() {
@@ -581,7 +577,7 @@ where
                     })
                     .filter_map_ok(move |(item, anno_key, item_value)| {
                         if let Some(item_value) = item_value {
-                            if &item_value != &value {
+                            if item_value != value {
                                 return Some((item, anno_key).into());
                             }
                         }
@@ -757,7 +753,7 @@ where
 
             // Add the guessed count for each prefix
             for val_prefix in prefix_set.literals() {
-                let val_prefix = std::str::from_utf8(&val_prefix);
+                let val_prefix = std::str::from_utf8(val_prefix);
                 if let Ok(lower_val) = val_prefix {
                     let mut upper_val = String::from(lower_val);
                     upper_val.push(std::char::MAX);
@@ -893,10 +889,7 @@ where
                         max_histogram_buckets + 1
                     };
 
-                    let hist = self
-                        .histogram_bounds
-                        .entry(anno_key)
-                        .or_insert_with(std::vec::Vec::new);
+                    let hist = self.histogram_bounds.entry(anno_key).or_default();
 
                     if num_hist_bounds >= 2 {
                         hist.resize(num_hist_bounds, String::from(""));
@@ -962,7 +955,7 @@ impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
         ) {
             if let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol) {
                 if let Some(items) = items_with_anno.get(&value_symbol) {
-                    return Ok(items.into_iter().copied().next());
+                    return Ok(items.iter().copied().next());
                 }
             }
         }
