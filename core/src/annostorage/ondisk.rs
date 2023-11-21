@@ -10,6 +10,7 @@ use crate::util::{self, memory_estimation};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rand::seq::IteratorRandom;
+use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -26,7 +27,7 @@ const KB: usize = 1 << 10;
 const MB: usize = KB * KB;
 
 const EVICTION_STRATEGY: EvictionStrategy = EvictionStrategy::MaximumBytes(512 * MB);
-pub const BLOCK_CACHE_CAPACITY: usize = 10 * MB;
+pub const BLOCK_CACHE_CAPACITY: usize = DEFAULT_BLOCK_CACHE_CAPACITY;
 
 /// An on-disk implementation of an annotation storage.
 #[derive(MallocSizeOf)]
@@ -41,9 +42,9 @@ where
         + serde::de::DeserializeOwned,
 {
     #[ignore_malloc_size_of = "is stored on disk"]
-    by_container: DiskMap<Vec<u8>, String>,
+    by_container: DiskMap<ByteBuf, String>,
     #[ignore_malloc_size_of = "is stored on disk"]
-    by_anno_qname: DiskMap<Vec<u8>, bool>,
+    by_anno_qname: DiskMap<ByteBuf, bool>,
     #[with_malloc_size_of_func = "memory_estimation::size_of_pathbuf"]
     location: PathBuf,
     /// A handle to a temporary directory. This must be part of the struct because the temporary directory will
@@ -70,8 +71,8 @@ where
 /// ```text
 /// [x Bits item ID][64 Bits symbol ID]
 /// ```
-fn create_by_container_key<T: FixedSizeKeySerializer>(item: T, anno_key_symbol: usize) -> Vec<u8> {
-    let mut result: Vec<u8> = item.create_key().to_vec();
+fn create_by_container_key<T: FixedSizeKeySerializer>(item: T, anno_key_symbol: usize) -> ByteBuf {
+    let mut result: ByteBuf = ByteBuf::from(item.create_key().to_vec());
     result.extend(anno_key_symbol.create_key());
     result
 }
@@ -89,9 +90,9 @@ fn create_by_anno_qname_key<T: FixedSizeKeySerializer>(
     item: T,
     anno_key_symbol: usize,
     anno_value: &str,
-) -> Vec<u8> {
+) -> ByteBuf {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
-    let mut result: Vec<u8> = anno_key_symbol.create_key().to_vec();
+    let mut result: ByteBuf = ByteBuf::from(anno_key_symbol.create_key().to_vec());
     for b in anno_value.as_bytes() {
         result.push(*b);
     }
@@ -238,7 +239,7 @@ where
     }
 
     /// Parse the raw data and extract the item ID and the annotation key.
-    fn parse_by_container_key(&self, data: Vec<u8>) -> Result<(T, Arc<AnnoKey>)> {
+    fn parse_by_container_key(&self, data: ByteBuf) -> Result<(T, Arc<AnnoKey>)> {
         let item = T::parse_key(&data[0..T::key_size()])?;
         let anno_key_symbol = usize::parse_key(&data[T::key_size()..])?;
 
@@ -252,9 +253,10 @@ where
     }
 
     /// Parse the raw data and extract the node ID and the annotation.
-    fn parse_by_anno_qname_key(&self, mut data: Vec<u8>) -> Result<(T, Arc<AnnoKey>, String)> {
+    fn parse_by_anno_qname_key(&self, mut data: ByteBuf) -> Result<(T, Arc<AnnoKey>, String)> {
         // get the item ID at the end
-        let item_id_raw = data.split_off(data.len() - T::key_size());
+        let data_len = data.len();
+        let item_id_raw = data.split_off(data_len - T::key_size());
         let item_id = T::parse_key(&item_id_raw)?;
 
         // remove the trailing '\0' character
@@ -280,7 +282,7 @@ where
     fn get_by_anno_qname_range<'a>(
         &'a self,
         anno_key: &AnnoKey,
-    ) -> Box<dyn Iterator<Item = Result<(Vec<u8>, bool)>> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<(ByteBuf, bool)>> + 'a> {
         if let Some(anno_key_symbol) = self.anno_key_symbols.get_symbol(anno_key) {
             let lower_bound = create_by_anno_qname_key(NodeID::MIN, anno_key_symbol, "");
 
@@ -502,7 +504,7 @@ where
                 }
                 Ok(matches)
             } else {
-                let mut matching_qnames: Vec<(Vec<u8>, Arc<AnnoKey>)> = self
+                let mut matching_qnames: Vec<(ByteBuf, Arc<AnnoKey>)> = self
                     .get_qnames(name)?
                     .into_iter()
                     .filter_map(|key| {
@@ -944,13 +946,13 @@ where
             self.by_container = DiskMap::new(
                 Some(&location.join("by_container.bin")),
                 EVICTION_STRATEGY,
-                DEFAULT_BLOCK_CACHE_CAPACITY,
+                BLOCK_CACHE_CAPACITY,
                 BtreeConfig::default().fixed_value_size(T::key_size() + 9),
             )?;
             self.by_anno_qname = DiskMap::new(
                 Some(&location.join("by_anno_qname.bin")),
                 EVICTION_STRATEGY,
-                DEFAULT_BLOCK_CACHE_CAPACITY,
+                BLOCK_CACHE_CAPACITY,
                 BtreeConfig::default(),
             )?;
         }
