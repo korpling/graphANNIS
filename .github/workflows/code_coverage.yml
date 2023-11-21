@@ -49,7 +49,7 @@ jobs:
       - name: Run tests code coverage (ignored tests)
         run: cargo llvm-cov --no-report --release -- --ignored
       - name: Merge code coverage reports
-        run: cargo llvm-cov report --ignore-filename-regex '(tests?\.rs)|(capi/.*) --release --codecov --output-path codecov.json
+        run: cargo llvm-cov report --ignore-filename-regex '(tests?\.rs)|(capi/.*)' --release --codecov --output-path codecov.json
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
