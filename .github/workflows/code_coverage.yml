@@ -1,29 +1,24 @@
 name: Code Coverage
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
-    branches: [main]
-  merge_group:
 
 jobs:
-  base_branch_cov:
+  coverage:
+    name: Execute tests with code coverage
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
     steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.base_ref }}
-      - uses: actions-rs/toolchain@v1.0.6
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.4.4
         with:
           toolchain: stable
-          profile: minimal
-          components: llvm-tools-preview
-      - uses: Swatinem/rust-cache@v2.2.1
-      - uses: SierraSoftworks/setup-grcov@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          version: latest
       - uses: actions/cache@v2
-        id: code-coverage-corpus-cache
+        id: corpus-cache
         with:
           path: |
             relannis
@@ -45,69 +40,19 @@ jobs:
       - name: Import subtok.demo corpus (memory)
         if: steps.corpus-cache.outputs.cache-hit != 'true'
         run: ./target/release/annis data --cmd 'import relannis/subtok.demo'
-      - name: Run tests with code coverage
-        run: misc/test_coverage.sh
-
-      - name: Upload code coverage for ref branch
-        uses: actions/upload-artifact@v2
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Remove old code coverage artifacts
+        run: cargo llvm-cov clean --workspace
+      - name: Run tests code coverage (standard tests)
+        run: cargo llvm-cov --no-report --release
+      - name: Run tests code coverage (ignored tests)
+        run: cargo llvm-cov --no-report --release -- --ignored
+      - name: Merge code coverage reports
+        run: cargo llvm-cov report --ignore-filename-regex '(tests?\.rs)|(capi/.*)' --release --codecov --output-path codecov.json
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
         with:
-          name: ref-lcov.info
-          path: ./target/coverage/tests.lcov
-
-  checks:
-    runs-on: ubuntu-latest
-    needs: base_branch_cov
-    steps:
-      - uses: actions/checkout@v2
-      - name: Download code coverage report from base branch
-        uses: actions/download-artifact@v2
-        with:
-          name: ref-lcov.info
-
-      - uses: actions-rs/toolchain@v1.0.6
-        with:
-          toolchain: stable
-          profile: minimal
-          components: llvm-tools-preview
-      - uses: Swatinem/rust-cache@v2.2.1
-      - uses: SierraSoftworks/setup-grcov@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          version: latest
-      - uses: actions/cache@v2
-        id: code-coverage-corpus-cache
-        with:
-          path: |
-            relannis
-            data
-            data_ondisk
-          key: ${{ runner.os }}-codecov-${{ hashFiles('graphannis/tests/searchtest.rs','graphannis/tests/searchtest_queries.csv', 'graphannis/build.rs') }}
-      - name: Download test corpora
-        if: steps.corpus-cache.outputs.cache-hit != 'true'
-        run: test -d relannis/GUM/ -a -d relannis/pcc2.1/ -a -d relannis/subtok.demo || "./misc/download-test-corpora.sh"
-      - name: Build CLI binary
-        if: steps.corpus-cache.outputs.cache-hit != 'true'
-        run: cargo build --release --bin annis
-      - name: Import GUM corpus (memory)
-        if: steps.corpus-cache.outputs.cache-hit != 'true'
-        run: ./target/release/annis data --cmd 'import relannis/GUM'
-      - name: Import pcc2.1 corpus (memory)
-        if: steps.corpus-cache.outputs.cache-hit != 'true'
-        run: ./target/release/annis data --cmd 'import relannis/pcc2.1'
-      - name: Import subtok.demo corpus (memory)
-        if: steps.corpus-cache.outputs.cache-hit != 'true'
-        run: ./target/release/annis data --cmd 'import relannis/subtok.demo'
-      - name: Run tests with code coverage
-        run: misc/test_coverage.sh
-
-      #  Compares two code coverage files and generates report as a comment
-      - name: Generate Code Coverage report
-        id: code-coverage
-        uses: barecheck/code-coverage-action@v1
-        with:
-          barecheck-github-app-token: ${{ secrets.BARECHECK_GITHUB_APP_TOKEN }}
-          lcov-file: "./target/coverage/tests.lcov"
-          base-lcov-file: "./tests.lcov"
-          minimum-ratio: -0.05 # Fails Github action once code coverage is decreasing too much
-          send-summary-comment: true
-          show-annotations: "warning" # Possible options warning|error
+          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          files: codecov.json
+          fail_ci_if_error: true
