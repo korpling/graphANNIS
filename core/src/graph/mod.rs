@@ -1011,23 +1011,23 @@ impl<CT: ComponentType> Graph<CT> {
             result
         } else {
             // filter all entries
-            let filtered_components =
-                self.components
-                    .keys()
-                    .cloned()
-                    .filter(move |c: &Component<CT>| {
-                        if let Some(ctype) = ctype.clone() {
-                            if ctype != c.get_type() {
-                                return false;
-                            }
+            let filtered_components = self
+                .components
+                .keys()
+                .filter(move |c| {
+                    if let Some(ctype) = ctype.clone() {
+                        if ctype != c.get_type() {
+                            return false;
                         }
-                        if let Some(name) = name {
-                            if name != c.name {
-                                return false;
-                            }
+                    }
+                    if let Some(name) = name {
+                        if name != c.name {
+                            return false;
                         }
-                        true
-                    });
+                    }
+                    true
+                })
+                .cloned();
             filtered_components.collect()
         }
     }
