@@ -13,20 +13,52 @@ Notable differences/enhancements compared to the thesis are:
 - The data model has been simplified: the inverse coverage component and inverse edges in the left-/right-most token component have been removed.
 - Additional query language features are now supported.
 
-## How to compile
-
-graphANNIS is written in the Rust programming language (https://www.rust-lang.org).
-You can install Rust from https://www.rust-lang.org/tools/install.
-After you have installed Rust, you can build the complete project with
-
-```
-cargo build --release
-```
-
 ## Documentation
 
 - [Developer Guide](https://korpling.github.io/graphANNIS/docs/v2/) (including descriptions of the data model and tutorials for the API)
 - [API documentation](https://docs.rs/graphannis/)
+
+
+## Developing graphANNIS
+
+You need to install Rust to compile the project.
+We recommend installing the following Cargo subcommands for developing annis-web:
+
+- [cargo-release](https://crates.io/crates/cargo-release) for creating releases
+- [cargo-about](https://crates.io/crates/cargo-about) for re-generating the
+  third party license file
+- [cargo-llvm-cov](https://crates.io/crates/cargo-llvm-cov) for determining the code coverage
+- [cargo-dist](https://crates.io/crates/cargo-dist) for configuring the GitHub actions that create the release binaries.
+
+### Execute tests
+
+You can run the tests with the default `cargo test` command.
+To calculate the code coverage, you can use `cargo-llvm-cov`:
+
+```bash
+cargo llvm-cov --open --all-features --ignore-filename-regex '(tests?\.rs)|(capi/.*)'
+```
+
+
+### Performing a release
+
+You need to have [`cargo-release`](https://crates.io/crates/cargo-release)
+installed to perform a release. Execute the follwing `cargo` command once to
+install it.
+
+```bash
+cargo install cargo-release
+```
+
+To perform a release, switch to the main branch and execute:
+
+```bash
+cargo release --execute
+```
+
+This will also trigger a CI workflow to create release binaries on GitHub.
+
+
 
 ## 3rd party dependencies
 
@@ -41,4 +73,4 @@ This software depends on several 3rd party libraries. These are documented in th
 
 ## Author(s)
 
-- Thomas Krause (thomaskrause@posteo.de)
+- Thomas Krause (thomas.krause@hu-berlin.de)
