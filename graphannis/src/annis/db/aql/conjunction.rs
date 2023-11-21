@@ -836,15 +836,11 @@ impl Conjunction {
         }
 
         // it must be checked before that all components are connected
-        component2exec
-            .into_iter()
-            .map(|(_cid, exec)| exec)
-            .next()
-            .ok_or_else(|| {
-                GraphAnnisError::ImpossibleSearch(String::from(
-                    "could not find execution node for query component",
-                ))
-            })
+        component2exec.into_values().next().ok_or_else(|| {
+            GraphAnnisError::ImpossibleSearch(String::from(
+                "could not find execution node for query component",
+            ))
+        })
     }
 
     fn check_components_connected(&self) -> Result<()> {

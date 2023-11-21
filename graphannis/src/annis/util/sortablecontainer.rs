@@ -11,7 +11,7 @@ pub trait SortableContainer<T: Clone>: Send {
 
     fn try_len(&self) -> Result<usize>;
 
-    fn try_get<'b>(&'b self, index: usize) -> Result<Cow<'b, T>>;
+    fn try_get(&self, index: usize) -> Result<Cow<T>>;
 
     fn try_set(&mut self, index: usize, val: T) -> Result<()>;
 }
@@ -37,7 +37,7 @@ where
         Ok(self.len())
     }
 
-    fn try_get<'b>(&'b self, index: usize) -> Result<Cow<'b, T>> {
+    fn try_get(&self, index: usize) -> Result<Cow<T>> {
         if let Some(result) = self.get(index) {
             Ok(Cow::Borrowed(result))
         } else {
@@ -66,14 +66,14 @@ where
         Ok(self.len())
     }
 
-    fn try_get<'b>(&'b self, index: usize) -> Result<Cow<'b, T>> {
+    fn try_get(&self, index: usize) -> Result<Cow<T>> {
         let result = self
             .get(&index)?
             .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(index))?;
         Ok(Cow::Owned(result))
     }
 
-    fn try_set<'b>(&mut self, index: usize, val: T) -> Result<()> {
+    fn try_set(&mut self, index: usize, val: T) -> Result<()> {
         self.insert(index, val)?;
         Ok(())
     }

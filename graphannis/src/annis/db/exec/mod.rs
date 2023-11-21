@@ -109,7 +109,7 @@ impl ExecutionNodeDesc {
 
         // merge costs
         let cost = if let (Some(lhs), Some(rhs)) = (lhs, rhs) {
-            if let (&Some(ref cost_lhs), &Some(ref cost_rhs)) = (&lhs.cost, &rhs.cost) {
+            if let (Some(cost_lhs), Some(cost_rhs)) = (&lhs.cost, &rhs.cost) {
                 // estimate output size using the operator
                 let output = calculate_outputsize(op, cost_lhs, cost_rhs)?;
 
@@ -194,7 +194,7 @@ pub struct NodeSearchDesc {
 
 pub trait ExecutionNode: Iterator {
     fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>>;
-    fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {
+    fn as_nodesearch(&self) -> Option<&NodeSearch> {
         None
     }
 
@@ -221,7 +221,7 @@ impl ExecutionNode for EmptyResultSet {
     fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
         self
     }
-    fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {
+    fn as_nodesearch(&self) -> Option<&NodeSearch> {
         None
     }
 

@@ -252,16 +252,13 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         if edge.source != edge.target {
             // insert to both regular and inverse maps
 
-            let inverse_entry = self
-                .inverse_edges
-                .entry(edge.target)
-                .or_insert_with(Vec::default);
+            let inverse_entry = self.inverse_edges.entry(edge.target).or_default();
             // no need to insert it: edge already exists
             if let Err(insertion_idx) = inverse_entry.binary_search(&edge.source) {
                 inverse_entry.insert(insertion_idx, edge.source);
             }
 
-            let regular_entry = self.edges.entry(edge.source).or_insert_with(Vec::default);
+            let regular_entry = self.edges.entry(edge.source).or_default();
             if let Err(insertion_idx) = regular_entry.binary_search(&edge.target) {
                 regular_entry.insert(insertion_idx, edge.target);
             }

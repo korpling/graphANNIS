@@ -167,7 +167,7 @@ where
     GS: Serialize,
 {
     let data_path = location.join("component.bin");
-    let f_data = std::fs::File::create(&data_path)?;
+    let f_data = std::fs::File::create(data_path)?;
     let mut writer = std::io::BufWriter::new(f_data);
     bincode::serialize_into(&mut writer, gs)?;
     Ok(())

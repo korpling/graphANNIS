@@ -184,10 +184,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
 
                         // insert inverse edge
                         let e = Edge { source, target };
-                        let inverse_entry = self
-                            .inverse_edges
-                            .entry(e.target)
-                            .or_insert_with(Vec::default);
+                        let inverse_entry = self.inverse_edges.entry(e.target).or_default();
                         // no need to insert it: edge already exists
                         if let Err(insertion_idx) = inverse_entry.binary_search(&e.source) {
                             inverse_entry.insert(insertion_idx, e.source);

@@ -788,8 +788,8 @@ fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File
         .from_path(path)
 }
 
-fn get_field<'a>(
-    record: &'a csv::StringRecord,
+fn get_field(
+    record: &csv::StringRecord,
     i: usize,
     column_name: &str,
     file: &Path,
@@ -853,8 +853,8 @@ fn escape_field(val: &str) -> SmartString<LazyCompact> {
     unescaped
 }
 
-fn get_field_not_null<'a>(
-    record: &'a csv::StringRecord,
+fn get_field_not_null(
+    record: &csv::StringRecord,
     i: usize,
     column_name: &str,
     file: &Path,
@@ -2149,7 +2149,7 @@ fn add_subcorpora(
             // add an edge from the document (or sub-corpus) to its parent corpus
             updates.add_event(UpdateEvent::AddEdge {
                 source_node: subcorpus_full_name.to_string(),
-                target_node: parent_path.into(),
+                target_node: parent_path,
                 layer: ANNIS_NS.to_owned(),
                 component_type: AnnotationComponentType::PartOf.to_string(),
                 component_name: std::string::String::default(),

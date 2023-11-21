@@ -44,10 +44,7 @@ pub fn necessary_components(db: &AnnotationGraph) -> HashSet<Component<Annotatio
     result.insert(COMPONENT_LEFT.clone());
     result.insert(COMPONENT_RIGHT.clone());
     // we need all coverage components
-    result.extend(
-        db.get_all_components(Some(AnnotationComponentType::Coverage), None)
-            .into_iter(),
-    );
+    result.extend(db.get_all_components(Some(AnnotationComponentType::Coverage), None));
 
     result
 }

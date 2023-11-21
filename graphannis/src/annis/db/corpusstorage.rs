@@ -193,10 +193,11 @@ impl fmt::Display for CorpusInfo {
 }
 
 /// Defines the order of results of a `find` query.
-#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize, Default)]
 #[repr(C)]
 pub enum ResultOrder {
     /// Order results by their document name and the the text position of the match.
+    #[default]
     Normal,
     /// Inverted the order of `Normal`.
     Inverted,
@@ -205,12 +206,6 @@ pub enum ResultOrder {
     /// Results are not ordered at all, but also not actively randomized
     /// Each new query *might* result in a different order.
     NotSorted,
-}
-
-impl Default for ResultOrder {
-    fn default() -> Self {
-        ResultOrder::Normal
-    }
 }
 
 struct PreparationResult {
@@ -253,17 +248,12 @@ impl FromStr for FrequencyDefEntry {
 /// Currently, only the ANNIS Query Language (AQL) and its variants are supported, but this enum allows us to add a support for older query language versions
 /// or completely new query languages.
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Default)]
 pub enum QueryLanguage {
+    #[default]
     AQL,
     /// Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3
     AQLQuirksV3,
-}
-
-impl Default for QueryLanguage {
-    fn default() -> Self {
-        QueryLanguage::AQL
-    }
 }
 
 /// An enum of all supported input formats of graphANNIS.
@@ -1059,7 +1049,7 @@ impl CorpusStorage {
                         std::fs::copy(&original_path, &new_path)?;
                         // Update the annotation to link to the new file with a relative path.
                         // Use the corpus directory as base path for this relative path.
-                        let relative_path = new_path.strip_prefix(&new_base_path)?;
+                        let relative_path = new_path.strip_prefix(new_base_path)?;
                         node_annos.insert(
                             node,
                             Annotation {
@@ -1287,7 +1277,6 @@ impl CorpusStorage {
                         // Use a sub-directory with the corpus name to avoid conflicts with the
                         // linked files
                         path.push(corpus_name.as_ref());
-                    } else {
                     };
                     std::fs::create_dir_all(&path)?;
                     path.push(format!("{}.graphml", corpus_name.as_ref()));
@@ -1354,7 +1343,7 @@ impl CorpusStorage {
         let cache = &mut *cache_lock;
 
         if cache.contains_key(corpus_name) {
-            return Ok(false);
+            Ok(false)
         } else {
             self.load_entry_with_lock(&mut cache_lock, corpus_name, true, disk_based)?;
             Ok(true)
@@ -1376,7 +1365,7 @@ impl CorpusStorage {
 
         let active_background_workers = self.active_background_workers.clone();
         {
-            let &(ref lock, ref _cvar) = &*active_background_workers;
+            let (lock, _cvar) = &*active_background_workers;
             let mut nr_active_background_workers = lock.lock()?;
             *nr_active_background_workers += 1;
         }
@@ -1391,7 +1380,7 @@ impl CorpusStorage {
                     trace!("Finished background thread to sync WAL updates");
                 }
             }
-            let &(ref lock, ref cvar) = &*active_background_workers;
+            let (lock, cvar) = &*active_background_workers;
             let mut nr_active_background_workers = lock.lock().unwrap();
             *nr_active_background_workers -= 1;
             cvar.notify_all();
@@ -1429,7 +1418,7 @@ impl CorpusStorage {
             let additional_components = additional_components_callback(db);
 
             // make sure the additional components are loaded
-            missing.extend(additional_components.into_iter());
+            missing.extend(additional_components);
 
             // remove all that are already loaded
             for c in &necessary_components {
@@ -2469,7 +2458,7 @@ impl CorpusStorage {
 impl Drop for CorpusStorage {
     fn drop(&mut self) {
         // wait until all background workers are finished
-        let &(ref lock, ref cvar) = &*self.active_background_workers;
+        let (lock, cvar) = &*self.active_background_workers;
         let mut nr_active_background_workers = lock.lock().unwrap();
         while *nr_active_background_workers > 0 {
             trace!(
@@ -2666,7 +2655,7 @@ fn extract_subgraph_by_query(
 }
 
 fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
-    std::fs::create_dir_all(&db_dir).map_err(|e| CorpusStorageError::LockCorpusDirectory {
+    std::fs::create_dir_all(db_dir).map_err(|e| CorpusStorageError::LockCorpusDirectory {
         path: db_dir.to_string_lossy().to_string(),
         source: e,
     })?;

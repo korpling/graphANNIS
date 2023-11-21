@@ -136,6 +136,6 @@ pub extern "C" fn annis_graph_annotations_for_edge(
             .map(|annos| Box::into_raw(Box::new(annos)))
             .unwrap_or_else(std::ptr::null_mut)
     } else {
-        Box::into_raw(Box::new(vec![]))
+        Box::into_raw(Box::default())
     }
 }

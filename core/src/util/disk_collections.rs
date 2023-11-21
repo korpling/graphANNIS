@@ -359,7 +359,7 @@ where
             .write(true)
             .read(true)
             .create(true)
-            .open(&location)?;
+            .open(location)?;
         let mut builder = TableBuilder::new(self.custom_options(), out_file);
         for entry in self.iter()? {
             let (key, value) = entry?;

@@ -1034,7 +1034,7 @@ impl<CT: ComponentType> Graph<CT> {
 
     pub fn size_of_cached(&self, ops: &mut MallocSizeOfOps) -> Result<usize> {
         let mut lock = self.cached_size.lock()?;
-        let cached_size: &mut Option<usize> = &mut *lock;
+        let cached_size: &mut Option<usize> = &mut lock;
         if let Some(cached) = cached_size {
             return Ok(*cached);
         }
@@ -1045,7 +1045,7 @@ impl<CT: ComponentType> Graph<CT> {
 
     fn reset_cached_size(&self) -> Result<()> {
         let mut lock = self.cached_size.lock()?;
-        let cached_size: &mut Option<usize> = &mut *lock;
+        let cached_size: &mut Option<usize> = &mut lock;
         *cached_size = None;
         Ok(())
     }

@@ -37,7 +37,7 @@ fn get_fan_outs(edges: &DiskMap<Edge, bool>) -> Result<Vec<usize>> {
         }
     }
     // order the fan-outs
-    let mut fan_outs: Vec<usize> = fan_outs.into_iter().map(|(_, s)| s).collect();
+    let mut fan_outs: Vec<usize> = fan_outs.into_values().collect();
     fan_outs.sort_unstable();
 
     Ok(fan_outs)
@@ -148,7 +148,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
     {
         // Read stats
         let stats_path = location.join("edge_stats.bin");
-        let f_stats = std::fs::File::open(&stats_path)?;
+        let f_stats = std::fs::File::open(stats_path)?;
         let input = std::io::BufReader::new(f_stats);
         let stats = bincode::deserialize_from(input)?;
 
@@ -184,7 +184,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
         self.annos.save_annotations_to(location)?;
         // Write stats with bincode
         let stats_path = location.join("edge_stats.bin");
-        let f_stats = std::fs::File::create(&stats_path)?;
+        let f_stats = std::fs::File::create(stats_path)?;
         let mut writer = std::io::BufWriter::new(f_stats);
         bincode::serialize_into(&mut writer, &self.stats)?;
 
