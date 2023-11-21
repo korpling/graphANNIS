@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Improved performance of the `Graph::apply_update` function.
+
 ## [2.4.8] - 2023-10-31
 
 ### Fixed
