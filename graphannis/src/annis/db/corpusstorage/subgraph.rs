@@ -378,7 +378,7 @@ fn new_overlapped_nodes_iterator<'a>(
     for token_region in regions.into_iter() {
         iterators.push(token_region.into_token_iterator_with_coverage()?);
     }
-    let result = iterators.into_iter().flat_map(|it| it);
+    let result = iterators.into_iter().flatten();
     Ok(Box::new(result))
 }
 
@@ -403,7 +403,7 @@ fn new_parent_nodes_iterator<'a>(
             parents.insert(p);
         }
     }
-    Ok(Box::new(parents.into_iter().map(|p| Ok(p))))
+    Ok(Box::new(parents.into_iter().map(Ok)))
 }
 
 pub fn new_subgraph_iterator<'a>(
@@ -417,7 +417,7 @@ pub fn new_subgraph_iterator<'a>(
     let node_ids: Result<Vec<NodeID>> = node_ids
         .into_iter()
         .map(|node_name| {
-            let id = graph.get_node_id_from_name(&node_name)?;
+            let id = graph.get_node_annos().get_node_id_from_name(&node_name)?;
             let id = id.ok_or(GraphAnnisError::NoSuchNodeID(node_name))?;
             Ok(id)
         })
@@ -432,7 +432,7 @@ pub fn new_subgraph_iterator<'a>(
     // in the result
     let result = node_ids
         .into_iter()
-        .map(|n| Ok(n))
+        .map(Ok)
         .chain(overlapped_nodes)
         .chain(parent_nodes)
         .map(|n| {
@@ -471,7 +471,7 @@ where
         ANNIS_NS.into(),
         "datasource-gap".into(),
     );
-    let token_helper = TokenHelper::new(&orig_graph).ok();
+    let token_helper = TokenHelper::new(orig_graph).ok();
 
     let mut previous_token = None;
 

@@ -1,5 +1,4 @@
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
-use crate::annis::db::AnnotationStorage;
 use crate::{
     annis::{
         db::aql::model::{AnnotationComponentType, TOK, TOKEN_KEY},
@@ -9,11 +8,8 @@ use crate::{
     graph::Match,
 };
 use crate::{try_as_boxed_iter, AnnotationGraph};
-use graphannis_core::{
-    annostorage::ValueSearch,
-    graph::ANNIS_NS,
-    types::{Component, NodeID},
-};
+use graphannis_core::annostorage::NodeAnnotationStorage;
+use graphannis_core::{annostorage::ValueSearch, graph::ANNIS_NS, types::Component};
 use std::any::Any;
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -58,7 +54,7 @@ impl BinaryOperatorSpec for EqualValueSpec {
 
 #[derive(Clone)]
 pub struct EqualValue<'a> {
-    node_annos: &'a dyn AnnotationStorage<NodeID>,
+    node_annos: &'a dyn NodeAnnotationStorage,
     spec_left: NodeSearchSpec,
     spec_right: NodeSearchSpec,
     negated: bool,

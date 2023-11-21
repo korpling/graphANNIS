@@ -74,7 +74,7 @@ where
         let id = if let Some(slot) = self.empty_slots.pop() {
             self.by_id[slot] = Some(val.clone());
             slot
-        } else if self.by_id.len() < usize::max_value() {
+        } else if self.by_id.len() < usize::MAX {
             self.by_id.push(Some(val.clone()));
             self.by_id.len() - 1
         } else {

@@ -40,7 +40,7 @@ impl<'a> NestedLoop<'a> {
     ) -> Result<NestedLoop<'a>> {
         let mut left_is_outer = true;
         if let (Some(desc_lhs), Some(desc_rhs)) = (lhs.get_desc(), rhs.get_desc()) {
-            if let (&Some(ref cost_lhs), &Some(ref cost_rhs)) = (&desc_lhs.cost, &desc_rhs.cost) {
+            if let (Some(cost_lhs), Some(cost_rhs)) = (&desc_lhs.cost, &desc_rhs.cost) {
                 if cost_lhs.output > cost_rhs.output {
                     left_is_outer = false;
                 }

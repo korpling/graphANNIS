@@ -1,5 +1,6 @@
 use crate::annis::db::token_helper::TokenHelper;
-use crate::{annis::db::AnnotationStorage, errors::Result, graph::Match};
+use crate::{errors::Result, graph::Match};
+use graphannis_core::annostorage::NodeAnnotationStorage;
 use graphannis_core::{
     graph::{storage::GraphStorage, ANNIS_NS, NODE_NAME},
     types::{AnnoKey, NodeID},
@@ -34,7 +35,7 @@ impl Default for SortCache {
 pub fn compare_matchgroup_by_text_pos(
     m1: &[Match],
     m2: &[Match],
-    node_annos: &dyn AnnotationStorage<NodeID>,
+    node_annos: &dyn NodeAnnotationStorage,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
@@ -133,7 +134,7 @@ lazy_static! {
 pub fn compare_match_by_text_pos(
     m1: &Match,
     m2: &Match,
-    node_annos: &dyn AnnotationStorage<NodeID>,
+    node_annos: &dyn NodeAnnotationStorage,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&dyn GraphStorage>,
     collation: CollationType,
@@ -181,18 +182,18 @@ pub fn compare_match_by_text_pos(
                 // Try to get left token from cache
 
                 let m1_lefttok = if let Some(lefttok) = cache.left_token.get(&m1.node).copied() {
-                    lefttok.clone()
+                    lefttok
                 } else {
                     let result = token_helper.left_token_for(m1.node)?;
-                    cache.left_token.put(m1.node, result.clone());
+                    cache.left_token.put(m1.node, result);
                     result
                 };
 
                 let m2_lefttok = if let Some(lefttok) = cache.left_token.get(&m2.node).copied() {
-                    lefttok.clone()
+                    lefttok
                 } else {
                     let result = token_helper.left_token_for(m2.node)?;
-                    cache.left_token.put(m2.node, result.clone());
+                    cache.left_token.put(m2.node, result);
                     result
                 };
 
@@ -201,13 +202,12 @@ pub fn compare_match_by_text_pos(
                         if let Some(v) = cache.is_connected.get(&(m1_lefttok, m2_lefttok)) {
                             *v
                         } else {
-                            let v = gs_order.is_connected(
+                            gs_order.is_connected(
                                 m1_lefttok,
                                 m2_lefttok,
                                 1,
                                 std::ops::Bound::Unbounded,
-                            )?;
-                            v
+                            )?
                         };
 
                     if token_are_connected {

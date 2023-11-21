@@ -1,6 +1,6 @@
 use super::db::aql::model::AnnotationComponentType;
-use crate::{annis::db::AnnotationStorage, errors::Result, graph::Match, AnnotationGraph};
-use graphannis_core::types::{Component, Edge};
+use crate::{errors::Result, graph::Match, AnnotationGraph};
+use graphannis_core::{annostorage::EdgeAnnotationStorage, types::Component};
 use std::{any::Any, collections::HashSet, fmt::Display, sync::Arc};
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
@@ -92,7 +92,7 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
 }
 
 impl EdgeAnnoSearchSpec {
-    pub fn guess_max_count(&self, anno_storage: &dyn AnnotationStorage<Edge>) -> Result<usize> {
+    pub fn guess_max_count(&self, anno_storage: &dyn EdgeAnnotationStorage) -> Result<usize> {
         match self {
             EdgeAnnoSearchSpec::ExactValue {
                 ref ns,

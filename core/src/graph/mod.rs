@@ -3,7 +3,7 @@ pub mod storage;
 pub mod update;
 
 use crate::{
-    annostorage::{AnnotationStorage, ValueSearch},
+    annostorage::{AnnotationStorage, NodeAnnotationStorage, ValueSearch},
     errors::Result,
     graph::storage::{registry, GraphStorage, WriteableGraphStorage},
 };
@@ -11,11 +11,10 @@ use crate::{
     errors::GraphAnnisCoreError,
     types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID},
 };
-use lfu::LFUCache;
+use clru::CLruCache;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
 use smartstring::alias::String as SmartString;
-use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
@@ -24,6 +23,7 @@ use std::{
     borrow::Cow,
     sync::{Arc, Mutex},
 };
+use std::{collections::BTreeMap, num::NonZeroUsize};
 use update::{GraphUpdate, UpdateEvent};
 
 pub const ANNIS_NS: &str = "annis";
@@ -52,7 +52,7 @@ lazy_static! {
 /// In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
 ///
 pub struct Graph<CT: ComponentType> {
-    node_annos: Box<dyn AnnotationStorage<NodeID>>,
+    node_annos: Box<dyn NodeAnnotationStorage>,
 
     location: Option<PathBuf>,
 
@@ -130,7 +130,7 @@ fn component_path<CT: ComponentType>(
 impl<CT: ComponentType> Graph<CT> {
     /// Create a new and empty instance without any location on the disk.
     pub fn new(disk_based: bool) -> Result<Self> {
-        let node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
+        let node_annos: Box<dyn NodeAnnotationStorage> = if disk_based {
             Box::new(crate::annostorage::ondisk::AnnoStorageImpl::new(None)?)
         } else {
             Box::new(crate::annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
@@ -345,13 +345,13 @@ impl<CT: ComponentType> Graph<CT> {
     fn get_cached_node_id_from_name(
         &self,
         node_name: Cow<String>,
-        cache: &mut LFUCache<String, Option<NodeID>>,
+        cache: &mut CLruCache<String, Option<NodeID>>,
     ) -> Result<Option<NodeID>> {
         if let Some(id) = cache.get(node_name.as_ref()) {
             Ok(*id)
         } else {
-            let id = self.get_node_id_from_name(&node_name)?;
-            cache.set(node_name.to_string(), id);
+            let id = self.node_annos.get_node_id_from_name(&node_name)?;
+            cache.put(node_name.to_string(), id);
             Ok(id)
         }
     }
@@ -367,8 +367,8 @@ impl<CT: ComponentType> Graph<CT> {
 
         let mut update_graph_index = ComponentType::init_update_graph_index(self)?;
         // Cache the expensive mapping of node names to IDs
-        let mut node_id_cache = LFUCache::with_capacity(1_000)
-            .map_err(|err| GraphAnnisCoreError::LfuCache(err.to_string()))?;
+        let cache_size = NonZeroUsize::new(1_000).ok_or(GraphAnnisCoreError::ZeroCacheSize)?;
+        let mut node_id_cache = CLruCache::new(cache_size);
         // Iterate once over all changes in the same order as the updates have been added
         let total_nr_updates = u.len()?;
         progress_callback(&format!("applying {} atomic updates", total_nr_updates));
@@ -381,12 +381,8 @@ impl<CT: ComponentType> Graph<CT> {
                     node_name,
                     node_type,
                 } => {
-                    let existing_node_id = self.get_cached_node_id_from_name(
-                        Cow::Borrowed(node_name),
-                        &mut node_id_cache,
-                    )?;
                     // only add node if it does not exist yet
-                    if existing_node_id.is_none() {
+                    if !self.node_annos.has_node_name(node_name)? {
                         let new_node_id: NodeID =
                             if let Some(id) = self.node_annos.get_largest_item()? {
                                 id + 1
@@ -408,7 +404,7 @@ impl<CT: ComponentType> Graph<CT> {
                         self.node_annos.insert(new_node_id, new_anno_type)?;
 
                         // update the internal cache
-                        node_id_cache.set(node_name.clone(), Some(new_node_id));
+                        node_id_cache.put(node_name.clone(), Some(new_node_id));
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
@@ -434,7 +430,7 @@ impl<CT: ComponentType> Graph<CT> {
                         }
 
                         // update the internal cache
-                        node_id_cache.set(node_name.clone(), None);
+                        node_id_cache.put(node_name.clone(), None);
                     }
                 }
                 UpdateEvent::AddNodeLabel {
@@ -883,7 +879,7 @@ impl<CT: ComponentType> Graph<CT> {
             self.disk_based = disk_based;
 
             // Change the node annotation implementation
-            let mut new_node_annos: Box<dyn AnnotationStorage<NodeID>> = if disk_based {
+            let mut new_node_annos: Box<dyn NodeAnnotationStorage> = if disk_based {
                 Box::new(crate::annostorage::ondisk::AnnoStorageImpl::new(None)?)
             } else {
                 Box::new(crate::annostorage::inmemory::AnnoStorageImpl::<NodeID>::new())
@@ -954,17 +950,6 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    pub fn get_node_id_from_name(&self, node_name: &str) -> Result<Option<NodeID>> {
-        let mut all_nodes_with_anno =
-            self.node_annos
-                .exact_anno_search(Some(ANNIS_NS), NODE_NAME, Some(node_name).into());
-        if let Some(m) = all_nodes_with_anno.next() {
-            let m = m?;
-            return Ok(Some(m.node));
-        }
-        Ok(None)
-    }
-
     /// Get a read-only graph storage copy for the given component `c`.
     pub fn get_graphstorage(&self, c: &Component<CT>) -> Option<Arc<dyn GraphStorage>> {
         // get and return the reference to the entry if loaded
@@ -983,12 +968,12 @@ impl<CT: ComponentType> Graph<CT> {
     }
 
     /// Get a read-only reference to the node annotations of this graph
-    pub fn get_node_annos(&self) -> &dyn AnnotationStorage<NodeID> {
+    pub fn get_node_annos(&self) -> &dyn NodeAnnotationStorage {
         self.node_annos.as_ref()
     }
 
     /// Get a mutable reference to the node annotations of this graph
-    pub fn get_node_annos_mut(&mut self) -> &mut dyn AnnotationStorage<NodeID> {
+    pub fn get_node_annos_mut(&mut self) -> &mut dyn NodeAnnotationStorage {
         self.node_annos.as_mut()
     }
 
@@ -1026,30 +1011,30 @@ impl<CT: ComponentType> Graph<CT> {
             result
         } else {
             // filter all entries
-            let filtered_components =
-                self.components
-                    .keys()
-                    .cloned()
-                    .filter(move |c: &Component<CT>| {
-                        if let Some(ctype) = ctype.clone() {
-                            if ctype != c.get_type() {
-                                return false;
-                            }
+            let filtered_components = self
+                .components
+                .keys()
+                .filter(move |c| {
+                    if let Some(ctype) = ctype.clone() {
+                        if ctype != c.get_type() {
+                            return false;
                         }
-                        if let Some(name) = name {
-                            if name != c.name {
-                                return false;
-                            }
+                    }
+                    if let Some(name) = name {
+                        if name != c.name {
+                            return false;
                         }
-                        true
-                    });
+                    }
+                    true
+                })
+                .cloned();
             filtered_components.collect()
         }
     }
 
     pub fn size_of_cached(&self, ops: &mut MallocSizeOfOps) -> Result<usize> {
         let mut lock = self.cached_size.lock()?;
-        let cached_size: &mut Option<usize> = &mut *lock;
+        let cached_size: &mut Option<usize> = &mut lock;
         if let Some(cached) = cached_size {
             return Ok(*cached);
         }
@@ -1060,7 +1045,7 @@ impl<CT: ComponentType> Graph<CT> {
 
     fn reset_cached_size(&self) -> Result<()> {
         let mut lock = self.cached_size.lock()?;
-        let cached_size: &mut Option<usize> = &mut *lock;
+        let cached_size: &mut Option<usize> = &mut lock;
         *cached_size = None;
         Ok(())
     }

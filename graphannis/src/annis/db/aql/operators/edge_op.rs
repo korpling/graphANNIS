@@ -151,7 +151,7 @@ fn check_edge_annotation(
                         }
                     }
 
-                    if !re.is_match(&*a.val) {
+                    if !re.is_match(&a.val) {
                         continue;
                     }
 
@@ -178,7 +178,7 @@ fn check_edge_annotation(
                         }
                     }
 
-                    if re.is_match(&*a.val) {
+                    if re.is_match(&a.val) {
                         continue;
                     }
 
@@ -302,7 +302,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                 }
                 // get number of nodes reachable from min to max distance
                 let max_dist = match self.spec.dist.max_dist() {
-                    std::ops::Bound::Unbounded => usize::max_value(),
+                    std::ops::Bound::Unbounded => usize::MAX,
                     std::ops::Bound::Included(max_dist) => max_dist,
                     std::ops::Bound::Excluded(max_dist) => max_dist - 1,
                 };

@@ -204,7 +204,7 @@ impl<CT: ComponentType> Component<CT> {
             ctype: ctype.into(),
             name,
             layer,
-            phantom: std::marker::PhantomData::<CT>::default(),
+            phantom: std::marker::PhantomData::<CT>,
         }
     }
 
@@ -237,7 +237,7 @@ impl<CT: ComponentType> std::str::FromStr for Component<CT> {
                     ctype: ctype.into(),
                     layer: splitted[1].into(),
                     name: splitted[2].into(),
-                    phantom: std::marker::PhantomData::<CT>::default(),
+                    phantom: std::marker::PhantomData::<CT>,
                 };
                 Ok(result)
             } else {

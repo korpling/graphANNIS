@@ -106,7 +106,7 @@ fn main() {
         .arg(Arg::with_name("measurement-time")
         .long("measurement-time")
         .takes_value(true)
-        .help(&format!("Changes the default measurement time for this run. [default: 5]")))
+        .help("Changes the default measurement time for this run. [default: 5]"))
         .get_matches();
 
     let mut crit: Criterion = Criterion::default().warm_up_time(Duration::from_millis(500));

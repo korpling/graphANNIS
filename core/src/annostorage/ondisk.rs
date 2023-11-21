@@ -2,13 +2,15 @@ use crate::annostorage::symboltable::SymbolTable;
 use crate::annostorage::AnnotationStorage;
 use crate::annostorage::{Match, ValueSearch};
 use crate::errors::Result;
+use crate::graph::NODE_NAME_KEY;
 use crate::serializer::{FixedSizeKeySerializer, KeySerializer};
-use crate::types::{AnnoKey, Annotation, NodeID};
+use crate::types::{AnnoKey, Annotation, Edge, NodeID};
 use crate::util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY};
 use crate::util::{self, memory_estimation};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rand::seq::IteratorRandom;
+use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -17,12 +19,15 @@ use transient_btree_index::BtreeConfig;
 
 use smartstring::alias::String as SmartString;
 
+use super::{EdgeAnnotationStorage, NodeAnnotationStorage};
+
 pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v1";
 
 const KB: usize = 1 << 10;
 const MB: usize = KB * KB;
 
 const EVICTION_STRATEGY: EvictionStrategy = EvictionStrategy::MaximumBytes(512 * MB);
+pub const BLOCK_CACHE_CAPACITY: usize = DEFAULT_BLOCK_CACHE_CAPACITY;
 
 /// An on-disk implementation of an annotation storage.
 #[derive(MallocSizeOf)]
@@ -37,9 +42,9 @@ where
         + serde::de::DeserializeOwned,
 {
     #[ignore_malloc_size_of = "is stored on disk"]
-    by_container: DiskMap<Vec<u8>, String>,
+    by_container: DiskMap<ByteBuf, String>,
     #[ignore_malloc_size_of = "is stored on disk"]
-    by_anno_qname: DiskMap<Vec<u8>, bool>,
+    by_anno_qname: DiskMap<ByteBuf, bool>,
     #[with_malloc_size_of_func = "memory_estimation::size_of_pathbuf"]
     location: PathBuf,
     /// A handle to a temporary directory. This must be part of the struct because the temporary directory will
@@ -66,8 +71,8 @@ where
 /// ```text
 /// [x Bits item ID][64 Bits symbol ID]
 /// ```
-fn create_by_container_key<T: FixedSizeKeySerializer>(item: T, anno_key_symbol: usize) -> Vec<u8> {
-    let mut result: Vec<u8> = item.create_key().to_vec();
+fn create_by_container_key<T: FixedSizeKeySerializer>(item: T, anno_key_symbol: usize) -> ByteBuf {
+    let mut result: ByteBuf = ByteBuf::from(item.create_key().to_vec());
     result.extend(anno_key_symbol.create_key());
     result
 }
@@ -85,9 +90,9 @@ fn create_by_anno_qname_key<T: FixedSizeKeySerializer>(
     item: T,
     anno_key_symbol: usize,
     anno_value: &str,
-) -> Vec<u8> {
+) -> ByteBuf {
     // Use the qualified annotation name, the value and the node ID as key for the indexes.
-    let mut result: Vec<u8> = anno_key_symbol.create_key().to_vec();
+    let mut result: ByteBuf = ByteBuf::from(anno_key_symbol.create_key().to_vec());
     for b in anno_value.as_bytes() {
         result.push(*b);
     }
@@ -118,13 +123,13 @@ where
                 by_container: DiskMap::new(
                     Some(&path_by_container),
                     EVICTION_STRATEGY,
-                    DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BLOCK_CACHE_CAPACITY,
                     BtreeConfig::default().fixed_key_size(T::key_size() + 16),
                 )?,
                 by_anno_qname: DiskMap::new(
                     Some(&path_by_anno_qname),
                     EVICTION_STRATEGY,
-                    DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BLOCK_CACHE_CAPACITY,
                     BtreeConfig::default(),
                 )?,
                 anno_key_symbols: SymbolTable::default(),
@@ -154,12 +159,12 @@ where
             Ok(AnnoStorageImpl {
                 by_container: DiskMap::new_temporary(
                     EVICTION_STRATEGY,
-                    DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BLOCK_CACHE_CAPACITY,
                     BtreeConfig::default().fixed_key_size(T::key_size() + 16),
                 ),
                 by_anno_qname: DiskMap::new_temporary(
                     EVICTION_STRATEGY,
-                    DEFAULT_BLOCK_CACHE_CAPACITY,
+                    BLOCK_CACHE_CAPACITY,
                     BtreeConfig::default(),
                 ),
                 anno_key_symbols: SymbolTable::default(),
@@ -202,11 +207,8 @@ where
             .filter_map(move |k| self.anno_key_symbols.get_symbol(&k))
             .flat_map(move |anno_key_symbol| {
                 let lower_bound_value = if let Some(value) = &value { value } else { "" };
-                let lower_bound = create_by_anno_qname_key(
-                    NodeID::min_value(),
-                    anno_key_symbol,
-                    lower_bound_value,
-                );
+                let lower_bound =
+                    create_by_anno_qname_key(NodeID::MIN, anno_key_symbol, lower_bound_value);
 
                 let upper_bound_value = if let Some(value) = &value {
                     Cow::Borrowed(value)
@@ -214,11 +216,8 @@ where
                     Cow::Owned(std::char::MAX.to_string())
                 };
 
-                let upper_bound = create_by_anno_qname_key(
-                    NodeID::max_value(),
-                    anno_key_symbol,
-                    &upper_bound_value,
-                );
+                let upper_bound =
+                    create_by_anno_qname_key(NodeID::MAX, anno_key_symbol, &upper_bound_value);
                 self.by_anno_qname.range(lower_bound..upper_bound)
             })
             .fuse()
@@ -240,7 +239,7 @@ where
     }
 
     /// Parse the raw data and extract the item ID and the annotation key.
-    fn parse_by_container_key(&self, data: Vec<u8>) -> Result<(T, Arc<AnnoKey>)> {
+    fn parse_by_container_key(&self, data: ByteBuf) -> Result<(T, Arc<AnnoKey>)> {
         let item = T::parse_key(&data[0..T::key_size()])?;
         let anno_key_symbol = usize::parse_key(&data[T::key_size()..])?;
 
@@ -254,9 +253,10 @@ where
     }
 
     /// Parse the raw data and extract the node ID and the annotation.
-    fn parse_by_anno_qname_key(&self, mut data: Vec<u8>) -> Result<(T, Arc<AnnoKey>, String)> {
+    fn parse_by_anno_qname_key(&self, mut data: ByteBuf) -> Result<(T, Arc<AnnoKey>, String)> {
         // get the item ID at the end
-        let item_id_raw = data.split_off(data.len() - T::key_size());
+        let data_len = data.len();
+        let item_id_raw = data.split_off(data_len - T::key_size());
         let item_id = T::parse_key(&item_id_raw)?;
 
         // remove the trailing '\0' character
@@ -282,15 +282,12 @@ where
     fn get_by_anno_qname_range<'a>(
         &'a self,
         anno_key: &AnnoKey,
-    ) -> Box<dyn Iterator<Item = Result<(Vec<u8>, bool)>> + 'a> {
+    ) -> Box<dyn Iterator<Item = Result<(ByteBuf, bool)>> + 'a> {
         if let Some(anno_key_symbol) = self.anno_key_symbols.get_symbol(anno_key) {
-            let lower_bound = create_by_anno_qname_key(NodeID::min_value(), anno_key_symbol, "");
+            let lower_bound = create_by_anno_qname_key(NodeID::MIN, anno_key_symbol, "");
 
-            let upper_bound = create_by_anno_qname_key(
-                NodeID::max_value(),
-                anno_key_symbol,
-                &std::char::MAX.to_string(),
-            );
+            let upper_bound =
+                create_by_anno_qname_key(NodeID::MAX, anno_key_symbol, &std::char::MAX.to_string());
 
             Box::new(self.by_anno_qname.range(lower_bound..upper_bound))
         } else {
@@ -299,7 +296,7 @@ where
     }
 }
 
-impl<'de, T> AnnotationStorage<T> for AnnoStorageImpl<T>
+impl<T> AnnotationStorage<T> for AnnoStorageImpl<T>
 where
     T: FixedSizeKeySerializer
         + Send
@@ -357,8 +354,8 @@ where
 
     fn get_annotations_for_item(&self, item: &T) -> Result<Vec<Annotation>> {
         let mut result = Vec::default();
-        let start = create_by_container_key(item.clone(), usize::min_value());
-        let end = create_by_container_key(item.clone(), usize::max_value());
+        let start = create_by_container_key(item.clone(), usize::MIN);
+        let end = create_by_container_key(item.clone(), usize::MAX);
         for anno in self.by_container.range(start..=end) {
             let (key, val) = anno?;
             let parsed_key = self.parse_by_container_key(key)?;
@@ -507,7 +504,7 @@ where
                 }
                 Ok(matches)
             } else {
-                let mut matching_qnames: Vec<(Vec<u8>, Arc<AnnoKey>)> = self
+                let mut matching_qnames: Vec<(ByteBuf, Arc<AnnoKey>)> = self
                     .get_qnames(name)?
                     .into_iter()
                     .filter_map(|key| {
@@ -540,8 +537,8 @@ where
             let mut matches = Vec::new();
             for item in it {
                 let item = item?;
-                let start = create_by_container_key(item.clone(), usize::min_value());
-                let end = create_by_container_key(item, usize::max_value());
+                let start = create_by_container_key(item.clone(), usize::MIN);
+                let end = create_by_container_key(item, usize::MAX);
                 for anno in self.by_container.range(start..=end) {
                     let (data, _) = anno?;
                     let m = self.parse_by_container_key(data)?.into();
@@ -613,7 +610,7 @@ where
                     })
                     .filter_map_ok(move |(item, anno_key, item_value)| {
                         if let Some(item_value) = item_value {
-                            if &item_value != &value {
+                            if item_value != value {
                                 return Some((item, anno_key).into());
                             }
                         }
@@ -786,7 +783,7 @@ where
 
             // Add the guessed count for each prefix
             for val_prefix in prefix_set.literals() {
-                let val_prefix = std::str::from_utf8(&val_prefix);
+                let val_prefix = std::str::from_utf8(val_prefix);
                 if let Ok(lower_val) = val_prefix {
                     let mut upper_val = String::from(lower_val);
                     upper_val.push(std::char::MAX);
@@ -914,10 +911,7 @@ where
                 max_histogram_buckets + 1
             };
 
-            let hist = self
-                .histogram_bounds
-                .entry(anno_key.clone())
-                .or_insert_with(std::vec::Vec::new);
+            let hist = self.histogram_bounds.entry(anno_key.clone()).or_default();
 
             if num_hist_bounds >= 2 {
                 hist.resize(num_hist_bounds, String::from(""));
@@ -949,13 +943,13 @@ where
             self.by_container = DiskMap::new(
                 Some(&location.join("by_container.bin")),
                 EVICTION_STRATEGY,
-                DEFAULT_BLOCK_CACHE_CAPACITY,
+                BLOCK_CACHE_CAPACITY,
                 BtreeConfig::default().fixed_value_size(T::key_size() + 9),
             )?;
             self.by_anno_qname = DiskMap::new(
                 Some(&location.join("by_anno_qname.bin")),
                 EVICTION_STRATEGY,
-                DEFAULT_BLOCK_CACHE_CAPACITY,
+                BLOCK_CACHE_CAPACITY,
                 BtreeConfig::default(),
             )?;
         }
@@ -993,8 +987,40 @@ where
     }
 }
 
+impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
+    fn get_node_id_from_name(&self, node_name: &str) -> Result<Option<NodeID>> {
+        if let Some(node_name_symbol) = self.anno_key_symbols.get_symbol(&NODE_NAME_KEY) {
+            let lower_bound = create_by_anno_qname_key(NodeID::MIN, node_name_symbol, node_name);
+            let upper_bound = create_by_anno_qname_key(NodeID::MAX, node_name_symbol, node_name);
+
+            let mut results = self.by_anno_qname.range(lower_bound..=upper_bound);
+            if let Some(item) = results.next() {
+                let (data, _) = item?;
+                let item_id = NodeID::parse_key(&data[data.len() - NodeID::key_size()..])?;
+                return Ok(Some(item_id));
+            }
+        }
+        Ok(None)
+    }
+
+    fn has_node_name(&self, node_name: &str) -> Result<bool> {
+        if let Some(node_name_symbol) = self.anno_key_symbols.get_symbol(&NODE_NAME_KEY) {
+            let lower_bound = create_by_anno_qname_key(NodeID::MIN, node_name_symbol, node_name);
+            let upper_bound = create_by_anno_qname_key(NodeID::MAX, node_name_symbol, node_name);
+
+            let mut results = self.by_anno_qname.range(lower_bound..=upper_bound);
+            return Ok(results.next().is_some());
+        }
+        Ok(false)
+    }
+}
+
+impl EdgeAnnotationStorage for AnnoStorageImpl<Edge> {}
+
 #[cfg(test)]
 mod tests {
+    use crate::graph::NODE_NAME_KEY;
+
     use super::*;
 
     use std::sync::Once;
@@ -1105,5 +1131,49 @@ mod tests {
 
         assert_eq!(0, a.number_of_annotations().unwrap());
         assert_eq!(&0, a.anno_key_sizes.get(&test_anno.key).unwrap_or(&0));
+    }
+
+    #[test]
+    fn get_node_id_from_name() {
+        let key = NODE_NAME_KEY.as_ref().clone();
+        let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new(None).unwrap();
+        a.insert(
+            1,
+            Annotation {
+                key: key.clone(),
+                val: "node1".into(),
+            },
+        )
+        .unwrap();
+        a.insert(
+            2,
+            Annotation {
+                key: key.clone(),
+                val: "node2".into(),
+            },
+        )
+        .unwrap();
+        a.insert(
+            3,
+            Annotation {
+                key: key.clone(),
+                val: "node3".into(),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(Some(1), a.get_node_id_from_name("node1").unwrap());
+        assert_eq!(Some(2), a.get_node_id_from_name("node2").unwrap());
+        assert_eq!(Some(3), a.get_node_id_from_name("node3").unwrap());
+        assert_eq!(true, a.has_node_name("node1").unwrap());
+        assert_eq!(true, a.has_node_name("node2").unwrap());
+        assert_eq!(true, a.has_node_name("node3").unwrap());
+
+        assert_eq!(None, a.get_node_id_from_name("node0").unwrap());
+        assert_eq!(None, a.get_node_id_from_name("").unwrap());
+        assert_eq!(None, a.get_node_id_from_name("somenode").unwrap());
+        assert_eq!(false, a.has_node_name("node0").unwrap());
+        assert_eq!(false, a.has_node_name("").unwrap());
+        assert_eq!(false, a.has_node_name("somenode").unwrap());
     }
 }

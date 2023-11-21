@@ -1,6 +1,8 @@
 use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use crate::{
-    annostorage::{inmemory::AnnoStorageImpl, AnnotationStorage},
+    annostorage::{
+        inmemory::AnnoStorageImpl, AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage,
+    },
     dfs::CycleSafeDFS,
     errors::Result,
     graph::NODE_NAME_KEY,
@@ -117,7 +119,7 @@ impl<PosT: 'static> GraphStorage for LinearGraphStorage<PosT>
 where
     for<'de> PosT: NumValue + Deserialize<'de> + Serialize,
 {
-    fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge> {
+    fn get_anno_storage(&self) -> &dyn EdgeAnnotationStorage {
         &self.annos
     }
 
@@ -263,7 +265,7 @@ where
 
     fn copy(
         &mut self,
-        node_annos: &dyn AnnotationStorage<NodeID>,
+        node_annos: &dyn NodeAnnotationStorage,
         orig: &dyn GraphStorage,
     ) -> Result<()> {
         self.clear()?;
@@ -314,7 +316,7 @@ where
             };
             self.node_to_pos.insert(*root_node, pos);
 
-            let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), *root_node, 1, usize::max_value());
+            let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), *root_node, 1, usize::MAX);
             for step in dfs {
                 let step = step?;
 

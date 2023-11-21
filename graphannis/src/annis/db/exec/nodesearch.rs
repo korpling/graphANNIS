@@ -1,8 +1,8 @@
 use super::MatchValueFilterFunc;
 use super::{ExecutionNode, ExecutionNodeDesc, NodeSearchDesc};
+use crate::annis::db::aql::model::AnnotationComponentType;
 use crate::annis::db::exec::tokensearch;
 use crate::annis::db::exec::tokensearch::AnyTokenSearch;
-use crate::annis::db::{aql::model::AnnotationComponentType, AnnotationStorage};
 use crate::annis::errors::*;
 use crate::annis::operator::EdgeAnnoSearchSpec;
 use crate::annis::types::LineColumnRange;
@@ -12,12 +12,13 @@ use crate::{
     annis::{db::aql::model::TOKEN_KEY, util},
     graph::Match,
 };
+use graphannis_core::annostorage::EdgeAnnotationStorage;
 use graphannis_core::errors::GraphAnnisCoreError;
 use graphannis_core::graph::{ANNIS_NS, NODE_NAME};
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
     graph::{storage::GraphStorage, NODE_TYPE_KEY},
-    types::{Component, Edge, NodeID},
+    types::{Component, NodeID},
 };
 use itertools::Itertools;
 use smallvec::smallvec;
@@ -1034,7 +1035,7 @@ impl<'a> NodeSearch<'a> {
                         }) = edge_anno_spec
                         {
                             // for each component get the source nodes with this edge annotation
-                            let anno_storage: &dyn AnnotationStorage<Edge> = gs.get_anno_storage();
+                            let anno_storage: &dyn EdgeAnnotationStorage = gs.get_anno_storage();
 
                             let it = anno_storage
                                 .exact_anno_search(

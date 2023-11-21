@@ -39,6 +39,8 @@ static ref CORPUS_STORAGE : Option<CorpusStorage> = {
     };
 }
 
+const TOK_COUNT: usize = 100_000;
+
 fn find_all_nouns_gum(bench: &mut Criterion) {
     if CORPUS_STORAGE.is_none() {
         return;
@@ -163,7 +165,7 @@ fn deserialize_gum(bench: &mut Criterion) {
     });
 }
 
-fn apply_update(bench: &mut Criterion) {
+fn apply_update_inmemory(bench: &mut Criterion) {
     if CORPUS_STORAGE.is_none() {
         return;
     }
@@ -174,7 +176,6 @@ fn apply_update(bench: &mut Criterion) {
     let mut u = GraphUpdate::default();
 
     // Generate a lot of tokens made of fake strings (using names)
-    const TOK_COUNT: usize = 2000;
     let mut token_names: Vec<String> = Vec::with_capacity(TOK_COUNT);
     let mut previous_token_name = None;
     for i in 0..TOK_COUNT {
@@ -213,17 +214,82 @@ fn apply_update(bench: &mut Criterion) {
         previous_token_name = Some(node_name);
     }
 
-    bench.bench_function("apply_update", move |b| {
+    cs.create_empty_corpus("apply_update_test_corpus", false)
+        .unwrap();
+
+    bench.bench_function("apply_update_inmemory", move |b| {
         b.iter(|| cs.apply_update("apply_update_test_corpus", &mut u).unwrap());
     });
 
     cs.delete("apply_update_test_corpus").unwrap();
 }
 
-criterion_group!(name=default; config= Criterion::default().sample_size(50); targets = 
-    apply_update, 
+fn apply_update_ondisk(bench: &mut Criterion) {
+    if CORPUS_STORAGE.is_none() {
+        return;
+    }
+
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+
+    // Create a set of graph updates to apply
+    let mut u = GraphUpdate::default();
+
+    // Generate a lot of tokens made of fake strings (using names)
+    let mut token_names: Vec<String> = Vec::with_capacity(TOK_COUNT);
+    let mut previous_token_name = None;
+    for i in 0..TOK_COUNT {
+        let node_name = format!("n{}", i);
+
+        let t: &str = LastName(EN).fake();
+
+        token_names.push(node_name.clone());
+
+        // Create token node
+        u.add_event(UpdateEvent::AddNode {
+            node_name: node_name.clone(),
+            node_type: "node".to_string(),
+        })
+        .unwrap();
+        u.add_event(UpdateEvent::AddNodeLabel {
+            node_name: node_name.clone(),
+            anno_ns: "annis".to_string(),
+            anno_name: "tok".to_string(),
+            anno_value: t.to_string(),
+        })
+        .unwrap();
+
+        // add the order relation
+        if let Some(previous_token_name) = previous_token_name {
+            u.add_event(UpdateEvent::AddEdge {
+                source_node: previous_token_name,
+                target_node: node_name.clone(),
+                layer: "annis".to_string(),
+                component_type: "Ordering".to_string(),
+                component_name: "".to_string(),
+            })
+            .unwrap();
+        }
+
+        previous_token_name = Some(node_name);
+    }
+
+    cs.create_empty_corpus("apply_update_test_corpus", true)
+        .unwrap();
+
+    bench.bench_function("apply_update_ondisk", move |b| {
+        b.iter(|| cs.apply_update("apply_update_test_corpus", &mut u).unwrap());
+    });
+
+    cs.delete("apply_update_test_corpus").unwrap();
+}
+
+criterion_group!(name=default; config= Criterion::default().sample_size(50); targets =
     deserialize_gum, 
     find_first_ten_token_gum, 
     find_first_ten_nouns_gum, 
     find_all_nouns_gum);
-criterion_main!(default);
+criterion_group!(name=apply_update; config= Criterion::default().sample_size(20); targets =
+    apply_update_inmemory,
+    apply_update_ondisk,
+);
+criterion_main!(default, apply_update);

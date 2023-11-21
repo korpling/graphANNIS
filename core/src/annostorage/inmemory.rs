@@ -1,14 +1,16 @@
-use super::{AnnotationStorage, Match};
+use super::{AnnotationStorage, EdgeAnnotationStorage, Match, NodeAnnotationStorage};
 use crate::annostorage::ValueSearch;
 use crate::errors::Result;
+use crate::graph::NODE_NAME_KEY;
 use crate::malloc_size_of::MallocSizeOf;
-use crate::types::{AnnoKey, Annotation, Edge};
+use crate::types::{AnnoKey, Annotation, Edge, NodeID};
 use crate::util::{self, memory_estimation};
 use crate::{annostorage::symboltable::SymbolTable, errors::GraphAnnisCoreError};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smartstring::alias::String;
+use smartstring::{LazyCompact, SmartString};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
@@ -42,7 +44,6 @@ pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
 }
 
 impl<
-        'de_impl,
         T: Ord
             + Hash
             + Clone
@@ -130,7 +131,7 @@ impl<
     }
 }
 
-impl<'de_impl, T> AnnoStorageImpl<T>
+impl<T> AnnoStorageImpl<T>
 where
     T: Ord
         + Hash
@@ -225,10 +226,7 @@ where
         let anno = self.create_sparse_anno(anno)?;
 
         let existing_anno = {
-            let existing_item_entry = self
-                .by_container
-                .entry(item.clone())
-                .or_insert_with(Vec::new);
+            let existing_item_entry = self.by_container.entry(item.clone()).or_default();
 
             // check if there is already an item with the same annotation key
             let existing_entry_idx = existing_item_entry.binary_search_by_key(&anno.key, |a| a.key);
@@ -260,9 +258,9 @@ where
         // if set is not existing yet it is created
         self.by_anno
             .entry(anno.key)
-            .or_insert_with(FxHashMap::default)
+            .or_default()
             .entry(anno.val)
-            .or_insert_with(Vec::default)
+            .or_default()
             .push(item.clone());
 
         if existing_anno.is_none() {
@@ -579,7 +577,7 @@ where
                     })
                     .filter_map_ok(move |(item, anno_key, item_value)| {
                         if let Some(item_value) = item_value {
-                            if &item_value != &value {
+                            if item_value != value {
                                 return Some((item, anno_key).into());
                             }
                         }
@@ -755,7 +753,7 @@ where
 
             // Add the guessed count for each prefix
             for val_prefix in prefix_set.literals() {
-                let val_prefix = std::str::from_utf8(&val_prefix);
+                let val_prefix = std::str::from_utf8(val_prefix);
                 if let Ok(lower_val) = val_prefix {
                     let mut upper_val = String::from(lower_val);
                     upper_val.push(std::char::MAX);
@@ -891,10 +889,7 @@ where
                         max_histogram_buckets + 1
                     };
 
-                    let hist = self
-                        .histogram_bounds
-                        .entry(anno_key)
-                        .or_insert_with(std::vec::Vec::new);
+                    let hist = self.histogram_bounds.entry(anno_key).or_default();
 
                     if num_hist_bounds >= 2 {
                         hist.resize(num_hist_bounds, String::from(""));
@@ -950,6 +945,42 @@ where
         Ok(())
     }
 }
+
+impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
+    fn get_node_id_from_name(&self, node_name: &str) -> Result<Option<NodeID>> {
+        if let (Some(anno_name_symbol), Some(value_symbol)) = (
+            self.anno_keys.get_symbol(&NODE_NAME_KEY),
+            self.anno_values
+                .get_symbol(&SmartString::<LazyCompact>::from(node_name)),
+        ) {
+            if let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol) {
+                if let Some(items) = items_with_anno.get(&value_symbol) {
+                    return Ok(items.iter().copied().next());
+                }
+            }
+        }
+
+        Ok(None)
+    }
+
+    fn has_node_name(&self, node_name: &str) -> Result<bool> {
+        if let (Some(anno_name_symbol), Some(value_symbol)) = (
+            self.anno_keys.get_symbol(&NODE_NAME_KEY),
+            self.anno_values
+                .get_symbol(&SmartString::<LazyCompact>::from(node_name)),
+        ) {
+            if let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol) {
+                if let Some(items) = items_with_anno.get(&value_symbol) {
+                    return Ok(!items.is_empty());
+                }
+            }
+        }
+
+        Ok(false)
+    }
+}
+
+impl EdgeAnnotationStorage for AnnoStorageImpl<Edge> {}
 
 impl AnnoStorageImpl<Edge> {
     pub fn after_deserialization(&mut self) {
@@ -1061,5 +1092,49 @@ mod tests {
         assert_eq!(0, a.by_container.len());
         assert_eq!(0, a.by_anno.len());
         assert_eq!(&0, a.anno_key_sizes.get(&test_anno.key).unwrap_or(&0));
+    }
+
+    #[test]
+    fn get_node_id_from_name() {
+        let key = NODE_NAME_KEY.as_ref().clone();
+        let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
+        a.insert(
+            1,
+            Annotation {
+                key: key.clone(),
+                val: "node1".into(),
+            },
+        )
+        .unwrap();
+        a.insert(
+            2,
+            Annotation {
+                key: key.clone(),
+                val: "node2".into(),
+            },
+        )
+        .unwrap();
+        a.insert(
+            3,
+            Annotation {
+                key: key.clone(),
+                val: "node3".into(),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(Some(1), a.get_node_id_from_name("node1").unwrap());
+        assert_eq!(Some(2), a.get_node_id_from_name("node2").unwrap());
+        assert_eq!(Some(3), a.get_node_id_from_name("node3").unwrap());
+        assert_eq!(true, a.has_node_name("node1").unwrap());
+        assert_eq!(true, a.has_node_name("node2").unwrap());
+        assert_eq!(true, a.has_node_name("node3").unwrap());
+
+        assert_eq!(None, a.get_node_id_from_name("node0").unwrap());
+        assert_eq!(None, a.get_node_id_from_name("").unwrap());
+        assert_eq!(None, a.get_node_id_from_name("somenode").unwrap());
+        assert_eq!(false, a.has_node_name("node0").unwrap());
+        assert_eq!(false, a.has_node_name("").unwrap());
+        assert_eq!(false, a.has_node_name("somenode").unwrap());
     }
 }

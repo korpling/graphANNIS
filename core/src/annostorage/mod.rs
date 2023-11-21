@@ -80,7 +80,7 @@ impl Match {
     /// is retrieved from the `node_annos` given as argument.
     pub fn extract_annotation(
         &self,
-        node_annos: &dyn AnnotationStorage<NodeID>,
+        node_annos: &dyn NodeAnnotationStorage,
     ) -> Result<Option<Annotation>> {
         let val = node_annos
             .get_value_for_item(&self.node, &self.anno_key)?
@@ -311,3 +311,17 @@ where
     /// Save the current annotation to a `location` on the disk, but do not remember this location.
     fn save_annotations_to(&self, location: &Path) -> Result<()>;
 }
+
+/// An annotation storage for nodes.
+pub trait NodeAnnotationStorage: AnnotationStorage<NodeID> {
+    /// Return the internal [`NodeID`] for the node that has the given
+    /// `node_name` as `annis::node_name` annotation.
+    fn get_node_id_from_name(&self, node_name: &str) -> Result<Option<NodeID>>;
+
+    /// Returns true if there is a node with the given `node_name` as value for
+    /// the `annis::node_name` annotation.
+    fn has_node_name(&self, node_name: &str) -> Result<bool>;
+}
+
+/// An annotation storage for edges.
+pub trait EdgeAnnotationStorage: AnnotationStorage<Edge> {}

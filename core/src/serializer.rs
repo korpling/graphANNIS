@@ -1,5 +1,7 @@
 use std::{convert::TryInto, error::Error};
 
+use serde_bytes::ByteBuf;
+
 pub type KeyVec = smallvec::SmallVec<[u8; 32]>;
 
 pub trait KeySerializer {
@@ -20,6 +22,16 @@ impl KeySerializer for Vec<u8> {
 
     fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
         Ok(Vec::from(key))
+    }
+}
+
+impl KeySerializer for ByteBuf {
+    fn create_key(&self) -> KeyVec {
+        KeyVec::from_slice(self)
+    }
+
+    fn parse_key(key: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        Ok(ByteBuf::from(key))
     }
 }
 

@@ -6,6 +6,7 @@ pub mod prepost;
 pub mod registry;
 pub mod union;
 
+use crate::annostorage::{EdgeAnnotationStorage, NodeAnnotationStorage};
 use crate::malloc_size_of::MallocSizeOf;
 use crate::{
     annostorage::AnnotationStorage,
@@ -125,13 +126,13 @@ pub trait GraphStorage: EdgeContainer {
     ) -> Result<bool>;
 
     /// Get the annotation storage for the edges of this graph storage.
-    fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge>;
+    fn get_anno_storage(&self) -> &dyn EdgeAnnotationStorage;
 
     /// Copy the content of another component.
     /// This removes the existing content of this graph storage.
     fn copy(
         &mut self,
-        node_annos: &dyn AnnotationStorage<NodeID>,
+        node_annos: &dyn NodeAnnotationStorage,
         orig: &dyn GraphStorage,
     ) -> Result<()>;
 
@@ -166,7 +167,7 @@ where
     GS: Serialize,
 {
     let data_path = location.join("component.bin");
-    let f_data = std::fs::File::create(&data_path)?;
+    let f_data = std::fs::File::create(data_path)?;
     let mut writer = std::io::BufWriter::new(f_data);
     bincode::serialize_into(&mut writer, gs)?;
     Ok(())

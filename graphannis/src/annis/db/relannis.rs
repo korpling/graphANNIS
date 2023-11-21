@@ -788,8 +788,8 @@ fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File
         .from_path(path)
 }
 
-fn get_field<'a>(
-    record: &'a csv::StringRecord,
+fn get_field(
+    record: &csv::StringRecord,
     i: usize,
     column_name: &str,
     file: &Path,
@@ -853,8 +853,8 @@ fn escape_field(val: &str) -> SmartString<LazyCompact> {
     unescaped
 }
 
-fn get_field_not_null<'a>(
-    record: &'a csv::StringRecord,
+fn get_field_not_null(
+    record: &csv::StringRecord,
     i: usize,
     column_name: &str,
     file: &Path,
@@ -1148,11 +1148,11 @@ fn add_automatic_cov_edge_for_node(
                 let nodes_with_same_source = (
                     Bound::Included(Edge {
                         source: n,
-                        target: NodeID::min_value(),
+                        target: NodeID::MIN,
                     }),
                     Bound::Included(Edge {
                         source: n,
-                        target: NodeID::max_value(),
+                        target: NodeID::MAX,
                     }),
                 );
                 let has_any_outgoing_text_coverage_edge = load_rank_result
@@ -1262,13 +1262,13 @@ where
             corpus_id: text_key.corpus_ref.unwrap_or_default(),
             text_id: text_key.id,
             segmentation: "".into(),
-            val: u32::min_value(),
+            val: u32::MIN,
         };
         let max_text_prop = TextProperty {
             corpus_id: text_key.corpus_ref.unwrap_or_default(),
             text_id: text_key.id,
             segmentation: "".into(),
-            val: u32::max_value(),
+            val: u32::MAX,
         };
 
         let mut previous_token_id = None;
@@ -2149,7 +2149,7 @@ fn add_subcorpora(
             // add an edge from the document (or sub-corpus) to its parent corpus
             updates.add_event(UpdateEvent::AddEdge {
                 source_node: subcorpus_full_name.to_string(),
-                target_node: parent_path.into(),
+                target_node: parent_path,
                 layer: ANNIS_NS.to_owned(),
                 component_type: AnnotationComponentType::PartOf.to_string(),
                 component_name: std::string::String::default(),
@@ -2186,12 +2186,12 @@ fn add_subcorpora(
             let min_key = NodeByTextEntry {
                 corpus_ref,
                 text_id: text_key.id,
-                node_id: NodeID::min_value(),
+                node_id: NodeID::MIN,
             };
             let max_key = NodeByTextEntry {
                 corpus_ref,
                 text_id: text_key.id,
-                node_id: NodeID::max_value(),
+                node_id: NodeID::MAX,
             };
             for item in node_node_result.nodes_by_text.range(min_key..=max_key) {
                 let (text_entry, _) = item?;

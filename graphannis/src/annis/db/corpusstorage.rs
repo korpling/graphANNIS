@@ -24,7 +24,9 @@ use crate::{
 use fmt::Display;
 use fs2::FileExt;
 use graphannis_core::annostorage::symboltable::SymbolTable;
-use graphannis_core::annostorage::{match_group_resolve_symbol_ids, match_group_with_symbol_ids};
+use graphannis_core::annostorage::{
+    match_group_resolve_symbol_ids, match_group_with_symbol_ids, NodeAnnotationStorage,
+};
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
     graph::{
@@ -60,7 +62,6 @@ use std::{
 };
 
 use aql::model::AnnotationComponentType;
-use db::AnnotationStorage;
 
 use self::subgraph::new_subgraph_iterator;
 
@@ -192,10 +193,11 @@ impl fmt::Display for CorpusInfo {
 }
 
 /// Defines the order of results of a `find` query.
-#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize, Default)]
 #[repr(C)]
 pub enum ResultOrder {
     /// Order results by their document name and the the text position of the match.
+    #[default]
     Normal,
     /// Inverted the order of `Normal`.
     Inverted,
@@ -204,12 +206,6 @@ pub enum ResultOrder {
     /// Results are not ordered at all, but also not actively randomized
     /// Each new query *might* result in a different order.
     NotSorted,
-}
-
-impl Default for ResultOrder {
-    fn default() -> Self {
-        ResultOrder::Normal
-    }
 }
 
 struct PreparationResult {
@@ -252,17 +248,12 @@ impl FromStr for FrequencyDefEntry {
 /// Currently, only the ANNIS Query Language (AQL) and its variants are supported, but this enum allows us to add a support for older query language versions
 /// or completely new query languages.
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Default)]
 pub enum QueryLanguage {
+    #[default]
     AQL,
     /// Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3
     AQLQuirksV3,
-}
-
-impl Default for QueryLanguage {
-    fn default() -> Self {
-        QueryLanguage::AQL
-    }
 }
 
 /// An enum of all supported input formats of graphANNIS.
@@ -648,6 +639,7 @@ impl CorpusStorage {
         cache_lock: &mut RwLockWriteGuard<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
         corpus_name: &str,
         create_if_missing: bool,
+        create_disk_based: bool,
     ) -> Result<Arc<RwLock<CacheEntry>>> {
         let cache = &mut *cache_lock;
 
@@ -667,7 +659,7 @@ impl CorpusStorage {
 
         let db = if create_corpus {
             // create the default graph storages that are assumed to exist in every corpus
-            let mut db = AnnotationGraph::with_default_graphstorages(false)?;
+            let mut db = AnnotationGraph::with_default_graphstorages(create_disk_based)?;
 
             // save corpus to the path where it should be stored
             db.persist_to(&db_path)
@@ -701,6 +693,7 @@ impl CorpusStorage {
         &self,
         corpus_name: &str,
         create_if_missing: bool,
+        create_disk_based: bool,
     ) -> Result<Arc<RwLock<CacheEntry>>> {
         let cache_entry = self.get_entry(corpus_name)?;
 
@@ -714,7 +707,12 @@ impl CorpusStorage {
             Ok(cache_entry)
         } else {
             let mut cache_lock = self.corpus_cache.write()?;
-            self.load_entry_with_lock(&mut cache_lock, corpus_name, create_if_missing)
+            self.load_entry_with_lock(
+                &mut cache_lock,
+                corpus_name,
+                create_if_missing,
+                create_disk_based,
+            )
         }
     }
 
@@ -723,7 +721,7 @@ impl CorpusStorage {
         corpus_name: &str,
         components: Vec<Component<AnnotationComponentType>>,
     ) -> Result<Arc<RwLock<CacheEntry>>> {
-        let db_entry = self.get_loaded_entry(corpus_name, false)?;
+        let db_entry = self.get_loaded_entry(corpus_name, false, false)?;
         let missing_components = {
             let lock = db_entry.read()?;
             let db = get_read_or_error(&lock)?;
@@ -749,7 +747,7 @@ impl CorpusStorage {
     }
 
     fn get_fully_loaded_entry(&self, corpus_name: &str) -> Result<Arc<RwLock<CacheEntry>>> {
-        let db_entry = self.get_loaded_entry(corpus_name, false)?;
+        let db_entry = self.get_loaded_entry(corpus_name, false, false)?;
         let missing_components = {
             let lock = db_entry.read()?;
             let db = get_read_or_error(&lock)?;
@@ -1026,7 +1024,7 @@ impl CorpusStorage {
         };
         let old_base_path = old_base_path.canonicalize()?;
         // Find all nodes of the type "file"
-        let node_annos: &mut dyn AnnotationStorage<NodeID> = graph.get_node_annos_mut();
+        let node_annos: &mut dyn NodeAnnotationStorage = graph.get_node_annos_mut();
         let file_nodes: Result<Vec<_>> = node_annos
             .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
             .map_ok(|m| m.node)
@@ -1051,7 +1049,7 @@ impl CorpusStorage {
                         std::fs::copy(&original_path, &new_path)?;
                         // Update the annotation to link to the new file with a relative path.
                         // Use the corpus directory as base path for this relative path.
-                        let relative_path = new_path.strip_prefix(&new_base_path)?;
+                        let relative_path = new_path.strip_prefix(new_base_path)?;
                         node_annos.insert(
                             node,
                             Annotation {
@@ -1083,7 +1081,7 @@ impl CorpusStorage {
             let base_path = base_path.canonicalize()?;
 
             // Find all nodes of the type "file"
-            let node_annos: &dyn AnnotationStorage<NodeID> = graph.get_node_annos();
+            let node_annos: &dyn NodeAnnotationStorage = graph.get_node_annos();
             let it = node_annos
                 .exact_anno_search(Some(ANNIS_NS), NODE_TYPE, ValueSearch::Some("file"))
                 // Get the linked file for this node
@@ -1141,7 +1139,7 @@ impl CorpusStorage {
 
     fn export_corpus_graphml(&self, corpus_name: &str, path: &Path) -> Result<()> {
         let output_file = File::create(path)?;
-        let entry = self.get_loaded_entry(corpus_name, false)?;
+        let entry = self.get_loaded_entry(corpus_name, false, false)?;
 
         // Ensure all components are loaded
         {
@@ -1207,7 +1205,7 @@ impl CorpusStorage {
         let path_in_zip = base_path.join(format!("{}.graphml", corpus_name));
         zip.start_file(path_in_zip.to_string_lossy(), options)?;
 
-        let entry = self.get_loaded_entry(corpus_name, false)?;
+        let entry = self.get_loaded_entry(corpus_name, false, false)?;
 
         // Ensure all components are loaded
         {
@@ -1279,7 +1277,6 @@ impl CorpusStorage {
                         // Use a sub-directory with the corpus name to avoid conflicts with the
                         // linked files
                         path.push(corpus_name.as_ref());
-                    } else {
                     };
                     std::fs::create_dir_all(&path)?;
                     path.push(format!("{}.graphml", corpus_name.as_ref()));
@@ -1336,11 +1333,28 @@ impl CorpusStorage {
         }
     }
 
+    /// Creates a new empty corpus with the given name.
+    ///
+    /// Use [`apply_update`] to add elements to the corpus. Returns whether a
+    /// new corpus was created.
+    pub fn create_empty_corpus(&self, corpus_name: &str, disk_based: bool) -> Result<bool> {
+        let mut cache_lock = self.corpus_cache.write()?;
+
+        let cache = &mut *cache_lock;
+
+        if cache.contains_key(corpus_name) {
+            Ok(false)
+        } else {
+            self.load_entry_with_lock(&mut cache_lock, corpus_name, true, disk_based)?;
+            Ok(true)
+        }
+    }
+
     /// Apply a sequence of updates (`update` parameter) to this graph for a corpus given by the `corpus_name` parameter.
     ///
     /// It is ensured that the update process is atomic and that the changes are persisted to disk if the result is `Ok`.
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<()> {
-        let db_entry = self.get_loaded_entry(corpus_name, true)?;
+        let db_entry = self.get_loaded_entry(corpus_name, true, false)?;
         {
             let mut lock = db_entry.write()?;
             let db: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
@@ -1351,7 +1365,7 @@ impl CorpusStorage {
 
         let active_background_workers = self.active_background_workers.clone();
         {
-            let &(ref lock, ref _cvar) = &*active_background_workers;
+            let (lock, _cvar) = &*active_background_workers;
             let mut nr_active_background_workers = lock.lock()?;
             *nr_active_background_workers += 1;
         }
@@ -1366,7 +1380,7 @@ impl CorpusStorage {
                     trace!("Finished background thread to sync WAL updates");
                 }
             }
-            let &(ref lock, ref cvar) = &*active_background_workers;
+            let (lock, cvar) = &*active_background_workers;
             let mut nr_active_background_workers = lock.lock().unwrap();
             *nr_active_background_workers -= 1;
             cvar.notify_all();
@@ -1385,7 +1399,7 @@ impl CorpusStorage {
     where
         F: FnOnce(&AnnotationGraph) -> Vec<Component<AnnotationComponentType>>,
     {
-        let db_entry = self.get_loaded_entry(corpus_name, false)?;
+        let db_entry = self.get_loaded_entry(corpus_name, false, false)?;
 
         // make sure the database is loaded with all necessary components
         let (q, missing_components) = {
@@ -1404,7 +1418,7 @@ impl CorpusStorage {
             let additional_components = additional_components_callback(db);
 
             // make sure the additional components are loaded
-            missing.extend(additional_components.into_iter());
+            missing.extend(additional_components);
 
             // remove all that are already loaded
             for c in &necessary_components {
@@ -1434,7 +1448,7 @@ impl CorpusStorage {
     /// Preloads all annotation and graph storages from the disk into a main memory cache.
     pub fn preload(&self, corpus_name: &str) -> Result<()> {
         {
-            let db_entry = self.get_loaded_entry(corpus_name, false)?;
+            let db_entry = self.get_loaded_entry(corpus_name, false, false)?;
             let mut lock = db_entry.write()?;
             let db = get_write_or_error(&mut lock)?;
             db.ensure_loaded_all()?;
@@ -1456,7 +1470,7 @@ impl CorpusStorage {
     /// - `disk_based` - If `true`, prefer disk-based annotation and graph storages instead of memory-only ones.
     #[doc(hidden)]
     pub fn reoptimize_implementation(&self, corpus_name: &str, disk_based: bool) -> Result<()> {
-        let graph_entry = self.get_loaded_entry(corpus_name, false)?;
+        let graph_entry = self.get_loaded_entry(corpus_name, false, disk_based)?;
         let mut lock = graph_entry.write()?;
         let graph: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
 
@@ -2148,7 +2162,7 @@ impl CorpusStorage {
 
     /// Return the copy of the graph of the corpus structure given by `corpus_name`.
     pub fn corpus_graph(&self, corpus_name: &str) -> Result<AnnotationGraph> {
-        let db_entry = self.get_loaded_entry(corpus_name, false)?;
+        let db_entry = self.get_loaded_entry(corpus_name, false, false)?;
 
         let subcorpus_components = {
             // make sure all subcorpus partitions are loaded
@@ -2303,7 +2317,7 @@ impl CorpusStorage {
         ctype: Option<AnnotationComponentType>,
         name: Option<&str>,
     ) -> Result<Vec<Component<AnnotationComponentType>>> {
-        if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
+        if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false, false) {
             let lock = db_entry.read()?;
             if let Ok(db) = get_read_or_error(&lock) {
                 return Ok(db.get_all_components(ctype, name));
@@ -2323,10 +2337,10 @@ impl CorpusStorage {
         only_most_frequent_values: bool,
     ) -> Result<Vec<Annotation>> {
         let mut result: Vec<Annotation> = Vec::new();
-        if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
+        if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false, false) {
             let lock = db_entry.read()?;
             if let Ok(db) = get_read_or_error(&lock) {
-                let node_annos: &dyn AnnotationStorage<NodeID> = db.get_node_annos();
+                let node_annos: &dyn NodeAnnotationStorage = db.get_node_annos();
                 for key in node_annos.annotation_keys()? {
                     if list_values {
                         if only_most_frequent_values {
@@ -2444,7 +2458,7 @@ impl CorpusStorage {
 impl Drop for CorpusStorage {
     fn drop(&mut self) {
         // wait until all background workers are finished
-        let &(ref lock, ref cvar) = &*self.active_background_workers;
+        let (lock, cvar) = &*self.active_background_workers;
         let mut nr_active_background_workers = lock.lock().unwrap();
         while *nr_active_background_workers > 0 {
             trace!(
@@ -2641,7 +2655,7 @@ fn extract_subgraph_by_query(
 }
 
 fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
-    std::fs::create_dir_all(&db_dir).map_err(|e| CorpusStorageError::LockCorpusDirectory {
+    std::fs::create_dir_all(db_dir).map_err(|e| CorpusStorageError::LockCorpusDirectory {
         path: db_dir.to_string_lossy().to_string(),
         source: e,
     })?;

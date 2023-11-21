@@ -118,11 +118,12 @@ impl Default for ContextConfiguration {
 /// timeline items. This could be explicit (by using `Coverage` edges between
 /// the span and the segmentation nodes) or implicit by one of the given
 /// strategies.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(tag = "strategy")]
 pub enum TimelineStrategy {
     /// Do not assume any relation between spans and segmentation nodes if not
     /// explicitly given by a `Coverage` edge.
+    #[default]
     Explicit,
     /// Use the namespace of an annotated span to map them to a segmentation
     /// node. E.g. a span with the annotation `speaker1::pause` would need to be
@@ -136,12 +137,6 @@ pub enum TimelineStrategy {
 impl TimelineStrategy {
     pub fn is_explicit(&self) -> bool {
         self == &TimelineStrategy::Explicit
-    }
-}
-
-impl Default for TimelineStrategy {
-    fn default() -> Self {
-        TimelineStrategy::Explicit
     }
 }
 
@@ -211,9 +206,10 @@ pub struct VisualizerRule {
     pub mappings: BTreeMap<String, String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq, Default)]
 pub enum VisualizerVisibility {
     #[serde(rename = "hidden")]
+    #[default]
     Hidden,
     #[serde(rename = "visible")]
     Visible,
@@ -221,12 +217,6 @@ pub enum VisualizerVisibility {
     Permanent,
     #[serde(rename = "preloaded")]
     Preloaded,
-}
-
-impl Default for VisualizerVisibility {
-    fn default() -> Self {
-        VisualizerVisibility::Hidden
-    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]

@@ -1,8 +1,8 @@
 use super::super::{ExecutionNode, ExecutionNodeDesc, NodeSearchDesc};
 use crate::annis::db::aql::conjunction::BinaryOperatorArguments;
-use crate::annis::db::AnnotationStorage;
 use crate::annis::operator::BinaryOperatorIndex;
 use crate::{annis::operator::EstimationType, errors::Result, graph::Match};
+use graphannis_core::annostorage::NodeAnnotationStorage;
 use graphannis_core::{annostorage::MatchGroup, types::NodeID};
 use rayon::prelude::*;
 use std::error::Error;
@@ -21,7 +21,7 @@ pub struct IndexJoin<'a> {
     op: Arc<dyn BinaryOperatorIndex + 'a>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
-    node_annos: &'a dyn AnnotationStorage<NodeID>,
+    node_annos: &'a dyn NodeAnnotationStorage,
     desc: ExecutionNodeDesc,
     global_reflexivity: bool,
 }
@@ -41,7 +41,7 @@ impl<'a> IndexJoin<'a> {
         op: Box<dyn BinaryOperatorIndex + 'a>,
         op_args: &BinaryOperatorArguments,
         node_search_desc: Arc<NodeSearchDesc>,
-        node_annos: &'a dyn AnnotationStorage<NodeID>,
+        node_annos: &'a dyn NodeAnnotationStorage,
         rhs_desc: Option<&ExecutionNodeDesc>,
     ) -> Result<IndexJoin<'a>> {
         let lhs_desc = lhs.get_desc().cloned();
@@ -209,7 +209,7 @@ fn next_candidates(
     m_lhs: &[Match],
     op: &dyn BinaryOperatorIndex,
     lhs_idx: usize,
-    node_annos: &dyn AnnotationStorage<NodeID>,
+    node_annos: &dyn NodeAnnotationStorage,
     node_search_desc: &Arc<NodeSearchDesc>,
 ) -> Result<Vec<Match>> {
     let it_nodes = op.retrieve_matches(&m_lhs[lhs_idx]).fuse().map(|m| {

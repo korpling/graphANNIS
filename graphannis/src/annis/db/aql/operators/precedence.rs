@@ -167,7 +167,7 @@ impl<'a> BinaryOperatorBase for Precedence<'a> {
     fn estimation_type(&self) -> Result<EstimationType> {
         if let Some(stats_order) = self.gs_order.get_statistics() {
             let max_dist = match self.spec.dist.max_dist() {
-                std::ops::Bound::Unbounded => usize::max_value(),
+                std::ops::Bound::Unbounded => usize::MAX,
                 std::ops::Bound::Included(max_dist) => max_dist,
                 std::ops::Bound::Excluded(max_dist) => max_dist - 1,
             };
@@ -305,7 +305,7 @@ impl<'a> BinaryOperatorBase for InversePrecedence<'a> {
     fn estimation_type(&self) -> Result<EstimationType> {
         if let Some(stats_order) = self.gs_order.get_statistics() {
             let max_dist = match self.spec.dist.max_dist() {
-                std::ops::Bound::Unbounded => usize::max_value(),
+                std::ops::Bound::Unbounded => usize::MAX,
                 std::ops::Bound::Included(max_dist) => max_dist,
                 std::ops::Bound::Excluded(max_dist) => max_dist - 1,
             };

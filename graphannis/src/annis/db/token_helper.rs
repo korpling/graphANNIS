@@ -1,13 +1,11 @@
 use crate::{
-    annis::db::{
-        aql::model::{AnnotationComponentType, TOKEN_KEY},
-        AnnotationStorage,
-    },
+    annis::db::aql::model::{AnnotationComponentType, TOKEN_KEY},
     errors::Result,
     graph::GraphStorage,
     AnnotationGraph,
 };
 use graphannis_core::{
+    annostorage::NodeAnnotationStorage,
     errors::GraphAnnisCoreError,
     graph::ANNIS_NS,
     types::{Component, NodeID},
@@ -18,7 +16,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct TokenHelper<'a> {
-    node_annos: &'a dyn AnnotationStorage<NodeID>,
+    node_annos: &'a dyn NodeAnnotationStorage,
     left_edges: Arc<dyn GraphStorage>,
     right_edges: Arc<dyn GraphStorage>,
     cov_edges: Vec<Arc<dyn GraphStorage>>,
@@ -46,10 +44,7 @@ pub fn necessary_components(db: &AnnotationGraph) -> HashSet<Component<Annotatio
     result.insert(COMPONENT_LEFT.clone());
     result.insert(COMPONENT_RIGHT.clone());
     // we need all coverage components
-    result.extend(
-        db.get_all_components(Some(AnnotationComponentType::Coverage), None)
-            .into_iter(),
-    );
+    result.extend(db.get_all_components(Some(AnnotationComponentType::Coverage), None));
 
     result
 }

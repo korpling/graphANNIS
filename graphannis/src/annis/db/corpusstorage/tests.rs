@@ -12,12 +12,11 @@ use crate::corpusstorage::{ImportFormat, QueryLanguage, ResultOrder};
 use crate::errors::Result;
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::{AnnotationGraph, CorpusStorage};
-use graphannis_core::annostorage::{AnnotationStorage, ValueSearch};
+use graphannis_core::annostorage::{EdgeAnnotationStorage, NodeAnnotationStorage, ValueSearch};
 use graphannis_core::graph::{ANNIS_NS, NODE_NAME_KEY};
 use graphannis_core::types::{Component, Edge};
 use graphannis_core::{graph::DEFAULT_NS, types::NodeID};
 use itertools::Itertools;
-use malloc_size_of::MallocSizeOf;
 use pretty_assertions::assert_eq;
 
 use super::SearchQuery;
@@ -235,10 +234,13 @@ fn subgraphs_simple() {
     // Check that all token exist and are connected
     for i in 2..8 {
         let t = format!("root/doc1#tok{}", i);
-        let t_id = graph.get_node_id_from_name(&t).unwrap();
+        let t_id = graph.get_node_annos().get_node_id_from_name(&t).unwrap();
         assert_eq!(true, t_id.is_some());
         let next_token = format!("root/doc1#tok{}", i + 1);
-        let next_token_id = graph.get_node_id_from_name(&next_token).unwrap();
+        let next_token_id = graph
+            .get_node_annos()
+            .get_node_id_from_name(&next_token)
+            .unwrap();
         assert_eq!(true, next_token_id.is_some());
         assert_eq!(
             true,
@@ -255,23 +257,40 @@ fn subgraphs_simple() {
     // Also check, that the token outside the context do not exists
     for t in 0..2 {
         let t = format!("root/doc1#tok{}", t);
-        assert_eq!(false, graph.get_node_id_from_name(&t).unwrap().is_some());
+        assert_eq!(
+            false,
+            graph
+                .get_node_annos()
+                .get_node_id_from_name(&t)
+                .unwrap()
+                .is_some()
+        );
     }
     for t in 9..10 {
         let t = format!("root/doc1#tok{}", t);
-        assert_eq!(false, graph.get_node_id_from_name(&t).unwrap().is_some());
+        assert_eq!(
+            false,
+            graph
+                .get_node_annos()
+                .get_node_id_from_name(&t)
+                .unwrap()
+                .is_some()
+        );
     }
 
     // Check the (non-) existance of the spans
     let span1 = graph
+        .get_node_annos()
         .get_node_id_from_name("root/doc1#span1")
         .unwrap()
         .unwrap();
     let span2 = graph
+        .get_node_annos()
         .get_node_id_from_name("root/doc1#span2")
         .unwrap()
         .unwrap();
     let span3 = graph
+        .get_node_annos()
         .get_node_id_from_name("root/doc1#span3")
         .unwrap()
         .unwrap();
@@ -279,6 +298,7 @@ fn subgraphs_simple() {
     assert_eq!(
         false,
         graph
+            .get_node_annos()
             .get_node_id_from_name("root/doc1#span4")
             .unwrap()
             .is_some()
@@ -302,13 +322,22 @@ fn subgraphs_simple() {
     let ds_nodes = ds_nodes.unwrap();
     assert_eq!(1, ds_nodes.len());
 
-    let text_id = graph.get_node_id_from_name("root/doc1#text1").unwrap();
+    let text_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1#text1")
+        .unwrap();
     assert_eq!(true, text_id.is_some());
 
-    let doc_id = graph.get_node_id_from_name("root/doc1").unwrap();
+    let doc_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1")
+        .unwrap();
     assert_eq!(true, doc_id.is_some());
 
-    let toplevel_id = graph.get_node_id_from_name("root").unwrap();
+    let toplevel_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root")
+        .unwrap();
     assert_eq!(true, toplevel_id.is_some());
 
     let part_of_components = graph.get_all_components(Some(AnnotationComponentType::PartOf), None);
@@ -354,18 +383,36 @@ fn subgraphs_non_overlapping_regions() {
         .unwrap();
 
     // Check that all token exist and are connected
-    let t1_id = graph.get_node_id_from_name("root/doc1#tok1").unwrap();
+    let t1_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1#tok1")
+        .unwrap();
     assert_eq!(true, t1_id.is_some());
-    let t2_id = graph.get_node_id_from_name("root/doc1#tok2").unwrap();
+    let t2_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1#tok2")
+        .unwrap();
     assert_eq!(true, t2_id.is_some());
-    let t3_id = graph.get_node_id_from_name("root/doc1#tok3").unwrap();
+    let t3_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1#tok3")
+        .unwrap();
     assert_eq!(true, t3_id.is_some());
 
-    let t5_id = graph.get_node_id_from_name("root/doc1#tok5").unwrap();
+    let t5_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1#tok5")
+        .unwrap();
     assert_eq!(true, t5_id.is_some());
-    let t6_id = graph.get_node_id_from_name("root/doc1#tok6").unwrap();
+    let t6_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1#tok6")
+        .unwrap();
     assert_eq!(true, t6_id.is_some());
-    let t7_id = graph.get_node_id_from_name("root/doc1#tok7").unwrap();
+    let t7_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1#tok7")
+        .unwrap();
     assert_eq!(true, t7_id.is_some());
 
     let ordering_components =
@@ -537,6 +584,7 @@ fn subgraph_with_segmentation() {
     let gs_cov = graph.get_graphstorage(&cov_components[0]).unwrap();
 
     let segl0_id = graph
+        .get_node_annos()
         .get_node_id_from_name("root/doc1#seg0")
         .unwrap()
         .unwrap();
@@ -547,6 +595,7 @@ fn subgraph_with_segmentation() {
     assert_eq!(3, seg0_out.unwrap().len());
 
     let seg1_id = graph
+        .get_node_annos()
         .get_node_id_from_name("root/doc1#seg1")
         .unwrap()
         .unwrap();
@@ -557,6 +606,7 @@ fn subgraph_with_segmentation() {
     assert_eq!(2, seg1_out.unwrap().len());
 
     let seg2_id = graph
+        .get_node_annos()
         .get_node_id_from_name("root/doc1#seg2")
         .unwrap()
         .unwrap();
@@ -566,7 +616,13 @@ fn subgraph_with_segmentation() {
         .collect();
     assert_eq!(5, seg2_out.unwrap().len());
 
-    assert_eq!(None, graph.get_node_id_from_name("root/doc1#seg3").unwrap());
+    assert_eq!(
+        None,
+        graph
+            .get_node_annos()
+            .get_node_id_from_name("root/doc1#seg3")
+            .unwrap()
+    );
 }
 
 /// Test that context generation works with a corpus that has segmentations
@@ -596,22 +652,27 @@ fn subgraph_with_segmentation_and_gap() {
     // Check that all token and the page are included, including the token
     // that is not covered by a segmentation node.
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
         .unwrap()
         .is_some());
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
         .unwrap()
         .is_some());
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
         .unwrap()
         .is_some());
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
         .unwrap()
         .is_some());
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
         .unwrap()
         .is_some());
@@ -622,22 +683,27 @@ fn subgraph_with_segmentation_and_gap() {
         .unwrap();
     // Check that all token and the page are included
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
         .unwrap()
         .is_some());
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
         .unwrap()
         .is_some());
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
         .unwrap()
         .is_some());
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
         .unwrap()
         .is_some());
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
         .unwrap()
         .is_some());
@@ -654,35 +720,54 @@ fn subgraph_with_segmentation_and_gap() {
         .unwrap();
     // Check that all token and the page are included
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
         .unwrap()
         .is_some());
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
         .unwrap()
         .is_some());
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
         .unwrap()
         .is_some());
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
         .unwrap()
         .is_some());
     assert!(g
+        .get_node_annos()
         .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
         .unwrap()
         .is_some());
 }
 
-fn compare_annos<T>(
-    annos1: &dyn AnnotationStorage<T>,
-    annos2: &dyn AnnotationStorage<T>,
-    items1: &[T],
-    items2: &[T],
-) where
-    T: Send + Sync + MallocSizeOf,
-{
+fn compare_edge_annos(
+    annos1: &dyn EdgeAnnotationStorage,
+    annos2: &dyn EdgeAnnotationStorage,
+    items1: &[Edge],
+    items2: &[Edge],
+) {
+    assert_eq!(items1.len(), items2.len());
+    for i in 0..items1.len() {
+        let mut annos1 = annos1.get_annotations_for_item(&items1[i]).unwrap();
+        annos1.sort();
+        let mut annos2 = annos2.get_annotations_for_item(&items2[i]).unwrap();
+        annos2.sort();
+        assert_eq!(annos1, annos2);
+    }
+}
+
+fn compare_node_annos(
+    annos1: &dyn NodeAnnotationStorage,
+    annos2: &dyn NodeAnnotationStorage,
+    items1: &[NodeID],
+    items2: &[NodeID],
+) {
     assert_eq!(items1.len(), items2.len());
     for i in 0..items1.len() {
         let mut annos1 = annos1.get_annotations_for_item(&items1[i]).unwrap();
@@ -713,13 +798,13 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph) {
 
     let nodes1: Vec<NodeID> = nodes1
         .into_iter()
-        .filter_map(|n| g1.get_node_id_from_name(&n).unwrap())
+        .filter_map(|n| g1.get_node_annos().get_node_id_from_name(&n).unwrap())
         .collect();
     let nodes2: Vec<NodeID> = nodes2
         .into_iter()
-        .filter_map(|n| g2.get_node_id_from_name(&n).unwrap())
+        .filter_map(|n| g2.get_node_annos().get_node_id_from_name(&n).unwrap())
         .collect();
-    compare_annos(g1.get_node_annos(), g2.get_node_annos(), &nodes1, &nodes2);
+    compare_node_annos(g1.get_node_annos(), g2.get_node_annos(), &nodes1, &nodes2);
 
     // Check that the graphs have the same edges
     let mut components1 = g1.get_all_components(None, None);
@@ -769,17 +854,25 @@ fn compare_corpora(g1: &AnnotationGraph, g2: &AnnotationGraph) {
                 .iter()
                 .map(|t| Edge {
                     source: start1,
-                    target: g1.get_node_id_from_name(t).unwrap().unwrap(),
+                    target: g1
+                        .get_node_annos()
+                        .get_node_id_from_name(t)
+                        .unwrap()
+                        .unwrap(),
                 })
                 .collect();
             let edges2: Vec<Edge> = targets2
                 .iter()
                 .map(|t| Edge {
                     source: start2,
-                    target: g2.get_node_id_from_name(t).unwrap().unwrap(),
+                    target: g2
+                        .get_node_annos()
+                        .get_node_id_from_name(t)
+                        .unwrap()
+                        .unwrap(),
                 })
                 .collect();
-            compare_annos(
+            compare_edge_annos(
                 gs1.get_anno_storage(),
                 gs2.get_anno_storage(),
                 &edges1,
@@ -899,7 +992,9 @@ fn import_relative_corpus_with_linked_file() {
         .unwrap();
     assert_eq!("CorpusWithLinkedFile", &corpus_name);
     // Check that the linked file was copied
-    let entry = cs.get_loaded_entry("CorpusWithLinkedFile", false).unwrap();
+    let entry = cs
+        .get_loaded_entry("CorpusWithLinkedFile", false, false)
+        .unwrap();
     let lock = entry.read().unwrap();
     let g: &AnnotationGraph = get_read_or_error(&lock).unwrap();
 

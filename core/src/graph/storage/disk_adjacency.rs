@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::{
-    annostorage::ondisk::AnnoStorageImpl,
+    annostorage::{ondisk::AnnoStorageImpl, NodeAnnotationStorage},
     dfs::CycleSafeDFS,
     errors::Result,
     util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
@@ -37,7 +37,7 @@ fn get_fan_outs(edges: &DiskMap<Edge, bool>) -> Result<Vec<usize>> {
         }
     }
     // order the fan-outs
-    let mut fan_outs: Vec<usize> = fan_outs.into_iter().map(|(_, s)| s).collect();
+    let mut fan_outs: Vec<usize> = fan_outs.into_values().collect();
     fan_outs.sort_unstable();
 
     Ok(fan_outs)
@@ -69,11 +69,11 @@ impl EdgeContainer for DiskAdjacencyListStorage {
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let lower_bound = Edge {
             source: node,
-            target: NodeID::min_value(),
+            target: NodeID::MIN,
         };
         let upper_bound = Edge {
             source: node,
-            target: NodeID::max_value(),
+            target: NodeID::MAX,
         };
         Box::new(
             self.edges
@@ -85,11 +85,11 @@ impl EdgeContainer for DiskAdjacencyListStorage {
     fn has_outgoing_edges(&self, node: NodeID) -> Result<bool> {
         let lower_bound = Edge {
             source: node,
-            target: NodeID::min_value(),
+            target: NodeID::MIN,
         };
         let upper_bound = Edge {
             source: node,
-            target: NodeID::max_value(),
+            target: NodeID::MAX,
         };
         if let Some(edge) = self.edges.range(lower_bound..upper_bound).next() {
             edge?;
@@ -105,11 +105,11 @@ impl EdgeContainer for DiskAdjacencyListStorage {
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let lower_bound = Edge {
             source: node,
-            target: NodeID::min_value(),
+            target: NodeID::MIN,
         };
         let upper_bound = Edge {
             source: node,
-            target: NodeID::max_value(),
+            target: NodeID::MAX,
         };
         Box::new(
             self.inverse_edges
@@ -134,7 +134,7 @@ impl EdgeContainer for DiskAdjacencyListStorage {
 }
 
 impl GraphStorage for DiskAdjacencyListStorage {
-    fn get_anno_storage(&self) -> &dyn AnnotationStorage<Edge> {
+    fn get_anno_storage(&self) -> &dyn EdgeAnnotationStorage {
         &self.annos
     }
 
@@ -148,7 +148,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
     {
         // Read stats
         let stats_path = location.join("edge_stats.bin");
-        let f_stats = std::fs::File::open(&stats_path)?;
+        let f_stats = std::fs::File::open(stats_path)?;
         let input = std::io::BufReader::new(f_stats);
         let stats = bincode::deserialize_from(input)?;
 
@@ -184,7 +184,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
         self.annos.save_annotations_to(location)?;
         // Write stats with bincode
         let stats_path = location.join("edge_stats.bin");
-        let f_stats = std::fs::File::create(&stats_path)?;
+        let f_stats = std::fs::File::create(stats_path)?;
         let mut writer = std::io::BufWriter::new(f_stats);
         bincode::serialize_into(&mut writer, &self.stats)?;
 
@@ -199,7 +199,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
-            Bound::Unbounded => usize::max_value(),
+            Bound::Unbounded => usize::MAX,
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
@@ -217,7 +217,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let max_distance = match max_distance {
-            Bound::Unbounded => usize::max_value(),
+            Bound::Unbounded => usize::MAX,
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
@@ -229,7 +229,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
     }
 
     fn distance(&self, source: NodeID, target: NodeID) -> Result<Option<usize>> {
-        let mut it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value())
+        let mut it = CycleSafeDFS::new(self, source, usize::MIN, usize::MAX)
             .filter_ok(|x| target == x.node)
             .map_ok(|x| x.distance);
 
@@ -249,7 +249,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
         max_distance: std::ops::Bound<usize>,
     ) -> Result<bool> {
         let max_distance = match max_distance {
-            Bound::Unbounded => usize::max_value(),
+            Bound::Unbounded => usize::MAX,
             Bound::Included(max_distance) => max_distance,
             Bound::Excluded(max_distance) => max_distance + 1,
         };
@@ -270,7 +270,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
 
     fn copy(
         &mut self,
-        _node_annos: &dyn AnnotationStorage<NodeID>,
+        _node_annos: &dyn NodeAnnotationStorage,
         orig: &dyn GraphStorage,
     ) -> Result<()> {
         self.clear()?;
@@ -447,7 +447,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
             stats.cyclic = true;
         } else {
             for root_node in &roots {
-                let mut dfs = CycleSafeDFS::new(self, *root_node, 0, usize::max_value());
+                let mut dfs = CycleSafeDFS::new(self, *root_node, 0, usize::MAX);
                 for step in &mut dfs {
                     let step = step?;
                     number_of_visits += 1;
