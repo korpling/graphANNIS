@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Changed API to use new types `NodeAnnotationStorage` and
+  `EdgeAnnotationStorage` instead of `AnnoStorageImpl<NodeID>` or
+  `AnnoStorageImpl<NodeID>`. (backward incompatible change in the Rust API)
+- `get_node_id_from_name` is now a function of the `AnnotationStorage` instead
+  of the `Graph`. This allows for more specific and efficient implementations
+  based o the type of annotation storage.
 - Improved performance of the `Graph::apply_update` function.
+
+### Added
+
+- Add `has_node_name` function to `AnnotationStorage` that can be more efficient
+  than `get_node_id_name`.
 
 ## [2.4.8] - 2023-10-31
 
@@ -805,7 +816,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed Bugs
 
 - [#30](https://github.com/corpus-tools/graphANNIS/issues/30) Fix most of the queries in the benchmark test test
-- [#29](https://github.com/corpus-tools/graphANNIS/issues/29) Use the std::ops::Bound class to mark the upper value instead of relaying on usize::MAX
+- [#29](https://github.com/corpus-tools/graphANNIS/issues/29) Use the std::ops::Bound class to mark the upper value instead of relaying on usize::max_value()
 
 ### Enhancements
 
