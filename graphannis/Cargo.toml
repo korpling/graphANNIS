@@ -7,7 +7,7 @@ license = "Apache-2.0"
 name = "graphannis"
 readme = "../README.md"
 repository = "https://github.com/korpling/graphANNIS"
-version = "2.4.8"
+version = "3.0.0"
 
 [lib]
 crate-type = ["lib"]
@@ -23,7 +23,7 @@ boolean_expression = "0.4"
 csv = "1"
 extsort = "0.4"
 fs2 = "0.4"
-graphannis-core = {path = "../core/", version = "^2"}
+graphannis-core = {path = "../core/", version = "^3"}
 graphannis-malloc_size_of = "2"
 graphannis-malloc_size_of_derive = "2.0"
 itertools = "0.10"

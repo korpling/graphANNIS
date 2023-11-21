@@ -1,8 +1,8 @@
 # Replace file contents only once
-tag-name =  "v{{version}}"
 pre-release-replacements = [
-    { file = "../CHANGELOG.md", search = "## \\[Unreleased\\]", replace = "## [Unreleased]\n\n## [{{version}}] - {{date}}" },
-    { file = "../CITATION.cff", search = "version: [0-9.]+", replace = "version: {{version}}" },
-    { file = "../CITATION.cff", search = "date-released: [0-9\\-]+", replace = "date-released: {{date}}" },
-    { file = "../docs/src/embed-rust.md", search = "graphannis = \"[0-9.]+\"", replace = "graphannis = \"{{version}}\"" }
+  {file = "../CHANGELOG.md", search = "## \\[Unreleased\\]", replace = "## [Unreleased]\n\n## [{{version}}] - {{date}}"},
+  {file = "../CITATION.cff", search = "^version: [0-9.]+", replace = "version: {{version}}"},
+  {file = "../CITATION.cff", search = "date-released: [0-9\\-]+", replace = "date-released: {{date}}"},
+  {file = "../docs/src/embed-rust.md", search = "graphannis = \"[0-9.]+\"", replace = "graphannis = \"{{version}}\""},
 ]
+tag-name = "v{{version}}"
