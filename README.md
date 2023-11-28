@@ -15,7 +15,7 @@ Notable differences/enhancements compared to the thesis are:
 
 ## Documentation
 
-- [Developer Guide](https://korpling.github.io/graphANNIS/docs/v2/) (including descriptions of the data model and tutorials for the API)
+- [Developer Guide](https://korpling.github.io/graphANNIS/docs/v3/) (including descriptions of the data model and tutorials for the API)
 - [API documentation](https://docs.rs/graphannis/)
 
 
