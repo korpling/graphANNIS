@@ -29,6 +29,7 @@ tikv-jemallocator = "0.5"
 insta-cmd = "0.4"
 insta = {version = "1.34.0", features = ["filters"]}
 assert_cmd = "2.0.12"
+serial_test = "2"
 
 [[bin]]
 name = "annis"

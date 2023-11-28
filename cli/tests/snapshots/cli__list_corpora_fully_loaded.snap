@@ -1,0 +1,26 @@
+---
+source: cli/tests/cli.rs
+info:
+  program: annis
+  args:
+    - "../graphannis/tests/data/"
+    - "-c"
+    - corpus sample-disk-based
+    - "-c"
+    - preload
+    - "-c"
+    - list
+---
+success: true
+exit_code: 0
+----- stdout -----
+12:00:00[0m[34m[INFO] [0mLoaded corpus sample-disk-based
+12:00:00[0m[34m[INFO] [0mTotal cache size is 100 / 300 MB and loaded corpora are: sample-disk-based.
+12:00:00[0m[34m[INFO] [0mTotal cache size is 100 / 300 MB and loaded corpora are: sample-disk-based.
+12:00:00[0m[34m[INFO] [0mPreloaded corpus in 8 ms
+sample-disk-based (fully loaded)
+sample-memory-based (not loaded)
+graphANNIS says good-bye!
+
+----- stderr -----
+
