@@ -20,7 +20,9 @@ jobs:
           profile: minimal
       - uses: Swatinem/rust-cache@v2.2.1
       - run: cargo build --all-features --verbose
-      - run: RUST_LOG=debug cargo test --all-features --verbose
+      - run: cargo test --all-features --verbose
+        env:
+          RUST_LOG: debug
       - run: misc/download-mdbook.sh 0.3.5
         env:
           OS_NAME: linux
@@ -37,7 +39,9 @@ jobs:
           profile: minimal
       - uses: Swatinem/rust-cache@v2.2.1
       - run: cargo build --all-features --verbose
-      - run: RUST_LOG=debug cargo test --all-features --verbose
+      - run: cargo test --all-features --verbose
+        env:
+          RUST_LOG: debug
   test_mac:
     name: Execute automated tests on OSX
     runs-on: macos-11
@@ -49,7 +53,9 @@ jobs:
           profile: minimal
       - uses: Swatinem/rust-cache@v2.2.1
       - run: cargo build --all-features --verbose
-      - run: RUST_LOG=debug cargo test --all-features --verbose
+      - run: cargo test --all-features --verbose
+        env:
+          RUST_LOG: debug
   long_running_tests:
     name: Execute search tests
     runs-on: ubuntu-20.04
