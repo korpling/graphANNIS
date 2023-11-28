@@ -141,6 +141,7 @@ fn create_app(
     cs: web::Data<CorpusStorage>,
     settings: web::Data<Settings>,
     db_pool: web::Data<Pool<ConnectionManager<SqliteConnection>>>,
+    background_jobs: web::Data<BackgroundJobs>,
 ) -> App<
     impl ServiceFactory<
         ServiceRequest,
@@ -156,9 +157,6 @@ fn create_app(
     } else {
         Logger::default().exclude_regex(".*")
     };
-
-    // Create a list of background jobs behind a Mutex
-    let background_jobs = web::Data::new(BackgroundJobs::default());
 
     App::new()
         .wrap(
@@ -253,12 +251,20 @@ async fn main() -> Result<()> {
     let cs = web::Data::new(cs);
     let settings = web::Data::new(settings);
     let db_pool = web::Data::new(db_pool);
+    let background_jobs = web::Data::new(BackgroundJobs::default());
 
     // Run server
-    HttpServer::new(move || create_app(cs.clone(), settings.clone(), db_pool.clone()))
-        .bind(bind_address)?
-        .run()
-        .await
+    HttpServer::new(move || {
+        create_app(
+            cs.clone(),
+            settings.clone(),
+            db_pool.clone(),
+            background_jobs.clone(),
+        )
+    })
+    .bind(bind_address)?
+    .run()
+    .await
 }
 
 #[cfg(test)]
@@ -276,6 +282,7 @@ pub mod tests {
     use jsonwebtoken::EncodingKey;
 
     use crate::{
+        api::administration::BackgroundJobs,
         auth::Claims,
         settings::{JWTVerification, Settings},
     };
@@ -313,8 +320,9 @@ pub mod tests {
 
         let settings = web::Data::new(settings);
         let db_pool = web::Data::new(db_pool);
+        let background_jobs = web::Data::new(BackgroundJobs::default());
 
-        let app = crate::create_app(cs, settings, db_pool);
+        let app = crate::create_app(cs, settings, db_pool, background_jobs);
         app
     }
 

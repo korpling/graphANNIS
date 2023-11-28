@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `graphannis::corpusstorage::LoadStatus` enum.
 - Remove `EvictionStrategy::MaximumBytes` for `DiskMap`.
 
+### Fixed
+
+- Polling when importing a web corpus through the webservice could fail because
+  the background job list was not shared between the web server threads.
+
 
 ## [2.4.8] - 2023-10-31
 
