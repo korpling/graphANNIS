@@ -1,6 +1,4 @@
 use crate::errors::{GraphAnnisCoreError, Result};
-use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use crate::util::memory_estimation::shallow_size_of_fxhashmap;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
@@ -15,24 +13,6 @@ where
     #[serde(skip)]
     by_value: FxHashMap<Arc<T>, usize>,
     empty_slots: Vec<usize>,
-}
-
-impl<T> MallocSizeOf for SymbolTable<T>
-where
-    T: Eq + Hash + Ord + Clone + Default + MallocSizeOf,
-{
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut size: usize = 0;
-        // measure the size of all items and add the overhead of the Arc (two counter fields)
-        for s in &self.by_id {
-            size += std::mem::size_of::<Arc<T>>() + s.size_of(ops);
-        }
-
-        // add the size of the by_value values, the hash map itself and the empty slot vector
-        size + (self.by_id.len() * std::mem::size_of::<usize>())
-            + shallow_size_of_fxhashmap(&self.by_value, ops)
-            + self.empty_slots.size_of(ops)
-    }
 }
 
 impl<T> SymbolTable<T>

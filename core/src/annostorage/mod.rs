@@ -12,8 +12,6 @@ use std::sync::Arc;
 use std::{borrow::Cow, error::Error};
 use std::{boxed::Box, path::Path};
 
-use crate::malloc_size_of::MallocSizeOf;
-
 use self::symboltable::SymbolTable;
 
 /// A match is the result of a query on an annotation storage.
@@ -170,9 +168,9 @@ impl<T> ValueSearch<T> {
 }
 
 /// Access annotations for nodes or edges.
-pub trait AnnotationStorage<T>: Send + Sync + MallocSizeOf
+pub trait AnnotationStorage<T>: Send + Sync
 where
-    T: Send + Sync + MallocSizeOf,
+    T: Send + Sync,
 {
     /// Insert an annotation `anno` (with annotation key and value) for an item `item`.
     fn insert(&mut self, item: T, anno: Annotation) -> Result<()>;

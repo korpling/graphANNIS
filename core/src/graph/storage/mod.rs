@@ -7,7 +7,6 @@ pub mod registry;
 pub mod union;
 
 use crate::annostorage::{EdgeAnnotationStorage, NodeAnnotationStorage};
-use crate::malloc_size_of::MallocSizeOf;
 use crate::{
     annostorage::AnnotationStorage,
     errors::Result,
@@ -17,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::{self, path::Path};
 
 /// Some general statistical numbers specific to a graph component
-#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct GraphStatistic {
     /// True if the component contains any cycle.
     pub cyclic: bool,
@@ -63,7 +62,7 @@ impl std::fmt::Display for GraphStatistic {
 }
 
 /// Basic trait for accessing edges of a graph for a specific component.
-pub trait EdgeContainer: Sync + Send + MallocSizeOf {
+pub trait EdgeContainer: Sync + Send {
     /// Get all outgoing edges for a given `node`.
     fn get_outgoing_edges<'a>(
         &'a self,

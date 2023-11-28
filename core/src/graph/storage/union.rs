@@ -5,7 +5,6 @@ use crate::{
 };
 use rustc_hash::FxHashSet;
 
-#[derive(MallocSizeOf)]
 pub struct UnionEdgeContainer<'a> {
     containers: Vec<&'a dyn EdgeContainer>,
 }

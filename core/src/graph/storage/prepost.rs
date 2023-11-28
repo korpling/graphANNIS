@@ -13,14 +13,14 @@ use serde::{Deserialize, Serialize};
 use std::clone::Clone;
 use std::{ops::Bound::*, path::Path};
 
-#[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize, MallocSizeOf)]
+#[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize)]
 pub struct PrePost<OrderT, LevelT> {
     pub pre: OrderT,
     pub post: OrderT,
     pub level: LevelT,
 }
 
-#[derive(Serialize, Deserialize, Clone, MallocSizeOf, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 enum OrderVecEntry<OrderT, LevelT> {
     None,
     Pre {
@@ -35,7 +35,7 @@ enum OrderVecEntry<OrderT, LevelT> {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PrePostOrderStorage<OrderT: NumValue, LevelT: NumValue> {
     node_to_order: FxHashMap<NodeID, Vec<PrePost<OrderT, LevelT>>>,
     order_to_node: Vec<OrderVecEntry<OrderT, LevelT>>,

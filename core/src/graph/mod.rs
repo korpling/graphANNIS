@@ -12,7 +12,6 @@ use crate::{
     types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID},
 };
 use clru::CLruCache;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
 use smartstring::alias::String as SmartString;
 use std::io::prelude::*;
@@ -61,29 +60,7 @@ pub struct Graph<CT: ComponentType> {
 
     background_persistance: Arc<Mutex<()>>,
 
-    cached_size: Mutex<Option<usize>>,
-
     disk_based: bool,
-}
-
-impl<CT: ComponentType> MallocSizeOf for Graph<CT> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut size = self.node_annos.size_of(ops);
-
-        for c in self.components.keys() {
-            // TODO: overhead by map is not measured
-            size += c.size_of(ops);
-            let gs_size = if let Some(gs) = self.get_graphstorage_as_ref(c) {
-                gs.size_of(ops) + std::mem::size_of::<usize>()
-            } else {
-                // Option has the size of the nullable pointer/Arc
-                std::mem::size_of::<usize>()
-            };
-            size += gs_size;
-        }
-
-        size
-    }
 }
 
 fn load_component_from_disk(component_path: &Path) -> Result<Arc<dyn GraphStorage>> {
@@ -145,7 +122,6 @@ impl<CT: ComponentType> Graph<CT> {
             current_change_id: 0,
 
             background_persistance: Arc::new(Mutex::new(())),
-            cached_size: Mutex::new(None),
 
             disk_based,
         })
@@ -169,7 +145,6 @@ impl<CT: ComponentType> Graph<CT> {
     /// Clear the graph content.
     /// This removes all node annotations, edges and knowledge about components.
     fn clear(&mut self) -> Result<()> {
-        self.reset_cached_size()?;
         self.node_annos = Box::new(crate::annostorage::inmemory::AnnoStorageImpl::new());
         self.components.clear();
         Ok(())
@@ -361,8 +336,6 @@ impl<CT: ComponentType> Graph<CT> {
     where
         F: Fn(&str),
     {
-        self.reset_cached_size()?;
-
         let all_components = self.get_all_components(None, None);
 
         let mut update_graph_index = ComponentType::init_update_graph_index(self)?;
@@ -730,7 +703,6 @@ impl<CT: ComponentType> Graph<CT> {
         }
 
         // Component does exist, but is not writable, replace with writeable implementation
-        self.reset_cached_size()?;
         let readonly_gs = self
             .components
             .get(c)
@@ -745,8 +717,6 @@ impl<CT: ComponentType> Graph<CT> {
 
     /// Makes sure the statistics for the given component are up-to-date.
     pub fn calculate_component_statistics(&mut self, c: &Component<CT>) -> Result<()> {
-        self.reset_cached_size()?;
-
         let mut result: Result<()> = Ok(());
         let mut entry = self
             .components
@@ -776,8 +746,6 @@ impl<CT: ComponentType> Graph<CT> {
         &mut self,
         c: &Component<CT>,
     ) -> Result<&mut dyn WriteableGraphStorage> {
-        self.reset_cached_size()?;
-
         if self.components.contains_key(c) {
             // make sure the component is actually writable and loaded
             self.ensure_writeable(c)?;
@@ -825,8 +793,6 @@ impl<CT: ComponentType> Graph<CT> {
             }
         }
 
-        self.reset_cached_size()?;
-
         // load missing components in parallel
         let loaded_components: Vec<(_, Result<Arc<dyn GraphStorage>>)> = components_to_load
             .into_par_iter()
@@ -849,7 +815,6 @@ impl<CT: ComponentType> Graph<CT> {
 
     /// Ensure that the graph storage for a specific component is loaded and ready to use.
     pub fn ensure_loaded(&mut self, c: &Component<CT>) -> Result<()> {
-        let mut cache_reset_needed = false;
         // We only load known components, so check the map if the entry exists
         if let Some(gs_opt) = self.components.get_mut(c) {
             // If this is none, the component is known but not loaded
@@ -863,11 +828,7 @@ impl<CT: ComponentType> Graph<CT> {
                 );
                 let component = load_component_from_disk(&component_path)?;
                 gs_opt.get_or_insert_with(|| component);
-                cache_reset_needed = true;
             }
-        }
-        if cache_reset_needed {
-            self.reset_cached_size()?;
         }
         Ok(())
     }
@@ -935,7 +896,6 @@ impl<CT: ComponentType> Graph<CT> {
                         false
                     };
                     if converted {
-                        self.reset_cached_size()?;
                         // insert into components map
                         info!(
                             "finished conversion of component {} to implementation {}",
@@ -1030,24 +990,6 @@ impl<CT: ComponentType> Graph<CT> {
                 .cloned();
             filtered_components.collect()
         }
-    }
-
-    pub fn size_of_cached(&self, ops: &mut MallocSizeOfOps) -> Result<usize> {
-        let mut lock = self.cached_size.lock()?;
-        let cached_size: &mut Option<usize> = &mut lock;
-        if let Some(cached) = cached_size {
-            return Ok(*cached);
-        }
-        let calculated_size = self.size_of(ops);
-        *cached_size = Some(calculated_size);
-        Ok(calculated_size)
-    }
-
-    fn reset_cached_size(&self) -> Result<()> {
-        let mut lock = self.cached_size.lock()?;
-        let cached_size: &mut Option<usize> = &mut lock;
-        *cached_size = None;
-        Ok(())
     }
 }
 

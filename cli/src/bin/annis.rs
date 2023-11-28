@@ -360,14 +360,8 @@ impl AnnisRunner {
         for c in corpora {
             let desc = match c.load_status {
                 LoadStatus::NotLoaded => String::from("not loaded"),
-                LoadStatus::PartiallyLoaded(size) => format!(
-                    "partially loaded, {:.2} MB",
-                    size as f64 / (1024 * 1024) as f64
-                ),
-                LoadStatus::FullyLoaded(size) => format!(
-                    "fully loaded, {:.2} MB ",
-                    size as f64 / (1024 * 1024) as f64
-                ),
+                LoadStatus::PartiallyLoaded => String::from("partially loaded"),
+                LoadStatus::FullyLoaded => String::from("fully loaded"),
             };
             println!("{} ({})", c.name, desc);
         }

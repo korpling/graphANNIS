@@ -13,7 +13,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Deserialize;
 use std::{ops::Bound, path::Path};
 
-#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DenseAdjacencyListStorage {
     edges: Vec<Option<NodeID>>,
     inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,

@@ -5,8 +5,8 @@ use crate::errors::Result;
 use crate::graph::NODE_NAME_KEY;
 use crate::serializer::{FixedSizeKeySerializer, KeySerializer};
 use crate::types::{AnnoKey, Annotation, Edge, NodeID};
+use crate::util;
 use crate::util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY};
-use crate::util::{self, memory_estimation};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rand::seq::IteratorRandom;
@@ -23,42 +23,32 @@ use super::{EdgeAnnotationStorage, NodeAnnotationStorage};
 
 pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v1";
 
-const KB: usize = 1 << 10;
-const MB: usize = KB * KB;
-
-const EVICTION_STRATEGY: EvictionStrategy = EvictionStrategy::MaximumBytes(512 * MB);
+const EVICTION_STRATEGY: EvictionStrategy = EvictionStrategy::MaximumItems(10_000);
 pub const BLOCK_CACHE_CAPACITY: usize = DEFAULT_BLOCK_CACHE_CAPACITY;
 
 /// An on-disk implementation of an annotation storage.
-#[derive(MallocSizeOf)]
 pub struct AnnoStorageImpl<T>
 where
     T: FixedSizeKeySerializer
         + Send
         + Sync
-        + malloc_size_of::MallocSizeOf
         + Clone
         + serde::ser::Serialize
         + serde::de::DeserializeOwned,
 {
-    #[ignore_malloc_size_of = "is stored on disk"]
     by_container: DiskMap<ByteBuf, String>,
-    #[ignore_malloc_size_of = "is stored on disk"]
     by_anno_qname: DiskMap<ByteBuf, bool>,
-    #[with_malloc_size_of_func = "memory_estimation::size_of_pathbuf"]
     location: PathBuf,
     /// A handle to a temporary directory. This must be part of the struct because the temporary directory will
     /// be deleted when this handle is dropped.
-    #[with_malloc_size_of_func = "memory_estimation::size_of_option_tempdir"]
+    #[allow(dead_code)]
     temp_dir: Option<tempfile::TempDir>,
 
     anno_key_symbols: SymbolTable<AnnoKey>,
 
-    #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
 
     /// additional statistical information
-    #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
     largest_item: Option<T>,
 
@@ -107,7 +97,6 @@ where
     T: FixedSizeKeySerializer
         + Send
         + Sync
-        + malloc_size_of::MallocSizeOf
         + Clone
         + Default
         + serde::ser::Serialize
@@ -185,7 +174,7 @@ where
         value: Option<&str>,
     ) -> Box<dyn Iterator<Item = Result<(T, Arc<AnnoKey>)>> + 'a>
     where
-        T: FixedSizeKeySerializer + Send + Sync + malloc_size_of::MallocSizeOf + PartialOrd,
+        T: FixedSizeKeySerializer + Send + Sync + PartialOrd,
     {
         let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
             vec![Arc::from(AnnoKey {
@@ -301,7 +290,6 @@ where
     T: FixedSizeKeySerializer
         + Send
         + Sync
-        + malloc_size_of::MallocSizeOf
         + PartialOrd
         + Clone
         + Default

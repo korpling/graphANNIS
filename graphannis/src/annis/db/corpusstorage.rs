@@ -16,11 +16,7 @@ use crate::annis::types::{
 };
 use crate::annis::util::quicksort;
 use crate::annis::{db, util::TimeoutCheck};
-use crate::{
-    graph::Match,
-    malloc_size_of::{MallocSizeOf, MallocSizeOfOps},
-    AnnotationGraph,
-};
+use crate::{graph::Match, AnnotationGraph};
 use fmt::Display;
 use fs2::FileExt;
 use graphannis_core::annostorage::symboltable::SymbolTable;
@@ -33,10 +29,10 @@ use graphannis_core::{
         storage::GraphStatistic, update::GraphUpdate, ANNIS_NS, NODE_NAME, NODE_NAME_KEY, NODE_TYPE,
     },
     types::{AnnoKey, Annotation, Component, NodeID},
-    util::memory_estimation,
 };
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
+use memory_stats::memory_stats;
 use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, CONTROLS};
 use rand::Rng;
 use smartstring::alias::String as SmartString;
@@ -82,11 +78,11 @@ enum CacheEntry {
 pub enum LoadStatus {
     /// Corpus is not loaded into main memory at all.
     NotLoaded,
-    /// Corpus is partially loaded and is estimated to use the given amount of main memory in bytes.
+    /// Corpus is partially loaded.
     /// Partially means that the node annotations are and optionally some graph storages are loaded.
-    PartiallyLoaded(usize),
-    /// Corpus is fully loaded (node annotation information and all graph storages) and is estimated to use the given amount of main memory in bytes.
-    FullyLoaded(usize),
+    PartiallyLoaded,
+    /// Corpus is fully loaded (node annotation information and all graph storages).
+    FullyLoaded,
 }
 
 /// Information about a single graph storage of the corpus.
@@ -116,21 +112,11 @@ impl fmt::Display for GraphStorageInfo {
         writeln!(f, "Implementation: {}", self.implementation)?;
         match self.load_status {
             LoadStatus::NotLoaded => writeln!(f, "Not Loaded")?,
-            LoadStatus::PartiallyLoaded(memory_size) => {
+            LoadStatus::PartiallyLoaded => {
                 writeln!(f, "Status: {:?}", "partially loaded")?;
-                writeln!(
-                    f,
-                    "Memory: {:.2} MB",
-                    memory_size as f64 / f64::from(1024 * 1024)
-                )?;
             }
-            LoadStatus::FullyLoaded(memory_size) => {
+            LoadStatus::FullyLoaded => {
                 writeln!(f, "Status: {:?}", "fully loaded")?;
-                writeln!(
-                    f,
-                    "Memory: {:.2} MB",
-                    memory_size as f64 / f64::from(1024 * 1024)
-                )?;
             }
         };
         Ok(())
@@ -143,8 +129,6 @@ pub struct CorpusInfo {
     pub name: String,
     /// Indicates if the corpus is partially or fully loaded.
     pub load_status: LoadStatus,
-    /// The amount of memory that the node annotations are using
-    pub node_annos_load_size: Option<usize>,
     /// A list of descriptions for the graph storages of this corpus.
     pub graphstorages: Vec<GraphStorageInfo>,
     /// The current configuration of this corpus.
@@ -157,30 +141,13 @@ impl fmt::Display for CorpusInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.load_status {
             LoadStatus::NotLoaded => writeln!(f, "Not Loaded")?,
-            LoadStatus::PartiallyLoaded(memory_size) => {
+            LoadStatus::PartiallyLoaded => {
                 writeln!(f, "Status: {:?}", "partially loaded")?;
-                writeln!(
-                    f,
-                    "Total memory: {:.2} MB",
-                    memory_size as f64 / f64::from(1024 * 1024)
-                )?;
             }
-            LoadStatus::FullyLoaded(memory_size) => {
+            LoadStatus::FullyLoaded => {
                 writeln!(f, "Status: {:?}", "fully loaded")?;
-                writeln!(
-                    f,
-                    "Total memory: {:.2} MB",
-                    memory_size as f64 / f64::from(1024 * 1024)
-                )?;
             }
         };
-        if let Some(memory_size) = self.node_annos_load_size {
-            writeln!(
-                f,
-                "Node Annotations: {:.2} MB",
-                memory_size as f64 / f64::from(1024 * 1024)
-            )?;
-        }
         if !self.graphstorages.is_empty() {
             writeln!(f, "------------")?;
             for gs in &self.graphstorages {
@@ -484,11 +451,8 @@ impl CorpusStorage {
         let names: Vec<String> = self.list_from_disk().unwrap_or_default();
         let mut result: Vec<CorpusInfo> = vec![];
 
-        let mut mem_ops =
-            MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
-
         for n in names {
-            let corpus_info = self.create_corpus_info(&n, &mut mem_ops)?;
+            let corpus_info = self.create_corpus_info(&n)?;
             result.push(corpus_info);
         }
 
@@ -539,11 +503,7 @@ impl CorpusStorage {
         }
     }
 
-    fn create_corpus_info(
-        &self,
-        corpus_name: &str,
-        mem_ops: &mut MallocSizeOfOps,
-    ) -> Result<CorpusInfo> {
+    fn create_corpus_info(&self, corpus_name: &str) -> Result<CorpusInfo> {
         let cache_entry = self.get_entry(corpus_name)?;
         let lock = cache_entry.read()?;
 
@@ -559,22 +519,20 @@ impl CorpusStorage {
         let corpus_info: CorpusInfo = match &*lock {
             CacheEntry::Loaded(ref db) => {
                 // check if all components are loaded
-                let heap_size = db.size_of(mem_ops);
-                let mut load_status = LoadStatus::FullyLoaded(heap_size);
-                let node_annos_load_size = Some(db.get_node_annos().size_of(mem_ops));
+                let mut load_status = LoadStatus::FullyLoaded;
 
                 let mut graphstorages = Vec::new();
                 for c in db.get_all_components(None, None) {
                     if let Some(gs) = db.get_graphstorage_as_ref(&c) {
                         graphstorages.push(GraphStorageInfo {
                             component: c.clone(),
-                            load_status: LoadStatus::FullyLoaded(gs.size_of(mem_ops)),
+                            load_status: LoadStatus::FullyLoaded,
                             number_of_annotations: gs.get_anno_storage().number_of_annotations()?,
                             implementation: gs.serialization_id().clone(),
                             statistics: gs.get_statistics().cloned(),
                         });
                     } else {
-                        load_status = LoadStatus::PartiallyLoaded(heap_size);
+                        load_status = LoadStatus::PartiallyLoaded;
                         graphstorages.push(GraphStorageInfo {
                             component: c.clone(),
                             load_status: LoadStatus::NotLoaded,
@@ -589,7 +547,6 @@ impl CorpusStorage {
                     name: corpus_name.to_owned(),
                     load_status,
                     graphstorages,
-                    node_annos_load_size,
                     config,
                 }
             }
@@ -597,7 +554,6 @@ impl CorpusStorage {
                 name: corpus_name.to_owned(),
                 load_status: LoadStatus::NotLoaded,
                 graphstorages: vec![],
-                node_annos_load_size: None,
                 config,
             },
         };
@@ -606,9 +562,7 @@ impl CorpusStorage {
 
     /// Return detailled information about a specific corpus with a given name (`corpus_name`).
     pub fn info(&self, corpus_name: &str) -> Result<CorpusInfo> {
-        let mut mem_ops =
-            MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
-        self.create_corpus_info(corpus_name, &mut mem_ops)
+        self.create_corpus_info(corpus_name)
     }
 
     fn get_entry(&self, corpus_name: &str) -> Result<Arc<RwLock<CacheEntry>>> {
@@ -2512,22 +2466,6 @@ fn get_write_or_error<'a>(
     }
 }
 
-fn get_cache_sizes(
-    cache: &LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
-) -> Result<LinkedHashMap<String, usize>> {
-    let mut mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
-
-    let mut db_sizes: LinkedHashMap<String, usize> = LinkedHashMap::new();
-    for (corpus, db_entry) in cache.iter() {
-        let lock = db_entry.read()?;
-        if let CacheEntry::Loaded(ref db) = &*lock {
-            let s = db.size_of_cached(&mut mem_ops)?;
-            db_sizes.insert(corpus.clone(), s);
-        }
-    }
-    Ok(db_sizes)
-}
-
 fn get_max_cache_size(cache_strategy: &CacheStrategy, used_cache_size: usize) -> usize {
     match cache_strategy {
         CacheStrategy::FixedMaxMemory(max_size) => *max_size * 1_000_000,
@@ -2556,25 +2494,19 @@ fn check_cache_size_and_remove_with_cache(
 ) -> Result<()> {
     let keep: HashSet<&str> = keep.into_iter().collect();
 
-    // check size of each corpus and calculate the sum of used memory
-    let db_sizes = get_cache_sizes(cache)?;
-    let mut size_sum: usize = db_sizes.iter().map(|(_, s)| s).sum();
+    let mut size_sum = memory_stats().map(|s| s.physical_mem).unwrap_or(usize::MAX);
 
-    let max_cache_size: usize = get_max_cache_size(cache_strategy, size_sum);
-
-    debug!(
-        "Current cache size is {:.2} MB / max  {:.2} MB",
-        (size_sum as f64) / 1_000_000.0,
-        (max_cache_size as f64) / 1_000_000.0
-    );
+    let max_cache_size = get_max_cache_size(cache_strategy, size_sum);
 
     // remove older entries (at the beginning) until cache size requirements are met,
     // but never remove the last loaded entry
-    for (corpus_name, corpus_size) in db_sizes.iter() {
+    let all_corpus_names: Vec<String> = cache.keys().cloned().collect();
+    for corpus_name in all_corpus_names {
         if size_sum > max_cache_size {
             if !keep.contains(corpus_name.as_str()) {
-                cache.remove(corpus_name);
-                size_sum -= corpus_size;
+                cache.remove(&corpus_name);
+                // Re-measure the currently used memory size for this process
+                size_sum = memory_stats().map(|s| s.physical_mem).unwrap_or(usize::MAX);
                 debug!(
                     "Removing corpus {} from cache. {}",
                     corpus_name,
@@ -2587,35 +2519,35 @@ fn check_cache_size_and_remove_with_cache(
         }
     }
 
+    debug!(
+        "Current memory usage is {:.2} MB / max  {:.2} MB",
+        (size_sum as f64 / 1_000_000.0),
+        (max_cache_size as f64) / 1_000_000.0
+    );
+
     if report_cache_status {
         info!(
             "{}",
             get_corpus_cache_info_as_string(cache, max_cache_size)?
         );
     }
+
     Ok(())
 }
 
 /// Return the current size and loaded corpora as debug string.
 fn get_corpus_cache_info_as_string(
-    cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
+    cache: &LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
     max_cache_size: usize,
 ) -> Result<String> {
-    let cache_sizes = get_cache_sizes(cache)?;
-    let result = if cache_sizes.is_empty() {
+    let result = if cache.is_empty() {
         "Corpus cache is currently empty".to_string()
     } else {
-        let corpus_memory_as_string: Vec<String> = cache_sizes
+        let corpus_memory_as_string: Vec<String> = cache
             .iter()
-            .map(|(corpus_name, corpus_size)| {
-                format!(
-                    "{} ({:.2} MB)",
-                    corpus_name,
-                    (*corpus_size as f64) / 1_000_000.0
-                )
-            })
+            .map(|(corpus_name, _entry)| corpus_name.to_string())
             .collect();
-        let size_sum: usize = cache_sizes.iter().map(|(_, s)| s).sum();
+        let size_sum = memory_stats().map(|s| s.physical_mem).unwrap_or(usize::MAX);
         format!(
             "Total cache size is {:.2} MB / {:.2} MB and loaded corpora are: {}.",
             (size_sum as f64) / 1_000_000.0,
