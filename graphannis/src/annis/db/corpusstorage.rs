@@ -2545,7 +2545,14 @@ fn get_corpus_cache_info_as_string(
     } else {
         let corpus_memory_as_string: Vec<String> = cache
             .iter()
-            .map(|(corpus_name, _entry)| corpus_name.to_string())
+            .filter_map(|(corpus_name, entry)| {
+                let entry = entry.read().unwrap();
+                if let CacheEntry::Loaded(_) = *entry {
+                    Some(corpus_name.to_string())
+                } else {
+                    None
+                }
+            })
             .collect();
         let size_sum = memory_stats().map(|s| s.physical_mem).unwrap_or(usize::MAX);
         format!(
