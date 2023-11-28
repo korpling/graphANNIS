@@ -30,3 +30,6 @@ name = "annis"
 
 [[bin]]
 name = "bench_queries"
+
+[package.metadata.cargo-machete]
+ignored = ["prettytable-rs"]
