@@ -2,6 +2,7 @@ extern crate log;
 extern crate tempfile;
 
 use same_file::is_same_file;
+use serial_test::serial;
 use std::path::{Path, PathBuf};
 use std::vec;
 
@@ -1013,6 +1014,7 @@ fn import_relative_corpus_with_linked_file() {
 }
 
 #[test]
+#[serial]
 fn load_legacy_binary_corpus() {
     let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
@@ -1110,6 +1112,7 @@ fn optional_node_first_in_query() {
 }
 
 #[test]
+#[serial]
 fn unload_corpus() {
     // Define a corpus storage with no caching allowed
     let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
