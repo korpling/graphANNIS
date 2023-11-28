@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `AnnoStorageImpl<NodeID>`. (backward incompatible change in the Rust API)
 - `get_node_id_from_name` is now a function of the `AnnotationStorage` instead
   of the `Graph`. This allows for more specific and efficient implementations
-  based o the type of annotation storage.
+  based on the type of annotation storage.
 - Improved performance of the `Graph::apply_update` function.
 - Use jemalloc memory allocator for webservice and CLI.
 
