@@ -15,26 +15,13 @@ use crate::{
     graph::{update::UpdateEvent, Graph},
 };
 use fmt::Debug;
-use malloc_size_of::MallocSizeOf;
 use std::result::Result as StdResult;
 
 /// Unique internal identifier for a single node.
 pub type NodeID = u64;
 
 /// The fully qualified name of an annotation.
-#[derive(
-    Serialize,
-    Deserialize,
-    Default,
-    Eq,
-    PartialEq,
-    PartialOrd,
-    Ord,
-    Clone,
-    Debug,
-    MallocSizeOf,
-    Hash,
-)]
+#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash)]
 pub struct AnnoKey {
     /// Name of the annotation.
     pub name: String,
@@ -52,19 +39,7 @@ pub struct Annotation {
 }
 
 /// Directed edge between a source and target node which are identified by their ID.
-#[derive(
-    Serialize,
-    Deserialize,
-    Eq,
-    PartialEq,
-    PartialOrd,
-    Ord,
-    Clone,
-    Debug,
-    Hash,
-    MallocSizeOf,
-    Default,
-)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash, Default)]
 #[repr(C)]
 pub struct Edge {
     pub source: NodeID,
@@ -184,9 +159,7 @@ impl ComponentType for DefaultComponentType {
 }
 
 /// Identifies an edge component of the graph.
-#[derive(
-    Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, MallocSizeOf,
-)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
 pub struct Component<CT: ComponentType> {
     /// Type of the component
     ctype: u16,
@@ -254,7 +227,7 @@ impl<CT: ComponentType> std::str::FromStr for Component<CT> {
 }
 
 pub trait NumValue:
-    Send + Sync + Ord + Num + AddAssign + Clone + Bounded + FromPrimitive + ToPrimitive + MallocSizeOf
+    Send + Sync + Ord + Num + AddAssign + Clone + Bounded + FromPrimitive + ToPrimitive
 {
 }
 

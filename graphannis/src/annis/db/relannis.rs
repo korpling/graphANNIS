@@ -113,9 +113,7 @@ lazy_static! {
     ];
 }
 
-#[derive(
-    Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, Serialize, Deserialize, MallocSizeOf,
-)]
+#[derive(Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, Serialize, Deserialize)]
 pub struct TextProperty {
     segmentation: String,
     corpus_id: u32,
@@ -164,7 +162,7 @@ impl KeySerializer for TextProperty {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, MallocSizeOf, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 struct TextKey {
     id: u32,
     corpus_ref: Option<u32>,
@@ -195,7 +193,7 @@ impl KeySerializer for TextKey {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, MallocSizeOf, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Serialize, Deserialize)]
 struct NodeByTextEntry {
     text_id: u32,
     corpus_ref: u32,
@@ -231,7 +229,7 @@ impl KeySerializer for NodeByTextEntry {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
+#[derive(Serialize, Deserialize, Clone)]
 struct Text {
     name: String,
     val: String,

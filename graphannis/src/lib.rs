@@ -10,9 +10,6 @@
     clippy::unwrap_in_result
 )]
 
-extern crate graphannis_malloc_size_of as malloc_size_of;
-#[macro_use]
-extern crate graphannis_malloc_size_of_derive as malloc_size_of_derive;
 #[macro_use]
 extern crate log;
 
@@ -27,11 +24,6 @@ extern crate lalrpop_util;
 
 #[cfg(feature = "c-api")]
 extern crate simplelog;
-
-// Make sure the allocator is always the one from the system, otherwise we can't make sure our memory estimations work
-use std::alloc::System;
-#[global_allocator]
-static GLOBAL: System = System;
 
 mod annis;
 

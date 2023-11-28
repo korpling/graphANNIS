@@ -13,8 +13,6 @@ version = "3.0.0"
 [dependencies]
 bincode = "1.2"
 clru = "0.6.1"
-graphannis-malloc_size_of = {version = "2", features = ["smartstring", "serde_bytes"]}
-graphannis-malloc_size_of_derive = "2.0"
 itertools = "0.10"
 lazy_static = "1.4"
 log = "0.4"

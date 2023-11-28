@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `has_node_name` function to `AnnotationStorage` that can be more efficient
+  than `get_node_id_name`.
+
 ### Changed
 
 - Changed API to use new types `NodeAnnotationStorage` and
@@ -12,13 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `AnnoStorageImpl<NodeID>`. (backward incompatible change in the Rust API)
 - `get_node_id_from_name` is now a function of the `AnnotationStorage` instead
   of the `Graph`. This allows for more specific and efficient implementations
-  based o the type of annotation storage.
+  based on the type of annotation storage.
 - Improved performance of the `Graph::apply_update` function.
+- Use jemalloc memory allocator for webservice and CLI.
 
-### Added
+### Removed
 
-- Add `has_node_name` function to `AnnotationStorage` that can be more efficient
-  than `get_node_id_name`.
+- Remove all heap size estimation code. This also means that information about
+  heap consumption of a single corpus has been removed, like the fields of the
+  `graphannis::corpusstorage::LoadStatus` enum.
+- Remove `EvictionStrategy::MaximumBytes` for `DiskMap`.
+
 
 ## [2.4.8] - 2023-10-31
 

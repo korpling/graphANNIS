@@ -1,0 +1,77 @@
+---
+source: cli/tests/cli.rs
+info:
+  program: annis
+  args:
+    - "../graphannis/tests/data/"
+    - "-c"
+    - corpus sample-disk-based
+    - "-c"
+    - preload
+    - "-c"
+    - info
+---
+success: true
+exit_code: 0
+----- stdout -----
+12:00:00[INFO] Loaded corpus sample-disk-based
+12:00:00[INFO] Total cache size is 100 / 300 MB and loaded corpora are: sample-disk-based.
+12:00:00[INFO] Total cache size is 100 / 300 MB and loaded corpora are: sample-disk-based.
+12:00:00[INFO] Preloaded corpus in 10 ms
+Status: "fully loaded"
+------------
+Component Coverage//: 0 annnotations
+Stats: nodes=92, avg_fan_out=2.17, max_fan_out=11, max_depth=1
+Implementation: DiskAdjacencyListV1
+Status: "fully loaded"
+------------
+Component Coverage/annis/: 0 annnotations
+Stats: nodes=0, avg_fan_out=0.00, max_fan_out=0, max_depth=1, tree
+Implementation: DiskAdjacencyListV1
+Status: "fully loaded"
+------------
+Component Coverage/default_ns/: 0 annnotations
+Stats: nodes=56, avg_fan_out=0.93, max_fan_out=10, max_depth=1
+Implementation: DiskAdjacencyListV1
+Status: "fully loaded"
+------------
+Component Coverage/annis/inherited-coverage: 0 annnotations
+Stats: nodes=0, avg_fan_out=0.00, max_fan_out=0, max_depth=1, tree
+Implementation: DiskAdjacencyListV1
+Status: "fully loaded"
+------------
+Component Dominance/syntax/: 0 annnotations
+Stats: nodes=92, avg_fan_out=0.96, max_fan_out=3, max_depth=9, tree
+Implementation: PrePostOrderO16L8V1
+Status: "fully loaded"
+------------
+Component Pointing/default_ns/anaphoric: 0 annnotations
+Stats: nodes=8, avg_fan_out=0.50, max_fan_out=1, max_depth=1, tree
+Implementation: DiskAdjacencyListV1
+Status: "fully loaded"
+------------
+Component Ordering/annis/: 0 annnotations
+Stats: nodes=44, avg_fan_out=0.91, max_fan_out=1, max_depth=10, tree
+Implementation: LinearO8V1
+Status: "fully loaded"
+------------
+Component LeftToken/annis/: 0 annnotations
+Stats: nodes=92, avg_fan_out=0.65, max_fan_out=1, max_depth=1
+Implementation: DiskAdjacencyListV1
+Status: "fully loaded"
+------------
+Component RightToken/annis/: 0 annnotations
+Stats: nodes=84, avg_fan_out=0.71, max_fan_out=1, max_depth=1
+Implementation: DiskAdjacencyListV1
+Status: "fully loaded"
+------------
+Component PartOf/annis/: 0 annnotations
+Stats: nodes=115, avg_fan_out=0.99, max_fan_out=1, max_depth=3
+Implementation: DiskAdjacencyListV1
+Status: "fully loaded"
+------------
+
+graphANNIS says good-bye!
+
+----- stderr -----
+

@@ -1,0 +1,18 @@
+---
+source: cli/tests/cli.rs
+info:
+  program: annis
+  args:
+    - "../graphannis/tests/data/"
+    - "-c"
+    - list
+---
+success: true
+exit_code: 0
+----- stdout -----
+sample-disk-based (not loaded)
+sample-memory-based (not loaded)
+graphANNIS says good-bye!
+
+----- stderr -----
+

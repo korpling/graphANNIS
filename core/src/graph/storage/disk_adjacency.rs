@@ -14,11 +14,8 @@ use transient_btree_index::BtreeConfig;
 
 pub const SERIALIZATION_ID: &str = "DiskAdjacencyListV1";
 
-#[derive(MallocSizeOf)]
 pub struct DiskAdjacencyListStorage {
-    #[ignore_malloc_size_of = "is stored on disk"]
     edges: DiskMap<Edge, bool>,
-    #[ignore_malloc_size_of = "is stored on disk"]
     inverse_edges: DiskMap<Edge, bool>,
     annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,

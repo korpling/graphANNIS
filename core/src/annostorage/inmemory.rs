@@ -2,9 +2,8 @@ use super::{AnnotationStorage, EdgeAnnotationStorage, Match, NodeAnnotationStora
 use crate::annostorage::ValueSearch;
 use crate::errors::Result;
 use crate::graph::NODE_NAME_KEY;
-use crate::malloc_size_of::MallocSizeOf;
 use crate::types::{AnnoKey, Annotation, Edge, NodeID};
-use crate::util::{self, memory_estimation};
+use crate::util;
 use crate::{annostorage::symboltable::SymbolTable, errors::GraphAnnisCoreError};
 use core::ops::Bound::*;
 use itertools::Itertools;
@@ -17,7 +16,7 @@ use std::hash::Hash;
 use std::path::Path;
 use std::sync::Arc;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf, Copy)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, Copy)]
 struct SparseAnnotation {
     key: usize,
     val: usize,
@@ -25,33 +24,24 @@ struct SparseAnnotation {
 
 type ValueItemMap<T> = FxHashMap<usize, Vec<T>>;
 
-#[derive(Serialize, Deserialize, Clone, Default, MallocSizeOf)]
-pub struct AnnoStorageImpl<T: Ord + Hash + MallocSizeOf + Default> {
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct AnnoStorageImpl<T: Ord + Hash + Default> {
     by_container: FxHashMap<T, Vec<SparseAnnotation>>,
     /// A map from an annotation key symbol to a map of all its values to the items having this value for the annotation key
     by_anno: FxHashMap<usize, ValueItemMap<T>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
-    #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
     anno_keys: SymbolTable<AnnoKey>,
     anno_values: SymbolTable<smartstring::alias::String>,
 
     /// additional statistical information
-    #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     histogram_bounds: BTreeMap<usize, Vec<smartstring::alias::String>>,
     largest_item: Option<T>,
     total_number_of_annos: usize,
 }
 
-impl<
-        T: Ord
-            + Hash
-            + Clone
-            + serde::Serialize
-            + serde::de::DeserializeOwned
-            + MallocSizeOf
-            + Default,
-    > AnnoStorageImpl<T>
+impl<T: Ord + Hash + Clone + serde::Serialize + serde::de::DeserializeOwned + Default>
+    AnnoStorageImpl<T>
 {
     pub fn new() -> AnnoStorageImpl<T> {
         AnnoStorageImpl {
@@ -133,15 +123,7 @@ impl<
 
 impl<T> AnnoStorageImpl<T>
 where
-    T: Ord
-        + Hash
-        + MallocSizeOf
-        + Default
-        + Clone
-        + serde::Serialize
-        + serde::de::DeserializeOwned
-        + Send
-        + Sync,
+    T: Ord + Hash + Default + Clone + serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
     (T, Arc<AnnoKey>): Into<Match>,
 {
     fn matching_items<'a>(
@@ -210,15 +192,7 @@ where
 
 impl<T> AnnotationStorage<T> for AnnoStorageImpl<T>
 where
-    T: Ord
-        + Hash
-        + MallocSizeOf
-        + Default
-        + Clone
-        + Send
-        + Sync
-        + serde::Serialize
-        + serde::de::DeserializeOwned,
+    T: Ord + Hash + Default + Clone + Send + Sync + serde::Serialize + serde::de::DeserializeOwned,
     (T, Arc<AnnoKey>): Into<Match>,
 {
     fn insert(&mut self, item: T, anno: Annotation) -> Result<()> {

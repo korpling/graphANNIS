@@ -21,11 +21,8 @@ regex = "1"
 [dependencies]
 boolean_expression = "0.4"
 csv = "1"
-extsort = "0.4"
 fs2 = "0.4"
 graphannis-core = {path = "../core/", version = "^3"}
-graphannis-malloc_size_of = "2"
-graphannis-malloc_size_of_derive = "2.0"
 itertools = "0.10"
 lalrpop-util = {version = "0.19", features = ["lexer"]}
 lazy_static = "1.4"
@@ -33,7 +30,7 @@ libc = "0.2"
 linked-hash-map = "0.5"
 log = "0.4"
 lru = "0.7"
-memmap2 = "0.5"
+memory-stats = "1.1.0"
 page_size = "0.4"
 percent-encoding = "2.1"
 rand = {version = "0.8", features = ["small_rng"]}
@@ -59,6 +56,7 @@ criterion = "0.4"
 fake = "2.2"
 pretty_assertions = "1.3"
 same-file = "1.0.6"
+serial_test = "2"
 
 [[bench]]
 harness = false

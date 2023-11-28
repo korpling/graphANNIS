@@ -2,7 +2,6 @@ use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
 use std::borrow::Cow;
 
 pub mod disk_collections;
-pub mod memory_estimation;
 
 const QNAME_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b':').add(b'%');
 

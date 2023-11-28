@@ -2,10 +2,11 @@ extern crate log;
 extern crate tempfile;
 
 use same_file::is_same_file;
+use serial_test::serial;
 use std::path::{Path, PathBuf};
 use std::vec;
 
-use crate::annis::db::corpusstorage::get_read_or_error;
+use crate::annis::db::corpusstorage::{get_read_or_error, CacheEntry};
 use crate::annis::db::{aql::model::AnnotationComponentType, example_generator};
 use crate::annis::errors::GraphAnnisError;
 use crate::corpusstorage::{ImportFormat, QueryLanguage, ResultOrder};
@@ -1013,6 +1014,7 @@ fn import_relative_corpus_with_linked_file() {
 }
 
 #[test]
+#[serial]
 fn load_legacy_binary_corpus() {
     let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
@@ -1107,4 +1109,35 @@ fn optional_node_first_in_query() {
         "default_ns::Inf-Struct::rootCorpus/subCorpus2/doc4#IS_span1",
         result[3]
     );
+}
+
+#[test]
+#[serial]
+fn unload_corpus() {
+    // Define a corpus storage with no caching allowed
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let data_dir = cargo_dir.join("tests/data");
+
+    let cs = CorpusStorage::with_cache_strategy(
+        &data_dir,
+        super::CacheStrategy::FixedMaxMemory(0),
+        true,
+    )
+    .unwrap();
+    // Load one corpus which and check its status
+    cs.preload("sample-disk-based").unwrap();
+    {
+        let entry = cs.get_entry("sample-disk-based").unwrap();
+        let entry = entry.read().unwrap();
+        assert!(matches!(*entry, CacheEntry::Loaded(_)));
+    }
+
+    // Load another corpus and check that the corpus has been changed
+    cs.preload("sample-memory-based").unwrap();
+    {
+        let entry = cs.get_entry("sample-disk-based").unwrap();
+        let entry = entry.read().unwrap();
+        assert!(matches!(*entry, CacheEntry::NotLoaded));
+    }
 }

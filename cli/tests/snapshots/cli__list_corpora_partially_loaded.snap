@@ -1,0 +1,27 @@
+---
+source: cli/tests/cli.rs
+info:
+  program: annis
+  args:
+    - "../graphannis/tests/data/"
+    - "-c"
+    - corpus sample-disk-based
+    - "-c"
+    - count tok
+    - "-c"
+    - list
+---
+success: true
+exit_code: 0
+----- stdout -----
+12:00:00[INFO] Loaded corpus sample-disk-based
+12:00:00[INFO] Total cache size is 100 / 300 MB and loaded corpora are: sample-disk-based.
+12:00:00[INFO] Total cache size is 100 / 300 MB and loaded corpora are: sample-disk-based.
+12:00:00[INFO] Executed query in 10 ms
+result: 44 matches in 4 documents
+sample-disk-based (partially loaded)
+sample-memory-based (not loaded)
+graphANNIS says good-bye!
+
+----- stderr -----
+

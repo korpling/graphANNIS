@@ -22,8 +22,20 @@ rustyline-derive = "0.5"
 simplelog = "0.12"
 toml = "0.5"
 
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+tikv-jemallocator = "0.5"
+
+[dev-dependencies]
+insta-cmd = "0.4"
+insta = {version = "1.34.0", features = ["filters"]}
+assert_cmd = "2.0.12"
+serial_test = "2"
+
 [[bin]]
 name = "annis"
 
 [[bin]]
 name = "bench_queries"
+
+[package.metadata.cargo-machete]
+ignored = ["prettytable-rs"]

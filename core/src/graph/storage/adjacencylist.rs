@@ -14,7 +14,7 @@ use serde::Deserialize;
 use std::collections::BTreeSet;
 use std::{ops::Bound, path::Path};
 
-#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AdjacencyListStorage {
     edges: FxHashMap<NodeID, Vec<NodeID>>,
     inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,

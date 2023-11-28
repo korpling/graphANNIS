@@ -12,7 +12,6 @@ version = "3.0.0"
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
-anyhow = "1"
 graphannis = {path = "../graphannis/", version = "^3"}
 itertools = "0.10"
 libc = "0.2"

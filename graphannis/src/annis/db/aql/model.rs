@@ -41,18 +41,7 @@ lazy_static! {
 
 /// Specifies the type of component of the annotation graph. The types of this enum carray certain semantics about the edges of the graph components their are used in.
 #[derive(
-    Serialize,
-    Deserialize,
-    Eq,
-    PartialEq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Debug,
-    EnumIter,
-    EnumString,
-    MallocSizeOf,
+    Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, EnumIter, EnumString,
 )]
 #[repr(C)]
 pub enum AnnotationComponentType {

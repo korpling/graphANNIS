@@ -43,6 +43,13 @@ mod models;
 mod schema;
 mod settings;
 
+#[cfg(not(target_env = "msvc"))]
+use tikv_jemallocator::Jemalloc;
+
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 const API_VERSION: &str = "/v1";
 
 type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;

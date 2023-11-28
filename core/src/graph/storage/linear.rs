@@ -13,13 +13,13 @@ use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
 use std::{clone::Clone, path::Path};
 
-#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
+#[derive(Serialize, Deserialize, Clone)]
 struct RelativePosition<PosT> {
     pub root: NodeID,
     pub pos: PosT,
 }
 
-#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct LinearGraphStorage<PosT: NumValue> {
     node_to_pos: FxHashMap<NodeID, RelativePosition<PosT>>,
     node_chains: FxHashMap<NodeID, Vec<NodeID>>,
