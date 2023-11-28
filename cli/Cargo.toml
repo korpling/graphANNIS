@@ -22,6 +22,9 @@ rustyline-derive = "0.5"
 simplelog = "0.12"
 toml = "0.5"
 
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+tikv-jemallocator = "0.5"
+
 [[bin]]
 name = "annis"
 

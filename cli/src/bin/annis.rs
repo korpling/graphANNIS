@@ -24,6 +24,13 @@ use std::{collections::BTreeSet, time::Duration};
 
 use anyhow::Result;
 
+#[cfg(not(target_env = "msvc"))]
+use tikv_jemallocator::Jemalloc;
+
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 #[derive(Helper, Hinter, Highlighter, Validator)]
 struct ConsoleHelper {
     known_commands: BTreeSet<String>,

@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of the `Graph`. This allows for more specific and efficient implementations
   based o the type of annotation storage.
 - Improved performance of the `Graph::apply_update` function.
+- Use jemalloc memory allocator for webservice and CLI.
 
 ### Removed
 
