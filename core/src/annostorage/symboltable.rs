@@ -1,4 +1,5 @@
 use crate::errors::{GraphAnnisCoreError, Result};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -11,7 +12,7 @@ where
 {
     by_id: Vec<Option<Arc<T>>>,
     #[serde(skip)]
-    by_value: HashMap<Arc<T>, usize>,
+    by_value: FxHashMap<Arc<T>, usize>,
     empty_slots: Vec<usize>,
 }
 
@@ -30,7 +31,7 @@ where
 
     pub fn after_deserialization(&mut self) {
         // restore the by_value map and make sure the smart pointers point to the same instance
-        //self.by_value.reserve(self.by_id.len());
+        self.by_value.reserve(self.by_id.len());
         for i in 0..self.by_id.len() {
             if let Some(ref existing) = self.by_id[i] {
                 self.by_value.insert(existing.clone(), i);
