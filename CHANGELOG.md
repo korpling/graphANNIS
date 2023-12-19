@@ -5,6 +5,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New `Graph::ensure_loaded_parallel` function to load needed graph storages in
+  parallel.
+
+### Fixed
+
+- Improve performance of loading a main memory corpus by using the standard
+  `HashMap` for fields that are deserialized.
+
 ## [3.0.0] - 2023-11-28
 
 ### Added

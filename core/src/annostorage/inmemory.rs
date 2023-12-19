@@ -7,7 +7,6 @@ use crate::util::{self};
 use crate::{annostorage::symboltable::SymbolTable, errors::GraphAnnisCoreError};
 use core::ops::Bound::*;
 use itertools::Itertools;
-use nohash_hasher::IntMap;
 use rustc_hash::FxHashSet;
 use smartstring::alias::String;
 use smartstring::{LazyCompact, SmartString};
@@ -29,7 +28,7 @@ type ValueItemMap<T> = HashMap<usize, Vec<T>>;
 pub struct AnnoStorageImpl<T: Ord + Hash + Default> {
     by_container: HashMap<T, Vec<SparseAnnotation>>,
     /// A map from an annotation key symbol to a map of all its values to the items having this value for the annotation key
-    by_anno: IntMap<usize, ValueItemMap<T>>,
+    by_anno: HashMap<usize, ValueItemMap<T>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
     anno_keys: SymbolTable<AnnoKey>,
