@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Do not attempt to unload corpora that are not loaded when trying to free
+  memory.
 - Improve performance of loading a main memory corpus by using the standard
   `HashMap` for fields that are deserialized.
 

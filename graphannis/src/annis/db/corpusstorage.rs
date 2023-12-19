@@ -2500,8 +2500,13 @@ fn check_cache_size_and_remove_with_cache(
     // but never remove the last loaded entry
     let all_corpus_names: Vec<String> = cache.keys().cloned().collect();
     for corpus_name in all_corpus_names {
+        let corpus_is_loaded = if let Some(cache_entry) = cache.get(&corpus_name) {
+            matches!(*cache_entry.read()?, CacheEntry::Loaded(_))
+        } else {
+            false
+        };
         if size_sum > max_cache_size {
-            if !keep.contains(corpus_name.as_str()) {
+            if corpus_is_loaded && !keep.contains(corpus_name.as_str()) {
                 cache.remove(&corpus_name);
                 // Re-measure the currently used memory size for this process
                 size_sum = memory_stats().map(|s| s.physical_mem).unwrap_or(usize::MAX);
