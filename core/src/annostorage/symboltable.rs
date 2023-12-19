@@ -1,6 +1,6 @@
 use crate::errors::{GraphAnnisCoreError, Result};
-use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -11,7 +11,7 @@ where
 {
     by_id: Vec<Option<Arc<T>>>,
     #[serde(skip)]
-    by_value: FxHashMap<Arc<T>, usize>,
+    by_value: HashMap<Arc<T>, usize>,
     empty_slots: Vec<usize>,
 }
 
@@ -23,7 +23,7 @@ where
         let by_id = Vec::default();
         SymbolTable {
             by_id,
-            by_value: FxHashMap::default(),
+            by_value: HashMap::default(),
             empty_slots: Vec::default(),
         }
     }

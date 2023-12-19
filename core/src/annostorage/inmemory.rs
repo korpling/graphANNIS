@@ -3,7 +3,7 @@ use crate::annostorage::ValueSearch;
 use crate::errors::Result;
 use crate::graph::NODE_NAME_KEY;
 use crate::types::{AnnoKey, Annotation, Edge, NodeID};
-use crate::util;
+use crate::util::{self};
 use crate::{annostorage::symboltable::SymbolTable, errors::GraphAnnisCoreError};
 use core::ops::Bound::*;
 use itertools::Itertools;
@@ -26,9 +26,9 @@ type ValueItemMap<T> = FxHashMap<usize, Vec<T>>;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct AnnoStorageImpl<T: Ord + Hash + Default> {
-    by_container: FxHashMap<T, Vec<SparseAnnotation>>,
+    by_container: HashMap<T, Vec<SparseAnnotation>>,
     /// A map from an annotation key symbol to a map of all its values to the items having this value for the annotation key
-    by_anno: FxHashMap<usize, ValueItemMap<T>>,
+    by_anno: HashMap<usize, ValueItemMap<T>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
     anno_keys: SymbolTable<AnnoKey>,
@@ -45,8 +45,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + serde::de::DeserializeOwned + De
 {
     pub fn new() -> AnnoStorageImpl<T> {
         AnnoStorageImpl {
-            by_container: FxHashMap::default(),
-            by_anno: FxHashMap::default(),
+            by_container: HashMap::default(),
+            by_anno: HashMap::default(),
             anno_keys: SymbolTable::new(),
             anno_values: SymbolTable::new(),
             anno_key_sizes: BTreeMap::new(),
