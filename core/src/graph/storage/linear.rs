@@ -97,6 +97,15 @@ where
         Box::from(std::iter::empty())
     }
 
+    fn has_ingoing_edges(&self, node: NodeID) -> Result<bool> {
+        let result = self
+            .node_to_pos
+            .get(&node)
+            .map(|pos| !pos.pos.is_zero())
+            .unwrap_or(false);
+        Ok(result)
+    }
+
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         // use the node chains to find source nodes, but always skip the last element
         // because the last element is only a target node, not a source node
