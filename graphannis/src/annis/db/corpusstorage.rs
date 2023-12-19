@@ -1389,9 +1389,7 @@ impl CorpusStorage {
             {
                 let mut lock = db_entry.write()?;
                 let db = get_write_or_error(&mut lock)?;
-                for c in missing_components {
-                    db.ensure_loaded(&c)?;
-                }
+                db.ensure_loaded_parallel(&missing_components)?;
             }
             self.check_cache_size_and_remove(vec![corpus_name], true)?;
         };
