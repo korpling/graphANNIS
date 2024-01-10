@@ -5,6 +5,7 @@ pub mod model;
 pub mod operators;
 
 use boolean_expression::Expr;
+use graphannis_core::annostorage::MatchGroup;
 lalrpop_mod!(
     #[allow(clippy::all)]
     #[allow(clippy::panic)]
@@ -19,13 +20,17 @@ use crate::annis::db::aql::operators::{
     PartOfSubCorpusSpec, RangeSpec,
 };
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
+use crate::annis::db::plan::ExecutionPlan;
 use crate::annis::errors::*;
 use crate::annis::operator::{BinaryOperatorSpec, UnaryOperatorSpec};
 use crate::annis::types::{LineColumn, LineColumnRange};
+use crate::annis::util::TimeoutCheck;
+use crate::AnnotationGraph;
 use lalrpop_util::ParseError;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 
 thread_local! {
     static AQL_PARSER: parser::DisjunctionParser = parser::DisjunctionParser::new();
@@ -34,6 +39,47 @@ thread_local! {
 #[derive(Clone, Default, Debug)]
 pub struct Config {
     pub use_parallel_joins: bool,
+}
+
+/// Executes an query on an [`AnnotationGraph`](AnnotationGraph)
+/// and return an iterator over the results.
+///
+/// The results are not guaranteed to be sorted in any way and it is assumed
+/// that the graph is fully loaded.
+///
+/// # Example
+///
+/// ```
+/// use graphannis::*;
+///
+/// let graph = AnnotationGraph::with_default_graphstorages(false)?;
+/// let query = aql::parse("tok", false)?;
+/// let it = aql::execute_query_on_graph(&graph, &query, true, None)?;
+/// assert_eq!(0, it.count());
+///
+/// # Ok::<(), graphannis::errors::GraphAnnisError>(())
+/// ```
+///
+pub fn execute_query_on_graph<'a>(
+    graph: &'a AnnotationGraph,
+    query: &'a Disjunction,
+    use_parallel_joins: bool,
+    timeout: Option<Duration>,
+) -> Result<Box<dyn Iterator<Item = Result<MatchGroup>> + 'a>> {
+    // Check that all components are loaded
+    for c in graph.get_all_components(None, None) {
+        let gs = graph.get_graphstorage_as_ref(&c);
+        if gs.is_none() {
+            return Err(GraphAnnisError::QueriedGraphNotFullyLoaded);
+        }
+    }
+
+    let timeout = TimeoutCheck::new(timeout);
+
+    let config = Config { use_parallel_joins };
+    let it = ExecutionPlan::from_disjunction(query, graph, &config, timeout)?;
+
+    Ok(Box::from(it))
 }
 
 fn map_conjunction(
@@ -418,6 +464,14 @@ fn get_alternatives_from_dnf(expr: ast::Expr) -> Vec<Vec<ast::Literal>> {
     vec![]
 }
 
+/// Parses an AQL query from a string.
+///
+/// # Arguments
+///
+/// * `query_as_aql` - Textual representation of the AQL query
+/// * `quirks_mode` -  If `true`, emulates the (sometimes problematic) behavior
+///   of AQL used in ANNIS 3
+///
 pub fn parse(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction> {
     let ast = AQL_PARSER.with(|p| p.parse(query_as_aql));
     match ast {
@@ -591,4 +645,24 @@ fn extract_location<'a>(
         ParseError::User { .. } => None,
     };
     from_to
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{fs::File, path::PathBuf};
+
+    use super::*;
+
+    #[test]
+    fn query_on_annotation_graph() {
+        let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let input_file = File::open(&cargo_dir.join("tests/SaltSampleCorpus.graphml")).unwrap();
+        let (graph, _config_str): (AnnotationGraph, _) =
+            graphannis_core::graph::serialization::graphml::import(input_file, false, |_status| {})
+                .unwrap();
+
+        let query = parse("tok @* annis:doc=\"doc4\"", false).unwrap();
+        let it = execute_query_on_graph(&graph, &query, true, None).unwrap();
+        assert_eq!(11, it.count());
+    }
 }

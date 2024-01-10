@@ -1289,7 +1289,7 @@ impl CorpusStorage {
 
     /// Creates a new empty corpus with the given name.
     ///
-    /// Use [`apply_update`] to add elements to the corpus. Returns whether a
+    /// Use [`apply_update`](CorpusStorage::apply_update) to add elements to the corpus. Returns whether a
     /// new corpus was created.
     pub fn create_empty_corpus(&self, corpus_name: &str, disk_based: bool) -> Result<bool> {
         let mut cache_lock = self.corpus_cache.write()?;

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Allow to execute AQL directly on loaded `AnnotationGraph` objects by using the
+  new `aql::execute_query_on_graph` and `aql::parse` functions. This is an
+  alternative for using a `CorpusStorage` when only one corpus is handled.
 - New `Graph::ensure_loaded_parallel` function to load needed graph storages in
   parallel.
 
