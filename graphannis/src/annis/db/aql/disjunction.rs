@@ -3,16 +3,17 @@ use crate::{annis::db::aql::model::AnnotationComponentType, AnnotationGraph};
 use graphannis_core::types::Component;
 use std::collections::HashSet;
 
+/// A disjunction is a parsed and normalized AQL query.
 pub struct Disjunction {
-    pub alternatives: Vec<Conjunction>,
+    pub(crate) alternatives: Vec<Conjunction>,
 }
 
 impl Disjunction {
-    pub fn new(alternatives: Vec<Conjunction>) -> Disjunction {
+    pub(crate) fn new(alternatives: Vec<Conjunction>) -> Disjunction {
         Disjunction { alternatives }
     }
 
-    pub fn necessary_components(
+    pub(crate) fn necessary_components(
         &self,
         db: &AnnotationGraph,
     ) -> HashSet<Component<AnnotationComponentType>> {
@@ -26,7 +27,7 @@ impl Disjunction {
         result
     }
 
-    pub fn get_variable_pos(&self, variable: &str) -> Option<usize> {
+    pub(crate) fn get_variable_pos(&self, variable: &str) -> Option<usize> {
         for alt in &self.alternatives {
             if let Ok(var_pos) = alt.resolve_variable_pos(variable, None) {
                 return Some(var_pos);
@@ -40,7 +41,7 @@ impl Disjunction {
     /// Optional nodes that are not part of the output are ignored. If there are
     /// no optional nodes, this corresponds to the index of the node in the
     /// query.
-    pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
+    pub(crate) fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
         for alt in &self.alternatives {
             if let Some(var) = alt.get_variable_by_pos(pos) {
                 return Some(var);

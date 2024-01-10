@@ -79,6 +79,8 @@ pub enum GraphAnnisError {
     BtreeIndex(#[from] transient_btree_index::Error),
     #[error("index out of bounds {0}")]
     IndexOutOfBounds(usize),
+    #[error("The annotation graph that shall be queried is not fully loaded.")]
+    QueriedGraphNotFullyLoaded,
 }
 
 impl<T> From<PoisonError<T>> for GraphAnnisError {
