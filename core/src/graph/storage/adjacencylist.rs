@@ -9,20 +9,20 @@ use crate::{
 
 use super::{EdgeContainer, GraphStatistic, GraphStorage, WriteableGraphStorage};
 use itertools::Itertools;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 use serde::Deserialize;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::{ops::Bound, path::Path};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AdjacencyListStorage {
-    edges: FxHashMap<NodeID, Vec<NodeID>>,
-    inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,
+    edges: HashMap<NodeID, Vec<NodeID>>,
+    inverse_edges: HashMap<NodeID, Vec<NodeID>>,
     annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
 }
 
-fn get_fan_outs(edges: &FxHashMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
+fn get_fan_outs(edges: &HashMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
     let mut fan_outs: Vec<usize> = Vec::new();
     if !edges.is_empty() {
         for outgoing in edges.values() {
@@ -44,8 +44,8 @@ impl Default for AdjacencyListStorage {
 impl AdjacencyListStorage {
     pub fn new() -> AdjacencyListStorage {
         AdjacencyListStorage {
-            edges: FxHashMap::default(),
-            inverse_edges: FxHashMap::default(),
+            edges: HashMap::default(),
+            inverse_edges: HashMap::default(),
             annos: AnnoStorageImpl::new(),
             stats: None,
         }

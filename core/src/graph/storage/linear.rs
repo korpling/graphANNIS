@@ -8,10 +8,9 @@ use crate::{
     graph::NODE_NAME_KEY,
     types::{Edge, NodeID, NumValue},
 };
-use rustc_hash::FxHashMap;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
-use std::{clone::Clone, path::Path};
+use std::{clone::Clone, collections::HashMap, path::Path};
 
 #[derive(Serialize, Deserialize, Clone)]
 struct RelativePosition<PosT> {
@@ -21,8 +20,8 @@ struct RelativePosition<PosT> {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct LinearGraphStorage<PosT: NumValue> {
-    node_to_pos: FxHashMap<NodeID, RelativePosition<PosT>>,
-    node_chains: FxHashMap<NodeID, Vec<NodeID>>,
+    node_to_pos: HashMap<NodeID, RelativePosition<PosT>>,
+    node_chains: HashMap<NodeID, Vec<NodeID>>,
     annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
 }
@@ -33,8 +32,8 @@ where
 {
     pub fn new() -> LinearGraphStorage<PosT> {
         LinearGraphStorage {
-            node_to_pos: FxHashMap::default(),
-            node_chains: FxHashMap::default(),
+            node_to_pos: HashMap::default(),
+            node_chains: HashMap::default(),
             annos: AnnoStorageImpl::new(),
             stats: None,
         }
@@ -95,6 +94,15 @@ where
             }
         }
         Box::from(std::iter::empty())
+    }
+
+    fn has_ingoing_edges(&self, node: NodeID) -> Result<bool> {
+        let result = self
+            .node_to_pos
+            .get(&node)
+            .map(|pos| !pos.pos.is_zero())
+            .unwrap_or(false);
+        Ok(result)
     }
 
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {

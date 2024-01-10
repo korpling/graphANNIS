@@ -793,23 +793,7 @@ impl<CT: ComponentType> Graph<CT> {
             }
         }
 
-        // load missing components in parallel
-        let loaded_components: Vec<(_, Result<Arc<dyn GraphStorage>>)> = components_to_load
-            .into_par_iter()
-            .map(|c| match component_path(&self.location, &c) {
-                Some(cpath) => {
-                    debug!("loading component {} from {}", c, &cpath.to_string_lossy());
-                    (c, load_component_from_disk(&cpath))
-                }
-                None => (c, Err(GraphAnnisCoreError::EmptyComponentPath)),
-            })
-            .collect();
-
-        // insert all the loaded components
-        for (c, gs) in loaded_components {
-            let gs = gs?;
-            self.components.insert(c, Some(gs));
-        }
+        self.ensure_loaded_parallel(&components_to_load)?;
         Ok(())
     }
 
@@ -829,6 +813,35 @@ impl<CT: ComponentType> Graph<CT> {
                 let component = load_component_from_disk(&component_path)?;
                 gs_opt.get_or_insert_with(|| component);
             }
+        }
+        Ok(())
+    }
+
+    /// Ensure that the graph storage for a the given component is loaded and ready to use.
+    /// Loading is done in paralell.
+    pub fn ensure_loaded_parallel(&mut self, components_to_load: &[Component<CT>]) -> Result<()> {
+        // We only load known components, so check the map if the entry exists
+        let components_to_load: Vec<_> = components_to_load
+            .iter()
+            .filter(|c| self.components.contains_key(c))
+            .collect();
+
+        // load missing components in parallel
+        let loaded_components: Vec<(_, Result<Arc<dyn GraphStorage>>)> = components_to_load
+            .into_par_iter()
+            .map(|c| match component_path(&self.location, c) {
+                Some(cpath) => {
+                    debug!("loading component {} from {}", c, &cpath.to_string_lossy());
+                    (c, load_component_from_disk(&cpath))
+                }
+                None => (c, Err(GraphAnnisCoreError::EmptyComponentPath)),
+            })
+            .collect();
+
+        // insert all the loaded components
+        for (c, gs) in loaded_components {
+            let gs = gs?;
+            self.components.insert(c.clone(), Some(gs));
         }
         Ok(())
     }

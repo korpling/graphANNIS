@@ -85,6 +85,16 @@ pub trait EdgeContainer: Sync + Send {
         node: NodeID,
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a>;
 
+    /// Return true of the given node has any incoming edges.
+    fn has_ingoing_edges(&self, node: NodeID) -> Result<bool> {
+        if let Some(ingoing) = self.get_ingoing_edges(node).next() {
+            ingoing?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
     fn get_statistics(&self) -> Option<&GraphStatistic> {
         None
     }

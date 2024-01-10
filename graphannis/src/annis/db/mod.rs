@@ -7,5 +7,3 @@ mod plan;
 pub mod relannis;
 pub mod sort_matches;
 pub mod token_helper;
-
-pub use graphannis_core::annostorage::AnnotationStorage;

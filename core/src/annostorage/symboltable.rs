@@ -1,6 +1,7 @@
 use crate::errors::{GraphAnnisCoreError, Result};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -23,14 +24,14 @@ where
         let by_id = Vec::default();
         SymbolTable {
             by_id,
-            by_value: FxHashMap::default(),
+            by_value: HashMap::default(),
             empty_slots: Vec::default(),
         }
     }
 
     pub fn after_deserialization(&mut self) {
         // restore the by_value map and make sure the smart pointers point to the same instance
-        //self.by_value.reserve(self.by_id.len());
+        self.by_value.reserve(self.by_id.len());
         for i in 0..self.by_id.len() {
             if let Some(ref existing) = self.by_id[i] {
                 self.by_value.insert(existing.clone(), i);

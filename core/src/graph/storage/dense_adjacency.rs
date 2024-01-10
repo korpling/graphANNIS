@@ -9,14 +9,14 @@ use crate::{
 };
 use itertools::Itertools;
 use num_traits::ToPrimitive;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 use serde::Deserialize;
-use std::{ops::Bound, path::Path};
+use std::{collections::HashMap, ops::Bound, path::Path};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct DenseAdjacencyListStorage {
     edges: Vec<Option<NodeID>>,
-    inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,
+    inverse_edges: HashMap<NodeID, Vec<NodeID>>,
     annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
 }
@@ -31,7 +31,7 @@ impl DenseAdjacencyListStorage {
     pub fn new() -> DenseAdjacencyListStorage {
         DenseAdjacencyListStorage {
             edges: Vec::default(),
-            inverse_edges: FxHashMap::default(),
+            inverse_edges: HashMap::default(),
             annos: AnnoStorageImpl::new(),
             stats: None,
         }

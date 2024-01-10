@@ -76,7 +76,7 @@ impl<'a> AnyTokenSearch<'a> {
             let n = tok_candidate?.node;
             let mut is_root_tok = true;
             if let Some(order_gs) = self.order_gs {
-                is_root_tok = is_root_tok && order_gs.get_ingoing_edges(n).next().is_none();
+                is_root_tok = !order_gs.has_ingoing_edges(n)?;
             }
             if let Some(ref token_helper) = self.token_helper {
                 if is_root_tok {
