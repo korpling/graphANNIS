@@ -829,7 +829,7 @@ impl<CT: ComponentType> Graph<CT> {
         // load missing components in parallel
         let loaded_components: Vec<(_, Result<Arc<dyn GraphStorage>>)> = components_to_load
             .into_par_iter()
-            .map(|c| match component_path(&self.location, &c) {
+            .map(|c| match component_path(&self.location, c) {
                 Some(cpath) => {
                     debug!("loading component {} from {}", c, &cpath.to_string_lossy());
                     (c, load_component_from_disk(&cpath))
