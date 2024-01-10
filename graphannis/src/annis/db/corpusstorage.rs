@@ -954,7 +954,7 @@ impl CorpusStorage {
         // make it known to the cache
         cache.insert(
             corpus_name.clone(),
-            Arc::new(RwLock::new(CacheEntry::Loaded(graph))),
+            Arc::new(RwLock::new(CacheEntry::NotLoaded)),
         );
         check_cache_size_and_remove_with_cache(
             cache,
