@@ -646,3 +646,23 @@ fn extract_location<'a>(
     };
     from_to
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{fs::File, path::PathBuf};
+
+    use super::*;
+
+    #[test]
+    fn query_on_annotation_graph() {
+        let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let input_file = File::open(&cargo_dir.join("tests/SaltSampleCorpus.graphml")).unwrap();
+        let (graph, _config_str): (AnnotationGraph, _) =
+            graphannis_core::graph::serialization::graphml::import(input_file, false, |_status| {})
+                .unwrap();
+
+        let query = parse("tok @* annis:doc=\"doc4\"", false).unwrap();
+        let it = execute_query_on_graph(&graph, &query, true, None).unwrap();
+        assert_eq!(11, it.count());
+    }
+}
