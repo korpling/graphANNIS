@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   alternative for using a `CorpusStorage` when only one corpus is handled.
 - New `Graph::ensure_loaded_parallel` function to load needed graph storages in
   parallel.
+- Added `graphannis_core::graph::serialization::graphml::export_stable_order`
+  function that allows to export to GraphML, but with a guaranteed order of the
+  elements.
 
 ### Fixed
 
