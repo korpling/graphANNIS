@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml>
+    <key id="k0" for="graph" attr.name="configuration" attr.type="string"/>
+    <key id="k1" for="node" attr.name="default_ns::an_annotation" attr.type="string"/>
+    <key id="k2" for="node" attr.name="annis::node_type" attr.type="string"/>
+    <graph edgedefault="directed" parse.order="nodesfirst" parse.nodeids="free" parse.edgeids="canonical">
+        <data key="k0"><![CDATA[[some]
+key = "<value>"
+
+[some.another]
+value = "test"]]></data>
+        <node id="1">
+            <data key="k1">something</data>
+            <data key="k2">node</data>
+        </node>
+        <node id="2">
+            <data key="k2">node</data>
+        </node>
+        <edge id="e0" source="1" target="2" label="Edge/some_ns/test_component">
+        </edge>
+    </graph>
+</graphml>
