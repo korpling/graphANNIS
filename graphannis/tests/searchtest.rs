@@ -266,3 +266,30 @@ fn meta_node_output_standard() {
         result
     );
 }
+
+#[ignore]
+#[test]
+fn token_search_loads_components_for_leaf_filter() {
+    if let Some(cs) = CORPUS_STORAGE.as_ref() {
+        for (query, expected_count) in [
+            ("tok", 11),
+            ("tok=\"example\"", 1),
+            ("tok=/example/", 1),
+            ("tok!=\"example\"", 10),
+            ("tok!=/example/", 10),
+        ] {
+            let query = SearchQuery {
+                corpus_names: &["subtok.demo"],
+                query,
+                query_language: QueryLanguage::AQL,
+                timeout: None,
+            };
+
+            // Unload corpus to test that query loads components necessary to filter for leaves
+            cs.unload("subtok.demo").unwrap();
+            let count = cs.count(query).unwrap();
+
+            assert_eq!(count, expected_count);
+        }
+    }
+}
