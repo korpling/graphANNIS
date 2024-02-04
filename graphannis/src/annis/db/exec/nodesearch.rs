@@ -231,6 +231,7 @@ impl NodeSearchSpec {
                         Ok(false)
                     }
                 }));
+                filters.push(create_token_leaf_filter(g));
             }
             NodeSearchSpec::RegexTokenValue { val, leafs_only } => {
                 let full_match_pattern = graphannis_core::util::regex_full_match(val);
@@ -272,6 +273,7 @@ impl NodeSearchSpec {
                         }));
                     }
                 };
+                filters.push(create_token_leaf_filter(g));
             }
             NodeSearchSpec::AnyToken => {
                 filters.push(create_token_leaf_filter(g));
