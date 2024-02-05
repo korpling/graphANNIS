@@ -18,7 +18,7 @@ jobs:
         with:
           toolchain: stable
           profile: minimal
-      - uses: Swatinem/rust-cache@v2.2.1
+      - uses: Swatinem/rust-cache@v2.7.3
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
         env:
@@ -37,7 +37,7 @@ jobs:
         with:
           toolchain: stable
           profile: minimal
-      - uses: Swatinem/rust-cache@v2.2.1
+      - uses: Swatinem/rust-cache@v2.7.3
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
         env:
@@ -51,7 +51,7 @@ jobs:
         with:
           toolchain: stable
           profile: minimal
-      - uses: Swatinem/rust-cache@v2.2.1
+      - uses: Swatinem/rust-cache@v2.7.3
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
         env:
@@ -65,8 +65,8 @@ jobs:
         with:
           toolchain: stable
           profile: minimal
-      - uses: Swatinem/rust-cache@v2.2.1
-      - uses: actions/cache@v2
+      - uses: Swatinem/rust-cache@v2.7.3
+      - uses: actions/cache@v4
         id: corpus-cache
         with:
           path: |
