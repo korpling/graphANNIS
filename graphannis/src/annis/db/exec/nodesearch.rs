@@ -90,10 +90,21 @@ impl NodeSearchSpec {
         &self,
         db: &AnnotationGraph,
     ) -> HashSet<Component<AnnotationComponentType>> {
-        if let NodeSearchSpec::AnyToken = self {
-            return tokensearch::AnyTokenSearch::necessary_components(db);
+        match self {
+            NodeSearchSpec::AnyToken => tokensearch::AnyTokenSearch::necessary_components(db),
+            NodeSearchSpec::ExactTokenValue {
+                leafs_only: true, ..
+            }
+            | NodeSearchSpec::RegexTokenValue {
+                leafs_only: true, ..
+            }
+            | NodeSearchSpec::NotExactTokenValue { .. }
+            | NodeSearchSpec::NotRegexTokenValue { .. } => db
+                .get_all_components(Some(AnnotationComponentType::Coverage), None)
+                .into_iter()
+                .collect(),
+            _ => HashSet::default(),
         }
-        HashSet::default()
     }
 
     /// Get the annotatiom qualified name needed to execute a search with this specification.
@@ -220,6 +231,7 @@ impl NodeSearchSpec {
                         Ok(false)
                     }
                 }));
+                filters.push(create_token_leaf_filter(g));
             }
             NodeSearchSpec::RegexTokenValue { val, leafs_only } => {
                 let full_match_pattern = graphannis_core::util::regex_full_match(val);
@@ -261,6 +273,7 @@ impl NodeSearchSpec {
                         }));
                     }
                 };
+                filters.push(create_token_leaf_filter(g));
             }
             NodeSearchSpec::AnyToken => {
                 filters.push(create_token_leaf_filter(g));
