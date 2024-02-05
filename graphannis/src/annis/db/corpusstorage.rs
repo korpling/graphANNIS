@@ -15,7 +15,7 @@ use crate::annis::types::{
     CorpusConfiguration, FrequencyTable, FrequencyTableRow, QueryAttributeDescription,
 };
 use crate::annis::util::quicksort;
-use crate::annis::{db, util::TimeoutCheck};
+use crate::annis::util::TimeoutCheck;
 use crate::{graph::Match, AnnotationGraph};
 use fmt::Display;
 use fs2::FileExt;
@@ -259,6 +259,13 @@ pub enum CacheStrategy {
     /// Cache size is checked before and after a corpus is loaded.
     /// The loaded entry is always added to the cache, even if the single corpus is larger than the maximum size.
     PercentOfFreeMemory(f64),
+}
+
+#[derive(Clone, Copy)]
+struct FindArguments {
+    offset: usize,
+    limit: Option<usize>,
+    order: ResultOrder,
 }
 
 impl Display for CacheStrategy {
@@ -1571,14 +1578,12 @@ impl CorpusStorage {
         &'b self,
         db: &'b AnnotationGraph,
         query: &'b Disjunction,
-        offset: usize,
-        limit: Option<usize>,
-        order: ResultOrder,
+        find_arguments: FindArguments,
         quirks_mode: bool,
         timeout: TimeoutCheck,
     ) -> Result<(FindIterator<'b>, Option<usize>)> {
         let mut query_config = self.query_config.clone();
-        if order == ResultOrder::NotSorted {
+        if find_arguments.order == ResultOrder::NotSorted {
             // Do execute query in parallel if the order should not be sorted to have a more stable result ordering.
             // Even if we do not promise to have a stable ordering, it should be the same
             // for the same session on the same corpus.
@@ -1609,8 +1614,10 @@ impl CorpusStorage {
             }
         }
         let mut expected_size: Option<usize> = None;
-        let base_it: FindIterator = if order == ResultOrder::NotSorted
-            || (order == ResultOrder::Normal && plan.is_sorted_by_text() && !quirks_mode)
+        let base_it: FindIterator = if find_arguments.order == ResultOrder::NotSorted
+            || (find_arguments.order == ResultOrder::Normal
+                && plan.is_sorted_by_text()
+                && !quirks_mode)
         {
             // If the output is already sorted correctly, directly return the iterator.
             // Quirks mode may change the order of the results, thus don't use the shortcut
@@ -1625,7 +1632,7 @@ impl CorpusStorage {
             let mut tmp_results: BtreeIndex<usize, Vec<(NodeID, usize)>> =
                 BtreeIndex::with_capacity(btree_config, estimated_result_size)?;
 
-            if order == ResultOrder::Randomized {
+            if find_arguments.order == ResultOrder::Randomized {
                 // Use a unique random index for each match to force a random order
                 let mut rng = rand::thread_rng();
 
@@ -1660,8 +1667,8 @@ impl CorpusStorage {
                     CollationType::Default
                 };
 
-                let mut cache = SortCache::default();
-                let gs_order = db.get_graphstorage_as_ref(&component_order);
+                let gs_order = db.get_graphstorage(&component_order);
+                let mut cache = SortCache::new(gs_order);
                 let order_func = |m1: &Vec<(NodeID, usize)>,
                                   m2: &Vec<(NodeID, usize)>|
                  -> Result<std::cmp::Ordering> {
@@ -1670,37 +1677,34 @@ impl CorpusStorage {
                     let m2 = match_group_resolve_symbol_ids(m2, &anno_key_symbols)?;
 
                     // Compare the matches
-                    if order == ResultOrder::Inverted {
-                        let result = db::sort_matches::compare_matchgroup_by_text_pos(
-                            &m1,
-                            &m2,
-                            db.get_node_annos(),
-                            token_helper.as_ref(),
-                            gs_order,
-                            collation,
-                            quirks_mode,
-                            &mut cache,
-                        )?
-                        .reverse();
+                    if find_arguments.order == ResultOrder::Inverted {
+                        let result = cache
+                            .compare_matchgroup_by_text_pos(
+                                &m1,
+                                &m2,
+                                db.get_node_annos(),
+                                token_helper.as_ref(),
+                                collation,
+                                quirks_mode,
+                            )?
+                            .reverse();
                         Ok(result)
                     } else {
-                        let result = db::sort_matches::compare_matchgroup_by_text_pos(
+                        let result = cache.compare_matchgroup_by_text_pos(
                             &m1,
                             &m2,
                             db.get_node_annos(),
                             token_helper.as_ref(),
-                            gs_order,
                             collation,
                             quirks_mode,
-                            &mut cache,
                         )?;
                         Ok(result)
                     }
                 };
 
-                let sort_size = if let Some(limit) = limit {
+                let sort_size = if let Some(limit) = find_arguments.limit {
                     // we won't need to sort all items
-                    offset + limit
+                    find_arguments.offset + limit
                 } else {
                     // sort all items if unlimited iterator is requested
                     tmp_results.len()
@@ -1731,9 +1735,7 @@ impl CorpusStorage {
         &self,
         query: &SearchQuery<S>,
         corpus_name: &str,
-        offset: usize,
-        limit: Option<usize>,
-        order: ResultOrder,
+        find_arguments: FindArguments,
         timeout: TimeoutCheck,
     ) -> Result<(Vec<String>, usize)> {
         let prep = self.prepare_query(corpus_name, query.query, query.query_language, |db| {
@@ -1742,7 +1744,9 @@ impl CorpusStorage {
                 ANNIS_NS.into(),
                 "".into(),
             )];
-            if order == ResultOrder::Normal || order == ResultOrder::Inverted {
+            if find_arguments.order == ResultOrder::Normal
+                || find_arguments.order == ResultOrder::Inverted
+            {
                 for c in token_helper::necessary_components(db) {
                     additional_components.push(c);
                 }
@@ -1762,16 +1766,14 @@ impl CorpusStorage {
         let (mut base_it, expected_size) = self.create_find_iterator_for_query(
             db,
             &prep.query,
-            offset,
-            limit,
-            order,
+            find_arguments,
             quirks_mode,
             timeout,
         )?;
 
         let mut results: Vec<String> = if let Some(expected_size) = expected_size {
             new_vector_with_memory_aligned_capacity(expected_size)
-        } else if let Some(limit) = limit {
+        } else if let Some(limit) = find_arguments.limit {
             new_vector_with_memory_aligned_capacity(limit)
         } else {
             Vec::new()
@@ -1779,18 +1781,19 @@ impl CorpusStorage {
 
         // skip the first entries
         let mut skipped = 0;
-        while skipped < offset && base_it.next().is_some() {
+        while skipped < find_arguments.offset && base_it.next().is_some() {
             skipped += 1;
 
             if skipped % 1_000 == 0 {
                 timeout.check()?;
             }
         }
-        let base_it: Box<dyn Iterator<Item = Result<MatchGroup>>> = if let Some(limit) = limit {
-            Box::new(base_it.take(limit))
-        } else {
-            Box::new(base_it)
-        };
+        let base_it: Box<dyn Iterator<Item = Result<MatchGroup>>> =
+            if let Some(limit) = find_arguments.limit {
+                Box::new(base_it.take(limit))
+            } else {
+                Box::new(base_it)
+            };
 
         for (match_nr, m) in base_it.enumerate() {
             let m = m?;
@@ -1885,17 +1888,16 @@ impl CorpusStorage {
             .map(|c| c.as_ref().into())
             .collect();
 
+        let find_arguments = FindArguments {
+            limit,
+            offset,
+            order,
+        };
+
         match corpus_names.len() {
             0 => Ok(Vec::new()),
             1 => self
-                .find_in_single_corpus(
-                    &query,
-                    corpus_names[0].as_str(),
-                    offset,
-                    limit,
-                    order,
-                    timeout,
-                )
+                .find_in_single_corpus(&query, corpus_names[0].as_str(), find_arguments, timeout)
                 .map(|r| r.0),
             _ => {
                 if order == ResultOrder::Randomized {
@@ -1916,14 +1918,8 @@ impl CorpusStorage {
 
                 let mut result = Vec::new();
                 for cn in corpus_names {
-                    let (single_result, skipped) = self.find_in_single_corpus(
-                        &query,
-                        cn.as_ref(),
-                        offset,
-                        limit,
-                        order,
-                        timeout,
-                    )?;
+                    let (single_result, skipped) =
+                        self.find_in_single_corpus(&query, cn.as_ref(), find_arguments, timeout)?;
 
                     // Adjust limit and offset according to the found matches for the next corpus.
                     let single_result_length = single_result.len();

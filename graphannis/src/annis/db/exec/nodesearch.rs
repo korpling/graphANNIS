@@ -36,9 +36,10 @@ pub struct NodeSearch<'a> {
     is_sorted: bool,
     timeout: TimeoutCheck,
 }
-struct NodeDescArg {
+struct CommonArguments {
     query_fragment: String,
     node_nr: usize,
+    timeout: TimeoutCheck,
 }
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
@@ -413,7 +414,11 @@ impl<'a> NodeSearch<'a> {
         let query_fragment = format!("{}", spec);
 
         let filters = spec.get_value_filter(db, location_in_query)?;
-
+        let common_args = CommonArguments {
+            query_fragment,
+            node_nr,
+            timeout,
+        };
         match spec {
             NodeSearchSpec::ExactValue {
                 ns,
@@ -426,9 +431,7 @@ impl<'a> NodeSearch<'a> {
                 val.into(),
                 filters,
                 is_meta,
-                &query_fragment,
-                node_nr,
-                timeout,
+                common_args,
             ),
             NodeSearchSpec::NotExactValue {
                 ns,
@@ -441,9 +444,7 @@ impl<'a> NodeSearch<'a> {
                 ValueSearch::NotSome(val),
                 filters,
                 is_meta,
-                &query_fragment,
-                node_nr,
-                timeout,
+                common_args,
             ),
             NodeSearchSpec::RegexValue {
                 ns,
@@ -461,11 +462,7 @@ impl<'a> NodeSearch<'a> {
                         false,
                         filters,
                         is_meta,
-                        NodeDescArg {
-                            query_fragment,
-                            node_nr,
-                        },
-                        timeout,
+                        common_args,
                     )
                 } else {
                     NodeSearch::new_annosearch_exact(
@@ -474,9 +471,7 @@ impl<'a> NodeSearch<'a> {
                         ValueSearch::Some(val),
                         filters,
                         is_meta,
-                        &query_fragment,
-                        node_nr,
-                        timeout,
+                        common_args,
                     )
                 }
             }
@@ -496,11 +491,7 @@ impl<'a> NodeSearch<'a> {
                         true,
                         filters,
                         is_meta,
-                        NodeDescArg {
-                            query_fragment,
-                            node_nr,
-                        },
-                        timeout,
+                        common_args,
                     )
                 } else {
                     NodeSearch::new_annosearch_exact(
@@ -509,9 +500,7 @@ impl<'a> NodeSearch<'a> {
                         ValueSearch::NotSome(val),
                         filters,
                         is_meta,
-                        &query_fragment,
-                        node_nr,
-                        timeout,
+                        common_args,
                     )
                 }
             }
@@ -521,9 +510,7 @@ impl<'a> NodeSearch<'a> {
                 filters,
                 leafs_only,
                 false,
-                &query_fragment,
-                node_nr,
-                timeout,
+                common_args,
             ),
             NodeSearchSpec::NotExactTokenValue { val } => NodeSearch::new_tokensearch(
                 db,
@@ -531,9 +518,7 @@ impl<'a> NodeSearch<'a> {
                 filters,
                 true,
                 false,
-                &query_fragment,
-                node_nr,
-                timeout,
+                common_args,
             ),
             NodeSearchSpec::RegexTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
                 db,
@@ -541,9 +526,7 @@ impl<'a> NodeSearch<'a> {
                 filters,
                 leafs_only,
                 true,
-                &query_fragment,
-                node_nr,
-                timeout,
+                common_args,
             ),
             NodeSearchSpec::NotRegexTokenValue { val } => NodeSearch::new_tokensearch(
                 db,
@@ -551,13 +534,9 @@ impl<'a> NodeSearch<'a> {
                 filters,
                 true,
                 true,
-                &query_fragment,
-                node_nr,
-                timeout,
+                common_args,
             ),
-            NodeSearchSpec::AnyToken => {
-                NodeSearch::new_anytoken_search(db, &query_fragment, node_nr, timeout)
-            }
+            NodeSearchSpec::AnyToken => NodeSearch::new_anytoken_search(db, common_args),
             NodeSearchSpec::AnyNode => {
                 let it = db
                     .get_node_annos()
@@ -590,8 +569,8 @@ impl<'a> NodeSearch<'a> {
                 Ok(NodeSearch {
                     it: Box::new(it),
                     desc: Some(ExecutionNodeDesc::empty_with_fragment(
-                        node_nr,
-                        query_fragment,
+                        common_args.node_nr,
+                        common_args.query_fragment,
                         Some(est_output),
                     )),
                     node_search_desc: Arc::new(NodeSearchDesc {
@@ -615,9 +594,7 @@ impl<'a> NodeSearch<'a> {
         val: ValueSearch<String>,
         filters: Vec<MatchValueFilterFunc>,
         is_meta: bool,
-        query_fragment: &str,
-        node_nr: usize,
-        timeout: TimeoutCheck,
+        common_args: CommonArguments,
     ) -> Result<NodeSearch<'a>> {
         let base_it = db.get_node_annos().exact_anno_search(
             qname.0.as_deref(),
@@ -699,8 +676,8 @@ impl<'a> NodeSearch<'a> {
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
-                node_nr,
-                query_fragment.to_owned(),
+                common_args.node_nr,
+                common_args.query_fragment.clone(),
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
@@ -709,7 +686,7 @@ impl<'a> NodeSearch<'a> {
                 const_output,
             }),
             is_sorted: false,
-            timeout,
+            timeout: common_args.timeout,
         })
     }
 
@@ -720,8 +697,7 @@ impl<'a> NodeSearch<'a> {
         negated: bool,
         filters: Vec<MatchValueFilterFunc>,
         is_meta: bool,
-        node_desc_arg: NodeDescArg,
-        timeout: TimeoutCheck,
+        common_args: CommonArguments,
     ) -> Result<NodeSearch<'a>> {
         // match_regex works only with values
         let base_it =
@@ -796,8 +772,8 @@ impl<'a> NodeSearch<'a> {
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
-                node_desc_arg.node_nr,
-                node_desc_arg.query_fragment,
+                common_args.node_nr,
+                common_args.query_fragment,
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
@@ -806,7 +782,7 @@ impl<'a> NodeSearch<'a> {
                 const_output,
             }),
             is_sorted: false,
-            timeout,
+            timeout: common_args.timeout,
         })
     }
 
@@ -816,9 +792,7 @@ impl<'a> NodeSearch<'a> {
         filters: Vec<MatchValueFilterFunc>,
         leafs_only: bool,
         match_regex: bool,
-        query_fragment: &str,
-        node_nr: usize,
-        timeout: TimeoutCheck,
+        common_args: CommonArguments,
     ) -> Result<NodeSearch<'a>> {
         let it_base: Box<dyn Iterator<Item = Result<Match>>> = match val {
             ValueSearch::Any => {
@@ -946,8 +920,8 @@ impl<'a> NodeSearch<'a> {
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
-                node_nr,
-                query_fragment.to_owned(),
+                common_args.node_nr,
+                common_args.query_fragment.clone(),
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
@@ -959,15 +933,13 @@ impl<'a> NodeSearch<'a> {
                 const_output: Some(NODE_TYPE_KEY.clone()),
             }),
             is_sorted: false,
-            timeout,
+            timeout: common_args.timeout,
         })
     }
 
     fn new_anytoken_search(
         db: &'a AnnotationGraph,
-        query_fragment: &str,
-        node_nr: usize,
-        timeout: TimeoutCheck,
+        common_args: CommonArguments,
     ) -> Result<NodeSearch<'a>> {
         let it: Box<dyn Iterator<Item = Result<MatchGroup>>> = Box::from(AnyTokenSearch::new(db)?);
         // create filter functions
@@ -1006,8 +978,8 @@ impl<'a> NodeSearch<'a> {
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
-                node_nr,
-                query_fragment.to_owned(),
+                common_args.node_nr,
+                common_args.query_fragment.clone(),
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
@@ -1019,7 +991,7 @@ impl<'a> NodeSearch<'a> {
                 const_output: Some(NODE_TYPE_KEY.clone()),
             }),
             is_sorted: true,
-            timeout,
+            timeout: common_args.timeout,
         })
     }
 

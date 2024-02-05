@@ -78,6 +78,11 @@ pub struct Conjunction {
     var_idx_offset: usize,
 }
 
+struct ExecutionPlanHelper {
+    node2component: BTreeMap<usize, usize>,
+    node2cost: BTreeMap<usize, CostEstimate>,
+}
+
 fn update_components_for_nodes(
     node2component: &mut BTreeMap<usize, usize>,
     from: usize,
@@ -468,8 +473,7 @@ impl Conjunction {
         let max_unsuccessful_tries = 5 * self.binary_operators.len();
         let mut unsucessful = 0;
         while unsucessful < max_unsuccessful_tries {
-            let mut family_operators: Vec<Vec<usize>> = Vec::new();
-            family_operators.reserve(num_new_generations + 1);
+            let mut family_operators: Vec<Vec<usize>> = Vec::with_capacity(num_new_generations + 1);
 
             family_operators.push(best_operator_order.clone());
 
@@ -597,8 +601,7 @@ impl Conjunction {
             usize,
             Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
         >,
-        node2component: &mut BTreeMap<usize, usize>,
-        node2cost: &mut BTreeMap<usize, CostEstimate>,
+        helper: &mut ExecutionPlanHelper,
         node_search_errors: &mut Vec<GraphAnnisError>,
         timeout: TimeoutCheck,
     ) -> Result<()> {
@@ -614,12 +617,12 @@ impl Conjunction {
         );
         match node_search {
             Ok(mut node_search) => {
-                node2component.insert(node_nr, node_nr);
+                helper.node2component.insert(node_nr, node_nr);
 
                 let (orig_query_frag, orig_impl_desc, cost) =
                     if let Some(d) = node_search.get_desc() {
                         if let Some(ref c) = d.cost {
-                            node2cost.insert(node_nr, c.clone());
+                            helper.node2cost.insert(node_nr, c.clone());
                         }
 
                         (
@@ -673,8 +676,7 @@ impl Conjunction {
             usize,
             Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
         >,
-        node2component: &mut BTreeMap<usize, usize>,
-        node2cost: &BTreeMap<usize, CostEstimate>,
+        helper: &mut ExecutionPlanHelper,
     ) -> Result<()> {
         let mut op: BinaryOperator<'a> = op_spec_entry.op.create_operator(g)?;
 
@@ -683,7 +685,7 @@ impl Conjunction {
 
         let inverse_op = op.get_inverse_operator(g)?;
         if let Some(inverse_op) = inverse_op {
-            if should_switch_operand_order(op_spec_entry, node2cost) {
+            if should_switch_operand_order(op_spec_entry, &helper.node2cost) {
                 spec_idx_left = op_spec_entry.args.right;
                 spec_idx_right = op_spec_entry.args.left;
 
@@ -704,10 +706,12 @@ impl Conjunction {
             },
         };
 
-        let component_left: usize = *(node2component
+        let component_left: usize = *(helper
+            .node2component
             .get(&spec_idx_left)
             .ok_or(GraphAnnisError::NoComponentForNode(spec_idx_left + 1))?);
-        let component_right: usize = *(node2component
+        let component_right: usize = *(helper
+            .node2component
             .get(&spec_idx_right)
             .ok_or(GraphAnnisError::NoComponentForNode(spec_idx_right + 1))?);
 
@@ -758,8 +762,12 @@ impl Conjunction {
             .get_desc()
             .ok_or(GraphAnnisError::PlanDescriptionMissing)?
             .component_nr;
-        update_components_for_nodes(node2component, component_left, new_component_nr);
-        update_components_for_nodes(node2component, component_right, new_component_nr);
+        update_components_for_nodes(&mut helper.node2component, component_left, new_component_nr);
+        update_components_for_nodes(
+            &mut helper.node2component,
+            component_right,
+            new_component_nr,
+        );
         component2exec.insert(new_component_nr, new_exec);
 
         Ok(())
@@ -772,11 +780,10 @@ impl Conjunction {
         operator_order: Vec<usize>,
         timeout: TimeoutCheck,
     ) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> {
-        let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
-
-        // Remember node search errors, but do not bail out of this function before the component
-        // semantics check has been performed.
-        let mut node_search_errors: Vec<GraphAnnisError> = Vec::default();
+        let mut helper = ExecutionPlanHelper {
+            node2component: BTreeMap::new(),
+            node2cost: BTreeMap::new(),
+        };
 
         // Create a map where the key is the component number
         // and move all nodes with their index as component number.
@@ -784,7 +791,10 @@ impl Conjunction {
             usize,
             Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
         > = BTreeMap::new();
-        let mut node2cost: BTreeMap<usize, CostEstimate> = BTreeMap::new();
+
+        // Remember node search errors, but do not bail out of this function before the component
+        // semantics check has been performed.
+        let mut node_search_errors: Vec<GraphAnnisError> = Vec::default();
 
         // 1. add all non-optional nodes
         for node_nr in 0..self.nodes.len() {
@@ -793,8 +803,7 @@ impl Conjunction {
                     node_nr,
                     db,
                     &mut component2exec,
-                    &mut node2component,
-                    &mut node2cost,
+                    &mut helper,
                     &mut node_search_errors,
                     timeout,
                 )?;
@@ -825,8 +834,7 @@ impl Conjunction {
                 db,
                 config,
                 &mut component2exec,
-                &mut node2component,
-                &node2cost,
+                &mut helper,
             )?;
         }
 

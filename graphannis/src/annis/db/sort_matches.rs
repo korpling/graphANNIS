@@ -9,6 +9,7 @@ use lru::LruCache;
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::ffi::CString;
+use std::sync::Arc;
 
 #[derive(Clone, Copy)]
 pub enum CollationType {
@@ -16,52 +17,154 @@ pub enum CollationType {
     Locale,
 }
 
-pub struct SortCache {
+pub(crate) struct SortCache {
     node_name: LruCache<NodeID, String>,
     left_token: LruCache<NodeID, Option<NodeID>>,
     is_connected: LruCache<(NodeID, NodeID), bool>,
+    gs_order: Option<Arc<dyn GraphStorage>>,
 }
 
-impl Default for SortCache {
-    fn default() -> Self {
+impl SortCache {
+    pub fn new(gs_order: Option<Arc<dyn GraphStorage>>) -> Self {
         Self {
             node_name: LruCache::new(1000),
             left_token: LruCache::new(1000),
             is_connected: LruCache::new(1000),
-        }
-    }
-}
-
-pub fn compare_matchgroup_by_text_pos(
-    m1: &[Match],
-    m2: &[Match],
-    node_annos: &dyn NodeAnnotationStorage,
-    token_helper: Option<&TokenHelper>,
-    gs_order: Option<&dyn GraphStorage>,
-    collation: CollationType,
-    reverse_path: bool,
-    cache: &mut SortCache,
-) -> Result<Ordering> {
-    for i in 0..std::cmp::min(m1.len(), m2.len()) {
-        let element_cmp = compare_match_by_text_pos(
-            &m1[i],
-            &m2[i],
-            node_annos,
-            token_helper,
             gs_order,
-            collation,
-            reverse_path,
-            cache,
-        )?;
-        if element_cmp != Ordering::Equal {
-            return Ok(element_cmp);
         }
     }
-    // Sort longer vectors ("more specific") before shorter ones
-    // This originates from the old SQL based system, where an "unfilled" match position had the NULL value.
-    // NULL values where sorted *after* the ones with actual values. In practice, this means the more specific
-    // matches come first.
-    Ok(m2.len().cmp(&m1.len()))
+
+    pub fn compare_matchgroup_by_text_pos(
+        &mut self,
+        m1: &[Match],
+        m2: &[Match],
+        node_annos: &dyn NodeAnnotationStorage,
+        token_helper: Option<&TokenHelper>,
+        collation: CollationType,
+        reverse_path: bool,
+    ) -> Result<Ordering> {
+        for i in 0..std::cmp::min(m1.len(), m2.len()) {
+            let element_cmp = self.compare_match_by_text_pos(
+                &m1[i],
+                &m2[i],
+                node_annos,
+                token_helper,
+                collation,
+                reverse_path,
+            )?;
+            if element_cmp != Ordering::Equal {
+                return Ok(element_cmp);
+            }
+        }
+        // Sort longer vectors ("more specific") before shorter ones
+        // This originates from the old SQL based system, where an "unfilled" match position had the NULL value.
+        // NULL values where sorted *after* the ones with actual values. In practice, this means the more specific
+        // matches come first.
+        Ok(m2.len().cmp(&m1.len()))
+    }
+
+    pub fn compare_match_by_text_pos(
+        &mut self,
+        m1: &Match,
+        m2: &Match,
+        node_annos: &dyn NodeAnnotationStorage,
+        token_helper: Option<&TokenHelper>,
+        collation: CollationType,
+        quirks_mode: bool,
+    ) -> Result<Ordering> {
+        if m1.node == m2.node {
+            // same node, use annotation name and namespace to compare
+            Ok(m1.anno_key.cmp(&m2.anno_key))
+        } else {
+            // get the node paths and names
+
+            let m1_anno_val = if let Some(val) = self.node_name.get(&m1.node) {
+                Some(Cow::Owned(val.clone()))
+            } else {
+                let val = node_annos.get_value_for_item(&m1.node, &NODE_NAME_KEY)?;
+                if let Some(val) = &val {
+                    self.node_name.put(m1.node, val.to_string());
+                }
+                val
+            };
+
+            let m2_anno_val = if let Some(val) = self.node_name.get(&m2.node) {
+                Some(Cow::Borrowed(val.as_str()))
+            } else {
+                let val = node_annos.get_value_for_item(&m2.node, &NODE_NAME_KEY)?;
+                if let Some(val) = &val {
+                    self.node_name.put(m2.node, val.to_string());
+                }
+                val
+            };
+
+            if let (Some(m1_anno_val), Some(m2_anno_val)) = (m1_anno_val, m2_anno_val) {
+                let (m1_path, m1_name) = split_path_and_nodename(&m1_anno_val);
+                let (m2_path, m2_name) = split_path_and_nodename(&m2_anno_val);
+
+                // 1. compare the path
+                let path_cmp = compare_document_path(m1_path, m2_path, collation, quirks_mode);
+                if path_cmp != Ordering::Equal {
+                    return Ok(path_cmp);
+                }
+
+                // 2. compare the token ordering
+                if let (Some(token_helper), Some(gs_order)) = (token_helper, &self.gs_order) {
+                    // Try to get left token from cache
+
+                    let m1_lefttok = if let Some(lefttok) = self.left_token.get(&m1.node).copied() {
+                        lefttok
+                    } else {
+                        let result = token_helper.left_token_for(m1.node)?;
+                        self.left_token.put(m1.node, result);
+                        result
+                    };
+
+                    let m2_lefttok = if let Some(lefttok) = self.left_token.get(&m2.node).copied() {
+                        lefttok
+                    } else {
+                        let result = token_helper.left_token_for(m2.node)?;
+                        self.left_token.put(m2.node, result);
+                        result
+                    };
+
+                    if let (Some(m1_lefttok), Some(m2_lefttok)) = (m1_lefttok, m2_lefttok) {
+                        let token_are_connected =
+                            if let Some(v) = self.is_connected.get(&(m1_lefttok, m2_lefttok)) {
+                                *v
+                            } else {
+                                gs_order.is_connected(
+                                    m1_lefttok,
+                                    m2_lefttok,
+                                    1,
+                                    std::ops::Bound::Unbounded,
+                                )?
+                            };
+
+                        if token_are_connected {
+                            return Ok(Ordering::Less);
+                        } else if gs_order.is_connected(
+                            m2_lefttok,
+                            m1_lefttok,
+                            1,
+                            std::ops::Bound::Unbounded,
+                        )? {
+                            return Ok(Ordering::Greater);
+                        }
+                    }
+                }
+
+                // 3. compare the name
+                let name_cmp = compare_string(m1_name, m2_name, collation);
+                if name_cmp != Ordering::Equal {
+                    return Ok(name_cmp);
+                }
+            }
+
+            // compare node IDs directly as last resort
+            Ok(m1.node.cmp(&m2.node))
+        }
+    }
 }
 
 fn split_path_and_nodename(full_node_name: &str) -> (&str, &str) {
@@ -129,110 +232,6 @@ lazy_static! {
         ns: ANNIS_NS.into(),
         name: NODE_NAME.into(),
     };
-}
-
-pub fn compare_match_by_text_pos(
-    m1: &Match,
-    m2: &Match,
-    node_annos: &dyn NodeAnnotationStorage,
-    token_helper: Option<&TokenHelper>,
-    gs_order: Option<&dyn GraphStorage>,
-    collation: CollationType,
-    quirks_mode: bool,
-    cache: &mut SortCache,
-) -> Result<Ordering> {
-    if m1.node == m2.node {
-        // same node, use annotation name and namespace to compare
-        Ok(m1.anno_key.cmp(&m2.anno_key))
-    } else {
-        // get the node paths and names
-
-        let m1_anno_val = if let Some(val) = cache.node_name.get(&m1.node) {
-            Some(Cow::Owned(val.clone()))
-        } else {
-            let val = node_annos.get_value_for_item(&m1.node, &NODE_NAME_KEY)?;
-            if let Some(val) = &val {
-                cache.node_name.put(m1.node, val.to_string());
-            }
-            val
-        };
-
-        let m2_anno_val = if let Some(val) = cache.node_name.get(&m2.node) {
-            Some(Cow::Borrowed(val.as_str()))
-        } else {
-            let val = node_annos.get_value_for_item(&m2.node, &NODE_NAME_KEY)?;
-            if let Some(val) = &val {
-                cache.node_name.put(m2.node, val.to_string());
-            }
-            val
-        };
-
-        if let (Some(m1_anno_val), Some(m2_anno_val)) = (m1_anno_val, m2_anno_val) {
-            let (m1_path, m1_name) = split_path_and_nodename(&m1_anno_val);
-            let (m2_path, m2_name) = split_path_and_nodename(&m2_anno_val);
-
-            // 1. compare the path
-            let path_cmp = compare_document_path(m1_path, m2_path, collation, quirks_mode);
-            if path_cmp != Ordering::Equal {
-                return Ok(path_cmp);
-            }
-
-            // 2. compare the token ordering
-            if let (Some(token_helper), Some(gs_order)) = (token_helper, gs_order) {
-                // Try to get left token from cache
-
-                let m1_lefttok = if let Some(lefttok) = cache.left_token.get(&m1.node).copied() {
-                    lefttok
-                } else {
-                    let result = token_helper.left_token_for(m1.node)?;
-                    cache.left_token.put(m1.node, result);
-                    result
-                };
-
-                let m2_lefttok = if let Some(lefttok) = cache.left_token.get(&m2.node).copied() {
-                    lefttok
-                } else {
-                    let result = token_helper.left_token_for(m2.node)?;
-                    cache.left_token.put(m2.node, result);
-                    result
-                };
-
-                if let (Some(m1_lefttok), Some(m2_lefttok)) = (m1_lefttok, m2_lefttok) {
-                    let token_are_connected =
-                        if let Some(v) = cache.is_connected.get(&(m1_lefttok, m2_lefttok)) {
-                            *v
-                        } else {
-                            gs_order.is_connected(
-                                m1_lefttok,
-                                m2_lefttok,
-                                1,
-                                std::ops::Bound::Unbounded,
-                            )?
-                        };
-
-                    if token_are_connected {
-                        return Ok(Ordering::Less);
-                    } else if gs_order.is_connected(
-                        m2_lefttok,
-                        m1_lefttok,
-                        1,
-                        std::ops::Bound::Unbounded,
-                    )? {
-                        return Ok(Ordering::Greater);
-                    }
-                }
-            }
-
-            // 3. compare the name
-            let name_cmp = compare_string(m1_name, m2_name, collation);
-            if name_cmp != Ordering::Equal {
-                return Ok(name_cmp);
-            }
-        }
-
-        // compare node IDs directly as last resort
-        Ok(m1.node.cmp(&m2.node))
-    }
 }
 
 #[cfg(test)]
