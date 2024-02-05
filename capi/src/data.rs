@@ -18,11 +18,13 @@ use std::ffi::CString;
 ///
 /// This functions dereferences the `ptr` pointer and is therefore unsafe.
 #[no_mangle]
+#[allow(clippy::from_raw_with_void_ptr)]
 pub unsafe extern "C" fn annis_free(ptr: *mut c_void) {
     if ptr.is_null() {
         return;
     }
     // take ownership and destroy the pointer
+    // TODO: this is problematic (https://rust-lang.github.io/rust-clippy/master/index.html#/from_raw_with_void_ptr). Introduce type aware _free functions.
     let ptr = Box::from_raw(ptr);
     std::mem::drop(ptr);
 }
