@@ -55,7 +55,7 @@ jobs:
       - name: Merge code coverage reports
         run: cargo llvm-cov report --ignore-filename-regex '(tests?\.rs)|(capi/.*)' --release --codecov --output-path codecov.json
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
           files: codecov.json
