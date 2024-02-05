@@ -1,14 +1,15 @@
 use pyo3::prelude::*;
 
-/// Formats the sum of two numbers as string.
 #[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
+fn apply_update() -> String {
+    "func".to_string()
 }
 
-/// A Python module implemented in Rust.
+/// Python bindings for graphANNIS.
 #[pymodule]
-fn graphannis(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+fn graphannis(py: Python, m: &PyModule) -> PyResult<()> {
+    let cs_module = PyModule::new(py, "cs")?;
+    cs_module.add_function(wrap_pyfunction!(apply_update, cs_module)?)?;
+    m.add_submodule(cs_module)?;
     Ok(())
 }
