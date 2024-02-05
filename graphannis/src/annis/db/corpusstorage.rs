@@ -15,7 +15,7 @@ use crate::annis::types::{
     CorpusConfiguration, FrequencyTable, FrequencyTableRow, QueryAttributeDescription,
 };
 use crate::annis::util::quicksort;
-use crate::annis::{db, util::TimeoutCheck};
+use crate::annis::util::TimeoutCheck;
 use crate::{graph::Match, AnnotationGraph};
 use fmt::Display;
 use fs2::FileExt;
@@ -1660,8 +1660,8 @@ impl CorpusStorage {
                     CollationType::Default
                 };
 
-                let mut cache = SortCache::default();
-                let gs_order = db.get_graphstorage_as_ref(&component_order);
+                let gs_order = db.get_graphstorage(&component_order);
+                let mut cache = SortCache::new(gs_order);
                 let order_func = |m1: &Vec<(NodeID, usize)>,
                                   m2: &Vec<(NodeID, usize)>|
                  -> Result<std::cmp::Ordering> {
@@ -1671,28 +1671,25 @@ impl CorpusStorage {
 
                     // Compare the matches
                     if order == ResultOrder::Inverted {
-                        let result = db::sort_matches::compare_matchgroup_by_text_pos(
-                            &m1,
-                            &m2,
-                            db.get_node_annos(),
-                            token_helper.as_ref(),
-                            gs_order,
-                            collation,
-                            quirks_mode,
-                            &mut cache,
-                        )?
-                        .reverse();
+                        let result = cache
+                            .compare_matchgroup_by_text_pos(
+                                &m1,
+                                &m2,
+                                db.get_node_annos(),
+                                token_helper.as_ref(),
+                                collation,
+                                quirks_mode,
+                            )?
+                            .reverse();
                         Ok(result)
                     } else {
-                        let result = db::sort_matches::compare_matchgroup_by_text_pos(
+                        let result = cache.compare_matchgroup_by_text_pos(
                             &m1,
                             &m2,
                             db.get_node_annos(),
                             token_helper.as_ref(),
-                            gs_order,
                             collation,
                             quirks_mode,
-                            &mut cache,
                         )?;
                         Ok(result)
                     }

@@ -1,6 +1,5 @@
 use crate::annis::db::exec::ExecutionNode;
 use crate::annis::db::exec::ExecutionNodeDesc;
-use crate::annis::db::sort_matches;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::sort_matches::SortCache;
 use crate::annis::db::token_helper;
@@ -91,18 +90,16 @@ impl<'a> AnyTokenSearch<'a> {
             }
         }
 
-        let mut cache = SortCache::default();
+        let mut cache = SortCache::new(self.db.get_graphstorage(&COMPONENT_ORDER));
 
         quicksort::sort(&mut root_nodes, |a, b| {
-            sort_matches::compare_match_by_text_pos(
+            cache.compare_match_by_text_pos(
                 b,
                 a,
                 self.db.get_node_annos(),
                 self.token_helper.as_ref(),
-                self.order_gs,
                 CollationType::Default,
                 false,
-                &mut cache,
             )
         })?;
 
