@@ -473,8 +473,7 @@ impl Conjunction {
         let max_unsuccessful_tries = 5 * self.binary_operators.len();
         let mut unsucessful = 0;
         while unsucessful < max_unsuccessful_tries {
-            let mut family_operators: Vec<Vec<usize>> = Vec::new();
-            family_operators.reserve(num_new_generations + 1);
+            let mut family_operators: Vec<Vec<usize>> = Vec::with_capacity(num_new_generations + 1);
 
             family_operators.push(best_operator_order.clone());
 
