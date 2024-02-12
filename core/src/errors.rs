@@ -1,4 +1,6 @@
-use std::{num::TryFromIntError, string::FromUtf8Error, sync::PoisonError};
+use std::{
+    array::TryFromSliceError, num::TryFromIntError, string::FromUtf8Error, sync::PoisonError,
+};
 
 use thiserror::Error;
 
@@ -52,6 +54,8 @@ pub enum GraphAnnisCoreError {
     BtreeIndex(#[from] transient_btree_index::Error),
     #[error(transparent)]
     IntConversion(#[from] TryFromIntError),
+    #[error(transparent)]
+    SliceConversion(#[from] TryFromSliceError),
     #[error("Lock poisoning ({0})")]
     LockPoisoning(String),
     #[error(transparent)]

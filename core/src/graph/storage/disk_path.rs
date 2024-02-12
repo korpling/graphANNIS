@@ -11,7 +11,8 @@ use crate::{
 use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use binary_layout::prelude::*;
 
-const MAX_DEPTH: usize = 10;
+const MAX_DEPTH: usize = 15;
+const ENTRY_SIZE: usize = (MAX_DEPTH * 8) + 8;
 
 binary_layout!(node_path, LittleEndian, {
     length: u8,
@@ -26,9 +27,28 @@ pub struct DiskPathStorage {
     location: Option<PathBuf>,
 }
 
+fn offset_in_file(n: NodeID) -> u64 {
+    n * (node_path::SIZE.unwrap_or(1) as u64)
+}
+
+fn offset_in_path(path_idx: usize) -> usize {
+    path_idx * 8
+}
+
 impl DiskPathStorage {
-    fn get_offset(&self, n: NodeID) -> u64 {
-        n * (node_path::SIZE.unwrap_or(1) as u64)
+    fn get_outgoing_edge<'a>(&'a self, node: NodeID) -> Result<Option<NodeID>> {
+        let mut buffer = [0; ENTRY_SIZE];
+        self.paths
+            .read_exact_at(&mut buffer, offset_in_file(node))?;
+        let view = node_path::View::new(&buffer);
+        if view.length().read() == 0 {
+            // No outgoing edges
+            Ok(None)
+        } else {
+            // Read the node ID at the first position
+            let buffer: [u8; 8] = view.nodes()[offset_in_path(0)..offset_in_path(1)].try_into()?;
+            Ok(Some(u64::from_le_bytes(buffer)))
+        }
     }
 }
 
@@ -37,7 +57,11 @@ impl EdgeContainer for DiskPathStorage {
         &'a self,
         node: NodeID,
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
-        todo!()
+        match self.get_outgoing_edge(node) {
+            Ok(Some(n)) => Box::new(std::iter::once(Ok(n))),
+            Ok(None) => Box::new(std::iter::empty()),
+            Err(e) => Box::new(std::iter::once(Err(e))),
+        }
     }
 
     fn get_ingoing_edges<'a>(
@@ -105,7 +129,7 @@ impl GraphStorage for DiskPathStorage {
         // Get the paths for all source nodes in the original graph storage
         for source in orig.source_nodes() {
             let source = source?;
-            let mut output_bytes: Vec<u8> = Vec::with_capacity(node_path::SIZE.unwrap_or_default());
+            let mut output_bytes = [0; ENTRY_SIZE];
             let mut path_view = node_path::View::new(&mut output_bytes);
             let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), source, 1, MAX_DEPTH);
             for step in dfs {
@@ -114,7 +138,7 @@ impl GraphStorage for DiskPathStorage {
                 path_view.length_mut().write(step.distance.try_into()?);
                 // The distance starts at 1, but we do not repeat the source
                 // node in the path
-                let offset = (step.distance - 1) * 8;
+                let offset = offset_in_path(step.distance - 1);
                 // Set the node ID at the given position
                 let node_id_bytes = step.node.to_le_bytes();
                 path_view.nodes_mut()[offset..(offset + 8)].copy_from_slice(&node_id_bytes);
@@ -130,7 +154,7 @@ impl GraphStorage for DiskPathStorage {
             }
             // Save the path at the node offset
             self.paths
-                .write_all_at(&output_bytes, self.get_offset(source))?;
+                .write_all_at(&output_bytes, offset_in_file(source))?;
         }
         self.paths = file;
         self.stats = orig.get_statistics().cloned();
