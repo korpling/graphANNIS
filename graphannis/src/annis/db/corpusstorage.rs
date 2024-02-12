@@ -23,6 +23,8 @@ use graphannis_core::annostorage::symboltable::SymbolTable;
 use graphannis_core::annostorage::{
     match_group_resolve_symbol_ids, match_group_with_symbol_ids, NodeAnnotationStorage,
 };
+use graphannis_core::dfs::CycleSafeDFS;
+use graphannis_core::graph::storage::union::UnionEdgeContainer;
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
     graph::{
@@ -1526,12 +1528,19 @@ impl CorpusStorage {
     pub fn count_extra<S: AsRef<str>>(&self, query: SearchQuery<S>) -> Result<CountExtra> {
         let timeout = TimeoutCheck::new(query.timeout);
 
+        let annis_doc_key = AnnoKey {
+            name: "doc".into(),
+            ns: ANNIS_NS.into(),
+        };
+
         let mut match_count: u64 = 0;
         let mut document_count: u64 = 0;
 
         for cn in query.corpus_names {
             let prep =
-                self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
+                self.prepare_query(cn.as_ref(), query.query, query.query_language, |db| {
+                    db.get_all_components(Some(AnnotationComponentType::PartOf), None)
+                })?;
 
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read()?;
@@ -1539,22 +1548,35 @@ impl CorpusStorage {
             let plan =
                 ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config, timeout)?;
 
-            let mut known_documents: HashSet<SmartString> = HashSet::new();
+            let mut known_documents: HashSet<NodeID> = HashSet::new();
+
+            let part_of_components =
+                db.get_all_components(Some(AnnotationComponentType::PartOf), None);
+
+            let mut part_of_gs = Vec::with_capacity(part_of_components.len());
+            for c in part_of_components {
+                if let Some(gs) = db.get_graphstorage_as_ref(&c) {
+                    part_of_gs.push(gs.as_edgecontainer());
+                }
+            }
+            let part_of_gs = UnionEdgeContainer::new(part_of_gs);
 
             for m in plan {
                 let m = m?;
                 if !m.is_empty() {
                     let m: &Match = &m[0];
-                    if let Some(node_name) = db
-                        .get_node_annos()
-                        .get_value_for_item(&m.node, &NODE_NAME_KEY)?
-                    {
-                        let doc_path = if let Some((before, _)) = node_name.rsplit_once('#') {
-                            before
-                        } else {
-                            &node_name
-                        };
-                        known_documents.insert(doc_path.into());
+
+                    // Get the ancestor node with the "annis:doc" annotation
+                    let dfs = CycleSafeDFS::new(&part_of_gs, m.node, 1, usize::MAX);
+                    for step in dfs {
+                        let step = step?;
+                        if db
+                            .get_node_annos()
+                            .has_value_for_item(&step.node, &annis_doc_key)?
+                        {
+                            known_documents.insert(step.node);
+                            break;
+                        }
                     }
                 }
                 match_count += 1;
