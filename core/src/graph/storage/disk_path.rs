@@ -1,5 +1,5 @@
 use normpath::PathExt;
-use std::{convert::TryInto, fs::File, io::BufReader, path::PathBuf};
+use std::{convert::TryInto, fs::File, io::BufReader, os::unix::fs::FileExt, path::PathBuf};
 
 use crate::{
     annostorage::{ondisk::AnnoStorageImpl, AnnotationStorage},
@@ -24,6 +24,12 @@ pub struct DiskPathStorage {
     annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
     location: Option<PathBuf>,
+}
+
+impl DiskPathStorage {
+    fn get_offset(&self, n: NodeID) -> u64 {
+        n * (node_path::SIZE.unwrap_or(1) as u64)
+    }
 }
 
 impl EdgeContainer for DiskPathStorage {
@@ -122,6 +128,9 @@ impl GraphStorage for DiskPathStorage {
                     self.annos.insert(e.clone(), a)?;
                 }
             }
+            // Save the path at the node offset
+            self.paths
+                .write_all_at(&output_bytes, self.get_offset(source))?;
         }
         self.paths = file;
         self.stats = orig.get_statistics().cloned();
