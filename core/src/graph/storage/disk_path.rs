@@ -1,6 +1,12 @@
-use std::convert::TryInto;
+use normpath::PathExt;
+use std::{convert::TryInto, fs::File, io::BufReader, path::PathBuf};
 
-use crate::{dfs::CycleSafeDFS, errors::Result, types::NodeID};
+use crate::{
+    annostorage::{ondisk::AnnoStorageImpl, AnnotationStorage},
+    dfs::CycleSafeDFS,
+    errors::Result,
+    types::{Edge, NodeID},
+};
 
 use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use binary_layout::prelude::*;
@@ -14,8 +20,10 @@ binary_layout!(node_path, LittleEndian, {
 
 /// A [GraphStorage] that stores a single path for each node on disk.
 pub struct DiskPathStorage {
-    file: std::fs::File,
+    paths: std::fs::File,
+    annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
+    location: Option<PathBuf>,
 }
 
 impl EdgeContainer for DiskPathStorage {
@@ -104,10 +112,20 @@ impl GraphStorage for DiskPathStorage {
                 // Set the node ID at the given position
                 let node_id_bytes = step.node.to_le_bytes();
                 path_view.nodes_mut()[offset..(offset + 8)].copy_from_slice(&node_id_bytes);
+
+                // Copy all annotations for this edge
+                let e = Edge {
+                    source,
+                    target: step.node,
+                };
+                for a in orig.get_anno_storage().get_annotations_for_item(&e)? {
+                    self.annos.insert(e.clone(), a)?;
+                }
             }
         }
-        self.file = file;
+        self.paths = file;
         self.stats = orig.get_statistics().cloned();
+        self.annos.calculate_statistics()?;
         Ok(())
     }
 
@@ -123,10 +141,53 @@ impl GraphStorage for DiskPathStorage {
     where
         Self: std::marker::Sized,
     {
-        todo!()
+        // Open the new paths file
+        let paths_file = location.join("paths.bin");
+        let paths = File::open(paths_file)?;
+
+        // Create annotatio storage
+        let annos = AnnoStorageImpl::new(Some(location.to_path_buf()))?;
+
+        // Read stats
+        let stats_path = location.join("edge_stats.bin");
+        let f_stats = std::fs::File::open(stats_path)?;
+        let input = std::io::BufReader::new(f_stats);
+        let stats = bincode::deserialize_from(input)?;
+
+        Ok(Self {
+            paths,
+            annos,
+            stats,
+            location: Some(location.to_path_buf()),
+        })
     }
 
     fn save_to(&self, location: &std::path::Path) -> Result<()> {
-        todo!()
+        // Make sure the output location exists before trying to normalize the paths
+        std::fs::create_dir_all(location)?;
+        // Normalize all paths to check if they are the same
+        let new_location = location.normalize()?;
+        if let Some(old_location) = &self.location {
+            let old_location = old_location.normalize()?;
+            if new_location == old_location {
+                // This is an immutable graph storage so there can't be any
+                // changes to write to the existing location we already use.
+                return Ok(());
+            }
+        }
+        // Copy the current paths file to the new location
+        let new_paths_file = new_location.join("paths.bin");
+        let mut new_paths = File::open(&new_paths_file)?;
+        let mut reader = BufReader::new(&self.paths);
+        std::io::copy(&mut reader, &mut new_paths)?;
+
+        self.annos.save_annotations_to(location)?;
+        // Write stats with bincode
+        let stats_path = location.join("edge_stats.bin");
+        let f_stats = std::fs::File::create(stats_path)?;
+        let mut writer = std::io::BufWriter::new(f_stats);
+        bincode::serialize_into(&mut writer, &self.stats)?;
+
+        Ok(())
     }
 }
