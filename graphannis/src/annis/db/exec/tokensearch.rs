@@ -13,6 +13,7 @@ use graphannis_core::{
     graph::{storage::GraphStorage, ANNIS_NS, NODE_TYPE_KEY},
     types::{AnnoKey, Component, NodeID},
 };
+use itertools::Itertools;
 use smallvec::smallvec;
 
 use std::collections::HashSet;
@@ -62,33 +63,44 @@ impl<'a> AnyTokenSearch<'a> {
         components
     }
 
+    fn is_root_tok(&self, n: NodeID) -> Result<bool> {
+        let no_ingoing_edges = if let Some(order_gs) = self.order_gs {
+            !order_gs.has_ingoing_edges(n)?
+        } else {
+            true
+        };
+
+        if no_ingoing_edges {
+            if let Some(ref token_helper) = self.token_helper {
+                let no_outgoing_coverage = !token_helper.has_outgoing_coverage_edges(n)?;
+                Ok(no_outgoing_coverage)
+            } else {
+                Ok(true)
+            }
+        } else {
+            Ok(false)
+        }
+    }
+
     fn create_new_root_iterator(
         &self,
     ) -> Result<Vec<Box<dyn Iterator<Item = Result<NodeID>> + 'a>>> {
         // iterate over all nodes that are token and check if they are root node nodes in the ORDERING component
-        let mut root_nodes = Vec::new();
-        for tok_candidate in
-            self.db
-                .get_node_annos()
-                .exact_anno_search(Some("annis"), "tok", None.into())
-        {
-            let n = tok_candidate?.node;
-            let mut is_root_tok = true;
-            if let Some(order_gs) = self.order_gs {
-                is_root_tok = !order_gs.has_ingoing_edges(n)?;
-            }
-            if let Some(ref token_helper) = self.token_helper {
-                if is_root_tok {
-                    is_root_tok = !token_helper.has_outgoing_coverage_edges(n)?;
+        let root_nodes: Result<Vec<_>> = self
+            .db
+            .get_node_annos()
+            .exact_anno_search(Some("annis"), "tok", None.into())
+            .map(|tok_candidate| -> Result<Option<Match>> {
+                let tok_candidate = tok_candidate?;
+                if self.is_root_tok(tok_candidate.node)? {
+                    Ok(Some(tok_candidate))
+                } else {
+                    Ok(None)
                 }
-            }
-            if is_root_tok {
-                root_nodes.push(Match {
-                    node: n,
-                    anno_key: self.node_type_key.clone(),
-                });
-            }
-        }
+            })
+            .filter_map_ok(|m| m)
+            .collect();
+        let mut root_nodes = root_nodes?;
 
         let mut cache = SortCache::new(self.db.get_graphstorage(&COMPONENT_ORDER));
 
