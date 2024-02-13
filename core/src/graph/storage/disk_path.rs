@@ -1,6 +1,14 @@
 use itertools::Itertools;
 use normpath::PathExt;
-use std::{convert::TryInto, fs::File, io::BufReader, os::unix::fs::FileExt, path::PathBuf};
+use std::{
+    convert::TryInto,
+    fs::File,
+    io::BufReader,
+    ops::Add,
+    os::unix::fs::{FileExt, MetadataExt},
+    path::PathBuf,
+};
+use tempfile::tempfile;
 
 use crate::{
     annostorage::{ondisk::AnnoStorageImpl, AnnotationStorage},
@@ -37,6 +45,16 @@ fn offset_in_path(path_idx: usize) -> usize {
 }
 
 impl DiskPathStorage {
+    pub fn new() -> Result<DiskPathStorage> {
+        let paths = tempfile()?;
+        Ok(DiskPathStorage {
+            paths,
+            location: None,
+            annos: AnnoStorageImpl::new(None)?,
+            stats: None,
+        })
+    }
+
     fn get_outgoing_edge<'a>(&'a self, node: NodeID) -> Result<Option<NodeID>> {
         let mut buffer = [0; ENTRY_SIZE];
         self.paths
@@ -84,7 +102,6 @@ impl EdgeContainer for DiskPathStorage {
                 let it = (0..nr_nodes)
                     .map(move |n| {
                         let mut buffer = [0; ENTRY_SIZE];
-
                         self.paths.read_exact_at(&mut buffer, offset_in_file(n))?;
                         let view = node_path::View::new(&buffer);
 
@@ -142,12 +159,14 @@ impl GraphStorage for DiskPathStorage {
 
     fn copy(
         &mut self,
-        node_annos: &dyn crate::annostorage::NodeAnnotationStorage,
+        _node_annos: &dyn crate::annostorage::NodeAnnotationStorage,
         orig: &dyn GraphStorage,
     ) -> Result<()> {
         // Create a new file which is large enough to contain the paths for all nodes.
-        let number_of_nodes = node_annos.get_largest_item()?.unwrap_or(0);
-        let file_capacity = number_of_nodes * (node_path::SIZE.unwrap_or(1) as u64);
+        let max_node_id = orig
+            .source_nodes()
+            .fold_ok(0, |acc, node_id| acc.max(node_id))?;
+        let file_capacity = max_node_id * (node_path::SIZE.unwrap_or(1) as u64);
         let file = tempfile::tempfile()?;
         if file_capacity > 0 {
             file.set_len(file_capacity)?;
@@ -167,8 +186,9 @@ impl GraphStorage for DiskPathStorage {
                 // node in the path
                 let offset = offset_in_path(step.distance - 1);
                 // Set the node ID at the given position
-                let node_id_bytes = step.node.to_le_bytes();
-                path_view.nodes_mut()[offset..(offset + 8)].copy_from_slice(&node_id_bytes);
+                let target_node_id_bytes = step.node.to_le_bytes();
+                path_view.nodes_mut()[offset..(offset + 8)]
+                    .copy_from_slice(&target_node_id_bytes[..]);
 
                 // Copy all annotations for this edge
                 let e = Edge {
@@ -180,8 +200,7 @@ impl GraphStorage for DiskPathStorage {
                 }
             }
             // Save the path at the node offset
-            self.paths
-                .write_all_at(&output_bytes, offset_in_file(source))?;
+            file.write_all_at(&output_bytes, offset_in_file(source))?;
         }
         self.paths = file;
         self.stats = orig.get_statistics().cloned();
@@ -249,5 +268,83 @@ impl GraphStorage for DiskPathStorage {
         bincode::serialize_into(&mut writer, &self.stats)?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        graph::storage::{adjacencylist::AdjacencyListStorage, WriteableGraphStorage},
+        types::{AnnoKey, Annotation},
+    };
+    use pretty_assertions::assert_eq;
+
+    /// Creates an example graph storage with the folllowing structure:
+    ///
+    /// ```
+    /// 0   1   2   3  4    5
+    ///  \ /     \ /    \  /
+    ///   6       7       8
+    ///   |       |       |
+    ///   9      10      11
+    ///    \      |      /
+    ///     \     |     /
+    ///      \    |    /
+    ///       \   |   /
+    ///        \  |  /
+    ///           12
+    ///   
+    /// ```
+    fn create_topdown_gs() -> Result<AdjacencyListStorage> {
+        let mut orig = AdjacencyListStorage::new();
+
+        // First layer
+        orig.add_edge((0, 6).into())?;
+        orig.add_edge((1, 6).into())?;
+        orig.add_edge((2, 7).into())?;
+        orig.add_edge((3, 7).into())?;
+        orig.add_edge((4, 8).into())?;
+        orig.add_edge((5, 8).into())?;
+
+        // Second layer
+        orig.add_edge((6, 9).into())?;
+        orig.add_edge((7, 19).into())?;
+        orig.add_edge((8, 11).into())?;
+
+        // Third layer
+        orig.add_edge((9, 12).into())?;
+        orig.add_edge((10, 12).into())?;
+        orig.add_edge((11, 12).into())?;
+
+        // Add annotations to last layer
+        let key = AnnoKey {
+            name: "example".into(),
+            ns: "default_ns".into(),
+        };
+        let anno = Annotation {
+            key,
+            val: "last".into(),
+        };
+        orig.add_edge_annotation((9, 12).into(), anno.clone())?;
+        orig.add_edge_annotation((10, 12).into(), anno.clone())?;
+        orig.add_edge_annotation((11, 12).into(), anno.clone())?;
+
+        Ok(orig)
+    }
+
+    #[test]
+    fn test_source_nodes() {
+        // Create an example graph storage to copy the value from
+        let node_annos = AnnoStorageImpl::new(None).unwrap();
+        let orig = create_topdown_gs().unwrap();
+        let mut target = DiskPathStorage::new().unwrap();
+        target.copy(&node_annos, &orig).unwrap();
+
+        let result: Result<Vec<_>> = target.source_nodes().collect();
+        let mut result = result.unwrap();
+        result.sort();
+
+        assert_eq!(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], result)
     }
 }

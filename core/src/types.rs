@@ -55,6 +55,15 @@ impl Edge {
     }
 }
 
+impl From<(NodeID, NodeID)> for Edge {
+    fn from(value: (NodeID, NodeID)) -> Self {
+        Edge {
+            source: value.0,
+            target: value.1,
+        }
+    }
+}
+
 impl KeySerializer for Edge {
     fn create_key(&self) -> KeyVec {
         let mut result = KeyVec::new();
