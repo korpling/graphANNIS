@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use normpath::PathExt;
 use std::{convert::TryInto, fs::File, io::BufReader, os::unix::fs::FileExt, path::PathBuf};
 
@@ -12,7 +13,7 @@ use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use binary_layout::prelude::*;
 
 const MAX_DEPTH: usize = 15;
-const ENTRY_SIZE: usize = (MAX_DEPTH * 8) + 8;
+const ENTRY_SIZE: usize = (MAX_DEPTH * 8) + 1;
 
 binary_layout!(node_path, LittleEndian, {
     length: u8,
@@ -50,6 +51,11 @@ impl DiskPathStorage {
             Ok(Some(u64::from_le_bytes(buffer)))
         }
     }
+
+    fn number_of_nodes(&self) -> Result<u64> {
+        let file_size = self.paths.metadata()?.len();
+        Ok(file_size / (ENTRY_SIZE as u64))
+    }
 }
 
 impl EdgeContainer for DiskPathStorage {
@@ -72,7 +78,28 @@ impl EdgeContainer for DiskPathStorage {
     }
 
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
-        todo!()
+        match self.number_of_nodes() {
+            Ok(nr_nodes) => {
+                // ignore node entries with empty path in result
+                let it = (0..nr_nodes)
+                    .map(move |n| {
+                        let mut buffer = [0; ENTRY_SIZE];
+
+                        self.paths.read_exact_at(&mut buffer, offset_in_file(n))?;
+                        let view = node_path::View::new(&buffer);
+
+                        let path_length = view.length().read();
+                        if path_length == 0 {
+                            Ok(None)
+                        } else {
+                            Ok(Some(n))
+                        }
+                    })
+                    .filter_map_ok(|n| n);
+                Box::new(it)
+            }
+            Err(e) => Box::new(std::iter::once(Err(e.into()))),
+        }
     }
 }
 
