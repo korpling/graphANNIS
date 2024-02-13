@@ -1,6 +1,9 @@
 use itertools::Itertools;
 use normpath::PathExt;
-use std::{convert::TryInto, fs::File, io::BufReader, os::unix::fs::FileExt, path::PathBuf};
+use std::{
+    collections::BTreeSet, convert::TryInto, fs::File, io::BufReader, os::unix::fs::FileExt,
+    path::PathBuf,
+};
 use tempfile::tempfile;
 
 use crate::{
@@ -50,6 +53,9 @@ impl DiskPathStorage {
     }
 
     fn get_outgoing_edge(&self, node: NodeID) -> Result<Option<NodeID>> {
+        if node > self.max_node_id()? {
+            return Ok(None);
+        }
         let mut buffer = [0; ENTRY_SIZE];
         self.paths
             .read_exact_at(&mut buffer, offset_in_file(node))?;
@@ -112,9 +118,19 @@ impl EdgeContainer for DiskPathStorage {
 
     fn get_ingoing_edges<'a>(
         &'a self,
-        _node: NodeID,
+        node: NodeID,
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
-        todo!()
+        let max_id = try_as_boxed_iter!(self.max_node_id());
+        let mut result = BTreeSet::new();
+        for source in 0..=max_id {
+            let path = try_as_boxed_iter!(self.path_for_node(source));
+            if let Some(target) = path.get(0) {
+                if *target == node {
+                    result.insert(source);
+                }
+            }
+        }
+        Box::new(result.into_iter().map(|n| Ok(n)))
     }
 
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
@@ -382,6 +398,66 @@ mod tests {
         result.sort();
 
         assert_eq!(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], result);
+    }
+
+    #[test]
+    fn test_outgoing_edges() {
+        // Create an example graph storage to copy the value from
+        let node_annos = AnnoStorageImpl::new(None).unwrap();
+        let orig = create_topdown_gs().unwrap();
+        let mut target = DiskPathStorage::new().unwrap();
+        target.copy(&node_annos, &orig).unwrap();
+
+        let result: Result<Vec<_>> = target.get_outgoing_edges(0).collect();
+        assert_eq!(vec![6], result.unwrap());
+
+        let result: Result<Vec<_>> = target.get_outgoing_edges(3).collect();
+        assert_eq!(vec![7], result.unwrap());
+
+        let result: Result<Vec<_>> = target.get_outgoing_edges(7).collect();
+        assert_eq!(vec![10], result.unwrap());
+
+        let result: Result<Vec<_>> = target.get_outgoing_edges(11).collect();
+        assert_eq!(vec![12], result.unwrap());
+
+        let result: Result<Vec<_>> = target.get_outgoing_edges(12).collect();
+        assert_eq!(0, result.unwrap().len());
+
+        let result: Result<Vec<_>> = target.get_outgoing_edges(100).collect();
+        assert_eq!(0, result.unwrap().len());
+    }
+
+    #[test]
+    fn test_inggoing_edges() {
+        // Create an example graph storage to copy the value from
+        let node_annos = AnnoStorageImpl::new(None).unwrap();
+        let orig = create_topdown_gs().unwrap();
+        let mut target = DiskPathStorage::new().unwrap();
+        target.copy(&node_annos, &orig).unwrap();
+
+        let result: Result<Vec<_>> = target.get_ingoing_edges(12).collect();
+        let mut result = result.unwrap();
+        result.sort();
+        assert_eq!(vec![9, 10, 11], result);
+
+        let result: Result<Vec<_>> = target.get_ingoing_edges(10).collect();
+        let mut result = result.unwrap();
+        result.sort();
+        assert_eq!(vec![7], result);
+
+        let result: Result<Vec<_>> = target.get_ingoing_edges(8).collect();
+        let mut result = result.unwrap();
+        result.sort();
+        assert_eq!(vec![4, 5], result);
+
+        let result: Result<Vec<_>> = target.get_ingoing_edges(0).collect();
+        assert_eq!(0, result.unwrap().len());
+
+        let result: Result<Vec<_>> = target.get_ingoing_edges(1).collect();
+        assert_eq!(0, result.unwrap().len());
+
+        let result: Result<Vec<_>> = target.get_ingoing_edges(100).collect();
+        assert_eq!(0, result.unwrap().len());
     }
 
     #[test]
