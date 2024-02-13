@@ -2114,14 +2114,17 @@ fn add_subcorpora(
                 node_name: subcorpus_full_name.to_string(),
                 node_type: "corpus".to_owned(),
             })?;
-            updates.add_event(UpdateEvent::AddNodeLabel {
-                node_name: subcorpus_full_name.to_string(),
-                anno_ns: ANNIS_NS.to_owned(),
-                anno_name: "doc".to_owned(),
-                anno_value: corpus_name.as_str().into(),
-            })?;
+            // Only add the "annis:doc" label to leaf nodes of the corpus tree
+            if corpus.pre + 1 == corpus.post {
+                updates.add_event(UpdateEvent::AddNodeLabel {
+                    node_name: subcorpus_full_name.to_string(),
+                    anno_ns: ANNIS_NS.to_owned(),
+                    anno_name: "doc".to_owned(),
+                    anno_value: corpus_name.as_str().into(),
+                })?;
+            }
 
-            // add all metadata for the document node
+            // add all metadata for the (sub-) corpus/document
             let start_key = (
                 *corpus_id,
                 AnnoKey {

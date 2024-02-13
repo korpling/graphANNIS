@@ -23,8 +23,7 @@ use graphannis_core::annostorage::symboltable::SymbolTable;
 use graphannis_core::annostorage::{
     match_group_resolve_symbol_ids, match_group_with_symbol_ids, NodeAnnotationStorage,
 };
-use graphannis_core::dfs::CycleSafeDFS;
-use graphannis_core::graph::storage::union::UnionEdgeContainer;
+use graphannis_core::errors::Result as CoreResult;
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
     graph::{
@@ -1548,7 +1547,7 @@ impl CorpusStorage {
             let plan =
                 ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config, timeout)?;
 
-            let mut known_documents: HashSet<NodeID> = HashSet::new();
+            let mut known_partof_ancestors: HashSet<NodeID> = HashSet::new();
 
             let part_of_components =
                 db.get_all_components(Some(AnnotationComponentType::PartOf), None);
@@ -1556,10 +1555,9 @@ impl CorpusStorage {
             let mut part_of_gs = Vec::with_capacity(part_of_components.len());
             for c in part_of_components {
                 if let Some(gs) = db.get_graphstorage_as_ref(&c) {
-                    part_of_gs.push(gs.as_edgecontainer());
+                    part_of_gs.push(gs);
                 }
             }
-            let part_of_gs = UnionEdgeContainer::new(part_of_gs);
 
             for m in plan {
                 let m = m?;
@@ -1567,16 +1565,11 @@ impl CorpusStorage {
                     let m: &Match = &m[0];
 
                     // Get the ancestor node with the "annis:doc" annotation
-                    let dfs = CycleSafeDFS::new(&part_of_gs, m.node, 1, usize::MAX);
-                    for step in dfs {
-                        let step = step?;
-                        if db
-                            .get_node_annos()
-                            .has_value_for_item(&step.node, &annis_doc_key)?
-                        {
-                            known_documents.insert(step.node);
-                            break;
-                        }
+                    for gs in &part_of_gs {
+                        let ancestors: CoreResult<Vec<u64>> = gs
+                            .find_connected(m.node, 1, std::ops::Bound::Unbounded)
+                            .collect();
+                        known_partof_ancestors.extend(ancestors?);
                     }
                 }
                 match_count += 1;
@@ -1585,7 +1578,11 @@ impl CorpusStorage {
                     timeout.check()?;
                 }
             }
-            document_count += known_documents.len() as u64;
+            for c in known_partof_ancestors {
+                if db.get_node_annos().has_value_for_item(&c, &annis_doc_key)? {
+                    document_count += 1;
+                }
+            }
 
             timeout.check()?;
         }
