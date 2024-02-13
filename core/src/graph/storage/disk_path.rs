@@ -154,7 +154,7 @@ impl GraphStorage for DiskPathStorage {
     }
 
     fn get_anno_storage(&self) -> &dyn crate::annostorage::EdgeAnnotationStorage {
-        todo!()
+        &self.annos
     }
 
     fn copy(
@@ -225,7 +225,9 @@ impl GraphStorage for DiskPathStorage {
         let paths = File::open(paths_file)?;
 
         // Create annotatio storage
-        let annos = AnnoStorageImpl::new(Some(location.to_path_buf()))?;
+        let annos = AnnoStorageImpl::new(Some(
+            location.join(crate::annostorage::ondisk::SUBFOLDER_NAME),
+        ))?;
 
         // Read stats
         let stats_path = location.join("edge_stats.bin");
@@ -256,7 +258,7 @@ impl GraphStorage for DiskPathStorage {
         }
         // Copy the current paths file to the new location
         let new_paths_file = new_location.join("paths.bin");
-        let mut new_paths = File::open(&new_paths_file)?;
+        let mut new_paths = File::create(&new_paths_file)?;
         let mut reader = BufReader::new(&self.paths);
         std::io::copy(&mut reader, &mut new_paths)?;
 
@@ -345,6 +347,37 @@ mod tests {
         let mut result = result.unwrap();
         result.sort();
 
-        assert_eq!(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], result)
+        assert_eq!(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], result);
+    }
+
+    #[test]
+    fn test_save_load() {
+        // Create an example graph storage to copy the value from
+        let node_annos = AnnoStorageImpl::new(None).unwrap();
+        let orig = create_topdown_gs().unwrap();
+        let mut save_gs = DiskPathStorage::new().unwrap();
+        save_gs.copy(&node_annos, &orig).unwrap();
+
+        let tmp_location = tempfile::TempDir::new().unwrap();
+        save_gs.save_to(tmp_location.path()).unwrap();
+
+        let new_gs = DiskPathStorage::load_from(tmp_location.path()).unwrap();
+
+        let result: Result<Vec<_>> = new_gs.source_nodes().collect();
+        let mut result = result.unwrap();
+        result.sort();
+
+        assert_eq!(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], result);
+
+        for source in 9..=11 {
+            let edge_anno = new_gs
+                .get_anno_storage()
+                .get_annotations_for_item(&(source, 12).into())
+                .unwrap();
+            assert_eq!(1, edge_anno.len());
+            assert_eq!("default_ns", edge_anno[0].key.ns);
+            assert_eq!("example", edge_anno[0].key.name);
+            assert_eq!("last", edge_anno[0].val);
+        }
     }
 }
