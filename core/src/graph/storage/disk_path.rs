@@ -1,19 +1,13 @@
 use itertools::Itertools;
 use normpath::PathExt;
-use std::{
-    convert::TryInto,
-    fs::File,
-    io::BufReader,
-    ops::Add,
-    os::unix::fs::{FileExt, MetadataExt},
-    path::PathBuf,
-};
+use std::{convert::TryInto, fs::File, io::BufReader, os::unix::fs::FileExt, path::PathBuf};
 use tempfile::tempfile;
 
 use crate::{
     annostorage::{ondisk::AnnoStorageImpl, AnnotationStorage},
     dfs::CycleSafeDFS,
     errors::Result,
+    try_as_boxed_iter,
     types::{Edge, NodeID},
 };
 
@@ -37,7 +31,7 @@ pub struct DiskPathStorage {
 }
 
 fn offset_in_file(n: NodeID) -> u64 {
-    n * (node_path::SIZE.unwrap_or(1) as u64)
+    n * (ENTRY_SIZE as u64)
 }
 
 fn offset_in_path(path_idx: usize) -> usize {
@@ -55,7 +49,7 @@ impl DiskPathStorage {
         })
     }
 
-    fn get_outgoing_edge<'a>(&'a self, node: NodeID) -> Result<Option<NodeID>> {
+    fn get_outgoing_edge(&self, node: NodeID) -> Result<Option<NodeID>> {
         let mut buffer = [0; ENTRY_SIZE];
         self.paths
             .read_exact_at(&mut buffer, offset_in_file(node))?;
@@ -70,9 +64,37 @@ impl DiskPathStorage {
         }
     }
 
-    fn number_of_nodes(&self) -> Result<u64> {
+    fn max_node_id(&self) -> Result<u64> {
         let file_size = self.paths.metadata()?.len();
-        Ok(file_size / (ENTRY_SIZE as u64))
+        let number_of_entries = file_size / (ENTRY_SIZE as u64);
+        Ok(number_of_entries - 1)
+    }
+
+    fn path_for_node(&self, node: NodeID) -> Result<Vec<NodeID>> {
+        if node > self.max_node_id()? {
+            return Ok(Vec::default());
+        }
+        let mut buffer = [0; ENTRY_SIZE];
+        self.paths
+            .read_exact_at(&mut buffer, offset_in_file(node))?;
+        let view = node_path::View::new(&buffer);
+        let length = view.length().read();
+        if length == 0 {
+            // No outgoing edges
+            Ok(Vec::default())
+        } else {
+            // Add all path elements
+            let mut result = Vec::with_capacity(length as usize);
+            for i in 0..length {
+                let i = i as usize;
+                let element_buffer: [u8; 8] =
+                    view.nodes()[offset_in_path(i)..offset_in_path(i + 1)].try_into()?;
+                let ancestor_id = u64::from_le_bytes(element_buffer);
+                result.push(ancestor_id);
+            }
+
+            Ok(result)
+        }
     }
 }
 
@@ -90,16 +112,16 @@ impl EdgeContainer for DiskPathStorage {
 
     fn get_ingoing_edges<'a>(
         &'a self,
-        node: NodeID,
+        _node: NodeID,
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         todo!()
     }
 
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
-        match self.number_of_nodes() {
-            Ok(nr_nodes) => {
+        match self.max_node_id() {
+            Ok(max_node_id) => {
                 // ignore node entries with empty path in result
-                let it = (0..nr_nodes)
+                let it = (0..=max_node_id)
                     .map(move |n| {
                         let mut buffer = [0; ENTRY_SIZE];
                         self.paths.read_exact_at(&mut buffer, offset_in_file(n))?;
@@ -115,7 +137,7 @@ impl EdgeContainer for DiskPathStorage {
                     .filter_map_ok(|n| n);
                 Box::new(it)
             }
-            Err(e) => Box::new(std::iter::once(Err(e.into()))),
+            Err(e) => Box::new(std::iter::once(Err(e))),
         }
     }
 }
@@ -127,28 +149,37 @@ impl GraphStorage for DiskPathStorage {
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
-        todo!()
+        let path = try_as_boxed_iter!(self.path_for_node(node));
+        let start = min_distance.saturating_sub(1);
+        let end = match max_distance {
+            std::ops::Bound::Included(end) => end + 1,
+            std::ops::Bound::Excluded(end) => end,
+            std::ops::Bound::Unbounded => path.len(),
+        };
+        let end = end.min(path.len());
+        let result: Vec<_> = path[start..end].iter().map(|n| Ok(*n)).collect();
+        Box::new(result.into_iter())
     }
 
     fn find_connected_inverse<'a>(
         &'a self,
-        node: NodeID,
-        min_distance: usize,
-        max_distance: std::ops::Bound<usize>,
+        _node: NodeID,
+        _min_distance: usize,
+        _max_distance: std::ops::Bound<usize>,
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         todo!()
     }
 
-    fn distance(&self, source: NodeID, target: NodeID) -> Result<Option<usize>> {
+    fn distance(&self, _source: NodeID, _target: NodeID) -> Result<Option<usize>> {
         todo!()
     }
 
     fn is_connected(
         &self,
-        source: NodeID,
-        target: NodeID,
-        min_distance: usize,
-        max_distance: std::ops::Bound<usize>,
+        _source: NodeID,
+        _target: NodeID,
+        _min_distance: usize,
+        _max_distance: std::ops::Bound<usize>,
     ) -> Result<bool> {
         todo!()
     }
@@ -166,35 +197,38 @@ impl GraphStorage for DiskPathStorage {
         let max_node_id = orig
             .source_nodes()
             .fold_ok(0, |acc, node_id| acc.max(node_id))?;
-        let file_capacity = max_node_id * (node_path::SIZE.unwrap_or(1) as u64);
+        let file_capacity = max_node_id * (ENTRY_SIZE as u64);
         let file = tempfile::tempfile()?;
         if file_capacity > 0 {
             file.set_len(file_capacity)?;
         }
 
         // Get the paths for all source nodes in the original graph storage
-        for source in orig.source_nodes() {
+        for source in orig.source_nodes().sorted_by(|a, b| {
+            let a = a.as_ref().unwrap_or(&0);
+            let b = b.as_ref().unwrap_or(&0);
+            a.cmp(b)
+        }) {
             let source = source?;
+
             let mut output_bytes = [0; ENTRY_SIZE];
             let mut path_view = node_path::View::new(&mut output_bytes);
             let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), source, 1, MAX_DEPTH);
             for step in dfs {
                 let step = step?;
+                let target = step.node;
                 // Set the new length
                 path_view.length_mut().write(step.distance.try_into()?);
                 // The distance starts at 1, but we do not repeat the source
                 // node in the path
                 let offset = offset_in_path(step.distance - 1);
                 // Set the node ID at the given position
-                let target_node_id_bytes = step.node.to_le_bytes();
+                let target_node_id_bytes = target.to_le_bytes();
                 path_view.nodes_mut()[offset..(offset + 8)]
                     .copy_from_slice(&target_node_id_bytes[..]);
 
                 // Copy all annotations for this edge
-                let e = Edge {
-                    source,
-                    target: step.node,
-                };
+                let e = Edge { source, target };
                 for a in orig.get_anno_storage().get_annotations_for_item(&e)? {
                     self.annos.insert(e.clone(), a)?;
                 }
@@ -258,7 +292,7 @@ impl GraphStorage for DiskPathStorage {
         }
         // Copy the current paths file to the new location
         let new_paths_file = new_location.join("paths.bin");
-        let mut new_paths = File::create(&new_paths_file)?;
+        let mut new_paths = File::create(new_paths_file)?;
         let mut reader = BufReader::new(&self.paths);
         std::io::copy(&mut reader, &mut new_paths)?;
 
@@ -311,7 +345,7 @@ mod tests {
 
         // Second layer
         orig.add_edge((6, 9).into())?;
-        orig.add_edge((7, 19).into())?;
+        orig.add_edge((7, 10).into())?;
         orig.add_edge((8, 11).into())?;
 
         // Third layer
@@ -348,6 +382,59 @@ mod tests {
         result.sort();
 
         assert_eq!(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], result);
+    }
+
+    #[test]
+    fn test_path_for_node() {
+        // Create an example graph storage to copy the value from
+        let node_annos = AnnoStorageImpl::new(None).unwrap();
+        let orig = create_topdown_gs().unwrap();
+        let mut target = DiskPathStorage::new().unwrap();
+        target.copy(&node_annos, &orig).unwrap();
+
+        assert_eq!(vec![6, 9, 12], target.path_for_node(0).unwrap());
+        assert_eq!(vec![9, 12], target.path_for_node(6).unwrap());
+        assert_eq!(vec![12], target.path_for_node(10).unwrap());
+
+        assert_eq!(vec![7, 10, 12], target.path_for_node(2).unwrap());
+        assert_eq!(vec![10, 12], target.path_for_node(7).unwrap());
+        assert_eq!(vec![12], target.path_for_node(10).unwrap());
+
+        assert_eq!(0, target.path_for_node(100).unwrap().len());
+    }
+
+    #[test]
+    fn test_find_connected() {
+        // Create an example graph storage to copy the value from
+        let node_annos = AnnoStorageImpl::new(None).unwrap();
+        let orig = create_topdown_gs().unwrap();
+        let mut target = DiskPathStorage::new().unwrap();
+        target.copy(&node_annos, &orig).unwrap();
+
+        let result: Result<Vec<_>> = target
+            .find_connected(0, 0, std::ops::Bound::Unbounded)
+            .collect();
+        assert_eq!(vec![6, 9, 12], result.unwrap());
+
+        let result: Result<Vec<_>> = target
+            .find_connected(1, 0, std::ops::Bound::Unbounded)
+            .collect();
+        assert_eq!(vec![6, 9, 12], result.unwrap());
+
+        let result: Result<Vec<_>> = target
+            .find_connected(7, 1, std::ops::Bound::Included(2))
+            .collect();
+        assert_eq!(vec![10, 12], result.unwrap());
+
+        let result: Result<Vec<_>> = target
+            .find_connected(7, 0, std::ops::Bound::Excluded(1))
+            .collect();
+        assert_eq!(vec![10], result.unwrap());
+
+        let result: Result<Vec<_>> = target
+            .find_connected(10, 1, std::ops::Bound::Unbounded)
+            .collect();
+        assert_eq!(vec![12], result.unwrap());
     }
 
     #[test]

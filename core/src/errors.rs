@@ -87,3 +87,15 @@ impl From<GraphAnnisCoreError> for ComponentTypeError {
 }
 
 pub type Result<T> = std::result::Result<T, GraphAnnisCoreError>;
+
+#[macro_export]
+macro_rules! try_as_boxed_iter {
+    ($x:expr) => {
+        match $x {
+            Ok(v) => v,
+            Err(e) => {
+                return std::boxed::Box::new(std::iter::once(Err(e.into())));
+            }
+        }
+    };
+}
