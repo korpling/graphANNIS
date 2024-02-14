@@ -1,7 +1,12 @@
 use itertools::Itertools;
 use normpath::PathExt;
 use std::{
-    collections::BTreeSet, convert::TryInto, fs::File, io::BufReader, os::unix::fs::FileExt,
+    collections::{BTreeSet, HashSet},
+    convert::TryInto,
+    fs::File,
+    io::BufReader,
+    ops::Bound,
+    os::unix::fs::FileExt,
     path::PathBuf,
 };
 use tempfile::tempfile;
@@ -165,25 +170,46 @@ impl GraphStorage for DiskPathStorage {
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
+        let mut result = Vec::default();
+        if min_distance == 0 {
+            result.push(Ok(node));
+        }
+
         let path = try_as_boxed_iter!(self.path_for_node(node));
         let start = min_distance.saturating_sub(1);
+
         let end = match max_distance {
             std::ops::Bound::Included(end) => end + 1,
             std::ops::Bound::Excluded(end) => end,
             std::ops::Bound::Unbounded => path.len(),
         };
         let end = end.min(path.len());
-        let result: Vec<_> = path[start..end].iter().map(|n| Ok(*n)).collect();
+        result.extend(path[start..end].iter().map(|n| Ok(*n)));
         Box::new(result.into_iter())
     }
 
     fn find_connected_inverse<'a>(
         &'a self,
-        _node: NodeID,
-        _min_distance: usize,
-        _max_distance: std::ops::Bound<usize>,
+        node: NodeID,
+        min_distance: usize,
+        max_distance: std::ops::Bound<usize>,
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
-        todo!()
+        let mut visited = HashSet::<NodeID>::default();
+        let max_distance = match max_distance {
+            Bound::Unbounded => usize::MAX,
+            Bound::Included(max_distance) => max_distance,
+            Bound::Excluded(max_distance) => max_distance + 1,
+        };
+
+        let it = CycleSafeDFS::<'a>::new_inverse(self, node, min_distance, max_distance)
+            .filter_map_ok(move |x| {
+                if visited.insert(x.node) {
+                    Some(x.node)
+                } else {
+                    None
+                }
+            });
+        Box::new(it)
     }
 
     fn distance(&self, _source: NodeID, _target: NodeID) -> Result<Option<usize>> {
@@ -490,12 +516,17 @@ mod tests {
         let result: Result<Vec<_>> = target
             .find_connected(0, 0, std::ops::Bound::Unbounded)
             .collect();
+        assert_eq!(vec![0, 6, 9, 12], result.unwrap());
+
+        let result: Result<Vec<_>> = target
+            .find_connected(0, 1, std::ops::Bound::Unbounded)
+            .collect();
         assert_eq!(vec![6, 9, 12], result.unwrap());
 
         let result: Result<Vec<_>> = target
             .find_connected(1, 0, std::ops::Bound::Unbounded)
             .collect();
-        assert_eq!(vec![6, 9, 12], result.unwrap());
+        assert_eq!(vec![1, 6, 9, 12], result.unwrap());
 
         let result: Result<Vec<_>> = target
             .find_connected(7, 1, std::ops::Bound::Included(2))
@@ -503,7 +534,7 @@ mod tests {
         assert_eq!(vec![10, 12], result.unwrap());
 
         let result: Result<Vec<_>> = target
-            .find_connected(7, 0, std::ops::Bound::Excluded(1))
+            .find_connected(7, 1, std::ops::Bound::Excluded(1))
             .collect();
         assert_eq!(vec![10], result.unwrap());
 
@@ -511,6 +542,43 @@ mod tests {
             .find_connected(10, 1, std::ops::Bound::Unbounded)
             .collect();
         assert_eq!(vec![12], result.unwrap());
+    }
+
+    #[test]
+    fn test_find_connected_inverse() {
+        // Create an example graph storage to copy the value from
+        let node_annos = AnnoStorageImpl::new(None).unwrap();
+        let orig = create_topdown_gs().unwrap();
+        let mut target = DiskPathStorage::new().unwrap();
+        target.copy(&node_annos, &orig).unwrap();
+
+        let result: Result<Vec<_>> = target
+            .find_connected_inverse(12, 0, Bound::Unbounded)
+            .collect();
+        let mut result = result.unwrap();
+        result.sort();
+        assert_eq!(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result);
+
+        let result: Result<Vec<_>> = target
+            .find_connected_inverse(12, 1, Bound::Excluded(2))
+            .collect();
+        let mut result = result.unwrap();
+        result.sort();
+        assert_eq!(vec![9, 10, 11], result);
+
+        let result: Result<Vec<_>> = target
+            .find_connected_inverse(10, 1, Bound::Included(2))
+            .collect();
+        let mut result = result.unwrap();
+        result.sort();
+        assert_eq!(vec![2, 3, 7], result);
+
+        let result: Result<Vec<_>> = target
+            .find_connected_inverse(12, 3, Bound::Included(3))
+            .collect();
+        let mut result = result.unwrap();
+        result.sort();
+        assert_eq!(vec![1, 2, 3, 4, 5], result);
     }
 
     #[test]
