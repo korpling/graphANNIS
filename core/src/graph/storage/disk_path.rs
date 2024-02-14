@@ -212,18 +212,38 @@ impl GraphStorage for DiskPathStorage {
         Box::new(it)
     }
 
-    fn distance(&self, _source: NodeID, _target: NodeID) -> Result<Option<usize>> {
-        todo!()
+    fn distance(&self, source: NodeID, target: NodeID) -> Result<Option<usize>> {
+        let path = self.path_for_node(source)?;
+        // Find the target node in the path. The path starts at distance "0".
+        let result = path
+            .into_iter()
+            .position(|n| n == target)
+            .map(|idx| idx + 1);
+        Ok(result)
     }
 
     fn is_connected(
         &self,
-        _source: NodeID,
-        _target: NodeID,
-        _min_distance: usize,
-        _max_distance: std::ops::Bound<usize>,
+        source: NodeID,
+        target: NodeID,
+        min_distance: usize,
+        max_distance: std::ops::Bound<usize>,
     ) -> Result<bool> {
-        todo!()
+        let path = self.path_for_node(source)?;
+        // There is a connection when the target node is located in the path (given the min/max constraints)
+        let start = min_distance.saturating_sub(1).clamp(0, path.len());
+        let end = match max_distance {
+            Bound::Unbounded => path.len(),
+            Bound::Included(max_distance) => max_distance,
+            Bound::Excluded(max_distance) => max_distance.saturating_sub(1),
+        };
+        let end = end.clamp(0, path.len());
+        for i in start..end {
+            if path[i] == target {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     fn get_anno_storage(&self) -> &dyn crate::annostorage::EdgeAnnotationStorage {
@@ -289,7 +309,7 @@ impl GraphStorage for DiskPathStorage {
     }
 
     fn serialization_id(&self) -> String {
-        todo!()
+        format!("DiskPathV1_D{MAX_DEPTH}")
     }
 
     fn load_from(location: &std::path::Path) -> Result<Self>
@@ -546,7 +566,6 @@ mod tests {
 
     #[test]
     fn test_find_connected_inverse() {
-        // Create an example graph storage to copy the value from
         let node_annos = AnnoStorageImpl::new(None).unwrap();
         let orig = create_topdown_gs().unwrap();
         let mut target = DiskPathStorage::new().unwrap();
@@ -579,6 +598,69 @@ mod tests {
         let mut result = result.unwrap();
         result.sort();
         assert_eq!(vec![0, 1, 2, 3, 4, 5], result);
+    }
+
+    #[test]
+    fn test_distance() {
+        let node_annos = AnnoStorageImpl::new(None).unwrap();
+        let orig = create_topdown_gs().unwrap();
+        let mut target = DiskPathStorage::new().unwrap();
+        target.copy(&node_annos, &orig).unwrap();
+
+        assert_eq!(None, target.distance(7, 7).unwrap());
+        assert_eq!(None, target.distance(12, 1).unwrap());
+        assert_eq!(Some(1), target.distance(0, 6).unwrap());
+        assert_eq!(Some(1), target.distance(3, 7).unwrap());
+        assert_eq!(Some(1), target.distance(4, 8).unwrap());
+        assert_eq!(Some(2), target.distance(4, 11).unwrap());
+        assert_eq!(Some(2), target.distance(6, 12).unwrap());
+        assert_eq!(Some(3), target.distance(2, 12).unwrap());
+        assert_eq!(Some(3), target.distance(3, 12).unwrap());
+    }
+
+    #[test]
+    fn test_is_connected() {
+        let node_annos = AnnoStorageImpl::new(None).unwrap();
+        let orig = create_topdown_gs().unwrap();
+        let mut target = DiskPathStorage::new().unwrap();
+        target.copy(&node_annos, &orig).unwrap();
+
+        assert_eq!(
+            false,
+            target.is_connected(7, 7, 0, Bound::Unbounded).unwrap()
+        );
+        assert_eq!(
+            false,
+            target.is_connected(12, 1, 0, Bound::Unbounded).unwrap()
+        );
+        assert_eq!(
+            true,
+            target.is_connected(0, 6, 1, Bound::Included(1)).unwrap()
+        );
+        assert_eq!(
+            true,
+            target.is_connected(3, 7, 1, Bound::Excluded(2)).unwrap()
+        );
+        assert_eq!(
+            true,
+            target.is_connected(4, 8, 1, Bound::Unbounded).unwrap()
+        );
+        assert_eq!(
+            true,
+            target.is_connected(4, 11, 2, Bound::Excluded(4)).unwrap()
+        );
+        assert_eq!(
+            true,
+            target.is_connected(6, 12, 1, Bound::Included(2)).unwrap()
+        );
+        assert_eq!(
+            true,
+            target.is_connected(2, 12, 3, Bound::Unbounded).unwrap()
+        );
+        assert_eq!(
+            true,
+            target.is_connected(3, 12, 3, Bound::Included(3)).unwrap()
+        );
     }
 
     #[test]
