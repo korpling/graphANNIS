@@ -198,7 +198,7 @@ impl GraphStorage for DiskPathStorage {
         let max_distance = match max_distance {
             Bound::Unbounded => usize::MAX,
             Bound::Included(max_distance) => max_distance,
-            Bound::Excluded(max_distance) => max_distance + 1,
+            Bound::Excluded(max_distance) => max_distance - 1,
         };
 
         let it = CycleSafeDFS::<'a>::new_inverse(self, node, min_distance, max_distance)
@@ -578,7 +578,7 @@ mod tests {
             .collect();
         let mut result = result.unwrap();
         result.sort();
-        assert_eq!(vec![1, 2, 3, 4, 5], result);
+        assert_eq!(vec![0, 1, 2, 3, 4, 5], result);
     }
 
     #[test]
