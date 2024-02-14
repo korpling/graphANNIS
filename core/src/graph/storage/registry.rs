@@ -76,10 +76,7 @@ pub fn get_optimal_impl_heuristic<CT: ComponentType>(
     db: &Graph<CT>,
     stats: &GraphStatistic,
 ) -> GSInfo {
-    if stats.max_depth <= 1 {
-        // if we don't have any deep graph structures an adjencency list is always fasted (and has no overhead)
-        return get_adjacencylist_impl(db, stats);
-    } else if db.disk_based
+    if db.disk_based
         && stats.max_depth <= disk_path::MAX_DEPTH
         && stats.max_fan_out == 1
         && !stats.cyclic
@@ -89,6 +86,9 @@ pub fn get_optimal_impl_heuristic<CT: ComponentType>(
         // an optimized implementation that stores the single path for each
         // source node.
         return create_info_diskpath();
+    } else if stats.max_depth <= 1 {
+        // if we don't have any deep graph structures an adjencency list is always fasted (and has no overhead)
+        return get_adjacencylist_impl(db, stats);
     } else if stats.rooted_tree {
         if stats.max_fan_out <= 1 {
             return get_linear_by_size(stats);
