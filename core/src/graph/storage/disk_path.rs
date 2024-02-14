@@ -22,7 +22,8 @@ use crate::{
 use super::{EdgeContainer, GraphStatistic, GraphStorage};
 use binary_layout::prelude::*;
 
-const MAX_DEPTH: usize = 15;
+pub(crate) const MAX_DEPTH: usize = 15;
+pub(crate) const SERIALIZATION_ID: &str = "DiskPathV1_D15";
 const ENTRY_SIZE: usize = (MAX_DEPTH * 8) + 1;
 
 binary_layout!(node_path, LittleEndian, {
@@ -309,7 +310,7 @@ impl GraphStorage for DiskPathStorage {
     }
 
     fn serialization_id(&self) -> String {
-        format!("DiskPathV1_D{MAX_DEPTH}")
+        SERIALIZATION_ID.to_string()
     }
 
     fn load_from(location: &std::path::Path) -> Result<Self>

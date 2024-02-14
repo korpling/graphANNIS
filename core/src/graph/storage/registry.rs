@@ -1,8 +1,9 @@
 use super::adjacencylist::AdjacencyListStorage;
 use super::dense_adjacency::DenseAdjacencyListStorage;
-use super::disk_adjacency;
 use super::disk_adjacency::DiskAdjacencyListStorage;
+use super::disk_path::DiskPathStorage;
 use super::linear::LinearGraphStorage;
+use super::{disk_adjacency, disk_path};
 use super::{prepost::PrePostOrderStorage, GraphStatistic, GraphStorage};
 use crate::{
     errors::{GraphAnnisCoreError, Result},
@@ -28,6 +29,11 @@ lazy_static! {
             disk_adjacency::SERIALIZATION_ID.to_owned(),
             create_info_diskadjacency(),
         );
+
+        m.insert(
+            disk_path::SERIALIZATION_ID.to_owned(),
+            create_info_diskpath(),
+        );
         insert_info::<DenseAdjacencyListStorage>(&mut m);
 
         insert_info::<PrePostOrderStorage<u64, u64>>(&mut m);
@@ -42,6 +48,7 @@ lazy_static! {
         insert_info::<LinearGraphStorage<u32>>(&mut m);
         insert_info::<LinearGraphStorage<u16>>(&mut m);
         insert_info::<LinearGraphStorage<u8>>(&mut m);
+
         m
     };
 }
@@ -72,6 +79,16 @@ pub fn get_optimal_impl_heuristic<CT: ComponentType>(
     if stats.max_depth <= 1 {
         // if we don't have any deep graph structures an adjencency list is always fasted (and has no overhead)
         return get_adjacencylist_impl(db, stats);
+    } else if db.disk_based
+        && stats.max_depth <= disk_path::MAX_DEPTH
+        && stats.max_fan_out == 1
+        && !stats.cyclic
+    {
+        // If we need to use a disk-based implementation and have short paths
+        // without any branching (e.g. PartOf is often structured that way), use
+        // an optimized implementation that stores the single path for each
+        // source node.
+        return create_info_diskpath();
     } else if stats.rooted_tree {
         if stats.max_fan_out <= 1 {
             return get_linear_by_size(stats);
@@ -172,6 +189,17 @@ fn create_info_diskadjacency() -> GSInfo {
         constructor: || Ok(Arc::from(DiskAdjacencyListStorage::new()?)),
         deserialize_func: |path| {
             let result = DiskAdjacencyListStorage::load_from(path)?;
+            Ok(Arc::from(result))
+        },
+    }
+}
+
+fn create_info_diskpath() -> GSInfo {
+    GSInfo {
+        id: disk_path::SERIALIZATION_ID.to_string(),
+        constructor: || Ok(Arc::from(DiskPathStorage::new()?)),
+        deserialize_func: |path| {
+            let result = DiskPathStorage::load_from(path)?;
             Ok(Arc::from(result))
         },
     }
