@@ -761,6 +761,11 @@ impl<CT: ComponentType> Graph<CT> {
                     }
                     false
                 });
+                if components.is_empty() {
+                    // No need to iterate over the other nodes having this label
+                    // if there are no components left to check.
+                    break;
+                }
             }
             all_nodes_contained_in_component.insert(key, components);
         }
