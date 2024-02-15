@@ -14,6 +14,8 @@ use crate::{
 use clru::CLruCache;
 use rayon::prelude::*;
 use smartstring::alias::String as SmartString;
+use std::io::prelude::*;
+use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
 use std::string::ToString;
 use std::{
@@ -21,8 +23,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 use std::{collections::BTreeMap, num::NonZeroUsize};
-use std::{collections::BTreeSet, ops::Bound::Included};
-use std::{collections::HashMap, io::prelude::*};
 use update::{GraphUpdate, UpdateEvent};
 
 pub const ANNIS_NS: &str = "annis";
@@ -30,6 +30,8 @@ pub const DEFAULT_NS: &str = "default_ns";
 pub const NODE_NAME: &str = "node_name";
 pub const NODE_TYPE: &str = "node_type";
 pub const DEFAULT_EMPTY_LAYER: &str = "default_layer";
+
+const GLOBAL_STATISTICS_FILE_NAME: &str = "global_statistics.bin";
 
 lazy_static! {
     pub static ref DEFAULT_ANNO_KEY: Arc<AnnoKey> = Arc::from(AnnoKey::default());
@@ -60,16 +62,9 @@ pub struct Graph<CT: ComponentType> {
 
     background_persistance: Arc<Mutex<()>>,
 
+    pub global_statistics: Option<CT::GlobalStatistics>,
+
     disk_based: bool,
-
-    global_statistics: Option<GlobalStatistics<CT>>,
-}
-
-/// Statistics that combine information for multiple graph components/and or annotations.
-#[derive(Serialize, Deserialize, Clone)]
-pub struct GlobalStatistics<CT: ComponentType> {
-    /// Contains the components for an annotation key, where all nodes having this annotation key are all part of that given component.
-    pub all_nodes_contained_in_component: HashMap<AnnoKey, BTreeSet<Component<CT>>>,
 }
 
 fn load_component_from_disk(component_path: &Path) -> Result<Arc<dyn GraphStorage>> {
@@ -181,6 +176,16 @@ impl<CT: ComponentType> Graph<CT> {
             location.join("current")
         };
 
+        // Get the global statistics if available
+        self.global_statistics = None;
+        let global_statistics_file = dir2load.join(GLOBAL_STATISTICS_FILE_NAME);
+        if global_statistics_file.exists() && global_statistics_file.is_file() {
+            let f = std::fs::File::open(global_statistics_file.clone())?;
+            let mut reader = std::io::BufReader::new(f);
+            self.global_statistics = bincode::deserialize_from(&mut reader)?;
+        }
+
+        // Load the node annotations
         let ondisk_subdirectory = dir2load.join(crate::annostorage::ondisk::SUBFOLDER_NAME);
         if ondisk_subdirectory.exists() && ondisk_subdirectory.is_dir() {
             self.disk_based = true;
@@ -310,6 +315,12 @@ impl<CT: ComponentType> Graph<CT> {
                 f_cfg.write_all(impl_name.as_bytes())?;
             }
         }
+
+        // Save global statistics
+        let f = std::fs::File::create(location.join(GLOBAL_STATISTICS_FILE_NAME))?;
+        let mut writer = std::io::BufWriter::new(f);
+        bincode::serialize_into(&mut writer, &self.global_statistics)?;
+
         Ok(())
     }
 
@@ -733,46 +744,8 @@ impl<CT: ComponentType> Graph<CT> {
             self.calculate_component_statistics(&c)?;
         }
 
-        self.calculate_global_statistics()?;
+        CT::calculate_global_statistics(self)?;
 
-        Ok(())
-    }
-
-    fn calculate_global_statistics(&mut self) -> Result<()> {
-        // For all annotation keys, find the components the nodes having this
-        // annotation key are fully contained in. This is e.g. useful to
-        // determine if all nodes having an "annis::tok" label are actually part
-        // of an ordering component or if there are texts with only one token.
-        let mut all_nodes_contained_in_component = HashMap::new();
-
-        for key in self.node_annos.annotation_keys()? {
-            let mut components: BTreeSet<_> = self.components.keys().cloned().collect();
-            for m in self
-                .node_annos
-                .exact_anno_search(Some(&key.ns), &key.name, ValueSearch::Any)
-            {
-                let n = m?.node;
-
-                components.retain(|c| {
-                    if let Some(gs) = self.get_graphstorage_as_ref(c) {
-                        if let Ok(true) = gs.has_outgoing_edges(n) {
-                            return true;
-                        }
-                    }
-                    false
-                });
-                if components.is_empty() {
-                    // No need to iterate over the other nodes having this label
-                    // if there are no components left to check.
-                    break;
-                }
-            }
-            all_nodes_contained_in_component.insert(key, components);
-        }
-
-        self.global_statistics = Some(GlobalStatistics {
-            all_nodes_contained_in_component,
-        });
         Ok(())
     }
 
@@ -931,15 +904,13 @@ impl<CT: ComponentType> Graph<CT> {
                     new_node_annos.insert(m.node, anno)?;
                 }
             }
-            info!("re-calculating node annotation statistics");
-            new_node_annos.calculate_statistics()?;
             self.node_annos = new_node_annos;
         }
 
+        info!("re-calculating all statistics");
+        self.calculate_all_statistics()?;
+
         for c in self.get_all_components(None, None) {
-            info!("updating statistics for component {}", &c);
-            // Recalculate all statistics first, so we optimize with the correct estimations
-            self.calculate_component_statistics(&c)?;
             // Perform the optimization if necessary
             info!("optimizing implementation for component {}", &c);
             self.optimize_gs_impl(&c)?;

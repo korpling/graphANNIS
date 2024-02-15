@@ -82,6 +82,11 @@ impl From<u16> for AnnotationComponentType {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AQLGlobalStatistics {
+    pub all_token_in_order_component: bool,
+}
+
 fn calculate_inherited_coverage_edges(
     graph: &mut AnnotationGraph,
     n: NodeID,
@@ -346,6 +351,7 @@ impl AQLUpdateGraphIndex {
 
 impl ComponentType for AnnotationComponentType {
     type UpdateGraphIndex = AQLUpdateGraphIndex;
+    type GlobalStatistics = AQLGlobalStatistics;
 
     fn all_component_types() -> Vec<Self> {
         AnnotationComponentType::iter().collect()
@@ -573,6 +579,42 @@ impl ComponentType for AnnotationComponentType {
                 "inherited-coverage".into(),
             ),
         ]
+    }
+
+    fn calculate_global_statistics(
+        graph: &mut Graph<Self>,
+    ) -> std::result::Result<(), ComponentTypeError> {
+        // Determine if all nodes having an "annis::tok" label are actually part
+        // of an ordering component or if there are texts with only one token.
+        let default_ordering_component = Component::new(
+            AnnotationComponentType::Ordering,
+            ANNIS_NS.into(),
+            "".into(),
+        );
+        let all_token_in_order_component =
+            if let Some(ordering_gs) = graph.get_graphstorage_as_ref(&default_ordering_component) {
+                let mut all_contained = true;
+                for m in graph.get_node_annos().exact_anno_search(
+                    Some(&TOKEN_KEY.ns),
+                    &TOKEN_KEY.name,
+                    ValueSearch::Any,
+                ) {
+                    let n = m?.node;
+                    all_contained = all_contained && ordering_gs.has_outgoing_edges(n)?
+                        || ordering_gs.has_ingoing_edges(n)?;
+                    if !all_contained {
+                        break;
+                    }
+                }
+                all_contained
+            } else {
+                false
+            };
+
+        graph.global_statistics = Some(AQLGlobalStatistics {
+            all_token_in_order_component,
+        });
+        Ok(())
     }
 }
 
