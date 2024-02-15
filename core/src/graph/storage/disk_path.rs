@@ -34,6 +34,7 @@ binary_layout!(node_path, LittleEndian, {
 /// A [GraphStorage] that stores a single path for each node on disk.
 pub struct DiskPathStorage {
     paths: std::fs::File,
+    paths_file_size: u64,
     annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
     location: Option<PathBuf>,
@@ -52,6 +53,7 @@ impl DiskPathStorage {
         let paths = tempfile()?;
         Ok(DiskPathStorage {
             paths,
+            paths_file_size: 0,
             location: None,
             annos: AnnoStorageImpl::new(None)?,
             stats: None,
@@ -77,8 +79,7 @@ impl DiskPathStorage {
     }
 
     fn max_node_id(&self) -> Result<u64> {
-        let file_size = self.paths.metadata()?.len();
-        let number_of_entries = file_size / (ENTRY_SIZE as u64);
+        let number_of_entries = self.paths_file_size / (ENTRY_SIZE as u64);
         Ok(number_of_entries - 1)
     }
 
@@ -140,27 +141,23 @@ impl EdgeContainer for DiskPathStorage {
     }
 
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
-        match self.max_node_id() {
-            Ok(max_node_id) => {
-                // ignore node entries with empty path in result
-                let it = (0..=max_node_id)
-                    .map(move |n| {
-                        let mut buffer = [0; ENTRY_SIZE];
-                        self.paths.read_exact_at(&mut buffer, offset_in_file(n))?;
-                        let view = node_path::View::new(&buffer);
+        let max_node_id = try_as_boxed_iter!(self.max_node_id());
+        // ignore node entries with empty path in result
+        let it = (0..=max_node_id)
+            .map(move |n| {
+                let mut buffer = [0; ENTRY_SIZE];
+                self.paths.read_exact_at(&mut buffer, offset_in_file(n))?;
+                let view = node_path::View::new(&buffer);
 
-                        let path_length = view.length().read();
-                        if path_length == 0 {
-                            Ok(None)
-                        } else {
-                            Ok(Some(n))
-                        }
-                    })
-                    .filter_map_ok(|n| n);
-                Box::new(it)
-            }
-            Err(e) => Box::new(std::iter::once(Err(e))),
-        }
+                let path_length = view.length().read();
+                if path_length == 0 {
+                    Ok(None)
+                } else {
+                    Ok(Some(n))
+                }
+            })
+            .filter_map_ok(|n| n);
+        Box::new(it)
     }
 }
 
@@ -260,7 +257,7 @@ impl GraphStorage for DiskPathStorage {
         let max_node_id = orig
             .source_nodes()
             .fold_ok(0, |acc, node_id| acc.max(node_id))?;
-        let file_capacity = max_node_id * (ENTRY_SIZE as u64);
+        let file_capacity = (max_node_id + 1) * (ENTRY_SIZE as u64);
         let file = tempfile::tempfile()?;
         if file_capacity > 0 {
             file.set_len(file_capacity)?;
@@ -300,6 +297,7 @@ impl GraphStorage for DiskPathStorage {
             file.write_all_at(&output_bytes, offset_in_file(source))?;
         }
         self.paths = file;
+        self.paths_file_size = file_capacity;
         self.stats = orig.get_statistics().cloned();
         self.annos.calculate_statistics()?;
         Ok(())
@@ -320,6 +318,7 @@ impl GraphStorage for DiskPathStorage {
         // Open the new paths file
         let paths_file = location.join("paths.bin");
         let paths = File::open(paths_file)?;
+        let paths_file_size = paths.metadata()?.len();
 
         // Create annotatio storage
         let annos = AnnoStorageImpl::new(Some(
@@ -334,6 +333,7 @@ impl GraphStorage for DiskPathStorage {
 
         Ok(Self {
             paths,
+            paths_file_size,
             annos,
             stats,
             location: Some(location.to_path_buf()),
