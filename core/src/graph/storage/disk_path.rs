@@ -131,13 +131,13 @@ impl EdgeContainer for DiskPathStorage {
         let mut result = BTreeSet::new();
         for source in 0..=max_id {
             let path = try_as_boxed_iter!(self.path_for_node(source));
-            if let Some(target) = path.get(0) {
+            if let Some(target) = path.first() {
                 if *target == node {
                     result.insert(source);
                 }
             }
         }
-        Box::new(result.into_iter().map(|n| Ok(n)))
+        Box::new(result.into_iter().map(Ok))
     }
 
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
@@ -236,8 +236,8 @@ impl GraphStorage for DiskPathStorage {
             Bound::Excluded(max_distance) => max_distance.saturating_sub(1),
         };
         let end = end.clamp(0, path.len());
-        for i in start..end {
-            if path[i] == target {
+        for p in path.into_iter().take(end).skip(start) {
+            if p == target {
                 return Ok(true);
             }
         }

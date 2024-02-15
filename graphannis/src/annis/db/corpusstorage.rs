@@ -50,7 +50,7 @@ use std::thread;
 use std::{borrow::Cow, time::Duration};
 use transient_btree_index::{BtreeConfig, BtreeIndex};
 
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use rand::seq::SliceRandom;
 use std::{
@@ -1547,7 +1547,7 @@ impl CorpusStorage {
             let plan =
                 ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config, timeout)?;
 
-            let mut known_partof_ancestors: HashSet<NodeID> = HashSet::new();
+            let mut known_partof_ancestors: FxHashSet<NodeID> = FxHashSet::default();
 
             let part_of_components =
                 db.get_all_components(Some(AnnotationComponentType::PartOf), None);
