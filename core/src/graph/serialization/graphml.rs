@@ -705,12 +705,11 @@ where
     progress_callback("applying imported changes");
     g.apply_update(&mut updates, &progress_callback)?;
 
-    progress_callback("calculating node statistics");
-    g.get_node_annos_mut().calculate_statistics()?;
+    progress_callback("calculating graph statistics");
+    g.calculate_all_statistics()?;
 
     for c in g.get_all_components(None, None) {
-        progress_callback(&format!("calculating statistics for component {}", c));
-        g.calculate_component_statistics(&c)?;
+        progress_callback(&format!("optimizing implementation for component {}", c));
         g.optimize_gs_impl(&c)?;
     }
 

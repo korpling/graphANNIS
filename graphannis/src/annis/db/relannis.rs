@@ -354,12 +354,10 @@ where
 
         db.apply_update(&mut updates, &progress_callback)?;
 
-        progress_callback("calculating node statistics (after update)");
-        db.get_node_annos_mut().calculate_statistics()?;
+        progress_callback("calculating graph statistics (after update)");
+        db.calculate_all_statistics()?;
 
         for c in db.get_all_components(None, None) {
-            progress_callback(&format!("calculating statistics for component {}", c));
-            db.calculate_component_statistics(&c)?;
             progress_callback(&format!(
                 "checking if implementation for component {} can be optimized",
                 c

@@ -14,8 +14,6 @@ use crate::{
 use clru::CLruCache;
 use rayon::prelude::*;
 use smartstring::alias::String as SmartString;
-use std::io::prelude::*;
-use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
 use std::string::ToString;
 use std::{
@@ -23,6 +21,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 use std::{collections::BTreeMap, num::NonZeroUsize};
+use std::{collections::BTreeSet, ops::Bound::Included};
+use std::{collections::HashMap, io::prelude::*};
 use update::{GraphUpdate, UpdateEvent};
 
 pub const ANNIS_NS: &str = "annis";
@@ -61,6 +61,15 @@ pub struct Graph<CT: ComponentType> {
     background_persistance: Arc<Mutex<()>>,
 
     disk_based: bool,
+
+    global_statistics: Option<GlobalStatistics<CT>>,
+}
+
+/// Statistics that combine information for multiple graph components/and or annotations.
+#[derive(Serialize, Deserialize, Clone)]
+pub struct GlobalStatistics<CT: ComponentType> {
+    /// Contains the components for an annotation key, where all nodes having this annotation key are all part of that given component.
+    pub all_nodes_contained_in_component: HashMap<AnnoKey, BTreeSet<Component<CT>>>,
 }
 
 fn load_component_from_disk(component_path: &Path) -> Result<Arc<dyn GraphStorage>> {
@@ -116,7 +125,7 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(Graph {
             node_annos,
             components: BTreeMap::new(),
-
+            global_statistics: None,
             location: None,
 
             current_change_id: 0,
@@ -712,6 +721,53 @@ impl<CT: ComponentType> Graph<CT> {
         let writable_gs = registry::create_writeable(self, Some(readonly_gs.as_ref()))?;
         self.components.insert(c.to_owned(), Some(writable_gs));
 
+        Ok(())
+    }
+
+    /// (Re-) calculate the internal statistics needed for estimating graph components and annotations.
+    pub fn calculate_all_statistics(&mut self) -> Result<()> {
+        self.ensure_loaded_all()?;
+
+        self.node_annos.calculate_statistics()?;
+        for c in self.get_all_components(None, None) {
+            self.calculate_component_statistics(&c)?;
+        }
+
+        self.calculate_global_statistics()?;
+
+        Ok(())
+    }
+
+    fn calculate_global_statistics(&mut self) -> Result<()> {
+        // For all annotation keys, find the components the nodes having this
+        // annotation key are fully contained in. This is e.g. useful to
+        // determine if all nodes having an "annis::tok" label are actually part
+        // of an ordering component or if there are texts with only one token.
+        let mut all_nodes_contained_in_component = HashMap::new();
+
+        for key in self.node_annos.annotation_keys()? {
+            let mut components: BTreeSet<_> = self.components.keys().cloned().collect();
+            for m in self
+                .node_annos
+                .exact_anno_search(Some(&key.ns), &key.name, ValueSearch::Any)
+            {
+                let n = m?.node;
+
+                components.retain(|c| {
+                    if let Some(gs) = self.get_graphstorage_as_ref(c) {
+                        if let Ok(true) = gs.has_outgoing_edges(n) {
+                            return true;
+                        }
+                    }
+                    false
+                });
+            }
+            all_nodes_contained_in_component.insert(key, components);
+        }
+
+        self.global_statistics = Some(GlobalStatistics {
+            all_nodes_contained_in_component,
+        });
         Ok(())
     }
 
