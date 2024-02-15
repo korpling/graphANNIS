@@ -180,7 +180,7 @@ impl<CT: ComponentType> Graph<CT> {
         self.global_statistics = None;
         let global_statistics_file = dir2load.join(GLOBAL_STATISTICS_FILE_NAME);
         if global_statistics_file.exists() && global_statistics_file.is_file() {
-            let f = std::fs::File::open(global_statistics_file.clone())?;
+            let f = std::fs::File::open(global_statistics_file)?;
             let mut reader = std::io::BufReader::new(f);
             self.global_statistics = bincode::deserialize_from(&mut reader)?;
         }
@@ -739,11 +739,14 @@ impl<CT: ComponentType> Graph<CT> {
     pub fn calculate_all_statistics(&mut self) -> Result<()> {
         self.ensure_loaded_all()?;
 
+        debug!("Calculating node statistics");
         self.node_annos.calculate_statistics()?;
         for c in self.get_all_components(None, None) {
+            debug!("Calculating statistics for component {}", &c);
             self.calculate_component_statistics(&c)?;
         }
 
+        debug!("Calculating global graph statistics");
         CT::calculate_global_statistics(self)?;
 
         Ok(())

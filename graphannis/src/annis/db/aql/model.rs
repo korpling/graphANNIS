@@ -1,5 +1,5 @@
 use crate::{
-    annis::util::quicksort,
+    annis::{db::token_helper::TokenHelper, util::quicksort},
     errors::GraphAnnisError,
     graph::{Edge, EdgeContainer, GraphStorage, NodeID},
 };
@@ -591,6 +591,8 @@ impl ComponentType for AnnotationComponentType {
             ANNIS_NS.into(),
             "".into(),
         );
+
+        let token_helper = TokenHelper::new(graph)?;
         let all_token_in_order_component =
             if let Some(ordering_gs) = graph.get_graphstorage_as_ref(&default_ordering_component) {
                 let mut all_contained = true;
@@ -600,10 +602,13 @@ impl ComponentType for AnnotationComponentType {
                     ValueSearch::Any,
                 ) {
                     let n = m?.node;
-                    all_contained = all_contained && ordering_gs.has_outgoing_edges(n)?
-                        || ordering_gs.has_ingoing_edges(n)?;
-                    if !all_contained {
-                        break;
+                    // Check if this is an actual token or just a segmentation node
+                    if !token_helper.has_outgoing_coverage_edges(n)? {
+                        all_contained = all_contained && ordering_gs.has_outgoing_edges(n)?
+                            || ordering_gs.has_ingoing_edges(n)?;
+                        if !all_contained {
+                            break;
+                        }
                     }
                 }
                 all_contained
