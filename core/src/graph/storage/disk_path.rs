@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use memmap2::{Mmap, MmapMut};
 use normpath::PathExt;
 use std::{
     collections::{BTreeSet, HashSet},
@@ -6,7 +7,6 @@ use std::{
     fs::File,
     io::BufReader,
     ops::Bound,
-    os::unix::fs::FileExt,
     path::PathBuf,
 };
 use tempfile::tempfile;
@@ -33,7 +33,7 @@ binary_layout!(node_path, LittleEndian, {
 
 /// A [GraphStorage] that stores a single path for each node on disk.
 pub struct DiskPathStorage {
-    paths: std::fs::File,
+    paths: Mmap,
     paths_file_size: u64,
     annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
@@ -50,7 +50,7 @@ fn offset_in_path(path_idx: usize) -> usize {
 
 impl DiskPathStorage {
     pub fn new() -> Result<DiskPathStorage> {
-        let paths = tempfile()?;
+        let paths = unsafe { Mmap::map(&tempfile()?)? };
         Ok(DiskPathStorage {
             paths,
             paths_file_size: 0,
@@ -64,10 +64,9 @@ impl DiskPathStorage {
         if node > self.max_node_id()? {
             return Ok(None);
         }
-        let mut buffer = [0; ENTRY_SIZE];
-        self.paths
-            .read_exact_at(&mut buffer, offset_in_file(node))?;
-        let view = node_path::View::new(&buffer);
+        let offset = offset_in_file(node) as usize;
+
+        let view = node_path::View::new(&self.paths[offset..(offset + ENTRY_SIZE)]);
         if view.length().read() == 0 {
             // No outgoing edges
             Ok(None)
@@ -87,10 +86,9 @@ impl DiskPathStorage {
         if node > self.max_node_id()? {
             return Ok(Vec::default());
         }
-        let mut buffer = [0; ENTRY_SIZE];
-        self.paths
-            .read_exact_at(&mut buffer, offset_in_file(node))?;
-        let view = node_path::View::new(&buffer);
+        let offset = offset_in_file(node) as usize;
+
+        let view = node_path::View::new(&self.paths[offset..(offset + ENTRY_SIZE)]);
         let length = view.length().read();
         if length == 0 {
             // No outgoing edges
@@ -145,9 +143,8 @@ impl EdgeContainer for DiskPathStorage {
         // ignore node entries with empty path in result
         let it = (0..=max_node_id)
             .map(move |n| {
-                let mut buffer = [0; ENTRY_SIZE];
-                self.paths.read_exact_at(&mut buffer, offset_in_file(n))?;
-                let view = node_path::View::new(&buffer);
+                let offset = offset_in_file(n) as usize;
+                let view = node_path::View::new(&self.paths[offset..(offset + ENTRY_SIZE)]);
 
                 let path_length = view.length().read();
                 if path_length == 0 {
@@ -258,10 +255,12 @@ impl GraphStorage for DiskPathStorage {
             .source_nodes()
             .fold_ok(0, |acc, node_id| acc.max(node_id))?;
         let file_capacity = (max_node_id + 1) * (ENTRY_SIZE as u64);
+
         let file = tempfile::tempfile()?;
         if file_capacity > 0 {
             file.set_len(file_capacity)?;
         }
+        let mut mmap = unsafe { MmapMut::map_mut(&file)? };
 
         // Get the paths for all source nodes in the original graph storage
         for source in orig.source_nodes().sorted_by(|a, b| {
@@ -271,8 +270,8 @@ impl GraphStorage for DiskPathStorage {
         }) {
             let source = source?;
 
-            let mut output_bytes = [0; ENTRY_SIZE];
-            let mut path_view = node_path::View::new(&mut output_bytes);
+            let offset = offset_in_file(source) as usize;
+            let mut path_view = node_path::View::new(&mut mmap[offset..(offset + ENTRY_SIZE)]);
             let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), source, 1, MAX_DEPTH);
             for step in dfs {
                 let step = step?;
@@ -293,10 +292,12 @@ impl GraphStorage for DiskPathStorage {
                     self.annos.insert(e.clone(), a)?;
                 }
             }
-            // Save the path at the node offset
-            file.write_all_at(&output_bytes, offset_in_file(source))?;
         }
-        self.paths = file;
+
+        mmap.flush()?;
+        // Re-map file read-only
+
+        self.paths = unsafe { Mmap::map(&file)? };
         self.paths_file_size = file_capacity;
         self.stats = orig.get_statistics().cloned();
         self.annos.calculate_statistics()?;
@@ -319,6 +320,7 @@ impl GraphStorage for DiskPathStorage {
         let paths_file = location.join("paths.bin");
         let paths = File::open(paths_file)?;
         let paths_file_size = paths.metadata()?.len();
+        let paths = unsafe { Mmap::map(&paths)? };
 
         // Create annotatio storage
         let annos = AnnoStorageImpl::new(Some(
@@ -356,8 +358,8 @@ impl GraphStorage for DiskPathStorage {
         // Copy the current paths file to the new location
         let new_paths_file = new_location.join("paths.bin");
         let mut new_paths = File::create(new_paths_file)?;
-        let mut reader = BufReader::new(&self.paths);
-        std::io::copy(&mut reader, &mut new_paths)?;
+        let mut old_reader = BufReader::new(&self.paths[..]);
+        std::io::copy(&mut old_reader, &mut new_paths)?;
 
         self.annos.save_annotations_to(location)?;
         // Write stats with bincode
@@ -475,7 +477,7 @@ mod tests {
     }
 
     #[test]
-    fn test_inggoing_edges() {
+    fn test_ingoing_edges() {
         // Create an example graph storage to copy the value from
         let node_annos = AnnoStorageImpl::new(None).unwrap();
         let orig = create_topdown_gs().unwrap();
