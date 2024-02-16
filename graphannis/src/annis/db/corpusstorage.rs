@@ -62,6 +62,7 @@ use aql::model::AnnotationComponentType;
 
 use self::subgraph::new_subgraph_iterator;
 
+use super::aql::model::AQLGlobalStatistics;
 use super::sort_matches::SortCache;
 
 mod subgraph;
@@ -136,6 +137,7 @@ pub struct CorpusInfo {
     /// This information is stored in the "corpus-config.toml` file in the data directory
     /// and loaded on demand.
     pub config: CorpusConfiguration,
+    pub global_stats: Option<AQLGlobalStatistics>,
 }
 
 impl fmt::Display for CorpusInfo {
@@ -149,6 +151,13 @@ impl fmt::Display for CorpusInfo {
                 writeln!(f, "Status: {:?}", "fully loaded")?;
             }
         };
+        if let Some(stats) = &self.global_stats {
+            writeln!(
+                f,
+                "Token search shortcut possible: {}",
+                stats.all_token_in_order_component
+            )?;
+        }
         if !self.graphstorages.is_empty() {
             writeln!(f, "------------")?;
             for gs in &self.graphstorages {
@@ -556,6 +565,7 @@ impl CorpusStorage {
                     load_status,
                     graphstorages,
                     config,
+                    global_stats: db.global_statistics.clone(),
                 }
             }
             &CacheEntry::NotLoaded => CorpusInfo {
@@ -563,6 +573,7 @@ impl CorpusStorage {
                 load_status: LoadStatus::NotLoaded,
                 graphstorages: vec![],
                 config,
+                global_stats: None,
             },
         };
         Ok(corpus_info)

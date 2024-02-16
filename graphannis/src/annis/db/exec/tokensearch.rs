@@ -8,6 +8,7 @@ use crate::{
     annis::db::aql::model::AnnotationComponentType, annis::db::token_helper::TokenHelper,
     errors::Result, graph::Match, AnnotationGraph,
 };
+use graphannis_core::errors::GraphAnnisCoreError;
 use graphannis_core::{
     annostorage::MatchGroup,
     graph::{storage::GraphStorage, ANNIS_NS, NODE_TYPE_KEY},
@@ -83,22 +84,44 @@ impl<'a> AnyTokenSearch<'a> {
     fn create_new_root_iterator(
         &self,
     ) -> Result<Vec<Box<dyn Iterator<Item = Result<NodeID>> + 'a>>> {
-        // iterate over all nodes that are token and check if they are root node nodes in the ORDERING component
-        let root_nodes: Result<Vec<_>> = self
+        let all_token_in_order_component = self
             .db
-            .get_node_annos()
-            .exact_anno_search(Some("annis"), "tok", None.into())
-            .map(|tok_candidate| -> Result<Option<Match>> {
-                let tok_candidate = tok_candidate?;
-                if self.is_root_tok(tok_candidate.node)? {
-                    Ok(Some(tok_candidate))
-                } else {
-                    Ok(None)
-                }
-            })
-            .filter_map_ok(|m| m)
-            .collect();
-        let mut root_nodes = root_nodes?;
+            .global_statistics
+            .as_ref()
+            .map(|stat| stat.all_token_in_order_component)
+            .unwrap_or(false);
+
+        let mut root_nodes: Vec<Match> =
+            if let (Some(order_gs), true) = (self.order_gs, all_token_in_order_component) {
+                // Use a shortcut and query the root nodes directly from the
+                // ordering component
+                let root_nodes: std::result::Result<Vec<_>, GraphAnnisCoreError> = order_gs
+                    .root_nodes()
+                    .map_ok(|n| Match {
+                        node: n,
+                        anno_key: NODE_TYPE_KEY.clone(),
+                    })
+                    .collect();
+                let root_nodes = root_nodes?;
+                root_nodes
+            } else {
+                // iterate over all nodes that are token and check if they are root node nodes in the ORDERING component
+                let root_nodes: Result<Vec<_>> = self
+                    .db
+                    .get_node_annos()
+                    .exact_anno_search(Some("annis"), "tok", None.into())
+                    .map(|tok_candidate| -> Result<Option<Match>> {
+                        let tok_candidate = tok_candidate?;
+                        if self.is_root_tok(tok_candidate.node)? {
+                            Ok(Some(tok_candidate))
+                        } else {
+                            Ok(None)
+                        }
+                    })
+                    .filter_map_ok(|m| m)
+                    .collect();
+                root_nodes?
+            };
 
         let mut cache = SortCache::new(self.db.get_graphstorage(&COMPONENT_ORDER));
 

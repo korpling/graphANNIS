@@ -118,6 +118,11 @@ where
         Box::new(it)
     }
 
+    fn root_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
+        let it = self.node_chains.keys().copied().map(Ok);
+        Box::new(it)
+    }
+
     fn get_statistics(&self) -> Option<&GraphStatistic> {
         self.stats.as_ref()
     }

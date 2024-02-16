@@ -82,8 +82,9 @@ impl From<u16> for AnnotationComponentType {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct AQLGlobalStatistics {
+    #[serde(default)]
     pub all_token_in_order_component: bool,
 }
 
