@@ -102,8 +102,7 @@ impl<'a> AnyTokenSearch<'a> {
                         anno_key: NODE_TYPE_KEY.clone(),
                     })
                     .collect();
-                let root_nodes = root_nodes?;
-                root_nodes
+                root_nodes?
             } else {
                 // iterate over all nodes that are token and check if they are root node nodes in the ORDERING component
                 let root_nodes: Result<Vec<_>> = self
