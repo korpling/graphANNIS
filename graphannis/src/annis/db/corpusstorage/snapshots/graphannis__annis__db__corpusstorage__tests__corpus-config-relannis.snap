@@ -1,0 +1,83 @@
+---
+source: graphannis/src/annis/db/corpusstorage/tests.rs
+expression: "toml::to_string_pretty(&corpus_config_relannis).unwrap()"
+---
+[context]
+default = 5
+sizes = [
+    0,
+    1,
+    2,
+    5,
+    10,
+]
+
+[view]
+page_size = 10
+
+[[visualizers]]
+vis_type = 'kwic'
+display_name = 'kwic'
+visibility = 'permanent'
+
+[[visualizers]]
+element = 'node'
+layer = 'default_ns'
+vis_type = 'grid'
+display_name = 'grid (default_ns)'
+visibility = 'hidden'
+
+[[visualizers]]
+element = 'node'
+layer = 'syntax'
+vis_type = 'tree'
+display_name = 'tree (syntax)'
+visibility = 'hidden'
+
+[visualizers.mappings]
+edge_type = 'null'
+node_anno_ns = 'default_ns'
+node_key = 'const'
+
+[[visualizers]]
+element = 'edge'
+layer = 'default_ns'
+vis_type = 'arch_dependency'
+display_name = 'anaphoric (default_ns)'
+visibility = 'hidden'
+
+[[visualizers]]
+element = 'node'
+layer = 'tiger'
+vis_type = 'tree'
+display_name = 'tree'
+visibility = 'hidden'
+
+[[visualizers]]
+element = 'node'
+layer = 'exmaralda'
+vis_type = 'grid'
+display_name = 'exmaralda'
+visibility = 'hidden'
+
+[[visualizers]]
+element = 'node'
+layer = 'mmax'
+vis_type = 'grid'
+display_name = 'mmax'
+visibility = 'hidden'
+
+[[visualizers]]
+element = 'edge'
+layer = 'mmax'
+vis_type = 'discourse'
+display_name = 'coref'
+visibility = 'hidden'
+
+[[visualizers]]
+element = 'node'
+layer = 'urml'
+vis_type = 'grid'
+display_name = 'urml'
+visibility = 'hidden'
+
