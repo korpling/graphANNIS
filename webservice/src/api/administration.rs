@@ -137,7 +137,7 @@ pub async fn import_corpus(
     // Execute the whole import in a background thread
     std::thread::spawn(move || {
         let id_as_string = id.to_string();
-        match cs.import_all_from_zip(
+        let import_result = cs.import_all_from_zip(
             tmp,
             settings.database.disk_based,
             params.override_existing,
@@ -150,7 +150,8 @@ pub async fn import_corpus(
                     }
                 }
             },
-        ) {
+        );
+        match import_result {
             Ok(corpora) => {
                 if let Ok(mut jobs) = background_jobs.jobs.lock() {
                     if let Some(j) = jobs.get_mut(&id) {
