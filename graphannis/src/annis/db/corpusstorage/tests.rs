@@ -1,6 +1,7 @@
 extern crate log;
 extern crate tempfile;
 
+use insta::assert_snapshot;
 use same_file::is_same_file;
 use serial_test::serial;
 use std::path::{Path, PathBuf};
@@ -890,15 +891,24 @@ fn import_salt_sample() {
 
     let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
     // Import both the GraphML and the relANNIS files as corpus
-    cs.import_from_fs(
-        &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
-        ImportFormat::GraphML,
-        Some("test-graphml".into()),
-        false,
-        true,
-        |_| {},
-    )
-    .unwrap();
+    let corpus_name = cs
+        .import_from_fs(
+            &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
+            ImportFormat::GraphML,
+            Some("test-graphml".into()),
+            false,
+            true,
+            |_| {},
+        )
+        .unwrap();
+    assert_eq!("test-graphml", corpus_name);
+
+    // Check that the corpus configuration has been set
+    let corpus_config_graphml = cs.get_corpus_config("test-graphml").unwrap().unwrap();
+    assert_snapshot!(
+        "corpus-config-graphml",
+        toml::to_string_pretty(&corpus_config_graphml).unwrap()
+    );
 
     cs.import_from_fs(
         &cargo_dir.join("tests/SaltSampleCorpus"),
@@ -920,6 +930,12 @@ fn import_salt_sample() {
     let db_relannis = get_read_or_error(&lock_relannis).unwrap();
 
     compare_corpora(db_graphml, db_relannis);
+
+    let corpus_config_relannis = cs.get_corpus_config("test-relannis").unwrap().unwrap();
+    assert_snapshot!(
+        "corpus-config-relannis",
+        toml::to_string_pretty(&corpus_config_relannis).unwrap()
+    );
 }
 
 #[test]
