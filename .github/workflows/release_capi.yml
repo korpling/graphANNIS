@@ -1,0 +1,73 @@
+on:
+  release:
+    types:
+      - released
+name: Append C-API artifact to latest release
+jobs:
+  deploy_linux_binaries:
+    runs-on: ubuntu-20.04
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - id: latest-release
+        uses: pozetroninc/github-action-get-latest-release@v0.7.0
+        with:
+          repository: ${{ github.repository }}
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: stable
+          profile: minimal
+      - uses: Swatinem/rust-cache@v2.2.1
+      - run: cargo build --release --package graphannis-capi
+      - name: Upload graphANNIS shared library
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: "./target/release/libgraphannis_capi.so"
+          artifactContentType: application/x-sharedlib
+          tag: ${{ steps.latest-release.outputs.release}}
+
+  deploy_windows_binaries:
+    runs-on: windows-2019
+    steps:
+      - id: latest-release
+        uses: pozetroninc/github-action-get-latest-release@v0.7.0
+        with:
+          repository: ${{ github.repository }}
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: stable
+          profile: minimal
+      - uses: Swatinem/rust-cache@v2.2.1
+      - run: cargo build --release --package graphannis-capi
+      - run: dir target/release
+      - name: Upload graphANNIS shared library
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: "./target/release/graphannis_capi.dll"
+          artifactContentType: application/x-dosexec
+          tag: ${{ steps.latest-release.outputs.release}}
+  deploy_macos_binaries:
+    runs-on: macos-11
+    steps:
+      - id: latest-release
+        uses: pozetroninc/github-action-get-latest-release@v0.7.0
+        with:
+          repository: ${{ github.repository }}
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: stable
+          profile: minimal
+      - uses: Swatinem/rust-cache@v2.2.1
+      - run: cargo build --release --package graphannis-capi
+      - name: Upload graphANNIS shared library
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: "./target/release/libgraphannis_capi.dylib"
+          artifactContentType: application/x-mach-binary
+          tag: ${{ steps.latest-release.outputs.release}}
