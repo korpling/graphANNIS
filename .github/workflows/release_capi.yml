@@ -30,7 +30,10 @@ jobs:
           artifacts: "./target/release/libgraphannis_capi.so"
           artifactContentType: application/x-sharedlib
           tag: ${{ steps.latest-release.outputs.release}}
-
+          omitBodyDuringUpdate: true
+          omitDraftDuringUpdate: true
+          omitNameDuringUpdate: true
+          omitPrereleaseDuringUpdate: true
   deploy_windows_binaries:
     if: ${{ github.event.label.name == 'test-release-process' || github.event_name == 'release' }}
     runs-on: windows-2019
@@ -54,6 +57,10 @@ jobs:
           artifacts: "./target/release/graphannis_capi.dll"
           artifactContentType: application/x-dosexec
           tag: ${{ steps.latest-release.outputs.release}}
+          omitBodyDuringUpdate: true
+          omitDraftDuringUpdate: true
+          omitNameDuringUpdate: true
+          omitPrereleaseDuringUpdate: true
   deploy_macos_binaries:
     if: ${{ github.event.label.name == 'test-release-process' || github.event_name == 'release' }}
     runs-on: macos-11
@@ -76,3 +83,7 @@ jobs:
           artifacts: "./target/release/libgraphannis_capi.dylib"
           artifactContentType: application/x-mach-binary
           tag: ${{ steps.latest-release.outputs.release}}
+          omitBodyDuringUpdate: true
+          omitDraftDuringUpdate: true
+          omitNameDuringUpdate: true
+          omitPrereleaseDuringUpdate: true
