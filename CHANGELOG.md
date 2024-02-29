@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Re-enable adding the C-API shared library as release artifacts to GitHub.
+
 ## [3.1.1] - 2024-02-05
 
 ### Fixed

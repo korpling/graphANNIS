@@ -23,11 +23,12 @@ jobs:
           profile: minimal
       - uses: Swatinem/rust-cache@v2.2.1
       - run: cargo build --release --package graphannis-capi
+      - run: mv target/release/libgraphannis_capi.so target/release/libgraphannis.so
       - name: Upload graphANNIS shared library
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          artifacts: "./target/release/libgraphannis_capi.so"
+          artifacts: "./target/release/libgraphannis.so"
           artifactContentType: application/x-sharedlib
           tag: ${{ steps.latest-release.outputs.release}}
           omitBodyDuringUpdate: true
@@ -49,12 +50,13 @@ jobs:
           profile: minimal
       - uses: Swatinem/rust-cache@v2.2.1
       - run: cargo build --release --package graphannis-capi
-      - run: dir target/release
+      - run: cd target/release
+      - run: rename graphannis_capi.dll graphannis.dll
       - name: Upload graphANNIS shared library
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          artifacts: "./target/release/graphannis_capi.dll"
+          artifacts: "graphannis.dll"
           artifactContentType: application/x-dosexec
           tag: ${{ steps.latest-release.outputs.release}}
           omitBodyDuringUpdate: true
@@ -76,11 +78,12 @@ jobs:
           profile: minimal
       - uses: Swatinem/rust-cache@v2.2.1
       - run: cargo build --release --package graphannis-capi
+      - run: mv target/release/libgraphannis_capi.dylib target/release/libgraphannis.dylib
       - name: Upload graphANNIS shared library
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          artifacts: "./target/release/libgraphannis_capi.dylib"
+          artifacts: "./target/release/libgraphannis.dylib"
           artifactContentType: application/x-mach-binary
           tag: ${{ steps.latest-release.outputs.release}}
           omitBodyDuringUpdate: true
