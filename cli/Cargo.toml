@@ -35,7 +35,7 @@ serial_test = "2"
 name = "annis"
 
 [[bin]]
-name = "bench_queries"
+name = "annis_bench_queries"
 
 [package.metadata.cargo-machete]
 ignored = ["prettytable-rs"]
