@@ -50,13 +50,12 @@ jobs:
           profile: minimal
       - uses: Swatinem/rust-cache@v2.2.1
       - run: cargo build --release --package graphannis-capi
-      - run: cd target/release
-      - run: rename graphannis_capi.dll graphannis.dll
+      - run: Rename-Item -Path "target\release\graphannis_capi.dll" -NewName "graphannis.dll"
       - name: Upload graphANNIS shared library
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          artifacts: "graphannis.dll"
+          artifacts: "./target/release/graphannis.dll"
           artifactContentType: application/x-dosexec
           tag: ${{ steps.latest-release.outputs.release}}
           omitBodyDuringUpdate: true
