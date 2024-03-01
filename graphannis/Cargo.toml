@@ -2,7 +2,7 @@
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 build = "build.rs"
 description = "This is a new backend implementation of the ANNIS linguistic search and visualization system."
-edition = "2018"
+edition = "2021"
 license = "Apache-2.0"
 name = "graphannis"
 readme = "../README.md"
