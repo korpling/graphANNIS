@@ -5,9 +5,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New disk-based graph storage implementation `DiskPathV1_D15` that stores the
+  outgoing paths from every node when maximum branch-out is 1 and the longest
+  path has the length 15. This is an optimization especially useful for the
+  `PartOf` component, since it avoids frequent disk access which would be needed
+  for a adjecency based implementations to get all ancestors. Also `PartOf`
+  components are not trees, but still have the property of at most 1 outgoing
+  edge which can be used to optimize finding all ancestors. **Important** You
+  cannot downgrade graphANNIS to an older version if you imported a disk-based
+  corpus with the new version, since old graphANNIS versions won't be able to
+  load the new graph storage implementation.
+- Add new global statistics that describe the combined graph. Until know, there
+  were only statistics for each graph component and for the node annotation
+  storage.
+- Improved handling of `tok` queries for corpora with tens of millions token, by
+  using the newly added graph storage implementation and statistics and
+  providing an optimized implementation for token search if we already know that
+  all token are part of the default ordering component. This fixes #276.
+
 ### Fixed
 
+- Do not add "annis:doc" labels to sub-corpora when importing relANNIS corpora.
+  This will fix queries where you just search for documents, e.g. by `annis:doc`
+  but also got the sub-corpora as result.
 - Re-enable adding the C-API shared library as release artifacts to GitHub.
+
 
 ## [3.1.1] - 2024-02-05
 
