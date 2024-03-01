@@ -386,15 +386,18 @@ where
     type Item = Result<(K, V)>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some((key, value)) = self.table_iterator.next() {
+        while let Some((key, value)) = self.table_iterator.next() {
             let key = match K::parse_key(&key) {
                 Ok(key) => key,
                 Err(e) => return Some(Err(e.into())),
             };
-            return match self.serialization.deserialize(&value) {
-                Ok(value) => Some(Ok((key, value))),
-                Err(e) => Some(Err(e.into())),
+            let value: Option<V> = match self.serialization.deserialize(&value) {
+                Ok(value) => value,
+                Err(e) => return Some(Err(e.into())),
             };
+            if let Some(value) = value {
+                return Some(Ok((key, value)));
+            }
         }
         None
     }
