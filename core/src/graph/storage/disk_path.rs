@@ -2,14 +2,10 @@ use itertools::Itertools;
 use memmap2::{Mmap, MmapMut};
 use normpath::PathExt;
 use std::{
-    collections::{BTreeSet, HashSet},
-    convert::TryInto,
-    fs::File,
-    io::BufReader,
-    ops::Bound,
-    path::PathBuf,
+    collections::HashSet, convert::TryInto, fs::File, io::BufReader, ops::Bound, path::PathBuf,
 };
 use tempfile::tempfile;
+use transient_btree_index::BtreeConfig;
 
 use crate::{
     annostorage::{ondisk::AnnoStorageImpl, AnnotationStorage},
@@ -17,6 +13,7 @@ use crate::{
     errors::Result,
     try_as_boxed_iter,
     types::{Edge, NodeID},
+    util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
 };
 
 use super::{EdgeContainer, GraphStatistic, GraphStorage};
@@ -35,6 +32,7 @@ binary_layout!(node_path, LittleEndian, {
 pub struct DiskPathStorage {
     paths: Mmap,
     paths_file_size: u64,
+    inverse_edges: DiskMap<Edge, bool>,
     annos: AnnoStorageImpl<Edge>,
     stats: Option<GraphStatistic>,
     location: Option<PathBuf>,
@@ -54,6 +52,7 @@ impl DiskPathStorage {
         Ok(DiskPathStorage {
             paths,
             paths_file_size: 0,
+            inverse_edges: DiskMap::default(),
             location: None,
             annos: AnnoStorageImpl::new(None)?,
             stats: None,
@@ -125,17 +124,19 @@ impl EdgeContainer for DiskPathStorage {
         &'a self,
         node: NodeID,
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
-        let max_id = try_as_boxed_iter!(self.max_node_id());
-        let mut result = BTreeSet::new();
-        for source in 0..=max_id {
-            let path = try_as_boxed_iter!(self.path_for_node(source));
-            if let Some(target) = path.first() {
-                if *target == node {
-                    result.insert(source);
-                }
-            }
-        }
-        Box::new(result.into_iter().map(Ok))
+        let lower_bound = Edge {
+            source: node,
+            target: NodeID::MIN,
+        };
+        let upper_bound = Edge {
+            source: node,
+            target: NodeID::MAX,
+        };
+        Box::new(
+            self.inverse_edges
+                .range(lower_bound..upper_bound)
+                .map_ok(|(e, _)| e.target),
+        )
     }
 
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
@@ -276,6 +277,13 @@ impl GraphStorage for DiskPathStorage {
             for step in dfs {
                 let step = step?;
                 let target = step.node;
+
+                let edge = Edge { source, target };
+                // Store directly outgoing edges in our inverse list
+                if step.distance == 1 {
+                    self.inverse_edges.insert(edge.inverse(), true)?;
+                }
+
                 // Set the new length
                 path_view.length_mut().write(step.distance.try_into()?);
                 // The distance starts at 1, but we do not repeat the source
@@ -287,9 +295,8 @@ impl GraphStorage for DiskPathStorage {
                     .copy_from_slice(&target_node_id_bytes[..]);
 
                 // Copy all annotations for this edge
-                let e = Edge { source, target };
-                for a in orig.get_anno_storage().get_annotations_for_item(&e)? {
-                    self.annos.insert(e.clone(), a)?;
+                for a in orig.get_anno_storage().get_annotations_for_item(&edge)? {
+                    self.annos.insert(edge.clone(), a)?;
                 }
             }
         }
@@ -322,7 +329,17 @@ impl GraphStorage for DiskPathStorage {
         let paths_file_size = paths.metadata()?.len();
         let paths = unsafe { Mmap::map(&paths)? };
 
-        // Create annotatio storage
+        // Load the inverse edges map
+        let inverse_edges = DiskMap::new(
+            Some(&location.join("inverse_edges.bin")),
+            EvictionStrategy::default(),
+            DEFAULT_BLOCK_CACHE_CAPACITY,
+            BtreeConfig::default()
+                .fixed_key_size(std::mem::size_of::<NodeID>() * 2)
+                .fixed_value_size(2),
+        )?;
+
+        // Load annotation storage
         let annos = AnnoStorageImpl::new(Some(
             location.join(crate::annostorage::ondisk::SUBFOLDER_NAME),
         ))?;
@@ -336,6 +353,7 @@ impl GraphStorage for DiskPathStorage {
         Ok(Self {
             paths,
             paths_file_size,
+            inverse_edges,
             annos,
             stats,
             location: Some(location.to_path_buf()),
@@ -361,7 +379,13 @@ impl GraphStorage for DiskPathStorage {
         let mut old_reader = BufReader::new(&self.paths[..]);
         std::io::copy(&mut old_reader, &mut new_paths)?;
 
+        // Copy the inverse edges map to the new location
+        self.inverse_edges
+            .write_to(&location.join("inverse_edges.bin"))?;
+
+        // Save edge annotations
         self.annos.save_annotations_to(location)?;
+
         // Write stats with bincode
         let stats_path = location.join("edge_stats.bin");
         let f_stats = std::fs::File::create(stats_path)?;
