@@ -111,7 +111,7 @@ pub trait EdgeContainer: Sync + Send {
             .source_nodes()
             .map(move |n| -> Result<Option<NodeID>> {
                 let n = n?;
-                if self.has_ingoing_edges(n)? {
+                if !self.has_ingoing_edges(n)? {
                     Ok(Some(n))
                 } else {
                     Ok(None)
