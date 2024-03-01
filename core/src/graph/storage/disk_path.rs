@@ -139,6 +139,28 @@ impl EdgeContainer for DiskPathStorage {
         )
     }
 
+    fn has_ingoing_edges(&self, node: NodeID) -> Result<bool> {
+        let lower_bound = Edge {
+            source: node,
+            target: NodeID::MIN,
+        };
+        let upper_bound = Edge {
+            source: node,
+            target: NodeID::MAX,
+        };
+
+        let edge_list: Result<Vec<_>> = self.inverse_edges.iter()?.collect();
+        let mut edge_list = edge_list?;
+        edge_list.sort();
+
+        if let Some(edge) = self.inverse_edges.range(lower_bound..upper_bound).next() {
+            edge?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let max_node_id = try_as_boxed_iter!(self.max_node_id());
         // ignore node entries with empty path in result
@@ -157,6 +179,10 @@ impl EdgeContainer for DiskPathStorage {
             .filter_map_ok(|n| n);
         Box::new(it)
     }
+
+    fn get_statistics(&self) -> Option<&GraphStatistic> {
+        self.stats.as_ref()
+    }
 }
 
 impl GraphStorage for DiskPathStorage {
@@ -172,15 +198,18 @@ impl GraphStorage for DiskPathStorage {
         }
 
         let path = try_as_boxed_iter!(self.path_for_node(node));
+        // The 0th index of the path is the node with distance 1, so always subtract 1
         let start = min_distance.saturating_sub(1);
 
         let end = match max_distance {
-            std::ops::Bound::Included(end) => end + 1,
-            std::ops::Bound::Excluded(end) => end,
+            std::ops::Bound::Included(max_distance) => max_distance,
+            std::ops::Bound::Excluded(max_distance) => max_distance.saturating_sub(1),
             std::ops::Bound::Unbounded => path.len(),
         };
         let end = end.min(path.len());
-        result.extend(path[start..end].iter().map(|n| Ok(*n)));
+        if start < end {
+            result.extend(path[start..end].iter().map(|n| Ok(*n)));
+        }
         Box::new(result.into_iter())
     }
 
@@ -581,9 +610,15 @@ mod tests {
         assert_eq!(vec![10, 12], result.unwrap());
 
         let result: Result<Vec<_>> = target
-            .find_connected(7, 1, std::ops::Bound::Excluded(1))
+            .find_connected(7, 1, std::ops::Bound::Included(1))
             .collect();
         assert_eq!(vec![10], result.unwrap());
+
+        let result: Result<Vec<_>> = target
+            .find_connected(7, 1, std::ops::Bound::Excluded(1))
+            .collect();
+        // Excluding distance 1 means there can't be any valid resut
+        assert_eq!(0, result.unwrap().len());
 
         let result: Result<Vec<_>> = target
             .find_connected(10, 1, std::ops::Bound::Unbounded)
