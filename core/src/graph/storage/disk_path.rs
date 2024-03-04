@@ -149,10 +149,6 @@ impl EdgeContainer for DiskPathStorage {
             target: NodeID::MAX,
         };
 
-        let edge_list: Result<Vec<_>> = self.inverse_edges.iter()?.collect();
-        let mut edge_list = edge_list?;
-        edge_list.sort();
-
         if let Some(edge) = self.inverse_edges.range(lower_bound..upper_bound).next() {
             edge?;
             Ok(true)
