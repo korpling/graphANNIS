@@ -107,6 +107,39 @@ fn find_first_ten_nouns_gum(bench: &mut Criterion) {
     });
 }
 
+fn count_extra_coref_anno(bench: &mut Criterion) {
+    if CORPUS_STORAGE.is_none() {
+        return;
+    }
+
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+
+    let corpora = cs.list();
+    if let Ok(corpora) = corpora {
+        let corpora: HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
+        // ignore if corpus does not exist
+        if corpora.contains("GUM") {
+            cs.preload("GUM").unwrap();
+        } else {
+            return;
+        }
+    }
+
+    bench.bench_function("coref_anno", move |b| {
+        cs.preload("GUM").unwrap();
+        b.iter(|| {
+            let query = SearchQuery {
+                corpus_names: &["GUM"],
+                query: "infstat=\"giv\" ->coref[type=\"coref\"] entity=\"person\"",
+                query_language: QueryLanguage::AQL,
+                timeout: None,
+            };
+            let r = cs.count_extra(query);
+            assert!(r.is_ok());
+        })
+    });
+}
+
 fn find_first_ten_token_gum(bench: &mut Criterion) {
     if CORPUS_STORAGE.is_none() {
         return;
@@ -287,7 +320,8 @@ criterion_group!(name=default; config= Criterion::default().sample_size(50); tar
     deserialize_gum, 
     find_first_ten_token_gum, 
     find_first_ten_nouns_gum, 
-    find_all_nouns_gum);
+    find_all_nouns_gum,
+    count_extra_coref_anno);
 criterion_group!(name=apply_update; config= Criterion::default().sample_size(20); targets =
     apply_update_inmemory,
     apply_update_ondisk,
