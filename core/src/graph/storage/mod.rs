@@ -3,6 +3,7 @@ pub mod dense_adjacency;
 pub mod disk_adjacency;
 pub mod disk_path;
 pub mod linear;
+pub mod path;
 pub mod prepost;
 pub mod registry;
 pub mod union;
