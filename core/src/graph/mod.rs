@@ -31,6 +31,8 @@ pub const NODE_NAME: &str = "node_name";
 pub const NODE_TYPE: &str = "node_type";
 pub const DEFAULT_EMPTY_LAYER: &str = "default_layer";
 
+const GLOBAL_STATISTICS_FILE_NAME: &str = "global_statistics.bin";
+
 lazy_static! {
     pub static ref DEFAULT_ANNO_KEY: Arc<AnnoKey> = Arc::from(AnnoKey::default());
     pub static ref NODE_NAME_KEY: Arc<AnnoKey> = Arc::from(AnnoKey {
@@ -59,6 +61,8 @@ pub struct Graph<CT: ComponentType> {
     current_change_id: u64,
 
     background_persistance: Arc<Mutex<()>>,
+
+    pub global_statistics: Option<CT::GlobalStatistics>,
 
     disk_based: bool,
 }
@@ -116,7 +120,7 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(Graph {
             node_annos,
             components: BTreeMap::new(),
-
+            global_statistics: None,
             location: None,
 
             current_change_id: 0,
@@ -172,6 +176,16 @@ impl<CT: ComponentType> Graph<CT> {
             location.join("current")
         };
 
+        // Get the global statistics if available
+        self.global_statistics = None;
+        let global_statistics_file = dir2load.join(GLOBAL_STATISTICS_FILE_NAME);
+        if global_statistics_file.exists() && global_statistics_file.is_file() {
+            let f = std::fs::File::open(global_statistics_file)?;
+            let mut reader = std::io::BufReader::new(f);
+            self.global_statistics = bincode::deserialize_from(&mut reader)?;
+        }
+
+        // Load the node annotations
         let ondisk_subdirectory = dir2load.join(crate::annostorage::ondisk::SUBFOLDER_NAME);
         if ondisk_subdirectory.exists() && ondisk_subdirectory.is_dir() {
             self.disk_based = true;
@@ -301,6 +315,12 @@ impl<CT: ComponentType> Graph<CT> {
                 f_cfg.write_all(impl_name.as_bytes())?;
             }
         }
+
+        // Save global statistics
+        let f = std::fs::File::create(location.join(GLOBAL_STATISTICS_FILE_NAME))?;
+        let mut writer = std::io::BufWriter::new(f);
+        bincode::serialize_into(&mut writer, &self.global_statistics)?;
+
         Ok(())
     }
 
@@ -715,6 +735,23 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
+    /// (Re-) calculate the internal statistics needed for estimating graph components and annotations.
+    pub fn calculate_all_statistics(&mut self) -> Result<()> {
+        self.ensure_loaded_all()?;
+
+        debug!("Calculating node statistics");
+        self.node_annos.calculate_statistics()?;
+        for c in self.get_all_components(None, None) {
+            debug!("Calculating statistics for component {}", &c);
+            self.calculate_component_statistics(&c)?;
+        }
+
+        debug!("Calculating global graph statistics");
+        CT::calculate_global_statistics(self)?;
+
+        Ok(())
+    }
+
     /// Makes sure the statistics for the given component are up-to-date.
     pub fn calculate_component_statistics(&mut self, c: &Component<CT>) -> Result<()> {
         let mut result: Result<()> = Ok(());
@@ -870,15 +907,13 @@ impl<CT: ComponentType> Graph<CT> {
                     new_node_annos.insert(m.node, anno)?;
                 }
             }
-            info!("re-calculating node annotation statistics");
-            new_node_annos.calculate_statistics()?;
             self.node_annos = new_node_annos;
         }
 
+        info!("re-calculating all statistics");
+        self.calculate_all_statistics()?;
+
         for c in self.get_all_components(None, None) {
-            info!("updating statistics for component {}", &c);
-            // Recalculate all statistics first, so we optimize with the correct estimations
-            self.calculate_component_statistics(&c)?;
             // Perform the optimization if necessary
             info!("optimizing implementation for component {}", &c);
             self.optimize_gs_impl(&c)?;

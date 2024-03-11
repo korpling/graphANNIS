@@ -74,7 +74,7 @@ jobs:
         if: steps.corpus-cache.outputs.cache-hit != 'true'
         run: ./target/release/annis data --cmd 'import relannis/subtok.demo'
       - name: Run integration tests (memory)
-        run: cargo test --release -- --ignored
+        run: cargo test --tests --release -- --ignored
         working-directory: graphannis
       - name: "Create data_ondisk directory"
         run: "mkdir -p data_ondisk"
@@ -88,7 +88,7 @@ jobs:
         if: steps.corpus-cache.outputs.cache-hit != 'true'
         run: ./target/release/annis data_ondisk --cmd 'set-disk-based on' --cmd 'import relannis/subtok.demo'
       - name: Run integration tests (ondisk)
-        run: cargo test --release -- --ignored
+        run: cargo test --tests --release -- --ignored
         working-directory: graphannis
         env:
           ANNIS4_TEST_DATA: "../data_ondisk"

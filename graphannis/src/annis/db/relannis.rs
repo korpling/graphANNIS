@@ -354,12 +354,10 @@ where
 
         db.apply_update(&mut updates, &progress_callback)?;
 
-        progress_callback("calculating node statistics (after update)");
-        db.get_node_annos_mut().calculate_statistics()?;
+        progress_callback("calculating graph statistics (after update)");
+        db.calculate_all_statistics()?;
 
         for c in db.get_all_components(None, None) {
-            progress_callback(&format!("calculating statistics for component {}", c));
-            db.calculate_component_statistics(&c)?;
             progress_callback(&format!(
                 "checking if implementation for component {} can be optimized",
                 c
@@ -2114,14 +2112,17 @@ fn add_subcorpora(
                 node_name: subcorpus_full_name.to_string(),
                 node_type: "corpus".to_owned(),
             })?;
-            updates.add_event(UpdateEvent::AddNodeLabel {
-                node_name: subcorpus_full_name.to_string(),
-                anno_ns: ANNIS_NS.to_owned(),
-                anno_name: "doc".to_owned(),
-                anno_value: corpus_name.as_str().into(),
-            })?;
+            // Only add the "annis:doc" label to leaf nodes of the corpus tree
+            if corpus.pre + 1 == corpus.post {
+                updates.add_event(UpdateEvent::AddNodeLabel {
+                    node_name: subcorpus_full_name.to_string(),
+                    anno_ns: ANNIS_NS.to_owned(),
+                    anno_name: "doc".to_owned(),
+                    anno_value: corpus_name.as_str().into(),
+                })?;
+            }
 
-            // add all metadata for the document node
+            // add all metadata for the (sub-) corpus/document
             let start_key = (
                 *corpus_id,
                 AnnoKey {

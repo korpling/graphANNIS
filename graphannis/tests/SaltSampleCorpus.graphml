@@ -762,7 +762,6 @@ visibility = 'hidden'
         </node>
         <node id="rootCorpus/subCorpus1">
             <data key="k6">corpus</data>
-            <data key="k3">subCorpus1</data>
         </node>
         <node id="rootCorpus/subCorpus1/doc1">
             <data key="k6">corpus</data>
@@ -774,7 +773,6 @@ visibility = 'hidden'
         </node>
         <node id="rootCorpus/subCorpus2">
             <data key="k6">corpus</data>
-            <data key="k3">subCorpus2</data>
         </node>
         <node id="rootCorpus/subCorpus2/doc3">
             <data key="k6">corpus</data>

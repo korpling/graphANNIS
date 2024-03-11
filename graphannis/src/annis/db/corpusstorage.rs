@@ -23,6 +23,7 @@ use graphannis_core::annostorage::symboltable::SymbolTable;
 use graphannis_core::annostorage::{
     match_group_resolve_symbol_ids, match_group_with_symbol_ids, NodeAnnotationStorage,
 };
+use graphannis_core::errors::Result as CoreResult;
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
     graph::{
@@ -49,7 +50,7 @@ use std::thread;
 use std::{borrow::Cow, time::Duration};
 use transient_btree_index::{BtreeConfig, BtreeIndex};
 
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use rand::seq::SliceRandom;
 use std::{
@@ -61,6 +62,7 @@ use aql::model::AnnotationComponentType;
 
 use self::subgraph::new_subgraph_iterator;
 
+use super::aql::model::AQLGlobalStatistics;
 use super::sort_matches::SortCache;
 
 mod subgraph;
@@ -135,6 +137,7 @@ pub struct CorpusInfo {
     /// This information is stored in the "corpus-config.toml` file in the data directory
     /// and loaded on demand.
     pub config: CorpusConfiguration,
+    pub global_stats: Option<AQLGlobalStatistics>,
 }
 
 impl fmt::Display for CorpusInfo {
@@ -148,6 +151,13 @@ impl fmt::Display for CorpusInfo {
                 writeln!(f, "Status: {:?}", "fully loaded")?;
             }
         };
+        if let Some(stats) = &self.global_stats {
+            writeln!(
+                f,
+                "Token search shortcut possible: {}",
+                stats.all_token_in_order_component
+            )?;
+        }
         if !self.graphstorages.is_empty() {
             writeln!(f, "------------")?;
             for gs in &self.graphstorages {
@@ -555,6 +565,7 @@ impl CorpusStorage {
                     load_status,
                     graphstorages,
                     config,
+                    global_stats: db.global_statistics.clone(),
                 }
             }
             &CacheEntry::NotLoaded => CorpusInfo {
@@ -562,6 +573,7 @@ impl CorpusStorage {
                 load_status: LoadStatus::NotLoaded,
                 graphstorages: vec![],
                 config,
+                global_stats: None,
             },
         };
         Ok(corpus_info)
@@ -1526,12 +1538,19 @@ impl CorpusStorage {
     pub fn count_extra<S: AsRef<str>>(&self, query: SearchQuery<S>) -> Result<CountExtra> {
         let timeout = TimeoutCheck::new(query.timeout);
 
+        let annis_doc_key = AnnoKey {
+            name: "doc".into(),
+            ns: ANNIS_NS.into(),
+        };
+
         let mut match_count: u64 = 0;
         let mut document_count: u64 = 0;
 
         for cn in query.corpus_names {
             let prep =
-                self.prepare_query(cn.as_ref(), query.query, query.query_language, |_| vec![])?;
+                self.prepare_query(cn.as_ref(), query.query, query.query_language, |db| {
+                    db.get_all_components(Some(AnnotationComponentType::PartOf), None)
+                })?;
 
             // acquire read-only lock and execute query
             let lock = prep.db_entry.read()?;
@@ -1539,22 +1558,29 @@ impl CorpusStorage {
             let plan =
                 ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config, timeout)?;
 
-            let mut known_documents: HashSet<SmartString> = HashSet::new();
+            let mut known_partof_ancestors: FxHashSet<NodeID> = FxHashSet::default();
+
+            let part_of_components =
+                db.get_all_components(Some(AnnotationComponentType::PartOf), None);
+
+            let mut part_of_gs = Vec::with_capacity(part_of_components.len());
+            for c in part_of_components {
+                if let Some(gs) = db.get_graphstorage_as_ref(&c) {
+                    part_of_gs.push(gs);
+                }
+            }
 
             for m in plan {
                 let m = m?;
                 if !m.is_empty() {
                     let m: &Match = &m[0];
-                    if let Some(node_name) = db
-                        .get_node_annos()
-                        .get_value_for_item(&m.node, &NODE_NAME_KEY)?
-                    {
-                        let doc_path = if let Some((before, _)) = node_name.rsplit_once('#') {
-                            before
-                        } else {
-                            &node_name
-                        };
-                        known_documents.insert(doc_path.into());
+
+                    // Get the ancestor node with the "annis:doc" annotation
+                    for gs in &part_of_gs {
+                        let ancestors: CoreResult<Vec<u64>> = gs
+                            .find_connected(m.node, 1, std::ops::Bound::Unbounded)
+                            .collect();
+                        known_partof_ancestors.extend(ancestors?);
                     }
                 }
                 match_count += 1;
@@ -1563,7 +1589,11 @@ impl CorpusStorage {
                     timeout.check()?;
                 }
             }
-            document_count += known_documents.len() as u64;
+            for c in known_partof_ancestors {
+                if db.get_node_annos().has_value_for_item(&c, &annis_doc_key)? {
+                    document_count += 1;
+                }
+            }
 
             timeout.check()?;
         }

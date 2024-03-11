@@ -49,7 +49,7 @@ jobs:
         env:
           RUSTFLAGS: "-C link-dead-code"
       - name: Run tests code coverage (ignored tests)
-        run: cargo llvm-cov --no-report --release -- --ignored
+        run: cargo llvm-cov --no-report --release --tests -- --ignored
         env:
           RUSTFLAGS: "-C link-dead-code"
       - name: Merge code coverage reports

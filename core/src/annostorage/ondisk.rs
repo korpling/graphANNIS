@@ -6,7 +6,7 @@ use crate::graph::NODE_NAME_KEY;
 use crate::serializer::{FixedSizeKeySerializer, KeySerializer};
 use crate::types::{AnnoKey, Annotation, Edge, NodeID};
 use crate::util;
-use crate::util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY};
+use crate::util::disk_collections::{DiskMap, EvictionStrategy};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rand::seq::IteratorRandom;
@@ -24,7 +24,7 @@ use super::{EdgeAnnotationStorage, NodeAnnotationStorage};
 pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v1";
 
 const EVICTION_STRATEGY: EvictionStrategy = EvictionStrategy::MaximumItems(10_000);
-pub const BLOCK_CACHE_CAPACITY: usize = DEFAULT_BLOCK_CACHE_CAPACITY;
+pub const BLOCK_CACHE_CAPACITY: usize = 32 * crate::util::disk_collections::MB;
 
 /// An on-disk implementation of an annotation storage.
 pub struct AnnoStorageImpl<T>

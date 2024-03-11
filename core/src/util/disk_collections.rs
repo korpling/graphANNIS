@@ -15,11 +15,11 @@ use std::ops::{Bound, RangeBounds};
 use std::path::Path;
 
 const KB: usize = 1 << 10;
-const MB: usize = KB * KB;
+pub const MB: usize = KB * KB;
 const BLOCK_MAX_SIZE: usize = 4 * KB;
 
-/// Uses a cache for each disk table with 1 MB capacity.
-pub const DEFAULT_BLOCK_CACHE_CAPACITY: usize = MB;
+/// Uses a cache for each disk table with 8 MB capacity.
+pub const DEFAULT_BLOCK_CACHE_CAPACITY: usize = 8 * MB;
 
 #[derive(Serialize, Deserialize)]
 struct Entry<K, V>
@@ -55,6 +55,11 @@ where
     c1_btree_config: BtreeConfig,
 }
 
+fn custom_options(block_cache_capacity: usize) -> sstable::Options {
+    let blocks = (block_cache_capacity / BLOCK_MAX_SIZE).max(1);
+    sstable::Options::default().with_cache_capacity(blocks)
+}
+
 impl<K, V> DiskMap<K, V>
 where
     K: 'static + Clone + KeySerializer + Serialize + DeserializeOwned + Send + Sync + Ord,
@@ -71,7 +76,8 @@ where
         if let Some(persisted_file) = persisted_file {
             if persisted_file.is_file() {
                 // Use existing file as read-only table which contains the whole map
-                let table = Table::new_from_file(sstable::Options::default(), persisted_file)?;
+                let table =
+                    Table::new_from_file(custom_options(block_cache_capacity), persisted_file)?;
                 disk_table = Some(table);
             }
         }
@@ -319,7 +325,7 @@ where
             .read(true)
             .create(true)
             .open(location)?;
-        let mut builder = TableBuilder::new(self.custom_options(), out_file);
+        let mut builder = TableBuilder::new(custom_options(self.block_cache_capacity), out_file);
         for entry in self.iter()? {
             let (key, value) = entry?;
             let key = key.create_key();
@@ -363,11 +369,6 @@ where
 
         Ok(())
     }
-
-    fn custom_options(&self) -> sstable::Options {
-        let blocks = (self.block_cache_capacity / BLOCK_MAX_SIZE).max(1);
-        sstable::Options::default().with_cache_capacity(blocks)
-    }
 }
 
 /// Implements an optimized iterator a single disk table.
@@ -385,15 +386,18 @@ where
     type Item = Result<(K, V)>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some((key, value)) = self.table_iterator.next() {
+        while let Some((key, value)) = self.table_iterator.next() {
             let key = match K::parse_key(&key) {
                 Ok(key) => key,
                 Err(e) => return Some(Err(e.into())),
             };
-            return match self.serialization.deserialize(&value) {
-                Ok(value) => Some(Ok((key, value))),
-                Err(e) => Some(Err(e.into())),
+            let value: Option<V> = match self.serialization.deserialize(&value) {
+                Ok(value) => value,
+                Err(e) => return Some(Err(e.into())),
             };
+            if let Some(value) = value {
+                return Some(Ok((key, value)));
+            }
         }
         None
     }

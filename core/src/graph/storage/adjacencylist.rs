@@ -581,6 +581,9 @@ mod tests {
         })
         .unwrap();
 
+        let root_nodes: Result<Vec<_>> = gs.root_nodes().collect();
+        assert_eq!(vec![1], root_nodes.unwrap());
+
         let mut out1 = gs
             .get_outgoing_edges(1)
             .collect::<Result<Vec<_>>>()

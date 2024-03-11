@@ -1,4 +1,6 @@
 use num_traits::{Bounded, FromPrimitive, Num, ToPrimitive};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use smartstring::alias::String;
 use std::error::Error;
 use std::fmt;
@@ -55,6 +57,15 @@ impl Edge {
     }
 }
 
+impl From<(NodeID, NodeID)> for Edge {
+    fn from(value: (NodeID, NodeID)) -> Self {
+        Edge {
+            source: value.0,
+            target: value.1,
+        }
+    }
+}
+
 impl KeySerializer for Edge {
     fn create_key(&self) -> KeyVec {
         let mut result = KeyVec::new();
@@ -82,6 +93,9 @@ pub trait ComponentType:
     Into<u16> + From<u16> + FromStr + ToString + Send + Sync + Clone + Debug + Ord
 {
     type UpdateGraphIndex;
+
+    /// Statistics that combine information for multiple graph components/and or annotations.
+    type GlobalStatistics: Sync + DeserializeOwned + Serialize;
 
     fn init_update_graph_index(
         _graph: &Graph<Self>,
@@ -117,6 +131,8 @@ pub trait ComponentType:
     fn update_graph_index_components(_graph: &Graph<Self>) -> Vec<Component<Self>> {
         Vec::default()
     }
+
+    fn calculate_global_statistics(graph: &mut Graph<Self>) -> StdResult<(), ComponentTypeError>;
 }
 
 /// A simplified implementation of a `ComponentType` that only has one type of edges.
@@ -145,8 +161,12 @@ impl fmt::Display for DefaultComponentType {
 
 pub struct DefaultGraphIndex;
 
+#[derive(Serialize, Deserialize)]
+pub struct DefaultGlobalStatistics;
+
 impl ComponentType for DefaultComponentType {
     type UpdateGraphIndex = DefaultGraphIndex;
+    type GlobalStatistics = DefaultGlobalStatistics;
 
     fn init_update_graph_index(
         _graph: &Graph<Self>,
@@ -155,6 +175,9 @@ impl ComponentType for DefaultComponentType {
     }
     fn all_component_types() -> Vec<Self> {
         DefaultComponentType::iter().collect()
+    }
+    fn calculate_global_statistics(_graph: &mut Graph<Self>) -> StdResult<(), ComponentTypeError> {
+        Ok(())
     }
 }
 

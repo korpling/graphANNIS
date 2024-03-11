@@ -1,6 +1,7 @@
 pub mod adjacencylist;
 pub mod dense_adjacency;
 pub mod disk_adjacency;
+pub mod disk_path;
 pub mod linear;
 pub mod prepost;
 pub mod registry;
@@ -12,6 +13,7 @@ use crate::{
     errors::Result,
     types::{AnnoKey, Annotation, Edge, NodeID},
 };
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{self, path::Path};
 
@@ -21,7 +23,7 @@ pub struct GraphStatistic {
     /// True if the component contains any cycle.
     pub cyclic: bool,
 
-    /// True if the component consists of a [rooted trees](https://en.wikipedia.org/wiki/Tree_(graph_theory)).
+    /// True if the component consists of [rooted trees](https://en.wikipedia.org/wiki/Tree_(graph_theory)).
     pub rooted_tree: bool,
 
     /// Number of nodes in this graph storage (both source and target nodes).
@@ -99,8 +101,25 @@ pub trait EdgeContainer: Sync + Send {
         None
     }
 
-    /// Provides an iterator over all nodes of this edge container that are the source of an edge
+    /// Provides an iterator over all nodes of this edge container that are the source of an edge.
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a>;
+
+    /// Provides an iterator over all nodes of this edge container that have no incoming edges.
+    fn root_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
+        // Provide an unoptimized default implementation that iterates over all source nodes.
+        let it = self
+            .source_nodes()
+            .map(move |n| -> Result<Option<NodeID>> {
+                let n = n?;
+                if !self.has_ingoing_edges(n)? {
+                    Ok(Some(n))
+                } else {
+                    Ok(None)
+                }
+            })
+            .filter_map_ok(|n| n);
+        Box::new(it)
+    }
 }
 
 /// A graph storage is the representation of an edge component of a graph with specific structures.
