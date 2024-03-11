@@ -78,16 +78,16 @@ pub fn get_optimal_impl_heuristic<CT: ComponentType>(
     db: &Graph<CT>,
     stats: &GraphStatistic,
 ) -> GSInfo {
-    if stats.max_depth <= disk_path::MAX_DEPTH && stats.max_fan_out == 1 && !stats.cyclic {
+    if db.disk_based
+        && stats.max_depth <= disk_path::MAX_DEPTH
+        && stats.max_fan_out == 1
+        && !stats.cyclic
+    {
         // If we need to use a disk-based implementation and have short paths
         // without any branching (e.g. PartOf is often structured that way), use
         // an optimized implementation that stores the single path for each
         // source node.
-        if db.disk_based {
-            return create_info_diskpath();
-        } else {
-            return create_info::<PathStorage>();
-        }
+        return create_info_diskpath();
     } else if stats.max_depth <= 1 {
         // if we don't have any deep graph structures an adjencency list is always fasted (and has no overhead)
         return get_adjacencylist_impl(db, stats);
@@ -103,6 +103,11 @@ pub fn get_optimal_impl_heuristic<CT: ComponentType>(
         // there is no more than 3% overhead
         // TODO: how to determine the border?
         return get_prepostorder_by_size(stats);
+    } else if !db.disk_based && stats.max_depth > 1 && stats.max_fan_out == 1 && !stats.cyclic {
+        // For the in-memory implementations we only prefer the path storage if
+        // we can't use the linear graph storage and there is an advantage compared to a
+        // adjacency list (thus there should be paths with minimal length of 2).
+        return create_info::<PathStorage>();
     }
 
     // fallback
