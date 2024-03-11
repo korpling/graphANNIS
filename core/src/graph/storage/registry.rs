@@ -3,6 +3,7 @@ use super::dense_adjacency::DenseAdjacencyListStorage;
 use super::disk_adjacency::DiskAdjacencyListStorage;
 use super::disk_path::DiskPathStorage;
 use super::linear::LinearGraphStorage;
+use super::path::PathStorage;
 use super::{disk_adjacency, disk_path};
 use super::{prepost::PrePostOrderStorage, GraphStatistic, GraphStorage};
 use crate::{
@@ -30,6 +31,7 @@ lazy_static! {
             create_info_diskadjacency(),
         );
 
+        insert_info::<PathStorage>(&mut m);
         m.insert(
             disk_path::SERIALIZATION_ID.to_owned(),
             create_info_diskpath(),
@@ -76,16 +78,16 @@ pub fn get_optimal_impl_heuristic<CT: ComponentType>(
     db: &Graph<CT>,
     stats: &GraphStatistic,
 ) -> GSInfo {
-    if db.disk_based
-        && stats.max_depth <= disk_path::MAX_DEPTH
-        && stats.max_fan_out == 1
-        && !stats.cyclic
-    {
+    if stats.max_depth <= disk_path::MAX_DEPTH && stats.max_fan_out == 1 && !stats.cyclic {
         // If we need to use a disk-based implementation and have short paths
         // without any branching (e.g. PartOf is often structured that way), use
         // an optimized implementation that stores the single path for each
         // source node.
-        return create_info_diskpath();
+        if db.disk_based {
+            return create_info_diskpath();
+        } else {
+            return create_info::<PathStorage>();
+        }
     } else if stats.max_depth <= 1 {
         // if we don't have any deep graph structures an adjencency list is always fasted (and has no overhead)
         return get_adjacencylist_impl(db, stats);

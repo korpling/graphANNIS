@@ -15,11 +15,10 @@ use crate::{
 
 use super::{EdgeContainer, GraphStatistic, GraphStorage};
 
-pub(crate) const MAX_DEPTH: usize = 15;
-pub(crate) const SERIALIZATION_ID: &str = "PathV1_D15";
+pub(crate) const SERIALIZATION_ID: &str = "PathV1";
 
 /// A [GraphStorage] that stores a single path for each node in memory.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct PathStorage {
     paths: HashMap<NodeID, Vec<NodeID>>,
     inverse_edges: HashMap<NodeID, Vec<NodeID>>,
@@ -194,7 +193,7 @@ impl GraphStorage for PathStorage {
             let source = source?;
 
             let mut path = Vec::new();
-            let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), source, 1, MAX_DEPTH);
+            let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), source, 1, usize::MAX);
             for step in dfs {
                 let step = step?;
                 let target = step.node;
