@@ -118,23 +118,21 @@ fn count_extra_coref_anno(bench: &mut Criterion) {
     if let Ok(corpora) = corpora {
         let corpora: HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
         // ignore if corpus does not exist
-        if corpora.contains("GUM") {
-            cs.preload("GUM").unwrap();
-        } else {
+        if !corpora.contains("GUM") {
             return;
         }
     }
 
     bench.bench_function("count_extra_coref_anno", move |b| {
         cs.preload("GUM").unwrap();
-        b.iter(|| {
-            let query = SearchQuery {
-                corpus_names: &["GUM"],
-                query: "infstat=\"giv\" ->coref[type=\"coref\"] entity=\"person\"",
-                query_language: QueryLanguage::AQL,
-                timeout: None,
-            };
-            let r = cs.count_extra(query);
+        let query = SearchQuery {
+            corpus_names: &["GUM"],
+            query: "infstat=\"giv\" ->coref[type=\"coref\"] entity=\"person\"",
+            query_language: QueryLanguage::AQL,
+            timeout: None,
+        };
+        b.iter(move || {
+            let r = cs.count_extra(query.clone());
             assert!(r.is_ok());
         })
     });
@@ -151,30 +149,26 @@ fn count_extra_node(bench: &mut Criterion) {
     if let Ok(corpora) = corpora {
         let corpora: HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
         // ignore if corpus does not exist
-        if corpora.contains("GUM") {
-            cs.preload("GUM").unwrap();
-        } else {
+        if !corpora.contains("GUM") {
             return;
         }
     }
 
     bench.bench_function("count_extra_node", move |b| {
         cs.preload("GUM").unwrap();
-        b.iter(|| {
-            let query = SearchQuery {
-                corpus_names: &["GUM"],
-                query: "node",
-                query_language: QueryLanguage::AQL,
-                timeout: None,
-            };
-            let r = cs.count_extra(query);
+        let query = SearchQuery {
+            corpus_names: &["GUM"],
+            query: "node",
+            query_language: QueryLanguage::AQL,
+            timeout: None,
+        };
+
+        b.iter(move || {
+            let r = cs.count_extra(query.clone());
             assert!(r.is_ok());
         })
     });
 }
-
-
-
 
 fn find_first_ten_token_gum(bench: &mut Criterion) {
     if CORPUS_STORAGE.is_none() {
@@ -353,8 +347,8 @@ fn apply_update_ondisk(bench: &mut Criterion) {
 }
 
 criterion_group!(name=default; config= Criterion::default().sample_size(50); targets =
-    deserialize_gum, 
-    find_first_ten_token_gum, 
+    deserialize_gum,
+    find_first_ten_token_gum,
     find_first_ten_nouns_gum, 
     find_all_nouns_gum,
     count_extra_coref_anno, count_extra_node);

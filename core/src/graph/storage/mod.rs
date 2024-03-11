@@ -3,7 +3,6 @@ pub mod dense_adjacency;
 pub mod disk_adjacency;
 pub mod disk_path;
 pub mod linear;
-pub mod path;
 pub mod prepost;
 pub mod registry;
 pub mod union;
@@ -24,7 +23,7 @@ pub struct GraphStatistic {
     /// True if the component contains any cycle.
     pub cyclic: bool,
 
-    /// True if the component consists of a [rooted trees](https://en.wikipedia.org/wiki/Tree_(graph_theory)).
+    /// True if the component consists of [rooted trees](https://en.wikipedia.org/wiki/Tree_(graph_theory)).
     pub rooted_tree: bool,
 
     /// Number of nodes in this graph storage (both source and target nodes).

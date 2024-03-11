@@ -3,7 +3,7 @@ use super::dense_adjacency::DenseAdjacencyListStorage;
 use super::disk_adjacency::DiskAdjacencyListStorage;
 use super::disk_path::DiskPathStorage;
 use super::linear::LinearGraphStorage;
-use super::path::PathStorage;
+
 use super::{disk_adjacency, disk_path};
 use super::{prepost::PrePostOrderStorage, GraphStatistic, GraphStorage};
 use crate::{
@@ -31,7 +31,6 @@ lazy_static! {
             create_info_diskadjacency(),
         );
 
-        insert_info::<PathStorage>(&mut m);
         m.insert(
             disk_path::SERIALIZATION_ID.to_owned(),
             create_info_diskpath(),
@@ -103,11 +102,6 @@ pub fn get_optimal_impl_heuristic<CT: ComponentType>(
         // there is no more than 3% overhead
         // TODO: how to determine the border?
         return get_prepostorder_by_size(stats);
-    } else if !db.disk_based && stats.max_depth > 1 && stats.max_fan_out == 1 && !stats.cyclic {
-        // For the in-memory implementations we only prefer the path storage if
-        // we can't use the linear graph storage and there is an advantage compared to a
-        // adjacency list (thus there should be paths with minimal length of 2).
-        return create_info::<PathStorage>();
     }
 
     // fallback
