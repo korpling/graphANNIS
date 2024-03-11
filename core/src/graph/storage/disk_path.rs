@@ -276,6 +276,8 @@ impl GraphStorage for DiskPathStorage {
         _node_annos: &dyn crate::annostorage::NodeAnnotationStorage,
         orig: &dyn GraphStorage,
     ) -> Result<()> {
+        self.inverse_edges.clear();
+
         // Create a new file which is large enough to contain the paths for all nodes.
         let max_node_id = orig
             .source_nodes()
@@ -303,10 +305,15 @@ impl GraphStorage for DiskPathStorage {
                 let step = step?;
                 let target = step.node;
 
-                let edge = Edge { source, target };
                 // Store directly outgoing edges in our inverse list
                 if step.distance == 1 {
+                    let edge = Edge { source, target };
                     self.inverse_edges.insert(edge.inverse(), true)?;
+
+                    // Copy all annotations for this edge
+                    for a in orig.get_anno_storage().get_annotations_for_item(&edge)? {
+                        self.annos.insert(edge.clone(), a)?;
+                    }
                 }
 
                 // Set the new length
@@ -318,11 +325,6 @@ impl GraphStorage for DiskPathStorage {
                 let target_node_id_bytes = target.to_le_bytes();
                 path_view.nodes_mut()[offset..(offset + 8)]
                     .copy_from_slice(&target_node_id_bytes[..]);
-
-                // Copy all annotations for this edge
-                for a in orig.get_anno_storage().get_annotations_for_item(&edge)? {
-                    self.annos.insert(edge.clone(), a)?;
-                }
             }
         }
 
