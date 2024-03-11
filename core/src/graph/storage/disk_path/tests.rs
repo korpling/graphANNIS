@@ -315,6 +315,40 @@ fn test_save_load() {
 
     assert_eq!(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], result);
 
+    assert_eq!(
+        0,
+        new_gs
+            .get_anno_storage()
+            .get_annotations_for_item(&Edge {
+                source: 0,
+                target: 12
+            })
+            .unwrap()
+            .len()
+    );
+    assert_eq!(
+        0,
+        new_gs
+            .get_anno_storage()
+            .get_annotations_for_item(&Edge {
+                source: 3,
+                target: 12
+            })
+            .unwrap()
+            .len()
+    );
+    assert_eq!(
+        0,
+        new_gs
+            .get_anno_storage()
+            .get_annotations_for_item(&Edge {
+                source: 7,
+                target: 10
+            })
+            .unwrap()
+            .len()
+    );
+
     for source in 9..=11 {
         let edge_anno = new_gs
             .get_anno_storage()
