@@ -362,6 +362,73 @@ fn test_save_load() {
 }
 
 #[test]
+fn test_save_load_same_location() {
+    let node_annos = AnnoStorageImpl::new(None).unwrap();
+    let orig = create_topdown_gs().unwrap();
+    let mut save_gs = DiskPathStorage::new().unwrap();
+    save_gs.copy(&node_annos, &orig).unwrap();
+
+    let tmp_location = tempfile::TempDir::new().unwrap();
+    save_gs.save_to(tmp_location.path()).unwrap();
+
+    let tmp_gs = DiskPathStorage::load_from(tmp_location.path()).unwrap();
+    tmp_gs.save_to(tmp_location.path()).unwrap();
+
+    let new_gs = DiskPathStorage::load_from(tmp_location.path()).unwrap();
+
+    let result: Result<Vec<_>> = new_gs.source_nodes().collect();
+    let mut result = result.unwrap();
+    result.sort();
+
+    assert_eq!(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], result);
+
+    assert_eq!(
+        0,
+        new_gs
+            .get_anno_storage()
+            .get_annotations_for_item(&Edge {
+                source: 0,
+                target: 12
+            })
+            .unwrap()
+            .len()
+    );
+    assert_eq!(
+        0,
+        new_gs
+            .get_anno_storage()
+            .get_annotations_for_item(&Edge {
+                source: 3,
+                target: 12
+            })
+            .unwrap()
+            .len()
+    );
+    assert_eq!(
+        0,
+        new_gs
+            .get_anno_storage()
+            .get_annotations_for_item(&Edge {
+                source: 7,
+                target: 10
+            })
+            .unwrap()
+            .len()
+    );
+
+    for source in 9..=11 {
+        let edge_anno = new_gs
+            .get_anno_storage()
+            .get_annotations_for_item(&(source, 12).into())
+            .unwrap();
+        assert_eq!(1, edge_anno.len());
+        assert_eq!("default_ns", edge_anno[0].key.ns);
+        assert_eq!("example", edge_anno[0].key.name);
+        assert_eq!("last", edge_anno[0].val);
+    }
+}
+
+#[test]
 fn test_has_ingoing_edges() {
     let node_annos = AnnoStorageImpl::new(None).unwrap();
     let orig = create_topdown_gs().unwrap();
