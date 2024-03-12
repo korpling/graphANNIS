@@ -1,4 +1,4 @@
-use crate::errors::Result;
+use crate::errors::{GraphAnnisCoreError, Result};
 use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
 use std::borrow::Cow;
 
@@ -40,7 +40,10 @@ pub fn regex_full_match(pattern: &str) -> String {
 /// more abstract `Hir` representation that gives as information such as
 /// prefixes for this regular expression.
 pub fn compile_and_parse_regex(pattern: &str) -> Result<(regex::Regex, regex_syntax::hir::Hir)> {
-    let compiled_regex = regex::Regex::new(pattern)?;
-    let parsed_regex = regex_syntax::Parser::new().parse(pattern)?;
+    let compiled_regex =
+        regex::Regex::new(pattern).map_err(|e| GraphAnnisCoreError::Other(Box::new(e)))?;
+    let parsed_regex = regex_syntax::Parser::new()
+        .parse(pattern)
+        .map_err(|e| GraphAnnisCoreError::Other(Box::new(e)))?;
     Ok((compiled_regex, parsed_regex))
 }

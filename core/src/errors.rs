@@ -70,10 +70,6 @@ pub enum GraphAnnisCoreError {
     #[error("The choose cache size is zero, which is not allowed.")]
     ZeroCacheSize,
     #[error(transparent)]
-    Regex(#[from] regex::Error),
-    #[error(transparent)]
-    RegexSyntax(#[from] regex_syntax::Error),
-    #[error(transparent)]
     Other(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
