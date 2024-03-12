@@ -11,6 +11,7 @@ use core::ops::Bound::*;
 use itertools::Itertools;
 use rand::seq::IteratorRandom;
 use regex_syntax::hir::literal::Seq;
+use regex_syntax::Parser;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -670,42 +671,59 @@ where
         negated: bool,
     ) -> Box<dyn Iterator<Item = Result<Match>> + 'a> {
         let full_match_pattern = util::regex_full_match(pattern);
-        let compiled_result = regex::Regex::new(&full_match_pattern);
-        let parsed_regex = regex_syntax::Parser::new().parse(&full_match_pattern);
 
-        if let (Ok(re), Ok(parsed_regex)) = (compiled_result, parsed_regex) {
-            let regex_literal_sequence = regex_syntax::hir::literal::Extractor::new()
-                .extract(&parsed_regex)
-                .literals()
-                .map(Seq::new);
-
-            let prefix_bytes = regex_literal_sequence
-                .map(|seq| Vec::from(seq.longest_common_prefix().unwrap_or_default()))
-                .unwrap_or_default();
-            let prefix = try_as_boxed_iter!(std::str::from_utf8(&prefix_bytes));
-
-            let it = self
-                .matching_items_by_prefix(namespace, name, prefix.to_string())
-                .map(move |item| match item {
-                    Ok((node, anno_key)) => {
-                        let value = self.get_value_for_item(&node, &anno_key)?;
-                        Ok((node, anno_key, value))
-                    }
-                    Err(e) => Err(e),
-                })
-                .filter_ok(move |(_, _, val)| {
-                    if let Some(val) = val {
-                        if negated {
-                            !re.is_match(val)
-                        } else {
-                            re.is_match(val)
+        if let Ok((compiled_regex, parsed_regex)) =
+            util::compile_and_parse_regex(&full_match_pattern)
+        {
+            if negated {
+                let it = self
+                    .matching_items(namespace, name, None)
+                    .map(move |item| match item {
+                        Ok((node, anno_key)) => {
+                            let value = self.get_value_for_item(&node, &anno_key)?;
+                            Ok((node, anno_key, value))
                         }
-                    } else {
-                        false
-                    }
-                })
-                .map_ok(move |(node, anno_key, _val)| (node, anno_key).into());
-            Box::new(it)
+                        Err(e) => Err(e),
+                    })
+                    .filter_ok(move |(_, _, val)| {
+                        if let Some(val) = val {
+                            !compiled_regex.is_match(val)
+                        } else {
+                            false
+                        }
+                    })
+                    .map_ok(move |(node, anno_key, _val)| (node, anno_key).into());
+                Box::new(it)
+            } else {
+                let regex_literal_sequence = regex_syntax::hir::literal::Extractor::new()
+                    .extract(&parsed_regex)
+                    .literals()
+                    .map(Seq::new);
+
+                let prefix_bytes = regex_literal_sequence
+                    .map(|seq| Vec::from(seq.longest_common_prefix().unwrap_or_default()))
+                    .unwrap_or_default();
+                let prefix = try_as_boxed_iter!(std::str::from_utf8(&prefix_bytes));
+
+                let it = self
+                    .matching_items_by_prefix(namespace, name, prefix.to_string())
+                    .map(move |item| match item {
+                        Ok((node, anno_key)) => {
+                            let value = self.get_value_for_item(&node, &anno_key)?;
+                            Ok((node, anno_key, value))
+                        }
+                        Err(e) => Err(e),
+                    })
+                    .filter_ok(move |(_, _, val)| {
+                        if let Some(val) = val {
+                            compiled_regex.is_match(val)
+                        } else {
+                            false
+                        }
+                    })
+                    .map_ok(move |(node, anno_key, _val)| (node, anno_key).into());
+                Box::new(it)
+            }
         } else if negated {
             // return all values
             self.exact_anno_search(namespace, name, None.into())
@@ -827,7 +845,7 @@ where
         let full_match_pattern = util::regex_full_match(pattern);
 
         // Try to parse the regular expression
-        let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
+        let parsed = Parser::new().parse(&full_match_pattern);
         if let Ok(parsed) = parsed {
             let mut guessed_count = 0;
 
