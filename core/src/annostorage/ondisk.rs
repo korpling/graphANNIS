@@ -677,7 +677,7 @@ where
             let regex_literal_sequence = regex_syntax::hir::literal::Extractor::new()
                 .extract(&parsed_regex)
                 .literals()
-                .map(|seq| Seq::new(seq));
+                .map(Seq::new);
 
             let prefix_bytes = regex_literal_sequence
                 .map(|seq| Vec::from(seq.longest_common_prefix().unwrap_or_default()))
