@@ -91,7 +91,7 @@ impl UnaryOperatorSpec for NonExistingUnaryOperatorSpec {
         g: &'b AnnotationGraph,
     ) -> Result<Box<dyn crate::annis::operator::UnaryOperator + 'b>> {
         let mut target_left = self.target_left;
-        let mut orig_op = self.op.create_operator(g)?;
+        let mut orig_op = self.op.create_operator(g, None)?;
 
         if target_left {
             // Check if we can avoid a costly filter operation by switching operands

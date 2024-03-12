@@ -106,17 +106,25 @@ fn update_components_for_nodes(
     }
 }
 
-fn should_switch_operand_order(
+fn get_cost_estimates<'a>(
     op_spec: &BinaryOperatorSpecEntry,
-    node2cost: &BTreeMap<usize, CostEstimate>,
-) -> bool {
+    node2cost: &'a BTreeMap<usize, CostEstimate>,
+) -> Option<(&'a CostEstimate, &'a CostEstimate)> {
     if let (Some(cost_lhs), Some(cost_rhs)) = (
         node2cost.get(&op_spec.args.left),
         node2cost.get(&op_spec.args.right),
     ) {
-        let cost_lhs: &CostEstimate = cost_lhs;
-        let cost_rhs: &CostEstimate = cost_rhs;
+        Some((cost_lhs, cost_rhs))
+    } else {
+        None
+    }
+}
 
+fn should_switch_operand_order(
+    op_spec: &BinaryOperatorSpecEntry,
+    node2cost: &BTreeMap<usize, CostEstimate>,
+) -> bool {
+    if let Some((cost_lhs, cost_rhs)) = get_cost_estimates(op_spec, node2cost) {
         if cost_rhs.output < cost_lhs.output {
             // switch operands
             return true;
@@ -678,7 +686,9 @@ impl Conjunction {
         >,
         helper: &mut ExecutionPlanHelper,
     ) -> Result<()> {
-        let mut op: BinaryOperator<'a> = op_spec_entry.op.create_operator(g)?;
+        let mut op: BinaryOperator<'a> = op_spec_entry
+            .op
+            .create_operator(g, get_cost_estimates(op_spec_entry, &helper.node2cost))?;
 
         let mut spec_idx_left = op_spec_entry.args.left;
         let mut spec_idx_right = op_spec_entry.args.right;

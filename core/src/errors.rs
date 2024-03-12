@@ -1,5 +1,6 @@
 use std::{
-    array::TryFromSliceError, num::TryFromIntError, string::FromUtf8Error, sync::PoisonError,
+    array::TryFromSliceError, num::TryFromIntError, str::Utf8Error, string::FromUtf8Error,
+    sync::PoisonError,
 };
 
 use thiserror::Error;
@@ -60,6 +61,8 @@ pub enum GraphAnnisCoreError {
     LockPoisoning(String),
     #[error(transparent)]
     FromUtf8Error(#[from] FromUtf8Error),
+    #[error(transparent)]
+    Utf8Error(#[from] Utf8Error),
     #[error("Too man unique items added to symbol table")]
     SymbolTableOverflow,
     #[error("Annotation key with ID {0} is not in symbol table")]

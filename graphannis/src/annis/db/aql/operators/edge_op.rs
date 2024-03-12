@@ -1,4 +1,5 @@
 use crate::annis::db::aql::{model::AnnotationComponentType, operators::RangeSpec};
+use crate::annis::db::exec::CostEstimate;
 use crate::annis::errors::GraphAnnisError;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorBase, BinaryOperatorIndex, BinaryOperatorSpec,
@@ -24,6 +25,7 @@ struct BaseEdgeOpSpec {
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
     pub is_reflexive: bool,
     pub op_str: Option<String>,
+    pub check_cost_for_inverse_operator: bool,
 }
 
 struct BaseEdgeOp {
@@ -64,7 +66,11 @@ impl BinaryOperatorSpec for BaseEdgeOpSpec {
         HashSet::from_iter(self.components.clone())
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+    fn create_operator<'a>(
+        &self,
+        db: &'a AnnotationGraph,
+        _cost_estimate: Option<(&CostEstimate, &CostEstimate)>,
+    ) -> Result<BinaryOperator<'a>> {
         let optional_op = BaseEdgeOp::new(db, self.clone());
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
@@ -260,7 +266,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
         // don't provide an inverse operator, because the plans would not
         // account for the different costs
         for g in &self.gs {
-            if !g.inverse_has_same_cost() {
+            if self.spec.check_cost_for_inverse_operator && !g.inverse_has_same_cost() {
                 return Ok(None);
             }
             if let Some(stat) = g.get_statistics() {
@@ -574,7 +580,11 @@ impl BinaryOperatorSpec for DominanceSpec {
         )
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+    fn create_operator<'a>(
+        &self,
+        db: &'a AnnotationGraph,
+        cost_estimate: Option<(&CostEstimate, &CostEstimate)>,
+    ) -> Result<BinaryOperator<'a>> {
         let components =
             db.get_all_components(Some(AnnotationComponentType::Dominance), Some(&self.name));
         let op_str = if self.name.is_empty() {
@@ -588,8 +598,9 @@ impl BinaryOperatorSpec for DominanceSpec {
             dist: self.dist.clone(),
             edge_anno: self.edge_anno.clone(),
             is_reflexive: true,
+            check_cost_for_inverse_operator: true,
         };
-        base.create_operator(db)
+        base.create_operator(db, cost_estimate)
     }
 
     fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
@@ -618,7 +629,11 @@ impl BinaryOperatorSpec for PointingSpec {
         )
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+    fn create_operator<'a>(
+        &self,
+        db: &'a AnnotationGraph,
+        cost_estimate: Option<(&CostEstimate, &CostEstimate)>,
+    ) -> Result<BinaryOperator<'a>> {
         let components =
             db.get_all_components(Some(AnnotationComponentType::Pointing), Some(&self.name));
         let op_str = if self.name.is_empty() {
@@ -633,8 +648,9 @@ impl BinaryOperatorSpec for PointingSpec {
             edge_anno: self.edge_anno.clone(),
             is_reflexive: true,
             op_str: Some(op_str),
+            check_cost_for_inverse_operator: true,
         };
-        base.create_operator(db)
+        base.create_operator(db, cost_estimate)
     }
 
     fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
@@ -665,21 +681,34 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         components
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+    fn create_operator<'a>(
+        &self,
+        db: &'a AnnotationGraph,
+        cost_estimate: Option<(&CostEstimate, &CostEstimate)>,
+    ) -> Result<BinaryOperator<'a>> {
         let components = vec![Component::new(
             AnnotationComponentType::PartOf,
             ANNIS_NS.into(),
             "".into(),
         )];
+        let check_cost_for_inverse_operator = if let Some((_, rhs)) = cost_estimate {
+            // Only ignore different cost and risk a nested loop join if the RHS
+            // has an estimated output size of 1 and thus a nested loop is not
+            // as costly.
+            rhs.output > 1
+        } else {
+            true
+        };
         let base = BaseEdgeOpSpec {
             op_str: Some(String::from("@")),
             components,
             dist: self.dist.clone(),
             edge_anno: None,
             is_reflexive: false,
+            check_cost_for_inverse_operator,
         };
 
-        base.create_operator(db)
+        base.create_operator(db, cost_estimate)
     }
 
     fn into_any(self: Arc<Self>) -> Arc<dyn Any> {

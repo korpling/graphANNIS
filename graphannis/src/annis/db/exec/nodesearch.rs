@@ -453,22 +453,21 @@ impl<'a> NodeSearch<'a> {
                 is_meta,
             } => {
                 // check if the regex can be replaced with an exact value search
-                let is_regex = util::contains_regex_metacharacters(&val);
-                if is_regex {
-                    NodeSearch::new_annosearch_regex(
+                if let Some(exaxt_value) = util::exact_value_for_regex(&val) {
+                    NodeSearch::new_annosearch_exact(
                         db,
                         (ns, name),
-                        &val,
-                        false,
+                        ValueSearch::Some(exaxt_value),
                         filters,
                         is_meta,
                         common_args,
                     )
                 } else {
-                    NodeSearch::new_annosearch_exact(
+                    NodeSearch::new_annosearch_regex(
                         db,
                         (ns, name),
-                        ValueSearch::Some(val),
+                        &val,
+                        false,
                         filters,
                         is_meta,
                         common_args,
@@ -482,22 +481,21 @@ impl<'a> NodeSearch<'a> {
                 is_meta,
             } => {
                 // check if the regex can be replaced with an exact value search
-                let is_regex = util::contains_regex_metacharacters(&val);
-                if is_regex {
-                    NodeSearch::new_annosearch_regex(
+                if let Some(exact_value) = util::exact_value_for_regex(&val) {
+                    NodeSearch::new_annosearch_exact(
                         db,
                         (ns, name),
-                        &val,
-                        true,
+                        ValueSearch::NotSome(exact_value),
                         filters,
                         is_meta,
                         common_args,
                     )
                 } else {
-                    NodeSearch::new_annosearch_exact(
+                    NodeSearch::new_annosearch_regex(
                         db,
                         (ns, name),
-                        ValueSearch::NotSome(val),
+                        &val,
+                        true,
                         filters,
                         is_meta,
                         common_args,

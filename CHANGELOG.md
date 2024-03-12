@@ -24,6 +24,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   using the newly added graph storage implementation and statistics and
   providing an optimized implementation for token search if we already know that
   all token are part of the default ordering component. This fixes #276.
+- Improve performance for regular expression search when using disk-based
+  annotation storage and the regex has a prefix. This e.g. fixes getting the
+  text for a document in ANNIS when the corpus is large.
+- Improve performance for regular expressions that can be replaced by an exact
+  value search, even when the value is escaped. This can be useful e.g. in the
+  subgraph extraction queries from ANNIS, where some characters are escaped with
+  `\x` and which was previously not treated as constant value search.
+- Improve performance for getting all token of a document (e.g. for a subgraph
+  query) when the PartOf graph storage implementation does not have the same
+  cost of the inverse graph storage operations by allowing to use a nested loop
+  join in this particular scenario.
 
 ### Fixed
 
@@ -31,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   This will fix queries where you just search for documents, e.g. by `annis:doc`
   but also got the sub-corpora as result.
 - Re-enable adding the C-API shared library as release artifacts to GitHub.
-
 
 ## [3.1.1] - 2024-02-05
 

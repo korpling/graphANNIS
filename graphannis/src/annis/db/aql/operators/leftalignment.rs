@@ -1,3 +1,4 @@
+use crate::annis::db::exec::CostEstimate;
 use crate::annis::db::token_helper;
 use crate::annis::db::{aql::model::AnnotationComponentType, token_helper::TokenHelper};
 use crate::annis::errors::GraphAnnisError;
@@ -29,7 +30,11 @@ impl BinaryOperatorSpec for LeftAlignmentSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+    fn create_operator<'a>(
+        &self,
+        db: &'a AnnotationGraph,
+        _ccost_estimate: Option<(&CostEstimate, &CostEstimate)>,
+    ) -> Result<BinaryOperator<'a>> {
         let optional_op = LeftAlignment::new(db);
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }

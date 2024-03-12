@@ -1,4 +1,4 @@
-use super::db::aql::model::AnnotationComponentType;
+use super::db::{aql::model::AnnotationComponentType, exec::CostEstimate};
 use crate::{errors::Result, graph::Match, AnnotationGraph};
 use graphannis_core::{annostorage::EdgeAnnotationStorage, types::Component};
 use std::{any::Any, collections::HashSet, fmt::Display, sync::Arc};
@@ -186,7 +186,7 @@ pub trait BinaryOperatorBase: std::fmt::Display + Send + Sync {
 
 /// Holds an instance of one of the possibly binary operator types.
 pub enum BinaryOperator<'a> {
-    /// Base implementation, usable with as filter and for nested loop joins
+    /// Base implementation, usable as filter and for nested loop joins
     Base(Box<dyn BinaryOperatorBase + 'a>),
     /// Implementation that can be used in an index join
     Index(Box<dyn BinaryOperatorIndex + 'a>),
@@ -258,7 +258,11 @@ pub trait BinaryOperatorSpec: std::fmt::Debug + Send + Sync {
         db: &AnnotationGraph,
     ) -> HashSet<Component<AnnotationComponentType>>;
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>>;
+    fn create_operator<'a>(
+        &self,
+        db: &'a AnnotationGraph,
+        cost_estimate: Option<(&CostEstimate, &CostEstimate)>,
+    ) -> Result<BinaryOperator<'a>>;
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         None

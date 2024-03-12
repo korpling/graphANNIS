@@ -1,3 +1,4 @@
+use crate::annis::db::exec::CostEstimate;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::GraphAnnisError;
@@ -57,7 +58,11 @@ impl BinaryOperatorSpec for IdenticalCoverageSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+    fn create_operator<'a>(
+        &self,
+        db: &'a AnnotationGraph,
+        _cost_estimate: Option<(&CostEstimate, &CostEstimate)>,
+    ) -> Result<BinaryOperator<'a>> {
         let optional_op = IdenticalCoverage::new(db);
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }

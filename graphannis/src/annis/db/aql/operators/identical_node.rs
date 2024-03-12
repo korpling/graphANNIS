@@ -1,3 +1,4 @@
+use crate::annis::db::exec::CostEstimate;
 use crate::AnnotationGraph;
 use crate::{
     annis::{db::aql::model::AnnotationComponentType, operator::*},
@@ -20,7 +21,11 @@ impl BinaryOperatorSpec for IdenticalNodeSpec {
         HashSet::default()
     }
 
-    fn create_operator<'a>(&self, _db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+    fn create_operator<'a>(
+        &self,
+        _db: &'a AnnotationGraph,
+        _cost_estimate: Option<(&CostEstimate, &CostEstimate)>,
+    ) -> Result<BinaryOperator<'a>> {
         Ok(BinaryOperator::Index(Box::new(IdenticalNode {})))
     }
 

@@ -1,4 +1,5 @@
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
+use crate::annis::db::exec::CostEstimate;
 use crate::{
     annis::{
         db::aql::model::{AnnotationComponentType, TOK, TOKEN_KEY},
@@ -30,7 +31,11 @@ impl BinaryOperatorSpec for EqualValueSpec {
         HashSet::default()
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+    fn create_operator<'a>(
+        &self,
+        db: &'a AnnotationGraph,
+        _cost_estimate: Option<(&CostEstimate, &CostEstimate)>,
+    ) -> Result<BinaryOperator<'a>> {
         Ok(BinaryOperator::Index(Box::new(EqualValue {
             node_annos: db.get_node_annos(),
             spec_left: self.spec_left.clone(),

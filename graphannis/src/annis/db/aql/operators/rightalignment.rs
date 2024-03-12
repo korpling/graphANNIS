@@ -1,3 +1,4 @@
+use crate::annis::db::exec::CostEstimate;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::GraphAnnisError;
@@ -31,7 +32,11 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+    fn create_operator<'a>(
+        &self,
+        db: &'a AnnotationGraph,
+        _cost_estimate: Option<(&CostEstimate, &CostEstimate)>,
+    ) -> Result<BinaryOperator<'a>> {
         let op = RightAlignment::new(db)?;
         Ok(BinaryOperator::Index(Box::new(op)))
     }

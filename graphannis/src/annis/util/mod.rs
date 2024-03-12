@@ -2,6 +2,7 @@ pub mod quicksort;
 pub mod sortablecontainer;
 
 use graphannis_core::serializer::KeyVec;
+use regex_syntax::hir::literal::Extractor;
 
 use crate::errors::{GraphAnnisError, Result};
 
@@ -10,13 +11,19 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub fn contains_regex_metacharacters(pattern: &str) -> bool {
-    for c in pattern.chars() {
-        if regex_syntax::is_meta_character(c) {
-            return true;
+/// If a regular expression only matches a specific string, return this string.
+/// Otherwise return `None`.
+pub(crate) fn exact_value_for_regex(pattern: &str) -> Option<String> {
+    let parsed = regex_syntax::Parser::new().parse(pattern).ok()?;
+    if let Some(matching_literals) = Extractor::new().extract(&parsed).literals() {
+        if matching_literals.is_empty() {
+            return Some("".into());
+        } else if matching_literals.len() == 1 && matching_literals[0].is_exact() {
+            let matching_value = std::str::from_utf8(matching_literals[0].as_bytes()).ok()?;
+            return Some(matching_value.to_string());
         }
     }
-    false
+    None
 }
 
 /// Creates a byte array key from a vector of strings.
@@ -159,5 +166,13 @@ mod tests {
             ],
             node_names_from_match("annis::test::n1 n2 test2::n3 n4")
         );
+    }
+    #[test]
+    fn test_exact_value_for_regex() {
+        assert_eq!(None, exact_value_for_regex("A[abc]"));
+        assert_eq!(None, exact_value_for_regex("A|B"));
+        assert_eq!(None, exact_value_for_regex("A\\"));
+        assert_eq!(Some("A/b".to_string()), exact_value_for_regex("A\x2Fb"));
+        assert_eq!(Some("Test".to_string()), exact_value_for_regex("Test"));
     }
 }

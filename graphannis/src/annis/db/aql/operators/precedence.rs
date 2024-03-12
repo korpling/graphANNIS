@@ -1,4 +1,5 @@
 use crate::annis::db::aql::operators::RangeSpec;
+use crate::annis::db::exec::CostEstimate;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::GraphAnnisError;
@@ -69,7 +70,11 @@ impl BinaryOperatorSpec for PrecedenceSpec {
         v
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
+    fn create_operator<'a>(
+        &self,
+        db: &'a AnnotationGraph,
+        _cost_estimate: Option<(&CostEstimate, &CostEstimate)>,
+    ) -> Result<BinaryOperator<'a>> {
         let op = Precedence::new(db, self.clone())?;
         Ok(BinaryOperator::Index(Box::new(op)))
     }

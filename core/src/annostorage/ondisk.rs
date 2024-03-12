@@ -5,11 +5,13 @@ use crate::errors::Result;
 use crate::graph::NODE_NAME_KEY;
 use crate::serializer::{FixedSizeKeySerializer, KeySerializer};
 use crate::types::{AnnoKey, Annotation, Edge, NodeID};
-use crate::util;
 use crate::util::disk_collections::{DiskMap, EvictionStrategy};
+use crate::{try_as_boxed_iter, util};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rand::seq::IteratorRandom;
+use regex_syntax::hir::literal::Seq;
+use regex_syntax::Parser;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -207,6 +209,58 @@ where
 
                 let upper_bound =
                     create_by_anno_qname_key(NodeID::MAX, anno_key_symbol, &upper_bound_value);
+                self.by_anno_qname.range(lower_bound..upper_bound)
+            })
+            .fuse()
+            .map(move |item| match item {
+                Ok((data, _)) => {
+                    // get the item ID at the end
+                    let item_id = T::parse_key(&data[data.len() - T::key_size()..])?;
+                    let anno_key_symbol = usize::parse_key(&data[0..std::mem::size_of::<usize>()])?;
+                    let key = self
+                        .anno_key_symbols
+                        .get_value(anno_key_symbol)
+                        .unwrap_or_default();
+                    Ok((item_id, key))
+                }
+                Err(e) => Err(e),
+            });
+
+        Box::new(it)
+    }
+
+    fn matching_items_by_prefix<'a>(
+        &'a self,
+        namespace: Option<&str>,
+        name: &str,
+        prefix: String,
+    ) -> Box<dyn Iterator<Item = Result<(T, Arc<AnnoKey>)>> + 'a>
+    where
+        T: FixedSizeKeySerializer + Send + Sync + PartialOrd,
+    {
+        let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
+            vec![Arc::from(AnnoKey {
+                ns: ns.into(),
+                name: name.into(),
+            })]
+        } else {
+            let qnames = match self.get_qnames(name) {
+                Ok(qnames) => qnames,
+                Err(e) => return Box::new(std::iter::once(Err(e))),
+            };
+            qnames.into_iter().map(Arc::from).collect()
+        };
+
+        let it = key_ranges
+            .into_iter()
+            .filter_map(move |k| self.anno_key_symbols.get_symbol(&k))
+            .flat_map(move |anno_key_symbol| {
+                let lower_bound = create_by_anno_qname_key(NodeID::MIN, anno_key_symbol, &prefix);
+
+                let mut upper_val = prefix.clone();
+                upper_val.push(std::char::MAX);
+                let upper_bound =
+                    create_by_anno_qname_key(NodeID::MAX, anno_key_symbol, &upper_val);
                 self.by_anno_qname.range(lower_bound..upper_bound)
             })
             .fuse()
@@ -617,30 +671,59 @@ where
         negated: bool,
     ) -> Box<dyn Iterator<Item = Result<Match>> + 'a> {
         let full_match_pattern = util::regex_full_match(pattern);
-        let compiled_result = regex::Regex::new(&full_match_pattern);
-        if let Ok(re) = compiled_result {
-            let it = self
-                .matching_items(namespace, name, None)
-                .map(move |item| match item {
-                    Ok((node, anno_key)) => {
-                        let value = self.get_value_for_item(&node, &anno_key)?;
-                        Ok((node, anno_key, value))
-                    }
-                    Err(e) => Err(e),
-                })
-                .filter_ok(move |(_, _, val)| {
-                    if let Some(val) = val {
-                        if negated {
-                            !re.is_match(val)
-                        } else {
-                            re.is_match(val)
+
+        if let Ok((compiled_regex, parsed_regex)) =
+            util::compile_and_parse_regex(&full_match_pattern)
+        {
+            if negated {
+                let it = self
+                    .matching_items(namespace, name, None)
+                    .map(move |item| match item {
+                        Ok((node, anno_key)) => {
+                            let value = self.get_value_for_item(&node, &anno_key)?;
+                            Ok((node, anno_key, value))
                         }
-                    } else {
-                        false
-                    }
-                })
-                .map_ok(move |(node, anno_key, _val)| (node, anno_key).into());
-            Box::new(it)
+                        Err(e) => Err(e),
+                    })
+                    .filter_ok(move |(_, _, val)| {
+                        if let Some(val) = val {
+                            !compiled_regex.is_match(val)
+                        } else {
+                            false
+                        }
+                    })
+                    .map_ok(move |(node, anno_key, _val)| (node, anno_key).into());
+                Box::new(it)
+            } else {
+                let regex_literal_sequence = regex_syntax::hir::literal::Extractor::new()
+                    .extract(&parsed_regex)
+                    .literals()
+                    .map(Seq::new);
+
+                let prefix_bytes = regex_literal_sequence
+                    .map(|seq| Vec::from(seq.longest_common_prefix().unwrap_or_default()))
+                    .unwrap_or_default();
+                let prefix = try_as_boxed_iter!(std::str::from_utf8(&prefix_bytes));
+
+                let it = self
+                    .matching_items_by_prefix(namespace, name, prefix.to_string())
+                    .map(move |item| match item {
+                        Ok((node, anno_key)) => {
+                            let value = self.get_value_for_item(&node, &anno_key)?;
+                            Ok((node, anno_key, value))
+                        }
+                        Err(e) => Err(e),
+                    })
+                    .filter_ok(move |(_, _, val)| {
+                        if let Some(val) = val {
+                            compiled_regex.is_match(val)
+                        } else {
+                            false
+                        }
+                    })
+                    .map_ok(move |(node, anno_key, _val)| (node, anno_key).into());
+                Box::new(it)
+            }
         } else if negated {
             // return all values
             self.exact_anno_search(namespace, name, None.into())
@@ -762,20 +845,22 @@ where
         let full_match_pattern = util::regex_full_match(pattern);
 
         // Try to parse the regular expression
-        let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
+        let parsed = Parser::new().parse(&full_match_pattern);
         if let Ok(parsed) = parsed {
-            let expr: regex_syntax::hir::Hir = parsed;
-
-            let prefix_set = regex_syntax::hir::literal::Literals::prefixes(&expr);
             let mut guessed_count = 0;
 
             // Add the guessed count for each prefix
-            for val_prefix in prefix_set.literals() {
-                let val_prefix = std::str::from_utf8(val_prefix);
-                if let Ok(lower_val) = val_prefix {
-                    let mut upper_val = String::from(lower_val);
-                    upper_val.push(std::char::MAX);
-                    guessed_count += self.guess_max_count(ns, name, lower_val, &upper_val)?;
+            if let Some(prefix_set) = regex_syntax::hir::literal::Extractor::new()
+                .extract(&parsed)
+                .literals()
+            {
+                for val_prefix in prefix_set {
+                    let val_prefix = std::str::from_utf8(val_prefix.as_bytes());
+                    if let Ok(lower_val) = val_prefix {
+                        let mut upper_val = String::from(lower_val);
+                        upper_val.push(std::char::MAX);
+                        guessed_count += self.guess_max_count(ns, name, lower_val, &upper_val)?;
+                    }
                 }
             }
 
@@ -1006,162 +1091,4 @@ impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
 impl EdgeAnnotationStorage for AnnoStorageImpl<Edge> {}
 
 #[cfg(test)]
-mod tests {
-    use crate::graph::NODE_NAME_KEY;
-
-    use super::*;
-
-    use std::sync::Once;
-    static LOGGER_INIT: Once = Once::new();
-
-    #[test]
-    fn insert_same_anno() {
-        LOGGER_INIT.call_once(env_logger::init);
-
-        let test_anno = Annotation {
-            key: AnnoKey {
-                name: "anno1".into(),
-                ns: "annis".into(),
-            },
-            val: "test".into(),
-        };
-
-        let mut a = AnnoStorageImpl::new(None).unwrap();
-
-        debug!("Inserting annotation for node 1");
-        a.insert(1, test_anno.clone()).unwrap();
-        debug!("Inserting annotation for node 1 (again)");
-        a.insert(1, test_anno.clone()).unwrap();
-        debug!("Inserting annotation for node 2");
-        a.insert(2, test_anno.clone()).unwrap();
-        debug!("Inserting annotation for node 3");
-        a.insert(3, test_anno).unwrap();
-
-        assert_eq!(3, a.number_of_annotations().unwrap());
-
-        assert_eq!(
-            "test",
-            a.get_value_for_item(
-                &3,
-                &AnnoKey {
-                    name: "anno1".into(),
-                    ns: "annis".into()
-                }
-            )
-            .unwrap()
-            .unwrap()
-        );
-    }
-
-    #[test]
-    fn get_all_for_node() {
-        LOGGER_INIT.call_once(env_logger::init);
-
-        let test_anno1 = Annotation {
-            key: AnnoKey {
-                name: "anno1".into(),
-                ns: "annis1".into(),
-            },
-            val: "test".into(),
-        };
-        let test_anno2 = Annotation {
-            key: AnnoKey {
-                name: "anno2".into(),
-                ns: "annis2".into(),
-            },
-            val: "test".into(),
-        };
-        let test_anno3 = Annotation {
-            key: AnnoKey {
-                name: "anno3".into(),
-                ns: "annis1".into(),
-            },
-            val: "test".into(),
-        };
-
-        let mut a = AnnoStorageImpl::new(None).unwrap();
-
-        a.insert(1, test_anno1.clone()).unwrap();
-        a.insert(1, test_anno2.clone()).unwrap();
-        a.insert(1, test_anno3.clone()).unwrap();
-
-        assert_eq!(3, a.number_of_annotations().unwrap());
-
-        let mut all = a.get_annotations_for_item(&1).unwrap();
-        assert_eq!(3, all.len());
-
-        all.sort_by(|a, b| a.key.partial_cmp(&b.key).unwrap());
-
-        assert_eq!(test_anno1, all[0]);
-        assert_eq!(test_anno2, all[1]);
-        assert_eq!(test_anno3, all[2]);
-    }
-
-    #[test]
-    fn remove() {
-        LOGGER_INIT.call_once(env_logger::init);
-        let test_anno = Annotation {
-            key: AnnoKey {
-                name: "anno1".into(),
-                ns: "annis1".into(),
-            },
-            val: "test".into(),
-        };
-
-        let mut a = AnnoStorageImpl::new(None).unwrap();
-        a.insert(1, test_anno.clone()).unwrap();
-
-        assert_eq!(1, a.number_of_annotations().unwrap());
-        assert_eq!(1, a.anno_key_sizes.len());
-        assert_eq!(&1, a.anno_key_sizes.get(&test_anno.key).unwrap());
-
-        a.remove_annotation_for_item(&1, &test_anno.key).unwrap();
-
-        assert_eq!(0, a.number_of_annotations().unwrap());
-        assert_eq!(&0, a.anno_key_sizes.get(&test_anno.key).unwrap_or(&0));
-    }
-
-    #[test]
-    fn get_node_id_from_name() {
-        let key = NODE_NAME_KEY.as_ref().clone();
-        let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new(None).unwrap();
-        a.insert(
-            1,
-            Annotation {
-                key: key.clone(),
-                val: "node1".into(),
-            },
-        )
-        .unwrap();
-        a.insert(
-            2,
-            Annotation {
-                key: key.clone(),
-                val: "node2".into(),
-            },
-        )
-        .unwrap();
-        a.insert(
-            3,
-            Annotation {
-                key: key.clone(),
-                val: "node3".into(),
-            },
-        )
-        .unwrap();
-
-        assert_eq!(Some(1), a.get_node_id_from_name("node1").unwrap());
-        assert_eq!(Some(2), a.get_node_id_from_name("node2").unwrap());
-        assert_eq!(Some(3), a.get_node_id_from_name("node3").unwrap());
-        assert_eq!(true, a.has_node_name("node1").unwrap());
-        assert_eq!(true, a.has_node_name("node2").unwrap());
-        assert_eq!(true, a.has_node_name("node3").unwrap());
-
-        assert_eq!(None, a.get_node_id_from_name("node0").unwrap());
-        assert_eq!(None, a.get_node_id_from_name("").unwrap());
-        assert_eq!(None, a.get_node_id_from_name("somenode").unwrap());
-        assert_eq!(false, a.has_node_name("node0").unwrap());
-        assert_eq!(false, a.has_node_name("").unwrap());
-        assert_eq!(false, a.has_node_name("somenode").unwrap());
-    }
-}
+mod tests;
