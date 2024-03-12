@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   value search, even when the value is escaped. This can be useful e.g. in the
   subgraph extraction queries from ANNIS, where some characters are escaped with
   `\x` and which was previously not treated as constant value search.
+- Improve performance for getting all token of a document (e.g. for a subgraph
+  query) when the PartOf graph storage implementation does not have the same
+  cost of the inverse graph storage operations by allowing to use a nested loop
+  join in this particular scenario.
 
 ### Fixed
 
