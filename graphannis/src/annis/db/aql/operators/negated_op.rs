@@ -2,7 +2,7 @@ use std::{any::Any, fmt::Display, sync::Arc};
 
 use crate::{
     annis::{
-        db::exec::nodesearch::NodeSearchSpec,
+        db::exec::{nodesearch::NodeSearchSpec, CostEstimate},
         operator::{BinaryOperator, BinaryOperatorBase, BinaryOperatorSpec, EstimationType},
     },
     errors::Result,
@@ -31,8 +31,12 @@ impl BinaryOperatorSpec for NegatedOpSpec {
         self.negated_op.necessary_components(db)
     }
 
-    fn create_operator<'a>(&self, db: &'a AnnotationGraph) -> Result<BinaryOperator<'a>> {
-        let negated_op = self.negated_op.create_operator(db)?;
+    fn create_operator<'a>(
+        &self,
+        db: &'a AnnotationGraph,
+        cost_estimate: Option<(&CostEstimate, &CostEstimate)>,
+    ) -> Result<BinaryOperator<'a>> {
+        let negated_op = self.negated_op.create_operator(db, cost_estimate)?;
         let op = NegatedOp { negated_op };
         Ok(BinaryOperator::Base(Box::new(op)))
     }
