@@ -31,7 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   This will fix queries where you just search for documents, e.g. by `annis:doc`
   but also got the sub-corpora as result.
 - Re-enable adding the C-API shared library as release artifacts to GitHub.
-
+- Improve performance for regular expression search when using disk-based
+  annotation storage and the regex has a prefix. This e.g. fixes getting the
+  text for a document in ANNIS when the corpus is large.
 
 ## [3.1.1] - 2024-02-05
 

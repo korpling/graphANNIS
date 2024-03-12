@@ -5,11 +5,12 @@ use crate::errors::Result;
 use crate::graph::NODE_NAME_KEY;
 use crate::serializer::{FixedSizeKeySerializer, KeySerializer};
 use crate::types::{AnnoKey, Annotation, Edge, NodeID};
-use crate::util;
 use crate::util::disk_collections::{DiskMap, EvictionStrategy};
+use crate::{try_as_boxed_iter, util};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rand::seq::IteratorRandom;
+use regex_syntax::hir::literal::Seq;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -207,6 +208,58 @@ where
 
                 let upper_bound =
                     create_by_anno_qname_key(NodeID::MAX, anno_key_symbol, &upper_bound_value);
+                self.by_anno_qname.range(lower_bound..upper_bound)
+            })
+            .fuse()
+            .map(move |item| match item {
+                Ok((data, _)) => {
+                    // get the item ID at the end
+                    let item_id = T::parse_key(&data[data.len() - T::key_size()..])?;
+                    let anno_key_symbol = usize::parse_key(&data[0..std::mem::size_of::<usize>()])?;
+                    let key = self
+                        .anno_key_symbols
+                        .get_value(anno_key_symbol)
+                        .unwrap_or_default();
+                    Ok((item_id, key))
+                }
+                Err(e) => Err(e),
+            });
+
+        Box::new(it)
+    }
+
+    fn matching_items_by_prefix<'a>(
+        &'a self,
+        namespace: Option<&str>,
+        name: &str,
+        prefix: String,
+    ) -> Box<dyn Iterator<Item = Result<(T, Arc<AnnoKey>)>> + 'a>
+    where
+        T: FixedSizeKeySerializer + Send + Sync + PartialOrd,
+    {
+        let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
+            vec![Arc::from(AnnoKey {
+                ns: ns.into(),
+                name: name.into(),
+            })]
+        } else {
+            let qnames = match self.get_qnames(name) {
+                Ok(qnames) => qnames,
+                Err(e) => return Box::new(std::iter::once(Err(e))),
+            };
+            qnames.into_iter().map(Arc::from).collect()
+        };
+
+        let it = key_ranges
+            .into_iter()
+            .filter_map(move |k| self.anno_key_symbols.get_symbol(&k))
+            .flat_map(move |anno_key_symbol| {
+                let lower_bound = create_by_anno_qname_key(NodeID::MIN, anno_key_symbol, &prefix);
+
+                let mut upper_val = prefix.clone();
+                upper_val.push(std::char::MAX);
+                let upper_bound =
+                    create_by_anno_qname_key(NodeID::MAX, anno_key_symbol, &upper_val);
                 self.by_anno_qname.range(lower_bound..upper_bound)
             })
             .fuse()
@@ -618,9 +671,21 @@ where
     ) -> Box<dyn Iterator<Item = Result<Match>> + 'a> {
         let full_match_pattern = util::regex_full_match(pattern);
         let compiled_result = regex::Regex::new(&full_match_pattern);
-        if let Ok(re) = compiled_result {
+        let parsed_regex = regex_syntax::Parser::new().parse(&full_match_pattern);
+
+        if let (Ok(re), Ok(parsed_regex)) = (compiled_result, parsed_regex) {
+            let regex_literal_sequence = regex_syntax::hir::literal::Extractor::new()
+                .extract(&parsed_regex)
+                .literals()
+                .map(|seq| Seq::new(seq));
+
+            let prefix_bytes = regex_literal_sequence
+                .map(|seq| Vec::from(seq.longest_common_prefix().unwrap_or_default()))
+                .unwrap_or_default();
+            let prefix = try_as_boxed_iter!(std::str::from_utf8(&prefix_bytes));
+
             let it = self
-                .matching_items(namespace, name, None)
+                .matching_items_by_prefix(namespace, name, prefix.to_string())
                 .map(move |item| match item {
                     Ok((node, anno_key)) => {
                         let value = self.get_value_for_item(&node, &anno_key)?;

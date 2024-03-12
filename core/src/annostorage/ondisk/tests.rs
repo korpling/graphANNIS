@@ -230,10 +230,18 @@ fn regex_search() {
     assert_eq!(vec![0], result);
 
     let result: Result<Vec<_>> = a
+        .regex_anno_search(Some(ANNIS_NS), NODE_NAME, "(A|B).*", false)
+        .map_ok(|m| m.node)
+        .collect();
+    let mut result = result.unwrap();
+    result.sort();
+
+    assert_eq!(vec![1, 2, 3, 4], result);
+
+    let result: Result<Vec<_>> = a
         .regex_anno_search(Some(ANNIS_NS), NODE_NAME, "C.*", false)
         .map_ok(|m| m.node)
         .collect();
     let result = result.unwrap();
-
     assert_eq!(0, result.len());
 }
