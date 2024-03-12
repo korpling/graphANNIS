@@ -202,6 +202,7 @@ fn regex_search() {
     )
     .unwrap();
 
+    // Test with namespace
     let result: Result<Vec<_>> = a
         .regex_anno_search(Some(ANNIS_NS), NODE_NAME, "A.*", false)
         .map_ok(|m| m.node)
@@ -244,4 +245,31 @@ fn regex_search() {
         .collect();
     let result = result.unwrap();
     assert_eq!(0, result.len());
+
+    // lso test without namepsace
+    let result: Result<Vec<_>> = a
+        .regex_anno_search(None, NODE_NAME, "A.*", false)
+        .map_ok(|m| m.node)
+        .collect();
+    let mut result = result.unwrap();
+    result.sort();
+
+    assert_eq!(vec![1, 2, 3], result);
+
+    // Test negated search
+    let result: Result<Vec<_>> = a
+        .regex_anno_search(Some(ANNIS_NS), NODE_NAME, "A.*", true)
+        .map_ok(|m| m.node)
+        .collect();
+    let mut result = result.unwrap();
+    result.sort();
+    assert_eq!(vec![0, 4], result);
+
+    let result: Result<Vec<_>> = a
+        .regex_anno_search(None, NODE_NAME, "A.*", true)
+        .map_ok(|m| m.node)
+        .collect();
+    let mut result = result.unwrap();
+    result.sort();
+    assert_eq!(vec![0, 4], result);
 }
