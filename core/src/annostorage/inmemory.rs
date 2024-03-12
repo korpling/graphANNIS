@@ -720,18 +720,20 @@ where
         // Try to parse the regular expression
         let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
         if let Ok(parsed) = parsed {
-            let expr: regex_syntax::hir::Hir = parsed;
-
-            let prefix_set = regex_syntax::hir::literal::Literals::prefixes(&expr);
             let mut guessed_count = 0;
 
             // Add the guessed count for each prefix
-            for val_prefix in prefix_set.literals() {
-                let val_prefix = std::str::from_utf8(val_prefix);
-                if let Ok(lower_val) = val_prefix {
-                    let mut upper_val = String::from(lower_val);
-                    upper_val.push(std::char::MAX);
-                    guessed_count += self.guess_max_count(ns, name, lower_val, &upper_val)?;
+            if let Some(prefix_set) = regex_syntax::hir::literal::Extractor::new()
+                .extract(&parsed)
+                .literals()
+            {
+                for val_prefix in prefix_set {
+                    let val_prefix = std::str::from_utf8(val_prefix.as_bytes());
+                    if let Ok(lower_val) = val_prefix {
+                        let mut upper_val = String::from(lower_val);
+                        upper_val.push(std::char::MAX);
+                        guessed_count += self.guess_max_count(ns, name, lower_val, &upper_val)?;
+                    }
                 }
             }
 
