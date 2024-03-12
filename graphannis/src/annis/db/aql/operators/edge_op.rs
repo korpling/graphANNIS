@@ -695,9 +695,9 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
             // Only ignore different cost and risk a nested loop join if the RHS
             // has an estimated output size of 1 and thus a nested loop is not
             // as costly.
-            rhs.output == 1
+            rhs.output > 1
         } else {
-            false
+            true
         };
         let base = BaseEdgeOpSpec {
             op_str: Some(String::from("@")),
