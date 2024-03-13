@@ -6,8 +6,8 @@ authors:
     orcid: https://orcid.org/0000-0003-3731-2422
     affiliation: Humboldt-Universität zu Berlin
 title: graphANNIS
-version: 3.1.1
-date-released: 2024-02-05
+version: 3.2.0
+date-released: 2024-03-13
 doi: 10.5281/zenodo.2598164
 references:
   - type: thesis
