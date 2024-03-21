@@ -335,7 +335,7 @@ fn new_overlapped_nodes_iterator<'a>(
         match token_region {
             Ok(token_region) => regions.push(token_region),
             Err(e) => match e {
-                // Ignore match nodes without covered token in this itertor
+                // Ignore match nodes without covered token in this iterator
                 GraphAnnisError::NoCoveredTokenForSubgraph => {}
                 _ => return Err(e),
             },
@@ -428,11 +428,23 @@ pub fn new_subgraph_iterator<'a>(
         new_overlapped_nodes_iterator(graph, &node_ids, ctx_left, ctx_right, segmentation.clone())?;
     let parent_nodes = new_parent_nodes_iterator(graph, &node_ids)?;
 
-    // Chain iterators into a single iterator, also include the matched node IDs
-    // in the result
-    let result = node_ids
-        .into_iter()
-        .map(Ok)
+    let non_token_node_ids = {
+        let token_helper = TokenHelper::new(graph)?;
+
+        node_ids
+            .into_iter()
+            .filter_map(move |node_id| match token_helper.is_token(node_id) {
+                Ok(true) => None,
+                Ok(false) => Some(Ok(node_id)),
+                Err(err) => Some(Err(err)),
+            })
+    };
+
+    // Chain iterators into a single iterator, also include the matched node IDs in the result
+    // Note that by adding only those matched nodes that are _not_ tokens, we make sure that
+    // - all matched nodes are included, because the ones that _are_ tokens are already included in `overlapped_nodes`,
+    // - all tokens in the result are sorted by position in the text, because `overlapped_nodes` are sorted and the rest aren't tokens.
+    let result = non_token_node_ids
         .chain(overlapped_nodes)
         .chain(parent_nodes)
         .map(|n| {
