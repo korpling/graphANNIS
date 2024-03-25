@@ -1,7 +1,6 @@
 on:
   release:
-    types:
-      - released
+    types: [published]
   pull_request:
     types: [labeled]
 name: Append C-API artifact to latest release
