@@ -218,7 +218,7 @@ fn subgraphs_simple() {
     create_simple_graph(&mut cs);
 
     // get the subgraph for a token ("complicated")
-    // This should return the following token and their covering spans
+    // This should return the following tokens and their covering spans
     // example[tok2] more[tok3] complicated[tok4] than[tok5] it[tok6] appears[tok7] to[tok8]
     let graph = cs
         .subgraph("root", vec!["root/doc1#tok4".to_string()], 2, 4, None)
@@ -233,7 +233,7 @@ fn subgraphs_simple() {
     assert_eq!(1, ordering_components.len());
     let gs_ordering = graph.get_graphstorage(&ordering_components[0]).unwrap();
 
-    // Check that all token exist and are connected
+    // Check that all tokens exist and are connected
     for i in 2..8 {
         let t = format!("root/doc1#tok{}", i);
         let t_id = graph.get_node_annos().get_node_id_from_name(&t).unwrap();
@@ -256,7 +256,7 @@ fn subgraphs_simple() {
                 .unwrap()
         );
     }
-    // Also check, that the token outside the context do not exists
+    // Also check, that the tokens outside the context do not exist
     for t in 0..2 {
         let t = format!("root/doc1#tok{}", t);
         assert_eq!(
@@ -371,8 +371,8 @@ fn subgraphs_non_overlapping_regions() {
 
     create_simple_graph(&mut cs);
 
-    // get the subgraph for a token ("example" and "it")
-    // This should return the following token and their covering spans
+    // get the subgraph for two tokens ("example" and "it")
+    // This should return the following tokens and their covering spans
     // this[tok1] example[tok2] more[tok3] ... than[tok5] it[tok6] appears[tok7]
     let graph = cs
         .subgraph(
@@ -384,7 +384,7 @@ fn subgraphs_non_overlapping_regions() {
         )
         .unwrap();
 
-    // Check that all token exist and are connected
+    // Check that all tokens exist and are connected
     let t1_id = graph
         .get_node_annos()
         .get_node_id_from_name("root/doc1#tok1")
@@ -478,7 +478,7 @@ fn subgraphs_non_overlapping_regions() {
             .unwrap()
     );
 
-    // The last and first node of the context region should be connected by a special ordering edge
+    // The last and first node (and only those) of the context region should be connected by a special ordering edge
     let gs_ds_ordering = graph
         .get_graphstorage(&Component::new(
             AnnotationComponentType::Ordering,
@@ -486,10 +486,173 @@ fn subgraphs_non_overlapping_regions() {
             "datasource-gap".into(),
         ))
         .unwrap();
+
+    let sources: graphannis_core::errors::Result<Vec<_>> = gs_ds_ordering.source_nodes().collect();
+    let sources = sources.unwrap();
+    assert_eq!(vec![t3_id.unwrap()], sources);
+
     let out: graphannis_core::errors::Result<Vec<_>> =
         gs_ds_ordering.get_outgoing_edges(t3_id.unwrap()).collect();
     let out = out.unwrap();
     assert_eq!(vec![t5_id.unwrap()], out);
+}
+
+#[test]
+fn subgraphs_non_overlapping_regions_one_context_zero() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+    create_simple_graph(&mut cs);
+
+    // get the subgraph for two tokens ("example" and "it") without left context
+    // This should return the following tokens and their covering spans
+    // example[tok2] more[tok3] ... it[tok6] appears[tok7]
+    let graph = cs
+        .subgraph(
+            "root",
+            vec!["root/doc1#tok2".to_string(), "root/doc1#tok6".to_string()],
+            0,
+            1,
+            None,
+        )
+        .unwrap();
+
+    // Check that all tokens exist and are connected
+    let t2_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1#tok2")
+        .unwrap();
+    assert_eq!(true, t2_id.is_some());
+    let t3_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1#tok3")
+        .unwrap();
+    assert_eq!(true, t3_id.is_some());
+
+    let t6_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1#tok6")
+        .unwrap();
+    assert_eq!(true, t6_id.is_some());
+    let t7_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1#tok7")
+        .unwrap();
+    assert_eq!(true, t7_id.is_some());
+
+    let ordering_components =
+        graph.get_all_components(Some(AnnotationComponentType::Ordering), Some(""));
+    assert_eq!(1, ordering_components.len());
+    let gs_ordering = graph.get_graphstorage(&ordering_components[0]).unwrap();
+
+    assert_eq!(
+        true,
+        gs_ordering
+            .is_connected(
+                t2_id.unwrap(),
+                t3_id.unwrap(),
+                1,
+                std::ops::Bound::Included(1)
+            )
+            .unwrap()
+    );
+    assert_eq!(
+        false,
+        gs_ordering
+            .is_connected(
+                t3_id.unwrap(),
+                t6_id.unwrap(),
+                1,
+                std::ops::Bound::Included(1)
+            )
+            .unwrap()
+    );
+    assert_eq!(
+        true,
+        gs_ordering
+            .is_connected(
+                t6_id.unwrap(),
+                t7_id.unwrap(),
+                1,
+                std::ops::Bound::Included(1)
+            )
+            .unwrap()
+    );
+
+    // The last and first node of the context region (and only those) should be connected by a special ordering edge
+    let gs_ds_ordering = graph
+        .get_graphstorage(&Component::new(
+            AnnotationComponentType::Ordering,
+            ANNIS_NS.into(),
+            "datasource-gap".into(),
+        ))
+        .unwrap();
+
+    let sources: graphannis_core::errors::Result<Vec<_>> = gs_ds_ordering.source_nodes().collect();
+    let sources = sources.unwrap();
+    assert_eq!(vec![t3_id.unwrap()], sources);
+
+    let out: graphannis_core::errors::Result<Vec<_>> =
+        gs_ds_ordering.get_outgoing_edges(t3_id.unwrap()).collect();
+    let out = out.unwrap();
+    assert_eq!(vec![t6_id.unwrap()], out);
+}
+
+#[test]
+fn subgraphs_non_overlapping_regions_no_context_tokens_specified_out_of_order() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+    create_simple_graph(&mut cs);
+
+    // get the subgraph for two tokens ("example" and "it")
+    // This should return the following tokens and their covering spans
+    // example[tok2] ... it[tok6]
+    let graph = cs
+        .subgraph(
+            "root",
+            // Note that this order is different from the one defined by the ordering component
+            vec!["root/doc1#tok6".to_string(), "root/doc1#tok2".to_string()],
+            0,
+            0,
+            None,
+        )
+        .unwrap();
+
+    // Check that all tokens exist, but are not connected
+    let t2_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1#tok2")
+        .unwrap();
+    assert_eq!(true, t2_id.is_some());
+
+    let t6_id = graph
+        .get_node_annos()
+        .get_node_id_from_name("root/doc1#tok6")
+        .unwrap();
+    assert_eq!(true, t6_id.is_some());
+
+    let ordering_components =
+        graph.get_all_components(Some(AnnotationComponentType::Ordering), Some(""));
+    assert_eq!(0, ordering_components.len());
+
+    // The two tokens should be connected by a special ordering edge
+    let gs_ds_ordering = graph
+        .get_graphstorage(&Component::new(
+            AnnotationComponentType::Ordering,
+            ANNIS_NS.into(),
+            "datasource-gap".into(),
+        ))
+        .unwrap();
+
+    let sources: graphannis_core::errors::Result<Vec<_>> = gs_ds_ordering.source_nodes().collect();
+    let sources = sources.unwrap();
+    assert_eq!(vec![t2_id.unwrap()], sources);
+
+    let out: graphannis_core::errors::Result<Vec<_>> =
+        gs_ds_ordering.get_outgoing_edges(t2_id.unwrap()).collect();
+    let out = out.unwrap();
+    assert_eq!(vec![t6_id.unwrap()], out);
 }
 
 #[test]
