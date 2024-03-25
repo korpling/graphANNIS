@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix datasource-gap for zero context by ensuring that tokens are sorted in
+  subgraph iterator. (by https://github.com/matthias-stemmler)
+
+
 ## [3.2.0] - 2024-03-13
 
 ### Added
