@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.1] - 2024-03-25
+
 ### Fixed
 
 - Fix datasource-gap for zero context by ensuring that tokens are sorted in
