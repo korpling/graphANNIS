@@ -119,7 +119,7 @@ where
         let v2 = (i2, items.try_get(i2)?.into_owned());
         let v3 = (i3, items.try_get(i3)?.into_owned());
 
-        let mut v = vec![v1, v2, v3];
+        let mut v = [v1, v2, v3];
         // Adapted median creation using swaps from
         // https://en.wikipedia.org/wiki/Quicksort#Choice_of_pivot
         let low = 0;

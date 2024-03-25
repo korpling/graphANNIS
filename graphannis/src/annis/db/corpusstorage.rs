@@ -2633,6 +2633,7 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
         .read(true)
         .write(true)
         .create(true)
+        .truncate(true)
         .open(lock_file_path.as_path())
         .map_err(|e| CorpusStorageError::LockCorpusDirectory {
             path: db_dir.to_string_lossy().to_string(),

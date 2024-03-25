@@ -324,6 +324,7 @@ where
             .write(true)
             .read(true)
             .create(true)
+            .truncate(true)
             .open(location)?;
         let mut builder = TableBuilder::new(custom_options(self.block_cache_capacity), out_file);
         for entry in self.iter()? {
