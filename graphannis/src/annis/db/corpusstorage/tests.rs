@@ -953,8 +953,15 @@ fn find_with_multiple_corpora() {
     assert_debug_snapshot!("find_with_multiple_corpora_offset_5", results);
 
     // If the limit is not reached, all matches must be part of the result
-    let results = cs.find(q, 0, Some(100), ResultOrder::Normal).unwrap();
-    assert_eq!(40, results.len());
+    let results_with_limit = cs
+        .find(q.clone(), 0, Some(100), ResultOrder::Normal)
+        .unwrap();
+    assert_eq!(40, results_with_limit.len());
+    assert_debug_snapshot!("find_with_multiple_corpora_all", results_with_limit);
+
+    // No limit should be the same
+    let results_without_limit = cs.find(q, 0, None, ResultOrder::Normal).unwrap();
+    assert_eq!(results_without_limit, results_without_limit);
 }
 
 fn compare_edge_annos(
