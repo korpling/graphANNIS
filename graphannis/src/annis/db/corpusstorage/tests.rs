@@ -960,8 +960,19 @@ fn find_with_multiple_corpora() {
     assert_debug_snapshot!("find_with_multiple_corpora_all", results_with_limit);
 
     // No limit should be the same
-    let results_without_limit = cs.find(q, 0, None, ResultOrder::Normal).unwrap();
+    let results_without_limit = cs.find(q.clone(), 0, None, ResultOrder::Normal).unwrap();
     assert_eq!(results_without_limit, results_without_limit);
+
+    // Test inverted order
+    let results = cs
+        .find(q.clone(), 0, Some(10), ResultOrder::Inverted)
+        .unwrap();
+    assert_eq!(10, results.len());
+    assert_debug_snapshot!("find_with_multiple_corpora_inverted_0", results);
+
+    let results = cs.find(q, 5, Some(10), ResultOrder::Inverted).unwrap();
+    assert_eq!(10, results.len());
+    assert_debug_snapshot!("find_with_multiple_corpora_inverted_5", results);
 }
 
 fn compare_edge_annos(
