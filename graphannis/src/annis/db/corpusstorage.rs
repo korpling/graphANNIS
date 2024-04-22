@@ -1918,7 +1918,7 @@ impl CorpusStorage {
             .map(|c| c.as_ref().into())
             .collect();
 
-        let find_arguments = FindArguments {
+        let mut find_arguments = FindArguments {
             limit,
             offset,
             order,
@@ -1942,10 +1942,6 @@ impl CorpusStorage {
                     corpus_names.sort();
                 }
 
-                // initialize the limit/offset values for the first corpus
-                let mut offset = offset;
-                let mut limit = limit;
-
                 let mut result = Vec::new();
                 for cn in corpus_names {
                     let (single_result, skipped) =
@@ -1953,21 +1949,30 @@ impl CorpusStorage {
 
                     // Adjust limit and offset according to the found matches for the next corpus.
                     let single_result_length = single_result.len();
-                    result.extend(single_result.into_iter());
-
-                    if let Some(current_limit) = limit {
-                        if current_limit <= single_result_length {
-                            // Searching in this corpus already yielded enough results
-                            break;
+                    let remaining_limit = limit.map(|limit| limit.saturating_sub(result.len()));
+                    if let Some(remaining_limit) = remaining_limit {
+                        if single_result_length <= remaining_limit {
+                            // All results for this corpus fit inside the limit
+                            result.extend(single_result.into_iter());
                         } else {
-                            // Adjust the limit for the next corpora to the already found results so-far
-                            limit = Some(current_limit - single_result_length);
+                            // Only add as many items as allowed by the limit
+                            result.extend(single_result[0..remaining_limit].iter().cloned());
+                        }
+                    } else {
+                        // Add all results since there is no limit
+                        result.extend(single_result.into_iter());
+                    }
+
+                    if let Some(limit) = limit {
+                        if result.len() == limit {
+                            // Searching in the first corpora already yielded enough results
+                            break;
                         }
                     }
                     if skipped < offset {
-                        offset -= skipped;
+                        find_arguments.offset -= skipped;
                     } else {
-                        offset = 0;
+                        find_arguments.offset = 0;
                     }
 
                     timeout.check()?;

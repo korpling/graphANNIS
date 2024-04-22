@@ -1,0 +1,16 @@
+---
+source: graphannis/src/annis/db/corpusstorage/tests.rs
+expression: results
+---
+[
+    "salt::pos::rootCorpus/subCorpus1/doc1#sTok10",
+    "salt::pos::rootCorpus/subCorpus1/doc2#sTok10",
+    "salt::pos::rootCorpus/subCorpus2/doc3#sTok10",
+    "salt::pos::rootCorpus/subCorpus2/doc4#sTok10",
+    "salt::pos::rootCorpus/subCorpus1/doc1#sTok10",
+    "salt::pos::rootCorpus/subCorpus1/doc2#sTok10",
+    "salt::pos::rootCorpus/subCorpus2/doc3#sTok10",
+    "salt::pos::rootCorpus/subCorpus2/doc4#sTok10",
+    "salt::pos::rootCorpus/subCorpus1/doc1#sTok10",
+    "salt::pos::rootCorpus/subCorpus1/doc2#sTok10",
+]
