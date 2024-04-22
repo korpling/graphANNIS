@@ -1,7 +1,7 @@
 extern crate log;
 extern crate tempfile;
 
-use insta::assert_snapshot;
+use insta::{assert_debug_snapshot, assert_snapshot};
 use same_file::is_same_file;
 use serial_test::serial;
 use std::path::{Path, PathBuf};
@@ -909,6 +909,70 @@ fn subgraph_with_segmentation_and_gap() {
         .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
         .unwrap()
         .is_some());
+}
+
+#[test]
+fn find_with_multiple_corpora() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    // Import the sample corpus with different names
+    let mut corpus_names = Vec::new();
+    for i in 0..10 {
+        let corpus_name = format!("{i}");
+        cs.import_from_fs(
+            &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
+            ImportFormat::GraphML,
+            Some(corpus_name.clone()),
+            false,
+            true,
+            |_| {},
+        )
+        .unwrap();
+        corpus_names.push(corpus_name);
+    }
+
+    // Execute a find that has 4 matches inside each corpus
+    let q = SearchQuery {
+        corpus_names: &corpus_names,
+        query: "pos=\"VB\"".into(),
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+    let results = cs
+        .find(q.clone(), 0, Some(10), ResultOrder::Normal)
+        .unwrap();
+    assert_eq!(10, results.len());
+    assert_debug_snapshot!("find_with_multiple_corpora_offset_0", results);
+
+    let results = cs
+        .find(q.clone(), 5, Some(10), ResultOrder::Normal)
+        .unwrap();
+    assert_eq!(10, results.len());
+    assert_debug_snapshot!("find_with_multiple_corpora_offset_5", results);
+
+    // If the limit is not reached, all matches must be part of the result
+    let results_with_limit = cs
+        .find(q.clone(), 0, Some(100), ResultOrder::Normal)
+        .unwrap();
+    assert_eq!(40, results_with_limit.len());
+    assert_debug_snapshot!("find_with_multiple_corpora_all", results_with_limit);
+
+    // No limit should be the same
+    let results_without_limit = cs.find(q.clone(), 0, None, ResultOrder::Normal).unwrap();
+    assert_eq!(results_without_limit, results_without_limit);
+
+    // Test inverted order
+    let results = cs
+        .find(q.clone(), 0, Some(10), ResultOrder::Inverted)
+        .unwrap();
+    assert_eq!(10, results.len());
+    assert_debug_snapshot!("find_with_multiple_corpora_inverted_0", results);
+
+    let results = cs.find(q, 5, Some(10), ResultOrder::Inverted).unwrap();
+    assert_eq!(10, results.len());
+    assert_debug_snapshot!("find_with_multiple_corpora_inverted_5", results);
 }
 
 fn compare_edge_annos(

@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix offset and limitation issue when multiple corpora are selected. After a
+  refactoring, the updated offset was never actually applied when finding the
+  results in the next corpus. This could lead to too many results on the first
+  page and also to missing matches on the second and later pages.
+
 ## [3.2.1] - 2024-03-25
 
 ### Fixed
