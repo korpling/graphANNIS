@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Do not attempt to unload a corpus that is about the be loaded in the next
+  step. This could trigger problematic unload/load cycles.
+
+
 ## [3.2.2] - 2024-04-22
 
 ### Fixed
