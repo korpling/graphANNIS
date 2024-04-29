@@ -11,7 +11,7 @@ use graphannis_core::{
     types::ComponentType,
     util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
 };
-use std::fmt;
+use std::{collections::BTreeMap, fmt};
 use transient_btree_index::BtreeConfig;
 
 use std::borrow::Cow;
@@ -82,10 +82,27 @@ impl From<u16> for AnnotationComponentType {
     }
 }
 
+/// Collects information about the corpus size, e.g. in token.
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[non_exhaustive]
+pub enum CorpusSizeStatistics {
+    /// The corpus size is unknown.
+    #[default]
+    Unknown,
+    /// The corpus size can be measured in base token ("annis:tok" without
+    /// outgoing coverage edges) and segmentation layers.
+    Token {
+        base_token_count: usize,
+        segmentation_count: BTreeMap<String, usize>,
+    },
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct AQLGlobalStatistics {
     #[serde(default)]
     pub all_token_in_order_component: bool,
+    #[serde(default)]
+    pub corpus_size: CorpusSizeStatistics,
 }
 
 fn calculate_inherited_coverage_edges(
@@ -619,6 +636,7 @@ impl ComponentType for AnnotationComponentType {
 
         graph.global_statistics = Some(AQLGlobalStatistics {
             all_token_in_order_component,
+            corpus_size: CorpusSizeStatistics::Unknown,
         });
         Ok(())
     }
