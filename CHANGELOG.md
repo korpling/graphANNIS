@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Do not reload graph storages when they are already loaded.
 - Do not attempt to unload a corpus that is about the be loaded in the next
   step. This could trigger problematic unload/load cycles.
 

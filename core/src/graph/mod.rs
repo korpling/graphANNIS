@@ -858,9 +858,11 @@ impl<CT: ComponentType> Graph<CT> {
     /// Loading is done in paralell.
     pub fn ensure_loaded_parallel(&mut self, components_to_load: &[Component<CT>]) -> Result<()> {
         // We only load known components, so check the map if the entry exists
+        // and that is not loaded yet.
         let components_to_load: Vec<_> = components_to_load
             .iter()
             .filter(|c| self.components.contains_key(c))
+            .filter(|c| self.components.get(c).unwrap_or_else(|| &None).is_none())
             .collect();
 
         // load missing components in parallel
@@ -868,7 +870,11 @@ impl<CT: ComponentType> Graph<CT> {
             .into_par_iter()
             .map(|c| match component_path(&self.location, c) {
                 Some(cpath) => {
-                    debug!("loading component {} from {}", c, &cpath.to_string_lossy());
+                    debug!(
+                        "loading component in parallel {} from {}",
+                        c,
+                        &cpath.to_string_lossy()
+                    );
                     (c, load_component_from_disk(&cpath))
                 }
                 None => (c, Err(GraphAnnisCoreError::EmptyComponentPath)),
