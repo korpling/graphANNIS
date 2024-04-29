@@ -47,6 +47,8 @@ jobs:
   long_running_tests:
     name: Execute search tests
     runs-on: ubuntu-20.04
+    env:
+      RUST_LOG: debug
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rust-lang/setup-rust-toolchain@v1.8.0

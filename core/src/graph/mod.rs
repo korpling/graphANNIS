@@ -858,9 +858,16 @@ impl<CT: ComponentType> Graph<CT> {
     /// Loading is done in paralell.
     pub fn ensure_loaded_parallel(&mut self, components_to_load: &[Component<CT>]) -> Result<()> {
         // We only load known components, so check the map if the entry exists
+        // and that is not loaded yet.
         let components_to_load: Vec<_> = components_to_load
             .iter()
-            .filter(|c| self.components.contains_key(c))
+            .filter(|c| {
+                if let Some(e) = self.components.get(c) {
+                    e.is_none()
+                } else {
+                    false
+                }
+            })
             .collect();
 
         // load missing components in parallel
@@ -868,7 +875,11 @@ impl<CT: ComponentType> Graph<CT> {
             .into_par_iter()
             .map(|c| match component_path(&self.location, c) {
                 Some(cpath) => {
-                    debug!("loading component {} from {}", c, &cpath.to_string_lossy());
+                    debug!(
+                        "loading component in parallel {} from {}",
+                        c,
+                        &cpath.to_string_lossy()
+                    );
                     (c, load_component_from_disk(&cpath))
                 }
                 None => (c, Err(GraphAnnisCoreError::EmptyComponentPath)),
@@ -1043,6 +1054,7 @@ impl<CT: ComponentType> Graph<CT> {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use crate::types::{AnnoKey, Annotation, DefaultComponentType, Edge};
 
@@ -1076,5 +1088,72 @@ mod tests {
             },
         )
         .unwrap();
+    }
+
+    #[test]
+    fn load_existing_graph_storage() {
+        let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
+
+        let component = Component::new(DefaultComponentType::Edge, "test".into(), "dep".into());
+        db.get_or_create_writable(&component).unwrap();
+
+        let tmp = tempfile::tempdir().unwrap();
+
+        db.save_to(tmp.path()).unwrap();
+
+        let mut db = Graph::new(false).unwrap();
+        db.load_from(tmp.path(), false).unwrap();
+        assert_eq!(1, db.components.len());
+        let gs = db.components.get(&component);
+        assert_eq!(true, gs.is_some());
+        assert_eq!(false, gs.unwrap().is_some());
+
+        db.ensure_loaded(&component).unwrap();
+        assert_eq!(1, db.components.len());
+        let gs = db.components.get(&component);
+        assert_eq!(true, gs.is_some());
+        assert_eq!(true, gs.unwrap().is_some());
+    }
+
+    #[test]
+    fn load_existing_graph_storage_parallel() {
+        let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
+
+        let component = Component::new(DefaultComponentType::Edge, "test".into(), "dep".into());
+        db.get_or_create_writable(&component).unwrap();
+
+        let tmp = tempfile::tempdir().unwrap();
+
+        db.save_to(tmp.path()).unwrap();
+
+        let mut db = Graph::new(false).unwrap();
+        db.load_from(tmp.path(), false).unwrap();
+        assert_eq!(1, db.components.len());
+        let gs = db.components.get(&component);
+        assert_eq!(true, gs.is_some());
+        assert_eq!(false, gs.unwrap().is_some());
+
+        db.ensure_loaded_parallel(&[component.clone()]).unwrap();
+        assert_eq!(1, db.components.len());
+        let gs = db.components.get(&component);
+        assert_eq!(true, gs.is_some());
+        assert_eq!(true, gs.unwrap().is_some());
+    }
+
+    #[test]
+    fn load_non_existing_graph_storage_parallel() {
+        let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
+
+        let component = Component::new(DefaultComponentType::Edge, "test".into(), "dep".into());
+
+        let tmp = tempfile::tempdir().unwrap();
+
+        db.save_to(tmp.path()).unwrap();
+
+        let mut db = Graph::new(false).unwrap();
+        db.load_from(tmp.path(), false).unwrap();
+
+        db.ensure_loaded_parallel(&[component]).unwrap();
+        assert_eq!(0, db.components.len());
     }
 }

@@ -436,7 +436,6 @@ impl Conjunction {
         for n in &self.nodes {
             result.extend(n.spec.necessary_components(db));
         }
-
         result
     }
 

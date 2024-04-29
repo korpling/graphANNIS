@@ -628,7 +628,12 @@ impl CorpusStorage {
         };
 
         // make sure the cache is not too large before adding the new corpus
-        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![], false)?;
+        check_cache_size_and_remove_with_cache(
+            cache,
+            &self.cache_strategy,
+            vec![corpus_name],
+            false,
+        )?;
 
         let db = if create_corpus {
             // create the default graph storages that are assumed to exist in every corpus
@@ -886,7 +891,7 @@ impl CorpusStorage {
                     disk_based,
                     |status| {
                         progress_callback(status);
-                        // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
+                        // loading the file from GraphmL consumes memory, update the corpus cache regularly to allow it to adapt
                         if let Err(e) = self.check_cache_size_and_remove(vec![], false) {
                             error!("Could not check cache size: {}", e);
                         };
@@ -2527,8 +2532,7 @@ fn check_cache_size_and_remove_with_cache(
 
     let max_cache_size = get_max_cache_size(cache_strategy, size_sum);
 
-    // remove older entries (at the beginning) until cache size requirements are met,
-    // but never remove the last loaded entry
+    // remove older entries (at the beginning) until cache size requirements are met.
     let all_corpus_names: Vec<String> = cache.keys().cloned().collect();
     for corpus_name in all_corpus_names {
         let corpus_is_loaded = if let Some(cache_entry) = cache.get(&corpus_name) {
