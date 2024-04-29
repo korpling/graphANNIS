@@ -1083,4 +1083,15 @@ mod tests {
         )
         .unwrap();
     }
+
+    #[test]
+    fn load_existing_graph_storage() {
+        let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
+
+        let component = Component::new(DefaultComponentType::Edge, "test".into(), "dep".into());
+        db.get_or_create_writable(&component).unwrap();
+
+        db.ensure_loaded(&component).unwrap();
+        db.ensure_loaded_parallel(&[component]).unwrap();
+    }
 }
