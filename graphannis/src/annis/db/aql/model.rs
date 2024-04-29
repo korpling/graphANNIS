@@ -611,32 +611,46 @@ impl ComponentType for AnnotationComponentType {
         );
 
         let token_helper = TokenHelper::new(graph)?;
-        let all_token_in_order_component =
-            if let Some(ordering_gs) = graph.get_graphstorage_as_ref(&default_ordering_component) {
-                let mut all_contained = true;
-                for m in graph.get_node_annos().exact_anno_search(
-                    Some(&TOKEN_KEY.ns),
-                    &TOKEN_KEY.name,
-                    ValueSearch::Any,
-                ) {
-                    let n = m?.node;
-                    // Check if this is an actual token or just a segmentation node
-                    if !token_helper.has_outgoing_coverage_edges(n)? {
-                        all_contained = all_contained && ordering_gs.has_outgoing_edges(n)?
-                            || ordering_gs.has_ingoing_edges(n)?;
-                        if !all_contained {
-                            break;
-                        }
+        let mut all_token_in_order_component = false;
+        let mut base_token_count = 0;
+        let segmentation_count = BTreeMap::new();
+
+        if let Some(ordering_gs) = graph.get_graphstorage_as_ref(&default_ordering_component) {
+            all_token_in_order_component = true;
+            for m in graph.get_node_annos().exact_anno_search(
+                Some(&TOKEN_KEY.ns),
+                &TOKEN_KEY.name,
+                ValueSearch::Any,
+            ) {
+                let n = m?.node;
+                // Check if this is an actual token or just a segmentation node
+                if !token_helper.has_outgoing_coverage_edges(n)? {
+                    all_token_in_order_component = all_token_in_order_component
+                        && ordering_gs.has_outgoing_edges(n)?
+                        || ordering_gs.has_ingoing_edges(n)?;
+                    if !all_token_in_order_component {
+                        break;
                     }
                 }
-                all_contained
+            }
+            // Calculate the base token stats
+            if let (true, Some(ordering_stats)) =
+                (all_token_in_order_component, ordering_gs.get_statistics())
+            {
+                // We can use a shortcut and check the statistics of the
+                // ordering component
+                base_token_count = ordering_stats.nodes;
             } else {
-                false
-            };
+                todo!("Calculate base token with the token helper")
+            }
+        }
 
         graph.global_statistics = Some(AQLGlobalStatistics {
             all_token_in_order_component,
-            corpus_size: CorpusSizeStatistics::Unknown,
+            corpus_size: CorpusSizeStatistics::Token {
+                base_token_count,
+                segmentation_count,
+            },
         });
         Ok(())
     }
@@ -647,3 +661,6 @@ impl fmt::Display for AnnotationComponentType {
         fmt::Debug::fmt(self, f)
     }
 }
+
+#[cfg(test)]
+mod tests;
