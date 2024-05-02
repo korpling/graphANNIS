@@ -86,9 +86,10 @@ impl From<u16> for AnnotationComponentType {
 }
 
 /// Collects information about the corpus size, e.g. in token.
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[non_exhaustive]
-pub enum CorpusSizeStatistics {
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(tag = "type")]
+pub enum CorpusSize {
     /// The corpus size is unknown.
     #[default]
     Unknown,
@@ -105,7 +106,7 @@ pub struct AQLGlobalStatistics {
     #[serde(default)]
     pub all_token_in_order_component: bool,
     #[serde(default)]
-    pub corpus_size: CorpusSizeStatistics,
+    pub corpus_size: CorpusSize,
 }
 
 fn calculate_inherited_coverage_edges(
@@ -654,7 +655,7 @@ impl ComponentType for AnnotationComponentType {
 
         graph.global_statistics = Some(AQLGlobalStatistics {
             all_token_in_order_component,
-            corpus_size: CorpusSizeStatistics::Token {
+            corpus_size: CorpusSize::Token {
                 base_token_count,
                 segmentation_count: token_count_by_ordering_component
                     .into_iter()

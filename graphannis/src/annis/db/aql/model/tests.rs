@@ -1,7 +1,7 @@
 use std::{fs::File, path::PathBuf};
 
 use crate::{
-    annis::db::aql::model::CorpusSizeStatistics, AnnotationGraph
+    annis::db::aql::model::CorpusSize, AnnotationGraph
 };
 use assert_matches::assert_matches;
 
@@ -20,7 +20,7 @@ fn global_stats_token_count() {
     let global_stats = graph.global_statistics.unwrap();
     assert_eq!(true, global_stats.all_token_in_order_component);
     assert_matches!(global_stats.corpus_size, 
-        CorpusSizeStatistics::Token { base_token_count, segmentation_count } 
+        CorpusSize::Token { base_token_count, segmentation_count } 
         if base_token_count == 16 
             && segmentation_count.len() == 2
             && *segmentation_count.get("diplomatic").unwrap() == 11 

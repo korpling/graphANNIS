@@ -1,6 +1,7 @@
 use crate::annis::db::aql;
 use crate::annis::db::aql::conjunction::Conjunction;
 use crate::annis::db::aql::disjunction::Disjunction;
+use crate::annis::db::aql::model::CorpusSize;
 use crate::annis::db::aql::operators;
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
@@ -897,11 +898,20 @@ impl CorpusStorage {
                         };
                     },
                 )?;
-                let config = if let Some(config_str) = config_str {
+                let mut config = if let Some(config_str) = config_str {
                     toml::from_str(&config_str)?
                 } else {
                     CorpusConfiguration::default()
                 };
+
+                // Update the corpus configuration to include the corpus size
+                // from statistics if not already manually set
+                if let CorpusSize::Unknown = config.corpus_size {
+                    let stats: Option<&AQLGlobalStatistics> = g.global_statistics.as_ref();
+                    if let Some(stats) = stats {
+                        config.corpus_size = stats.corpus_size.clone();
+                    }
+                }
                 (orig_corpus_name.into(), g, config)
             }
         };

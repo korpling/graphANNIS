@@ -1,6 +1,8 @@
 use crate::corpusstorage::QueryLanguage;
 use std::collections::BTreeMap;
 
+use super::db::aql::model::CorpusSize;
+
 /// A struct that contains the extended results of the count query.
 #[derive(Debug, Default, Clone, Serialize)]
 #[repr(C)]
@@ -84,6 +86,8 @@ pub struct CorpusConfiguration {
     pub example_queries: Vec<ExampleQuery>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub visualizers: Vec<VisualizerRule>,
+    #[serde(default)]
+    pub corpus_size: CorpusSize,
 }
 
 /// Configuration for configuring context in subgraph queries.
