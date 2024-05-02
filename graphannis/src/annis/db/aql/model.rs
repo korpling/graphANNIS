@@ -11,7 +11,10 @@ use graphannis_core::{
     types::ComponentType,
     util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
 };
-use std::{collections::BTreeMap, fmt};
+use std::{
+    collections::{BTreeMap, HashMap},
+    fmt,
+};
 use transient_btree_index::BtreeConfig;
 
 use std::borrow::Cow;
@@ -613,7 +616,7 @@ impl ComponentType for AnnotationComponentType {
         let token_helper = TokenHelper::new(graph)?;
         let mut all_token_in_order_component = false;
         let mut base_token_count = 0;
-        let segmentation_count = BTreeMap::new();
+        let mut token_count_by_ordering_component = HashMap::new();
 
         if let Some(ordering_gs) = graph.get_graphstorage_as_ref(&default_ordering_component) {
             all_token_in_order_component = true;
@@ -623,25 +626,29 @@ impl ComponentType for AnnotationComponentType {
                 ValueSearch::Any,
             ) {
                 let n = m?.node;
-                // Check if this is an actual token or just a segmentation node
+                // Check if this is an actual token or  a segmentation node
+
                 if !token_helper.has_outgoing_coverage_edges(n)? {
                     all_token_in_order_component = all_token_in_order_component
                         && ordering_gs.has_outgoing_edges(n)?
                         || ordering_gs.has_ingoing_edges(n)?;
-                    if !all_token_in_order_component {
-                        break;
-                    }
+                    // Update the token counter
+                    base_token_count += 1;
                 }
             }
-            // Calculate the base token stats
-            if let (true, Some(ordering_stats)) =
-                (all_token_in_order_component, ordering_gs.get_statistics())
-            {
-                // We can use a shortcut and check the statistics of the
-                // ordering component
-                base_token_count = ordering_stats.nodes;
-            } else {
-                todo!("Calculate base token with the token helper")
+        }
+
+        // Get all non-default ordering components and count their members
+        for ordering_component in
+            graph.get_all_components(Some(AnnotationComponentType::Ordering), None)
+        {
+            if !ordering_component.name.is_empty() {
+                if let Some(gs_stats) = graph
+                    .get_graphstorage_as_ref(&ordering_component)
+                    .and_then(|gs| gs.get_statistics())
+                {
+                    token_count_by_ordering_component.insert(ordering_component, gs_stats.nodes);
+                }
             }
         }
 
@@ -649,7 +656,10 @@ impl ComponentType for AnnotationComponentType {
             all_token_in_order_component,
             corpus_size: CorpusSizeStatistics::Token {
                 base_token_count,
-                segmentation_count,
+                segmentation_count: token_count_by_ordering_component
+                    .into_iter()
+                    .map(|(k, v)| (k.name.into(), v))
+                    .collect(),
             },
         });
         Ok(())
