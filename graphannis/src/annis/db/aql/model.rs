@@ -88,7 +88,6 @@ impl From<u16> for AnnotationComponentType {
 /// Collects information about the corpus size, e.g. in token.
 #[non_exhaustive]
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
-#[serde(tag = "type")]
 pub enum CorpusSize {
     /// The corpus size is unknown.
     #[default]
@@ -96,8 +95,8 @@ pub enum CorpusSize {
     /// The corpus size can be measured in base token ("annis:tok" without
     /// outgoing coverage edges) and segmentation layers.
     Token {
-        base_token_count: usize,
-        segmentation_count: BTreeMap<String, usize>,
+        base_token_count: u64,
+        segmentation_count: BTreeMap<String, u64>,
     },
 }
 
@@ -648,7 +647,8 @@ impl ComponentType for AnnotationComponentType {
                     .get_graphstorage_as_ref(&ordering_component)
                     .and_then(|gs| gs.get_statistics())
                 {
-                    token_count_by_ordering_component.insert(ordering_component, gs_stats.nodes);
+                    token_count_by_ordering_component
+                        .insert(ordering_component, gs_stats.nodes as u64);
                 }
             }
         }

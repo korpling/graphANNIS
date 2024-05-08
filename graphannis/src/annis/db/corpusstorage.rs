@@ -1,7 +1,6 @@
 use crate::annis::db::aql;
 use crate::annis::db::aql::conjunction::Conjunction;
 use crate::annis::db::aql::disjunction::Disjunction;
-use crate::annis::db::aql::model::CorpusSize;
 use crate::annis::db::aql::operators;
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
@@ -11,10 +10,11 @@ use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::*;
-use crate::annis::types::CountExtra;
 use crate::annis::types::{
-    CorpusConfiguration, FrequencyTable, FrequencyTableRow, QueryAttributeDescription,
+    CorpusConfiguration, CorpusSizeUnit, FrequencyTable, FrequencyTableRow,
+    QueryAttributeDescription,
 };
+use crate::annis::types::{CorpusSizeInfo, CountExtra};
 use crate::annis::util::quicksort;
 use crate::annis::util::TimeoutCheck;
 use crate::{graph::Match, AnnotationGraph};
@@ -850,6 +850,29 @@ impl CorpusStorage {
         Ok(corpus_names)
     }
 
+    /// Update the corpus configuration to include the corpus size
+    /// from statistics if not already manually set
+    fn update_corpus_size_info(&self, config: &mut CorpusConfiguration, graph: &AnnotationGraph) {
+        if config.corpus_size.is_none() {
+            let stats: Option<&AQLGlobalStatistics> = graph.global_statistics.as_ref();
+            if let Some(stats) = stats {
+                match &stats.corpus_size {
+                    aql::model::CorpusSize::Unknown => {}
+                    aql::model::CorpusSize::Token {
+                        base_token_count, ..
+                    } => {
+                        // Derive the size information from the statistics
+                        // TODO: use segmentation if configured
+                        config.corpus_size = Some(CorpusSizeInfo {
+                            quantity: *base_token_count,
+                            unit: CorpusSizeUnit::Token,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
     /// Import a corpus from an external location on the file system into this corpus storage.
     ///
     /// - `path` - The location on the file system where the corpus data is located.
@@ -904,14 +927,7 @@ impl CorpusStorage {
                     CorpusConfiguration::default()
                 };
 
-                // Update the corpus configuration to include the corpus size
-                // from statistics if not already manually set
-                if let CorpusSize::Unknown = config.corpus_size {
-                    let stats: Option<&AQLGlobalStatistics> = g.global_statistics.as_ref();
-                    if let Some(stats) = stats {
-                        config.corpus_size = stats.corpus_size.clone();
-                    }
-                }
+                self.update_corpus_size_info(&mut config, &g);
                 (orig_corpus_name.into(), g, config)
             }
         };
