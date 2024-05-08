@@ -859,14 +859,24 @@ impl CorpusStorage {
                 match &stats.corpus_size {
                     aql::model::CorpusSize::Unknown => {}
                     aql::model::CorpusSize::Token {
-                        base_token_count, ..
+                        base_token_count,
+                        segmentation_count,
                     } => {
-                        // Derive the size information from the statistics
-                        // TODO: use segmentation if configured
+                        // Derive the size information from the statistics and
+                        // default to the base token count.
                         config.corpus_size = Some(CorpusSizeInfo {
                             quantity: *base_token_count,
                             unit: CorpusSizeUnit::Token,
                         });
+                        // use segmentation if configured
+                        if let Some(seg) = &config.view.base_text_segmentation {
+                            if let Some(size) = segmentation_count.get(seg) {
+                                config.corpus_size = Some(CorpusSizeInfo {
+                                    quantity: *size,
+                                    unit: CorpusSizeUnit::Segmentation(seg.to_string()),
+                                });
+                            }
+                        }
                     }
                 }
             }

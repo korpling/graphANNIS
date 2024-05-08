@@ -31,6 +31,7 @@ sizes = [
 
 [view]
 page_size = 10
+base_text_segmentation = "diplomatic"
 
 [[visualizers]]
 vis_type = 'grid'

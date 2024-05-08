@@ -81,7 +81,7 @@ pub struct CorpusSizeInfo {
 
 #[non_exhaustive]
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
-#[serde(tag = "name")]
+#[serde(tag = "name", content = "value")]
 pub enum CorpusSizeUnit {
     #[default]
     Token,
