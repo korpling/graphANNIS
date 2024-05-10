@@ -81,7 +81,7 @@ pub struct CorpusSizeInfo {
 
 #[non_exhaustive]
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
-#[serde(tag = "name", content = "value")]
+#[serde(tag = "name", content = "value", rename_all = "camelCase")]
 pub enum CorpusSizeUnit {
     #[default]
     Token,

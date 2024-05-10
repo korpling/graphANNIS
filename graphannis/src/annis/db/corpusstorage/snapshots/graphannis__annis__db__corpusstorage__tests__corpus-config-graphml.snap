@@ -84,3 +84,9 @@ vis_type = 'grid'
 display_name = 'urml'
 visibility = 'hidden'
 
+[corpus_size]
+quantity = 44
+
+[corpus_size.unit]
+name = 'token'
+
