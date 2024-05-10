@@ -369,7 +369,6 @@ where
             "finished loading relANNIS from {}",
             path.to_string_lossy()
         ));
-
         return Ok((load_node_and_corpus_result.toplevel_corpus_name, db, config));
     }
 

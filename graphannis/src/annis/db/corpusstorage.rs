@@ -905,7 +905,7 @@ impl CorpusStorage {
     where
         F: Fn(&str),
     {
-        let (orig_name, mut graph, config) = match format {
+        let (orig_name, mut graph, mut config) = match format {
             ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
                 progress_callback(status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
@@ -931,13 +931,12 @@ impl CorpusStorage {
                         };
                     },
                 )?;
-                let mut config = if let Some(config_str) = config_str {
+                let config = if let Some(config_str) = config_str {
                     toml::from_str(&config_str)?
                 } else {
                     CorpusConfiguration::default()
                 };
 
-                self.update_corpus_size_info(&mut config, &g);
                 (orig_corpus_name.into(), g, config)
             }
         };
@@ -949,6 +948,8 @@ impl CorpusStorage {
                 e
             );
         }
+
+        self.update_corpus_size_info(&mut config, &graph);
 
         let corpus_name = corpus_name.unwrap_or_else(|| orig_name.into());
         let db_path = self.corpus_directory_on_disk(&corpus_name);
