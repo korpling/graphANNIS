@@ -522,7 +522,7 @@ impl CorpusStorage {
     }
 
     fn write_corpus_config(&self, corpus_name: &str, config: CorpusConfiguration) -> Result<()> {
-        let db_path = self.corpus_directory_on_disk(&corpus_name);
+        let db_path = self.corpus_directory_on_disk(corpus_name);
 
         let corpus_config_path = db_path.join("corpus-config.toml");
         info!(
@@ -1511,7 +1511,7 @@ impl CorpusStorage {
 
         // Re-calculate the corpus size if not set yet
         let mut config = self.get_corpus_config(corpus_name)?.unwrap_or_default();
-        if self.update_corpus_size_info(&mut config, &graph) {
+        if self.update_corpus_size_info(&mut config, graph) {
             self.write_corpus_config(corpus_name, config)?;
         }
 
