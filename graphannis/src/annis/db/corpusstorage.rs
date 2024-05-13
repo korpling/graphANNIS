@@ -521,6 +521,19 @@ impl CorpusStorage {
         }
     }
 
+    fn write_corpus_config(&self, corpus_name: &str, config: CorpusConfiguration) -> Result<()> {
+        let db_path = self.corpus_directory_on_disk(&corpus_name);
+
+        let corpus_config_path = db_path.join("corpus-config.toml");
+        info!(
+            "saving corpus configuration file for corpus {} to {}",
+            corpus_name,
+            &corpus_config_path.to_string_lossy()
+        );
+        std::fs::write(corpus_config_path, toml::to_string(&config)?)?;
+        Ok(())
+    }
+
     fn create_corpus_info(&self, corpus_name: &str) -> Result<CorpusInfo> {
         let cache_entry = self.get_entry(corpus_name)?;
         let lock = cache_entry.read()?;
@@ -851,8 +864,13 @@ impl CorpusStorage {
     }
 
     /// Update the corpus configuration to include the corpus size
-    /// from statistics if not already manually set
-    fn update_corpus_size_info(&self, config: &mut CorpusConfiguration, graph: &AnnotationGraph) {
+    /// from statistics if not already manually set.
+    /// Returns whether the corpus size was changed.
+    fn update_corpus_size_info(
+        &self,
+        config: &mut CorpusConfiguration,
+        graph: &AnnotationGraph,
+    ) -> bool {
         if config.corpus_size.is_none() {
             let stats: Option<&AQLGlobalStatistics> = graph.global_statistics.as_ref();
             if let Some(stats) = stats {
@@ -877,10 +895,12 @@ impl CorpusStorage {
                                 });
                             }
                         }
+                        return true;
                     }
                 }
             }
         }
+        false
     }
 
     /// Import a corpus from an external location on the file system into this corpus storage.
@@ -1488,6 +1508,13 @@ impl CorpusStorage {
         let graph: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
 
         graph.optimize_impl(disk_based)?;
+
+        // Re-calculate the corpus size if not set yet
+        let mut config = self.get_corpus_config(corpus_name)?.unwrap_or_default();
+        if self.update_corpus_size_info(&mut config, &graph) {
+            self.write_corpus_config(corpus_name, config)?;
+        }
+
         Ok(())
     }
 
