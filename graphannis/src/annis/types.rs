@@ -84,7 +84,7 @@ pub struct CorpusSizeInfo {
 #[serde(tag = "name", content = "value", rename_all = "camelCase")]
 pub enum CorpusSizeUnit {
     #[default]
-    Token,
+    Tokens,
     Segmentation(String),
 }
 

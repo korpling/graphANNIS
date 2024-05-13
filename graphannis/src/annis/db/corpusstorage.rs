@@ -884,7 +884,7 @@ impl CorpusStorage {
                         // default to the base token count.
                         config.corpus_size = Some(CorpusSizeInfo {
                             quantity: *base_token_count,
-                            unit: CorpusSizeUnit::Token,
+                            unit: CorpusSizeUnit::Tokens,
                         });
                         // use segmentation if configured
                         if let Some(seg) = &config.view.base_text_segmentation {
