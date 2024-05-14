@@ -88,5 +88,5 @@ visibility = 'hidden'
 quantity = 44
 
 [corpus_size.unit]
-name = 'token'
+name = 'tokens'
 
