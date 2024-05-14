@@ -995,7 +995,7 @@ where
                 let mut pos = 0;
                 let mut pos_fraction = 0;
                 for hist_item in hist.iter_mut() {
-                    *hist_item = sampled_anno_values[pos].clone();
+                    hist_item.clone_from(&sampled_anno_values[pos]);
                     pos += delta;
                     pos_fraction += delta_fraction;
 
