@@ -193,7 +193,6 @@ pub struct NodeSearchDesc {
 }
 
 pub trait ExecutionNode: Iterator {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>>;
     fn as_nodesearch(&self) -> Option<&NodeSearch> {
         None
     }
@@ -218,9 +217,6 @@ impl Iterator for EmptyResultSet {
 }
 
 impl ExecutionNode for EmptyResultSet {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
-        self
-    }
     fn as_nodesearch(&self) -> Option<&NodeSearch> {
         None
     }

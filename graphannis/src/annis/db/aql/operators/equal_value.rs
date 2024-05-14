@@ -11,10 +11,8 @@ use crate::{
 use crate::{try_as_boxed_iter, AnnotationGraph};
 use graphannis_core::annostorage::NodeAnnotationStorage;
 use graphannis_core::{annostorage::ValueSearch, graph::ANNIS_NS, types::Component};
-use std::any::Any;
 use std::borrow::Cow;
 use std::collections::HashSet;
-use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct EqualValueSpec {
@@ -48,11 +46,13 @@ impl BinaryOperatorSpec for EqualValueSpec {
         false
     }
 
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+    #[cfg(test)]
+    fn into_any(self: std::sync::Arc<Self>) -> std::sync::Arc<dyn std::any::Any> {
         self
     }
 
-    fn any_ref(&self) -> &dyn Any {
+    #[cfg(test)]
+    fn any_ref(&self) -> &dyn std::any::Any {
         self
     }
 }

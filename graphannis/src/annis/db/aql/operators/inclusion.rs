@@ -17,7 +17,6 @@ use graphannis_core::{
 };
 use itertools::Itertools;
 
-use std::any::Any;
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -59,11 +58,13 @@ impl BinaryOperatorSpec for InclusionSpec {
         optional_op.map(|op| BinaryOperator::Index(Box::new(op)))
     }
 
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+    #[cfg(test)]
+    fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any> {
         self
     }
 
-    fn any_ref(&self) -> &dyn Any {
+    #[cfg(test)]
+    fn any_ref(&self) -> &dyn std::any::Any {
         self
     }
 }

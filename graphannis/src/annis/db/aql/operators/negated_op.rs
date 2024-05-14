@@ -1,4 +1,4 @@
-use std::{any::Any, fmt::Display, sync::Arc};
+use std::{fmt::Display, sync::Arc};
 
 use crate::{
     annis::{
@@ -41,11 +41,13 @@ impl BinaryOperatorSpec for NegatedOpSpec {
         Ok(BinaryOperator::Base(Box::new(op)))
     }
 
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+    #[cfg(test)]
+    fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any> {
         self
     }
 
-    fn any_ref(&self) -> &dyn Any {
+    #[cfg(test)]
+    fn any_ref(&self) -> &dyn std::any::Any {
         self
     }
 }
