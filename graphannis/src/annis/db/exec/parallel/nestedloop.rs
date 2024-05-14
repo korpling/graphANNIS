@@ -274,10 +274,6 @@ impl<'a> NestedLoop<'a> {
 }
 
 impl<'a> ExecutionNode for NestedLoop<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
-        self
-    }
-
     fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         Some(&self.desc)
     }

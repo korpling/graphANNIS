@@ -13,7 +13,6 @@ use graphannis_core::{
     types::{Component, Edge, NodeID},
 };
 use itertools::Itertools;
-use std::any::Any;
 use std::collections::{HashSet, VecDeque};
 use std::iter::FromIterator;
 use std::sync::Arc;
@@ -79,11 +78,13 @@ impl BinaryOperatorSpec for BaseEdgeOpSpec {
         self.edge_anno.clone()
     }
 
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+    #[cfg(test)]
+    fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any> {
         self
     }
 
-    fn any_ref(&self) -> &dyn Any {
+    #[cfg(test)]
+    fn any_ref(&self) -> &dyn std::any::Any {
         self
     }
 }
@@ -603,11 +604,13 @@ impl BinaryOperatorSpec for DominanceSpec {
         base.create_operator(db, cost_estimate)
     }
 
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+    #[cfg(test)]
+    fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any> {
         self
     }
 
-    fn any_ref(&self) -> &dyn Any {
+    #[cfg(test)]
+    fn any_ref(&self) -> &dyn std::any::Any {
         self
     }
 }
@@ -653,11 +656,13 @@ impl BinaryOperatorSpec for PointingSpec {
         base.create_operator(db, cost_estimate)
     }
 
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+    #[cfg(test)]
+    fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any> {
         self
     }
 
-    fn any_ref(&self) -> &dyn Any {
+    #[cfg(test)]
+    fn any_ref(&self) -> &dyn std::any::Any {
         self
     }
 }
@@ -711,11 +716,13 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         base.create_operator(db, cost_estimate)
     }
 
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+    #[cfg(test)]
+    fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any> {
         self
     }
 
-    fn any_ref(&self) -> &dyn Any {
+    #[cfg(test)]
+    fn any_ref(&self) -> &dyn std::any::Any {
         self
     }
 }

@@ -519,7 +519,7 @@ impl Conjunction {
                 );
 
                 if alt_cost < best_cost {
-                    best_operator_order = op_order.clone();
+                    best_operator_order.clone_from(op_order);
                     found_better_plan = true;
                     trace!("Found better plan");
                     best_cost = alt_cost;

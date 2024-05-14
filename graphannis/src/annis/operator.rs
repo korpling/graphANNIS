@@ -1,7 +1,7 @@
 use super::db::{aql::model::AnnotationComponentType, exec::CostEstimate};
 use crate::{errors::Result, graph::Match, AnnotationGraph};
 use graphannis_core::{annostorage::EdgeAnnotationStorage, types::Component};
-use std::{any::Any, collections::HashSet, fmt::Display, sync::Arc};
+use std::{collections::HashSet, fmt::Display};
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 #[allow(clippy::enum_variant_names)]
@@ -271,9 +271,12 @@ pub trait BinaryOperatorSpec: std::fmt::Debug + Send + Sync {
     fn is_binding(&self) -> bool {
         true
     }
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any>;
 
-    fn any_ref(&self) -> &dyn Any;
+    #[cfg(test)]
+    fn into_any(self: std::sync::Arc<Self>) -> std::sync::Arc<dyn std::any::Any>;
+
+    #[cfg(test)]
+    fn any_ref(&self) -> &dyn std::any::Any;
 }
 
 pub trait UnaryOperatorSpec: std::fmt::Debug {

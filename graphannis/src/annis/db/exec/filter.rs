@@ -135,10 +135,6 @@ impl<'a> Filter<'a> {
 }
 
 impl<'a> ExecutionNode for Filter<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
-        self
-    }
-
     fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         self.desc.as_ref()
     }

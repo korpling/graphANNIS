@@ -1093,10 +1093,6 @@ impl<'a> NodeSearch<'a> {
 }
 
 impl<'a> ExecutionNode for NodeSearch<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
-        self
-    }
-
     fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         self.desc.as_ref()
     }

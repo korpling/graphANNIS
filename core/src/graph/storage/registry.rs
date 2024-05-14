@@ -162,17 +162,17 @@ fn get_linear_by_size(stats: &GraphStatistic) -> GSInfo {
     }
 }
 
-fn insert_info<GS: 'static>(registry: &mut HashMap<String, GSInfo>)
+fn insert_info<GS>(registry: &mut HashMap<String, GSInfo>)
 where
-    for<'de> GS: GraphStorage + Default + Deserialize<'de>,
+    for<'de> GS: 'static + GraphStorage + Default + Deserialize<'de>,
 {
     let info = create_info::<GS>();
     registry.insert(info.id.clone(), info);
 }
 
-fn create_info<GS: 'static>() -> GSInfo
+fn create_info<GS>() -> GSInfo
 where
-    for<'de> GS: GraphStorage + Default + Deserialize<'de>,
+    for<'de> GS: 'static + GraphStorage + Default + Deserialize<'de>,
 {
     // create an instance to get the name
     let instance = GS::default();
