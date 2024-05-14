@@ -15,7 +15,7 @@ crate-type = ["lib"]
 [build-dependencies]
 csv = "1.1"
 file_diff = "1"
-lalrpop = {version = "0.19", default_features = false, features = ["lexer"]}
+lalrpop = {version = "0.20", default_features = false, features = ["lexer", "unicode"]}
 regex = "1"
 
 [dependencies]
@@ -24,7 +24,7 @@ csv = "1"
 fs2 = "0.4"
 graphannis-core = {path = "../core/", version = "^3"}
 itertools = "0.10"
-lalrpop-util = {version = "0.19", features = ["lexer"]}
+lalrpop-util = {version = "0.20", features = ["lexer"]}
 lazy_static = "1.4"
 libc = "0.2"
 linked-hash-map = "0.5"

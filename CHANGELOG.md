@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Do not reload graph storages when they are already loaded.
 - Do not attempt to unload a corpus that is about the be loaded in the next
   step. This could trigger problematic unload/load cycles.
+- Updated lalrpop dependency to 0.20 to fix warnings reported in newer clippy versions.
 
 
 ## [3.2.2] - 2024-04-22
