@@ -14,7 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   versions.
 - Fixed compiler warnings in newer Rust versions about unused code.
 
-
 ## [3.2.2] - 2024-04-22
 
 ### Fixed
