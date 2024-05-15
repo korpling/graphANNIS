@@ -6,9 +6,7 @@ use crate::{
     graph::Match,
 };
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
-use std::any::Any;
 use std::collections::HashSet;
-use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct IdenticalNodeSpec;
@@ -29,11 +27,13 @@ impl BinaryOperatorSpec for IdenticalNodeSpec {
         Ok(BinaryOperator::Index(Box::new(IdenticalNode {})))
     }
 
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any> {
+    #[cfg(test)]
+    fn into_any(self: std::sync::Arc<Self>) -> std::sync::Arc<dyn std::any::Any> {
         self
     }
 
-    fn any_ref(&self) -> &dyn Any {
+    #[cfg(test)]
+    fn any_ref(&self) -> &dyn std::any::Any {
         self
     }
 }

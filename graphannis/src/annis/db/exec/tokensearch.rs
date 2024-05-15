@@ -176,10 +176,6 @@ impl<'a> fmt::Display for AnyTokenSearch<'a> {
 }
 
 impl<'a> ExecutionNode for AnyTokenSearch<'a> {
-    fn as_iter(&mut self) -> &mut dyn Iterator<Item = Result<MatchGroup>> {
-        self
-    }
-
     fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         self.desc.as_ref()
     }
