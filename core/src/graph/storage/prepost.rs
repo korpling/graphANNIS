@@ -5,7 +5,6 @@ use crate::{
     },
     dfs::CycleSafeDFS,
     errors::Result,
-    graph::NODE_NAME_KEY,
     types::{Edge, NodeID, NumValue},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -424,47 +423,14 @@ where
 
     fn copy(
         &mut self,
-        node_annos: &dyn NodeAnnotationStorage,
+        _node_annos: &dyn NodeAnnotationStorage,
         orig: &dyn GraphStorage,
     ) -> Result<()> {
         self.clear()?;
 
         // find all roots of the component
-        let mut roots: FxHashSet<NodeID> = FxHashSet::default();
-        let nodes =
-            node_annos.exact_anno_search(Some(&NODE_NAME_KEY.ns), &NODE_NAME_KEY.name, None.into());
-
-        // first add all nodes that are a source of an edge as possible roots
-        for m in nodes {
-            let m = m?;
-            let n = m.node;
-            // insert all nodes to the root candidate list which are part of this component
-            if orig.get_outgoing_edges(n).next().is_some() {
-                roots.insert(n);
-            }
-        }
-
-        let nodes =
-            node_annos.exact_anno_search(Some(&NODE_NAME_KEY.ns), &NODE_NAME_KEY.name, None.into());
-        for m in nodes {
-            let m = m?;
-
-            let source = m.node;
-
-            let out_edges = orig.get_outgoing_edges(source);
-            for target in out_edges {
-                let target = target?;
-                // remove the nodes that have an incoming edge from the root list
-                roots.remove(&target);
-
-                // add the edge annotations for this edge
-                let e = Edge { source, target };
-                let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e)?;
-                for a in edge_annos {
-                    self.annos.insert(e.clone(), a)?;
-                }
-            }
-        }
+        let roots: Result<FxHashSet<NodeID>> = orig.root_nodes().collect();
+        let roots = roots?;
 
         let mut current_order = OrderT::zero();
         // traverse the graph for each sub-component
@@ -544,3 +510,6 @@ where
         self
     }
 }
+
+#[cfg(test)]
+mod tests;

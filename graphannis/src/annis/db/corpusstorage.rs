@@ -10,10 +10,11 @@ use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::*;
-use crate::annis::types::CountExtra;
 use crate::annis::types::{
-    CorpusConfiguration, FrequencyTable, FrequencyTableRow, QueryAttributeDescription,
+    CorpusConfiguration, CorpusSizeUnit, FrequencyTable, FrequencyTableRow,
+    QueryAttributeDescription,
 };
+use crate::annis::types::{CorpusSizeInfo, CountExtra};
 use crate::annis::util::quicksort;
 use crate::annis::util::TimeoutCheck;
 use crate::{graph::Match, AnnotationGraph};
@@ -520,6 +521,19 @@ impl CorpusStorage {
         }
     }
 
+    fn write_corpus_config(&self, corpus_name: &str, config: CorpusConfiguration) -> Result<()> {
+        let db_path = self.corpus_directory_on_disk(corpus_name);
+
+        let corpus_config_path = db_path.join("corpus-config.toml");
+        info!(
+            "saving corpus configuration file for corpus {} to {}",
+            corpus_name,
+            &corpus_config_path.to_string_lossy()
+        );
+        std::fs::write(corpus_config_path, toml::to_string(&config)?)?;
+        Ok(())
+    }
+
     fn create_corpus_info(&self, corpus_name: &str) -> Result<CorpusInfo> {
         let cache_entry = self.get_entry(corpus_name)?;
         let lock = cache_entry.read()?;
@@ -849,6 +863,56 @@ impl CorpusStorage {
         Ok(corpus_names)
     }
 
+    /// Update the corpus configuration to include the corpus size
+    /// from statistics. Returns whether the corpus size was changed.
+    fn update_corpus_size_info(
+        &self,
+        config: &mut CorpusConfiguration,
+        graph: &AnnotationGraph,
+    ) -> bool {
+        let stats: Option<&AQLGlobalStatistics> = graph.global_statistics.as_ref();
+        if let Some(stats) = stats {
+            match &stats.corpus_size {
+                aql::model::CorpusSize::Unknown => {}
+                aql::model::CorpusSize::Token {
+                    base_token_count,
+                    segmentation_count,
+                } => {
+                    // Decide whether to use a segmentation layer or the base token as base for the corpus size
+                    let choosen_unit = if let Some(s) = &config.corpus_size {
+                        // Use the already existing unit. If the unit was
+                        // configured e.g. before the import manually, we should
+                        // stay with it and just update the quantity.
+                        s.unit.clone()
+                    } else if let Some(seg) = &config.view.base_text_segmentation {
+                        // use the displayed segmentation for the size info as
+                        CorpusSizeUnit::Segmentation(seg.clone())
+                    } else {
+                        CorpusSizeUnit::Tokens
+                    };
+                    // Derive the size information from the statistics
+                    let updated_corpus_size = match choosen_unit {
+                        CorpusSizeUnit::Tokens => Some(CorpusSizeInfo {
+                            quantity: *base_token_count,
+                            unit: CorpusSizeUnit::Tokens,
+                        }),
+                        CorpusSizeUnit::Segmentation(seg) => {
+                            segmentation_count.get(&seg).map(|size| CorpusSizeInfo {
+                                quantity: *size,
+                                unit: CorpusSizeUnit::Segmentation(seg.to_string()),
+                            })
+                        }
+                    };
+                    config.corpus_size = updated_corpus_size;
+
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
     /// Import a corpus from an external location on the file system into this corpus storage.
     ///
     /// - `path` - The location on the file system where the corpus data is located.
@@ -871,7 +935,7 @@ impl CorpusStorage {
     where
         F: Fn(&str),
     {
-        let (orig_name, mut graph, config) = match format {
+        let (orig_name, mut graph, mut config) = match format {
             ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
                 progress_callback(status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
@@ -902,6 +966,7 @@ impl CorpusStorage {
                 } else {
                     CorpusConfiguration::default()
                 };
+
                 (orig_corpus_name.into(), g, config)
             }
         };
@@ -913,6 +978,8 @@ impl CorpusStorage {
                 e
             );
         }
+
+        self.update_corpus_size_info(&mut config, &graph);
 
         let corpus_name = corpus_name.unwrap_or_else(|| orig_name.into());
         let db_path = self.corpus_directory_on_disk(&corpus_name);
@@ -1451,6 +1518,13 @@ impl CorpusStorage {
         let graph: &mut AnnotationGraph = get_write_or_error(&mut lock)?;
 
         graph.optimize_impl(disk_based)?;
+
+        // Re-calculate the corpus size if not set yet
+        let mut config = self.get_corpus_config(corpus_name)?.unwrap_or_default();
+        if self.update_corpus_size_info(&mut config, graph) {
+            self.write_corpus_config(corpus_name, config)?;
+        }
+
         Ok(())
     }
 

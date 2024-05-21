@@ -10,9 +10,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Do not reload graph storages when they are already loaded.
 - Do not attempt to unload a corpus that is about the be loaded in the next
   step. This could trigger problematic unload/load cycles.
+- Fixed issues with `find_connected`, `find_connected_inverse` and
+  `is_connected` and excluded ranges (#257)
 - Updated lalrpop dependency to 0.20 to fix warnings reported in newer clippy
   versions.
 - Fixed compiler warnings in newer Rust versions about unused code.
+
+### Added
+
+- Added information about the corpus size to the global statistics and corpus
+  configuration file. The used token/segmentation layer for the corpus size in
+  the corpus configuration file `corpus-config.toml` can be configured manually.
+  Or theentries are created automatically during import or when the
+  `re-optimize` command is run on the command line. The corpus size is given as
+  a combination of a unit and the actual quantitiy. The corpus size unit can be
+  the number of basic token (no outgoing coverage).
+  ```
+  [corpus_size]
+  quantity = 44079
+
+  [corpus_size.unit]
+  name = "tokens"
+  ```
+  Or it can describe a specific segmentation layer.
+  ```
+  [corpus_size]
+  quantity = 305056
+
+  [corpus_size.unit]
+  name = "segmentation"
+  value = "diplomatic"
+  ```
+  When the configuration is created automatically, the corpus view configuration
+  is checked whether it is configured to use a `base_text_segmentation` and uses
+  this segmentation as the corpus size unit. If a corpus size is already
+  configured, only the quantity will be updated but not the unit.
 
 ## [3.2.2] - 2024-04-22
 

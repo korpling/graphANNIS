@@ -70,6 +70,24 @@ impl std::fmt::Display for LineColumnRange {
     }
 }
 
+/// Manually curated information about the size of the corpus.
+///
+/// This is divided into the actual number and an unit.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct CorpusSizeInfo {
+    pub quantity: u64,
+    pub unit: CorpusSizeUnit,
+}
+
+#[non_exhaustive]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(tag = "name", content = "value", rename_all = "camelCase")]
+pub enum CorpusSizeUnit {
+    #[default]
+    Tokens,
+    Segmentation(String),
+}
+
 /// Configuration for a corpus as defined by the corpus authors.
 ///
 /// This allows to add certain meta-information for corpus search systems in a human-writable configuration file.
@@ -84,6 +102,8 @@ pub struct CorpusConfiguration {
     pub example_queries: Vec<ExampleQuery>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub visualizers: Vec<VisualizerRule>,
+    #[serde(default)]
+    pub corpus_size: Option<CorpusSizeInfo>,
 }
 
 /// Configuration for configuring context in subgraph queries.

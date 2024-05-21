@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use std::vec;
 
 use crate::annis::db::corpusstorage::{get_read_or_error, CacheEntry};
+use crate::annis::db::example_generator::create_token_node;
 use crate::annis::db::{aql::model::AnnotationComponentType, example_generator};
 use crate::annis::errors::GraphAnnisError;
 use crate::corpusstorage::{ImportFormat, QueryLanguage, ResultOrder};
@@ -1383,4 +1384,76 @@ fn unload_corpus() {
         let entry = entry.read().unwrap();
         assert!(matches!(*entry, CacheEntry::NotLoaded));
     }
+}
+
+#[test]
+#[serial]
+fn reoptimize_corpussizeconfig() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    // Import both the GraphML and the relANNIS files as corpus
+    cs.import_from_fs(
+        &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
+        ImportFormat::GraphML,
+        None,
+        false,
+        true,
+        |_| {},
+    )
+    .unwrap();
+
+    let token_count = cs
+        .count(SearchQuery {
+            corpus_names: &["SaltSampleCorpus"],
+            query_language: QueryLanguage::AQL,
+            query: "tok",
+            timeout: None,
+        })
+        .unwrap();
+    assert_eq!(44, token_count);
+
+    // Check that the corpus configuration has been set
+    let corpus_config = cs.get_corpus_config("SaltSampleCorpus").unwrap().unwrap();
+    assert_snapshot!(
+        "corpus-config-before",
+        toml::to_string_pretty(&corpus_config).unwrap()
+    );
+
+    // Add a token
+    let mut u = GraphUpdate::new();
+    create_token_node(
+        &mut u,
+        "rootCorpus/subCorpus1/doc1#sTok12",
+        "!",
+        Some("rootCorpus/subCorpus1/doc1#sText1"),
+    );
+    u.add_event(UpdateEvent::AddEdge {
+        source_node: "rootCorpus/subCorpus1/doc1#sTok11".to_string(),
+        target_node: "rootCorpus/subCorpus1/doc1#sTok12".to_string(),
+        layer: ANNIS_NS.to_string(),
+        component_type: "Ordering".to_string(),
+        component_name: "".to_string(),
+    })
+    .unwrap();
+    cs.apply_update("SaltSampleCorpus", &mut u).unwrap();
+    cs.reoptimize_implementation("SaltSampleCorpus", false)
+        .unwrap();
+
+    let token_count = cs
+        .count(SearchQuery {
+            corpus_names: &["SaltSampleCorpus"],
+            query_language: QueryLanguage::AQL,
+            query: "tok",
+            timeout: None,
+        })
+        .unwrap();
+    assert_eq!(45, token_count);
+
+    let corpus_config = cs.get_corpus_config("SaltSampleCorpus").unwrap().unwrap();
+    assert_snapshot!(
+        "corpus-config-after",
+        toml::to_string_pretty(&corpus_config).unwrap()
+    );
 }

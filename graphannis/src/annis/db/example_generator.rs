@@ -12,7 +12,7 @@ use graphannis_core::graph::{
 /// 	/      \      /       \
 ///   doc1    doc2  doc3     doc4
 /// ```
-pub fn create_corpus_structure(update: &mut GraphUpdate) {
+pub(crate) fn create_corpus_structure(update: &mut GraphUpdate) {
     update
         .add_event(UpdateEvent::AddNode {
             node_name: "root".to_string(),
@@ -124,7 +124,7 @@ pub fn create_corpus_structure(update: &mut GraphUpdate) {
 ///       |
 ///      docc1
 /// ```
-pub fn create_corpus_structure_simple(update: &mut GraphUpdate) {
+pub(crate) fn create_corpus_structure_simple(update: &mut GraphUpdate) {
     update
         .add_event(UpdateEvent::AddNode {
             node_name: "root".to_string(),
@@ -183,7 +183,7 @@ pub fn create_corpus_structure_simple(update: &mut GraphUpdate) {
 /// - be
 /// - ?
 ///  
-pub fn create_tokens(
+pub(crate) fn create_tokens(
     update: &mut GraphUpdate,
     document_name: Option<&str>,
     parent_node: Option<&str>,
@@ -225,7 +225,7 @@ pub fn create_tokens(
     }
 }
 
-pub fn create_token_node(
+pub(crate) fn create_token_node(
     update: &mut GraphUpdate,
     node_name: &str,
     token_value: &str,
@@ -260,7 +260,7 @@ pub fn create_token_node(
     }
 }
 
-pub fn make_span(
+pub(crate) fn make_span(
     update: &mut GraphUpdate,
     node_name: &str,
     covered_token_names: &[&str],
