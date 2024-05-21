@@ -24,7 +24,7 @@ E.g., `annis data -c 'set-disk-based on' -c 'import relannis/pcc2.1'` would firs
 
 ### `import`
 
-The `import` command takes the directory of file to import as argument.
+The `import` command takes the directory or file to import as argument.
 If this is a directory, it is assumed that the corpus is in the [relANNIS format](http://korpling.github.io/ANNIS/4.0/developer-guide/annisimportformat.html).
 To import a corpus in the graphML based format, give a single file with the ending `.graphml` as argument.
 
@@ -39,6 +39,12 @@ use much less main memory when loading a corpus, but will also cause slower
 query execution. Please note that you will still need at least 4 GB of main
 memory during import for larger corpora even when this option is on[^stacksize], because of
 internal caching (memory usage will be less for querying the corpus).
+
+You can also give a corpus name as an additional argument after the corpus path.
+This corpus name will overwrite the automatically created name, which is e.g.
+based on the information given in the imported corpus itself.
+
+
 
 ### `list`
 
@@ -163,3 +169,7 @@ size (a different type of main memory used by programs) and would crash during
 import with an error. On Linux systems, you can run `ulimit -s unlimited` in the
 shell before starting the graphANNIS CLI to allow an unlimited stack size when
 the import fails otherwise.
+
+## `delete`
+
+Deletes the corpus with the name given as an argument.
