@@ -4,6 +4,9 @@ use std::borrow::Cow;
 
 pub mod disk_collections;
 
+#[cfg(test)]
+pub(crate) mod example_graphs;
+
 const QNAME_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b':').add(b'%');
 
 pub fn join_qname(ns: &str, name: &str) -> String {

@@ -1,6 +1,5 @@
 ---
 source: graphannis/src/annis/db/corpusstorage/tests.rs
-assertion_line: 1433
 expression: "toml::to_string_pretty(&corpus_config).unwrap()"
 ---
 [context]
@@ -86,7 +85,7 @@ display_name = 'urml'
 visibility = 'hidden'
 
 [corpus_size]
-quantity = 44
+quantity = 45
 
 [corpus_size.unit]
 name = 'tokens'

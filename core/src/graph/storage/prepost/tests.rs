@@ -1,54 +1,8 @@
-use crate::{
-    graph::storage::{adjacencylist::AdjacencyListStorage, GraphStorage, WriteableGraphStorage},
-    types::{AnnoKey, Annotation},
-};
+use std::ops::Bound;
+
+use crate::{graph::storage::GraphStorage, util::example_graphs::create_tree_gs};
 
 use super::*;
-
-/// Creates an example graph storage with the folllowing structure:
-///
-/// ```
-///           0
-///          / \
-///         1   2
-///        /     \
-///       3       4
-///      / \     / \
-///     5   6   7   8
-/// ```
-fn create_tree_gs() -> Result<AdjacencyListStorage> {
-    let mut orig = AdjacencyListStorage::new();
-
-    // First layer
-    orig.add_edge((0, 1).into())?;
-    orig.add_edge((0, 2).into())?;
-
-    // Second layer
-    orig.add_edge((1, 3).into())?;
-    orig.add_edge((2, 4).into())?;
-
-    // Third layer
-    orig.add_edge((3, 5).into())?;
-    orig.add_edge((3, 6).into())?;
-    orig.add_edge((4, 7).into())?;
-    orig.add_edge((4, 8).into())?;
-
-    // Add annotations to last layer
-    let key = AnnoKey {
-        name: "example".into(),
-        ns: "default_ns".into(),
-    };
-    let anno = Annotation {
-        key,
-        val: "last".into(),
-    };
-    orig.add_edge_annotation((3, 5).into(), anno.clone())?;
-    orig.add_edge_annotation((3, 6).into(), anno.clone())?;
-    orig.add_edge_annotation((4, 7).into(), anno.clone())?;
-    orig.add_edge_annotation((4, 8).into(), anno.clone())?;
-
-    Ok(orig)
-}
 
 #[test]
 fn test_inverse_edges() {

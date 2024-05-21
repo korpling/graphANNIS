@@ -1,47 +1,6 @@
-use crate::{
-    graph::storage::{adjacencylist::AdjacencyListStorage, WriteableGraphStorage},
-    types::{AnnoKey, Annotation},
-};
+use crate::util::example_graphs::create_linear_gs;
 
 use super::*;
-
-/// Creates an example graph storage with the folllowing structure:
-///
-/// ```
-///  0 -> 1 -> 2 -> 3 -> 4
-///  5 -> 6 -> 7 -> 8
-///  9 -> 10
-/// ```
-fn create_linear_gs() -> Result<AdjacencyListStorage> {
-    let mut orig = AdjacencyListStorage::new();
-
-    // First component
-    orig.add_edge((0, 1).into())?;
-    orig.add_edge((1, 2).into())?;
-    orig.add_edge((2, 3).into())?;
-    orig.add_edge((3, 4).into())?;
-
-    // Second component
-    orig.add_edge((5, 6).into())?;
-    orig.add_edge((6, 7).into())?;
-    orig.add_edge((7, 8).into())?;
-
-    // Third component
-    orig.add_edge((9, 10).into())?;
-
-    // Add annotations to edge of the third component
-    let key = AnnoKey {
-        name: "example".into(),
-        ns: "default_ns".into(),
-    };
-    let anno = Annotation {
-        key,
-        val: "last".into(),
-    };
-    orig.add_edge_annotation((9, 10).into(), anno.clone())?;
-
-    Ok(orig)
-}
 
 #[test]
 fn source_nodes_linear() {
