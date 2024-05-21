@@ -6,19 +6,21 @@ use super::*;
 fn multiple_paths_find_range() {
     let gs = create_multiple_paths_dag().unwrap();
 
-    let found: Result<Vec<NodeID>> = gs
-        .find_connected(1, 3, std::ops::Bound::Included(3))
-        .collect();
+    let found: Result<Vec<NodeID>> = gs.find_connected(1, 3, Bound::Included(3)).collect();
     let mut found = found.unwrap();
     found.sort();
     assert_eq!(vec![4, 5], found);
+    assert_eq!(true, gs.is_connected(1, 4, 3, Bound::Included(3)).unwrap());
+    assert_eq!(true, gs.is_connected(1, 5, 3, Bound::Included(3)).unwrap());
+    assert_eq!(false, gs.is_connected(1, 2, 3, Bound::Included(3)).unwrap());
 
-    let found: Result<Vec<NodeID>> = gs
-        .find_connected(2, 1, std::ops::Bound::Excluded(3))
-        .collect();
+    let found: Result<Vec<NodeID>> = gs.find_connected(2, 1, Bound::Excluded(3)).collect();
     let mut found = found.unwrap();
     found.sort();
     assert_eq!(vec![3, 4], found);
+    assert_eq!(true, gs.is_connected(2, 3, 1, Bound::Excluded(3)).unwrap());
+    assert_eq!(true, gs.is_connected(2, 4, 1, Bound::Excluded(3)).unwrap());
+    assert_eq!(false, gs.is_connected(2, 5, 1, Bound::Excluded(3)).unwrap());
 
     let found: Result<Vec<NodeID>> = gs
         .find_connected(2, 1, std::ops::Bound::Unbounded)
@@ -26,6 +28,36 @@ fn multiple_paths_find_range() {
     let mut found = found.unwrap();
     found.sort();
     assert_eq!(vec![3, 4, 5], found);
+    assert_eq!(true, gs.is_connected(2, 3, 1, Bound::Unbounded).unwrap());
+    assert_eq!(true, gs.is_connected(2, 4, 1, Bound::Unbounded).unwrap());
+    assert_eq!(true, gs.is_connected(2, 5, 1, Bound::Unbounded).unwrap());
+    assert_eq!(false, gs.is_connected(2, 1, 1, Bound::Unbounded).unwrap());
+}
+
+#[test]
+fn multiple_paths_find_range_inverse() {
+    let gs = create_multiple_paths_dag().unwrap();
+
+    let found: Result<Vec<NodeID>> = gs
+        .find_connected_inverse(5, 2, std::ops::Bound::Included(3))
+        .collect();
+    let mut found = found.unwrap();
+    found.sort();
+    assert_eq!(vec![1, 2, 3], found);
+
+    let found: Result<Vec<NodeID>> = gs
+        .find_connected_inverse(5, 1, std::ops::Bound::Included(2))
+        .collect();
+    let mut found = found.unwrap();
+    found.sort();
+    assert_eq!(vec![3, 4], found);
+
+    let found: Result<Vec<NodeID>> = gs
+        .find_connected_inverse(5, 1, std::ops::Bound::Excluded(3))
+        .collect();
+    let mut found = found.unwrap();
+    found.sort();
+    assert_eq!(vec![3, 4], found);
 }
 
 #[test]

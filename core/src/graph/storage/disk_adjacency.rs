@@ -216,7 +216,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
         let max_distance = match max_distance {
             Bound::Unbounded => usize::MAX,
             Bound::Included(max_distance) => max_distance,
-            Bound::Excluded(max_distance) => max_distance + 1,
+            Bound::Excluded(max_distance) => max_distance - 1,
         };
 
         let it = CycleSafeDFS::<'a>::new_inverse(self, node, min_distance, max_distance)
@@ -248,7 +248,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
         let max_distance = match max_distance {
             Bound::Unbounded => usize::MAX,
             Bound::Included(max_distance) => max_distance,
-            Bound::Excluded(max_distance) => max_distance + 1,
+            Bound::Excluded(max_distance) => max_distance - 1,
         };
         let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance)
             .filter_ok(|x| target == x.node);

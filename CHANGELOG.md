@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Do not reload graph storages when they are already loaded.
 - Do not attempt to unload a corpus that is about the be loaded in the next
   step. This could trigger problematic unload/load cycles.
-- Fix issue with `find_connected` and excluded ranges (#257)
+- Fixed issues with `find_connected`, `find_connected_inverse` and
+  `is_connected` and excluded ranges (#257)
 - Updated lalrpop dependency to 0.20 to fix warnings reported in newer clippy
   versions.
 - Fixed compiler warnings in newer Rust versions about unused code.

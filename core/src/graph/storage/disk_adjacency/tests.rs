@@ -1,141 +1,76 @@
 use super::*;
+use crate::util::example_graphs::{create_multiple_paths_dag, create_simple_dag};
 
 #[test]
 fn multiple_paths_find_range() {
-    /*
-    +---+
-    | 1 | -+
-    +---+  |
-        |  |
-        |  |
-        v  |
-    +---+  |
-    | 2 |  |
-    +---+  |
-        |  |
-        |  |
-        v  |
-    +---+  |
-    | 3 | <+
-    +---+
-        |
-        |
-        v
-    +---+
-    | 4 |
-    +---+
-        |
-        |
-        v
-    +---+
-    | 5 |
-    +---+
-    */
-
+    let orig = create_multiple_paths_dag().unwrap();
     let mut gs = DiskAdjacencyListStorage::new().unwrap();
-    gs.add_edge(Edge {
-        source: 1,
-        target: 2,
-    })
-    .unwrap();
-    gs.add_edge(Edge {
-        source: 2,
-        target: 3,
-    })
-    .unwrap();
-    gs.add_edge(Edge {
-        source: 3,
-        target: 4,
-    })
-    .unwrap();
-    gs.add_edge(Edge {
-        source: 1,
-        target: 3,
-    })
-    .unwrap();
-    gs.add_edge(Edge {
-        source: 4,
-        target: 5,
-    })
-    .unwrap();
+    let node_annos = AnnoStorageImpl::new(None).unwrap();
+    gs.copy(&node_annos, &orig).unwrap();
 
-    let found: Result<Vec<NodeID>> = gs
-        .find_connected(1, 3, std::ops::Bound::Included(3))
-        .collect();
+    let found: Result<Vec<NodeID>> = gs.find_connected(1, 3, Bound::Included(3)).collect();
     let mut found = found.unwrap();
-    assert_eq!(2, found.len());
-    found.sort_unstable();
-
-    assert_eq!(4, found[0]);
-    assert_eq!(5, found[1]);
-
-    let found: Result<Vec<NodeID>> = gs
-        .find_connected(2, 1, std::ops::Bound::Excluded(3))
-        .collect();
-    let mut found = found.unwrap();
-
-    assert_eq!(2, found.len());
     found.sort();
-    assert_eq!(3, found[0]);
-    assert_eq!(4, found[1]);
+    assert_eq!(vec![4, 5], found);
+    assert_eq!(true, gs.is_connected(1, 4, 3, Bound::Included(3)).unwrap());
+    assert_eq!(true, gs.is_connected(1, 5, 3, Bound::Included(3)).unwrap());
+    assert_eq!(false, gs.is_connected(1, 2, 3, Bound::Included(3)).unwrap());
+
+    let found: Result<Vec<NodeID>> = gs.find_connected(2, 1, Bound::Excluded(3)).collect();
+    let mut found = found.unwrap();
+    found.sort();
+    assert_eq!(vec![3, 4], found);
+    assert_eq!(true, gs.is_connected(2, 3, 1, Bound::Excluded(3)).unwrap());
+    assert_eq!(true, gs.is_connected(2, 4, 1, Bound::Excluded(3)).unwrap());
+    assert_eq!(false, gs.is_connected(2, 5, 1, Bound::Excluded(3)).unwrap());
+
+    let found: Result<Vec<NodeID>> = gs
+        .find_connected(2, 1, std::ops::Bound::Unbounded)
+        .collect();
+    let mut found = found.unwrap();
+    found.sort();
+    assert_eq!(vec![3, 4, 5], found);
+    assert_eq!(true, gs.is_connected(2, 3, 1, Bound::Unbounded).unwrap());
+    assert_eq!(true, gs.is_connected(2, 4, 1, Bound::Unbounded).unwrap());
+    assert_eq!(true, gs.is_connected(2, 5, 1, Bound::Unbounded).unwrap());
+    assert_eq!(false, gs.is_connected(2, 1, 1, Bound::Unbounded).unwrap());
+}
+
+#[test]
+fn multiple_paths_find_range_inverse() {
+    let orig = create_multiple_paths_dag().unwrap();
+    let mut gs = DiskAdjacencyListStorage::new().unwrap();
+    let node_annos = AnnoStorageImpl::new(None).unwrap();
+    gs.copy(&node_annos, &orig).unwrap();
+
+    let found: Result<Vec<NodeID>> = gs
+        .find_connected_inverse(5, 2, std::ops::Bound::Included(3))
+        .collect();
+    let mut found = found.unwrap();
+    found.sort();
+    assert_eq!(vec![1, 2, 3], found);
+
+    let found: Result<Vec<NodeID>> = gs
+        .find_connected_inverse(5, 1, std::ops::Bound::Included(2))
+        .collect();
+    let mut found = found.unwrap();
+    found.sort();
+    assert_eq!(vec![3, 4], found);
+
+    let found: Result<Vec<NodeID>> = gs
+        .find_connected_inverse(5, 1, std::ops::Bound::Excluded(3))
+        .collect();
+    let mut found = found.unwrap();
+    found.sort();
+    assert_eq!(vec![3, 4], found);
 }
 
 #[test]
 fn simple_dag_find_all() {
-    /*
-    +---+     +---+     +---+     +---+
-    | 7 | <-- | 5 | <-- | 3 | <-- | 1 |
-    +---+     +---+     +---+     +---+
-                |         |         |
-                |         |         |
-                v         |         v
-              +---+       |       +---+
-              | 6 |       |       | 2 |
-              +---+       |       +---+
-                          |         |
-                          |         |
-                          |         v
-                          |       +---+
-                          +-----> | 4 |
-                                  +---+
-    */
-    let mut gs = DiskAdjacencyListStorage::new().unwrap();
+    let gs = create_simple_dag().unwrap();
 
-    gs.add_edge(Edge {
-        source: 1,
-        target: 2,
-    })
-    .unwrap();
-    gs.add_edge(Edge {
-        source: 2,
-        target: 4,
-    })
-    .unwrap();
-    gs.add_edge(Edge {
-        source: 1,
-        target: 3,
-    })
-    .unwrap();
-    gs.add_edge(Edge {
-        source: 3,
-        target: 5,
-    })
-    .unwrap();
-    gs.add_edge(Edge {
-        source: 5,
-        target: 7,
-    })
-    .unwrap();
-    gs.add_edge(Edge {
-        source: 5,
-        target: 6,
-    })
-    .unwrap();
-    gs.add_edge(Edge {
-        source: 3,
-        target: 4,
-    })
-    .unwrap();
+    let root_nodes: Result<Vec<_>> = gs.root_nodes().collect();
+    assert_eq!(vec![1], root_nodes.unwrap());
 
     let mut out1 = gs
         .get_outgoing_edges(1)
