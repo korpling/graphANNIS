@@ -67,7 +67,10 @@ fn multiple_paths_find_range_inverse() {
 
 #[test]
 fn simple_dag_find_all() {
-    let gs = create_simple_dag().unwrap();
+    let orig = create_simple_dag().unwrap();
+    let mut gs = DiskAdjacencyListStorage::new().unwrap();
+    let node_annos = AnnoStorageImpl::new(None).unwrap();
+    gs.copy(&node_annos, &orig).unwrap();
 
     let root_nodes: Result<Vec<_>> = gs.root_nodes().collect();
     assert_eq!(vec![1], root_nodes.unwrap());

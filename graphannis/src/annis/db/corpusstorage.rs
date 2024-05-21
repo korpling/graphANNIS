@@ -897,14 +897,10 @@ impl CorpusStorage {
                             unit: CorpusSizeUnit::Tokens,
                         }),
                         CorpusSizeUnit::Segmentation(seg) => {
-                            if let Some(size) = segmentation_count.get(&seg) {
-                                Some(CorpusSizeInfo {
-                                    quantity: *size,
-                                    unit: CorpusSizeUnit::Segmentation(seg.to_string()),
-                                })
-                            } else {
-                                None
-                            }
+                            segmentation_count.get(&seg).map(|size| CorpusSizeInfo {
+                                quantity: *size,
+                                unit: CorpusSizeUnit::Segmentation(seg.to_string()),
+                            })
                         }
                     };
                     config.corpus_size = updated_corpus_size;
