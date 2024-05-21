@@ -595,8 +595,8 @@ impl<CT: ComponentType> Graph<CT> {
             }
         } // end for each consistent update entry
 
-        progress_callback("calculating node statistics");
-        self.get_node_annos_mut().calculate_statistics()?;
+        progress_callback("calculating all statistics");
+        self.calculate_all_statistics()?;
 
         progress_callback("extending graph with model-specific index");
         ComponentType::apply_update_graph_index(update_graph_index, self)?;

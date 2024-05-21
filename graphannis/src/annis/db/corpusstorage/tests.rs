@@ -1404,6 +1404,16 @@ fn reoptimize_corpussizeconfig() {
     )
     .unwrap();
 
+    let token_count = cs
+        .count(SearchQuery {
+            corpus_names: &["SaltSampleCorpus"],
+            query_language: QueryLanguage::AQL,
+            query: "tok",
+            timeout: None,
+        })
+        .unwrap();
+    assert_eq!(44, token_count);
+
     // Check that the corpus configuration has been set
     let corpus_config = cs.get_corpus_config("SaltSampleCorpus").unwrap().unwrap();
     assert_snapshot!(
@@ -1428,6 +1438,18 @@ fn reoptimize_corpussizeconfig() {
     })
     .unwrap();
     cs.apply_update("SaltSampleCorpus", &mut u).unwrap();
+    cs.reoptimize_implementation("SaltSampleCorpus", false)
+        .unwrap();
+
+    let token_count = cs
+        .count(SearchQuery {
+            corpus_names: &["SaltSampleCorpus"],
+            query_language: QueryLanguage::AQL,
+            query: "tok",
+            timeout: None,
+        })
+        .unwrap();
+    assert_eq!(45, token_count);
 
     let corpus_config = cs.get_corpus_config("SaltSampleCorpus").unwrap().unwrap();
     assert_snapshot!(

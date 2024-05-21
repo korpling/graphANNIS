@@ -18,9 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added information about the corpus size to the global statistics and corpus
-  configuration file. The corpus configuration file `corpus-config.toml` can be configured manually or the entries are created automatically during import or when the `re-optimize` command is run on the command line.
-  The corpus size is given as a combination of a unit and the actual quantitiy.
-  The corpus size unit can be the number of basic token (no outgoing coverage).
+  configuration file. The used token/segmentation layer for the corpus size in
+  the corpus configuration file `corpus-config.toml` can be configured manually.
+  Or theentries are created automatically during import or when the
+  `re-optimize` command is run on the command line. The corpus size is given as
+  a combination of a unit and the actual quantitiy. The corpus size unit can be
+  the number of basic token (no outgoing coverage).
   ```
   [corpus_size]
   quantity = 44079
@@ -39,7 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ```
   When the configuration is created automatically, the corpus view configuration
   is checked whether it is configured to use a `base_text_segmentation` and uses
-  this segmentation as the corpus size unit.
+  this segmentation as the corpus size unit. If a corpus size is already
+  configured, only the quantity will be updated but not the unit.
 
 ## [3.2.2] - 2024-04-22
 

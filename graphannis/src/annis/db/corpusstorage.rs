@@ -864,42 +864,56 @@ impl CorpusStorage {
     }
 
     /// Update the corpus configuration to include the corpus size
-    /// from statistics if not already manually set.
-    /// Returns whether the corpus size was changed.
+    /// from statistics. Returns whether the corpus size was changed.
     fn update_corpus_size_info(
         &self,
         config: &mut CorpusConfiguration,
         graph: &AnnotationGraph,
     ) -> bool {
-        if config.corpus_size.is_none() {
-            let stats: Option<&AQLGlobalStatistics> = graph.global_statistics.as_ref();
-            if let Some(stats) = stats {
-                match &stats.corpus_size {
-                    aql::model::CorpusSize::Unknown => {}
-                    aql::model::CorpusSize::Token {
-                        base_token_count,
-                        segmentation_count,
-                    } => {
-                        // Derive the size information from the statistics and
-                        // default to the base token count.
-                        config.corpus_size = Some(CorpusSizeInfo {
+        let stats: Option<&AQLGlobalStatistics> = graph.global_statistics.as_ref();
+        if let Some(stats) = stats {
+            match &stats.corpus_size {
+                aql::model::CorpusSize::Unknown => {}
+                aql::model::CorpusSize::Token {
+                    base_token_count,
+                    segmentation_count,
+                } => {
+                    // Decide whether to use a segmentation layer or the base token as base for the corpus size
+                    let choosen_unit = if let Some(s) = &config.corpus_size {
+                        // Use the already existing unit. If the unit was
+                        // configured e.g. before the import manually, we should
+                        // stay with it and just update the quantity.
+                        s.unit.clone()
+                    } else if let Some(seg) = &config.view.base_text_segmentation {
+                        // use the displayed segmentation for the size info as
+                        CorpusSizeUnit::Segmentation(seg.clone())
+                    } else {
+                        CorpusSizeUnit::Tokens
+                    };
+                    // Derive the size information from the statistics
+                    let updated_corpus_size = match choosen_unit {
+                        CorpusSizeUnit::Tokens => Some(CorpusSizeInfo {
                             quantity: *base_token_count,
                             unit: CorpusSizeUnit::Tokens,
-                        });
-                        // use segmentation if configured
-                        if let Some(seg) = &config.view.base_text_segmentation {
-                            if let Some(size) = segmentation_count.get(seg) {
-                                config.corpus_size = Some(CorpusSizeInfo {
+                        }),
+                        CorpusSizeUnit::Segmentation(seg) => {
+                            if let Some(size) = segmentation_count.get(&seg) {
+                                Some(CorpusSizeInfo {
                                     quantity: *size,
                                     unit: CorpusSizeUnit::Segmentation(seg.to_string()),
-                                });
+                                })
+                            } else {
+                                None
                             }
                         }
-                        return true;
-                    }
+                    };
+                    config.corpus_size = updated_corpus_size;
+
+                    return true;
                 }
             }
         }
+
         false
     }
 
