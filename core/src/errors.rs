@@ -70,6 +70,10 @@ pub enum GraphAnnisCoreError {
     #[error("The choose cache size is zero, which is not allowed.")]
     ZeroCacheSize,
     #[error(transparent)]
+    TomlDeserializer(#[from] toml::de::Error),
+    #[error(transparent)]
+    TomlSerializer(#[from] toml::ser::Error),
+    #[error(transparent)]
     Other(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 

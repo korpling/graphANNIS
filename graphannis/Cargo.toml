@@ -47,7 +47,7 @@ strum_macros = "0.21"
 sys-info = "0.9"
 tempfile = "3"
 thiserror = "1"
-toml = "0.5"
+toml = "0.8"
 transient-btree-index = "0.5"
 zip = "0.6.4"
 
