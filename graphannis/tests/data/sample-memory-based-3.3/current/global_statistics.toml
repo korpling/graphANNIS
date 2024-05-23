@@ -1,0 +1,6 @@
+all_token_in_order_component = true
+
+[corpus_size.Token]
+base_token_count = 44
+
+[corpus_size.Token.segmentation_count]
