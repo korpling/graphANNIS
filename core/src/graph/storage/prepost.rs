@@ -110,6 +110,28 @@ where
         }
         node_stack.pop_front();
     }
+
+    fn copy_edge_annos_for_node(
+        &mut self,
+        source_node: NodeID,
+        orig: &dyn GraphStorage,
+    ) -> Result<()> {
+        // Iterate over the outgoing edges of this node to add the edge
+        // annotations
+        let out_edges = orig.get_outgoing_edges(source_node);
+        for target in out_edges {
+            let target = target?;
+            let e = Edge {
+                source: source_node,
+                target,
+            };
+            let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e)?;
+            for a in edge_annos {
+                self.annos.insert(e.clone(), a)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 type NStack<OrderT, LevelT> = std::collections::LinkedList<NodeStackEntry<OrderT, LevelT>>;
@@ -439,6 +461,8 @@ where
 
             let mut node_stack: NStack<OrderT, LevelT> = NStack::new();
 
+            self.copy_edge_annos_for_node(*start_node, orig)?;
+
             PrePostOrderStorage::enter_node(
                 &mut current_order,
                 *start_node,
@@ -450,20 +474,7 @@ where
             for step in dfs {
                 let step = step?;
 
-                // Iterate over the outgoing edges of this node to add the edge
-                // annotations
-                let out_edges = orig.get_outgoing_edges(step.node);
-                for target in out_edges {
-                    let target = target?;
-                    let e = Edge {
-                        source: step.node,
-                        target,
-                    };
-                    let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e)?;
-                    for a in edge_annos {
-                        self.annos.insert(e.clone(), a)?;
-                    }
-                }
+                self.copy_edge_annos_for_node(step.node, orig)?;
 
                 if step.distance <= last_distance {
                     // Neighbor node, the last subtree was iterated completely, thus the last node
