@@ -1259,23 +1259,84 @@ fn import_relative_corpus_with_linked_file() {
 
 #[test]
 #[serial]
-fn load_legacy_binary_corpus() {
+fn load_legacy_binary_corpus_1() {
     let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
     let data_dir = cargo_dir.join("tests/data");
 
     let cs = CorpusStorage::with_auto_cache_size(&data_dir, true).unwrap();
 
-    // load both legacy corpora and compare them
-    let e1 = cs.get_fully_loaded_entry("sample-disk-based").unwrap();
-    let lock1 = e1.read().unwrap();
-    let db1 = get_read_or_error(&lock1).unwrap();
+    // Add consistency checks that the baseline corpus is not empty
+    assert_eq!(
+        44,
+        cs.count(SearchQuery {
+            corpus_names: &["sample-memory-based-1.5"],
+            query_language: QueryLanguage::AQL,
+            query: "tok",
+            timeout: None
+        })
+        .unwrap()
+    );
 
-    let e2 = cs.get_fully_loaded_entry("sample-memory-based").unwrap();
-    let lock2 = e2.read().unwrap();
-    let db2 = get_read_or_error(&lock2).unwrap();
+    // use the memory based old format as baseline
+    let e = cs
+        .get_fully_loaded_entry("sample-memory-based-1.5")
+        .unwrap();
+    let lock = e.read().unwrap();
+    let baseline = get_read_or_error(&lock).unwrap();
 
-    compare_corpora(db1, db2);
+    // load other legacy corpora and compare them
+    let e = cs.get_fully_loaded_entry("sample-disk-based-1.5").unwrap();
+    let lock = e.read().unwrap();
+    let other = get_read_or_error(&lock).unwrap();
+    compare_corpora(baseline, other);
+}
+
+#[test]
+#[serial]
+fn load_legacy_binary_corpus_3() {
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let data_dir = cargo_dir.join("tests/data");
+
+    let cs = CorpusStorage::with_auto_cache_size(&data_dir, true).unwrap();
+
+    // Add consistency checks that the baseline corpus is not empty
+    assert_eq!(
+        44,
+        cs.count(SearchQuery {
+            corpus_names: &["sample-memory-based-3.2"],
+            query_language: QueryLanguage::AQL,
+            query: "tok",
+            timeout: None
+        })
+        .unwrap()
+    );
+
+    // use the memory based format as baseline
+    let e = cs
+        .get_fully_loaded_entry("sample-memory-based-3.2")
+        .unwrap();
+    let lock = e.read().unwrap();
+    let baseline = get_read_or_error(&lock).unwrap();
+
+    // load other legacy corpora and compare them
+    let e = cs.get_fully_loaded_entry("sample-disk-based-3.2").unwrap();
+    let lock = e.read().unwrap();
+    let other = get_read_or_error(&lock).unwrap();
+    compare_corpora(baseline, other);
+
+    let e = cs
+        .get_fully_loaded_entry("sample-memory-based-3.3")
+        .unwrap();
+    let lock = e.read().unwrap();
+    let other = get_read_or_error(&lock).unwrap();
+    compare_corpora(baseline, other);
+
+    let e = cs.get_fully_loaded_entry("sample-disk-based-3.3").unwrap();
+    let lock = e.read().unwrap();
+    let other = get_read_or_error(&lock).unwrap();
+    compare_corpora(baseline, other);
 }
 
 /// This is a regression test for
@@ -1370,17 +1431,17 @@ fn unload_corpus() {
     )
     .unwrap();
     // Load one corpus which and check its status
-    cs.preload("sample-disk-based").unwrap();
+    cs.preload("sample-disk-based-3.3").unwrap();
     {
-        let entry = cs.get_entry("sample-disk-based").unwrap();
+        let entry = cs.get_entry("sample-disk-based-3.3").unwrap();
         let entry = entry.read().unwrap();
         assert!(matches!(*entry, CacheEntry::Loaded(_)));
     }
 
     // Load another corpus and check that the corpus has been changed
-    cs.preload("sample-memory-based").unwrap();
+    cs.preload("sample-memory-based-3.3").unwrap();
     {
-        let entry = cs.get_entry("sample-disk-based").unwrap();
+        let entry = cs.get_entry("sample-disk-based-3.3").unwrap();
         let entry = entry.read().unwrap();
         assert!(matches!(*entry, CacheEntry::NotLoaded));
     }

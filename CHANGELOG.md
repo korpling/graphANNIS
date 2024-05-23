@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Use a TOML file instead of a binary file format to store the global
+  statistics. You might have to re-import existing corpora or use the
+  `re-optimize` command on the command line if the global statistics are
+  relevant for optimal speed in returning the token of a corpus.
+
 ### Fixed
 
 - Do not reload graph storages when they are already loaded.

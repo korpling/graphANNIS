@@ -724,8 +724,8 @@ where
             Bound::Excluded(ref start) => start.as_slice() < item,
             Bound::Unbounded => true,
         }) && (match &self.range_end {
-            Bound::Included(ref end) => item <= end,
-            Bound::Excluded(ref end) => item < end,
+            Bound::Included(ref end) => item <= end.as_ref(),
+            Bound::Excluded(ref end) => item < end.as_ref(),
             Bound::Unbounded => true,
         })
     }

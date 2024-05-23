@@ -218,11 +218,7 @@ pub struct VisualizerRule {
     #[serde(default)]
     pub visibility: VisualizerVisibility,
     /// Additional configuration given as generic map of key values to the visualizer.
-    #[serde(
-        default,
-        serialize_with = "toml::ser::tables_last",
-        skip_serializing_if = "BTreeMap::is_empty"
-    )]
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub mappings: BTreeMap<String, String>,
 }
 

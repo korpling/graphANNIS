@@ -31,7 +31,7 @@ pub const NODE_NAME: &str = "node_name";
 pub const NODE_TYPE: &str = "node_type";
 pub const DEFAULT_EMPTY_LAYER: &str = "default_layer";
 
-const GLOBAL_STATISTICS_FILE_NAME: &str = "global_statistics.bin";
+const GLOBAL_STATISTICS_FILE_NAME: &str = "global_statistics.toml";
 
 lazy_static! {
     pub static ref DEFAULT_ANNO_KEY: Arc<AnnoKey> = Arc::from(AnnoKey::default());
@@ -180,9 +180,8 @@ impl<CT: ComponentType> Graph<CT> {
         self.global_statistics = None;
         let global_statistics_file = dir2load.join(GLOBAL_STATISTICS_FILE_NAME);
         if global_statistics_file.exists() && global_statistics_file.is_file() {
-            let f = std::fs::File::open(global_statistics_file)?;
-            let mut reader = std::io::BufReader::new(f);
-            self.global_statistics = bincode::deserialize_from(&mut reader)?;
+            let file_content = std::fs::read_to_string(global_statistics_file)?;
+            self.global_statistics = Some(toml::from_str(&file_content)?);
         }
 
         // Load the node annotations
@@ -317,9 +316,10 @@ impl<CT: ComponentType> Graph<CT> {
         }
 
         // Save global statistics
-        let f = std::fs::File::create(location.join(GLOBAL_STATISTICS_FILE_NAME))?;
-        let mut writer = std::io::BufWriter::new(f);
-        bincode::serialize_into(&mut writer, &self.global_statistics)?;
+        if let Some(s) = &self.global_statistics {
+            let file_content = toml::to_string(s)?;
+            std::fs::write(location.join(GLOBAL_STATISTICS_FILE_NAME), file_content)?;
+        }
 
         Ok(())
     }

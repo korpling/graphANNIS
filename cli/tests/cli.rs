@@ -26,7 +26,7 @@ fn show_corpus_info() -> Result<(), Box<dyn std::error::Error>> {
 
     cmd.arg("../graphannis/tests/data/")
         .arg("-c")
-        .arg("corpus sample-disk-based")
+        .arg("corpus sample-disk-based-3.3")
         .arg("-c")
         .arg("preload")
         .arg("-c")
@@ -58,7 +58,7 @@ fn list_corpora_fully_loaded() -> Result<(), Box<dyn std::error::Error>> {
 
     cmd.arg("../graphannis/tests/data/")
         .arg("-c")
-        .arg("corpus sample-disk-based")
+        .arg("corpus sample-disk-based-3.3")
         .arg("-c")
         .arg("preload")
         .arg("-c")
@@ -77,7 +77,7 @@ fn list_corpora_partially_loaded() -> Result<(), Box<dyn std::error::Error>> {
 
     cmd.arg("../graphannis/tests/data/")
         .arg("-c")
-        .arg("corpus sample-disk-based")
+        .arg("corpus sample-disk-based-3.3")
         .arg("-c")
         .arg("count tok")
         .arg("-c")
