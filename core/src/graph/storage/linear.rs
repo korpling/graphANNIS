@@ -299,6 +299,21 @@ where
             for step in dfs {
                 let step = step?;
 
+                // Iterate over the outgoing edges of this node to add the edge
+                // annotations
+                let out_edges = orig.get_outgoing_edges(step.node);
+                for target in out_edges {
+                    let target = target?;
+                    let e = Edge {
+                        source: step.node,
+                        target,
+                    };
+                    let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e)?;
+                    for a in edge_annos {
+                        self.annos.insert(e.clone(), a)?;
+                    }
+                }
+
                 if let Some(pos) = PosT::from_usize(chain.len()) {
                     let pos: RelativePosition<PosT> = RelativePosition {
                         root: *root_node,
