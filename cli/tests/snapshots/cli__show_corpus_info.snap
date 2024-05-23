@@ -5,7 +5,7 @@ info:
   args:
     - "../graphannis/tests/data/"
     - "-c"
-    - corpus sample-disk-based
+    - corpus sample-disk-based-3.3
     - "-c"
     - preload
     - "-c"
@@ -14,11 +14,12 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-12:00:00[INFO] Loaded corpus sample-disk-based
-12:00:00[INFO] Total cache size is 100 / 300 MB and loaded corpora are: sample-disk-based.
-12:00:00[INFO] Total cache size is 100 / 300 MB and loaded corpora are: sample-disk-based.
+12:00:00[INFO] Loaded corpus sample-disk-based-3.3
+12:00:00[INFO] Total cache size is 100 / 300 MB and loaded corpora are: sample-disk-based-3.3.
+12:00:00[INFO] Total cache size is 100 / 300 MB and loaded corpora are: sample-disk-based-3.3.
 12:00:00[INFO] Preloaded corpus in 10 ms
 Status: "fully loaded"
+Token search shortcut possible: true
 ------------
 Component Coverage//: 0 annnotations
 Stats: nodes=92, avg_fan_out=2.17, max_fan_out=11, max_depth=1
@@ -47,27 +48,27 @@ Status: "fully loaded"
 ------------
 Component Pointing/default_ns/anaphoric: 0 annnotations
 Stats: nodes=8, avg_fan_out=0.50, max_fan_out=1, max_depth=1, tree
-Implementation: DiskAdjacencyListV1
+Implementation: DiskPathV1_D15
 Status: "fully loaded"
 ------------
 Component Ordering/annis/: 0 annnotations
 Stats: nodes=44, avg_fan_out=0.91, max_fan_out=1, max_depth=10, tree
-Implementation: LinearO8V1
+Implementation: DiskPathV1_D15
 Status: "fully loaded"
 ------------
 Component LeftToken/annis/: 0 annnotations
 Stats: nodes=92, avg_fan_out=0.65, max_fan_out=1, max_depth=1
-Implementation: DiskAdjacencyListV1
+Implementation: DiskPathV1_D15
 Status: "fully loaded"
 ------------
 Component RightToken/annis/: 0 annnotations
 Stats: nodes=84, avg_fan_out=0.71, max_fan_out=1, max_depth=1
-Implementation: DiskAdjacencyListV1
+Implementation: DiskPathV1_D15
 Status: "fully loaded"
 ------------
 Component PartOf/annis/: 0 annnotations
-Stats: nodes=115, avg_fan_out=0.99, max_fan_out=1, max_depth=3
-Implementation: DiskAdjacencyListV1
+Stats: nodes=115, avg_fan_out=0.99, max_fan_out=1, max_depth=4
+Implementation: DiskPathV1_D15
 Status: "fully loaded"
 ------------
 

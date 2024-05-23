@@ -5,7 +5,7 @@ info:
   args:
     - "../graphannis/tests/data/"
     - "-c"
-    - corpus sample-disk-based
+    - corpus sample-disk-based-3.3
     - "-c"
     - count tok
     - "-c"
@@ -14,13 +14,17 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-12:00:00[INFO] Loaded corpus sample-disk-based
-12:00:00[INFO] Total cache size is 100 / 300 MB and loaded corpora are: sample-disk-based.
-12:00:00[INFO] Total cache size is 100 / 300 MB and loaded corpora are: sample-disk-based.
+12:00:00[INFO] Loaded corpus sample-disk-based-3.3
+12:00:00[INFO] Total cache size is 100 / 300 MB and loaded corpora are: sample-disk-based-3.3.
+12:00:00[INFO] Total cache size is 100 / 300 MB and loaded corpora are: sample-disk-based-3.3.
 12:00:00[INFO] Executed query in 10 ms
 result: 44 matches in 4 documents
-sample-disk-based (partially loaded)
-sample-memory-based (not loaded)
+sample-disk-based-1.5 (not loaded)
+sample-disk-based-3.2 (not loaded)
+sample-disk-based-3.3 (partially loaded)
+sample-memory-based-1.5 (not loaded)
+sample-memory-based-3.2 (not loaded)
+sample-memory-based-3.3 (not loaded)
 graphANNIS says good-bye!
 
 ----- stderr -----
