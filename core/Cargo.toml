@@ -6,7 +6,7 @@ license = "Apache-2.0"
 name = "graphannis-core"
 readme = "crate-info.md"
 repository = "https://github.com/korpling/graphANNIS"
-version = "3.2.2"
+version = "3.3.0"
 
 [lib]
 

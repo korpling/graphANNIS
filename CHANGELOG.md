@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2024-05-27
+
 ### Changed
 
 - Use a TOML file instead of a binary file format to store the global
