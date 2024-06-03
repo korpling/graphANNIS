@@ -1,65 +1,48 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "lldb",
-            "request": "attach",
-            "name": "Attach",
-            "pid": "${command:pickMyProcess}", // use ${command:pickProcess} to pick other users' processes
-            "sourceLanguages": [
-                "rust"
-            ]
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Console",
-            "program": "${workspaceRoot}/target/debug/annis",
-            "args": [
-                "data"
-            ],
-            "cwd": "${workspaceRoot}",
-            "terminal": "integrated",
-            "env": {
-                "RUST_BACKTRACE": "1"
-            },
-            "sourceLanguages": [
-                "rust"
-            ]
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Web Service",
-            "program": "${workspaceRoot}/target/debug/graphannis-webservice",
-            "args": [
-                "--config",
-                "${workspaceRoot}/tmp/test.toml"
-            ],
-            "cwd": "${workspaceRoot}/webservice/",
-            "terminal": "integrated",
-            "env": {
-                "RUST_BACKTRACE": "1"
-            },
-            "sourceLanguages": [
-                "rust"
-            ]
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug Test",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--lib"
-                ]
-            },
-            "sourceLanguages": [
-                "rust"
-            ],
-            "cwd": "${workspaceRoot}"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "attach",
+      "name": "Attach",
+      "pid": "${command:pickMyProcess}", // use ${command:pickProcess} to pick other users' processes
+      "sourceLanguages": ["rust"]
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Console",
+      "program": "${workspaceRoot}/target/debug/annis",
+      "args": ["/home/thomas/.annis/v4/"],
+      "cwd": "${workspaceRoot}",
+      "terminal": "integrated",
+      "env": {
+        "RUST_BACKTRACE": "1"
+      },
+      "sourceLanguages": ["rust"]
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Web Service",
+      "program": "${workspaceRoot}/target/debug/graphannis-webservice",
+      "args": ["--config", "${workspaceRoot}/tmp/test.toml"],
+      "cwd": "${workspaceRoot}/webservice/",
+      "terminal": "integrated",
+      "env": {
+        "RUST_BACKTRACE": "1"
+      },
+      "sourceLanguages": ["rust"]
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug Test",
+      "cargo": {
+        "args": ["test", "--no-run", "--lib"]
+      },
+      "sourceLanguages": ["rust"],
+      "cwd": "${workspaceRoot}"
+    }
+  ]
 }

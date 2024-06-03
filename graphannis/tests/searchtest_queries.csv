@@ -46,6 +46,8 @@ NonExistingLeftInv,"/""/? !_l_ quote",GUM,11
 NonExistingRight,"quote & /""/? & #1 !_r_ #2",GUM,19
 NonExistingRightInv,"quote & /""/? & #2 !_r_ #1",GUM,19
 InvalidNonExisting,"tok !. tok? !_o_  node?",GUM,0
+OptionalQueryNodeAtEnd,"entity=""person"" _r_ infstat=""giv"" &  q? & #1 !_o_ #3",GUM,2404
+OptionalQueryNodeInBetween,"entity=""person"" !_o_ q? & infstat=""giv"" & #1 _r_ #3",GUM,2404
 NotDocument,"tok @* doc!=""maz-11299""",pcc2.1,34709
 StructureInclusionSeed,"cat=""S"" _i_ cat=""AP""",pcc2.1,726
 IsConnectedRange,"""Jugendlichen"" .3,10 ""Musikcafé""",pcc2.1,1
