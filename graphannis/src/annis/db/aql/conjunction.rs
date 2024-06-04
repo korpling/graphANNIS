@@ -72,10 +72,16 @@ pub struct Conjunction {
     nodes: Vec<NodeSearchSpecEntry>,
     binary_operators: Vec<BinaryOperatorSpecEntry>,
     unary_operators: Vec<UnaryOperatorSpecEntry>,
-    variables: HashMap<String, usize>,
+    variable_to_query_idx: HashMap<String, usize>,
     location_in_query: HashMap<String, LineColumnRange>,
     variable_included_in_output: HashSet<String>,
     var_idx_offset: usize,
+    /// Maps the Index of a node in a query to the index that is used in the
+    /// execution plans. E.g. for OR-queries, the query index is global over all
+    /// alternatives, but the plan output has the size of a single alternative.
+    /// Also, this is important since the query contains optional nodes that are
+    /// not part of the execution plan output.
+    query_to_plan_idx: HashMap<usize, usize>,
 }
 
 struct ExecutionPlanHelper {
@@ -231,11 +237,11 @@ impl Conjunction {
             nodes: vec![],
             binary_operators: vec![],
             unary_operators: vec![],
-            variables: HashMap::default(),
+            variable_to_query_idx: HashMap::default(),
             location_in_query: HashMap::default(),
             variable_included_in_output: HashSet::default(),
-
             var_idx_offset: 0,
+            query_to_plan_idx: HashMap::new(),
         }
     }
 
@@ -244,10 +250,10 @@ impl Conjunction {
             nodes: vec![],
             binary_operators: vec![],
             unary_operators: vec![],
-            variables: HashMap::default(),
+            variable_to_query_idx: HashMap::default(),
             location_in_query: HashMap::default(),
             variable_included_in_output: HashSet::default(),
-
+            query_to_plan_idx: HashMap::new(),
             var_idx_offset,
         }
     }
@@ -288,12 +294,17 @@ impl Conjunction {
         included_in_output: bool,
         optional: bool,
     ) -> String {
-        let idx = self.var_idx_offset + self.nodes.len();
+        let query_idx = self.var_idx_offset + self.nodes.len();
         let variable = if let Some(variable) = variable {
             variable.to_string()
         } else {
-            (idx + 1).to_string()
+            (query_idx + 1).to_string()
         };
+        self.variable_to_query_idx
+            .insert(variable.clone(), query_idx);
+        self.query_to_plan_idx
+            .insert(query_idx, self.nodes.iter().filter(|n| !n.optional).count());
+
         self.nodes.push(NodeSearchSpecEntry {
             var: variable.clone(),
             spec: node,
@@ -301,7 +312,6 @@ impl Conjunction {
             location: location.clone(),
         });
 
-        self.variables.insert(variable.clone(), idx);
         if included_in_output && !optional {
             self.variable_included_in_output.insert(variable.clone());
         }
@@ -318,7 +328,7 @@ impl Conjunction {
         var: &str,
         location: Option<LineColumnRange>,
     ) -> Result<()> {
-        if let Some(idx) = self.variables.get(var) {
+        if let Some(idx) = self.variable_to_query_idx.get(var) {
             self.unary_operators
                 .push(UnaryOperatorSpecEntry { op, idx: *idx });
             Ok(())
@@ -372,7 +382,7 @@ impl Conjunction {
         variable: &str,
         location: Option<LineColumnRange>,
     ) -> Result<usize> {
-        if let Some(pos) = self.variables.get(variable) {
+        if let Some(pos) = self.variable_to_query_idx.get(variable) {
             return Ok(*pos);
         }
         Err(GraphAnnisError::AQLSemanticError(AQLError {
@@ -705,27 +715,36 @@ impl Conjunction {
             }
         }
 
-        // substract the offset from the specificated numbers to get the internal node number for this conjunction
-        spec_idx_left -= self.var_idx_offset;
-        spec_idx_right -= self.var_idx_offset;
+        // Replace the left/right index of the query with the one used
+        // internally to create the match vectors for this conjunction.
+        let plan_idx_left = self
+            .query_to_plan_idx
+            .get(&spec_idx_left)
+            .copied()
+            .unwrap_or(spec_idx_left);
+        let plan_idx_right = self
+            .query_to_plan_idx
+            .get(&spec_idx_right)
+            .copied()
+            .unwrap_or(spec_idx_right);
 
         let op_entry = BinaryOperatorEntry {
             op,
             args: BinaryOperatorArguments {
-                left: spec_idx_left + 1,
-                right: spec_idx_right + 1,
+                left: plan_idx_left,
+                right: plan_idx_right,
                 global_reflexivity: op_spec_entry.args.global_reflexivity,
             },
         };
 
         let component_left: usize = *(helper
             .node2component
-            .get(&spec_idx_left)
-            .ok_or(GraphAnnisError::NoComponentForNode(spec_idx_left + 1))?);
+            .get(&plan_idx_left)
+            .ok_or(GraphAnnisError::NoComponentForNode(spec_idx_left))?);
         let component_right: usize = *(helper
             .node2component
-            .get(&spec_idx_right)
-            .ok_or(GraphAnnisError::NoComponentForNode(spec_idx_right + 1))?);
+            .get(&plan_idx_right)
+            .ok_or(GraphAnnisError::NoComponentForNode(spec_idx_right))?);
 
         // get the original execution node
         let exec_left: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a> = component2exec
@@ -736,7 +755,7 @@ impl Conjunction {
             .get_desc()
             .ok_or(GraphAnnisError::PlanDescriptionMissing)?
             .node_pos
-            .get(&spec_idx_left)
+            .get(&plan_idx_left)
             .ok_or(GraphAnnisError::LHSOperandNotFound)?);
 
         let new_exec: Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>>>> =
@@ -747,7 +766,7 @@ impl Conjunction {
                     .get_desc()
                     .ok_or(GraphAnnisError::PlanDescriptionMissing)?
                     .node_pos
-                    .get(&spec_idx_right)
+                    .get(&plan_idx_right)
                     .ok_or(GraphAnnisError::RHSOperandNotFound)?);
 
                 let filter = Filter::new_binary(exec_left, idx_left, idx_right, op_entry)?;
@@ -760,7 +779,7 @@ impl Conjunction {
                     .get_desc()
                     .ok_or(GraphAnnisError::PlanDescriptionMissing)?
                     .node_pos
-                    .get(&spec_idx_right)
+                    .get(&plan_idx_right)
                     .ok_or(GraphAnnisError::RHSOperandNotFound)?);
 
                 let join = create_join(
@@ -809,8 +828,9 @@ impl Conjunction {
         let mut node_search_errors: Vec<GraphAnnisError> = Vec::default();
 
         // 1. add all non-optional nodes
-        for node_nr in 0..self.nodes.len() {
-            if !self.nodes[node_nr].optional {
+        let mut node_nr = 0;
+        for i in 0..self.nodes.len() {
+            if !self.nodes[i].optional {
                 self.add_node_to_exec_plan(
                     node_nr,
                     db,
@@ -819,6 +839,7 @@ impl Conjunction {
                     &mut node_search_errors,
                     timeout,
                 )?;
+                node_nr += 1;
             }
         }
 
