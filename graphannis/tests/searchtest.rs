@@ -269,6 +269,54 @@ fn meta_node_output_standard() {
 
 #[ignore]
 #[test]
+fn exclude_optional_node_in_between() {
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+
+    let q = SearchQuery {
+        corpus_names: &["GUM"],
+        query: r#"entity="person" !_o_ q? & infstat="giv" & #1 _r_ #3"#,
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+    let result = cs
+        .find(
+            q.clone(),
+            0,
+            Some(1),
+            graphannis::corpusstorage::ResultOrder::Normal,
+        )
+        .unwrap();
+
+    // Only node #1 and #3 should be part of the output
+    assert_eq!(vec!["ref::entity::GUM/GUM_interview_ants#referent_291 ref::infstat::GUM/GUM_interview_ants#referent_321"], result);
+}
+
+#[ignore]
+#[test]
+fn exclude_optional_node_at_end() {
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+
+    let q = SearchQuery {
+        corpus_names: &["GUM"],
+        query: r#"entity="person" _r_ infstat="giv" &  q? & #1 !_o_ #3"#,
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+    let result = cs
+        .find(
+            q.clone(),
+            0,
+            Some(1),
+            graphannis::corpusstorage::ResultOrder::Normal,
+        )
+        .unwrap();
+
+    // Only node #1 and #2 should be part of the output
+    assert_eq!(vec!["ref::entity::GUM/GUM_interview_ants#referent_291 ref::infstat::GUM/GUM_interview_ants#referent_321"], result);
+}
+
+#[ignore]
+#[test]
 fn token_search_loads_components_for_leaf_filter() {
     if let Some(cs) = CORPUS_STORAGE.as_ref() {
         for (query, expected_count) in [
