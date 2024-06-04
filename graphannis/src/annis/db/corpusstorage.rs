@@ -1908,12 +1908,19 @@ impl CorpusStorage {
             let m = m?;
             let mut match_desc = String::new();
 
-            for (i, singlematch) in m.iter().enumerate() {
-                // check if query node actually should be included
-                let include_in_output = prep.query.position_included_in_output(i);
+            for (match_pos, singlematch) in m.iter().enumerate() {
+                // Check if query node actually should be included. There are
+                // nodes like the meta queries that are included in the plan,
+                // but are not part of the find query result. These have been
+                // marked as "do not include" when they have been added and can
+                // be skipped.
+                let include_in_output = prep
+                    .query
+                    .get_variable_by_match_pos(match_pos)
+                    .map_or(false, |var| prep.query.variable_included_in_output(&var));
 
                 if include_in_output {
-                    if i > 0 {
+                    if match_pos > 0 {
                         match_desc.push(' ');
                     }
 

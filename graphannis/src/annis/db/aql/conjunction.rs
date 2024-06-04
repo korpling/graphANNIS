@@ -75,7 +75,6 @@ pub struct Conjunction {
     variables: HashMap<String, usize>,
     location_in_query: HashMap<String, LineColumnRange>,
     variable_included_in_output: HashSet<String>,
-    position_included_in_output: HashSet<usize>,
     var_idx_offset: usize,
 }
 
@@ -235,7 +234,7 @@ impl Conjunction {
             variables: HashMap::default(),
             location_in_query: HashMap::default(),
             variable_included_in_output: HashSet::default(),
-            position_included_in_output: HashSet::default(),
+
             var_idx_offset: 0,
         }
     }
@@ -248,7 +247,7 @@ impl Conjunction {
             variables: HashMap::default(),
             location_in_query: HashMap::default(),
             variable_included_in_output: HashSet::default(),
-            position_included_in_output: HashSet::default(),
+
             var_idx_offset,
         }
     }
@@ -305,11 +304,11 @@ impl Conjunction {
         self.variables.insert(variable.clone(), idx);
         if included_in_output && !optional {
             self.variable_included_in_output.insert(variable.clone());
-            self.position_included_in_output.insert(idx);
         }
         if let Some(location) = location {
             self.location_in_query.insert(variable.clone(), location);
         }
+
         variable
     }
 
@@ -387,20 +386,14 @@ impl Conjunction {
         self.variable_included_in_output.contains(variable)
     }
 
-    /// Returns true if the node at given position in the query should be included in the output.
-    pub(crate) fn position_included_in_output(&self, idx: usize) -> bool {
-        self.position_included_in_output.contains(&idx)
-    }
-
     /// Return the variable name for a given position in the match output list.
     ///
-    /// Optional nodes that are not part of the output are ignored. If there are
-    /// no optional nodes, this corresponds to the index of the node in the
-    /// query.
-    pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
+    /// Optional nodes  are ignored. If there are no optional nodes, this
+    /// corresponds to the index of the node in the query.
+    pub fn get_variable_by_match_pos(&self, pos: usize) -> Option<String> {
         let mut output_pos = 0;
         for n in self.nodes.iter() {
-            if self.variable_included_in_output(&n.var) {
+            if !n.optional {
                 if output_pos == pos {
                     return Some(n.var.clone());
                 }

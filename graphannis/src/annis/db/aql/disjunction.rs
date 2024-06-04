@@ -36,13 +36,26 @@ impl Disjunction {
         None
     }
 
-    /// Returns true if the node at given position in the query should be included in the output for all alternatives.
-    pub(crate) fn position_included_in_output(&self, idx: usize) -> bool {
+    /// Return the variable name for a given position in the match output list.
+    ///
+    /// Optional nodes  are ignored. If there are no optional nodes, this
+    /// corresponds to the index of the node in the query.
+    pub(crate) fn get_variable_by_match_pos(&self, pos: usize) -> Option<String> {
         for alt in &self.alternatives {
-            if !alt.position_included_in_output(idx) {
-                return false;
+            if let Some(var) = alt.get_variable_by_match_pos(pos) {
+                return Some(var);
             }
         }
-        true
+        None
+    }
+
+    /// Returns true if the node at given by the variable name should be included in the output.
+    pub(crate) fn variable_included_in_output(&self, variable: &str) -> bool {
+        for alt in &self.alternatives {
+            if alt.variable_included_in_output(variable) {
+                return true;
+            }
+        }
+        false
     }
 }

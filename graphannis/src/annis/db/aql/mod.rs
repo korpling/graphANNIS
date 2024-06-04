@@ -502,7 +502,7 @@ pub fn parse(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction> {
 
                 if quirks_mode {
                     // apply the meta constraints from all conjunctions to conjunctions
-                    let first_node_pos = mapped.get_variable_by_pos(0);
+                    let first_node_pos = mapped.get_variable_by_match_pos(0);
                     add_legacy_metadata_constraints(
                         &mut mapped,
                         legacy_meta_search.clone(),
