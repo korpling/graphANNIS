@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.1] - 2024-06-04
+
 ### Fixed
 
 - When optional nodes where located not at the end but somewhere in between the
