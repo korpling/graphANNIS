@@ -1908,14 +1908,20 @@ impl CorpusStorage {
             let m = m?;
             let mut match_desc = String::new();
 
-            for (i, singlematch) in m.iter().enumerate() {
+            let mut any_nodes_added = false;
+
+            for (node_nr, singlematch) in m.iter().enumerate() {
                 // check if query node actually should be included
-                let include_in_output = prep.query.get_variable_by_pos(i).is_some();
+                let include_in_output = prep
+                    .query
+                    .get_variable_by_node_nr(node_nr)
+                    .map_or(false, |var| prep.query.is_included_in_output(&var));
 
                 if include_in_output {
-                    if i > 0 {
+                    if any_nodes_added {
                         match_desc.push(' ');
                     }
+                    any_nodes_added = true;
 
                     let singlematch_anno_key = &singlematch.anno_key;
                     if singlematch_anno_key.ns != ANNIS_NS || singlematch_anno_key.name != NODE_TYPE

@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- When optional nodes where located not at the end but somewhere in between the
+  query, the output of the `find` query could include the wrong node ID.
+
 ## [3.3.0] - 2024-05-27
 
 ### Changed

@@ -359,31 +359,30 @@ fn add_node_specs_by_start(
 fn add_legacy_metadata_constraints(
     q: &mut Conjunction,
     legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)>,
-    first_node_pos: Option<String>,
+    first_node_var: Option<String>,
 ) -> Result<()> {
     {
-        let mut first_meta_idx: Option<String> = None;
-        // TODO: add warning to the user not to use this construct anymore
+        let mut first_meta_var: Option<String> = None;
         for (spec, _pos) in legacy_meta_search {
             // add an artificial node that describes the document/corpus node
-            let meta_node_idx = q.add_node_from_query(spec, None, None, false, false);
-            if let Some(first_meta_idx) = first_meta_idx.clone() {
+            let meta_node_var = q.add_node_from_query(spec, None, None, false, false);
+            if let Some(first_meta_var) = first_meta_var.clone() {
                 // avoid nested loops by joining additional meta nodes with a "identical node"
                 q.add_operator(
                     Arc::new(IdenticalNodeSpec {}),
-                    &first_meta_idx,
-                    &meta_node_idx,
+                    &first_meta_var,
+                    &meta_node_var,
                     true,
                 )?;
-            } else if let Some(first_node_pos) = first_node_pos.clone() {
-                first_meta_idx = Some(meta_node_idx.clone());
+            } else if let Some(first_node_var) = first_node_var.clone() {
+                first_meta_var = Some(meta_node_var.clone());
                 // add a special join to the first node of the query
                 q.add_operator(
                     Arc::new(PartOfSubCorpusSpec {
                         dist: RangeSpec::Unbound,
                     }),
-                    &first_node_pos,
-                    &meta_node_idx,
+                    &first_node_var,
+                    &meta_node_var,
                     true,
                 )?;
                 // Also make sure the matched node is actually a document
@@ -402,7 +401,7 @@ fn add_legacy_metadata_constraints(
                 );
                 q.add_operator(
                     Arc::new(IdenticalNodeSpec {}),
-                    &meta_node_idx,
+                    &meta_node_var,
                     &doc_anno_idx,
                     true,
                 )?;
@@ -501,12 +500,12 @@ pub fn parse(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction> {
                 let mut mapped = map_conjunction(c, &offsets, var_idx_offset, quirks_mode)?;
 
                 if quirks_mode {
-                    // apply the meta constraints from all conjunctions to conjunctions
-                    let first_node_pos = mapped.get_variable_by_pos(0);
+                    // apply the meta constraints to first node of all conjunctions
+                    let first_node_var = mapped.get_variable_by_node_nr(0);
                     add_legacy_metadata_constraints(
                         &mut mapped,
                         legacy_meta_search.clone(),
-                        first_node_pos,
+                        first_node_var,
                     )?;
                 }
                 var_idx_offset += mapped.num_of_nodes();
