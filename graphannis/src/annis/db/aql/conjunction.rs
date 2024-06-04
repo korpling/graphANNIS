@@ -292,6 +292,8 @@ impl Conjunction {
         } else {
             (idx + 1).to_string()
         };
+        self.variables.insert(variable.clone(), self.nodes.len());
+
         self.nodes.push(NodeSearchSpecEntry {
             var: variable.clone(),
             spec: node,
@@ -299,7 +301,6 @@ impl Conjunction {
             location: location.clone(),
         });
 
-        self.variables.insert(variable.clone(), idx);
         if included_in_output && !optional {
             self.include_in_output.insert(variable.clone());
         }
@@ -315,9 +316,11 @@ impl Conjunction {
         var: &str,
         location: Option<LineColumnRange>,
     ) -> Result<()> {
-        if let Some(idx) = self.variables.get(var) {
-            self.unary_operators
-                .push(UnaryOperatorSpecEntry { op, idx: *idx });
+        if let Some(local_idx) = self.variables.get(var) {
+            self.unary_operators.push(UnaryOperatorSpecEntry {
+                op,
+                idx: *local_idx,
+            });
             Ok(())
         } else {
             Err(GraphAnnisError::AQLSemanticError(AQLError {
@@ -370,7 +373,7 @@ impl Conjunction {
         location: Option<LineColumnRange>,
     ) -> Result<usize> {
         if let Some(pos) = self.variables.get(variable) {
-            return Ok(*pos);
+            return Ok(pos + self.var_idx_offset);
         }
         Err(GraphAnnisError::AQLSemanticError(AQLError {
             desc: format!("Operand \"#{}\" not found", variable),
@@ -378,26 +381,20 @@ impl Conjunction {
         }))
     }
 
+    /// Return true if the given query node variable is supposed to be included
+    /// in a match output. This is not the case if it is an optional node or a
+    /// legacy `meta::` query reference.
     pub fn is_included_in_output(&self, variable: &str) -> bool {
         self.include_in_output.contains(variable)
     }
 
-    /// Return the variable name for a given position in the match output list.
-    ///
-    /// Optional nodes that are not part of the output are ignored. If there are
-    /// no optional nodes, this corresponds to the index of the node in the
-    /// query.
-    pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
-        let mut output_pos = 0;
-        for n in self.nodes.iter() {
-            if self.is_included_in_output(&n.var) {
-                if output_pos == pos {
-                    return Some(n.var.clone());
-                }
-                output_pos += 1;
-            }
-        }
-        None
+    /// Return the variable name for a node number. The node number is the
+    /// position of an node description in the query. In case of a query with
+    /// multiple alternatives, this refers to the node number of the whole query and
+    /// not only the conjunction.
+    pub fn get_variable_by_node_nr(&self, node_nr: usize) -> Option<String> {
+        let pos = node_nr.checked_sub(self.var_idx_offset)?;
+        self.nodes.get(pos).map(|spec| spec.var.clone())
     }
 
     pub fn resolve_variable(
@@ -725,7 +722,7 @@ impl Conjunction {
             .ok_or(GraphAnnisError::NoComponentForNode(spec_idx_right + 1))?);
 
         // get the original execution node
-        let exec_left: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a> = component2exec
+        let exec_left = component2exec
             .remove(&component_left)
             .ok_or(GraphAnnisError::NoExecutionNode(component_left))?;
 
@@ -821,7 +818,7 @@ impl Conjunction {
 
         // 2. add unary operators as filter to the existing node search
         for op_spec_entry in self.unary_operators.iter() {
-            let child_exec: Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a> = component2exec
+            let child_exec = component2exec
                 .remove(&op_spec_entry.idx)
                 .ok_or(GraphAnnisError::NoExecutionNode(op_spec_entry.idx))?;
 

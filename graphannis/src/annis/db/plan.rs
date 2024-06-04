@@ -91,11 +91,11 @@ impl<'a> ExecutionPlan<'a> {
         })
     }
 
+    /// Re-orders the match vector from the top execution node to match the
+    /// requested query node order. If query nodes are not part of the result,
+    /// they are still included in the vector but you can not use the node ID at
+    /// this position.
     fn reorder_match(&self, tmp: MatchGroup) -> MatchGroup {
-        if tmp.len() <= 1 {
-            // nothing to reorder
-            return tmp;
-        }
         if let Some(ref inverse_node_pos) = self.inverse_node_pos[self.current_plan] {
             // re-order the matched nodes by the original node position of the query
             let mut result = MatchGroup::new();
