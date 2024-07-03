@@ -64,7 +64,6 @@ pub struct NodeSearchSpecEntry {
     pub var: String,
     pub spec: NodeSearchSpec,
     pub optional: bool,
-    pub location: Option<LineColumnRange>,
 }
 
 #[derive(Debug)]
@@ -298,7 +297,6 @@ impl Conjunction {
             var: variable.clone(),
             spec: node,
             optional,
-            location: location.clone(),
         });
 
         if included_in_output && !optional {
