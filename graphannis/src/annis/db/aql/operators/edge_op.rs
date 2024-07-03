@@ -38,11 +38,18 @@ impl BaseEdgeOp {
     pub fn new(db: &AnnotationGraph, spec: BaseEdgeOpSpec) -> Result<BaseEdgeOp> {
         let mut gs: Vec<Arc<dyn GraphStorage>> = Vec::new();
         for c in &spec.components {
-            let gs_for_component = db.get_graphstorage(c).ok_or_else(|| {
-                GraphAnnisError::ImpossibleSearch(format!("Component {} does not exist", &c))
-            })?;
-            gs.push(gs_for_component);
+            if let Some(gs_for_component) = db.get_graphstorage(c) {
+                gs.push(gs_for_component);
+            }
         }
+
+        if !spec.components.is_empty() && gs.is_empty() {
+            return Err(GraphAnnisError::ImpossibleSearch(format!(
+                "Non-existing component(s) {}",
+                &spec.components.iter().join(", ")
+            )));
+        }
+
         Ok(BaseEdgeOp {
             gs,
             spec,
@@ -586,8 +593,11 @@ impl BinaryOperatorSpec for DominanceSpec {
         db: &'a AnnotationGraph,
         cost_estimate: Option<(&CostEstimate, &CostEstimate)>,
     ) -> Result<BinaryOperator<'a>> {
-        let components =
-            db.get_all_components(Some(AnnotationComponentType::Dominance), Some(&self.name));
+        let components = if self.name.is_empty() {
+            db.get_all_components(Some(AnnotationComponentType::Dominance), None)
+        } else {
+            db.get_all_components(Some(AnnotationComponentType::Dominance), Some(&self.name))
+        };
         let op_str = if self.name.is_empty() {
             String::from(">")
         } else {

@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Use all dominance components and not only the one with the empty name when
+  applying the `>` operator. Before, we are assuming that there is always
+  combined component with the empty name, which is true for all relANNIS
+  corpora.
+
 ## [3.3.1] - 2024-06-04
 
 ### Fixed
