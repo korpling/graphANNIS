@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Load existing components from the backup folder instead of the actual location
+  if a backup folder exists.
+
 ## [3.3.1] - 2024-06-04
 
 ### Fixed
