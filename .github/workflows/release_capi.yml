@@ -1,14 +1,17 @@
 on:
-  push:
-    branches: [main]
   release:
     types: [published]
+  workflow_run:
+    workflows: 
+      - Release
+    types: 
+      - completed
   pull_request:
     types: [labeled]
 name: Append C-API artifact to latest release
 jobs:
   deploy_linux_binaries:
-    if: ${{ github.event.label.name == 'test-release-process' || (github.event_name == 'release' && github.event.action == 'published') }}
+    if: ${{ github.event.action == 'completed' || github.event.label.name == 'test-release-process' || (github.event_name == 'release' && github.event.action == 'published') }}
     runs-on: ubuntu-20.04
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -37,7 +40,7 @@ jobs:
           omitNameDuringUpdate: true
           omitPrereleaseDuringUpdate: true
   deploy_windows_binaries:
-    if: ${{ github.event.label.name == 'test-release-process' || (github.event_name == 'release' && github.event.action == 'published') }}
+    if: ${{ github.event.action == 'completed' || github.event.label.name == 'test-release-process' || (github.event_name == 'release' && github.event.action == 'published') }}
     runs-on: windows-2019
     steps:
       - id: latest-release
@@ -64,7 +67,7 @@ jobs:
           omitNameDuringUpdate: true
           omitPrereleaseDuringUpdate: true
   deploy_macos_binaries:
-    if: ${{ github.event.label.name == 'test-release-process' || (github.event_name == 'release' && github.event.action == 'published') }}
+    if: ${{ github.event.action == 'completed' || github.event.label.name == 'test-release-process' || (github.event_name == 'release' && github.event.action == 'published') }}
     runs-on: macos-12
     steps:
       - id: latest-release
