@@ -196,8 +196,6 @@ fn map_conjunction(
             if negated {
                 if !node_left.optional && !node_right.optional {
                     op_spec = Arc::new(NegatedOpSpec {
-                        spec_left: node_left.spec.clone(),
-                        spec_right: node_right.spec.clone(),
                         negated_op: op_spec,
                     });
                     q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?

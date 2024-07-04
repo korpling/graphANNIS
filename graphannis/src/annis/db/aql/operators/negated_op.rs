@@ -2,7 +2,7 @@ use std::{fmt::Display, sync::Arc};
 
 use crate::{
     annis::{
-        db::exec::{nodesearch::NodeSearchSpec, CostEstimate},
+        db::exec::CostEstimate,
         operator::{BinaryOperator, BinaryOperatorBase, BinaryOperatorSpec, EstimationType},
     },
     errors::Result,
@@ -12,8 +12,6 @@ use graphannis_core::annostorage::Match;
 
 #[derive(Debug)]
 pub struct NegatedOpSpec {
-    pub spec_left: NodeSearchSpec,
-    pub spec_right: NodeSearchSpec,
     pub negated_op: Arc<dyn BinaryOperatorSpec>,
 }
 
