@@ -15,7 +15,7 @@ crate-type = ["lib"]
 [build-dependencies]
 csv = "1.1"
 file_diff = "1"
-lalrpop = {version = "0.20", default_features = false, features = ["lexer", "unicode"]}
+lalrpop = {version = "0.20", default-features = false, features = ["lexer", "unicode"]}
 regex = "1"
 
 [dependencies]
