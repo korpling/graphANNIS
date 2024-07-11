@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Load existing components from the backup folder instead of the actual location
   if a backup folder exists.
+- Add bug fixes for relANNIS import discovered testing the Annatto relANNIS
+  importer.
+
 
 ## [3.3.1] - 2024-06-04
 
