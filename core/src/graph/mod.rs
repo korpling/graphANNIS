@@ -99,8 +99,13 @@ fn component_path<CT: ComponentType>(
     match location {
         Some(ref loc) => {
             let mut p = PathBuf::from(loc);
-            // don't use the backup-folder per default
-            p.push("current");
+            // Check if we need to load the component from the backup folder
+            let backup = loc.join("backup");
+            if backup.exists() {
+                p.push("backup");
+            } else {
+                p.push("current");
+            }
             p.push(component_to_relative_path(c));
             Some(p)
         }
@@ -166,11 +171,12 @@ impl<CT: ComponentType> Graph<CT> {
         let location = PathBuf::from(location);
 
         self.set_location(location.as_path())?;
+
         let backup = location.join("backup");
 
-        let mut backup_was_loaded = false;
+        let mut load_from_backup = false;
         let dir2load = if backup.exists() && backup.is_dir() {
-            backup_was_loaded = true;
+            load_from_backup = true;
             backup.clone()
         } else {
             location.join("current")
@@ -207,7 +213,7 @@ impl<CT: ComponentType> Graph<CT> {
         self.find_components_from_disk(&dir2load)?;
 
         // If backup is active or a write log exists, always  a pre-load to get the complete corpus.
-        if preload | logfile_exists | backup_was_loaded {
+        if preload | logfile_exists | load_from_backup {
             self.ensure_loaded_all()?;
         }
 
@@ -220,7 +226,7 @@ impl<CT: ComponentType> Graph<CT> {
             self.current_change_id = 0;
         }
 
-        if backup_was_loaded {
+        if load_from_backup {
             // save the current corpus under the actual location
             self.save_to(&location.join("current"))?;
             // rename backup folder (renaming is atomic and deleting could leave an incomplete backup folder on disk)
