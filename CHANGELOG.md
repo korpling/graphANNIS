@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   if a backup folder exists.
 - Add bug fixes for relANNIS import discovered testing the Annatto relANNIS
   importer.
-
+- Fix `FileTooLarge` error when searching for token precedence where the
+  statistics indicate that this search is impossible.
 
 ## [3.3.1] - 2024-06-04
 
