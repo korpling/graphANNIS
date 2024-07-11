@@ -895,7 +895,7 @@ where
         let line = result?;
 
         let id = get_field_not_null(&line, 0, "id", &corpus_tab_path)?.parse::<u32>()?;
-        let name = get_field_not_null(&line, 1, "name", &corpus_tab_path)?;
+        let mut name = get_field_not_null(&line, 1, "name", &corpus_tab_path)?;
 
         let corpus_type = get_field_not_null(&line, 2, "type", &corpus_tab_path)?;
         if corpus_type == "DOCUMENT" {
@@ -908,7 +908,7 @@ where
                 .or_insert(1);
             if *existing_count > 1 {
                 let old_name = name.clone();
-                let name = format!("{}_duplicated_document_name_{}", name, existing_count);
+                name = format!("{}_duplicated_document_name_{}", name, existing_count).into();
                 warn!(
                     "duplicated document name \"{}\" detected: will be renamed to \"{}\"",
                     old_name, name
@@ -1288,7 +1288,7 @@ where
                     let mut covered_text_before =
                         std::string::String::with_capacity(token_left_char - current_text_offset);
                     let mut skipped_before_token = 0;
-                    for _ in current_text_offset..token_left_char {
+                    for _ in current_text_offset..(token_left_char - 1) {
                         if let Some(c) = text_char_it.next() {
                             covered_text_before.push(c);
                             skipped_before_token += 1;
