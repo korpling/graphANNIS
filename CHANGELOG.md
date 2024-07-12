@@ -7,12 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Load existing components from the backup folder instead of the actual location
-  if a backup folder exists.
 - Add bug fixes for relANNIS import discovered testing the Annatto relANNIS
   importer.
 - Fix `FileTooLarge` error when searching for token precedence where the
   statistics indicate that this search is impossible.
+  
+## [3.3.2] - 2024-07-04
+
+### Fixed
+
+- Load existing components from the backup folder instead of the actual location
+  if a backup folder exists.
+
 
 ## [3.3.1] - 2024-06-04
 
