@@ -178,7 +178,8 @@ impl<'a> BinaryOperatorBase for Precedence<'a> {
                 std::ops::Bound::Excluded(max_dist) => max_dist - 1,
             };
             let max_possible_dist = std::cmp::min(max_dist, stats_order.max_depth);
-            let num_of_descendants = max_possible_dist - self.spec.dist.min_dist() + 1;
+            let num_of_descendants =
+                max_possible_dist.saturating_sub(self.spec.dist.min_dist()) + 1;
 
             return Ok(EstimationType::Selectivity(
                 (num_of_descendants as f64) / (stats_order.nodes as f64 / 2.0),

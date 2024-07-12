@@ -364,3 +364,27 @@ fn negative_token_search_applies_leaf_filter() {
         }
     }
 }
+
+#[ignore]
+#[test]
+fn no_error_on_large_token_distance() {
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+
+    let q = SearchQuery {
+        corpus_names: &["subtok.demo"],
+        query: r#"tok .100 tok"#,
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+    // There should be an empty result, but no error
+    let result = cs
+        .find(
+            q.clone(),
+            0,
+            Some(1),
+            graphannis::corpusstorage::ResultOrder::Normal,
+        )
+        .unwrap();
+
+    assert_eq!(0, result.len());
+}
