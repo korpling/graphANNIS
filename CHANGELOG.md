@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.3] - 2024-07-12
+
 ### Fixed
 
 - Add bug fixes for relANNIS import discovered testing the Annatto relANNIS
