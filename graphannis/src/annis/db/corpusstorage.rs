@@ -1078,7 +1078,7 @@ impl CorpusStorage {
         for node in file_nodes? {
             // Get the linked file for this node
             if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key)? {
-                let original_path = old_base_path.join(&PathBuf::from(original_path.as_ref()));
+                let original_path = old_base_path.join(PathBuf::from(original_path.as_ref()));
                 if original_path.is_file() {
                     if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY)? {
                         // Create a new file name based on the node name and copy the file
@@ -1269,6 +1269,7 @@ impl CorpusStorage {
         };
 
         let config_as_str: Option<&str> = config_as_str.as_deref();
+        #[allow(clippy::needless_borrows_for_generic_args)]
         graphannis_core::graph::serialization::graphml::export(
             graph,
             config_as_str,
@@ -1583,6 +1584,7 @@ impl CorpusStorage {
 
     /// Count the number of results for a `query`.
     /// - `query` - The search query definition.
+    ///
     /// Returns the count as number.
     pub fn count<S: AsRef<str>>(&self, query: SearchQuery<S>) -> Result<u64> {
         let timeout = TimeoutCheck::new(query.timeout);

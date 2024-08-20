@@ -22,9 +22,6 @@ extern crate lazy_static;
 #[macro_use]
 extern crate lalrpop_util;
 
-#[cfg(feature = "c-api")]
-extern crate simplelog;
-
 mod annis;
 
 pub use crate::annis::db::corpusstorage::CorpusStorage;
