@@ -143,16 +143,14 @@ fn calculate_inherited_coverage_edges(
             direct_coverage_targets.insert(target?);
         }
     }
-    let inherited_gs_cov = graph.get_or_create_writable(&inherited_cov_component)?;
+    let inherited_gs_cov = graph.get_or_create_writable(inherited_cov_component)?;
 
     for target in &covered_token {
-        if n != *target {
-            if !direct_coverage_targets.contains(target) {
-                inherited_gs_cov.add_edge(Edge {
-                    source: n,
-                    target: *target,
-                })?;
-            }
+        if n != *target && !direct_coverage_targets.contains(target) {
+            inherited_gs_cov.add_edge(Edge {
+                source: n,
+                target: *target,
+            })?;
         }
     }
 
