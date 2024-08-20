@@ -1269,6 +1269,7 @@ impl CorpusStorage {
         };
 
         let config_as_str: Option<&str> = config_as_str.as_deref();
+        #[allow(clippy::needless_borrows_for_generic_args)]
         graphannis_core::graph::serialization::graphml::export(
             graph,
             config_as_str,
