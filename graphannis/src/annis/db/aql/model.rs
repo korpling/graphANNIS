@@ -126,47 +126,53 @@ fn calculate_inherited_coverage_edges(
         .collect();
     let combined_gs = UnionEdgeContainer::new(all_text_coverage_gs);
 
-    // Remember the non-token and token nodes, so we can connect all non-token
-    // nodes to the covered token.
-    let mut indirectly_covered_nodes = FxHashSet::default();
-    indirectly_covered_nodes.insert(n);
     let mut covered_token = FxHashSet::default();
 
-    let tok_helper = TokenHelper::new(graph)?;
-
-    for step in CycleSafeDFS::new(&combined_gs, n, 1, usize::MAX) {
-        let step = step?;
-        if tok_helper.is_token(step.node)? {
-            covered_token.insert(step.node);
-        } else {
-            indirectly_covered_nodes.insert(step.node);
-        }
-    }
-
-    let coverage_gs = tok_helper.get_gs_coverage().clone();
-
-    if let Ok(gs_cov) = graph.get_or_create_writable(&AnnotationComponent::new(
+    let inherited_cov_component = AnnotationComponent::new(
         AnnotationComponentType::Coverage,
         ANNIS_NS.into(),
         "inherited-coverage".into(),
-    )) {
-        // Connect all non-token nodes to the covered token nodes if no such direct coverage already exists
-        for source in indirectly_covered_nodes {
-            for target in &covered_token {
-                let mut needs_edge = true;
-                for gs in coverage_gs.iter() {
-                    if gs.is_connected(source, *target, 1, std::ops::Bound::Included(1))? {
-                        needs_edge = false;
-                        break;
-                    }
-                }
+    );
 
-                if needs_edge {
-                    gs_cov.add_edge(Edge {
-                        source,
-                        target: *target,
-                    })?;
-                }
+    {
+        let tok_helper = TokenHelper::new(graph)?;
+        for step in CycleSafeDFS::new(&combined_gs, n, 1, usize::MAX) {
+            let step = step?;
+            if tok_helper.is_token(step.node)? {
+                covered_token.insert(step.node);
+            }
+        }
+    };
+    let other_coverage_gs: Vec<Arc<dyn GraphStorage>> = graph
+        .get_all_components(Some(AnnotationComponentType::Coverage), None)
+        .into_iter()
+        .filter(|c| c != &inherited_cov_component)
+        .filter_map(|c| graph.get_graphstorage(&c))
+        .filter(|gs| {
+            if let Some(stats) = gs.get_statistics() {
+                stats.nodes > 0
+            } else {
+                true
+            }
+        })
+        .collect();
+
+    // Connect all non-token nodes to the covered token nodes if no such direct coverage already exists
+    let mut direct_coverage_targets = FxHashSet::default();
+    for gs in other_coverage_gs.iter() {
+        for target in gs.get_outgoing_edges(n) {
+            direct_coverage_targets.insert(target?);
+        }
+    }
+    let gs_cov = graph.get_or_create_writable(&inherited_cov_component)?;
+
+    for target in &covered_token {
+        if n != *target {
+            if !direct_coverage_targets.contains(target) {
+                gs_cov.add_edge(Edge {
+                    source: n,
+                    target: *target,
+                })?;
             }
         }
     }
@@ -283,7 +289,7 @@ impl AQLUpdateGraphIndex {
         let all_cov_components =
             graph.get_all_components(Some(AnnotationComponentType::Coverage), None);
         let all_dom_components =
-            graph.get_all_components(Some(AnnotationComponentType::Dominance), Some(""));
+            graph.get_all_components(Some(AnnotationComponentType::Dominance), None);
 
         // go over each node and calculate the left-most and right-most token
         for invalid in self.invalid_nodes.iter()? {

@@ -676,7 +676,7 @@ fn subgraph_with_segmentation() {
     ];
     for (i, t) in seg_tokens.iter().enumerate() {
         let node_name = format!("root/doc1#seg{}", i);
-        example_generator::create_token_node(&mut g, &node_name, t, Some("root/doc1"));
+        example_generator::create_token_node(&mut g, &node_name, t, None, None, Some("root/doc1"));
         g.add_event(UpdateEvent::AddNodeLabel {
             node_name,
             anno_ns: "default_ns".to_string(),
@@ -1488,6 +1488,8 @@ fn reoptimize_corpussizeconfig() {
         &mut u,
         "rootCorpus/subCorpus1/doc1#sTok12",
         "!",
+        None,
+        None,
         Some("rootCorpus/subCorpus1/doc1#sText1"),
     );
     u.add_event(UpdateEvent::AddEdge {
