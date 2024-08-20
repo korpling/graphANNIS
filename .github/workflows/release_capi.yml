@@ -2,9 +2,9 @@ on:
   release:
     types: [published]
   workflow_run:
-    workflows: 
+    workflows:
       - Release
-    types: 
+    types:
       - completed
   pull_request:
     types: [labeled]
@@ -20,6 +20,7 @@ jobs:
         uses: pozetroninc/github-action-get-latest-release@v0.7.0
         with:
           repository: ${{ github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1.0.6
         with:
@@ -47,6 +48,7 @@ jobs:
         uses: pozetroninc/github-action-get-latest-release@v0.7.0
         with:
           repository: ${{ github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1.0.6
         with:
@@ -74,6 +76,7 @@ jobs:
         uses: pozetroninc/github-action-get-latest-release@v0.7.0
         with:
           repository: ${{ github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1.0.6
         with:
