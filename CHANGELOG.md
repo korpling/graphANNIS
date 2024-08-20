@@ -5,6 +5,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added support for coverage edges between span nodes an segmentation nodes when
+  calculating the AQL model index.
+
+### Fixed
+
+- Do not use recursion to calculate the indirect coverage edges in the model
+  index, since this could fail for deeply nested structures. 
+
 ## [3.3.3] - 2024-07-12
 
 ### Fixed

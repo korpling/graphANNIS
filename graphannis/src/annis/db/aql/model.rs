@@ -112,60 +112,66 @@ fn calculate_inherited_coverage_edges(
     graph: &mut AnnotationGraph,
     n: NodeID,
     all_cov_components: &[AnnotationComponent],
-    all_dom_gs: &[Arc<dyn GraphStorage>],
+    all_dom_components: &[AnnotationComponent],
 ) -> std::result::Result<FxHashSet<NodeID>, ComponentTypeError> {
-    let mut directly_covered_token = FxHashSet::default();
+    // Iterate over all  all nodes that are somehow covered (by coverage or
+    // dominance edges) starting from the given node.
+    let all_text_coverage_components: Vec<AnnotationComponent> =
+        [all_cov_components, all_dom_components].concat();
 
-    for c in all_cov_components.iter() {
-        if let Some(gs) = graph.get_graphstorage_as_ref(c) {
-            let out: Result<Vec<u64>, graphannis_core::errors::GraphAnnisCoreError> =
-                gs.get_outgoing_edges(n).collect();
-            directly_covered_token.extend(out?);
+    let all_text_coverage_gs: Vec<_> = all_text_coverage_components
+        .iter()
+        .filter_map(|c| graph.get_graphstorage_as_ref(c))
+        .map(|gs| gs.as_edgecontainer())
+        .collect();
+    let combined_gs = UnionEdgeContainer::new(all_text_coverage_gs);
+
+    // Remember the non-token and token nodes, so we can connect all non-token
+    // nodes to the covered token.
+    let mut indirectly_covered_nodes = FxHashSet::default();
+    indirectly_covered_nodes.insert(n);
+    let mut covered_token = FxHashSet::default();
+
+    let tok_helper = TokenHelper::new(graph)?;
+
+    for step in CycleSafeDFS::new(&combined_gs, n, 1, usize::MAX) {
+        let step = step?;
+        if tok_helper.is_token(step.node)? {
+            covered_token.insert(step.node);
+        } else {
+            indirectly_covered_nodes.insert(step.node);
         }
     }
 
-    if directly_covered_token.is_empty() {
-        let has_token_anno = graph
-            .get_node_annos()
-            .get_value_for_item(&n, &TOKEN_KEY)?
-            .is_some();
-        if has_token_anno {
-            // Even if technically a token does not cover itself, if we need to abort the recursion
-            // with the basic case
-            directly_covered_token.insert(n);
-        }
-    }
-
-    let mut indirectly_covered_token = FxHashSet::default();
-    // recursivly get the covered token from all children connected by a dominance relation
-    for dom_gs in all_dom_gs {
-        for out in dom_gs.get_outgoing_edges(n) {
-            let out = out?;
-            indirectly_covered_token.extend(calculate_inherited_coverage_edges(
-                graph,
-                out,
-                all_cov_components,
-                all_dom_gs,
-            )?);
-        }
-    }
+    let coverage_gs = tok_helper.get_gs_coverage().clone();
 
     if let Ok(gs_cov) = graph.get_or_create_writable(&AnnotationComponent::new(
         AnnotationComponentType::Coverage,
         ANNIS_NS.into(),
         "inherited-coverage".into(),
     )) {
-        // Ignore all already directly covered token when creating the inherited coverage edges
-        for t in indirectly_covered_token.difference(&directly_covered_token) {
-            gs_cov.add_edge(Edge {
-                source: n,
-                target: *t,
-            })?;
+        // Connect all non-token nodes to the covered token nodes if no such direct coverage already exists
+        for source in indirectly_covered_nodes {
+            for target in &covered_token {
+                let mut needs_edge = true;
+                for gs in coverage_gs.iter() {
+                    if gs.is_connected(source, *target, 1, std::ops::Bound::Included(1))? {
+                        needs_edge = false;
+                        break;
+                    }
+                }
+
+                if needs_edge {
+                    gs_cov.add_edge(Edge {
+                        source,
+                        target: *target,
+                    })?;
+                }
+            }
         }
     }
 
-    directly_covered_token.extend(indirectly_covered_token);
-    Ok(directly_covered_token)
+    Ok(covered_token)
 }
 
 pub struct AQLUpdateGraphIndex {
@@ -276,17 +282,18 @@ impl AQLUpdateGraphIndex {
 
         let all_cov_components =
             graph.get_all_components(Some(AnnotationComponentType::Coverage), None);
-        let all_dom_gs: Vec<Arc<dyn GraphStorage>> = graph
-            .get_all_components(Some(AnnotationComponentType::Dominance), Some(""))
-            .into_iter()
-            .filter_map(|c| graph.get_graphstorage(&c))
-            .collect();
+        let all_dom_components =
+            graph.get_all_components(Some(AnnotationComponentType::Dominance), Some(""));
 
         // go over each node and calculate the left-most and right-most token
         for invalid in self.invalid_nodes.iter()? {
             let (n, _) = invalid?;
-            let covered_token =
-                calculate_inherited_coverage_edges(graph, n, &all_cov_components, &all_dom_gs)?;
+            let covered_token = calculate_inherited_coverage_edges(
+                graph,
+                n,
+                &all_cov_components,
+                &all_dom_components,
+            )?;
             self.calculate_token_alignment(
                 graph,
                 n,

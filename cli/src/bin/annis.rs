@@ -175,7 +175,7 @@ impl AnnisRunner {
             let readline = rl.readline(&prompt);
             match readline {
                 Ok(line) => {
-                    rl.add_history_entry(&line.clone());
+                    rl.add_history_entry(line.clone());
                     if !self.exec(&line) {
                         break;
                     }

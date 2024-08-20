@@ -73,6 +73,7 @@ impl From<SearchDefRaw> for SearchDef {
 /// Returns a vector over all query definitions defined in a CSV file.
 /// - `file` - The CSV file path.
 /// - `panic_on_invalid` - If true, an invalid query definition will trigger a panic, otherwise it will be ignored.
+///
 /// Can be used if this query is called in a test case to fail the test.
 pub fn get_queries_from_csv(file: &Path, panic_on_invalid: bool) -> Vec<SearchDef> {
     if let Ok(mut reader) = csv::Reader::from_path(file) {
