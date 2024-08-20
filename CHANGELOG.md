@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.0] - 2024-08-20
+
 ### Added
 
 - Added support for coverage edges between span nodes an segmentation nodes when
