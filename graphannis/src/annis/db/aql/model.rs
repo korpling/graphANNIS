@@ -111,65 +111,44 @@ pub struct AQLGlobalStatistics {
 fn calculate_inherited_coverage_edges(
     graph: &mut AnnotationGraph,
     n: NodeID,
-    all_cov_components: &[AnnotationComponent],
-    all_dom_components: &[AnnotationComponent],
+    other_cov_gs: &[Arc<dyn GraphStorage>],
+    all_text_coverage_components: &[AnnotationComponent],
+    inherited_cov_component: &AnnotationComponent,
 ) -> std::result::Result<FxHashSet<NodeID>, ComponentTypeError> {
     // Iterate over all  all nodes that are somehow covered (by coverage or
     // dominance edges) starting from the given node.
-    let all_text_coverage_components: Vec<AnnotationComponent> =
-        [all_cov_components, all_dom_components].concat();
-
-    let all_text_coverage_gs: Vec<_> = all_text_coverage_components
+    let all_text_cov_components_gs: Vec<_> = all_text_coverage_components
         .iter()
         .filter_map(|c| graph.get_graphstorage_as_ref(c))
         .map(|gs| gs.as_edgecontainer())
         .collect();
-    let combined_gs = UnionEdgeContainer::new(all_text_coverage_gs);
+
+    let all_text_cov_components_combined = UnionEdgeContainer::new(all_text_cov_components_gs);
 
     let mut covered_token = FxHashSet::default();
-
-    let inherited_cov_component = AnnotationComponent::new(
-        AnnotationComponentType::Coverage,
-        ANNIS_NS.into(),
-        "inherited-coverage".into(),
-    );
-
     {
         let tok_helper = TokenHelper::new(graph)?;
-        for step in CycleSafeDFS::new(&combined_gs, n, 1, usize::MAX) {
+        for step in CycleSafeDFS::new(&all_text_cov_components_combined, n, 1, usize::MAX) {
             let step = step?;
             if tok_helper.is_token(step.node)? {
                 covered_token.insert(step.node);
             }
         }
     };
-    let other_coverage_gs: Vec<Arc<dyn GraphStorage>> = graph
-        .get_all_components(Some(AnnotationComponentType::Coverage), None)
-        .into_iter()
-        .filter(|c| c != &inherited_cov_component)
-        .filter_map(|c| graph.get_graphstorage(&c))
-        .filter(|gs| {
-            if let Some(stats) = gs.get_statistics() {
-                stats.nodes > 0
-            } else {
-                true
-            }
-        })
-        .collect();
 
     // Connect all non-token nodes to the covered token nodes if no such direct coverage already exists
     let mut direct_coverage_targets = FxHashSet::default();
-    for gs in other_coverage_gs.iter() {
+    for gs in other_cov_gs.iter() {
         for target in gs.get_outgoing_edges(n) {
             direct_coverage_targets.insert(target?);
         }
     }
-    let gs_cov = graph.get_or_create_writable(&inherited_cov_component)?;
+    let inherited_gs_cov = graph.get_or_create_writable(&inherited_cov_component)?;
 
     for target in &covered_token {
         if n != *target {
             if !direct_coverage_targets.contains(target) {
-                gs_cov.add_edge(Edge {
+                inherited_gs_cov.add_edge(Edge {
                     source: n,
                     target: *target,
                 })?;
@@ -286,10 +265,26 @@ impl AQLUpdateGraphIndex {
     ) -> std::result::Result<(), ComponentTypeError> {
         self.clear_left_right_token(graph)?;
 
-        let all_cov_components =
-            graph.get_all_components(Some(AnnotationComponentType::Coverage), None);
+        let inherited_cov_component = AnnotationComponent::new(
+            AnnotationComponentType::Coverage,
+            ANNIS_NS.into(),
+            "inherited-coverage".into(),
+        );
+        let all_cov_components: Vec<_> = graph
+            .get_all_components(Some(AnnotationComponentType::Coverage), None)
+            .into_iter()
+            .filter(|c| c != &inherited_cov_component)
+            .collect();
+
+        let all_cov_gs: Vec<_> = all_cov_components
+            .iter()
+            .filter_map(|c| graph.get_graphstorage(c))
+            .collect();
+
         let all_dom_components =
             graph.get_all_components(Some(AnnotationComponentType::Dominance), None);
+        let all_text_coverage_components: Vec<AnnotationComponent> =
+            [all_cov_components, all_dom_components].concat();
 
         // go over each node and calculate the left-most and right-most token
         for invalid in self.invalid_nodes.iter()? {
@@ -297,8 +292,9 @@ impl AQLUpdateGraphIndex {
             let covered_token = calculate_inherited_coverage_edges(
                 graph,
                 n,
-                &all_cov_components,
-                &all_dom_components,
+                &all_cov_gs,
+                &all_text_coverage_components,
+                &inherited_cov_component,
             )?;
             self.calculate_token_alignment(
                 graph,
