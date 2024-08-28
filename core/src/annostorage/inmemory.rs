@@ -11,7 +11,7 @@ use rustc_hash::FxHashSet;
 use smartstring::alias::String;
 use smartstring::{LazyCompact, SmartString};
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::hash::Hash;
 use std::path::Path;
 use std::sync::Arc;
@@ -230,12 +230,18 @@ where
 
         // inserts a new relation between the annotation and the item
         // if set is not existing yet it is created
-        self.by_anno
+        let item_list_for_value = self
+            .by_anno
             .entry(anno.key)
             .or_default()
             .entry(anno.val)
-            .or_default()
-            .push(item.clone());
+            .or_default();
+        // Insert the items sorted, so we can more easily find a specific
+        // item later. For annotation key/value combinations with a lot of
+        // items, this can make an impact on performance.
+        if let Err(idx) = item_list_for_value.binary_search(&item) {
+            item_list_for_value.insert(idx, item.clone());
+        }
 
         if existing_anno.is_none() {
             // a new annotation entry was inserted and did not replace an existing one
@@ -311,6 +317,12 @@ where
         let mut result = false;
 
         if let Some(all_annos) = self.by_container.remove(item) {
+            // Collect relevevant annotation symbols to remove them en-bloc
+            let all_affected_annos: HashSet<_> = all_annos.iter().map(|a| a.key).collect();
+            for anno_key in all_affected_annos {
+                if let Some(by_anno_entry) = self.by_anno.get_mut(&anno_key) {}
+            }
+
             for anno in all_annos {
                 // since value was found, also remove the item from the other containers
                 self.remove_element_from_by_anno(&anno, item);
