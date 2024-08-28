@@ -411,6 +411,57 @@ where
         Ok(result)
     }
 
+    fn remove_item(&mut self, item: &T) -> Result<bool> {
+        let mut result = false;
+
+        let start = create_by_container_key(item.clone(), usize::MIN);
+        let end = create_by_container_key(item.clone(), usize::MAX);
+
+        let annos_in_container: Result<Vec<_>> = self.by_container.range(start..=end).collect();
+        let annos_in_container = annos_in_container?;
+
+        for (by_container_key, _) in annos_in_container {
+            let symbol_id = usize::parse_key(&by_container_key[T::key_size()..])?;
+            let key = self
+                .anno_key_symbols
+                .get_value(symbol_id)
+                .unwrap_or_default();
+
+            if let Some(val) = self.by_container.remove(&by_container_key)? {
+                // remove annotation from by_anno_qname
+                let anno = Annotation {
+                    key: key.as_ref().clone(),
+                    val: val.into(),
+                };
+
+                self.by_anno_qname.remove(&create_by_anno_qname_key(
+                    item.clone(),
+                    symbol_id,
+                    &anno.val,
+                ))?;
+                // decrease the annotation count for this key
+                let new_key_count: usize =
+                    if let Some(num_of_keys) = self.anno_key_sizes.get_mut(&key) {
+                        *num_of_keys -= 1;
+                        *num_of_keys
+                    } else {
+                        0
+                    };
+                // if annotation count dropped to zero remove the key
+                if new_key_count == 0 {
+                    self.anno_key_sizes.remove(&key);
+                    if let Some(id) = self.anno_key_symbols.get_symbol(&key) {
+                        self.anno_key_symbols.remove(id);
+                    }
+                }
+
+                result = true;
+            }
+        }
+
+        Ok(result)
+    }
+
     fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>> {
         // remove annotation from by_container
         if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {

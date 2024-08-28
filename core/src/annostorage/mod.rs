@@ -189,14 +189,7 @@ where
 
     /// Remove all annotations for the given item. Returns whether the item had
     /// any annotations.
-    fn remove_item(&mut self, item: &T) -> Result<bool> {
-        let mut result = false;
-        for a in self.get_annotations_for_item(item)? {
-            self.remove_annotation_for_item(item, &a.key)?;
-            result = true;
-        }
-        Ok(result)
-    }
+    fn remove_item(&mut self, item: &T) -> Result<bool>;
 
     /// Remove all annotations.
     fn clear(&mut self) -> Result<()>;
