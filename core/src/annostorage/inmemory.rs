@@ -307,6 +307,40 @@ where
         Ok(result)
     }
 
+    fn remove_item(&mut self, item: &T) -> Result<bool> {
+        let mut result = false;
+
+        if let Some(all_annos) = self.by_container.remove(item) {
+            for anno in all_annos {
+                // since value was found, also remove the item from the other containers
+                self.remove_element_from_by_anno(&anno, item);
+
+                if let Some(resolved_key) = self.anno_keys.get_value(anno.key) {
+                    // decrease the annotation count for this key
+                    let new_key_count: usize =
+                        if let Some(num_of_keys) = self.anno_key_sizes.get_mut(&resolved_key) {
+                            *num_of_keys -= 1;
+                            *num_of_keys
+                        } else {
+                            0
+                        };
+                    // if annotation count dropped to zero remove the key
+                    if new_key_count == 0 {
+                        self.by_anno.remove(&anno.key);
+                        self.anno_key_sizes.remove(&resolved_key);
+                        self.anno_keys.remove(anno.key);
+                    }
+                }
+
+                result = true;
+                self.check_and_remove_value_symbol(anno.val);
+                self.total_number_of_annos -= 1;
+            }
+        }
+
+        Ok(result)
+    }
+
     fn clear(&mut self) -> Result<()> {
         self.clear_internal();
         Ok(())

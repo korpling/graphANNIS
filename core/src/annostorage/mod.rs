@@ -187,6 +187,17 @@ where
     /// Returns the value for that annotation, if it existed.
     fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>>;
 
+    /// Remove all annotations for the given item. Returns whether the item had
+    /// any annotations.
+    fn remove_item(&mut self, item: &T) -> Result<bool> {
+        let mut result = false;
+        for a in self.get_annotations_for_item(item)? {
+            self.remove_annotation_for_item(item, &a.key)?;
+            result = true;
+        }
+        Ok(result)
+    }
+
     /// Remove all annotations.
     fn clear(&mut self) -> Result<()>;
 
