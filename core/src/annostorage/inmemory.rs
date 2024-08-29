@@ -11,7 +11,7 @@ use rustc_hash::FxHashSet;
 use smartstring::alias::String;
 use smartstring::{LazyCompact, SmartString};
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 use std::path::Path;
 use std::sync::Arc;
@@ -319,12 +319,6 @@ where
         let mut result = false;
 
         if let Some(all_annos) = self.by_container.remove(item) {
-            // Collect relevevant annotation symbols to remove them en-bloc
-            let all_affected_annos: HashSet<_> = all_annos.iter().map(|a| a.key).collect();
-            for anno_key in all_affected_annos {
-                if let Some(by_anno_entry) = self.by_anno.get_mut(&anno_key) {}
-            }
-
             for anno in all_annos {
                 // since value was found, also remove the item from the other containers
                 self.remove_element_from_by_anno(&anno, item);
