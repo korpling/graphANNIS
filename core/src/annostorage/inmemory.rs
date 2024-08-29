@@ -86,7 +86,9 @@ impl<T: Ord + Hash + Clone + serde::Serialize + serde::de::DeserializeOwned + De
     fn remove_element_from_by_anno(&mut self, anno: &SparseAnnotation, item: &T) {
         let remove_anno_key = if let Some(annos_for_key) = self.by_anno.get_mut(&anno.key) {
             let remove_anno_val = if let Some(items_for_anno) = annos_for_key.get_mut(&anno.val) {
-                items_for_anno.retain(|i| i != item);
+                if let Ok(i) = items_for_anno.binary_search(item) {
+                    items_for_anno.remove(i);
+                }
                 items_for_anno.is_empty()
             } else {
                 false
