@@ -11,7 +11,7 @@ use rustc_hash::FxHashSet;
 use smartstring::alias::String;
 use smartstring::{LazyCompact, SmartString};
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::hash::Hash;
 use std::path::Path;
 use std::sync::Arc;
@@ -22,7 +22,7 @@ struct SparseAnnotation {
     val: usize,
 }
 
-type ValueItemMap<T> = HashMap<usize, Vec<T>>;
+type ValueItemMap<T> = HashMap<usize, BTreeSet<T>>;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct AnnoStorageImpl<T: Ord + Hash + Default> {
@@ -86,9 +86,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + serde::de::DeserializeOwned + De
     fn remove_element_from_by_anno(&mut self, anno: &SparseAnnotation, item: &T) {
         let remove_anno_key = if let Some(annos_for_key) = self.by_anno.get_mut(&anno.key) {
             let remove_anno_val = if let Some(items_for_anno) = annos_for_key.get_mut(&anno.val) {
-                if let Ok(i) = items_for_anno.binary_search(item) {
-                    items_for_anno.remove(i);
-                }
+                items_for_anno.remove(item);
                 items_for_anno.is_empty()
             } else {
                 false
@@ -238,12 +236,7 @@ where
             .or_default()
             .entry(anno.val)
             .or_default();
-        // Insert the items sorted, so we can more easily find a specific
-        // item later. For annotation key/value combinations with a lot of
-        // items, this can make an impact on performance.
-        if let Err(idx) = item_list_for_value.binary_search(&item) {
-            item_list_for_value.insert(idx, item.clone());
-        }
+        item_list_for_value.insert(item.clone());
 
         if existing_anno.is_none() {
             // a new annotation entry was inserted and did not replace an existing one
