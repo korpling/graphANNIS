@@ -317,7 +317,7 @@ fn apply_update_ondisk(bench: &mut Criterion) {
     let cs = CORPUS_STORAGE.as_ref().unwrap();
 
     bench.bench_function("apply_update_ondisk", move |b| {
-        cs.create_empty_corpus("apply_update_test_corpus", false)
+        cs.create_empty_corpus("apply_update_test_corpus", true)
             .unwrap();
         let (mut u1, mut u2) = create_example_update();
         b.iter(|| {
