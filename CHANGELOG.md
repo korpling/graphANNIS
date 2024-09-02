@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New method `remove_item()` for annotation storages that allows for more
+  efficient removal if not only a single annotation, but the whole item should
+  be deleted. This is used in when applying a `DeleteNode` or `DeleteEdge`
+  event.
+
 ## [3.4.0] - 2024-08-20
 
 ### Added

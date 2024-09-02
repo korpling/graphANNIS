@@ -228,15 +228,11 @@ fn deserialize_gum(bench: &mut Criterion) {
     });
 }
 
-fn apply_update_inmemory(bench: &mut Criterion) {
-    if CORPUS_STORAGE.is_none() {
-        return;
-    }
-
-    let cs = CORPUS_STORAGE.as_ref().unwrap();
-
+/// Creates graph updates for adding some token (first result) and deleting them
+/// again (second result item).
+fn create_example_update() -> (GraphUpdate, GraphUpdate) {
     // Create a set of graph updates to apply
-    let mut u = GraphUpdate::default();
+    let mut updates_add = GraphUpdate::default();
 
     // Generate a lot of tokens made of fake strings (using names)
     let mut token_names: Vec<String> = Vec::with_capacity(TOK_COUNT);
@@ -249,42 +245,68 @@ fn apply_update_inmemory(bench: &mut Criterion) {
         token_names.push(node_name.clone());
 
         // Create token node
-        u.add_event(UpdateEvent::AddNode {
-            node_name: node_name.clone(),
-            node_type: "node".to_string(),
-        })
-        .unwrap();
-        u.add_event(UpdateEvent::AddNodeLabel {
-            node_name: node_name.clone(),
-            anno_ns: "annis".to_string(),
-            anno_name: "tok".to_string(),
-            anno_value: t.to_string(),
-        })
-        .unwrap();
+        updates_add
+            .add_event(UpdateEvent::AddNode {
+                node_name: node_name.clone(),
+                node_type: "node".to_string(),
+            })
+            .unwrap();
+        updates_add
+            .add_event(UpdateEvent::AddNodeLabel {
+                node_name: node_name.clone(),
+                anno_ns: "annis".to_string(),
+                anno_name: "tok".to_string(),
+                anno_value: t.to_string(),
+            })
+            .unwrap();
 
         // add the order relation
         if let Some(previous_token_name) = previous_token_name {
-            u.add_event(UpdateEvent::AddEdge {
-                source_node: previous_token_name,
-                target_node: node_name.clone(),
-                layer: "annis".to_string(),
-                component_type: "Ordering".to_string(),
-                component_name: "".to_string(),
-            })
-            .unwrap();
+            updates_add
+                .add_event(UpdateEvent::AddEdge {
+                    source_node: previous_token_name,
+                    target_node: node_name.clone(),
+                    layer: "annis".to_string(),
+                    component_type: "Ordering".to_string(),
+                    component_name: "".to_string(),
+                })
+                .unwrap();
         }
 
         previous_token_name = Some(node_name);
     }
 
-    cs.create_empty_corpus("apply_update_test_corpus", false)
-        .unwrap();
+    // Add update events to delete the just added token
+    let mut updates_delete = GraphUpdate::new();
+    for t in token_names {
+        updates_delete
+            .add_event(UpdateEvent::DeleteNode {
+                node_name: t.clone(),
+            })
+            .unwrap();
+    }
+    (updates_add, updates_delete)
+}
+
+fn apply_update_inmemory(bench: &mut Criterion) {
+    if CORPUS_STORAGE.is_none() {
+        return;
+    }
+
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
 
     bench.bench_function("apply_update_inmemory", move |b| {
-        b.iter(|| cs.apply_update("apply_update_test_corpus", &mut u).unwrap());
+        cs.create_empty_corpus("apply_update_test_corpus", false)
+            .unwrap();
+        let (mut u1, mut u2) = create_example_update();
+        b.iter(|| {
+            cs.apply_update("apply_update_test_corpus", &mut u1)
+                .unwrap();
+            cs.apply_update("apply_update_test_corpus", &mut u2)
+                .unwrap()
+        });
+        cs.delete("apply_update_test_corpus").unwrap();
     });
-
-    cs.delete("apply_update_test_corpus").unwrap();
 }
 
 fn apply_update_ondisk(bench: &mut Criterion) {
@@ -294,56 +316,18 @@ fn apply_update_ondisk(bench: &mut Criterion) {
 
     let cs = CORPUS_STORAGE.as_ref().unwrap();
 
-    // Create a set of graph updates to apply
-    let mut u = GraphUpdate::default();
-
-    // Generate a lot of tokens made of fake strings (using names)
-    let mut token_names: Vec<String> = Vec::with_capacity(TOK_COUNT);
-    let mut previous_token_name = None;
-    for i in 0..TOK_COUNT {
-        let node_name = format!("n{}", i);
-
-        let t: &str = LastName(EN).fake();
-
-        token_names.push(node_name.clone());
-
-        // Create token node
-        u.add_event(UpdateEvent::AddNode {
-            node_name: node_name.clone(),
-            node_type: "node".to_string(),
-        })
-        .unwrap();
-        u.add_event(UpdateEvent::AddNodeLabel {
-            node_name: node_name.clone(),
-            anno_ns: "annis".to_string(),
-            anno_name: "tok".to_string(),
-            anno_value: t.to_string(),
-        })
-        .unwrap();
-
-        // add the order relation
-        if let Some(previous_token_name) = previous_token_name {
-            u.add_event(UpdateEvent::AddEdge {
-                source_node: previous_token_name,
-                target_node: node_name.clone(),
-                layer: "annis".to_string(),
-                component_type: "Ordering".to_string(),
-                component_name: "".to_string(),
-            })
-            .unwrap();
-        }
-
-        previous_token_name = Some(node_name);
-    }
-
-    cs.create_empty_corpus("apply_update_test_corpus", true)
-        .unwrap();
-
     bench.bench_function("apply_update_ondisk", move |b| {
-        b.iter(|| cs.apply_update("apply_update_test_corpus", &mut u).unwrap());
+        cs.create_empty_corpus("apply_update_test_corpus", true)
+            .unwrap();
+        let (mut u1, mut u2) = create_example_update();
+        b.iter(|| {
+            cs.apply_update("apply_update_test_corpus", &mut u1)
+                .unwrap();
+            cs.apply_update("apply_update_test_corpus", &mut u2)
+                .unwrap()
+        });
+        cs.delete("apply_update_test_corpus").unwrap();
     });
-
-    cs.delete("apply_update_test_corpus").unwrap();
 }
 
 criterion_group!(name=default; config= Criterion::default().sample_size(50); targets =

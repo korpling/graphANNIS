@@ -323,10 +323,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
         self.edges.remove(edge)?;
         self.inverse_edges.remove(&edge.inverse())?;
 
-        let annos = self.annos.get_annotations_for_item(edge)?;
-        for a in annos {
-            self.annos.remove_annotation_for_item(edge, &a.key)?;
-        }
+        self.annos.remove_item(edge)?;
 
         Ok(())
     }

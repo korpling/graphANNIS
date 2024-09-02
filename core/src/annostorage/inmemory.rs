@@ -11,7 +11,7 @@ use rustc_hash::FxHashSet;
 use smartstring::alias::String;
 use smartstring::{LazyCompact, SmartString};
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::hash::Hash;
 use std::path::Path;
 use std::sync::Arc;
@@ -22,7 +22,7 @@ struct SparseAnnotation {
     val: usize,
 }
 
-type ValueItemMap<T> = HashMap<usize, Vec<T>>;
+type ValueItemMap<T> = HashMap<usize, BTreeSet<T>>;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct AnnoStorageImpl<T: Ord + Hash + Default> {
@@ -86,7 +86,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + serde::de::DeserializeOwned + De
     fn remove_element_from_by_anno(&mut self, anno: &SparseAnnotation, item: &T) {
         let remove_anno_key = if let Some(annos_for_key) = self.by_anno.get_mut(&anno.key) {
             let remove_anno_val = if let Some(items_for_anno) = annos_for_key.get_mut(&anno.val) {
-                items_for_anno.retain(|i| i != item);
+                items_for_anno.remove(item);
                 items_for_anno.is_empty()
             } else {
                 false
@@ -230,12 +230,13 @@ where
 
         // inserts a new relation between the annotation and the item
         // if set is not existing yet it is created
-        self.by_anno
+        let item_list_for_value = self
+            .by_anno
             .entry(anno.key)
             .or_default()
             .entry(anno.val)
-            .or_default()
-            .push(item.clone());
+            .or_default();
+        item_list_for_value.insert(item.clone());
 
         if existing_anno.is_none() {
             // a new annotation entry was inserted and did not replace an existing one
@@ -301,6 +302,40 @@ where
                 if !all_annos.is_empty() {
                     self.by_container.insert(item.clone(), all_annos);
                 }
+            }
+        }
+
+        Ok(result)
+    }
+
+    fn remove_item(&mut self, item: &T) -> Result<bool> {
+        let mut result = false;
+
+        if let Some(all_annos) = self.by_container.remove(item) {
+            for anno in all_annos {
+                // since value was found, also remove the item from the other containers
+                self.remove_element_from_by_anno(&anno, item);
+
+                if let Some(resolved_key) = self.anno_keys.get_value(anno.key) {
+                    // decrease the annotation count for this key
+                    let new_key_count: usize =
+                        if let Some(num_of_keys) = self.anno_key_sizes.get_mut(&resolved_key) {
+                            *num_of_keys -= 1;
+                            *num_of_keys
+                        } else {
+                            0
+                        };
+                    // if annotation count dropped to zero remove the key
+                    if new_key_count == 0 {
+                        self.by_anno.remove(&anno.key);
+                        self.anno_key_sizes.remove(&resolved_key);
+                        self.anno_keys.remove(anno.key);
+                    }
+                }
+
+                result = true;
+                self.check_and_remove_value_symbol(anno.val);
+                self.total_number_of_annos -= 1;
             }
         }
 

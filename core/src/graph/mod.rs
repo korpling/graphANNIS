@@ -412,15 +412,8 @@ impl<CT: ComponentType> Graph<CT> {
                         &mut node_id_cache,
                     )? {
                         // delete all annotations
-                        {
-                            for a in self
-                                .node_annos
-                                .get_annotations_for_item(&existing_node_id)?
-                            {
-                                self.node_annos
-                                    .remove_annotation_for_item(&existing_node_id, &a.key)?;
-                            }
-                        }
+                        self.node_annos.remove_item(&existing_node_id)?;
+
                         // delete all edges pointing to this node either as source or target
                         for c in all_components.iter() {
                             if let Ok(gs) = self.get_or_create_writable(c) {

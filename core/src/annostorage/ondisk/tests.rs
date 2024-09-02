@@ -113,6 +113,30 @@ fn remove() {
 }
 
 #[test]
+fn remove_item() {
+    LOGGER_INIT.call_once(env_logger::init);
+    let test_anno = Annotation {
+        key: AnnoKey {
+            name: "anno1".into(),
+            ns: "annis1".into(),
+        },
+        val: "test".into(),
+    };
+
+    let mut a = AnnoStorageImpl::new(None).unwrap();
+    a.insert(1, test_anno.clone()).unwrap();
+
+    assert_eq!(1, a.number_of_annotations().unwrap());
+    assert_eq!(1, a.anno_key_sizes.len());
+    assert_eq!(&1, a.anno_key_sizes.get(&test_anno.key).unwrap());
+
+    a.remove_item(&1).unwrap();
+
+    assert_eq!(0, a.number_of_annotations().unwrap());
+    assert_eq!(&0, a.anno_key_sizes.get(&test_anno.key).unwrap_or(&0));
+}
+
+#[test]
 fn get_node_id_from_name() {
     let key = NODE_NAME_KEY.as_ref().clone();
     let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new(None).unwrap();
