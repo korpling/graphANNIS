@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed out of bounds error parsing legacy meta queries with multiple
+  alternatives (https://github.com/korpling/graphANNIS/pull/308) 
+
+## [3.5.0] - 2024-09-02
+
 ### Added
 
 - New method `remove_item()` for annotation storages that allows for more
@@ -12,10 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be deleted. This is used in when applying a `DeleteNode` or `DeleteEdge`
   event.
 
-### Fixed
-
-- Fixed out of bounds error parsing legacy meta queries with multiple
-  alternatives (https://github.com/korpling/graphANNIS/pull/308) 
 
 ## [3.4.0] - 2024-08-20
 
