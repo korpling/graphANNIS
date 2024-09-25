@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be deleted. This is used in when applying a `DeleteNode` or `DeleteEdge`
   event.
 
+### Fixed
+
+- Fixed out of bounds error parsing legacy meta queries with multiple
+  alternatives (https://github.com/korpling/graphANNIS/pull/308) 
+
 ## [3.4.0] - 2024-08-20
 
 ### Added
