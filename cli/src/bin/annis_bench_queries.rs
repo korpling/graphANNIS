@@ -43,11 +43,7 @@ pub fn create_query_input<M>(
                     query_language: QueryLanguage::AQL,
                     timeout: None,
                 };
-                let count = if let Ok(count) = cs.count(search_query) {
-                    count
-                } else {
-                    0
-                };
+                let count = cs.count(search_query).unwrap_or_default();
                 assert_eq!(def.count, count);
             });
         });
