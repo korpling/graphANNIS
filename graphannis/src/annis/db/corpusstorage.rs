@@ -1408,7 +1408,6 @@ impl CorpusStorage {
             db.apply_update(update, |_| {})?;
         }
         // start background thread to persists the results
-
         let active_background_workers = self.active_background_workers.clone();
         {
             let (lock, _cvar) = &*active_background_workers;
@@ -1416,20 +1415,9 @@ impl CorpusStorage {
             *nr_active_background_workers += 1;
         }
         thread::spawn(move || {
-            trace!("Starting background thread to sync WAL updates");
-            let lock = db_entry.read().unwrap();
-            if let Ok(db) = get_read_or_error(&lock) {
-                let db: &AnnotationGraph = db;
-                if let Err(e) = db.background_sync_wal_updates() {
-                    error!("Can't sync changes in background thread: {:?}", e);
-                } else {
-                    trace!("Finished background thread to sync WAL updates");
-                }
+            if let Err(err) = sync_wal_updates_in_background(db_entry, active_background_workers) {
+                error!("Error in WAL update background thread: {}", err);
             }
-            let (lock, cvar) = &*active_background_workers;
-            let mut nr_active_background_workers = lock.lock().unwrap();
-            *nr_active_background_workers -= 1;
-            cvar.notify_all();
         });
 
         Ok(())
@@ -2738,4 +2726,25 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
         })?;
 
     Ok(lock_file)
+}
+
+fn sync_wal_updates_in_background(
+    db_entry: Arc<RwLock<CacheEntry>>,
+    active_background_workers: Arc<(Mutex<usize>, Condvar)>,
+) -> Result<()> {
+    trace!("Starting background thread to sync WAL updates");
+    let lock = db_entry.read()?;
+    if let Ok(db) = get_read_or_error(&lock) {
+        let db: &AnnotationGraph = db;
+        if let Err(e) = db.background_sync_wal_updates() {
+            error!("Can't sync changes in background thread: {:?}", e);
+        } else {
+            trace!("Finished background thread to sync WAL updates");
+        }
+    }
+    let (lock, cvar) = &*active_background_workers;
+    let mut nr_active_background_workers = lock.lock()?;
+    *nr_active_background_workers -= 1;
+    cvar.notify_all();
+    Ok(())
 }
