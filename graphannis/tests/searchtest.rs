@@ -388,3 +388,21 @@ fn no_error_on_large_token_distance() {
 
     assert_eq!(0, result.len());
 }
+
+#[ignore]
+#[test]
+fn legacy_meta_query_with_multiple_alternatives() {
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+
+    // "buy" and "favorite" each appear exactly once in type="interview" and once in type="news"
+    let query = SearchQuery {
+        corpus_names: &["GUM"],
+        query: "\"buy\" | \"favorite\" & meta::type=\"interview\"",
+        query_language: QueryLanguage::AQLQuirksV3,
+        timeout: None,
+    };
+
+    let count = cs.count(query).unwrap();
+
+    assert_eq!(count, 2);
+}
