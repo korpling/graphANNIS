@@ -15,7 +15,7 @@ use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 use tempfile::NamedTempFile;
 
 /// Describes a single update on the graph.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum UpdateEvent {
     /// Add a node with a name and type.
     AddNode {
