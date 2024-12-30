@@ -121,7 +121,7 @@ impl<'a> CycleSafeDFS<'a> {
     }
 }
 
-impl<'a> Iterator for CycleSafeDFS<'a> {
+impl Iterator for CycleSafeDFS<'_> {
     type Item = Result<DFSStep>;
 
     fn next(&mut self) -> Option<Self::Item> {

@@ -20,7 +20,7 @@ struct CauseIterator<'a> {
     current: Option<&'a dyn StdError>,
 }
 
-impl<'a> std::iter::Iterator for CauseIterator<'a> {
+impl std::iter::Iterator for CauseIterator<'_> {
     type Item = Error;
 
     fn next(&mut self) -> std::option::Option<Error> {

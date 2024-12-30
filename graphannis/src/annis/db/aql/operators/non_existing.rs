@@ -130,14 +130,14 @@ struct NonExistingUnaryOperatorIndex<'a> {
     op_estimation: EstimationType,
 }
 
-impl<'a> Display for NonExistingUnaryOperatorIndex<'a> {
+impl Display for NonExistingUnaryOperatorIndex<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, " !{} {}", self.negated_op, self.target)?;
         Ok(())
     }
 }
 
-impl<'a> UnaryOperator for NonExistingUnaryOperatorIndex<'a> {
+impl UnaryOperator for NonExistingUnaryOperatorIndex<'_> {
     fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> Result<bool> {
         // Extract the annotation keys for the matches
         let it = self.negated_op.retrieve_matches(m).fuse().map(|m| match m {
@@ -200,7 +200,7 @@ struct NonExistingUnaryOperatorFilter<'a> {
     op_estimation: EstimationType,
 }
 
-impl<'a> Display for NonExistingUnaryOperatorFilter<'a> {
+impl Display for NonExistingUnaryOperatorFilter<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.target_left {
             write!(f, " !({} {} x)", self.target, self.negated_op)?;
@@ -211,7 +211,7 @@ impl<'a> Display for NonExistingUnaryOperatorFilter<'a> {
     }
 }
 
-impl<'a> UnaryOperator for NonExistingUnaryOperatorFilter<'a> {
+impl UnaryOperator for NonExistingUnaryOperatorFilter<'_> {
     fn filter_match(&self, m: &graphannis_core::annostorage::Match) -> Result<bool> {
         // The candidate match is on one side and we need to get an iterator of all possible matches for the other side
         if let Ok(node_search) = NodeSearch::from_spec(

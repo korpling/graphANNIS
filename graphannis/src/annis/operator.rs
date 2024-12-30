@@ -192,7 +192,7 @@ pub enum BinaryOperator<'a> {
     Index(Box<dyn BinaryOperatorIndex + 'a>),
 }
 
-impl<'a> Display for BinaryOperator<'a> {
+impl Display for BinaryOperator<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             BinaryOperator::Base(op) => op.fmt(f),
@@ -201,7 +201,7 @@ impl<'a> Display for BinaryOperator<'a> {
     }
 }
 
-impl<'a> BinaryOperatorBase for BinaryOperator<'a> {
+impl BinaryOperatorBase for BinaryOperator<'_> {
     fn filter_match(
         &self,
         lhs: &graphannis_core::annostorage::Match,

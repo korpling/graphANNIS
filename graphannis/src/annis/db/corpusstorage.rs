@@ -2079,7 +2079,6 @@ impl CorpusStorage {
     /// the datasource, an edge in the special `Ordering/annis/datasource-gap`
     /// component is added between the last token of each context region and the
     /// first token of the next one.
-
     pub fn subgraph(
         &self,
         corpus_name: &str,

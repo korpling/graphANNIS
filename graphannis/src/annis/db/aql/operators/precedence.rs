@@ -140,13 +140,13 @@ impl<'a> Precedence<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for Precedence<'a> {
+impl std::fmt::Display for Precedence<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, ".{}", self.spec)
     }
 }
 
-impl<'a> BinaryOperatorBase for Precedence<'a> {
+impl BinaryOperatorBase for Precedence<'_> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
@@ -210,7 +210,7 @@ impl<'a> BinaryOperatorBase for Precedence<'a> {
     }
 }
 
-impl<'a> BinaryOperatorIndex for Precedence<'a> {
+impl BinaryOperatorIndex for Precedence<'_> {
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>> + 'b> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -265,13 +265,13 @@ pub struct InversePrecedence<'a> {
     spec: PrecedenceSpec,
 }
 
-impl<'a> std::fmt::Display for InversePrecedence<'a> {
+impl std::fmt::Display for InversePrecedence<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, ".\u{20D6}{}", self.spec)
     }
 }
 
-impl<'a> BinaryOperatorBase for InversePrecedence<'a> {
+impl BinaryOperatorBase for InversePrecedence<'_> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
@@ -328,7 +328,7 @@ impl<'a> BinaryOperatorBase for InversePrecedence<'a> {
     }
 }
 
-impl<'a> BinaryOperatorIndex for InversePrecedence<'a> {
+impl BinaryOperatorIndex for InversePrecedence<'_> {
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>> + 'b> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)

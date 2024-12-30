@@ -471,7 +471,7 @@ where
     }
 }
 
-impl<'a, K, V> Iterator for CombinedRange<'a, K, V>
+impl<K, V> Iterator for CombinedRange<'_, K, V>
 where
     K: Ord,
     for<'de> K: 'static + Clone + KeySerializer + Send,
@@ -556,7 +556,7 @@ where
     }
 }
 
-impl<'a, K, V> FusedIterator for CombinedRange<'a, K, V>
+impl<K, V> FusedIterator for CombinedRange<'_, K, V>
 where
     K: 'static + Ord + Clone + KeySerializer + Serialize + DeserializeOwned + Send,
     for<'de> V: 'static + Clone + Serialize + Deserialize<'de> + Send,

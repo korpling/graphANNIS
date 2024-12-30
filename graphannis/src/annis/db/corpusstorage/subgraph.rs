@@ -27,7 +27,7 @@ struct TokenIterator<'a> {
     ordering_edges: Arc<dyn GraphStorage>,
 }
 
-impl<'a> TokenIterator<'a> {
+impl TokenIterator<'_> {
     fn calculate_covering_nodes(&mut self) -> Result<()> {
         let mut covering_nodes = HashSet::new();
 
@@ -46,7 +46,7 @@ impl<'a> TokenIterator<'a> {
     }
 }
 
-impl<'a> Iterator for TokenIterator<'a> {
+impl Iterator for TokenIterator<'_> {
     type Item = Result<NodeID>;
 
     fn next(&mut self) -> Option<Self::Item> {

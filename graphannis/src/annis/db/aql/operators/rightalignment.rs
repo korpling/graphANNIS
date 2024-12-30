@@ -58,13 +58,13 @@ impl<'a> RightAlignment<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for RightAlignment<'a> {
+impl std::fmt::Display for RightAlignment<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_r_")
     }
 }
 
-impl<'a> BinaryOperatorBase for RightAlignment<'a> {
+impl BinaryOperatorBase for RightAlignment<'_> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         if let (Some(lhs_token), Some(rhs_token)) = (
             self.tok_helper.right_token_for(lhs.node)?,
@@ -101,7 +101,7 @@ impl<'a> BinaryOperatorBase for RightAlignment<'a> {
     }
 }
 
-impl<'a> BinaryOperatorIndex for RightAlignment<'a> {
+impl BinaryOperatorIndex for RightAlignment<'_> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
         let mut aligned = Vec::default();
 

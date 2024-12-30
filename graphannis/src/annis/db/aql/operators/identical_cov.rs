@@ -98,13 +98,13 @@ impl<'a> IdenticalCoverage<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for IdenticalCoverage<'a> {
+impl std::fmt::Display for IdenticalCoverage<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_=_")
     }
 }
 
-impl<'a> BinaryOperatorBase for IdenticalCoverage<'a> {
+impl BinaryOperatorBase for IdenticalCoverage<'_> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         let start_lhs = self.tok_helper.left_token_for(lhs.node)?;
         let end_lhs = self.tok_helper.right_token_for(lhs.node)?;
@@ -155,7 +155,7 @@ impl<'a> BinaryOperatorBase for IdenticalCoverage<'a> {
     }
 }
 
-impl<'a> BinaryOperatorIndex for IdenticalCoverage<'a> {
+impl BinaryOperatorIndex for IdenticalCoverage<'_> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
         let n_left = try_as_boxed_iter!(self.tok_helper.left_token_for(lhs.node));
         let n_right = try_as_boxed_iter!(self.tok_helper.right_token_for(lhs.node));

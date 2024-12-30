@@ -169,19 +169,19 @@ impl<'a> AnyTokenSearch<'a> {
     }
 }
 
-impl<'a> fmt::Display for AnyTokenSearch<'a> {
+impl fmt::Display for AnyTokenSearch<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "tok")
     }
 }
 
-impl<'a> ExecutionNode for AnyTokenSearch<'a> {
+impl ExecutionNode for AnyTokenSearch<'_> {
     fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         self.desc.as_ref()
     }
 }
 
-impl<'a> Iterator for AnyTokenSearch<'a> {
+impl Iterator for AnyTokenSearch<'_> {
     type Item = Result<MatchGroup>;
 
     fn next(&mut self) -> Option<Result<MatchGroup>> {

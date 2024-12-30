@@ -118,13 +118,13 @@ impl<'a> Near<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for Near<'a> {
+impl std::fmt::Display for Near<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "^{}", self.spec)
     }
 }
 
-impl<'a> BinaryOperatorBase for Near<'a> {
+impl BinaryOperatorBase for Near<'_> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         let start_end_forward = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
@@ -195,7 +195,7 @@ impl<'a> BinaryOperatorBase for Near<'a> {
     }
 }
 
-impl<'a> BinaryOperatorIndex for Near<'a> {
+impl BinaryOperatorIndex for Near<'_> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
         let start_forward = if self.spec.segmentation.is_some() {
             Some(lhs.node)

@@ -56,13 +56,13 @@ impl<'a> LeftAlignment<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for LeftAlignment<'a> {
+impl std::fmt::Display for LeftAlignment<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_l_")
     }
 }
 
-impl<'a> BinaryOperatorBase for LeftAlignment<'a> {
+impl BinaryOperatorBase for LeftAlignment<'_> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         if let (Some(lhs_token), Some(rhs_token)) = (
             self.tok_helper.left_token_for(lhs.node)?,
@@ -101,7 +101,7 @@ impl<'a> BinaryOperatorBase for LeftAlignment<'a> {
     }
 }
 
-impl<'a> BinaryOperatorIndex for LeftAlignment<'a> {
+impl BinaryOperatorIndex for LeftAlignment<'_> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
         let mut aligned = Vec::default();
 

@@ -103,13 +103,13 @@ impl<'a> NestedLoop<'a> {
     }
 }
 
-impl<'a> ExecutionNode for NestedLoop<'a> {
+impl ExecutionNode for NestedLoop<'_> {
     fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         Some(&self.desc)
     }
 }
 
-impl<'a> Iterator for NestedLoop<'a> {
+impl Iterator for NestedLoop<'_> {
     type Item = Result<MatchGroup>;
 
     fn next(&mut self) -> Option<Self::Item> {

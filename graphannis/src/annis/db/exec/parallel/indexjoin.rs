@@ -231,13 +231,13 @@ fn next_candidates(
     Ok(result)
 }
 
-impl<'a> ExecutionNode for IndexJoin<'a> {
+impl ExecutionNode for IndexJoin<'_> {
     fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         Some(&self.desc)
     }
 }
 
-impl<'a> Iterator for IndexJoin<'a> {
+impl Iterator for IndexJoin<'_> {
     type Item = Result<MatchGroup>;
 
     fn next(&mut self) -> Option<Self::Item> {
