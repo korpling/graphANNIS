@@ -86,13 +86,13 @@ impl<'a> Inclusion<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for Inclusion<'a> {
+impl std::fmt::Display for Inclusion<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_i_")
     }
 }
 
-impl<'a> BinaryOperatorBase for Inclusion<'a> {
+impl BinaryOperatorBase for Inclusion<'_> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         let left_right_lhs = self.tok_helper.left_right_token_for(lhs.node)?;
         let left_right_rhs = self.tok_helper.left_right_token_for(rhs.node)?;
@@ -160,7 +160,7 @@ enum NodeType {
     Other(NodeID),
 }
 
-impl<'a> BinaryOperatorIndex for Inclusion<'a> {
+impl BinaryOperatorIndex for Inclusion<'_> {
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>> + 'b> {
         let left_right_token = try_as_boxed_iter!(self.tok_helper.left_right_token_for(lhs.node));
         if let (Some(start_lhs), Some(end_lhs)) = left_right_token {

@@ -65,7 +65,7 @@ pub struct EqualValue<'a> {
     negated: bool,
 }
 
-impl<'a> std::fmt::Display for EqualValue<'a> {
+impl std::fmt::Display for EqualValue<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.negated {
             write!(f, "!=")
@@ -75,7 +75,7 @@ impl<'a> std::fmt::Display for EqualValue<'a> {
     }
 }
 
-impl<'a> EqualValue<'a> {
+impl EqualValue<'_> {
     fn value_for_match(&self, m: &Match, spec: &NodeSearchSpec) -> Result<Option<Cow<str>>> {
         match spec {
             NodeSearchSpec::ExactValue { .. }
@@ -119,7 +119,7 @@ impl<'a> EqualValue<'a> {
     }
 }
 
-impl<'a> BinaryOperatorBase for EqualValue<'a> {
+impl BinaryOperatorBase for EqualValue<'_> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         let lhs_val = self.value_for_match(lhs, &self.spec_left)?;
         let rhs_val = self.value_for_match(rhs, &self.spec_right)?;
@@ -177,7 +177,7 @@ impl<'a> BinaryOperatorBase for EqualValue<'a> {
     }
 }
 
-impl<'a> BinaryOperatorIndex for EqualValue<'a> {
+impl BinaryOperatorIndex for EqualValue<'_> {
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>> + 'b> {
         let lhs = lhs.clone();
         let lhs_val = try_as_boxed_iter!(self.value_for_match(&lhs, &self.spec_left));

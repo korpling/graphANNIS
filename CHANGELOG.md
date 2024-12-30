@@ -5,6 +5,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `UpdateEvent` now implements `PartialEq` to make possible to compare changes.
+
+### Fixed
+
+- Deserializing a write-ahead log failed because it was located at the wrong
+  sub-directory and the deserialization routine for the map had a bug.
+
 ## [3.5.1] - 2024-09-25
 
 ### Fixed

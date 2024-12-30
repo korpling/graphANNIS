@@ -87,7 +87,7 @@ impl<'a> Overlap<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for Overlap<'a> {
+impl std::fmt::Display for Overlap<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.reflexive {
             write!(f, "_o_reflexive_")
@@ -97,7 +97,7 @@ impl<'a> std::fmt::Display for Overlap<'a> {
     }
 }
 
-impl<'a> BinaryOperatorBase for Overlap<'a> {
+impl BinaryOperatorBase for Overlap<'_> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         if self.reflexive && lhs == rhs {
             return Ok(true);
@@ -173,7 +173,7 @@ impl<'a> BinaryOperatorBase for Overlap<'a> {
     }
 }
 
-impl<'a> BinaryOperatorIndex for Overlap<'a> {
+impl BinaryOperatorIndex for Overlap<'_> {
     fn retrieve_matches(&self, lhs: &Match) -> Box<dyn Iterator<Item = Result<Match>>> {
         // use set to filter out duplicates
         let mut result = FxHashSet::default();

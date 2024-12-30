@@ -54,7 +54,7 @@ pub struct NegatedOp<'a> {
     negated_op: BinaryOperator<'a>,
 }
 
-impl<'a> Display for NegatedOp<'a> {
+impl Display for NegatedOp<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "!",)?;
         self.negated_op.fmt(f)?;
@@ -62,7 +62,7 @@ impl<'a> Display for NegatedOp<'a> {
     }
 }
 
-impl<'a> BinaryOperatorBase for NegatedOp<'a> {
+impl BinaryOperatorBase for NegatedOp<'_> {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> Result<bool> {
         // Invert the filtered logic by the actual operator
         let orig = self.negated_op.filter_match(lhs, rhs)?;

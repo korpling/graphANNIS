@@ -147,7 +147,7 @@ impl<'a> ExecutionPlan<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for ExecutionPlan<'a> {
+impl std::fmt::Display for ExecutionPlan<'_> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         for (i, d) in self.descriptions.iter().enumerate() {
             if i > 0 {
@@ -163,7 +163,7 @@ impl<'a> std::fmt::Display for ExecutionPlan<'a> {
     }
 }
 
-impl<'a> Iterator for ExecutionPlan<'a> {
+impl Iterator for ExecutionPlan<'_> {
     type Item = Result<MatchGroup>;
 
     fn next(&mut self) -> Option<Self::Item> {

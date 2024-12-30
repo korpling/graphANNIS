@@ -134,13 +134,13 @@ impl<'a> Filter<'a> {
     }
 }
 
-impl<'a> ExecutionNode for Filter<'a> {
+impl ExecutionNode for Filter<'_> {
     fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         self.desc.as_ref()
     }
 }
 
-impl<'a> Iterator for Filter<'a> {
+impl Iterator for Filter<'_> {
     type Item = Result<MatchGroup>;
 
     fn next(&mut self) -> Option<Self::Item> {

@@ -15,7 +15,7 @@ use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 use tempfile::NamedTempFile;
 
 /// Describes a single update on the graph.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum UpdateEvent {
     /// Add a node with a name and type.
     AddNode {
@@ -304,10 +304,7 @@ impl<'de> Visitor<'de> for GraphUpdateVisitor {
 
         let mut event_counter = 0;
 
-        while let Some((id, event)) = access
-            .next_entry::<u64, GraphUpdate>()
-            .map_err(M::Error::custom)?
-        {
+        while let Some((id, event)) = access.next_entry::<u64, UpdateEvent>()? {
             event_counter = id;
             let key = id.create_key();
             let value = serialization.serialize(&event).map_err(M::Error::custom)?;
@@ -338,3 +335,6 @@ impl<'de> Deserialize<'de> for GraphUpdate {
         deserializer.deserialize_map(GraphUpdateVisitor {})
     }
 }
+
+#[cfg(test)]
+mod tests;

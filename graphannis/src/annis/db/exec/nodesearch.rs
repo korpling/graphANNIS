@@ -1092,7 +1092,7 @@ impl<'a> NodeSearch<'a> {
     }
 }
 
-impl<'a> ExecutionNode for NodeSearch<'a> {
+impl ExecutionNode for NodeSearch<'_> {
     fn get_desc(&self) -> Option<&ExecutionNodeDesc> {
         self.desc.as_ref()
     }
@@ -1106,7 +1106,7 @@ impl<'a> ExecutionNode for NodeSearch<'a> {
     }
 }
 
-impl<'a> Iterator for NodeSearch<'a> {
+impl Iterator for NodeSearch<'_> {
     type Item = Result<MatchGroup>;
 
     fn next(&mut self) -> Option<Self::Item> {
