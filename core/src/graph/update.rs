@@ -393,6 +393,7 @@ mod tests {
         let deseralized_update: GraphUpdate = bincode::deserialize(&seralized_bytes).unwrap();
 
         assert_eq!(0, deseralized_update.len().unwrap());
+        assert_eq!(true, deseralized_update.is_empty().unwrap());
     }
 
     #[test]
