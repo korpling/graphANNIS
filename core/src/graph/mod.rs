@@ -343,9 +343,10 @@ impl<CT: ComponentType> Graph<CT> {
         self.internal_save(&location.join("current"))
     }
 
-    /// Do synchronize updates with the stored location of this graph any longer.
-    pub fn unlink_location(&mut self) {
+    /// Do not synchronize updates with the stored location of this graph any longer.
+    pub fn unlink_location(&mut self) -> Result<()> {
         self.location = None;
+        Ok(())
     }
 
     fn get_cached_node_id_from_name(
