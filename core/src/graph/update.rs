@@ -381,6 +381,21 @@ mod tests {
     }
 
     #[test]
+    fn serialize_deserialize_bincode_empty() {
+        let example_updates: Vec<UpdateEvent> = Vec::new();
+
+        let mut updates = GraphUpdate::new();
+        for e in example_updates.iter() {
+            updates.add_event(e.clone()).unwrap();
+        }
+
+        let seralized_bytes: Vec<u8> = bincode::serialize(&updates).unwrap();
+        let deseralized_update: GraphUpdate = bincode::deserialize(&seralized_bytes).unwrap();
+
+        assert_eq!(0, deseralized_update.len().unwrap());
+    }
+
+    #[test]
     fn serialize_json() {
         let example_updates = vec![
             UpdateEvent::AddNode {
