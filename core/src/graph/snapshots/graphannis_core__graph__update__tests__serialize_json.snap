@@ -1,0 +1,27 @@
+---
+source: core/src/graph/update.rs
+expression: seralized_string
+---
+{
+  "1": {
+    "AddNode": {
+      "node_name": "parent",
+      "node_type": "corpus"
+    }
+  },
+  "2": {
+    "AddNode": {
+      "node_name": "child",
+      "node_type": "corpus"
+    }
+  },
+  "3": {
+    "AddEdge": {
+      "source_node": "child",
+      "target_node": "parent",
+      "layer": "annis",
+      "component_type": "PartOf",
+      "component_name": ""
+    }
+  }
+}

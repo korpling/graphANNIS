@@ -626,7 +626,7 @@ impl<CT: ComponentType> Graph<CT> {
                 std::fs::create_dir_all(&current_path)?;
 
                 // If successfull write log
-                let log_path = location.join("update_log.bin");
+                let log_path = current_path.join("update_log.bin");
 
                 // Create a temporary directory in the same file system as the output
                 let temporary_dir = tempfile::tempdir_in(&current_path)?;
@@ -1154,5 +1154,63 @@ mod tests {
 
         db.ensure_loaded_parallel(&[component]).unwrap();
         assert_eq!(0, db.components.len());
+    }
+
+    #[test]
+    fn load_with_wal_file() {
+        let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
+        let example_node = 0;
+        db.node_annos
+            .insert(
+                example_node,
+                Annotation {
+                    key: NODE_TYPE_KEY.as_ref().clone(),
+                    val: "corpus".into(),
+                },
+            )
+            .unwrap();
+        db.node_annos
+            .insert(
+                example_node,
+                Annotation {
+                    key: NODE_NAME_KEY.as_ref().clone(),
+                    val: "root".into(),
+                },
+            )
+            .unwrap();
+
+        let tmp = tempfile::tempdir().unwrap();
+        // Save and remember the location, so that updates are recorded in a WAL
+        // file
+        db.persist_to(tmp.path()).unwrap();
+
+        // Add an node annotation with apply_update
+        let mut u = GraphUpdate::new();
+        u.add_event(UpdateEvent::AddNodeLabel {
+            node_name: "root".into(),
+            anno_ns: "example".into(),
+            anno_name: "anno-name".into(),
+            anno_value: "anno-value".into(),
+        })
+        .unwrap();
+        db.apply_update(&mut u, |_| {}).unwrap();
+
+        std::mem::drop(db);
+
+        // Check that loading the database again contains the changes
+        let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
+        db.load_from(tmp.path(), true).unwrap();
+        let anno_value = db
+            .node_annos
+            .get_value_for_item(
+                &example_node,
+                &AnnoKey {
+                    name: "anno-name".into(),
+                    ns: "example".into(),
+                },
+            )
+            .unwrap()
+            .unwrap();
+        assert_eq!("anno-value", anno_value);
     }
 }
