@@ -244,7 +244,7 @@ impl<CT: ComponentType> Graph<CT> {
             // apply any outstanding log file updates
             let log_reader = std::fs::File::open(&log_path)?;
             let mut update = bincode::deserialize_from(log_reader)?;
-            self.apply_update_in_memory(&mut update, |_| {})?;
+            self.apply_update_in_memory(&mut update, true, |_| {})?;
         } else {
             self.current_change_id = 0;
         }
@@ -389,7 +389,12 @@ impl<CT: ComponentType> Graph<CT> {
     }
 
     #[allow(clippy::cognitive_complexity)]
-    fn apply_update_in_memory<F>(&mut self, u: &mut GraphUpdate, progress_callback: F) -> Result<()>
+    fn apply_update_in_memory<F>(
+        &mut self,
+        u: &mut GraphUpdate,
+        update_statistics: bool,
+        progress_callback: F,
+    ) -> Result<()>
     where
         F: Fn(&str),
     {
@@ -625,8 +630,10 @@ impl<CT: ComponentType> Graph<CT> {
             }
         } // end for each consistent update entry
 
-        progress_callback("calculating all statistics");
-        self.calculate_all_statistics()?;
+        if update_statistics {
+            progress_callback("calculating all statistics");
+            self.calculate_all_statistics()?;
+        }
 
         progress_callback("extending graph with model-specific index");
         ComponentType::apply_update_graph_index(update_graph_index, self)?;
@@ -645,13 +652,45 @@ impl<CT: ComponentType> Graph<CT> {
         // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
         self.ensure_loaded_all()?;
 
-        let result = self.apply_update_in_memory(u, &progress_callback);
-
+        let result = self.apply_update_in_memory(u, true, &progress_callback);
         progress_callback("memory updates completed, persisting updates to disk");
+        self.persist_updates(u, result, progress_callback)?;
+        Ok(())
+    }
 
+    /// Apply a sequence of updates (`u` parameter) to this graph but do not update the graph statistics.
+    /// If the graph has a location on the disk, the changes are persisted.
+    pub fn apply_update_keep_statistics<F>(
+        &mut self,
+        u: &mut GraphUpdate,
+        progress_callback: F,
+    ) -> Result<()>
+    where
+        F: Fn(&str),
+    {
+        progress_callback("applying list of atomic updates");
+
+        // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
+        self.ensure_loaded_all()?;
+
+        let result = self.apply_update_in_memory(u, false, &progress_callback);
+        progress_callback("memory updates completed, persisting updates to disk");
+        self.persist_updates(u, result, progress_callback)?;
+        Ok(())
+    }
+
+    fn persist_updates<F>(
+        &mut self,
+        u: &mut GraphUpdate,
+        apply_update_result: Result<()>,
+        progress_callback: F,
+    ) -> Result<()>
+    where
+        F: Fn(&str),
+    {
         if let Some(location) = self.location.clone() {
             trace!("output location for persisting updates is {:?}", location);
-            if result.is_ok() {
+            if apply_update_result.is_ok() {
                 let current_path = location.join("current");
                 // make sure the output path exits
                 std::fs::create_dir_all(&current_path)?;
@@ -672,15 +711,17 @@ impl<CT: ComponentType> Graph<CT> {
 
                 progress_callback("finished writing WAL update log");
             } else {
-                trace!("error occured while applying updates: {:?}", &result);
+                trace!(
+                    "error occured while applying updates: {:?}",
+                    &apply_update_result
+                );
                 // load corpus from disk again
                 self.open(&location)?;
                 self.ensure_loaded_all()?;
-                return result;
             }
         }
 
-        result
+        apply_update_result
     }
 
     /// A function to persist the changes of a write-ahead-log update on the disk. Should be run in a background thread.
