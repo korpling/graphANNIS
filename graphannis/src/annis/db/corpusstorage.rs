@@ -662,7 +662,7 @@ impl CorpusStorage {
             db
         } else {
             let mut db = AnnotationGraph::new(false)?;
-            db.load_from(&db_path, false)?;
+            db.open(&db_path)?;
             db
         };
 
