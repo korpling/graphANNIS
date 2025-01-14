@@ -1905,7 +1905,7 @@ impl CorpusStorage {
                 let include_in_output = prep
                     .query
                     .get_variable_by_node_nr(node_nr)
-                    .map_or(false, |var| prep.query.is_included_in_output(&var));
+                    .is_some_and(|var| prep.query.is_included_in_output(&var));
 
                 if include_in_output {
                     if any_nodes_added {

@@ -497,9 +497,9 @@ where
 
             let min_key = vec![c0, c1, c3].into_iter().flatten().min();
             if let Some(min_key) = min_key {
-                let c0_is_min = c0.map_or(false, |k| k == min_key);
-                let c1_is_min = c1.map_or(false, |k| k == min_key);
-                let c3_is_min = c3.map_or(false, |k| k == min_key);
+                let c0_is_min = c0 == Some(min_key);
+                let c1_is_min = c1 == Some(min_key);
+                let c3_is_min = c3 == Some(min_key);
 
                 // Advance all iterators with the same (minimal) key
                 let c0 = if c0_is_min {
