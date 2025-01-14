@@ -2526,7 +2526,7 @@ impl Drop for CorpusStorage {
         }
 
         // unlock lock file
-        if let Err(e) = self.lock_file.unlock() {
+        if let Err(e) = FileExt::unlock(&self.lock_file) {
             warn!("Could not unlock CorpusStorage lock file: {:?}", e);
         } else {
             trace!("Unlocked CorpusStorage lock file");
