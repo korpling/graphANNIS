@@ -1905,7 +1905,7 @@ impl CorpusStorage {
                 let include_in_output = prep
                     .query
                     .get_variable_by_node_nr(node_nr)
-                    .map_or(false, |var| prep.query.is_included_in_output(&var));
+                    .is_some_and(|var| prep.query.is_included_in_output(&var));
 
                 if include_in_output {
                     if any_nodes_added {
@@ -2526,7 +2526,7 @@ impl Drop for CorpusStorage {
         }
 
         // unlock lock file
-        if let Err(e) = self.lock_file.unlock() {
+        if let Err(e) = FileExt::unlock(&self.lock_file) {
             warn!("Could not unlock CorpusStorage lock file: {:?}", e);
         } else {
             trace!("Unlocked CorpusStorage lock file");
