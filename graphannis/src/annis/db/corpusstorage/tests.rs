@@ -25,7 +25,7 @@ use pretty_assertions::assert_eq;
 use super::SearchQuery;
 
 #[test]
-fn delete() {
+fn delete_existing_cached_corpus() {
     let tmp = tempfile::tempdir().unwrap();
     let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
     // fully load a corpus
@@ -38,7 +38,81 @@ fn delete() {
 
     cs.apply_update("testcorpus", &mut g).unwrap();
     cs.preload("testcorpus").unwrap();
-    cs.delete("testcorpus").unwrap();
+
+    let deleted = cs.delete("testcorpus").unwrap();
+
+    assert_eq!(true, deleted);
+}
+
+#[test]
+fn delete_existing_uncached_corpus() {
+    let tmp = tempfile::tempdir().unwrap();
+    {
+        let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+        let mut g = GraphUpdate::new();
+        g.add_event(UpdateEvent::AddNode {
+            node_name: "test".to_string(),
+            node_type: "node".to_string(),
+        })
+        .unwrap();
+
+        cs.apply_update("testcorpus", &mut g).unwrap();
+    }
+
+    {
+        let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+        let deleted = cs.delete("testcorpus").unwrap();
+
+        assert_eq!(true, deleted);
+    }
+}
+
+#[test]
+fn delete_nonexisting_corpus() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+    let deleted = cs.delete("testcorpus").unwrap();
+
+    assert_eq!(false, deleted);
+}
+
+#[test]
+fn create_empty_corpus_existing_cached() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+    cs.create_empty_corpus("testcorpus", false).unwrap();
+
+    let created = cs.create_empty_corpus("testcorpus", false).unwrap();
+
+    assert_eq!(false, created);
+}
+
+#[test]
+fn create_empty_corpus_existing_uncached() {
+    let tmp = tempfile::tempdir().unwrap();
+    {
+        let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+        cs.create_empty_corpus("testcorpus", false).unwrap();
+    }
+    {
+        let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+        let created = cs.create_empty_corpus("testcorpus", false).unwrap();
+
+        assert_eq!(false, created);
+    }
+}
+
+#[test]
+fn create_empty_corpus_nonexisting() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+    let created = cs.create_empty_corpus("testcorpus", false).unwrap();
+
+    assert_eq!(true, created);
 }
 
 #[test]
@@ -1255,6 +1329,135 @@ fn import_relative_corpus_with_linked_file() {
     .unwrap());
     let file_content = std::fs::read_to_string(first_file.1).unwrap();
     assert_eq!("The content of this file is not important.", file_content);
+}
+
+#[test]
+fn import_existing_cached_corpus_no_overwrite() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    cs.create_empty_corpus("testcorpus", false).unwrap();
+    let result = cs.import_from_fs(
+        &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
+        ImportFormat::GraphML,
+        Some("testcorpus".into()),
+        false,
+        false,
+        |_| {},
+    );
+
+    assert!(matches!(result, Err(GraphAnnisError::CorpusExists(_))));
+}
+
+#[test]
+fn import_existing_uncached_corpus_no_overwrite() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    {
+        let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+        cs.create_empty_corpus("testcorpus", false).unwrap();
+    }
+    {
+        let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+        let result = cs.import_from_fs(
+            &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
+            ImportFormat::GraphML,
+            Some("testcorpus".into()),
+            false,
+            false,
+            |_| {},
+        );
+
+        assert!(matches!(result, Err(GraphAnnisError::CorpusExists(_))));
+    }
+}
+
+#[test]
+fn import_existing_cached_corpus_overwrite() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    cs.import_from_fs(
+        &cargo_dir.join("tests/SegmentationWithGaps.graphml"),
+        ImportFormat::GraphML,
+        Some("testcorpus".into()),
+        false,
+        false,
+        |_| {},
+    )
+    .unwrap();
+
+    let num_ordering_components = cs
+        .list_components("testcorpus", Some(AnnotationComponentType::Ordering), None)
+        .unwrap()
+        .len();
+    assert_eq!(3, num_ordering_components);
+
+    cs.import_from_fs(
+        &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
+        ImportFormat::GraphML,
+        Some("testcorpus".into()),
+        false,
+        true,
+        |_| {},
+    )
+    .unwrap();
+
+    // Check that the number of ordering components has decreased,
+    // showing that the new corpus was not just added on top of the old one
+    let num_ordering_components = cs
+        .list_components("testcorpus", Some(AnnotationComponentType::Ordering), None)
+        .unwrap()
+        .len();
+    assert_eq!(1, num_ordering_components);
+}
+
+#[test]
+fn import_existing_uncached_corpus_overwrite() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    {
+        let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+        cs.import_from_fs(
+            &cargo_dir.join("tests/SegmentationWithGaps.graphml"),
+            ImportFormat::GraphML,
+            Some("testcorpus".into()),
+            false,
+            false,
+            |_| {},
+        )
+        .unwrap();
+
+        let num_ordering_components = cs
+            .list_components("testcorpus", Some(AnnotationComponentType::Ordering), None)
+            .unwrap()
+            .len();
+        assert_eq!(3, num_ordering_components);
+    }
+    {
+        let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+        cs.import_from_fs(
+            &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
+            ImportFormat::GraphML,
+            Some("testcorpus".into()),
+            false,
+            true,
+            |_| {},
+        )
+        .unwrap();
+
+        // Check that the number of ordering components has decreased,
+        // showing that the new corpus was not just added on top of the old one
+        let num_ordering_components = cs
+            .list_components("testcorpus", Some(AnnotationComponentType::Ordering), None)
+            .unwrap()
+            .len();
+        assert_eq!(1, num_ordering_components);
+    }
 }
 
 #[test]
