@@ -1,4 +1,4 @@
-name: Code Coverage
+name: Check
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   merge-request-checks:
-    name: Execute merge request checks
+    name: Run merge request checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,10 +44,10 @@ jobs:
         run: ./target/release/annis data --cmd 'import relannis/subtok.demo'
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
-      - name: Run merge-request-check.sh
+      - name: Run merge-request-checks.sh
         id: pr
         run: |
-          result=$(./merge-request-check.sh)
+          result=$(./merge-request-checks.sh)
           echo "result=$result" >>$GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
