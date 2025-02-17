@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix broken imports for existing corpora when they never have been added to the
+  cache or have been evicted from it. (by https://github.com/matthias-stemmler)
+
 ## [3.6.0] - 2025-01-14
 
 ### Added
