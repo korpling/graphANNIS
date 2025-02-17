@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install diff-cover
-        uses: threeal/pipx-install-action@v2.0.0
+        uses: threeal/pipx-install-action@v1.0.0
         with:
           packages: diff_cover
       - uses: actions-rust-lang/setup-rust-toolchain@v1.4.4
