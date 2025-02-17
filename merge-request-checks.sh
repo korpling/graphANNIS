@@ -17,4 +17,6 @@ cargo llvm-cov report --ignore-filename-regex '(tests?\.rs)|(capi/.*)' --release
 # Use diff-cover (https://github.com/Bachmann1234/diff_cover) and output code coverage compared to main branch
 mkdir -p target/llvm-cov/html/
 diff-cover target/llvm-cov/tests.lcov --html-report target/llvm-cov/html/patch.html
-echo "HTML report available at $PWD/target/llvm-cov/html/patch.html"
+if [ -z "${CI}" ]; then
+    echo "HTML report available at $PWD/target/llvm-cov/html/patch.html"
+fi

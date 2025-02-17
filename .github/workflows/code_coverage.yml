@@ -7,13 +7,15 @@ on:
   pull_request:
 
 jobs:
-  coverage:
-    name: Execute tests with code coverage
+  merge-request-checks:
+    name: Execute merge request checks
     runs-on: ubuntu-latest
-    env:
-      CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@v4
+      - name: Install diff-cover
+        uses: threeal/pipx-install-action@v2.0.0
+        with:
+          packages: diff_cover
       - uses: actions-rust-lang/setup-rust-toolchain@v1.4.4
         with:
           toolchain: stable
@@ -42,21 +44,15 @@ jobs:
         run: ./target/release/annis data --cmd 'import relannis/subtok.demo'
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
-      - name: Remove old code coverage artifacts
-        run: cargo llvm-cov clean --workspace
-      - name: Run tests code coverage (standard tests)
-        run: cargo llvm-cov --no-report --release
+      - name: Run merge-request-check.sh
+        id: pr
+        run: |
+          result=$(./merge-request-check.sh)
+          echo "result=$result" >>$GITHUB_OUTPUT
         env:
-          RUSTFLAGS: "-C link-dead-code"
-      - name: Run tests code coverage (ignored tests)
-        run: cargo llvm-cov --no-report --release --tests -- --ignored
-        env:
-          RUSTFLAGS: "-C link-dead-code"
-      - name: Merge code coverage reports
-        run: cargo llvm-cov report --ignore-filename-regex '(tests?\.rs)|(capi/.*)' --release --codecov --output-path codecov.json
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMENT_OUTPUT: TRUE
+      - uses: mshick/add-pr-comment@v2
         with:
-          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-          files: codecov.json
-          fail_ci_if_error: true
+          message: |
+            ${{ steps.pr.outputs.result }}
