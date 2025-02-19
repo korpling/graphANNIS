@@ -48,13 +48,13 @@ jobs:
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: Run verify.sh
         id: pr
-        run: |
-          result=$(./verify.sh)
-          echo "result=$result" >>$GITHUB_OUTPUT
+        uses: mathiasvr/command-output@v2.0.0
+        with:
+          run: ./verify.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMENT_OUTPUT: TRUE
       - uses: mshick/add-pr-comment@v2
         with:
           message: |
-            ${{ steps.pr.outputs.result }}
+            ${{ steps.pr.outputs.stdout }}
