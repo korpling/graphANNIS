@@ -62,6 +62,7 @@ jobs:
       - uses: mshick/add-pr-comment@v2
         with:
           message: |
+            Commit ${{env.GITHUB_SHA}}
             ```
             ${{env.COVERAGE_INFO}}
             ```
