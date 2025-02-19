@@ -62,4 +62,4 @@ jobs:
       - uses: mshick/add-pr-comment@v2
         with:
           message: |
-            ${COVERAGE_INFO}
+            ${{env.COVERAGE_INFO}}
