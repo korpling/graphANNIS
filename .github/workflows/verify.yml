@@ -48,13 +48,16 @@ jobs:
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: Run verify.sh
         id: pr
-        uses: mathiasvr/command-output@v2.0.0
-        with:
-          run: ./verify.sh
+        run: |
+          {
+            echo 'COVERAGE<<EOF'
+            ./verify.sh
+            echo EOF
+          } >> "$GITHUB_ENV"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMENT_OUTPUT: TRUE
       - uses: mshick/add-pr-comment@v2
         with:
           message: |
-            ${{ steps.pr.outputs.stdout }}
+            ${{ steps.pr.outputs.COVERAGE }}
