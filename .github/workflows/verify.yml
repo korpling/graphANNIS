@@ -52,15 +52,14 @@ jobs:
         id: pr
         run: |
           {
-            echo 'COVERAGE<<EOF'
+            echo 'COVERAGE_INFO<<EOF'
             diff-cover target/llvm-cov/tests.lcov
             echo EOF
           } >> "$GITHUB_ENV"
-          echo "result=$COVERAGE" >> "$GITHUB_OUTPUT"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMENT_OUTPUT: TRUE
       - uses: mshick/add-pr-comment@v2
         with:
           message: |
-            ${{ steps.pr.outputs.result }}
+            ${COVERAGE_INFO}
