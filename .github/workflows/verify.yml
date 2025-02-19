@@ -47,11 +47,13 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: Run verify.sh
+        run: ./verify.sh
+      - name: Generate code coverage comment
         id: pr
         run: |
           {
             echo 'COVERAGE<<EOF'
-            ./verify.sh
+            diff-cover target/llvm-cov/tests.lcov
             echo EOF
           } >> "$GITHUB_ENV"
           echo "result=$COVERAGE" >> "$GITHUB_OUTPUT"
