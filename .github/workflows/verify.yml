@@ -54,10 +54,11 @@ jobs:
             ./verify.sh
             echo EOF
           } >> "$GITHUB_ENV"
+          echo "result=$COVERAGE" >> "$GITHUB_OUTPUT"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMENT_OUTPUT: TRUE
       - uses: mshick/add-pr-comment@v2
         with:
           message: |
-            ${{ steps.pr.outputs.COVERAGE }}
+            ${{ steps.pr.outputs.result }}
