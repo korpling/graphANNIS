@@ -62,7 +62,13 @@ jobs:
       - uses: mshick/add-pr-comment@v2
         with:
           message: |
-            Commit ${{env.GITHUB_SHA}}
+            Commit ${{ github.event.pull_request.head.sha }}
             ```
             ${{env.COVERAGE_INFO}}
             ```
+      - uses: kaisugi/action-regex-match@v1.0.1
+        id: code-coverage-percent
+        with:
+          text: ${{env.COVERAGE_INFO}}
+          regex: '^Coverage: [0-9]+\%$'
+      
