@@ -28,7 +28,7 @@ if [[ $OUTPUT =~ $PERC_REGEX ]]; then
     PERCENTAGE="$((${BASH_REMATCH[1]}))"
     if [[ $PERCENTAGE -lt 80 ]]
         then
-            echo "Code coverage threshold not reached"
+            >&2 echo "Code coverage threshold not reached"
             exit 3
         fi
 fi
