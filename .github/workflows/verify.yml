@@ -66,9 +66,4 @@ jobs:
             ```
             ${{env.COVERAGE_INFO}}
             ```
-      - uses: kaisugi/action-regex-match@v1.0.1
-        id: code-coverage-percent
-        with:
-          text: ${{env.COVERAGE_INFO}}
-          regex: '^Coverage: [0-9]+\%$'
       

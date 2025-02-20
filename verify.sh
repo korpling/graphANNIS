@@ -16,7 +16,20 @@ cargo llvm-cov report --ignore-filename-regex '(tests?\.rs)|(capi/.*)' --release
 
 # Use diff-cover (https://github.com/Bachmann1234/diff_cover) and output code coverage compared to main branch
 mkdir -p target/llvm-cov/html/
-diff-cover target/llvm-cov/tests.lcov --html-report target/llvm-cov/html/patch.html
+OUTPUT="$(diff-cover target/llvm-cov/tests.lcov --html-report target/llvm-cov/html/patch.html)"
+echo "$OUTPUT"
 if [ -z "${CI}" ]; then
     echo "HTML report available at $PWD/target/llvm-cov/html/patch.html"
 fi
+
+# Extract the code coverage percentage and exit with error code if threshold is not reached
+PERC_REGEX='.*Coverage: ([0-9]+)(\.[0-9]*)?\%.*'
+if [[ $OUTPUT =~ $PERC_REGEX ]]; then
+    PERCENTAGE="$((${BASH_REMATCH[1]}))"
+    if [[ $PERCENTAGE -lt 80 ]]
+        then
+            echo "Code coverage threshold not reached"
+            exit 3
+        fi
+fi
+exit 0
