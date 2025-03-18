@@ -216,7 +216,7 @@ where
                 return Ok(Box::new(it));
             }
         } else if let Some(c2) = &self.c2 {
-            if self.c0.is_empty() && self.c1.as_ref().map_or(true, |c1| c1.is_empty()) {
+            if self.c0.is_empty() && self.c1.as_ref().is_none_or(|c1| c1.is_empty()) {
                 let table_iterator = c2.iter();
                 let it = SingleTableIterator {
                     table_iterator,
@@ -257,7 +257,7 @@ where
                 return Box::new(it);
             }
         } else if let Some(c2) = &self.c2 {
-            if self.c0.is_empty() && self.c1.as_ref().map_or(true, |c1| c1.is_empty()) {
+            if self.c0.is_empty() && self.c1.as_ref().is_none_or(|c1| c1.is_empty()) {
                 let mapped_start_bound: std::ops::Bound<KeyVec> = match range.start_bound() {
                     Bound::Included(end) => Bound::Included(K::create_key(end)),
                     Bound::Excluded(end) => Bound::Excluded(K::create_key(end)),

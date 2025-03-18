@@ -158,7 +158,9 @@ fn calculate_inherited_coverage_edges(
 }
 
 pub struct AQLUpdateGraphIndex {
-    node_ids: DiskMap<String, NodeID>,
+    /// A map from a node name to its internal ID.
+    cached_node_ids: DiskMap<String, NodeID>,
+    /// True if the graph did not have any nodes before the update.
     graph_without_nodes: bool,
     invalid_nodes: DiskMap<NodeID, bool>,
     text_coverage_components: FxHashSet<AnnotationComponent>,
@@ -170,10 +172,10 @@ impl AQLUpdateGraphIndex {
         node_name: Cow<String>,
         graph: &AnnotationGraph,
     ) -> std::result::Result<NodeID, ComponentTypeError> {
-        if let Some(id) = self.node_ids.get(&node_name)? {
+        if let Some(id) = self.cached_node_ids.get(&node_name)? {
             return Ok(*id);
         } else if let Some(id) = graph.get_node_annos().get_node_id_from_name(&node_name)? {
-            self.node_ids.insert(node_name.to_string(), id)?;
+            self.cached_node_ids.insert(node_name.to_string(), id)?;
             return Ok(id);
         }
         Err(ComponentTypeError(
@@ -439,7 +441,7 @@ impl ComponentType for AnnotationComponentType {
         text_coverage_components
             .extend(graph.get_all_components(Some(AnnotationComponentType::Coverage), None));
         Ok(AQLUpdateGraphIndex {
-            node_ids,
+            cached_node_ids: node_ids,
             graph_without_nodes,
             text_coverage_components,
             invalid_nodes,

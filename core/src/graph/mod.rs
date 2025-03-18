@@ -145,17 +145,33 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(db)
     }
 
-    fn set_location(&mut self, location: &Path) -> Result<()> {
-        self.location = Some(PathBuf::from(location));
+    /// Opens the graph from an external location.
+    /// All updates will be persisted to this location.
+    ///
+    /// * `location` - The path on the disk
+    pub fn open(&mut self, location: &Path) -> Result<()> {
+        debug!("Opening corpus from {}", location.to_string_lossy());
+        self.clear()?;
+        self.location = Some(location.to_path_buf());
+        self.internal_open(location)?;
 
         Ok(())
     }
 
-    /// Clear the graph content.
-    /// This removes all node annotations, edges and knowledge about components.
-    fn clear(&mut self) -> Result<()> {
-        self.node_annos = Box::new(crate::annostorage::inmemory::AnnoStorageImpl::new());
-        self.components.clear();
+    /// Overwrites all content with the graph at the external location. Updates
+    /// will *not* be persisted to this location and any old location will be
+    /// cleared.
+    ///
+    /// * `location` - The path on the disk
+    pub fn import(&mut self, location: &Path) -> Result<()> {
+        debug!("Importing corpus from {}", location.to_string_lossy());
+        self.clear()?;
+        // Set the path temoporary to the actual path, so loading the components will not fail
+        self.location = Some(location.to_path_buf());
+        self.internal_open(location)?;
+        self.ensure_loaded_all()?;
+        // Unlink the location again
+        self.location = None;
         Ok(())
     }
 
@@ -164,14 +180,21 @@ impl<CT: ComponentType> Graph<CT> {
     ///
     /// * `location` - The path on the disk
     /// * `preload` - If `true`, all components are loaded from disk into main memory.
+    #[deprecated(note = "Please use `open` instead")]
     pub fn load_from(&mut self, location: &Path, preload: bool) -> Result<()> {
-        debug!("Loading corpus from {}", location.to_string_lossy());
-        self.clear()?;
+        self.open(location)?;
+        if preload {
+            self.ensure_loaded_all()?;
+        }
+        Ok(())
+    }
 
-        let location = PathBuf::from(location);
-
-        self.set_location(location.as_path())?;
-
+    /// Internal helper function that loads the content from an external
+    /// location.
+    ///
+    /// It does not clear the current graph and does not alter the configured
+    /// location to persist the graph to.
+    fn internal_open(&mut self, location: &Path) -> Result<()> {
         let backup = location.join("backup");
 
         let mut load_from_backup = false;
@@ -213,7 +236,7 @@ impl<CT: ComponentType> Graph<CT> {
         self.find_components_from_disk(&dir2load)?;
 
         // If backup is active or a write log exists, always  a pre-load to get the complete corpus.
-        if preload | logfile_exists | load_from_backup {
+        if logfile_exists | load_from_backup {
             self.ensure_loaded_all()?;
         }
 
@@ -221,7 +244,7 @@ impl<CT: ComponentType> Graph<CT> {
             // apply any outstanding log file updates
             let log_reader = std::fs::File::open(&log_path)?;
             let mut update = bincode::deserialize_from(log_reader)?;
-            self.apply_update_in_memory(&mut update, |_| {})?;
+            self.apply_update_in_memory(&mut update, true, |_| {})?;
         } else {
             self.current_change_id = 0;
         }
@@ -240,6 +263,27 @@ impl<CT: ComponentType> Graph<CT> {
             tmp_dir.close()?;
         }
 
+        Ok(())
+    }
+
+    /// Save the current database to a `location` on the disk, but do not remember this location.
+    pub fn save_to(&mut self, location: &Path) -> Result<()> {
+        // make sure all components are loaded, otherwise saving them does not make any sense
+        self.ensure_loaded_all()?;
+        self.internal_save(&location.join("current"))
+    }
+
+    /// Save the current database at a new `location` and remember it as new internal location.
+    pub fn persist_to(&mut self, location: &Path) -> Result<()> {
+        self.location = Some(location.to_path_buf());
+        self.internal_save(&location.join("current"))
+    }
+
+    /// Clear the graph content.
+    /// This removes all node annotations, edges and knowledge about components.
+    fn clear(&mut self) -> Result<()> {
+        self.node_annos = Box::new(crate::annostorage::inmemory::AnnoStorageImpl::new());
+        self.components.clear();
         Ok(())
     }
 
@@ -330,19 +374,6 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    /// Save the current database to a `location` on the disk, but do not remember this location.
-    pub fn save_to(&mut self, location: &Path) -> Result<()> {
-        // make sure all components are loaded, otherwise saving them does not make any sense
-        self.ensure_loaded_all()?;
-        self.internal_save(&location.join("current"))
-    }
-
-    /// Save the current database at a new `location` and remember it as new internal location.
-    pub fn persist_to(&mut self, location: &Path) -> Result<()> {
-        self.set_location(location)?;
-        self.internal_save(&location.join("current"))
-    }
-
     fn get_cached_node_id_from_name(
         &self,
         node_name: Cow<String>,
@@ -358,7 +389,12 @@ impl<CT: ComponentType> Graph<CT> {
     }
 
     #[allow(clippy::cognitive_complexity)]
-    fn apply_update_in_memory<F>(&mut self, u: &mut GraphUpdate, progress_callback: F) -> Result<()>
+    fn apply_update_in_memory<F>(
+        &mut self,
+        u: &mut GraphUpdate,
+        update_statistics: bool,
+        progress_callback: F,
+    ) -> Result<()>
     where
         F: Fn(&str),
     {
@@ -594,8 +630,10 @@ impl<CT: ComponentType> Graph<CT> {
             }
         } // end for each consistent update entry
 
-        progress_callback("calculating all statistics");
-        self.calculate_all_statistics()?;
+        if update_statistics {
+            progress_callback("calculating all statistics");
+            self.calculate_all_statistics()?;
+        }
 
         progress_callback("extending graph with model-specific index");
         ComponentType::apply_update_graph_index(update_graph_index, self)?;
@@ -614,13 +652,45 @@ impl<CT: ComponentType> Graph<CT> {
         // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
         self.ensure_loaded_all()?;
 
-        let result = self.apply_update_in_memory(u, &progress_callback);
-
+        let result = self.apply_update_in_memory(u, true, &progress_callback);
         progress_callback("memory updates completed, persisting updates to disk");
+        self.persist_updates(u, result, progress_callback)?;
+        Ok(())
+    }
 
+    /// Apply a sequence of updates (`u` parameter) to this graph but do not update the graph statistics.
+    /// If the graph has a location on the disk, the changes are persisted.
+    pub fn apply_update_keep_statistics<F>(
+        &mut self,
+        u: &mut GraphUpdate,
+        progress_callback: F,
+    ) -> Result<()>
+    where
+        F: Fn(&str),
+    {
+        progress_callback("applying list of atomic updates");
+
+        // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
+        self.ensure_loaded_all()?;
+
+        let result = self.apply_update_in_memory(u, false, &progress_callback);
+        progress_callback("memory updates completed, persisting updates to disk");
+        self.persist_updates(u, result, progress_callback)?;
+        Ok(())
+    }
+
+    fn persist_updates<F>(
+        &mut self,
+        u: &mut GraphUpdate,
+        apply_update_result: Result<()>,
+        progress_callback: F,
+    ) -> Result<()>
+    where
+        F: Fn(&str),
+    {
         if let Some(location) = self.location.clone() {
             trace!("output location for persisting updates is {:?}", location);
-            if result.is_ok() {
+            if apply_update_result.is_ok() {
                 let current_path = location.join("current");
                 // make sure the output path exits
                 std::fs::create_dir_all(&current_path)?;
@@ -641,14 +711,17 @@ impl<CT: ComponentType> Graph<CT> {
 
                 progress_callback("finished writing WAL update log");
             } else {
-                trace!("error occured while applying updates: {:?}", &result);
+                trace!(
+                    "error occured while applying updates: {:?}",
+                    &apply_update_result
+                );
                 // load corpus from disk again
-                self.load_from(&location, true)?;
-                return result;
+                self.open(&location)?;
+                self.ensure_loaded_all()?;
             }
         }
 
-        result
+        apply_update_result
     }
 
     /// A function to persist the changes of a write-ahead-log update on the disk. Should be run in a background thread.
@@ -1052,165 +1125,4 @@ impl<CT: ComponentType> Graph<CT> {
 }
 
 #[cfg(test)]
-mod tests {
-
-    use super::*;
-    use crate::types::{AnnoKey, Annotation, DefaultComponentType, Edge};
-
-    #[test]
-    fn create_writeable_gs() {
-        let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
-
-        let anno_key = AnnoKey {
-            ns: "test".into(),
-            name: "edge_anno".into(),
-        };
-        let anno_val = "testValue".into();
-
-        let component = Component::new(DefaultComponentType::Edge, "test".into(), "dep".into());
-        let gs: &mut dyn WriteableGraphStorage = db.get_or_create_writable(&component).unwrap();
-
-        gs.add_edge(Edge {
-            source: 0,
-            target: 1,
-        })
-        .unwrap();
-
-        gs.add_edge_annotation(
-            Edge {
-                source: 0,
-                target: 1,
-            },
-            Annotation {
-                key: anno_key,
-                val: anno_val,
-            },
-        )
-        .unwrap();
-    }
-
-    #[test]
-    fn load_existing_graph_storage() {
-        let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
-
-        let component = Component::new(DefaultComponentType::Edge, "test".into(), "dep".into());
-        db.get_or_create_writable(&component).unwrap();
-
-        let tmp = tempfile::tempdir().unwrap();
-
-        db.save_to(tmp.path()).unwrap();
-
-        let mut db = Graph::new(false).unwrap();
-        db.load_from(tmp.path(), false).unwrap();
-        assert_eq!(1, db.components.len());
-        let gs = db.components.get(&component);
-        assert_eq!(true, gs.is_some());
-        assert_eq!(false, gs.unwrap().is_some());
-
-        db.ensure_loaded(&component).unwrap();
-        assert_eq!(1, db.components.len());
-        let gs = db.components.get(&component);
-        assert_eq!(true, gs.is_some());
-        assert_eq!(true, gs.unwrap().is_some());
-    }
-
-    #[test]
-    fn load_existing_graph_storage_parallel() {
-        let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
-
-        let component = Component::new(DefaultComponentType::Edge, "test".into(), "dep".into());
-        db.get_or_create_writable(&component).unwrap();
-
-        let tmp = tempfile::tempdir().unwrap();
-
-        db.save_to(tmp.path()).unwrap();
-
-        let mut db = Graph::new(false).unwrap();
-        db.load_from(tmp.path(), false).unwrap();
-        assert_eq!(1, db.components.len());
-        let gs = db.components.get(&component);
-        assert_eq!(true, gs.is_some());
-        assert_eq!(false, gs.unwrap().is_some());
-
-        db.ensure_loaded_parallel(&[component.clone()]).unwrap();
-        assert_eq!(1, db.components.len());
-        let gs = db.components.get(&component);
-        assert_eq!(true, gs.is_some());
-        assert_eq!(true, gs.unwrap().is_some());
-    }
-
-    #[test]
-    fn load_non_existing_graph_storage_parallel() {
-        let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
-
-        let component = Component::new(DefaultComponentType::Edge, "test".into(), "dep".into());
-
-        let tmp = tempfile::tempdir().unwrap();
-
-        db.save_to(tmp.path()).unwrap();
-
-        let mut db = Graph::new(false).unwrap();
-        db.load_from(tmp.path(), false).unwrap();
-
-        db.ensure_loaded_parallel(&[component]).unwrap();
-        assert_eq!(0, db.components.len());
-    }
-
-    #[test]
-    fn load_with_wal_file() {
-        let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
-        let example_node = 0;
-        db.node_annos
-            .insert(
-                example_node,
-                Annotation {
-                    key: NODE_TYPE_KEY.as_ref().clone(),
-                    val: "corpus".into(),
-                },
-            )
-            .unwrap();
-        db.node_annos
-            .insert(
-                example_node,
-                Annotation {
-                    key: NODE_NAME_KEY.as_ref().clone(),
-                    val: "root".into(),
-                },
-            )
-            .unwrap();
-
-        let tmp = tempfile::tempdir().unwrap();
-        // Save and remember the location, so that updates are recorded in a WAL
-        // file
-        db.persist_to(tmp.path()).unwrap();
-
-        // Add an node annotation with apply_update
-        let mut u = GraphUpdate::new();
-        u.add_event(UpdateEvent::AddNodeLabel {
-            node_name: "root".into(),
-            anno_ns: "example".into(),
-            anno_name: "anno-name".into(),
-            anno_value: "anno-value".into(),
-        })
-        .unwrap();
-        db.apply_update(&mut u, |_| {}).unwrap();
-
-        std::mem::drop(db);
-
-        // Check that loading the database again contains the changes
-        let mut db = Graph::<DefaultComponentType>::new(false).unwrap();
-        db.load_from(tmp.path(), true).unwrap();
-        let anno_value = db
-            .node_annos
-            .get_value_for_item(
-                &example_node,
-                &AnnoKey {
-                    name: "anno-name".into(),
-                    ns: "example".into(),
-                },
-            )
-            .unwrap()
-            .unwrap();
-        assert_eq!("anno-value", anno_value);
-    }
-}
+mod tests;
