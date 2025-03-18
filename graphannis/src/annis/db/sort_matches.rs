@@ -252,9 +252,12 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn tiger_doc_name_sort_strcoll() {
+        use std::time::Duration;
+
         unsafe {
             let locale = CString::new("en_US.UTF-8").unwrap_or_default();
             libc::setlocale(libc::LC_COLLATE, locale.as_ptr());
+            std::thread::sleep(Duration::from_millis(500));
         }
 
         let p1 = "tiger2/tiger2/tiger_release_dec05_110";
