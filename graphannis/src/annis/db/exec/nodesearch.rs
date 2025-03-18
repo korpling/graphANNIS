@@ -1068,8 +1068,7 @@ impl<'a> NodeSearch<'a> {
                 }
                 Err(e) => Err(GraphAnnisError::from(e)),
             })
-            .filter_map_ok(|m| m)
-            .map(|m| m.map_err(GraphAnnisError::from));
+            .filter_map_ok(|m| m);
         let mut new_desc = desc.cloned();
         if let Some(ref mut new_desc) = new_desc {
             new_desc.impl_description = String::from("part-of-component-search");
