@@ -364,7 +364,7 @@ where
         let item_smaller_than_largest = self
             .largest_item
             .as_ref()
-            .map_or(true, |largest_item| item <= *largest_item);
+            .is_none_or(|largest_item| item <= *largest_item);
         let already_existed =
             item_smaller_than_largest && self.by_container.contains_key(&by_container_key)?;
         self.by_container
