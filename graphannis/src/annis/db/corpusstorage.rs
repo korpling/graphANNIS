@@ -991,17 +991,23 @@ impl CorpusStorage {
         check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![], false)?;
 
         // remove any possible old corpus
-        if cache.contains_key(&corpus_name) {
-            if overwrite_existing {
-                let old_entry = cache.remove(&corpus_name);
-                if old_entry.is_some() {
-                    if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
-                        error!("Error when removing existing files {}", e);
-                    }
+        if overwrite_existing {
+            let old_entry = cache.remove(&corpus_name);
+
+            // if there is a cache entry, acquire an exclusive lock for it because
+            // other queries or background writers might still have access to it and need to finish first
+            let _lock = old_entry
+                .as_ref()
+                .map(|db_entry| db_entry.write())
+                .transpose()?;
+
+            if db_path.is_dir() {
+                if let Err(e) = std::fs::remove_dir_all(&db_path) {
+                    error!("Error when removing existing files {}", e);
                 }
-            } else {
-                return Err(GraphAnnisError::CorpusExists(corpus_name.to_string()));
             }
+        } else if cache.contains_key(&corpus_name) || db_path.is_dir() {
+            return Err(GraphAnnisError::CorpusExists(corpus_name.to_string()));
         }
 
         if let Err(e) = std::fs::create_dir_all(&db_path) {
@@ -1355,24 +1361,27 @@ impl CorpusStorage {
         let db_path = self.corpus_directory_on_disk(corpus_name);
 
         let mut cache_lock = self.corpus_cache.write()?;
-
         let cache = &mut *cache_lock;
 
-        // remove any possible old corpus
-        if let Some(db_entry) = cache.remove(corpus_name) {
-            // aquire exclusive lock for this cache entry because
-            // other queries or background writer might still have access it and need to finish first
-            let mut _lock = db_entry.write()?;
+        let db_entry = cache.remove(corpus_name);
 
-            if db_path.is_dir() && db_path.exists() {
-                std::fs::remove_dir_all(db_path).map_err(|e| {
-                    CorpusStorageError::RemoveFileForCorpus {
-                        corpus: corpus_name.to_string(),
-                        source: e,
-                    }
-                })?
-            }
+        // if there is a cache entry, acquire an exclusive lock for it because
+        // other queries or background writers might still have access to it and need to finish first
+        let _lock = db_entry
+            .as_ref()
+            .map(|db_entry| db_entry.write())
+            .transpose()?;
 
+        if db_path.is_dir() {
+            std::fs::remove_dir_all(db_path).map_err(|e| {
+                CorpusStorageError::RemoveFileForCorpus {
+                    corpus: corpus_name.to_string(),
+                    source: e,
+                }
+            })?;
+
+            Ok(true)
+        } else if db_entry.is_some() {
             Ok(true)
         } else {
             Ok(false)
@@ -1384,11 +1393,12 @@ impl CorpusStorage {
     /// Use [`apply_update`](CorpusStorage::apply_update) to add elements to the corpus. Returns whether a
     /// new corpus was created.
     pub fn create_empty_corpus(&self, corpus_name: &str, disk_based: bool) -> Result<bool> {
-        let mut cache_lock = self.corpus_cache.write()?;
+        let db_path = self.corpus_directory_on_disk(corpus_name);
 
+        let mut cache_lock = self.corpus_cache.write()?;
         let cache = &mut *cache_lock;
 
-        if cache.contains_key(corpus_name) {
+        if cache.contains_key(corpus_name) || db_path.is_dir() {
             Ok(false)
         } else {
             self.load_entry_with_lock(&mut cache_lock, corpus_name, true, disk_based)?;

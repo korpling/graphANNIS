@@ -24,19 +24,29 @@ Notable differences/enhancements compared to the thesis are:
 You need to install Rust to compile the project.
 We recommend installing the following Cargo subcommands for developing annis-web:
 
+- [cargo-llvm-cov](https://crates.io/crates/cargo-llvm-cov) for determining the code coverage
 - [cargo-release](https://crates.io/crates/cargo-release) for creating releases
 - [cargo-about](https://crates.io/crates/cargo-about) for re-generating the
   third party license file
-- [cargo-llvm-cov](https://crates.io/crates/cargo-llvm-cov) for determining the code coverage
 - [cargo-dist](https://crates.io/crates/cargo-dist) for configuring the GitHub actions that create the release binaries.
+
+Also install the [`diff-cover`](https://github.com/Bachmann1234/diff_cover) command line tool to run merge the merge request checks locally.
 
 ### Execute tests
 
 You can run the tests with the default `cargo test` command.
-To calculate the code coverage, you can use `cargo-llvm-cov`:
+
+To run all checks that have to pass for a merge requests locally, first make sure you have the `diff-cover` and `cargo-llvm-cov` tools installed.
 
 ```bash
-cargo llvm-cov --open --all-features --ignore-filename-regex '(tests?\.rs)|(capi/.*)'
+cargo install cargo-llvm-cov
+pipx install diff_cover
+```
+
+Then, run the following command to run all checks including code coverage:
+
+```bash
+./verify.sh
 ```
 
 
