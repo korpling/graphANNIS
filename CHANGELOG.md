@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix broken imports for existing corpora when they never have been added to the
   cache or have been evicted from it. (by https://github.com/matthias-stemmler)
 
+### Deprecated
+
+- `Graph::load_from` is replaced with the `open` and `import` methods.
+
+### Added
+
+- Allow to add updates to the annotation `Graph` without re-calculating the
+  statistics with `apply_update_keep_statistics`. This is useful for scenarios
+  were we assume the changes don't change the graph that much and we want to
+  apply the updates as fast as possible.
+- Open an `Graph` from an external location with `open` or `import` the changes
+  into the current graph.
+
 ## [3.6.0] - 2025-01-14
 
 ### Added
