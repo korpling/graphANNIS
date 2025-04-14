@@ -115,6 +115,31 @@ fn trim_resolver_mappings() {
 }
 
 #[test]
+fn missing_visibility_column_in_resolver() {
+    let parent = create_temporary_corpus_dir_file(
+        r#"somecorpus	NULL	syntax	node	tree	syntax (tree)	1	test: true; anothertest:false
+somecorpus	NULL	NULL	NULL	discourse	document (text)	2	NULL"#,
+        "resolver_vis_map.tab",
+    );
+    let mut config = CorpusConfiguration::default();
+    load_resolver_vis_map(parent.path(), &mut config, false, &|_| {}).unwrap();
+
+    assert_eq!(8, config.visualizers.len());
+
+    let syntax_vis = &config.visualizers[1];
+    assert_eq!("syntax (tree)", syntax_vis.display_name);
+    assert_eq!(VisualizerVisibility::Hidden, syntax_vis.visibility);
+    assert_eq!(2, syntax_vis.mappings.len());
+    assert_eq!("true", syntax_vis.mappings.get("test").unwrap());
+    assert_eq!("false", syntax_vis.mappings.get("anothertest").unwrap());
+
+    let doc_vis = &config.visualizers[2];
+    assert_eq!("document (text)", doc_vis.display_name);
+    assert_eq!(VisualizerVisibility::Hidden, doc_vis.visibility);
+    assert_eq!(0, doc_vis.mappings.len());
+}
+
+#[test]
 fn parse_virtual_tokenization_mapping() {
     let parent = create_temporary_corpus_dir_file(
         "virtual_tokenization_mapping=anno1=norm,anno2=norm,anotherspan=dipl,testspan=clean",
