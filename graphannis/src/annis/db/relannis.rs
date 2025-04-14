@@ -484,14 +484,13 @@ where
     ));
 
     let mut resolver_tab_csv = postgresql_import_reader(resolver_tab_path.as_path())?;
-
     let mut rules_by_order: Vec<(i64, bool, VisualizerRule)> = DEFAULT_VISUALIZER_RULES.clone();
-
-    let order_col = if is_annis_33 { 7 } else { 6 };
-    let mapping_col = if is_annis_33 { 8 } else { 7 };
 
     for result in resolver_tab_csv.records() {
         let line = result?;
+
+        let order_col = if is_annis_33 || line.len() == 9 { 7 } else { 6 };
+        let mapping_col = if is_annis_33 || line.len() == 9 { 8 } else { 7 };
 
         let layer = get_field(&line, 2, "namespace", &resolver_tab_path)?.map(|l| l.to_string());
         let element =
@@ -503,7 +502,11 @@ where
         let vis_type = get_field_not_null(&line, 4, "vis_type", &resolver_tab_path)?;
         let display_name = get_field_not_null(&line, 5, "display_name", &resolver_tab_path)?;
 
-        let visibility = get_field_not_null(&line, 6, "visibility", &resolver_tab_path)?;
+        let visibility = if line.len() < 7 {
+            "hidden".into()
+        } else {
+            get_field_not_null(&line, 6, "visibility", &resolver_tab_path)?
+        };
 
         let order = get_field(&line, order_col, "order", &resolver_tab_path)?
             .map(|order| order.parse::<i64>().unwrap_or_default())
