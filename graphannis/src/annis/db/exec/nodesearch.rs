@@ -121,7 +121,7 @@ impl NodeSearchSpec {
             | NodeSearchSpec::NotExactTokenValue { .. }
             | NodeSearchSpec::RegexTokenValue { .. }
             | NodeSearchSpec::NotRegexTokenValue { .. }
-            | NodeSearchSpec::AnyToken { .. } => (
+            | NodeSearchSpec::AnyToken => (
                 Some(TOKEN_KEY.ns.clone().into()),
                 Some(TOKEN_KEY.name.clone().into()),
             ),
