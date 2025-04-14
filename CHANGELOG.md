@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.7.1] - 2025-04-14
+
 ### Fixed
 
 - Correctly map the `mappings` column for older `resolver_vis_map.tab` files
