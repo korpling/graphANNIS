@@ -140,6 +140,29 @@ somecorpus	NULL	NULL	NULL	discourse	document (text)	2	NULL"#,
 }
 
 #[test]
+fn old_resolver_with_visibility_column() {
+    let parent = create_temporary_corpus_dir_file(
+        r#"somecorpus	NULL	NULL	NULL	kwic	kwic	removed	0	NULL
+somecorpus	NULL	inline	node	grid	annos (grid)	visible	1	hide_tok: true; annos: learner, ZH1, ZH1Diff, ZH2, ZH2Diff"#,
+        "resolver_vis_map.tab",
+    );
+    let mut config = CorpusConfiguration::default();
+    load_resolver_vis_map(parent.path(), &mut config, false, &|_| {}).unwrap();
+
+    assert_eq!(6, config.visualizers.len());
+
+    let grid_vis = &config.visualizers[0];
+    assert_eq!("annos (grid)", grid_vis.display_name);
+    assert_eq!(VisualizerVisibility::Visible, grid_vis.visibility);
+    assert_eq!(2, grid_vis.mappings.len());
+    assert_eq!("true", grid_vis.mappings.get("hide_tok").unwrap());
+    assert_eq!(
+        "learner, ZH1, ZH1Diff, ZH2, ZH2Diff",
+        grid_vis.mappings.get("annos").unwrap()
+    );
+}
+
+#[test]
 fn parse_virtual_tokenization_mapping() {
     let parent = create_temporary_corpus_dir_file(
         "virtual_tokenization_mapping=anno1=norm,anno2=norm,anotherspan=dipl,testspan=clean",
