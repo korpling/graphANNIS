@@ -1232,7 +1232,7 @@ impl CorpusStorage {
     ///
     /// - `corpus_name` - The name of the corpus to write to the ZIP file.
     /// - `use_corpus_subdirectory` - If true, the corpus is written into a sub-directory inside the ZIP file.
-    ///                               This is useful when storing multiple corpora inside the same file.
+    ///   This is useful when storing multiple corpora inside the same file.
     /// - `zip` - A [writer](zip::ZipWriter)  for the already created ZIP file.
     /// - `progress_callback` - A callback function to which the export progress is reported to.
     pub fn export_to_zip<W, F>(

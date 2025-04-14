@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Correctly map the `mappings` column for older `resolver_vis_map.tab` files
+  that do have a `visibility` column.
+
 ## [3.7.0] - 2025-03-18
 
 ### Fixed
