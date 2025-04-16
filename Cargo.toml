@@ -28,7 +28,7 @@ targets = [
 ]
 [workspace.metadata.dist.github-custom-runners]
 global = "ubuntu-22.04"
-
+x86_64-unknown-linux-gnu = "ubuntu-22.04"
 
 # Use release optimization of some of the performance sensitive crates even for debug builds.
 # This allows faster builds and debugging of our own code, while balancing performance.
