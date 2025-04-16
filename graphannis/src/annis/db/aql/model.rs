@@ -195,9 +195,9 @@ impl AQLUpdateGraphIndex {
             .map(|gs| gs.as_edgecontainer())
             .collect();
 
-        let union = UnionEdgeContainer::new(containers);
+        let union_container = UnionEdgeContainer::new(containers);
 
-        let dfs = CycleSafeDFS::new_inverse(&union, node, 0, usize::MAX);
+        let dfs = CycleSafeDFS::new_inverse(&union_container, node, 0, usize::MAX);
         for step in dfs {
             let step = step?;
             self.invalid_nodes.insert(step.node, true)?;
