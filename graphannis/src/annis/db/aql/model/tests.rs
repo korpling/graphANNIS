@@ -285,13 +285,13 @@ fn add_token_to_single_sentence() {
     let mut updates = GraphUpdate::new();
     updates
         .add_event(UpdateEvent::AddNode {
-            node_name: "single_sentence/zossen#text#tok9".into(),
+            node_name: "single_sentence/zossen#tok9".into(),
             node_type: "node".into(),
         })
         .unwrap();
     updates
         .add_event(UpdateEvent::AddNodeLabel {
-            node_name: "single_sentence/zossen#text#tok9".into(),
+            node_name: "single_sentence/zossen#tok9".into(),
             anno_ns: "annis".into(),
             anno_name: "tok".into(),
             anno_value: "".into(),
@@ -299,7 +299,7 @@ fn add_token_to_single_sentence() {
         .unwrap();
     updates
         .add_event(UpdateEvent::AddEdge {
-            source_node: "single_sentence/zossen#text#tok9".into(),
+            source_node: "single_sentence/zossen#tok9".into(),
             target_node: "single_sentence/zossen#text".into(),
             layer: "annis".into(),
             component_type: "PartOf".into(),
@@ -318,7 +318,7 @@ fn add_token_to_single_sentence() {
     updates
         .add_event(UpdateEvent::AddEdge {
             source_node: "single_sentence/zossen#t4".into(),
-            target_node: "single_sentence/zossen#text#tok9".into(),
+            target_node: "single_sentence/zossen#tok9".into(),
             layer: "annis".into(),
             component_type: "Ordering".into(),
             component_name: "".into(),
@@ -326,7 +326,7 @@ fn add_token_to_single_sentence() {
         .unwrap();
     updates
         .add_event(UpdateEvent::AddEdge {
-            source_node: "single_sentence/zossen#text#tok9".into(),
+            source_node: "single_sentence/zossen#tok9".into(),
             target_node: "single_sentence/zossen#t5".into(),
             layer: "annis".into(),
             component_type: "Ordering".into(),
