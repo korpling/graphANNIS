@@ -17,10 +17,18 @@ cargo-dist-version = "0.22.1"
 ci = "github"
 # The installers to generate for each app
 installers = []
-# Target platforms to build apps for (Rust target-triple syntax)
-targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
 # Which actions to run on pull requests
 pr-run-mode = "plan"
+# Target platforms to build apps for (Rust target-triple syntax)
+targets = [
+  "aarch64-apple-darwin",
+  "x86_64-apple-darwin",
+  "x86_64-unknown-linux-gnu",
+  "x86_64-pc-windows-msvc",
+]
+[workspace.metadata.dist.github-custom-runners]
+global = "ubuntu-22.04"
+x86_64-unknown-linux-gnu = "ubuntu-22.04"
 
 # Use release optimization of some of the performance sensitive crates even for debug builds.
 # This allows faster builds and debugging of our own code, while balancing performance.

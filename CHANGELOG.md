@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Fixed
+
+- Crash could occur when finding inversed connected nodes in PrePost graph
+  storage due to a subtraction resulting in negative number.
+
 ## [3.7.1] - 2025-04-14
 
 ### Fixed

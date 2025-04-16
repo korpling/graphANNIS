@@ -7,13 +7,15 @@ use crate::{
 };
 use assert_matches::assert_matches;
 use graphannis_core::graph::{
+    serialization::graphml,
     storage::GraphStorage,
     update::{GraphUpdate, UpdateEvent},
     NODE_NAME_KEY,
 };
+use insta::assert_snapshot;
 use itertools::Itertools;
 
-use super::AnnotationComponentType::Coverage;
+use super::AnnotationComponentType::{self, Coverage};
 
 #[test]
 fn global_stats_token_count() {
@@ -273,4 +275,73 @@ fn assert_out_edges(
         })
         .collect();
     assert_eq!(out, expected);
+}
+#[test]
+fn add_token_to_single_sentence() {
+    let content = &include_bytes!("../../../../../tests/single_sentence.graphml")[..];
+    let (mut graph, _config) =
+        graphml::import::<AnnotationComponentType, _, _>(content, false, |_| {}).unwrap();
+    // Create updates that add a new token
+    let mut updates = GraphUpdate::new();
+    updates
+        .add_event(UpdateEvent::AddNode {
+            node_name: "single_sentence/zossen#newToken".into(),
+            node_type: "node".into(),
+        })
+        .unwrap();
+    updates
+        .add_event(UpdateEvent::AddNodeLabel {
+            node_name: "single_sentence/zossen#newToken".into(),
+            anno_ns: "annis".into(),
+            anno_name: "tok".into(),
+            anno_value: "".into(),
+        })
+        .unwrap();
+    updates
+        .add_event(UpdateEvent::AddEdge {
+            source_node: "single_sentence/zossen#newToken".into(),
+            target_node: "single_sentence/zossen#text".into(),
+            layer: "annis".into(),
+            component_type: "PartOf".into(),
+            component_name: "".into(),
+        })
+        .unwrap();
+    updates
+        .add_event(UpdateEvent::DeleteEdge {
+            source_node: "single_sentence/zossen#t4".into(),
+            target_node: "single_sentence/zossen#t5".into(),
+            layer: "annis".into(),
+            component_type: "Ordering".into(),
+            component_name: "".into(),
+        })
+        .unwrap();
+    updates
+        .add_event(UpdateEvent::AddEdge {
+            source_node: "single_sentence/zossen#t4".into(),
+            target_node: "single_sentence/zossen#newToken".into(),
+            layer: "annis".into(),
+            component_type: "Ordering".into(),
+            component_name: "".into(),
+        })
+        .unwrap();
+    updates
+        .add_event(UpdateEvent::AddEdge {
+            source_node: "single_sentence/zossen#newToken".into(),
+            target_node: "single_sentence/zossen#t5".into(),
+            layer: "annis".into(),
+            component_type: "Ordering".into(),
+            component_name: "".into(),
+        })
+        .unwrap();
+    graph.apply_update(&mut updates, |_| {}).unwrap();
+
+    let mut output = Vec::<u8>::default();
+    graphannis_core::graph::serialization::graphml::export_stable_order(
+        &graph,
+        None,
+        &mut output,
+        |_| {},
+    )
+    .unwrap();
+    assert_snapshot!(String::from_utf8_lossy(&output));
 }

@@ -345,13 +345,16 @@ where
                         root.pre.to_usize(),
                         root.post.to_usize(),
                     ) {
-                        let diff_level = root_level - current_level;
-                        if current_pre <= root_pre
-                            && current_post >= root_post
-                            && min_distance <= diff_level
-                            && diff_level <= max_distance
-                        {
-                            Some(*current_node)
+                        if let Some(diff_level) = root_level.checked_sub(current_level) {
+                            if current_pre <= root_pre
+                                && current_post >= root_post
+                                && min_distance <= diff_level
+                                && diff_level <= max_distance
+                            {
+                                Some(*current_node)
+                            } else {
+                                None
+                            }
                         } else {
                             None
                         }

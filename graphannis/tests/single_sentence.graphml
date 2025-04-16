@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml>
+    <key id="k0" for="node" attr.name="syntax::cat" attr.type="string" />
+    <key id="k1" for="node" attr.name="annis::doc" attr.type="string" />
+    <key id="k2" for="node" attr.name="annis::layer" attr.type="string" />
+    <key id="k3" for="node" attr.name="annis::node_type" attr.type="string" />
+    <key id="k4" for="node" attr.name="default_ns::pos" attr.type="string" />
+    <key id="k5" for="node" attr.name="annis::tok" attr.type="string" />
+    <key id="k6" for="node" attr.name="annis::tok-whitespace-before" attr.type="string" />
+    <graph edgedefault="directed" parse.order="nodesfirst" parse.nodeids="free"
+        parse.edgeids="canonical">
+        <node id="single_sentence">
+            <data key="k3">corpus</data>
+        </node>
+        <node id="single_sentence/zossen">
+            <data key="k1">zossen</data>
+            <data key="k3">corpus</data>
+        </node>
+        <node id="single_sentence/zossen#text">
+            <data key="k3">datasource</data>
+        </node>
+        <node id="single_sentence/zossen#n1">
+            <data key="k0">ROOT</data>
+            <data key="k2">syntax</data>
+            <data key="k3">node</data>
+        </node>
+        <node id="single_sentence/zossen#n2">
+            <data key="k0">S</data>
+            <data key="k2">syntax</data>
+            <data key="k3">node</data>
+        </node>
+        <node id="single_sentence/zossen#n3">
+            <data key="k0">NP</data>
+            <data key="k2">syntax</data>
+            <data key="k3">node</data>
+        </node>
+        <node id="single_sentence/zossen#t1">
+            <data key="k2">default_layer</data>
+            <data key="k3">node</data>
+            <data key="k4">ART</data>
+            <data key="k5">Die</data>
+        </node>
+        <node id="single_sentence/zossen#t2">
+            <data key="k2">default_layer</data>
+            <data key="k3">node</data>
+            <data key="k4">NN</data>
+            <data key="k5">Jugendlichen</data>
+            <data key="k6"> </data>
+        </node>
+        <node id="single_sentence/zossen#n4">
+            <data key="k0">PP</data>
+            <data key="k2">syntax</data>
+            <data key="k3">node</data>
+        </node>
+        <node id="single_sentence/zossen#t3">
+            <data key="k2">default_layer</data>
+            <data key="k3">node</data>
+            <data key="k4">APPR</data>
+            <data key="k5">in</data>
+            <data key="k6"> </data>
+        </node>
+        <node id="single_sentence/zossen#t4">
+            <data key="k2">default_layer</data>
+            <data key="k3">node</data>
+            <data key="k4">NE</data>
+            <data key="k5">Zossen</data>
+            <data key="k6"> </data>
+        </node>
+        <node id="single_sentence/zossen#t5">
+            <data key="k2">default_layer</data>
+            <data key="k3">node</data>
+            <data key="k4">VMFIN</data>
+            <data key="k5">wollen</data>
+            <data key="k6"> </data>
+        </node>
+        <node id="single_sentence/zossen#n5">
+            <data key="k0">NP</data>
+            <data key="k2">syntax</data>
+            <data key="k3">node</data>
+        </node>
+        <node id="single_sentence/zossen#t6">
+            <data key="k2">default_layer</data>
+            <data key="k3">node</data>
+            <data key="k4">ART</data>
+            <data key="k5">ein</data>
+            <data key="k6"> </data>
+        </node>
+        <node id="single_sentence/zossen#t7">
+            <data key="k2">default_layer</data>
+            <data key="k3">node</data>
+            <data key="k4">NN</data>
+            <data key="k5">Musikcafé</data>
+            <data key="k6"> </data>
+        </node>
+        <node id="single_sentence/zossen#t8">
+            <data key="k2">default_layer</data>
+            <data key="k3">node</data>
+            <data key="k4">$.</data>
+            <data key="k5">.</data>
+            <data key="k6"> </data>
+        </node>
+        <edge id="e0" source="single_sentence/zossen#n1" target="single_sentence/zossen#n2"
+            label="Dominance/syntax/">
+        </edge>
+        <edge id="e1" source="single_sentence/zossen#n1" target="single_sentence/zossen#t8"
+            label="Dominance/syntax/">
+        </edge>
+        <edge id="e2" source="single_sentence/zossen#n2" target="single_sentence/zossen#n3"
+            label="Dominance/syntax/">
+        </edge>
+        <edge id="e3" source="single_sentence/zossen#n2" target="single_sentence/zossen#t5"
+            label="Dominance/syntax/">
+        </edge>
+        <edge id="e4" source="single_sentence/zossen#n2" target="single_sentence/zossen#n5"
+            label="Dominance/syntax/">
+        </edge>
+        <edge id="e5" source="single_sentence/zossen#n3" target="single_sentence/zossen#t1"
+            label="Dominance/syntax/">
+        </edge>
+        <edge id="e6" source="single_sentence/zossen#n3" target="single_sentence/zossen#t2"
+            label="Dominance/syntax/">
+        </edge>
+        <edge id="e7" source="single_sentence/zossen#n3" target="single_sentence/zossen#n4"
+            label="Dominance/syntax/">
+        </edge>
+        <edge id="e8" source="single_sentence/zossen#n4" target="single_sentence/zossen#t3"
+            label="Dominance/syntax/">
+        </edge>
+        <edge id="e9" source="single_sentence/zossen#n4" target="single_sentence/zossen#t4"
+            label="Dominance/syntax/">
+        </edge>
+        <edge id="e10" source="single_sentence/zossen#n5" target="single_sentence/zossen#t6"
+            label="Dominance/syntax/">
+        </edge>
+        <edge id="e11" source="single_sentence/zossen#n5" target="single_sentence/zossen#t7"
+            label="Dominance/syntax/">
+        </edge>
+        <edge id="e12" source="single_sentence/zossen#n1" target="single_sentence/zossen#n2"
+            label="Dominance/syntax/edge">
+        </edge>
+        <edge id="e13" source="single_sentence/zossen#n1" target="single_sentence/zossen#t8"
+            label="Dominance/syntax/edge">
+        </edge>
+        <edge id="e14" source="single_sentence/zossen#n2" target="single_sentence/zossen#n3"
+            label="Dominance/syntax/edge">
+        </edge>
+        <edge id="e15" source="single_sentence/zossen#n2" target="single_sentence/zossen#t5"
+            label="Dominance/syntax/edge">
+        </edge>
+        <edge id="e16" source="single_sentence/zossen#n2" target="single_sentence/zossen#n5"
+            label="Dominance/syntax/edge">
+        </edge>
+        <edge id="e17" source="single_sentence/zossen#n3" target="single_sentence/zossen#t1"
+            label="Dominance/syntax/edge">
+        </edge>
+        <edge id="e18" source="single_sentence/zossen#n3" target="single_sentence/zossen#t2"
+            label="Dominance/syntax/edge">
+        </edge>
+        <edge id="e19" source="single_sentence/zossen#n3" target="single_sentence/zossen#n4"
+            label="Dominance/syntax/edge">
+        </edge>
+        <edge id="e20" source="single_sentence/zossen#n4" target="single_sentence/zossen#t3"
+            label="Dominance/syntax/edge">
+        </edge>
+        <edge id="e21" source="single_sentence/zossen#n4" target="single_sentence/zossen#t4"
+            label="Dominance/syntax/edge">
+        </edge>
+        <edge id="e22" source="single_sentence/zossen#n5" target="single_sentence/zossen#t6"
+            label="Dominance/syntax/edge">
+        </edge>
+        <edge id="e23" source="single_sentence/zossen#n5" target="single_sentence/zossen#t7"
+            label="Dominance/syntax/edge">
+        </edge>
+        <edge id="e24" source="single_sentence/zossen#t1" target="single_sentence/zossen#t2"
+            label="Ordering/annis/">
+        </edge>
+        <edge id="e25" source="single_sentence/zossen#t2" target="single_sentence/zossen#t3"
+            label="Ordering/annis/">
+        </edge>
+        <edge id="e26" source="single_sentence/zossen#t3" target="single_sentence/zossen#t4"
+            label="Ordering/annis/">
+        </edge>
+        <edge id="e27" source="single_sentence/zossen#t4" target="single_sentence/zossen#t5"
+            label="Ordering/annis/">
+        </edge>
+        <edge id="e28" source="single_sentence/zossen#t5" target="single_sentence/zossen#t6"
+            label="Ordering/annis/">
+        </edge>
+        <edge id="e29" source="single_sentence/zossen#t6" target="single_sentence/zossen#t7"
+            label="Ordering/annis/">
+        </edge>
+        <edge id="e30" source="single_sentence/zossen#t7" target="single_sentence/zossen#t8"
+            label="Ordering/annis/">
+        </edge>
+        <edge id="e31" source="single_sentence/zossen" target="single_sentence"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e32" source="single_sentence/zossen#text" target="single_sentence/zossen"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e33" source="single_sentence/zossen#t1" target="single_sentence/zossen#text"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e34" source="single_sentence/zossen#t2" target="single_sentence/zossen#text"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e35" source="single_sentence/zossen#t3" target="single_sentence/zossen#text"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e36" source="single_sentence/zossen#t4" target="single_sentence/zossen#text"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e37" source="single_sentence/zossen#t5" target="single_sentence/zossen#text"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e38" source="single_sentence/zossen#t6" target="single_sentence/zossen#text"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e39" source="single_sentence/zossen#t7" target="single_sentence/zossen#text"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e40" source="single_sentence/zossen#t8" target="single_sentence/zossen#text"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e41" source="single_sentence/zossen#n1" target="single_sentence/zossen#text"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e42" source="single_sentence/zossen#n2" target="single_sentence/zossen#text"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e43" source="single_sentence/zossen#n3" target="single_sentence/zossen#text"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e44" source="single_sentence/zossen#n4" target="single_sentence/zossen#text"
+            label="PartOf/annis/">
+        </edge>
+        <edge id="e45" source="single_sentence/zossen#n5" target="single_sentence/zossen#text"
+            label="PartOf/annis/">
+        </edge>
+    </graph>
+</graphml>
