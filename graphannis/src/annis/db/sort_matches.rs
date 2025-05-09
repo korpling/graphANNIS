@@ -255,7 +255,7 @@ mod tests {
         use std::time::Duration;
 
         unsafe {
-            let locale = CString::new("en_US.utf8").unwrap_or_default();
+            let locale = CString::new("POSIX").unwrap_or_default();
             libc::setlocale(libc::LC_COLLATE, locale.as_ptr());
             std::thread::sleep(Duration::from_millis(500));
         }

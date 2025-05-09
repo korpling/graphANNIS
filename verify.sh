@@ -7,7 +7,7 @@ set -e
 cargo fmt --check
 cargo clippy
 
-export LANG="en_US.utf8"
+export LANG="POSIX"
 
 # Execute tests and calculate the code coverage both as lcov and HTML report
 cargo llvm-cov clean --workspace
