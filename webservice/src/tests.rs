@@ -148,6 +148,42 @@ fn test_logfile() -> Result<(), Box<dyn std::error::Error>> {
         .build();
     logger.log(&record);
 
+    let record = RecordBuilder::new()
+        .level(Level::Debug)
+        .args(format_args!("Debug Message"))
+        .build();
+    logger.log(&record);
+
+    let logfile_content = std::fs::read_to_string(logfile.path())?;
+
+    let snapshot_settings = standard_filter();
+    snapshot_settings.bind(|| assert_snapshot!(logfile_content));
+
+    Ok(())
+}
+
+#[test]
+fn test_logfile_debug() -> Result<(), Box<dyn std::error::Error>> {
+    let logfile = NamedTempFile::new()?;
+    let mut settings = Settings::default();
+    settings.logging.file = Some(logfile.path().to_string_lossy().to_string());
+    settings.logging.debug = true;
+
+    // Get a logger
+    let (logger, _) = create_logger(&settings)?;
+
+    let record = RecordBuilder::new()
+        .level(Level::Info)
+        .args(format_args!("Hello World"))
+        .build();
+    logger.log(&record);
+
+    let record = RecordBuilder::new()
+        .level(Level::Debug)
+        .args(format_args!("Debug Message"))
+        .build();
+    logger.log(&record);
+
     let logfile_content = std::fs::read_to_string(logfile.path())?;
 
     let snapshot_settings = standard_filter();
