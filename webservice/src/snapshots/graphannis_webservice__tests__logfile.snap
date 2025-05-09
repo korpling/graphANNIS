@@ -1,0 +1,5 @@
+---
+source: webservice/src/tests.rs
+expression: logfile_content
+---
+12:00:00[INFO] Hello World

@@ -1,0 +1,6 @@
+---
+source: webservice/src/tests.rs
+expression: logfile_content
+---
+12:00:00[INFO] Hello World
+12:00:00[DEBUG] (1) : Debug Message

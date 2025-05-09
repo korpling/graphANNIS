@@ -5,10 +5,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## Fixed
+### Added
 
-- Crash could occur when finding inversed connected nodes in PrePost graph
-  storage due to a subtraction resulting in negative number.
+- New optional `file` option for the `[logging]` section in the webservice
+configuration. Can be used to additionally output all log messages to the given
+file.
+- `Graph:ensure_loaded_parallel` returns the actually loaded components that did
+exist.
+
+### Fixed
+
+- Less frequent corpus cache status updates in log. Before, every corpus access
+could trigger an entry into the log which is not desired under heavy load.
 
 ## [3.7.1] - 2025-04-14
 
@@ -53,7 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed out of bounds error parsing legacy meta queries with multiple
-  alternatives (https://github.com/korpling/graphANNIS/pull/308) 
+  alternatives (https://github.com/korpling/graphANNIS/pull/308)
 
 ## [3.5.0] - 2024-09-02
 
@@ -75,7 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Do not use recursion to calculate the indirect coverage edges in the model
-  index, since this could fail for deeply nested structures. 
+  index, since this could fail for deeply nested structures.
 
 ## [3.3.3] - 2024-07-12
 
@@ -85,7 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   importer.
 - Fix `FileTooLarge` error when searching for token precedence where the
   statistics indicate that this search is impossible.
-  
+
 ## [3.3.2] - 2024-07-04
 
 ### Fixed
@@ -295,7 +303,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Compile releases on Ubuntu 20.04 instead of 18.04, which means the minimal
   GLIBC version is 2.31. This is necessary, since GitHub actions deprecated this
   Ubuntu version.
-  
+
 
 ### Fixed
 
@@ -375,7 +383,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   first token of context regions in `subgraph` when the returned context regions
   do not overlap. This allows sorting the context regions that belong to the
   same data source but are not connected by ordinary `Ordering/annis/` edges.
-  
+
 
 ## [2.2.2] - 2022-07-26
 
@@ -487,7 +495,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   C-API), so this release is not technically backwards-compatible. Adapting to
   the updated API should be restricted to handle the errors returned by the
   functions.
-- The changes to the error handling also affects the C-API. These following 
+- The changes to the error handling also affects the C-API. These following
   functions have now a `ErrorList` argument:
   * `annis_cs_list_node_annotations`
   * `annis_cs_list_edge_annotations`
@@ -525,7 +533,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RelANNIS version 3.3 files with segmentation might also have a missing "span" column.
   In case the "span" column is null, always attempt to reconstruct the actual value from
   the corresponding node annotation instead of failing directly.
-  
+
 ### Changed
 
 - Avoid unnecessary compacting of disk tables when collecting graph updates during import.
@@ -542,7 +550,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   adjacency lists. This improves search for tokens because the Coverage components
   are typically adjacency lists, and we need to make sure the token nodes don't
   have any outgoing edges.
-- Fixed miscalculation of whitespace string capacity which could lead to 
+- Fixed miscalculation of whitespace string capacity which could lead to
   `memory allocation failed` error.
 
 ## [1.4.0] - 2021-12-03
@@ -554,9 +562,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Limit the used main memory cache per `DiskTable` by only using a disk block cache for the C1 table.
-  Since we use a lot of disk-based maps during import of relANNIS files, the previous behavior could 
+  Since we use a lot of disk-based maps during import of relANNIS files, the previous behavior could
   add up to > 1GB easily, wich amongst other issues caused #205 to happen.
-  With this change, during relANNIS import the main memory usage should be limited to be less than 4GB, 
+  With this change, during relANNIS import the main memory usage should be limited to be less than 4GB,
   which seams more reasonable than the previous 20+GB
 - Reduce memory footprint during import when corpus contains a lot of escaped strings (as in #205)
 - Avoid creating small fragmented main memory when importing corpora from relANNIS to help to fix #205
@@ -592,7 +600,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added generic operator negation without existence assumption, 
+- Added generic operator negation without existence assumption,
   if only one side of the negated operator is optional  (#187).
 
 ## [1.1.0] - 2021-09-09
@@ -674,7 +682,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- Replaced the `update_statistics` function in `CorpusStorage` with the more general `reoptimize_implementation` function. 
+- Replaced the `update_statistics` function in `CorpusStorage` with the more general `reoptimize_implementation` function.
   The new function is available via the `re-optimize` command in the CLI.
 
 ### Added
@@ -684,7 +692,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Importing a relANNIS corpus could fail because the integer would wrap around from negative to a large value when calculating the `tok-whitespace-after` annotation value. This large value would then be used to allocate memory, which will fail. 
+- Importing a relANNIS corpus could fail because the integer would wrap around from negative to a large value when calculating the `tok-whitespace-after` annotation value. This large value would then be used to allocate memory, which will fail.
 - Adding `\$` to the escaped input sequence in the relANNIS import, fixing issues with some old SFB 632 corpora
 - Unbound near-by-operator (`^*`) was not limited to 50 in quirks mode
 - Workaround for duplicated document names when importing invalid relANNIS corpora

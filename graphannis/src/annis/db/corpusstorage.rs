@@ -384,7 +384,9 @@ pub struct CorpusStorage {
 }
 
 fn init_locale() {
-    // use collation as defined by the environment variables (LANGUAGE, LC_*, etc.)
+    // Use collation as defined by the environment variables (LANGUAGE, LC_*, etc.)
+    // Setting it to an empty value will use the users choice:
+    // https://www.gnu.org/software/libc/manual/html_node/Setting-the-Locale.html
     unsafe {
         let locale = CString::new("").unwrap_or_default();
         libc::setlocale(libc::LC_COLLATE, locale.as_ptr());
@@ -642,12 +644,7 @@ impl CorpusStorage {
         };
 
         // make sure the cache is not too large before adding the new corpus
-        check_cache_size_and_remove_with_cache(
-            cache,
-            &self.cache_strategy,
-            vec![corpus_name],
-            false,
-        )?;
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![corpus_name])?;
 
         let db = if create_corpus {
             // create the default graph storages that are assumed to exist in every corpus
@@ -668,15 +665,18 @@ impl CorpusStorage {
 
         let entry = Arc::new(RwLock::new(CacheEntry::Loaded(db)));
         // first remove entry, than add it: this ensures it is at the end of the linked hash map
-        cache.remove(corpus_name);
+        let entry_existed = cache.remove(corpus_name).is_some();
         cache.insert(String::from(corpus_name), entry.clone());
         info!("Loaded corpus {}", corpus_name,);
-        check_cache_size_and_remove_with_cache(
-            cache,
-            &self.cache_strategy,
-            vec![corpus_name],
-            true,
-        )?;
+        // Cleanup cache if needed
+        let removed =
+            check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![corpus_name])?;
+        if !entry_existed || removed {
+            info!(
+                "Updated corpus cache: {}",
+                get_corpus_cache_info_as_string(cache, &self.cache_strategy)?
+            );
+        }
 
         Ok(entry)
     }
@@ -828,7 +828,7 @@ impl CorpusStorage {
 
         // Import all relANNIS files
         for p in relannis_files {
-            info!("importing relANNIS corpus from {}", p.to_string_lossy());
+            info!("Importing relANNIS corpus from {}", p.to_string_lossy());
             let name = self.import_from_fs(
                 &p,
                 ImportFormat::RelANNIS,
@@ -841,7 +841,7 @@ impl CorpusStorage {
         }
         // Import all GraphML files
         for p in graphannis_files {
-            info!("importing corpus from {}", p.to_string_lossy());
+            info!("Importing corpus from {}", p.to_string_lossy());
             let name = self.import_from_fs(
                 &p,
                 ImportFormat::GraphML,
@@ -939,7 +939,7 @@ impl CorpusStorage {
             ImportFormat::RelANNIS => relannis::load(path, disk_based, |status| {
                 progress_callback(status);
                 // loading the file from relANNIS consumes memory, update the corpus cache regularly to allow it to adapt
-                if let Err(e) = self.check_cache_size_and_remove(vec![], false) {
+                if let Err(e) = self.check_cache_size_and_remove(vec![]) {
                     error!("Could not check cache size: {}", e);
                 };
             })?,
@@ -956,7 +956,7 @@ impl CorpusStorage {
                     |status| {
                         progress_callback(status);
                         // loading the file from GraphmL consumes memory, update the corpus cache regularly to allow it to adapt
-                        if let Err(e) = self.check_cache_size_and_remove(vec![], false) {
+                        if let Err(e) = self.check_cache_size_and_remove(vec![]) {
                             error!("Could not check cache size: {}", e);
                         };
                     },
@@ -988,7 +988,7 @@ impl CorpusStorage {
         let cache = &mut *cache_lock;
 
         // make sure the cache is not too large before adding the new corpus
-        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![], false)?;
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![])?;
 
         // remove any possible old corpus
         if overwrite_existing {
@@ -1018,7 +1018,7 @@ impl CorpusStorage {
             );
         }
 
-        info!("copying linked files for corpus {}", corpus_name);
+        info!("Copying linked files for corpus {}", corpus_name);
         let current_dir = PathBuf::from(".");
         let files_dir = db_path.join("files");
         std::fs::create_dir_all(&files_dir)?;
@@ -1029,7 +1029,7 @@ impl CorpusStorage {
         self.copy_linked_files_and_update_references(old_base_path, &files_dir, &mut graph)?;
 
         // save to its location
-        info!("saving corpus {} to disk", corpus_name);
+        info!("Saving corpus {} to disk", corpus_name);
         let save_result = graph.save_to(&db_path);
         if let Err(e) = save_result {
             error!(
@@ -1042,7 +1042,7 @@ impl CorpusStorage {
         // Use the imported/generated/default corpus configuration and store it in our graph directory
         let corpus_config_path = db_path.join("corpus-config.toml");
         info!(
-            "saving corpus configuration file for corpus {} to {}",
+            "Saving corpus configuration file for corpus {} to {}",
             corpus_name,
             &corpus_config_path.to_string_lossy()
         );
@@ -1053,12 +1053,11 @@ impl CorpusStorage {
             corpus_name.clone(),
             Arc::new(RwLock::new(CacheEntry::NotLoaded)),
         );
-        check_cache_size_and_remove_with_cache(
-            cache,
-            &self.cache_strategy,
-            vec![&corpus_name],
-            true,
-        )?;
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![&corpus_name])?;
+        info!(
+            "Corpus cache after importing {corpus_name}: {}",
+            get_corpus_cache_info_as_string(cache, &self.cache_strategy)?
+        );
 
         Ok(corpus_name)
     }
@@ -1459,12 +1458,11 @@ impl CorpusStorage {
 
             let mut missing: HashSet<_> = necessary_components.iter().cloned().collect();
 
-            let additional_components = additional_components_callback(db);
-
             // make sure the additional components are loaded
+            let additional_components = additional_components_callback(db);
             missing.extend(additional_components);
 
-            // remove all that are already loaded
+            // remove all that are already loaded or do not exist
             for c in &necessary_components {
                 if db.get_graphstorage(c).is_some() {
                     missing.remove(c);
@@ -1476,12 +1474,15 @@ impl CorpusStorage {
 
         if !missing_components.is_empty() {
             // load the needed components
-            {
+            let loaded_components = {
                 let mut lock = db_entry.write()?;
                 let db = get_write_or_error(&mut lock)?;
-                db.ensure_loaded_parallel(&missing_components)?;
+                db.ensure_loaded_parallel(&missing_components)?
+            };
+            let removed = self.check_cache_size_and_remove(vec![corpus_name])?;
+            if removed || !loaded_components.is_empty() {
+                self.report_corpus_cache_info("Corpus cache after loading components")?;
             }
-            self.check_cache_size_and_remove(vec![corpus_name], true)?;
         };
 
         Ok(PreparationResult { query: q, db_entry })
@@ -1495,7 +1496,9 @@ impl CorpusStorage {
             let db = get_write_or_error(&mut lock)?;
             db.ensure_loaded_all()?;
         }
-        self.check_cache_size_and_remove(vec![corpus_name], true)?;
+        self.check_cache_size_and_remove(vec![corpus_name])?;
+        self.report_corpus_cache_info(format!("Corpus cache after preloading {corpus_name}"))?;
+
         Ok(())
     }
 
@@ -2496,20 +2499,11 @@ impl CorpusStorage {
         Ok(result)
     }
 
-    fn check_cache_size_and_remove(
-        &self,
-        keep: Vec<&str>,
-        report_cache_status: bool,
-    ) -> Result<()> {
+    fn check_cache_size_and_remove(&self, keep: Vec<&str>) -> Result<bool> {
         let mut cache_lock = self.corpus_cache.write()?;
         let cache = &mut *cache_lock;
-        check_cache_size_and_remove_with_cache(
-            cache,
-            &self.cache_strategy,
-            keep,
-            report_cache_status,
-        )?;
-        Ok(())
+        let removed = check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, keep)?;
+        Ok(removed)
     }
 
     fn corpus_directory_on_disk(&self, corpus_name: &str) -> PathBuf {
@@ -2519,6 +2513,16 @@ impl CorpusStorage {
             .iter()
             .collect();
         db_path
+    }
+
+    /// Return the current size and loaded corpora as debug string.
+    fn report_corpus_cache_info<S: Display>(&self, message: S) -> Result<()> {
+        let cache = self.corpus_cache.read()?;
+        info!(
+            "{message}: {}",
+            get_corpus_cache_info_as_string(&cache, &self.cache_strategy)?
+        );
+        Ok(())
     }
 }
 
@@ -2603,8 +2607,7 @@ fn check_cache_size_and_remove_with_cache(
     cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
     cache_strategy: &CacheStrategy,
     keep: Vec<&str>,
-    report_cache_status: bool,
-) -> Result<()> {
+) -> Result<bool> {
     let keep: HashSet<&str> = keep.into_iter().collect();
 
     let mut size_sum = memory_stats().map(|s| s.physical_mem).unwrap_or(usize::MAX);
@@ -2613,6 +2616,7 @@ fn check_cache_size_and_remove_with_cache(
 
     // remove older entries (at the beginning) until cache size requirements are met.
     let all_corpus_names: Vec<String> = cache.keys().cloned().collect();
+    let mut removed = false;
     for corpus_name in all_corpus_names {
         let corpus_is_loaded = if let Some(cache_entry) = cache.get(&corpus_name) {
             matches!(*cache_entry.read()?, CacheEntry::Loaded(_))
@@ -2627,8 +2631,9 @@ fn check_cache_size_and_remove_with_cache(
                 debug!(
                     "Removing corpus {} from cache. {}",
                     corpus_name,
-                    get_corpus_cache_info_as_string(cache, max_cache_size)?,
+                    get_corpus_cache_info_as_string(cache, cache_strategy)?,
                 );
+                removed = true;
             }
         } else {
             // cache size is smaller, nothing to do
@@ -2642,20 +2647,13 @@ fn check_cache_size_and_remove_with_cache(
         (max_cache_size as f64) / 1_000_000.0
     );
 
-    if report_cache_status {
-        info!(
-            "{}",
-            get_corpus_cache_info_as_string(cache, max_cache_size)?
-        );
-    }
-
-    Ok(())
+    Ok(removed)
 }
 
 /// Return the current size and loaded corpora as debug string.
 fn get_corpus_cache_info_as_string(
     cache: &LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
-    max_cache_size: usize,
+    cache_strategy: &CacheStrategy,
 ) -> Result<String> {
     let result = if cache.is_empty() {
         "Corpus cache is currently empty".to_string()
@@ -2672,8 +2670,9 @@ fn get_corpus_cache_info_as_string(
             })
             .collect();
         let size_sum = memory_stats().map(|s| s.physical_mem).unwrap_or(usize::MAX);
+        let max_cache_size = get_max_cache_size(cache_strategy, size_sum);
         format!(
-            "Total cache size is {:.2} MB / {:.2} MB and loaded corpora are: {}.",
+            "{:.2}MB / {:.2}MB - loaded corpora [{}]",
             (size_sum as f64) / 1_000_000.0,
             (max_cache_size as f64) / 1_000_000.0,
             corpus_memory_as_string.join(", ")

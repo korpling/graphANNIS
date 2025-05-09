@@ -13,7 +13,7 @@ use pretty_assertions::assert_eq;
 async fn needs_bearer_token() {
     let db_dir = tempfile::TempDir::new().unwrap();
     let cs = graphannis::CorpusStorage::with_auto_cache_size(db_dir.path(), false).unwrap();
-    let app = test::init_service(create_test_app(web::Data::new(cs))).await;
+    let app = test::init_service(create_test_app(web::Data::new(cs), Settings::default())).await;
 
     let req = test::TestRequest::post().uri("/v1/import").to_request();
     let resp = test::call_service(&app, req).await;
@@ -59,7 +59,7 @@ async fn needs_bearer_token() {
 async fn test_user_groups() {
     let db_dir = tempfile::TempDir::new().unwrap();
     let cs = graphannis::CorpusStorage::with_auto_cache_size(db_dir.path(), false).unwrap();
-    let app = test::init_service(create_test_app(web::Data::new(cs))).await;
+    let app = test::init_service(create_test_app(web::Data::new(cs), Settings::default())).await;
 
     // Initial list of groups, this should be empty
     let req = test::TestRequest::get()

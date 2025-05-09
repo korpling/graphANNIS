@@ -13,7 +13,7 @@ use graphannis::{
 };
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct CountQuery {
     query: String,
     #[serde(default)]
@@ -37,6 +37,7 @@ pub async fn count(
         query_language: params.query_language,
         timeout: settings.database.query_timeout.map(Duration::from_secs),
     };
+
     let count = cs.count_extra(query)?;
     Ok(HttpResponse::Ok().json(count))
 }
@@ -130,3 +131,6 @@ pub async fn frequency(
 
     Ok(HttpResponse::Ok().json(result))
 }
+
+#[cfg(test)]
+mod tests;
