@@ -1456,12 +1456,11 @@ impl CorpusStorage {
 
             let mut missing: HashSet<_> = necessary_components.iter().cloned().collect();
 
-            let additional_components = additional_components_callback(db);
-
             // make sure the additional components are loaded
+            let additional_components = additional_components_callback(db);
             missing.extend(additional_components);
 
-            // remove all that are already loaded
+            // remove all that are already loaded or do not exist
             for c in &necessary_components {
                 if db.get_graphstorage(c).is_some() {
                     missing.remove(c);
@@ -1473,13 +1472,15 @@ impl CorpusStorage {
 
         if !missing_components.is_empty() {
             // load the needed components
-            {
+            let loaded_components = {
                 let mut lock = db_entry.write()?;
                 let db = get_write_or_error(&mut lock)?;
-                db.ensure_loaded_parallel(&missing_components)?;
+                db.ensure_loaded_parallel(&missing_components)?
+            };
+            let removed = self.check_cache_size_and_remove(vec![corpus_name])?;
+            if removed || !loaded_components.is_empty() {
+                self.report_corpus_cache_info("Corpus cache after loading components")?;
             }
-            self.check_cache_size_and_remove(vec![corpus_name])?;
-            self.report_corpus_cache_info("Corpus cache after loading components for query")?;
         };
 
         Ok(PreparationResult { query: q, db_entry })

@@ -927,8 +927,13 @@ impl<CT: ComponentType> Graph<CT> {
     }
 
     /// Ensure that the graph storage for a the given component is loaded and ready to use.
-    /// Loading is done in paralell.
-    pub fn ensure_loaded_parallel(&mut self, components_to_load: &[Component<CT>]) -> Result<()> {
+    /// Loading is done in parallel.
+    ///
+    /// Returns the list of actually loaded (and existing) components.
+    pub fn ensure_loaded_parallel(
+        &mut self,
+        components_to_load: &[Component<CT>],
+    ) -> Result<Vec<Component<CT>>> {
         // We only load known components, so check the map if the entry exists
         // and that is not loaded yet.
         let components_to_load: Vec<_> = components_to_load
@@ -959,11 +964,13 @@ impl<CT: ComponentType> Graph<CT> {
             .collect();
 
         // insert all the loaded components
+        let mut result = Vec::with_capacity(loaded_components.len());
         for (c, gs) in loaded_components {
             let gs = gs?;
             self.components.insert(c.clone(), Some(gs));
+            result.push(c.clone());
         }
-        Ok(())
+        Ok(result)
     }
 
     pub fn optimize_impl(&mut self, disk_based: bool) -> Result<()> {
