@@ -109,13 +109,16 @@ fn init_app_state() -> anyhow::Result<(graphannis::CorpusStorage, settings::Sett
         CombinedLogger::init(vec![term_logger])
     };
     if let Err(e) = logger {
-        println!("Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger", e);
+        println!("Error, can't initialize the terminal log output: {e}.\nWill degrade to a more simple logger");
         if let Err(e_simple) = SimpleLogger::init(log_filter, log_config) {
-            println!("Simple logging failed too: {}", e_simple);
+            println!("Simple logging failed too: {e_simple}");
         }
     }
-
-    info!("Logging with level {}", log_filter);
+    if let Some(file) = &settings.logging.file {
+        info!("Logging with level {log_filter} to {file}",);
+    } else {
+        info!("Logging with level {log_filter}");
+    }
 
     // Create a graphANNIS corpus storage as shared state
     let data_dir = std::path::PathBuf::from(&settings.database.graphannis);
@@ -126,7 +129,6 @@ fn init_app_state() -> anyhow::Result<(graphannis::CorpusStorage, settings::Sett
     )?;
 
     // Add a connection pool to the SQLite database
-
     let manager = ConnectionManager::<SqliteConnection>::new(&settings.database.sqlite);
     let db_pool = r2d2::Pool::builder().build(manager)?;
 
@@ -185,6 +187,7 @@ fn create_app(
         .service(
             web::scope(API_VERSION)
                 .route("openapi.yml", web::get().to(get_api_spec))
+                .route("api-docs.html", web::get().to(get_api_html_docs))
                 .route(
                     "/import",
                     web::post().to(api::administration::import_corpus),
@@ -248,6 +251,12 @@ async fn get_api_spec(_req: HttpRequest) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("application/x-yaml")
         .body(include_str!("openapi.yml"))
+}
+
+async fn get_api_html_docs(_req: HttpRequest) -> HttpResponse {
+    HttpResponse::Ok()
+        .content_type(" text/html ")
+        .body(include_str!("../api-docs.html"))
 }
 
 #[actix_web::main]
