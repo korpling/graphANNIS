@@ -98,11 +98,7 @@ fn init_app_state() -> anyhow::Result<(graphannis::CorpusStorage, settings::Sett
         simplelog::ColorChoice::Auto,
     );
     let logger = if let Some(path) = &settings.logging.file {
-        let file = OpenOptions::new()
-            .append(true)
-            .write(true)
-            .create(true)
-            .open(path)?;
+        let file = OpenOptions::new().append(true).create(true).open(path)?;
         let file_logger = WriteLogger::new(log_filter, log_config.clone(), file);
         CombinedLogger::init(vec![term_logger, file_logger])
     } else {
