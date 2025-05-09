@@ -1,5 +1,4 @@
 use std::{
-    fmt::Arguments,
     path::PathBuf,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -14,7 +13,7 @@ use diesel_migrations::MigrationHarness;
 use graphannis::{corpusstorage::ImportFormat, CorpusStorage};
 use insta::assert_snapshot;
 use jsonwebtoken::EncodingKey;
-use log::{Level, Log, Record, RecordBuilder};
+use log::{Level, Log, RecordBuilder};
 use tempfile::NamedTempFile;
 
 use crate::{

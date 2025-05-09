@@ -1,7 +1,5 @@
 use actix_web::http::StatusCode;
 use graphannis::corpusstorage::CountExtra;
-use insta::assert_snapshot;
-use tempfile::NamedTempFile;
 
 use crate::tests::{create_auth_header, create_test_app, import_test_corpora};
 
