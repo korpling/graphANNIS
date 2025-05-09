@@ -58,10 +58,11 @@ at most 8 GB of RAM.
 
 ## [logging] section
 
-Per default, graphANNIS will only output information, warning and error messages.
-To also enable debug output, set the value for the `debug` field to `true`.
-You can set the optional value `file` to a file path to also add the log messages to the given file.
-**The log file is not emptied, you have to clear it regulary**, e.g. with `logrotate` on a Linux server.
+Per default, graphANNIS will only output information, warning and error
+messages. To also enable debug output, set the value for the `debug` field to
+`true`. You can set the optional value `file` to a file path to also add the log
+messages to the given file. **The log file is not emptied automatically, you
+have to clean it regulary**, e.g. with `logrotate` on a Linux server.
 
 ## [auth] section
 
