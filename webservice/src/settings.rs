@@ -7,6 +7,9 @@ use std::ops::Deref;
 #[derive(Debug, Deserialize, Default)]
 pub struct Logging {
     pub debug: bool,
+    /// Log output to given file in addition to the standard output.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]

@@ -27,7 +27,8 @@ use diesel::r2d2::{self, ConnectionManager};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use graphannis::CorpusStorage;
 use settings::Settings;
-use simplelog::{LevelFilter, SimpleLogger, TermLogger};
+use simplelog::{CombinedLogger, LevelFilter, SimpleLogger, TermLogger, WriteLogger};
+use std::fs::OpenOptions;
 use std::{
     io::{Error, ErrorKind, Result},
     path::PathBuf,
@@ -87,15 +88,27 @@ fn init_app_state() -> anyhow::Result<(graphannis::CorpusStorage, settings::Sett
     } else {
         log_config.add_filter_ignore_str("actix_web:");
     }
-
     let log_config = log_config.build();
 
-    if let Err(e) = TermLogger::init(
+    // Create the possible combinations of logger, with the fallback simple logger.
+    let term_logger = TermLogger::new(
         log_filter,
         log_config.clone(),
         simplelog::TerminalMode::Mixed,
         simplelog::ColorChoice::Auto,
-    ) {
+    );
+    let logger = if let Some(path) = &settings.logging.file {
+        let file = OpenOptions::new()
+            .append(true)
+            .write(true)
+            .create(true)
+            .open(path)?;
+        let file_logger = WriteLogger::new(log_filter, log_config.clone(), file);
+        CombinedLogger::init(vec![term_logger, file_logger])
+    } else {
+        CombinedLogger::init(vec![term_logger])
+    };
+    if let Err(e) = logger {
         println!("Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger", e);
         if let Err(e_simple) = SimpleLogger::init(log_filter, log_config) {
             println!("Simple logging failed too: {}", e_simple);
