@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Crash could occur when finding inversed connected nodes in PrePost graph
   storage due to a subtraction resulting in negative number.
+- Less frequent corpus cache status updates in log. Before, every corpus access
+could trigger an entry into the log which is not desired under heavy load.
 
 ## [3.7.1] - 2025-04-14
 

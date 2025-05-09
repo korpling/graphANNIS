@@ -13,7 +13,7 @@ fn standard_filter() -> Settings {
     // Filter out the time stamps
     settings.add_filter("[0-9]+:[0-9]+:[0-9]+ ", "12:00:00");
     // The loaded and also total available RAM size can vary
-    settings.add_filter("[0-9.]+ [MG]B / [0-9.]+ [MG]B", "100 / 300 MB");
+    settings.add_filter("[0-9.]+[MG]B / [0-9.]+[MG]B", "100MB / 300MB");
     // The loading and time can vary
     settings.add_filter("in [0-9]+ ms", "in 10 ms");
     settings
