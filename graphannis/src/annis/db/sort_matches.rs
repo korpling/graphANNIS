@@ -254,8 +254,9 @@ mod tests {
     fn tiger_doc_name_sort_strcoll() {
         use std::time::Duration;
 
+        std::env::set_var("LANG", "en_US.utf8");
         unsafe {
-            let locale = CString::new("POSIX").unwrap_or_default();
+            let locale = CString::new("").unwrap_or_default();
             libc::setlocale(libc::LC_COLLATE, locale.as_ptr());
             std::thread::sleep(Duration::from_millis(500));
         }

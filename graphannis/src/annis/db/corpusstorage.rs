@@ -384,7 +384,9 @@ pub struct CorpusStorage {
 }
 
 fn init_locale() {
-    // use collation as defined by the environment variables (LANGUAGE, LC_*, etc.)
+    // Use collation as defined by the environment variables (LANGUAGE, LC_*, etc.)
+    // Setting it to an empty value will use the users choice:
+    // https://www.gnu.org/software/libc/manual/html_node/Setting-the-Locale.html
     unsafe {
         let locale = CString::new("").unwrap_or_default();
         libc::setlocale(libc::LC_COLLATE, locale.as_ptr());

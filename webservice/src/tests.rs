@@ -6,7 +6,10 @@ use std::{
 use actix_web::{
     body::MessageBody,
     dev::{ServiceFactory, ServiceRequest, ServiceResponse},
-    web, App,
+    http::StatusCode,
+    test,
+    web::{self, Bytes},
+    App,
 };
 use diesel::{r2d2::ConnectionManager, SqliteConnection};
 use diesel_migrations::MigrationHarness;
@@ -130,11 +133,15 @@ fn standard_filter() -> insta::Settings {
     settings.add_filter("[0-9.]+[MG]B / [0-9.]+[MG]B", "100MB / 300MB");
     // The loading and time can vary
     settings.add_filter("in [0-9]+ ms", "in 10 ms");
+
+    // Debug messages have an additional ID
+    settings.add_filter("\\[DEBUG\\] \\([0-9]+\\)", "[DEBUG] (1)");
+
     settings
 }
 
 #[test]
-fn test_logfile() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_logfile() -> Result<(), Box<dyn std::error::Error>> {
     let logfile = NamedTempFile::new()?;
     let mut settings = Settings::default();
     settings.logging.file = Some(logfile.path().to_string_lossy().to_string());
@@ -163,7 +170,7 @@ fn test_logfile() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn test_logfile_debug() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_logfile_debug() -> Result<(), Box<dyn std::error::Error>> {
     let logfile = NamedTempFile::new()?;
     let mut settings = Settings::default();
     settings.logging.file = Some(logfile.path().to_string_lossy().to_string());
@@ -190,4 +197,22 @@ fn test_logfile_debug() -> Result<(), Box<dyn std::error::Error>> {
     snapshot_settings.bind(|| assert_snapshot!(logfile_content));
 
     Ok(())
+}
+
+#[actix_web::test]
+async fn serve_static_files() {
+    let db_dir = tempfile::TempDir::new().unwrap();
+    let cs = graphannis::CorpusStorage::with_auto_cache_size(db_dir.path(), false).unwrap(); // Import three corpora A,B and C
+    import_test_corpora(&cs);
+
+    let app = test::init_service(create_test_app(web::Data::new(cs), Settings::default())).await;
+
+    // Unauthorized user should not see any corpora
+    let req = test::TestRequest::get()
+        .uri("/v1/api-docs.html")
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let response_body: Bytes = test::read_body(resp).await;
+    assert_eq!(false, response_body.is_empty());
 }
