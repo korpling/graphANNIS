@@ -1,9 +1,6 @@
 name: Verify
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
 
 jobs:
@@ -66,4 +63,3 @@ jobs:
             ```
             ${{env.COVERAGE_INFO}}
             ```
-      
