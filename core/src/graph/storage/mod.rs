@@ -32,7 +32,6 @@ pub struct GraphStatistic {
     pub nodes: usize,
 
     /// Number of root nodes in this graph storage.
-    #[serde(default = "default_number_root_nodes")]
     pub root_nodes: usize,
 
     /// Average fan out.
@@ -50,10 +49,6 @@ pub struct GraphStatistic {
 
     /// Only valid for acyclic graphs: the average number of times a DFS will visit each node.
     pub dfs_visit_ratio: f64,
-}
-
-fn default_number_root_nodes() -> usize {
-    1
 }
 
 impl std::fmt::Display for GraphStatistic {
