@@ -368,6 +368,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
             cyclic: false,
             rooted_tree: true,
             nodes: 0,
+            root_nodes: 0,
             dfs_visit_ratio: 0.0,
         };
 
@@ -404,6 +405,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
                 roots.remove(&e.target);
             }
         }
+        stats.root_nodes = roots.len();
 
         let fan_outs = get_fan_outs(&self.edges)?;
         let sum_fan_out: usize = fan_outs.iter().sum();

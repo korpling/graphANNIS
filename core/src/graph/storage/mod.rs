@@ -29,6 +29,10 @@ pub struct GraphStatistic {
     /// Number of nodes in this graph storage (both source and target nodes).
     pub nodes: usize,
 
+    /// Number of root nodes in this graph storage.
+    #[serde(default = "default_number_root_nodes")]
+    pub root_nodes: usize,
+
     /// Average fan out.
     pub avg_fan_out: f64,
     /// Max fan-out of 99% of the data.
@@ -46,12 +50,16 @@ pub struct GraphStatistic {
     pub dfs_visit_ratio: f64,
 }
 
+fn default_number_root_nodes() -> usize {
+    1
+}
+
 impl std::fmt::Display for GraphStatistic {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
-            "nodes={}, avg_fan_out={:.2}, max_fan_out={}, max_depth={}",
-            self.nodes, self.avg_fan_out, self.max_fan_out, self.max_depth
+            "nodes={}, avg_fan_out={:.2}, max_fan_out={}, fan_out_99%={}, inv_fan_out_99%={}, max_depth={}",
+            self.nodes, self.avg_fan_out, self.max_fan_out, self.fan_out_99_percentile, self.inverse_fan_out_99_percentile, self.max_depth
         )?;
         if self.cyclic {
             write!(f, ", cyclic")?;

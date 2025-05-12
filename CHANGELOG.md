@@ -12,6 +12,7 @@ configuration. Can be used to additionally output all log messages to the given
 file.
 - `Graph:ensure_loaded_parallel` returns the actually loaded components that did
 exist.
+- Add number of root nodes to graph storage statistics.
 
 ### Fixed
 
