@@ -7,6 +7,8 @@ pub mod prepost;
 pub mod registry;
 pub mod union;
 
+pub(crate) mod legacy;
+
 use crate::annostorage::{EdgeAnnotationStorage, NodeAnnotationStorage};
 use crate::{
     annostorage::AnnotationStorage,
