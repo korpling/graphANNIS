@@ -176,7 +176,7 @@ where
                 node_to_pos: component.node_to_pos,
                 node_chains: component.node_chains,
                 annos: component.annos,
-                stats: component.stats.map(|s| GraphStatistic::from(s)),
+                stats: component.stats.map(GraphStatistic::from),
             }
         } else {
             let stats = load_statistics_from_location(location)?;
@@ -184,7 +184,7 @@ where
                 node_to_pos: deserialize_gs_field(location, "node_to_pos")?,
                 node_chains: deserialize_gs_field(location, "node_chains")?,
                 annos: deserialize_gs_field(location, "annos")?,
-                stats: stats,
+                stats,
             }
         };
 

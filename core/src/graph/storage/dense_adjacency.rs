@@ -230,7 +230,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
                 edges: component.edges,
                 inverse_edges: component.inverse_edges,
                 annos: component.annos,
-                stats: component.stats.map(|s| GraphStatistic::from(s)),
+                stats: component.stats.map(GraphStatistic::from),
             }
         } else {
             let stats = load_statistics_from_location(location)?;
@@ -238,7 +238,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
                 edges: deserialize_gs_field(location, "edges")?,
                 inverse_edges: deserialize_gs_field(location, "inverse_edges")?,
                 annos: deserialize_gs_field(location, "annos")?,
-                stats: stats,
+                stats,
             }
         };
 

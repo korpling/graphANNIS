@@ -208,7 +208,7 @@ where
                 node_to_order: component.node_to_order,
                 order_to_node: component.order_to_node,
                 annos: component.annos,
-                stats: component.stats.map(|s| GraphStatistic::from(s)),
+                stats: component.stats.map(GraphStatistic::from),
             }
         } else {
             let stats = load_statistics_from_location(location)?;
@@ -216,7 +216,7 @@ where
                 node_to_order: deserialize_gs_field(location, "node_to_order")?,
                 order_to_node: deserialize_gs_field(location, "order_to_node")?,
                 annos: deserialize_gs_field(location, "annos")?,
-                stats: stats,
+                stats,
             }
         };
 

@@ -132,7 +132,7 @@ impl GraphStorage for AdjacencyListStorage {
         let mut result: Self = if legacy_path.is_file() {
             let component: AdjacencyListStorageV1 = deserialize_gs_field(location, "component")?;
             Self {
-                stats: component.stats.map(|s| GraphStatistic::from(s)),
+                stats: component.stats.map(GraphStatistic::from),
                 edges: component.edges,
                 inverse_edges: component.inverse_edges,
                 annos: component.annos,
@@ -143,7 +143,7 @@ impl GraphStorage for AdjacencyListStorage {
                 edges: deserialize_gs_field(location, "edges")?,
                 inverse_edges: deserialize_gs_field(location, "inverse_edges")?,
                 annos: deserialize_gs_field(location, "annos")?,
-                stats: stats,
+                stats,
             }
         };
 
@@ -480,7 +480,7 @@ impl From<legacy::AdjacencyListStorageV1> for AdjacencyListStorage {
             edges: value.edges,
             inverse_edges: value.inverse_edges,
             annos: value.annos,
-            stats: value.stats.map(|s| GraphStatistic::from(s)),
+            stats: value.stats.map(GraphStatistic::from),
         }
     }
 }
