@@ -41,26 +41,47 @@ impl BaseEdgeOp {
             let gs_for_component = db.get_graphstorage(c).ok_or_else(|| {
                 GraphAnnisError::ImpossibleSearch(format!("Component {} does not exist", &c))
             })?;
+
             gs.push(gs_for_component);
         }
+        let any_node_count = db.get_node_annos().guess_max_count(
+            Some(&NODE_TYPE_KEY.ns),
+            &NODE_TYPE_KEY.name,
+            "",
+            &char::MAX.to_string(),
+        )?;
         let all_part_of_components = spec
             .components
             .iter()
             .all(|c| c.get_type() == AnnotationComponentType::PartOf);
-        let node_type = if all_part_of_components {
-            "corpus"
+        // Use the single graph storage to get an estimate of population of nodes that can be found.
+        let max_nodes_estimate = if gs.len() == 1 {
+            gs[0]
+                .get_statistics()
+                .map(|s| s.nodes.saturating_sub(s.root_nodes))
+                .unwrap_or(any_node_count)
         } else {
-            "node"
+            // Use all nodes regardless of the component as population estimate
+            if all_part_of_components {
+                db.get_node_annos().guess_max_count(
+                    Some(&NODE_TYPE_KEY.ns),
+                    &NODE_TYPE_KEY.name,
+                    "corpus",
+                    "text",
+                )?
+            } else {
+                db.get_node_annos().guess_max_count(
+                    Some(&NODE_TYPE_KEY.ns),
+                    &NODE_TYPE_KEY.name,
+                    "node",
+                    "node",
+                )?
+            }
         };
         Ok(BaseEdgeOp {
             gs,
             spec,
-            max_nodes_estimate: db.get_node_annos().guess_max_count(
-                Some(&NODE_TYPE_KEY.ns),
-                &NODE_TYPE_KEY.name,
-                node_type,
-                node_type,
-            )?,
+            max_nodes_estimate,
             inverse: false,
         })
     }
