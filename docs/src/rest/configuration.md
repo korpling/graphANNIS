@@ -13,7 +13,11 @@ host = "localhost"
 graphannis = "data/"
 sqlite = "service.sqlite"
 disk_based = false
+# Use 25% Of the free memory
 cache = {PercentOfFreeMemory = 25.0}
+# Optional timeout for queries in seconds. No timeout is applied if parameter is
+# not given.
+query_timeout = 60
 
 [logging]
 debug = false
@@ -55,6 +59,8 @@ will use 80% of the available free memory and
 cache = {FixedMaxMemory = 8000}
 ```
 at most 8 GB of RAM.
+
+Queries can be aborted automatically after a specific timeout, by setting the `query_timeout` parameter which specifies the timeout in seconds.
 
 ## [logging] section
 
