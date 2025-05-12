@@ -4,7 +4,20 @@
 //! converted into a newer version and there is no specific implementation for
 //! the old data structure.
 
-use super::GraphStatistic;
+use std::collections::HashMap;
+
+use rustc_hash::FxHashMap;
+
+use crate::{
+    annostorage::inmemory::AnnoStorageImpl,
+    types::{Edge, NodeID, NumValue},
+};
+
+use super::{
+    linear::RelativePosition,
+    prepost::{OrderVecEntry, PrePost},
+    GraphStatistic,
+};
 
 /// Some general statistical numbers specific to a graph component
 #[derive(Serialize, Deserialize, Clone)]
@@ -51,4 +64,41 @@ impl From<GraphStatisticV1> for GraphStatistic {
             dfs_visit_ratio: value.dfs_visit_ratio,
         }
     }
+}
+
+/// An adjacency list based storage that uses the [`GraphStatisticV1`]
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct AdjacencyListStorageV1 {
+    pub(crate) edges: HashMap<NodeID, Vec<NodeID>>,
+    pub(crate) inverse_edges: HashMap<NodeID, Vec<NodeID>>,
+    pub(crate) annos: AnnoStorageImpl<Edge>,
+    pub(crate) stats: Option<GraphStatisticV1>,
+}
+
+/// An adjacency list based storage that uses the [`GraphStatisticV1`] and is
+/// optimized for graphs where almost all nodes have an outgoing edge.
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct DenseAdjacencyListStorageV1 {
+    pub(crate) edges: Vec<Option<NodeID>>,
+    pub(crate) inverse_edges: HashMap<NodeID, Vec<NodeID>>,
+    pub(crate) annos: AnnoStorageImpl<Edge>,
+    pub(crate) stats: Option<GraphStatisticV1>,
+}
+
+/// A graph storage for linar graphs that uses the [`GraphStatisticV1`].
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct LinearGraphStorageV1<PosT: NumValue> {
+    pub(crate) node_to_pos: HashMap<NodeID, RelativePosition<PosT>>,
+    pub(crate) node_chains: HashMap<NodeID, Vec<NodeID>>,
+    pub(crate) annos: AnnoStorageImpl<Edge>,
+    pub(crate) stats: Option<GraphStatisticV1>,
+}
+
+/// A graph storage for trees that uses the [`GraphStatisticV1`] and indexes graphs using the pre/post order.
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct PrePostOrderStorageV1<OrderT: NumValue, LevelT: NumValue> {
+    pub(crate) node_to_order: FxHashMap<NodeID, Vec<PrePost<OrderT, LevelT>>>,
+    pub(crate) order_to_node: Vec<OrderVecEntry<OrderT, LevelT>>,
+    pub(crate) annos: AnnoStorageImpl<Edge>,
+    pub(crate) stats: Option<GraphStatisticV1>,
 }

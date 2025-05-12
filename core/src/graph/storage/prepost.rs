@@ -1,4 +1,7 @@
-use super::{EdgeContainer, GraphStatistic, GraphStorage};
+use super::{
+    deserialize_gs_field, legacy::PrePostOrderStorageV1, load_statistics_from_location,
+    save_statistics_to_toml, serialize_gs_field, EdgeContainer, GraphStatistic, GraphStorage,
+};
 use crate::{
     annostorage::{
         inmemory::AnnoStorageImpl, AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage,
@@ -20,7 +23,7 @@ pub struct PrePost<OrderT, LevelT> {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-enum OrderVecEntry<OrderT, LevelT> {
+pub(crate) enum OrderVecEntry<OrderT, LevelT> {
     None,
     Pre {
         post: OrderT,
@@ -197,13 +200,36 @@ where
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
-        let mut result: Self = super::default_deserialize_gs(location)?;
+        let legacy_path = location.join("component.bin");
+        let mut result: Self = if legacy_path.is_file() {
+            let component: PrePostOrderStorageV1<OrderT, LevelT> =
+                deserialize_gs_field(location, "component")?;
+            Self {
+                node_to_order: component.node_to_order,
+                order_to_node: component.order_to_node,
+                annos: component.annos,
+                stats: component.stats.map(|s| GraphStatistic::from(s)),
+            }
+        } else {
+            let stats = load_statistics_from_location(location)?;
+            Self {
+                node_to_order: deserialize_gs_field(location, "node_to_order")?,
+                order_to_node: deserialize_gs_field(location, "order_to_node")?,
+                annos: deserialize_gs_field(location, "annos")?,
+                stats: stats,
+            }
+        };
+
         result.annos.after_deserialization();
+
         Ok(result)
     }
 
     fn save_to(&self, location: &Path) -> Result<()> {
-        super::default_serialize_gs(self, location)?;
+        serialize_gs_field(&self.node_to_order, "node_to_order", location)?;
+        serialize_gs_field(&self.order_to_node, "order_to_node", location)?;
+        serialize_gs_field(&self.annos, "annos", location)?;
+        save_statistics_to_toml(location, self.stats.as_ref())?;
         Ok(())
     }
 

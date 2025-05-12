@@ -200,28 +200,62 @@ pub trait GraphStorage: EdgeContainer {
     fn save_to(&self, location: &Path) -> Result<()>;
 }
 
-pub fn default_serialize_gs<GS>(gs: &GS, location: &Path) -> Result<()>
+pub fn serialize_gs_field<T>(field: &T, field_name: &str, location: &Path) -> Result<()>
 where
-    GS: Serialize,
+    T: Serialize,
 {
-    let data_path = location.join("component.bin");
+    let data_path = location.join(format!("{field_name}.bin"));
     let f_data = std::fs::File::create(data_path)?;
     let mut writer = std::io::BufWriter::new(f_data);
-    bincode::serialize_into(&mut writer, gs)?;
+    bincode::serialize_into(&mut writer, field)?;
     Ok(())
 }
 
-pub fn default_deserialize_gs<GS>(location: &Path) -> Result<GS>
+pub fn deserialize_gs_field<T>(location: &Path, field_name: &str) -> Result<T>
 where
-    for<'de> GS: std::marker::Sized + Deserialize<'de>,
+    for<'de> T: std::marker::Sized + Deserialize<'de>,
 {
-    let data_path = location.join("component.bin");
+    let data_path = location.join(format!("{field_name}.bin"));
     let f_data = std::fs::File::open(data_path)?;
     let input = std::io::BufReader::new(f_data);
 
     let result = bincode::deserialize_from(input)?;
-
     Ok(result)
+}
+
+const STATISTICS_FILE_NAME: &str = "stats.toml";
+
+pub fn load_statistics_from_location(location: &Path) -> Result<Option<GraphStatistic>> {
+    let stats_path_toml = location.join(STATISTICS_FILE_NAME);
+    let legacy_stats_path_bin = location.join("edge_stats.bin");
+
+    let stats = if stats_path_toml.is_file() {
+        let file_content = std::fs::read_to_string(stats_path_toml)?;
+        let stats: GraphStatistic = toml::from_str(&file_content)?;
+        Some(stats)
+    } else if legacy_stats_path_bin.is_file() {
+        let f_stats = std::fs::File::open(legacy_stats_path_bin)?;
+        let input = std::io::BufReader::new(f_stats);
+        // This is a legacy file which needs an older version of the struct
+        let legacy_stats: Option<legacy::GraphStatisticV1> = bincode::deserialize_from(input)?;
+        legacy_stats.map(|s| s.into())
+    } else {
+        None
+    };
+    Ok(stats)
+}
+
+pub fn save_statistics_to_toml(location: &Path, stats: Option<&GraphStatistic>) -> Result<()> {
+    let file_path = location.join(STATISTICS_FILE_NAME);
+    if file_path.is_file() {
+        std::fs::remove_file(&file_path)?;
+    }
+
+    if let Some(stats) = stats {
+        let file_content = toml::to_string(stats)?;
+        std::fs::write(file_path, file_content)?;
+    }
+    Ok(())
 }
 
 /// Trait for accessing graph storages which can be written to.

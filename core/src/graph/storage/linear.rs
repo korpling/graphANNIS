@@ -1,4 +1,7 @@
-use super::{EdgeContainer, GraphStatistic, GraphStorage};
+use super::{
+    deserialize_gs_field, legacy::LinearGraphStorageV1, load_statistics_from_location,
+    save_statistics_to_toml, serialize_gs_field, EdgeContainer, GraphStatistic, GraphStorage,
+};
 use crate::{
     annostorage::{
         inmemory::AnnoStorageImpl, AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage,
@@ -12,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::{clone::Clone, collections::HashMap, path::Path};
 
 #[derive(Serialize, Deserialize, Clone)]
-struct RelativePosition<PosT> {
+pub(crate) struct RelativePosition<PosT> {
     pub root: NodeID,
     pub pos: PosT,
 }
@@ -165,13 +168,35 @@ where
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
-        let mut result: Self = super::default_deserialize_gs(location)?;
+        let legacy_path = location.join("component.bin");
+        let mut result: Self = if legacy_path.is_file() {
+            let component: LinearGraphStorageV1<PosT> =
+                deserialize_gs_field(location, "component")?;
+            Self {
+                node_to_pos: component.node_to_pos,
+                node_chains: component.node_chains,
+                annos: component.annos,
+                stats: component.stats.map(|s| GraphStatistic::from(s)),
+            }
+        } else {
+            let stats = load_statistics_from_location(location)?;
+            Self {
+                node_to_pos: deserialize_gs_field(location, "node_to_pos")?,
+                node_chains: deserialize_gs_field(location, "node_chains")?,
+                annos: deserialize_gs_field(location, "annos")?,
+                stats: stats,
+            }
+        };
+
         result.annos.after_deserialization();
         Ok(result)
     }
 
     fn save_to(&self, location: &Path) -> Result<()> {
-        super::default_serialize_gs(self, location)?;
+        serialize_gs_field(&self.node_to_pos, "node_to_pos", location)?;
+        serialize_gs_field(&self.node_chains, "node_chains", location)?;
+        serialize_gs_field(&self.annos, "annos", location)?;
+        save_statistics_to_toml(location, self.stats.as_ref())?;
         Ok(())
     }
 

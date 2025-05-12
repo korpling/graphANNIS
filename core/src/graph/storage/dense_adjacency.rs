@@ -1,4 +1,7 @@
-use super::{EdgeContainer, GraphStatistic, GraphStorage};
+use super::{
+    deserialize_gs_field, legacy::DenseAdjacencyListStorageV1, load_statistics_from_location,
+    save_statistics_to_toml, serialize_gs_field, EdgeContainer, GraphStatistic, GraphStorage,
+};
 use crate::{
     annostorage::{
         inmemory::AnnoStorageImpl, AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage,
@@ -219,13 +222,35 @@ impl GraphStorage for DenseAdjacencyListStorage {
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
-        let mut result: Self = super::default_deserialize_gs(location)?;
+        let legacy_path = location.join("component.bin");
+        let mut result: Self = if legacy_path.is_file() {
+            let component: DenseAdjacencyListStorageV1 =
+                deserialize_gs_field(location, "component")?;
+            Self {
+                edges: component.edges,
+                inverse_edges: component.inverse_edges,
+                annos: component.annos,
+                stats: component.stats.map(|s| GraphStatistic::from(s)),
+            }
+        } else {
+            let stats = load_statistics_from_location(location)?;
+            Self {
+                edges: deserialize_gs_field(location, "edges")?,
+                inverse_edges: deserialize_gs_field(location, "inverse_edges")?,
+                annos: deserialize_gs_field(location, "annos")?,
+                stats: stats,
+            }
+        };
+
         result.annos.after_deserialization();
         Ok(result)
     }
 
     fn save_to(&self, location: &Path) -> Result<()> {
-        super::default_serialize_gs(self, location)?;
+        serialize_gs_field(&self.edges, "edges", location)?;
+        serialize_gs_field(&self.inverse_edges, "inverse_edges", location)?;
+        serialize_gs_field(&self.annos, "annos", location)?;
+        save_statistics_to_toml(location, self.stats.as_ref())?;
         Ok(())
     }
 }

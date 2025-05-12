@@ -16,13 +16,15 @@ use crate::{
     util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
 };
 
-use super::{legacy, EdgeContainer, GraphStatistic, GraphStorage};
+use super::{
+    load_statistics_from_location, save_statistics_to_toml, EdgeContainer, GraphStatistic,
+    GraphStorage,
+};
 use binary_layout::prelude::*;
 
 pub(crate) const MAX_DEPTH: usize = 15;
 pub(crate) const SERIALIZATION_ID: &str = "DiskPathV1_D15";
 const ENTRY_SIZE: usize = (MAX_DEPTH * 8) + 1;
-const STATISTICS_FILE_NAME: &str = "edge_stats.toml";
 
 binary_layout!(node_path, LittleEndian, {
     length: u8,
@@ -372,22 +374,7 @@ impl GraphStorage for DiskPathStorage {
             location.join(crate::annostorage::ondisk::SUBFOLDER_NAME),
         ))?;
 
-        // Read stats
-        let stats_path_toml = location.join(STATISTICS_FILE_NAME);
-        let legacy_stats_path_bin = location.join("edge_stats.bin");
-
-        let stats = if stats_path_toml.is_file() {
-            let file_content = std::fs::read_to_string(stats_path_toml)?;
-            toml::from_str(&file_content)?
-        } else if legacy_stats_path_bin.is_file() {
-            let f_stats = std::fs::File::open(legacy_stats_path_bin)?;
-            let input = std::io::BufReader::new(f_stats);
-            // This is a legacy file which needs an older version of the struct
-            let legacy_stats: Option<legacy::GraphStatisticV1> = bincode::deserialize_from(input)?;
-            legacy_stats.map(|s| s.into())
-        } else {
-            None
-        };
+        let stats = load_statistics_from_location(location)?;
 
         Ok(Self {
             paths,
@@ -425,9 +412,7 @@ impl GraphStorage for DiskPathStorage {
         // Save edge annotations
         self.annos.save_annotations_to(location)?;
 
-        // Write stats as TOML file
-        let file_content = toml::to_string(&self.stats)?;
-        std::fs::write(location.join(STATISTICS_FILE_NAME), file_content)?;
+        save_statistics_to_toml(location, self.stats.as_ref())?;
 
         Ok(())
     }
