@@ -10,9 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New optional `file` option for the `[logging]` section in the webservice
 configuration. Can be used to additionally output all log messages to the given
 file.
+- Add number of root nodes to graph storage statistics. This changes the way
+most of the graph storages store their statistics. You can use old imported data
+files, but to make use of the new information you queries, you have to
+**reimport** your corpora.
 - `Graph:ensure_loaded_parallel` returns the actually loaded components that did
 exist.
-- Add number of root nodes to graph storage statistics.
 
 ### Fixed
 
