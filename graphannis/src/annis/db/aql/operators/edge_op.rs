@@ -43,14 +43,23 @@ impl BaseEdgeOp {
             })?;
             gs.push(gs_for_component);
         }
+        let all_part_of_components = spec
+            .components
+            .iter()
+            .all(|c| c.get_type() == AnnotationComponentType::PartOf);
+        let node_type = if all_part_of_components {
+            "corpus"
+        } else {
+            "node"
+        };
         Ok(BaseEdgeOp {
             gs,
             spec,
             max_nodes_estimate: db.get_node_annos().guess_max_count(
                 Some(&NODE_TYPE_KEY.ns),
                 &NODE_TYPE_KEY.name,
-                "node",
-                "node",
+                node_type,
+                node_type,
             )?,
             inverse: false,
         })
