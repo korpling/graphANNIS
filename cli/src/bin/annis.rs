@@ -321,7 +321,7 @@ impl AnnisRunner {
                 format = ExportFormat::GraphMLZip;
             } else if file_ext.to_string_lossy() == ".graphml" && self.current_corpus.len() != 1 {
                 bail!(
-                    r##"You need to select a *single* corpus first with the \"corpus\" command when exporting to a GraphML file. 
+                    r##"You need to select a *single* corpus first with the \"corpus\" command when exporting to a GraphML file.
                 To export multiple corpora, select a directory as output or a ZIP file (ending with .zip)"##
                 );
             }
@@ -442,7 +442,7 @@ impl AnnisRunner {
                 "unsorted" => ResultOrder::NotSorted,
                 _ => {
                     return Err(anyhow!(
-                        "Non-existing order with name {}. 
+                        "Non-existing order with name {}.
                         Must be one of \"normal\", \"inverted\", \"random\", \"unsorted\"",
                         args
                     ));

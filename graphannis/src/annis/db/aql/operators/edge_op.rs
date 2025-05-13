@@ -54,29 +54,28 @@ impl BaseEdgeOp {
             .components
             .iter()
             .all(|c| c.get_type() == AnnotationComponentType::PartOf);
-        // Use the single graph storage to get an estimate of population of nodes that can be found.
-        let max_nodes_estimate = if gs.len() == 1 {
-            gs[0]
-                .get_statistics()
-                .map(|s| s.nodes.saturating_sub(s.root_nodes))
-                .unwrap_or(any_node_count)
-        } else {
-            // Use all nodes regardless of the component as population estimate
-            if all_part_of_components {
+        let max_nodes_estimate = if all_part_of_components {
+            // PartOf components have a very skewed distribution of root nodes
+            // vs. the actual possible targets, thus do not use all nodes as
+            // population but only the non-roots.
+            if gs.len() == 1 {
+                gs[0]
+                    .get_statistics()
+                    .map(|s| s.nodes.saturating_sub(s.root_nodes))
+                    .unwrap_or(any_node_count)
+            } else {
+                // If multiple PartOf graph storages are combined, we can guess
+                // the non-root nodes by estimating the number of nodes in the
+                // corpus grah.
                 db.get_node_annos().guess_max_count(
                     Some(&NODE_TYPE_KEY.ns),
                     &NODE_TYPE_KEY.name,
                     "corpus",
                     "text",
                 )?
-            } else {
-                db.get_node_annos().guess_max_count(
-                    Some(&NODE_TYPE_KEY.ns),
-                    &NODE_TYPE_KEY.name,
-                    "node",
-                    "node",
-                )?
             }
+        } else {
+            any_node_count
         };
         Ok(BaseEdgeOp {
             gs,
