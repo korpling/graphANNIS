@@ -49,18 +49,22 @@ impl BaseEdgeOp {
             .components
             .iter()
             .all(|c| c.get_type() == AnnotationComponentType::PartOf);
-        let max_nodes_estimate = if all_part_of_components {
+
+        let max_nodes_estimate = if all_part_of_components && gs.len() == 1 {
             // PartOf components have a very skewed distribution of root nodes
             // vs. the actual possible targets, thus do not use all nodes as
-            // population but only the non-roots. We can guess the non-root
-            // nodes by estimating the number of nodes in the corpus grah.
-            let result = db.get_node_annos().guess_max_count(
-                Some(&NODE_TYPE_KEY.ns),
-                &NODE_TYPE_KEY.name,
-                "corpus",
-                "datasource",
-            )?;
-            result
+            // population but only the non-roots.
+            if let Some(stats) = gs[0].get_statistics() {
+                stats.nodes - stats.root_nodes
+            } else {
+                // Fallback to guessing by using the node type
+                db.get_node_annos().guess_max_count(
+                    Some(&NODE_TYPE_KEY.ns),
+                    &NODE_TYPE_KEY.name,
+                    "corpus",
+                    "datasource",
+                )?
+            }
         } else {
             db.get_node_annos().guess_max_count(
                 Some(&NODE_TYPE_KEY.ns),
