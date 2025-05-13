@@ -918,7 +918,10 @@ where
                     }
                 }
             } else {
-                guessed_count = total;
+                // For regular expressions without a prefix the worst case would be `.*[X].*` where `[X]` are the most common characters.
+                // Assume that a generic percentage (here 5%) of all nodes match the regex.
+                // TODO: find better ways of estimating this constant
+                guessed_count = (0.05 * (total as f64)) as usize;
             }
 
             Ok(guessed_count.min(total))

@@ -44,12 +44,7 @@ impl BaseEdgeOp {
 
             gs.push(gs_for_component);
         }
-        let any_node_count = db.get_node_annos().guess_max_count(
-            Some(&NODE_TYPE_KEY.ns),
-            &NODE_TYPE_KEY.name,
-            "",
-            &char::MAX.to_string(),
-        )?;
+
         let all_part_of_components = spec
             .components
             .iter()
@@ -57,25 +52,22 @@ impl BaseEdgeOp {
         let max_nodes_estimate = if all_part_of_components {
             // PartOf components have a very skewed distribution of root nodes
             // vs. the actual possible targets, thus do not use all nodes as
-            // population but only the non-roots.
-            if gs.len() == 1 {
-                gs[0]
-                    .get_statistics()
-                    .map(|s| s.nodes.saturating_sub(s.root_nodes))
-                    .unwrap_or(any_node_count)
-            } else {
-                // If multiple PartOf graph storages are combined, we can guess
-                // the non-root nodes by estimating the number of nodes in the
-                // corpus grah.
-                db.get_node_annos().guess_max_count(
-                    Some(&NODE_TYPE_KEY.ns),
-                    &NODE_TYPE_KEY.name,
-                    "corpus",
-                    "text",
-                )?
-            }
+            // population but only the non-roots. We can guess the non-root
+            // nodes by estimating the number of nodes in the corpus grah.
+            let result = db.get_node_annos().guess_max_count(
+                Some(&NODE_TYPE_KEY.ns),
+                &NODE_TYPE_KEY.name,
+                "corpus",
+                "datasource",
+            )?;
+            result
         } else {
-            any_node_count
+            db.get_node_annos().guess_max_count(
+                Some(&NODE_TYPE_KEY.ns),
+                &NODE_TYPE_KEY.name,
+                "node",
+                "node",
+            )?
         };
         Ok(BaseEdgeOp {
             gs,

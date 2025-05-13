@@ -720,7 +720,6 @@ where
                 if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
                     if let Some(histo) = self.histogram_bounds.get(&anno_key) {
                         // find the range in which the value is contained
-
                         // we need to make sure the histogram is not empty -> should have at least two bounds
                         if histo.len() >= 2 {
                             sum_histogram_buckets += histo.len() - 1;
@@ -775,7 +774,10 @@ where
                     }
                 }
             } else {
-                guessed_count = total;
+                // For regular expressions without a prefix the worst case would be `.*[X].*` where `[X]` are the most common characters.
+                // Assume that a generic percentage (here 5%) of all nodes match the regex.
+                // TODO: find better ways of estimating this constant
+                guessed_count = (0.05 * (total as f64)) as usize;
             }
 
             Ok(guessed_count.min(total))
