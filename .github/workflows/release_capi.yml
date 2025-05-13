@@ -12,7 +12,7 @@ name: Append C-API artifact to latest release
 jobs:
   deploy_linux_binaries:
     if: ${{ github.event.action == 'completed' || github.event.label.name == 'test-release-process' || (github.event_name == 'release' && github.event.action == 'published') }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:

@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Compile releases of the C-library on Ubuntu 22.04 instead of 20.04, which means the minimal
+  GLIBC version is 2.35. This is necessary, since GitHub actions deprecated this
+  Ubuntu version.
+
 ### Added
 
 - New optional `file` option for the `[logging]` section in the webservice
