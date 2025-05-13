@@ -12,8 +12,12 @@ use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct CostEstimate {
+    /// The estimated number of tuples produces by this execution step.
     pub output: usize,
+    /// Sum of all processed tuples including the ones of the sub-steps.
     pub intermediate_sum: usize,
+    /// The estimated number of tuples that are processed in a join in this
+    /// execution step.
     pub processed_in_step: usize,
 }
 
