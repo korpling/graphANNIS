@@ -569,7 +569,7 @@ impl<'a> NodeSearch<'a> {
                     desc: Some(ExecutionNodeDesc::empty_with_fragment(
                         common_args.node_nr,
                         common_args.query_fragment,
-                        Some(est_output),
+                        est_output,
                     )),
                     node_search_desc: Arc::new(NodeSearchDesc {
                         qname: (
@@ -676,7 +676,7 @@ impl<'a> NodeSearch<'a> {
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
                 common_args.node_nr,
                 common_args.query_fragment.clone(),
-                Some(est_output),
+                est_output,
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
                 qname: (qname.0, Some(qname.1)),
@@ -772,7 +772,7 @@ impl<'a> NodeSearch<'a> {
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
                 common_args.node_nr,
                 common_args.query_fragment,
-                Some(est_output),
+                est_output,
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
                 qname: (qname.0, Some(qname.1)),
@@ -920,7 +920,7 @@ impl<'a> NodeSearch<'a> {
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
                 common_args.node_nr,
                 common_args.query_fragment.clone(),
-                Some(est_output),
+                est_output,
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
                 qname: (
@@ -978,7 +978,7 @@ impl<'a> NodeSearch<'a> {
             desc: Some(ExecutionNodeDesc::empty_with_fragment(
                 common_args.node_nr,
                 common_args.query_fragment.clone(),
-                Some(est_output),
+                est_output,
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
                 qname: (

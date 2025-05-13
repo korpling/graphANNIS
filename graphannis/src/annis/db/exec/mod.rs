@@ -16,8 +16,7 @@ pub struct CostEstimate {
     pub output: usize,
     /// Sum of all processed tuples including the ones of the sub-steps.
     pub intermediate_sum: usize,
-    /// The estimated number of tuples that are processed in a join in this
-    /// execution step.
+    /// Simplistic estimated number of tuples that are processed in a join.
     pub processed_in_step: usize,
 }
 
@@ -58,13 +57,13 @@ impl ExecutionNodeDesc {
     pub fn empty_with_fragment(
         node_nr: usize,
         query_fragment: String,
-        est_size: Option<usize>,
+        estimated_output: usize,
     ) -> ExecutionNodeDesc {
         let mut node_pos = BTreeMap::new();
         node_pos.insert(node_nr, 0);
 
-        let cost = est_size.map(|output| CostEstimate {
-            output,
+        let cost = Some(CostEstimate {
+            output: estimated_output,
             intermediate_sum: 0,
             processed_in_step: 0,
         });

@@ -752,6 +752,10 @@ where
     fn guess_max_count_regex(&self, ns: Option<&str>, name: &str, pattern: &str) -> Result<usize> {
         let full_match_pattern = util::regex_full_match(pattern);
 
+        // Get the total number of annotations with the namespace/name. We
+        // can't get larger than this number
+        let total = self.number_of_annotations_by_name(ns, name)?;
+
         // Try to parse the regular expression
         let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
         if let Ok(parsed) = parsed {
@@ -770,11 +774,10 @@ where
                         guessed_count += self.guess_max_count(ns, name, lower_val, &upper_val)?;
                     }
                 }
+            } else {
+                guessed_count = total;
             }
 
-            // Get the total number of annotations with the namespace/name. We
-            // can't get larger than this number
-            let total = self.number_of_annotations_by_name(ns, name)?;
             Ok(guessed_count.min(total))
         } else {
             Ok(0)

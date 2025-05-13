@@ -119,6 +119,7 @@ fn get_cost_estimates<'a>(
     }
 }
 
+/// Returns true if it is estimated to switch the operands in a join.
 fn should_switch_operand_order(
     op_spec: &BinaryOperatorSpecEntry,
     node2cost: &BTreeMap<usize, CostEstimate>,

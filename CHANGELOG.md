@@ -27,6 +27,8 @@ exist.
 
 - Less frequent corpus cache status updates in log. Before, every corpus access
 could trigger an entry into the log which is not desired under heavy load.
+- Improve query execution planning by assuming all annotations can be matched in
+regular expressions without a prefix.
 
 ## [3.7.1] - 2025-04-14
 
