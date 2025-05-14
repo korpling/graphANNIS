@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.8.0] - 2025-05-14
+
 ### Changed
 
 - Compile releases of the C-library on Ubuntu 22.04 instead of 20.04, which means the minimal
