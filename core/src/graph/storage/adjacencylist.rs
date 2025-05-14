@@ -7,7 +7,12 @@ use crate::{
     types::{AnnoKey, Annotation, Edge, NodeID},
 };
 
-use super::{EdgeContainer, GraphStatistic, GraphStorage, WriteableGraphStorage};
+use super::{
+    deserialize_gs_field,
+    legacy::{self, AdjacencyListStorageV1},
+    load_statistics_from_location, save_statistics_to_toml, serialize_gs_field, EdgeContainer,
+    GraphStatistic, GraphStorage, WriteableGraphStorage,
+};
 use itertools::Itertools;
 use rustc_hash::FxHashSet;
 use serde::Deserialize;
@@ -123,13 +128,34 @@ impl GraphStorage for AdjacencyListStorage {
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
-        let mut result: Self = super::default_deserialize_gs(location)?;
+        let legacy_path = location.join("component.bin");
+        let mut result: Self = if legacy_path.is_file() {
+            let component: AdjacencyListStorageV1 = deserialize_gs_field(location, "component")?;
+            Self {
+                stats: component.stats.map(GraphStatistic::from),
+                edges: component.edges,
+                inverse_edges: component.inverse_edges,
+                annos: component.annos,
+            }
+        } else {
+            let stats = load_statistics_from_location(location)?;
+            Self {
+                edges: deserialize_gs_field(location, "edges")?,
+                inverse_edges: deserialize_gs_field(location, "inverse_edges")?,
+                annos: deserialize_gs_field(location, "annos")?,
+                stats,
+            }
+        };
+
         result.annos.after_deserialization();
         Ok(result)
     }
 
     fn save_to(&self, location: &Path) -> Result<()> {
-        super::default_serialize_gs(self, location)?;
+        serialize_gs_field(&self.edges, "edges", location)?;
+        serialize_gs_field(&self.inverse_edges, "inverse_edges", location)?;
+        serialize_gs_field(&self.annos, "annos", location)?;
+        save_statistics_to_toml(location, self.stats.as_ref())?;
         Ok(())
     }
 
@@ -334,6 +360,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             cyclic: false,
             rooted_tree: true,
             nodes: 0,
+            root_nodes: 0,
             dfs_visit_ratio: 0.0,
         };
 
@@ -370,6 +397,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
                 }
             }
         }
+        stats.root_nodes = roots.len();
 
         let fan_outs = get_fan_outs(&self.edges);
         let sum_fan_out: usize = fan_outs.iter().sum();
@@ -443,6 +471,17 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         self.inverse_edges.clear();
         self.stats = None;
         Ok(())
+    }
+}
+
+impl From<legacy::AdjacencyListStorageV1> for AdjacencyListStorage {
+    fn from(value: legacy::AdjacencyListStorageV1) -> Self {
+        Self {
+            edges: value.edges,
+            inverse_edges: value.inverse_edges,
+            annos: value.annos,
+            stats: value.stats.map(GraphStatistic::from),
+        }
     }
 }
 

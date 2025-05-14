@@ -5,7 +5,7 @@ info:
   args:
     - "../graphannis/tests/data/"
     - "-c"
-    - corpus sample-disk-based-3.3
+    - corpus sample-disk-based-3.8
     - "-c"
     - preload
     - "-c"
@@ -14,59 +14,59 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-12:00:00[INFO] Loaded corpus sample-disk-based-3.3
-12:00:00[INFO] Corpus cache after preloading sample-disk-based-3.3: 100MB / 300MB - loaded corpora [sample-disk-based-3.3]
+12:00:00[INFO] Loaded corpus sample-disk-based-3.8
+12:00:00[INFO] Corpus cache after preloading sample-disk-based-3.8: 100MB / 300MB - loaded corpora [sample-disk-based-3.8]
 12:00:00[INFO] Preloaded corpus in 10 ms
 Status: "fully loaded"
 Token search shortcut possible: true
 ------------
 Component Coverage//: 0 annnotations
-Stats: nodes=92, avg_fan_out=2.17, max_fan_out=11, max_depth=1
+Stats: nodes=92, root nodes=48, avg_fan_out=2.17, max_fan_out=11, fan_out_99%=11, inv_fan_out_99%=9, max_depth=1
 Implementation: DiskAdjacencyListV1
 Status: "fully loaded"
 ------------
 Component Coverage/annis/: 0 annnotations
-Stats: nodes=0, avg_fan_out=0.00, max_fan_out=0, max_depth=1, tree
+Stats: nodes=0, root nodes=0, avg_fan_out=0.00, max_fan_out=0, fan_out_99%=0, inv_fan_out_99%=0, max_depth=1, tree
 Implementation: DiskAdjacencyListV1
 Status: "fully loaded"
 ------------
 Component Coverage/default_ns/: 0 annnotations
-Stats: nodes=56, avg_fan_out=0.93, max_fan_out=10, max_depth=1
+Stats: nodes=56, root nodes=12, avg_fan_out=0.93, max_fan_out=10, fan_out_99%=10, inv_fan_out_99%=2, max_depth=1
 Implementation: DiskAdjacencyListV1
 Status: "fully loaded"
 ------------
 Component Coverage/annis/inherited-coverage: 0 annnotations
-Stats: nodes=0, avg_fan_out=0.00, max_fan_out=0, max_depth=1, tree
+Stats: nodes=0, root nodes=0, avg_fan_out=0.00, max_fan_out=0, fan_out_99%=0, inv_fan_out_99%=0, max_depth=1, tree
 Implementation: DiskAdjacencyListV1
 Status: "fully loaded"
 ------------
 Component Dominance/syntax/: 0 annnotations
-Stats: nodes=92, avg_fan_out=0.96, max_fan_out=3, max_depth=9, tree
+Stats: nodes=92, root nodes=4, avg_fan_out=0.96, max_fan_out=3, fan_out_99%=3, inv_fan_out_99%=1, max_depth=9, tree
 Implementation: PrePostOrderO16L8V1
 Status: "fully loaded"
 ------------
 Component Pointing/default_ns/anaphoric: 0 annnotations
-Stats: nodes=8, avg_fan_out=0.50, max_fan_out=1, max_depth=1, tree
+Stats: nodes=8, root nodes=4, avg_fan_out=0.50, max_fan_out=1, fan_out_99%=1, inv_fan_out_99%=1, max_depth=1, tree
 Implementation: DiskPathV1_D15
 Status: "fully loaded"
 ------------
 Component Ordering/annis/: 0 annnotations
-Stats: nodes=44, avg_fan_out=0.91, max_fan_out=1, max_depth=10, tree
+Stats: nodes=44, root nodes=4, avg_fan_out=0.91, max_fan_out=1, fan_out_99%=1, inv_fan_out_99%=1, max_depth=10, tree
 Implementation: DiskPathV1_D15
 Status: "fully loaded"
 ------------
 Component LeftToken/annis/: 0 annnotations
-Stats: nodes=92, avg_fan_out=0.65, max_fan_out=1, max_depth=1
+Stats: nodes=92, root nodes=60, avg_fan_out=0.65, max_fan_out=1, fan_out_99%=1, inv_fan_out_99%=3, max_depth=1
 Implementation: DiskPathV1_D15
 Status: "fully loaded"
 ------------
 Component RightToken/annis/: 0 annnotations
-Stats: nodes=84, avg_fan_out=0.71, max_fan_out=1, max_depth=1
+Stats: nodes=84, root nodes=60, avg_fan_out=0.71, max_fan_out=1, fan_out_99%=1, inv_fan_out_99%=8, max_depth=1
 Implementation: DiskPathV1_D15
 Status: "fully loaded"
 ------------
 Component PartOf/annis/: 0 annnotations
-Stats: nodes=115, avg_fan_out=0.99, max_fan_out=1, max_depth=4
+Stats: nodes=115, root nodes=104, avg_fan_out=0.99, max_fan_out=1, fan_out_99%=1, inv_fan_out_99%=26, max_depth=4
 Implementation: DiskPathV1_D15
 Status: "fully loaded"
 ------------

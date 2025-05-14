@@ -16,7 +16,10 @@ use crate::{
     util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
 };
 
-use super::{EdgeContainer, GraphStatistic, GraphStorage};
+use super::{
+    load_statistics_from_location, save_statistics_to_toml, EdgeContainer, GraphStatistic,
+    GraphStorage,
+};
 use binary_layout::prelude::*;
 
 pub(crate) const MAX_DEPTH: usize = 15;
@@ -371,11 +374,7 @@ impl GraphStorage for DiskPathStorage {
             location.join(crate::annostorage::ondisk::SUBFOLDER_NAME),
         ))?;
 
-        // Read stats
-        let stats_path = location.join("edge_stats.bin");
-        let f_stats = std::fs::File::open(stats_path)?;
-        let input = std::io::BufReader::new(f_stats);
-        let stats = bincode::deserialize_from(input)?;
+        let stats = load_statistics_from_location(location)?;
 
         Ok(Self {
             paths,
@@ -413,11 +412,7 @@ impl GraphStorage for DiskPathStorage {
         // Save edge annotations
         self.annos.save_annotations_to(location)?;
 
-        // Write stats with bincode
-        let stats_path = location.join("edge_stats.bin");
-        let f_stats = std::fs::File::create(stats_path)?;
-        let mut writer = std::io::BufWriter::new(f_stats);
-        bincode::serialize_into(&mut writer, &self.stats)?;
+        save_statistics_to_toml(location, self.stats.as_ref())?;
 
         Ok(())
     }

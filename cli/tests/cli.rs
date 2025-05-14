@@ -26,7 +26,7 @@ fn show_corpus_info() -> Result<(), Box<dyn std::error::Error>> {
 
     cmd.arg("../graphannis/tests/data/")
         .arg("-c")
-        .arg("corpus sample-disk-based-3.3")
+        .arg("corpus sample-disk-based-3.8")
         .arg("-c")
         .arg("preload")
         .arg("-c")

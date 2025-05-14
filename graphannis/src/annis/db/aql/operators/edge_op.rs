@@ -41,17 +41,42 @@ impl BaseEdgeOp {
             let gs_for_component = db.get_graphstorage(c).ok_or_else(|| {
                 GraphAnnisError::ImpossibleSearch(format!("Component {} does not exist", &c))
             })?;
+
             gs.push(gs_for_component);
         }
-        Ok(BaseEdgeOp {
-            gs,
-            spec,
-            max_nodes_estimate: db.get_node_annos().guess_max_count(
+
+        let all_part_of_components = spec
+            .components
+            .iter()
+            .all(|c| c.get_type() == AnnotationComponentType::PartOf);
+
+        let max_nodes_estimate = if all_part_of_components && gs.len() == 1 {
+            // PartOf components have a very skewed distribution of root nodes
+            // vs. the actual possible targets, thus do not use all nodes as
+            // population but only the non-roots.
+            if let Some(stats) = gs[0].get_statistics() {
+                stats.nodes - stats.root_nodes
+            } else {
+                // Fallback to guessing by using the node type
+                db.get_node_annos().guess_max_count(
+                    Some(&NODE_TYPE_KEY.ns),
+                    &NODE_TYPE_KEY.name,
+                    "corpus",
+                    "datasource",
+                )?
+            }
+        } else {
+            db.get_node_annos().guess_max_count(
                 Some(&NODE_TYPE_KEY.ns),
                 &NODE_TYPE_KEY.name,
                 "node",
                 "node",
-            )?,
+            )?
+        };
+        Ok(BaseEdgeOp {
+            gs,
+            spec,
+            max_nodes_estimate,
             inverse: false,
         })
     }

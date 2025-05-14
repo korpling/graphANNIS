@@ -1,0 +1,10 @@
+cyclic = false
+rooted_tree = true
+nodes = 0
+root_nodes = 0
+avg_fan_out = 0.0
+fan_out_99_percentile = 0
+inverse_fan_out_99_percentile = 0
+max_fan_out = 0
+max_depth = 1
+dfs_visit_ratio = 0.0

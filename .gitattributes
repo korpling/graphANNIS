@@ -1,1 +1,3 @@
 *.graphml text eol=lf
+third-party-licenses.html linguist-generated
+/graphannis/tests/data/ linguist-generated=true

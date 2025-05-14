@@ -1,0 +1,10 @@
+cyclic = false
+rooted_tree = false
+nodes = 115
+root_nodes = 104
+avg_fan_out = 0.991304347826087
+fan_out_99_percentile = 1
+inverse_fan_out_99_percentile = 26
+max_fan_out = 1
+max_depth = 4
+dfs_visit_ratio = 4.521739130434782

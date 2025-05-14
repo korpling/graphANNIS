@@ -143,12 +143,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
     where
         Self: std::marker::Sized,
     {
-        // Read stats
-        let stats_path = location.join("edge_stats.bin");
-        let f_stats = std::fs::File::open(stats_path)?;
-        let input = std::io::BufReader::new(f_stats);
-        let stats = bincode::deserialize_from(input)?;
-
+        let stats = load_statistics_from_location(location)?;
         let result = DiskAdjacencyListStorage {
             edges: DiskMap::new(
                 Some(&location.join("edges.bin")),
@@ -179,12 +174,7 @@ impl GraphStorage for DiskAdjacencyListStorage {
         self.inverse_edges
             .write_to(&location.join("inverse_edges.bin"))?;
         self.annos.save_annotations_to(location)?;
-        // Write stats with bincode
-        let stats_path = location.join("edge_stats.bin");
-        let f_stats = std::fs::File::create(stats_path)?;
-        let mut writer = std::io::BufWriter::new(f_stats);
-        bincode::serialize_into(&mut writer, &self.stats)?;
-
+        save_statistics_to_toml(location, self.stats.as_ref())?;
         Ok(())
     }
 
@@ -368,6 +358,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
             cyclic: false,
             rooted_tree: true,
             nodes: 0,
+            root_nodes: 0,
             dfs_visit_ratio: 0.0,
         };
 
@@ -404,6 +395,7 @@ impl WriteableGraphStorage for DiskAdjacencyListStorage {
                 roots.remove(&e.target);
             }
         }
+        stats.root_nodes = roots.len();
 
         let fan_outs = get_fan_outs(&self.edges)?;
         let sum_fan_out: usize = fan_outs.iter().sum();
