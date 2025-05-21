@@ -2387,11 +2387,41 @@ impl CorpusStorage {
         ctype: Option<AnnotationComponentType>,
         name: Option<&str>,
     ) -> Result<Vec<Component<AnnotationComponentType>>> {
-        if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false, false) {
-            let lock = db_entry.read()?;
-            if let Ok(db) = get_read_or_error(&lock) {
-                return Ok(db.get_all_components(ctype, name));
-            }
+        if let Ok(db_entry) = self.get_entry(corpus_name) {
+            // Lock the entry so no-one else can write to it
+            let _lock = db_entry.read()?;
+            // Get the components by listing the directories on the disk We
+            // could use `Graph:get_all_components() but this needs to load the
+            // annotation storage which can be costly.
+            let db_path = self.corpus_directory_on_disk(corpus_name);
+            let backup = db_path.join("backup");
+
+            let dir2load = if backup.exists() && backup.is_dir() {
+                backup.clone()
+            } else {
+                db_path.join("current")
+            };
+            let components = graphannis_core::graph::find_components_from_disk::<
+                AnnotationComponentType,
+                _,
+            >(&dir2load)?
+            .into_iter()
+            .filter(|c| {
+                if let Some(ctype) = ctype.as_ref() {
+                    &c.get_type() == ctype
+                } else {
+                    true
+                }
+            })
+            .filter(|c| {
+                if let Some(name) = name {
+                    c.name.as_str() == name
+                } else {
+                    true
+                }
+            })
+            .collect();
+            return Ok(components);
         }
         Ok(vec![])
     }

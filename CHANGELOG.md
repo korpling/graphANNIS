@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Avoid loading the node annotation storage when listing the components for a
+corpus in the `CorpusStorage`. Before this change, querying for components via
+the webservice could block the corpus cache.
+
 ## [3.8.0] - 2025-05-14
 
 ### Changed
