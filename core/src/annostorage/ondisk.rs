@@ -919,9 +919,40 @@ where
                 }
             } else {
                 // For regular expressions without a prefix the worst case would be `.*[X].*` where `[X]` are the most common characters.
-                // Assume that a generic percentage (here 5%) of all nodes match the regex.
-                // TODO: find better ways of estimating this constant
-                guessed_count = (0.05 * (total as f64)) as usize;
+                // Sample values from the histogram to get a better estimation of how many percent of the actual values could match.
+                if let Ok(pattern) = regex::Regex::new(pattern) {
+                    let qualified_keys = match ns {
+                        Some(ns) => vec![AnnoKey {
+                            name: name.into(),
+                            ns: ns.into(),
+                        }],
+                        None => self.get_qnames(name)?,
+                    };
+                    for anno_key in qualified_keys {
+                        let anno_size = self
+                            .anno_key_sizes
+                            .get(&anno_key)
+                            .copied()
+                            .unwrap_or_default();
+                        if let Some(histo) = self.histogram_bounds.get(&anno_key) {
+                            if !histo.is_empty() {
+                                let matches = histo.iter().filter(|v| pattern.is_match(v)).count();
+                                if histo.len() == matches {
+                                    // Assume all values match
+                                    guessed_count += anno_size;
+                                } else if matches == 0 {
+                                    // No match found, but use the bucket size as pessimistic guess
+                                    guessed_count +=
+                                        (anno_size as f64 / histo.len() as f64) as usize;
+                                } else {
+                                    // Use the percent of matched values to guess the overall number
+                                    let match_ratio = (matches as f64) / (histo.len() as f64);
+                                    guessed_count += ((anno_size as f64) * match_ratio) as usize;
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             Ok(guessed_count.min(total))
