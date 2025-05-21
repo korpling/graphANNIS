@@ -10,6 +10,7 @@ use crate::{try_as_boxed_iter, util};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rand::seq::IteratorRandom;
+use rand::thread_rng;
 use regex_syntax::hir::literal::Seq;
 use regex_syntax::Parser;
 use serde_bytes::ByteBuf;
@@ -921,6 +922,7 @@ where
                 // For regular expressions without a prefix the worst case would be `.*[X].*` where `[X]` are the most common characters.
                 // Sample values from the histogram to get a better estimation of how many percent of the actual values could match.
                 if let Ok(pattern) = regex::Regex::new(pattern) {
+                    let mut rng = thread_rng();
                     let qualified_keys = match ns {
                         Some(ns) => vec![AnnoKey {
                             name: name.into(),
@@ -936,17 +938,22 @@ where
                             .unwrap_or_default();
                         if let Some(histo) = self.histogram_bounds.get(&anno_key) {
                             if !histo.is_empty() {
-                                let matches = histo.iter().filter(|v| pattern.is_match(v)).count();
-                                if histo.len() == matches {
+                                let sampled_values = histo.iter().choose_multiple(&mut rng, 20);
+                                let matches = sampled_values
+                                    .iter()
+                                    .filter(|v| pattern.is_match(v))
+                                    .count();
+                                if sampled_values.len() == matches {
                                     // Assume all values match
                                     guessed_count += anno_size;
                                 } else if matches == 0 {
                                     // No match found, but use the bucket size as pessimistic guess
                                     guessed_count +=
-                                        (anno_size as f64 / histo.len() as f64) as usize;
+                                        (anno_size as f64 / sampled_values.len() as f64) as usize;
                                 } else {
                                     // Use the percent of matched values to guess the overall number
-                                    let match_ratio = (matches as f64) / (histo.len() as f64);
+                                    let match_ratio =
+                                        (matches as f64) / (sampled_values.len() as f64);
                                     guessed_count += ((anno_size as f64) * match_ratio) as usize;
                                 }
                             }
