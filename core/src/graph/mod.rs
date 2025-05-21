@@ -382,7 +382,7 @@ impl<CT: ComponentType> Graph<CT> {
 
     fn get_cached_node_id_from_name(
         &self,
-        node_name: Cow<String>,
+        node_name: Cow<str>,
         cache: &mut CLruCache<String, Option<NodeID>>,
     ) -> Result<Option<NodeID>> {
         if let Some(id) = cache.get(node_name.as_ref()) {
