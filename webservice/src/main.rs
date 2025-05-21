@@ -33,7 +33,7 @@ use simplelog::{
 };
 use std::fs::OpenOptions;
 use std::{
-    io::{Error, ErrorKind, Result},
+    io::{Error, Result},
     path::PathBuf,
 };
 
@@ -270,12 +270,8 @@ async fn get_api_html_docs(_req: HttpRequest) -> HttpResponse {
 #[actix_web::main]
 async fn main() -> Result<()> {
     // Initialize application and its state
-    let (cs, settings, db_pool) = init_app_state().map_err(|e| {
-        Error::new(
-            ErrorKind::Other,
-            format!("Could not initialize graphANNIS service: {:?}", e),
-        )
-    })?;
+    let (cs, settings, db_pool) = init_app_state()
+        .map_err(|e| Error::other(format!("Could not initialize graphANNIS service: {:?}", e)))?;
 
     let bind_address = format!("{}:{}", &settings.bind.host, &settings.bind.port);
     let cs = web::Data::new(cs);

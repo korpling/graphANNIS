@@ -167,6 +167,10 @@ pub struct AQLUpdateGraphIndex {
 }
 
 impl AQLUpdateGraphIndex {
+    #[allow(
+        clippy::owned_cow,
+        reason = "We don't want to copy the node_name if not necessary and also have to look up &String"
+    )]
     fn get_cached_node_id_from_name(
         &mut self,
         node_name: Cow<String>,
