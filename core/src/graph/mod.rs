@@ -14,7 +14,6 @@ use crate::{
 use clru::CLruCache;
 use rayon::prelude::*;
 use smartstring::alias::String as SmartString;
-use std::io::prelude::*;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
 use std::string::ToString;
@@ -23,6 +22,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 use std::{collections::BTreeMap, num::NonZeroUsize};
+use std::{collections::BTreeSet, io::prelude::*};
 use update::{GraphUpdate, UpdateEvent};
 
 pub const ANNIS_NS: &str = "annis";
@@ -111,6 +111,66 @@ fn component_path<CT: ComponentType>(
         }
         None => None,
     }
+}
+
+/// List all the components that belong to corpus in the given directory.
+pub fn find_components_from_disk<CT: ComponentType, P: AsRef<Path>>(
+    location: P,
+) -> Result<BTreeSet<Component<CT>>> {
+    let mut result = BTreeSet::new();
+    // for all component types
+    for c in CT::all_component_types().into_iter() {
+        let cpath = PathBuf::from(location.as_ref())
+            .join("gs")
+            .join(c.to_string());
+
+        if cpath.is_dir() {
+            // get all the namespaces/layers
+            for layer in cpath.read_dir()? {
+                let layer = layer?;
+                if layer.path().is_dir() {
+                    // try to load the component with the empty name
+                    let layer_file_name = layer.file_name();
+                    let layer_name_from_file = layer_file_name.to_string_lossy();
+                    let layer_name: SmartString = if layer_name_from_file == DEFAULT_EMPTY_LAYER {
+                        SmartString::default()
+                    } else {
+                        layer_name_from_file.into()
+                    };
+                    let empty_name_component =
+                        Component::new(c.clone(), layer_name.clone(), SmartString::default());
+                    {
+                        let cfg_file = PathBuf::from(location.as_ref())
+                            .join(component_to_relative_path(&empty_name_component))
+                            .join("impl.cfg");
+
+                        if cfg_file.is_file() {
+                            result.insert(empty_name_component.clone());
+                            debug!("Registered component {}", empty_name_component);
+                        }
+                    }
+                    // also load all named components
+                    for name in layer.path().read_dir()? {
+                        let name = name?;
+                        let named_component = Component::new(
+                            c.clone(),
+                            layer_name.clone(),
+                            name.file_name().to_string_lossy().into(),
+                        );
+                        let cfg_file = PathBuf::from(location.as_ref())
+                            .join(component_to_relative_path(&named_component))
+                            .join("impl.cfg");
+
+                        if cfg_file.is_file() {
+                            result.insert(named_component.clone());
+                            debug!("Registered component {}", named_component);
+                        }
+                    }
+                }
+            }
+        }
+    } // end for all components
+    Ok(result)
 }
 
 impl<CT: ComponentType> Graph<CT> {
@@ -233,7 +293,10 @@ impl<CT: ComponentType> Graph<CT> {
 
         let logfile_exists = log_path.exists() && log_path.is_file();
 
-        self.find_components_from_disk(&dir2load)?;
+        self.components = find_components_from_disk(&dir2load)?
+            .into_iter()
+            .map(|c| (c, None))
+            .collect();
 
         // If backup is active or a write log exists, always  a pre-load to get the complete corpus.
         if logfile_exists | load_from_backup {
@@ -287,63 +350,6 @@ impl<CT: ComponentType> Graph<CT> {
         Ok(())
     }
 
-    fn find_components_from_disk(&mut self, location: &Path) -> Result<()> {
-        self.components.clear();
-
-        // for all component types
-        for c in CT::all_component_types().into_iter() {
-            let cpath = PathBuf::from(location).join("gs").join(c.to_string());
-
-            if cpath.is_dir() {
-                // get all the namespaces/layers
-                for layer in cpath.read_dir()? {
-                    let layer = layer?;
-                    if layer.path().is_dir() {
-                        // try to load the component with the empty name
-                        let layer_file_name = layer.file_name();
-                        let layer_name_from_file = layer_file_name.to_string_lossy();
-                        let layer_name: SmartString = if layer_name_from_file == DEFAULT_EMPTY_LAYER
-                        {
-                            SmartString::default()
-                        } else {
-                            layer_name_from_file.into()
-                        };
-                        let empty_name_component =
-                            Component::new(c.clone(), layer_name.clone(), SmartString::default());
-                        {
-                            let cfg_file = PathBuf::from(location)
-                                .join(component_to_relative_path(&empty_name_component))
-                                .join("impl.cfg");
-
-                            if cfg_file.is_file() {
-                                self.components.insert(empty_name_component.clone(), None);
-                                debug!("Registered component {}", empty_name_component);
-                            }
-                        }
-                        // also load all named components
-                        for name in layer.path().read_dir()? {
-                            let name = name?;
-                            let named_component = Component::new(
-                                c.clone(),
-                                layer_name.clone(),
-                                name.file_name().to_string_lossy().into(),
-                            );
-                            let cfg_file = PathBuf::from(location)
-                                .join(component_to_relative_path(&named_component))
-                                .join("impl.cfg");
-
-                            if cfg_file.is_file() {
-                                self.components.insert(named_component.clone(), None);
-                                debug!("Registered component {}", named_component);
-                            }
-                        }
-                    }
-                }
-            }
-        } // end for all components
-        Ok(())
-    }
-
     fn internal_save(&self, location: &Path) -> Result<()> {
         let location = PathBuf::from(location);
 
@@ -376,7 +382,7 @@ impl<CT: ComponentType> Graph<CT> {
 
     fn get_cached_node_id_from_name(
         &self,
-        node_name: Cow<String>,
+        node_name: Cow<str>,
         cache: &mut CLruCache<String, Option<NodeID>>,
     ) -> Result<Option<NodeID>> {
         if let Some(id) = cache.get(node_name.as_ref()) {
