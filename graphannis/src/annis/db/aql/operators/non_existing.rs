@@ -1,5 +1,5 @@
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     error::Error,
     fmt::{Debug, Display},
     sync::Arc,
@@ -219,6 +219,7 @@ impl UnaryOperator for NonExistingUnaryOperatorFilter<'_> {
             0,
             self.graph,
             None,
+            &mut HashMap::new(),
             TimeoutCheck::new(None),
         ) {
             // Include if no nodes matches the conditions

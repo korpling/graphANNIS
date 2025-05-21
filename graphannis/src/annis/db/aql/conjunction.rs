@@ -439,6 +439,7 @@ impl Conjunction {
         &self,
         db: &AnnotationGraph,
         config: &Config,
+        output_size_cache: &mut HashMap<usize, usize>,
         timeout: TimeoutCheck,
     ) -> Result<Vec<usize>> {
         // check if there is something to optimize
@@ -454,9 +455,13 @@ impl Conjunction {
 
         let mut best_operator_order: Vec<_> = (0..self.binary_operators.len()).collect();
 
-        // TODO: cache the base estimates
-        let initial_plan =
-            self.make_exec_plan_with_order(db, config, best_operator_order.clone(), timeout)?;
+        let initial_plan = self.make_exec_plan_with_order(
+            db,
+            config,
+            best_operator_order.clone(),
+            output_size_cache,
+            timeout,
+        )?;
         let mut best_cost: usize = initial_plan
             .get_desc()
             .ok_or(GraphAnnisError::PlanDescriptionMissing)?
@@ -497,8 +502,13 @@ impl Conjunction {
 
             let mut found_better_plan = false;
             for op_order in family_operators.iter().skip(1) {
-                let alt_plan =
-                    self.make_exec_plan_with_order(db, config, op_order.clone(), timeout)?;
+                let alt_plan = self.make_exec_plan_with_order(
+                    db,
+                    config,
+                    op_order.clone(),
+                    output_size_cache,
+                    timeout,
+                )?;
                 let alt_cost = alt_plan
                     .get_desc()
                     .ok_or(GraphAnnisError::PlanDescriptionMissing)?
@@ -605,6 +615,7 @@ impl Conjunction {
             Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
         >,
         helper: &mut ExecutionPlanHelper,
+        output_size_cache: &mut HashMap<usize, usize>,
         node_search_errors: &mut Vec<GraphAnnisError>,
         timeout: TimeoutCheck,
     ) -> Result<()> {
@@ -616,6 +627,7 @@ impl Conjunction {
             node_nr,
             g,
             self.location_in_query.get(n_var).cloned(),
+            output_size_cache,
             timeout,
         );
         match node_search {
@@ -783,6 +795,7 @@ impl Conjunction {
         db: &'a AnnotationGraph,
         config: &Config,
         operator_order: Vec<usize>,
+        output_size_cache: &mut HashMap<usize, usize>,
         timeout: TimeoutCheck,
     ) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> {
         let mut helper = ExecutionPlanHelper {
@@ -809,6 +822,7 @@ impl Conjunction {
                     db,
                     &mut component2exec,
                     &mut helper,
+                    output_size_cache,
                     &mut node_search_errors,
                     timeout,
                 )?;
@@ -927,7 +941,9 @@ impl Conjunction {
     ) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> {
         self.check_components_connected()?;
 
-        let operator_order = self.optimize_join_order_heuristics(db, config, timeout)?;
-        self.make_exec_plan_with_order(db, config, operator_order, timeout)
+        let mut output_size_cache = HashMap::new();
+        let operator_order =
+            self.optimize_join_order_heuristics(db, config, &mut output_size_cache, timeout)?;
+        self.make_exec_plan_with_order(db, config, operator_order, &mut output_size_cache, timeout)
     }
 }
