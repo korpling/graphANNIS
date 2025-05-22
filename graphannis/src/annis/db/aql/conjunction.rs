@@ -82,6 +82,15 @@ struct ExecutionPlanHelper {
     node2cost: BTreeMap<usize, CostEstimate>,
 }
 
+struct AddNodeToExecutionPlanOutput<'a> {
+    /// Key is the component number
+    component2exec: BTreeMap<usize, Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>>,
+    helper: ExecutionPlanHelper,
+    /// Remember node search errors, but do not bail out of the functions
+    /// generating them before the component semantics check has been performed.
+    node_search_errors: Vec<GraphAnnisError>,
+}
+
 fn update_components_for_nodes(
     node2component: &mut BTreeMap<usize, usize>,
     from: usize,
@@ -610,14 +619,9 @@ impl Conjunction {
         &'a self,
         node_nr: usize,
         g: &'a AnnotationGraph,
-        component2exec: &mut BTreeMap<
-            usize,
-            Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
-        >,
-        helper: &mut ExecutionPlanHelper,
-        output_size_cache: &mut HashMap<usize, usize>,
-        node_search_errors: &mut Vec<GraphAnnisError>,
         timeout: TimeoutCheck,
+        output_size_cache: &mut HashMap<usize, usize>,
+        output: &mut AddNodeToExecutionPlanOutput<'a>,
     ) -> Result<()> {
         let n_spec = &self.nodes[node_nr].spec;
         let n_var = &self.nodes[node_nr].var;
@@ -632,12 +636,12 @@ impl Conjunction {
         );
         match node_search {
             Ok(mut node_search) => {
-                helper.node2component.insert(node_nr, node_nr);
+                output.helper.node2component.insert(node_nr, node_nr);
 
                 let (orig_query_frag, orig_impl_desc, cost) =
                     if let Some(d) = node_search.get_desc() {
                         if let Some(ref c) = d.cost {
-                            helper.node2cost.insert(node_nr, c.clone());
+                            output.helper.node2cost.insert(node_nr, c.clone());
                         }
 
                         (
@@ -672,12 +676,14 @@ impl Conjunction {
 
                 // move to map
                 if let Some(node_by_component_search) = node_by_component_search {
-                    component2exec.insert(node_nr, node_by_component_search);
+                    output
+                        .component2exec
+                        .insert(node_nr, node_by_component_search);
                 } else {
-                    component2exec.insert(node_nr, Box::new(node_search));
+                    output.component2exec.insert(node_nr, Box::new(node_search));
                 }
             }
-            Err(e) => node_search_errors.push(e),
+            Err(e) => output.node_search_errors.push(e),
         };
         Ok(())
     }
@@ -798,40 +804,27 @@ impl Conjunction {
         output_size_cache: &mut HashMap<usize, usize>,
         timeout: TimeoutCheck,
     ) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> {
-        let mut helper = ExecutionPlanHelper {
+        let helper = ExecutionPlanHelper {
             node2component: BTreeMap::new(),
             node2cost: BTreeMap::new(),
         };
 
-        // Create a map where the key is the component number
-        // and move all nodes with their index as component number.
-        let mut component2exec: BTreeMap<
-            usize,
-            Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>,
-        > = BTreeMap::new();
-
-        // Remember node search errors, but do not bail out of this function before the component
-        // semantics check has been performed.
-        let mut node_search_errors: Vec<GraphAnnisError> = Vec::default();
-
+        let mut output = AddNodeToExecutionPlanOutput {
+            component2exec: BTreeMap::new(),
+            node_search_errors: Vec::default(),
+            helper,
+        };
         // 1. add all non-optional nodes
         for node_nr in 0..self.nodes.len() {
             if !self.nodes[node_nr].optional {
-                self.add_node_to_exec_plan(
-                    node_nr,
-                    db,
-                    &mut component2exec,
-                    &mut helper,
-                    output_size_cache,
-                    &mut node_search_errors,
-                    timeout,
-                )?;
+                self.add_node_to_exec_plan(node_nr, db, timeout, output_size_cache, &mut output)?;
             }
         }
 
         // 2. add unary operators as filter to the existing node search
         for op_spec_entry in self.unary_operators.iter() {
-            let child_exec = component2exec
+            let child_exec = output
+                .component2exec
                 .remove(&op_spec_entry.idx)
                 .ok_or(GraphAnnisError::NoExecutionNode(op_spec_entry.idx))?;
 
@@ -842,7 +835,9 @@ impl Conjunction {
             };
             let filter_exec = Filter::new_unary(child_exec, 0, op_entry);
 
-            component2exec.insert(op_spec_entry.idx, Box::new(filter_exec));
+            output
+                .component2exec
+                .insert(op_spec_entry.idx, Box::new(filter_exec));
         }
 
         // 3. add the joins which produce the results in operand order
@@ -852,18 +847,18 @@ impl Conjunction {
                 op_spec_entry,
                 db,
                 config,
-                &mut component2exec,
-                &mut helper,
+                &mut output.component2exec,
+                &mut output.helper,
             )?;
         }
 
         // apply the the node error check
-        if !node_search_errors.is_empty() {
-            return Err(node_search_errors.remove(0));
+        if !output.node_search_errors.is_empty() {
+            return Err(output.node_search_errors.remove(0));
         }
 
         // it must be checked before that all components are connected
-        component2exec.into_values().next().ok_or_else(|| {
+        output.component2exec.into_values().next().ok_or_else(|| {
             GraphAnnisError::ImpossibleSearch(String::from(
                 "could not find execution node for query component",
             ))
