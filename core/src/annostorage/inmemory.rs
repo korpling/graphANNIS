@@ -7,6 +7,8 @@ use crate::util::{self};
 use crate::{annostorage::symboltable::SymbolTable, errors::GraphAnnisCoreError};
 use core::ops::Bound::*;
 use itertools::Itertools;
+use rand::seq::IteratorRandom;
+use rand::thread_rng;
 use rustc_hash::FxHashSet;
 use smartstring::alias::String;
 use smartstring::{LazyCompact, SmartString};
@@ -775,9 +777,50 @@ where
                 }
             } else {
                 // For regular expressions without a prefix the worst case would be `.*[X].*` where `[X]` are the most common characters.
-                // Assume that a generic percentage (here 5%) of all nodes match the regex.
-                // TODO: find better ways of estimating this constant
-                guessed_count = (0.05 * (total as f64)) as usize;
+                // Sample values from the histogram to get a better estimation of how many percent of the actual values could match.
+                if let Ok(pattern) = regex::Regex::new(&full_match_pattern) {
+                    let mut rng = thread_rng();
+                    let qualified_keys: Vec<_> = match ns {
+                        Some(ns) => vec![AnnoKey {
+                            name: name.into(),
+                            ns: ns.into(),
+                        }],
+                        None => self.get_qnames(name)?,
+                    }
+                    .into_iter()
+                    .filter_map(|key| self.anno_keys.get_symbol(&key).map(|symbol| (symbol, key)))
+                    .collect();
+                    for (anno_key_symbol, anno_key) in qualified_keys {
+                        let anno_size = self
+                            .anno_key_sizes
+                            .get(&anno_key)
+                            .copied()
+                            .unwrap_or_default();
+
+                        if let Some(histo) = self.histogram_bounds.get(&anno_key_symbol) {
+                            if !histo.is_empty() {
+                                let sampled_values = histo.iter().choose_multiple(&mut rng, 20);
+                                let matches = sampled_values
+                                    .iter()
+                                    .filter(|v| pattern.is_match(v))
+                                    .count();
+                                if sampled_values.len() == matches {
+                                    // Assume all values match
+                                    guessed_count += anno_size;
+                                } else if matches == 0 {
+                                    // No match found, but use the bucket size as pessimistic guess
+                                    guessed_count +=
+                                        (anno_size as f64 / sampled_values.len() as f64) as usize;
+                                } else {
+                                    // Use the percent of matched values to guess the overall number
+                                    let match_ratio =
+                                        (matches as f64) / (sampled_values.len() as f64);
+                                    guessed_count += ((anno_size as f64) * match_ratio) as usize;
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             Ok(guessed_count.min(total))

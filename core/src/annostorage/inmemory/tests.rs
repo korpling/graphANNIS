@@ -171,10 +171,14 @@ fn get_node_id_from_name() {
     assert_eq!(false, a.has_node_name("somenode").unwrap());
 }
 
-#[test]
-fn regex_search() {
+/// Inserts the following strings as node names:
+/// - _ABC
+/// - AAA
+/// - AAB
+/// - AAC
+/// - B
+fn insert_test_strings(a: &mut AnnoStorageImpl<NodeID>) {
     let key = NODE_NAME_KEY.as_ref().clone();
-    let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
     a.insert(
         0,
         Annotation {
@@ -216,6 +220,12 @@ fn regex_search() {
         },
     )
     .unwrap();
+}
+
+#[test]
+fn regex_search() {
+    let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
+    insert_test_strings(&mut a);
 
     let result: Result<Vec<_>> = a
         .regex_anno_search(Some(ANNIS_NS), NODE_NAME, "A.*", false)
@@ -260,4 +270,21 @@ fn regex_search() {
     let result = result.unwrap();
 
     assert_eq!(0, result.len());
+}
+
+#[test]
+fn regex_estimation_without_prefix() {
+    let mut a: AnnoStorageImpl<NodeID> = AnnoStorageImpl::new();
+    insert_test_strings(&mut a);
+    a.calculate_statistics().unwrap();
+
+    // Test with namespace
+    // Since there are very less than 250 items the histogram based statistics should be exact.
+    assert_eq!(
+        3,
+        a.guess_max_count_regex(Some(ANNIS_NS), NODE_NAME, ".A.")
+            .unwrap()
+    );
+    // Test without namespace
+    assert_eq!(3, a.guess_max_count_regex(None, NODE_NAME, ".A.").unwrap());
 }

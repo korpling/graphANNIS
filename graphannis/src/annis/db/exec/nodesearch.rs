@@ -22,7 +22,7 @@ use graphannis_core::{
 };
 use itertools::Itertools;
 use smallvec::smallvec;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::sync::Arc;
 
@@ -36,9 +36,10 @@ pub struct NodeSearch<'a> {
     is_sorted: bool,
     timeout: TimeoutCheck,
 }
-struct CommonArguments {
+struct CommonArguments<'a> {
     query_fragment: String,
     node_nr: usize,
+    output_size_cache: &'a mut HashMap<usize, usize>,
     timeout: TimeoutCheck,
 }
 
@@ -409,6 +410,7 @@ impl<'a> NodeSearch<'a> {
         node_nr: usize,
         db: &'a AnnotationGraph,
         location_in_query: Option<LineColumnRange>,
+        output_size_cache: &mut HashMap<usize, usize>,
         timeout: TimeoutCheck,
     ) -> Result<NodeSearch<'a>> {
         let query_fragment = format!("{}", spec);
@@ -417,6 +419,7 @@ impl<'a> NodeSearch<'a> {
         let common_args = CommonArguments {
             query_fragment,
             node_nr,
+            output_size_cache,
             timeout,
         };
         match spec {
@@ -643,31 +646,47 @@ impl<'a> NodeSearch<'a> {
                 Box::new(base_it.map(|it| it.map_err(GraphAnnisError::from)))
             };
 
-        let est_output = match val {
-            ValueSearch::Some(ref val) => {
-                if qname.0.as_deref() == Some(ANNIS_NS) && qname.1 == NODE_NAME {
-                    // Our data model assumes that annis::node_name annotations are unique
-                    1
-                } else {
-                    db.get_node_annos()
-                        .guess_max_count(qname.0.as_deref(), &qname.1, val, val)?
+        let est_output =
+            if let Some(cached) = common_args.output_size_cache.get(&common_args.node_nr) {
+                *cached
+            } else {
+                match val {
+                    ValueSearch::Some(ref val) => {
+                        if qname.0.as_deref() == Some(ANNIS_NS) && qname.1 == NODE_NAME {
+                            // Our data model assumes that annis::node_name annotations are unique
+                            1
+                        } else {
+                            db.get_node_annos().guess_max_count(
+                                qname.0.as_deref(),
+                                &qname.1,
+                                val,
+                                val,
+                            )?
+                        }
+                    }
+                    ValueSearch::NotSome(ref val) => {
+                        let total = db
+                            .get_node_annos()
+                            .number_of_annotations_by_name(qname.0.as_deref(), &qname.1)?;
+                        total
+                            - db.get_node_annos().guess_max_count(
+                                qname.0.as_deref(),
+                                &qname.1,
+                                val,
+                                val,
+                            )?
+                    }
+                    ValueSearch::Any => db
+                        .get_node_annos()
+                        .number_of_annotations_by_name(qname.0.as_deref(), &qname.1)?,
                 }
-            }
-            ValueSearch::NotSome(ref val) => {
-                let total = db
-                    .get_node_annos()
-                    .number_of_annotations_by_name(qname.0.as_deref(), &qname.1)?;
-                total
-                    - db.get_node_annos()
-                        .guess_max_count(qname.0.as_deref(), &qname.1, val, val)?
-            }
-            ValueSearch::Any => db
-                .get_node_annos()
-                .number_of_annotations_by_name(qname.0.as_deref(), &qname.1)?,
-        };
+            };
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
+        common_args
+            .output_size_cache
+            .insert(common_args.node_nr, est_output);
 
         let it = base_it.map_ok(|n| smallvec![n]);
 
@@ -741,7 +760,11 @@ impl<'a> NodeSearch<'a> {
                 Box::new(base_it.map(|it| it.map_err(GraphAnnisError::from)))
             };
 
-        let est_output = if negated {
+        let est_output = if let Some(cached) =
+            common_args.output_size_cache.get(&common_args.node_nr)
+        {
+            *cached
+        } else if negated {
             let total = db
                 .get_node_annos()
                 .number_of_annotations_by_name(qname.0.as_deref(), &qname.1)?;
@@ -761,6 +784,9 @@ impl<'a> NodeSearch<'a> {
             db.get_node_annos()
                 .guess_max_count_regex(qname.0.as_deref(), &qname.1, pattern)?
         };
+        common_args
+            .output_size_cache
+            .insert(common_args.node_nr, est_output);
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
