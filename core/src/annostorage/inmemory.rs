@@ -778,7 +778,7 @@ where
             } else {
                 // For regular expressions without a prefix the worst case would be `.*[X].*` where `[X]` are the most common characters.
                 // Sample values from the histogram to get a better estimation of how many percent of the actual values could match.
-                if let Ok(pattern) = regex::Regex::new(pattern) {
+                if let Ok(pattern) = regex::Regex::new(&full_match_pattern) {
                     let mut rng = thread_rng();
                     let qualified_keys: Vec<_> = match ns {
                         Some(ns) => vec![AnnoKey {

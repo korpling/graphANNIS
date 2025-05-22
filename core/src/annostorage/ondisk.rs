@@ -887,7 +887,8 @@ where
 
         if sum_histogram_buckets > 0 {
             let selectivity: f64 = (count_matches as f64) / (sum_histogram_buckets as f64);
-            Ok((selectivity * (universe_size as f64)).round() as usize)
+            let estimation = (selectivity * (universe_size as f64)).round() as usize;
+            Ok(estimation)
         } else {
             Ok(0)
         }
@@ -921,7 +922,7 @@ where
             } else {
                 // For regular expressions without a prefix the worst case would be `.*[X].*` where `[X]` are the most common characters.
                 // Sample values from the histogram to get a better estimation of how many percent of the actual values could match.
-                if let Ok(pattern) = regex::Regex::new(pattern) {
+                if let Ok(pattern) = regex::Regex::new(&full_match_pattern) {
                     let mut rng = thread_rng();
                     let qualified_keys = match ns {
                         Some(ns) => vec![AnnoKey {
@@ -939,6 +940,7 @@ where
                         if let Some(histo) = self.histogram_bounds.get(&anno_key) {
                             if !histo.is_empty() {
                                 let sampled_values = histo.iter().choose_multiple(&mut rng, 20);
+
                                 let matches = sampled_values
                                     .iter()
                                     .filter(|v| pattern.is_match(v))
