@@ -87,12 +87,6 @@ impl ResponseError for ServiceError {
     }
 }
 
-impl From<bcrypt::BcryptError> for ServiceError {
-    fn from(e: bcrypt::BcryptError) -> Self {
-        ServiceError::InternalServerError(format!("{}", e))
-    }
-}
-
 impl From<jsonwebtoken::errors::Error> for ServiceError {
     fn from(orig: jsonwebtoken::errors::Error) -> Self {
         ServiceError::InvalidJWTToken(format!("{}", orig))
