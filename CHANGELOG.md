@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Export to ZIP would fail if the contained GraphML was too large. Use the ZIP64
+extension (which should be supported in most current tools and libraries) to
+write the ZIP file.
+
 ## [3.8.1] - 2025-05-22
 
 ### Fixed
