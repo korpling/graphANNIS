@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Export to ZIP would fail if the contained GraphML was too large with error
-`Error: I/O error: Large file option has not been set`. Use the ZIP64 extension (which should be supported in most current tools and libraries) to write the ZIP file.
+`Error: I/O error: Large file option has not been set`. Use the ZIP64 extension
+(which should be supported in most current tools and libraries) to write the ZIP
+file.
 
 ## [3.8.1] - 2025-05-22
 
