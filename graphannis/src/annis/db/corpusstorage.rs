@@ -1245,8 +1245,9 @@ impl CorpusStorage {
         W: Write + Seek,
         F: Fn(&str),
     {
-        let options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let options = zip::write::FileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated)
+            .large_file(true);
 
         let mut base_path = PathBuf::default();
         if use_corpus_subdirectory {
