@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use crate::errors::Result;
-use rand::Rng;
+use rand::prelude::*;
 
 use super::sortablecontainer::SortableContainer;
 
@@ -109,11 +109,11 @@ where
     if (item_range.end - item_range.start) == 1 {
         Ok(item_range.start)
     } else {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         // Use the median of 3 random positions as pivot
-        let i1 = rng.gen_range(item_range.clone());
-        let i2 = rng.gen_range(item_range.clone());
-        let i3 = rng.gen_range(item_range.clone());
+        let i1 = rng.random_range(item_range.clone());
+        let i2 = rng.random_range(item_range.clone());
+        let i3 = rng.random_range(item_range.clone());
 
         let v1 = (i1, items.try_get(i1)?.into_owned());
         let v2 = (i2, items.try_get(i2)?.into_owned());
@@ -176,9 +176,7 @@ where
 #[cfg(test)]
 mod test {
 
-    use rand;
-    use rand::distributions::Distribution;
-    use rand::Rng;
+    use rand::prelude::*;
     use serde::{de::DeserializeOwned, Serialize};
     use transient_btree_index::{BtreeConfig, BtreeIndex};
 
@@ -250,12 +248,12 @@ mod test {
     #[test]
     fn random_sort_vec() {
         // compare 100 random arrays against the standard library sort
-        let mut rng = rand::thread_rng();
-        let random_item_gen = rand::distributions::Uniform::from(1..100);
+        let mut rng = rand::rng();
+        let random_item_gen = rand::distr::Uniform::new(1, 100).unwrap();
 
         for _i in 0..100 {
             // the arrays should have a size from 40 to 50
-            let items_size = rng.gen_range(40..51);
+            let items_size = rng.random_range(40..51);
             let mut items = Vec::with_capacity(items_size);
             for _j in 0..items_size {
                 items.push(random_item_gen.sample(&mut rng));
@@ -312,12 +310,12 @@ mod test {
     #[test]
     fn random_sort_btree() {
         // compare 100 random arrays against the standard library sort
-        let mut rng = rand::thread_rng();
-        let random_item_gen = rand::distributions::Uniform::from(1..100);
+        let mut rng = rand::rng();
+        let random_item_gen = rand::distr::Uniform::new(1, 100).unwrap();
 
         for _i in 0..100 {
             // the arrays should have a size from 40 to 50
-            let items_size = rng.gen_range(40..51);
+            let items_size = rng.random_range(40..51);
             let mut items = BtreeIndex::with_capacity(BtreeConfig::default(), items_size).unwrap();
             let mut items_vec = Vec::new();
             for j in 0..items_size {

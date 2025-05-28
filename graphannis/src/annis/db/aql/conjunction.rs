@@ -23,8 +23,8 @@ use crate::{
 };
 use graphannis_core::annostorage::EdgeAnnotationStorage;
 use graphannis_core::{annostorage::MatchGroup, graph::storage::GraphStatistic, types::Component};
-use rand::distributions::Distribution;
-use rand::distributions::Uniform;
+use rand::distr::Distribution;
+use rand::distr::Uniform;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -460,7 +460,7 @@ impl Conjunction {
 
         // use a constant seed to make the result deterministic
         let mut rng = SmallRng::from_seed(*b"Graphs are great and need a seed");
-        let dist = Uniform::from(0..self.binary_operators.len());
+        let dist = Uniform::new(0, self.binary_operators.len())?;
 
         let mut best_operator_order: Vec<_> = (0..self.binary_operators.len()).collect();
 

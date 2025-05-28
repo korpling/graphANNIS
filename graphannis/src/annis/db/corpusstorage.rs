@@ -1747,13 +1747,13 @@ impl CorpusStorage {
 
             if find_arguments.order == ResultOrder::Randomized {
                 // Use a unique random index for each match to force a random order
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
 
                 for mgroup in plan {
                     let mgroup = mgroup?;
-                    let mut idx: usize = rng.gen();
+                    let mut idx: usize = rng.random_range(0..usize::MAX);
                     while tmp_results.contains_key(&idx)? {
-                        idx = rng.gen();
+                        idx = rng.random_range(0..usize::MAX);
                     }
                     let m = match_group_with_symbol_ids(&mgroup, &mut anno_key_symbols)?;
                     tmp_results.insert(idx, m)?;
@@ -2022,7 +2022,7 @@ impl CorpusStorage {
                 if order == ResultOrder::Randomized {
                     // This is still oddly ordered, because results from one corpus will always be grouped together.
                     // But it still better than just output the same corpus first.
-                    let mut rng = rand::thread_rng();
+                    let mut rng = rand::rng();
                     corpus_names.shuffle(&mut rng);
                 } else if order == ResultOrder::Inverted {
                     corpus_names.sort();
