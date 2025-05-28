@@ -1,0 +1,22 @@
+---
+source: cli/tests/cli.rs
+info:
+  program: annis
+  args:
+    - "../graphannis/tests/data/"
+    - "-c"
+    - corpus sample-disk-based-3.3
+    - "-c"
+    - export sample-disk-based-3.3.zip
+---
+success: true
+exit_code: 0
+----- stdout -----
+12:00:00[INFO] Loaded corpus sample-disk-based-3.3
+12:00:00[INFO] exporting all available annotation keys
+12:00:00[INFO] exporting nodes
+12:00:00[INFO] exporting edges
+12:00:00[INFO] exported corpora ["sample-disk-based-3.3"] in 0s
+graphANNIS says good-bye!
+
+----- stderr -----

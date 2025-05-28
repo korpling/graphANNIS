@@ -2,7 +2,7 @@ use assert_cmd::prelude::*;
 use insta::Settings;
 use insta_cmd::assert_cmd_snapshot;
 use serial_test::serial;
-use std::process::Command;
+use std::{path::Path, process::Command};
 
 fn standard_filter() -> Settings {
     let mut settings = insta::Settings::clone_current();
@@ -86,5 +86,27 @@ fn list_corpora_partially_loaded() -> Result<(), Box<dyn std::error::Error>> {
     let settings = standard_filter();
     settings.bind(|| assert_cmd_snapshot!(cmd));
 
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn export_to_zip_file() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::cargo_bin("annis")?;
+
+    cmd.arg("../graphannis/tests/data/")
+        .arg("-c")
+        .arg("corpus sample-disk-based-3.3")
+        .arg("-c")
+        .arg("export sample-disk-based-3.3.zip");
+
+    let settings = standard_filter();
+    settings.bind(|| assert_cmd_snapshot!(cmd));
+
+    // Check that the file has been created
+    let p = Path::new("sample-disk-based-3.3.zip");
+    assert_eq!(true, p.is_file());
+    // Cleanup created file
+    std::fs::remove_file(p)?;
     Ok(())
 }
