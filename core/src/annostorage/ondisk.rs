@@ -463,7 +463,11 @@ where
         Ok(result)
     }
 
-    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>> {
+    fn remove_annotation_for_item(
+        &mut self,
+        item: &T,
+        key: &AnnoKey,
+    ) -> Result<Option<Cow<'_, str>>> {
         // remove annotation from by_container
         if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
             let by_container_key = create_by_container_key(item.clone(), symbol_id);
@@ -539,7 +543,7 @@ where
         self.by_container.is_empty()
     }
 
-    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>> {
+    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<Option<Cow<'_, str>>> {
         if let Some(symbol_id) = self.anno_key_symbols.get_symbol(key) {
             let raw = self
                 .by_container
@@ -970,7 +974,11 @@ where
         }
     }
 
-    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Result<Option<Cow<str>>> {
+    fn guess_most_frequent_value(
+        &self,
+        ns: Option<&str>,
+        name: &str,
+    ) -> Result<Option<Cow<'_, str>>> {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
             Some(ns) => vec![AnnoKey {
@@ -1007,7 +1015,11 @@ where
         }
     }
 
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Result<Vec<Cow<str>>> {
+    fn get_all_values(
+        &self,
+        key: &AnnoKey,
+        most_frequent_first: bool,
+    ) -> Result<Vec<Cow<'_, str>>> {
         if most_frequent_first {
             let mut values_with_count: HashMap<String, usize> = HashMap::default();
             for item in self.get_by_anno_qname_range(key) {

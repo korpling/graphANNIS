@@ -11,7 +11,7 @@ pub trait SortableContainer<T: Clone>: Send {
 
     fn try_len(&self) -> Result<usize>;
 
-    fn try_get(&self, index: usize) -> Result<Cow<T>>;
+    fn try_get(&self, index: usize) -> Result<Cow<'_, T>>;
 }
 
 impl<T> SortableContainer<T> for Vec<T>
@@ -35,7 +35,7 @@ where
         Ok(self.len())
     }
 
-    fn try_get(&self, index: usize) -> Result<Cow<T>> {
+    fn try_get(&self, index: usize) -> Result<Cow<'_, T>> {
         if let Some(result) = self.get(index) {
             Ok(Cow::Borrowed(result))
         } else {
@@ -59,7 +59,7 @@ where
         Ok(self.len())
     }
 
-    fn try_get(&self, index: usize) -> Result<Cow<T>> {
+    fn try_get(&self, index: usize) -> Result<Cow<'_, T>> {
         let result = self
             .get(&index)?
             .ok_or_else(|| GraphAnnisError::IndexOutOfBounds(index))?;

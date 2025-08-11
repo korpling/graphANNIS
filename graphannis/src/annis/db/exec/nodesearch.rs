@@ -1122,7 +1122,7 @@ impl ExecutionNode for NodeSearch<'_> {
         self.desc.as_ref()
     }
 
-    fn as_nodesearch(&self) -> Option<&NodeSearch> {
+    fn as_nodesearch(&self) -> Option<&NodeSearch<'_>> {
         Some(self)
     }
 

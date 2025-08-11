@@ -117,7 +117,7 @@ where
         Ok(())
     }
 
-    pub fn get(&self, key: &K) -> Result<Option<Cow<V>>> {
+    pub fn get(&self, key: &K) -> Result<Option<Cow<'_, V>>> {
         // Check C0 first
         if let Some(entry) = self.c0.get(key) {
             if let Some(value) = entry {
@@ -204,7 +204,7 @@ where
         Ok(existing)
     }
 
-    pub fn iter(&self) -> Result<ResultIterator<K, V>> {
+    pub fn iter(&self) -> Result<ResultIterator<'_, K, V>> {
         if let Some(c1) = &self.c1 {
             if self.c0.is_empty() && self.c2.is_none() {
                 // Create an iterator that skips the thombstone entries

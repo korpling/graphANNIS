@@ -185,7 +185,11 @@ where
 
     /// Remove the annotation given by its `key` for a specific `item`
     /// Returns the value for that annotation, if it existed.
-    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>>;
+    fn remove_annotation_for_item(
+        &mut self,
+        item: &T,
+        key: &AnnoKey,
+    ) -> Result<Option<Cow<'_, str>>>;
 
     /// Remove all annotations for the given item. Returns whether the item had
     /// any annotations.
@@ -201,7 +205,7 @@ where
     fn get_annotations_for_item(&self, item: &T) -> Result<Vec<Annotation>>;
 
     /// Get the annotation for a given `item` and the annotation `key`.
-    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<Option<Cow<str>>>;
+    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<Option<Cow<'_, str>>>;
 
     /// Returns `true` if the given `item` has an annotation for the given `key`.
     fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<bool>;
@@ -243,7 +247,7 @@ where
     ) -> Box<dyn Iterator<Item = Result<Match>> + 'a>;
 
     /// Returns an iterator for all items where the value matches the regular expression.
-    /// The annotation `name` and the `pattern` for the value must be given as argument, the  
+    /// The annotation `name` and the `pattern` for the value must be given as argument, the
     /// `namespace` argument is optional and can be used as additional constraint.
     ///
     /// - `namespace`- If given, only annotations having this namespace are returned.
@@ -287,11 +291,16 @@ where
     /// Estimate the most frequent value for a given annotation `name` with an optional namespace (`ns`).
     ///
     /// If more than one qualified annotation name matches the defnition, the more frequent value is used.
-    fn guess_most_frequent_value(&self, ns: Option<&str>, name: &str) -> Result<Option<Cow<str>>>;
+    fn guess_most_frequent_value(
+        &self,
+        ns: Option<&str>,
+        name: &str,
+    ) -> Result<Option<Cow<'_, str>>>;
 
     /// Return a list of all existing values for a given annotation `key`.
     /// If the `most_frequent_first` parameter is true, the results are sorted by their frequency.
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Result<Vec<Cow<str>>>;
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool)
+        -> Result<Vec<Cow<'_, str>>>;
 
     /// Get all the annotation keys which are part of this annotation storage
     fn annotation_keys(&self) -> Result<Vec<AnnoKey>>;
