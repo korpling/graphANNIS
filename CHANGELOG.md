@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Changed GitHub Runner to windows-2025
+
 ## [3.8.2] - 2025-08-11
 
 ### Fixed
