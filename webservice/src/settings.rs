@@ -37,7 +37,7 @@ pub enum JWTVerification {
 }
 
 impl JWTVerification {
-    pub fn create_decoding_key(&self) -> Result<DecodingKey> {
+    pub fn create_decoding_key(&self) -> Result<DecodingKey<'_>> {
         let key = match &self {
             JWTVerification::HS256 { secret } => {
                 jsonwebtoken::DecodingKey::from_secret(secret.as_bytes())

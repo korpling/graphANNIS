@@ -76,7 +76,7 @@ impl std::fmt::Display for EqualValue<'_> {
 }
 
 impl EqualValue<'_> {
-    fn value_for_match(&self, m: &Match, spec: &NodeSearchSpec) -> Result<Option<Cow<str>>> {
+    fn value_for_match(&self, m: &Match, spec: &NodeSearchSpec) -> Result<Option<Cow<'_, str>>> {
         match spec {
             NodeSearchSpec::ExactValue { .. }
             | NodeSearchSpec::NotExactValue { .. }

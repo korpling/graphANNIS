@@ -196,7 +196,7 @@ pub struct NodeSearchDesc {
 }
 
 pub trait ExecutionNode: Iterator {
-    fn as_nodesearch(&self) -> Option<&NodeSearch> {
+    fn as_nodesearch(&self) -> Option<&NodeSearch<'_>> {
         None
     }
 
@@ -220,7 +220,7 @@ impl Iterator for EmptyResultSet {
 }
 
 impl ExecutionNode for EmptyResultSet {
-    fn as_nodesearch(&self) -> Option<&NodeSearch> {
+    fn as_nodesearch(&self) -> Option<&NodeSearch<'_>> {
         None
     }
 
