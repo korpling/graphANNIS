@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.8.2] - 2025-08-11
+
 ### Fixed
 
 - Export to ZIP would fail if the contained GraphML was too large with error
