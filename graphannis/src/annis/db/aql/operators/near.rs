@@ -47,7 +47,7 @@ impl BinaryOperatorSpec for NearSpec {
         };
         let component_order = Component::new(
             AnnotationComponentType::Ordering,
-            ordering_layer.into(),
+            ordering_layer,
             self.segmentation
                 .as_ref()
                 .map_or_else(String::default, |s| s.into()),
@@ -98,8 +98,8 @@ impl<'a> Near<'a> {
         };
         let component_order = Component::new(
             AnnotationComponentType::Ordering,
-            ordering_layer.into(),
-            spec.segmentation.clone().unwrap_or_default().into(),
+            ordering_layer,
+            spec.segmentation.clone().unwrap_or_default(),
         );
 
         let gs_order = graph.get_graphstorage(&component_order).ok_or_else(|| {

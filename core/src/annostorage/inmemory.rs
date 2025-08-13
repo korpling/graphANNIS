@@ -297,7 +297,7 @@ where
                 result = self
                     .anno_values
                     .get_value_ref(old_value)
-                    .map(|v| Cow::Owned(v.clone().into()));
+                    .map(|v| Cow::Owned(v.clone()));
 
                 self.check_and_remove_value_symbol(old_value);
                 self.total_number_of_annos -= 1;
@@ -505,7 +505,7 @@ where
                     ns: String::default(),
                 }..AnnoKey {
                     name: name.into(),
-                    ns: std::char::MAX.to_string().into(),
+                    ns: std::char::MAX.to_string(),
                 },
             ),
         };

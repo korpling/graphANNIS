@@ -910,7 +910,7 @@ where
                 .or_insert(1);
             if *existing_count > 1 {
                 let old_name = name.clone();
-                name = format!("{}_duplicated_document_name_{}", name, existing_count).into();
+                name = format!("{}_duplicated_document_name_{}", name, existing_count);
                 warn!(
                     "duplicated document name \"{}\" detected: will be renamed to \"{}\"",
                     old_name, name
@@ -928,7 +928,7 @@ where
             CorpusTableEntry {
                 pre: pre_order,
                 post: post_order,
-                normalized_name: String::from(normalized_name.to_string()),
+                normalized_name: normalized_name.to_string(),
                 name,
             },
         );
@@ -1050,7 +1050,7 @@ where
                     .to_string(),
                 layer: ordering_layer,
                 component_type: AnnotationComponentType::Ordering.to_string(),
-                component_name: current_textprop.segmentation.clone().into(),
+                component_name: current_textprop.segmentation.clone(),
             })?;
         } // end if same text
 
@@ -1181,9 +1181,9 @@ fn add_automatic_cov_edge_for_node(
                         .get(&tok_id)?
                         .ok_or(RelAnnisError::NodeNotFound(*tok_id))?
                         .to_string(),
-                    layer: component_layer.into(),
+                    layer: component_layer,
                     component_type: AnnotationComponentType::Coverage.to_string(),
-                    component_name: component_name.into(),
+                    component_name,
                 })?;
             }
         }
@@ -1461,7 +1461,7 @@ where
                 node_name: node_path.clone(),
                 node_type: "node".to_owned(),
             })?;
-            id_to_node_name.insert(node_nr, node_path.clone().into())?;
+            id_to_node_name.insert(node_nr, node_path.clone())?;
 
             if let Some(layer) = layer
                 && !layer.is_empty()
@@ -1866,9 +1866,9 @@ where
                             .get(&target)?
                             .ok_or(RelAnnisError::NodeNotFound(target))?
                             .to_string(),
-                        layer: c.layer.clone().into(),
+                        layer: c.layer.clone(),
                         component_type: c.get_type().to_string(),
-                        component_name: c.name.clone().into(),
+                        component_name: c.name.clone(),
                     })?;
 
                     let pre: u32 = get_field_not_null(&line, 0, "pre", &rank_tab_path)?.parse()?;
@@ -1957,7 +1957,7 @@ where
                     .get(&e.target)?
                     .ok_or(RelAnnisError::NodeNotFound(e.target))?
                     .to_string(),
-                layer: c.layer.clone().into(),
+                layer: c.layer.clone(),
                 component_type: c.get_type().to_string(),
                 component_name: c.name.to_string(),
                 anno_ns: ns.to_string(),
@@ -2030,12 +2030,12 @@ fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<std::st
 }
 
 fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String> {
-    let mut result: String = get_parent_path(cid, corpus_table)?.into();
+    let mut result: String = get_parent_path(cid, corpus_table)?;
     let corpus = corpus_table
         .corpus_by_id
         .get(&cid)
         .ok_or(RelAnnisError::CorpusNotFound(cid))?;
-    result.push_str("/");
+    result.push('/');
     result.push_str(&corpus.normalized_name);
     Ok(result)
 }
@@ -2080,9 +2080,9 @@ fn add_subcorpora(
             for ((entry_cid, anno_key), val) in corpus_id_to_annos.range(start_key..) {
                 if entry_cid == cid {
                     updates.add_event(UpdateEvent::AddNodeLabel {
-                        node_name: corpus_table.toplevel_corpus_name.as_str().into(),
-                        anno_ns: anno_key.ns.clone().into(),
-                        anno_name: anno_key.name.clone().into(),
+                        node_name: corpus_table.toplevel_corpus_name.clone(),
+                        anno_ns: anno_key.ns.clone(),
+                        anno_name: anno_key.name.clone(),
                         anno_value: val.into(),
                     })?;
                 } else {
@@ -2132,8 +2132,8 @@ fn add_subcorpora(
                 if entry_cid == corpus_id {
                     updates.add_event(UpdateEvent::AddNodeLabel {
                         node_name: subcorpus_full_name.to_string(),
-                        anno_ns: anno_key.ns.clone().into(),
-                        anno_name: anno_key.name.clone().into(),
+                        anno_ns: anno_key.ns.clone(),
+                        anno_name: anno_key.name.clone(),
                         anno_value: val.clone(),
                     })?;
                 } else {

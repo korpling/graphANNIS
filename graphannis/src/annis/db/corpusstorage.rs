@@ -965,7 +965,7 @@ impl CorpusStorage {
                     CorpusConfiguration::default()
                 };
 
-                (orig_corpus_name.into(), g, config)
+                (orig_corpus_name, g, config)
             }
         };
 
@@ -979,7 +979,7 @@ impl CorpusStorage {
 
         self.update_corpus_size_info(&mut config, &graph);
 
-        let corpus_name = corpus_name.unwrap_or_else(|| orig_name.into());
+        let corpus_name = corpus_name.unwrap_or(orig_name);
         let db_path = self.corpus_directory_on_disk(&corpus_name);
 
         let mut cache_lock = self.corpus_cache.write()?;
@@ -2294,8 +2294,8 @@ impl CorpusStorage {
                         annokeys.push((
                             node_ref,
                             vec![AnnoKey {
-                                ns: ns.clone().into(),
-                                name: def.name.clone().into(),
+                                ns: ns.clone(),
+                                name: def.name.clone(),
                             }],
                         ));
                     } else {

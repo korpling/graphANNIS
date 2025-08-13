@@ -176,8 +176,8 @@ pub async fn list_components(
         .into_iter()
         .map(|c| Component {
             ctype: c.get_type(),
-            name: c.name.into(),
-            layer: c.layer.into(),
+            name: c.name,
+            layer: c.layer,
         })
         .collect();
 

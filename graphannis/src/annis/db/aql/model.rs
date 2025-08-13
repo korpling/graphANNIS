@@ -520,8 +520,7 @@ impl ComponentType for AnnotationComponentType {
                 && component_name.is_empty()
             {
                 // might be a new text coverage component
-                let c =
-                    AnnotationComponent::new(ctype.clone(), layer.into(), component_name.into());
+                let c = AnnotationComponent::new(ctype.clone(), layer, component_name);
                 index.text_coverage_components.insert(c);
             }
 
@@ -666,7 +665,7 @@ impl ComponentType for AnnotationComponentType {
                 base_token_count,
                 segmentation_count: token_count_by_ordering_component
                     .into_iter()
-                    .map(|(k, v)| (k.name.into(), v))
+                    .map(|(k, v)| (k.name, v))
                     .collect(),
             },
         });
