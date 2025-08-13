@@ -1,5 +1,6 @@
-use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::exec::CostEstimate;
+use crate::annis::db::exec::nodesearch::NodeSearchSpec;
+use crate::{AnnotationGraph, try_as_boxed_iter};
 use crate::{
     annis::{
         db::aql::model::{AnnotationComponentType, TOK, TOKEN_KEY},
@@ -8,7 +9,6 @@ use crate::{
     errors::Result,
     graph::Match,
 };
-use crate::{try_as_boxed_iter, AnnotationGraph};
 use graphannis_core::annostorage::NodeAnnotationStorage;
 use graphannis_core::{annostorage::ValueSearch, graph::ANNIS_NS, types::Component};
 use std::borrow::Cow;
@@ -137,26 +137,24 @@ impl BinaryOperatorBase for EqualValue<'_> {
     }
 
     fn estimation_type(&self) -> Result<EstimationType> {
-        if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_left) {
-            if let Some(most_frequent_value_left) =
+        if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_left)
+            && let Some(most_frequent_value_left) =
                 self.node_annos.guess_most_frequent_value(ns, name)?
-            {
-                if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
-                    let guessed_count_right = self.node_annos.guess_max_count(
-                        ns,
-                        name,
-                        &most_frequent_value_left,
-                        &most_frequent_value_left,
-                    )?;
+            && let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right)
+        {
+            let guessed_count_right = self.node_annos.guess_max_count(
+                ns,
+                name,
+                &most_frequent_value_left,
+                &most_frequent_value_left,
+            )?;
 
-                    let total_annos = self.node_annos.number_of_annotations_by_name(ns, name)?;
-                    let sel = guessed_count_right as f64 / total_annos as f64;
-                    if self.negated {
-                        return Ok(EstimationType::Selectivity(1.0 - sel));
-                    } else {
-                        return Ok(EstimationType::Selectivity(sel));
-                    }
-                }
+            let total_annos = self.node_annos.number_of_annotations_by_name(ns, name)?;
+            let sel = guessed_count_right as f64 / total_annos as f64;
+            if self.negated {
+                return Ok(EstimationType::Selectivity(1.0 - sel));
+            } else {
+                return Ok(EstimationType::Selectivity(sel));
             }
         }
         // fallback to default

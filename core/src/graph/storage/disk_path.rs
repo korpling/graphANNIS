@@ -8,17 +8,17 @@ use tempfile::tempfile;
 use transient_btree_index::BtreeConfig;
 
 use crate::{
-    annostorage::{ondisk::AnnoStorageImpl, AnnotationStorage},
+    annostorage::{AnnotationStorage, ondisk::AnnoStorageImpl},
     dfs::CycleSafeDFS,
     errors::Result,
     try_as_boxed_iter,
     types::{Edge, NodeID},
-    util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
+    util::disk_collections::{DEFAULT_BLOCK_CACHE_CAPACITY, DiskMap, EvictionStrategy},
 };
 
 use super::{
-    load_statistics_from_location, save_statistics_to_toml, EdgeContainer, GraphStatistic,
-    GraphStorage,
+    EdgeContainer, GraphStatistic, GraphStorage, load_statistics_from_location,
+    save_statistics_to_toml,
 };
 use binary_layout::prelude::*;
 

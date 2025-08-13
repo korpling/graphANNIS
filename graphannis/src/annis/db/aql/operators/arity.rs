@@ -1,13 +1,13 @@
 use super::RangeSpec;
 use crate::annis::operator::EstimationType;
 use crate::{
+    AnnotationGraph,
     annis::{
         db::aql::model::AnnotationComponentType,
         operator::{UnaryOperator, UnaryOperatorSpec},
     },
     errors::Result,
     graph::{GraphStorage, Match},
-    AnnotationGraph,
 };
 use graphannis_core::types::{Component, NodeID};
 use std::collections::HashSet;

@@ -1,19 +1,18 @@
 use core::panic;
 
 use crate::{
+    AnnotationGraph,
     annis::{
         db::{
             aql::{
-                self,
+                self, Config,
                 operators::{DominanceSpec, NegatedOpSpec, PrecedenceSpec, RangeSpec},
-                Config,
             },
             plan::ExecutionPlan,
         },
         errors::GraphAnnisError::AQLSemanticError,
         util::TimeoutCheck,
     },
-    AnnotationGraph,
 };
 
 #[test]

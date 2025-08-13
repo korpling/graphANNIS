@@ -2,7 +2,7 @@ use crate::annis::db::token_helper::TokenHelper;
 use crate::{errors::Result, graph::Match};
 use graphannis_core::annostorage::NodeAnnotationStorage;
 use graphannis_core::{
-    graph::{storage::GraphStorage, ANNIS_NS, NODE_NAME},
+    graph::{ANNIS_NS, NODE_NAME, storage::GraphStorage},
     types::{AnnoKey, NodeID},
 };
 use lru::LruCache;
@@ -254,8 +254,8 @@ mod tests {
     fn tiger_doc_name_sort_strcoll() {
         use std::time::Duration;
 
-        std::env::set_var("LANG", "en_US.utf8");
         unsafe {
+            std::env::set_var("LANG", "en_US.utf8");
             let locale = CString::new("").unwrap_or_default();
             libc::setlocale(libc::LC_COLLATE, locale.as_ptr());
             std::thread::sleep(Duration::from_millis(500));

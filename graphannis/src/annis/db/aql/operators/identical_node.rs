@@ -1,5 +1,5 @@
-use crate::annis::db::exec::CostEstimate;
 use crate::AnnotationGraph;
+use crate::annis::db::exec::CostEstimate;
 use crate::{
     annis::{db::aql::model::AnnotationComponentType, operator::*},
     errors::Result,

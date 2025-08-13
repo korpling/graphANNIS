@@ -1,5 +1,5 @@
-use graphannis::corpusstorage::{QueryLanguage, ResultOrder, SearchQuery};
 use graphannis::CorpusStorage;
+use graphannis::corpusstorage::{QueryLanguage, ResultOrder, SearchQuery};
 use std::path::PathBuf;
 
 fn main() {

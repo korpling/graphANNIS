@@ -1,10 +1,11 @@
 use super::{
-    deserialize_gs_field, legacy::PrePostOrderStorageV1, load_statistics_from_location,
-    save_statistics_to_toml, serialize_gs_field, EdgeContainer, GraphStatistic, GraphStorage,
+    EdgeContainer, GraphStatistic, GraphStorage, deserialize_gs_field,
+    legacy::PrePostOrderStorageV1, load_statistics_from_location, save_statistics_to_toml,
+    serialize_gs_field,
 };
 use crate::{
     annostorage::{
-        inmemory::AnnoStorageImpl, AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage,
+        AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage, inmemory::AnnoStorageImpl,
     },
     dfs::CycleSafeDFS,
     errors::Result,
@@ -262,11 +263,7 @@ where
                         .map(move |order| (root_order.clone(), order))
                 })
                 .filter_map(move |(root, order)| match order {
-                    OrderVecEntry::Pre {
-                        ref post,
-                        ref level,
-                        ref node,
-                    } => {
+                    OrderVecEntry::Pre { post, level, node } => {
                         if let (Some(current_level), Some(root_level)) =
                             (level.to_usize(), root.level.to_usize())
                         {
@@ -336,20 +333,16 @@ where
                 .filter_map(move |(use_post, root, idx, order)| {
                     let (current_pre, current_post, current_level, current_node) = if use_post {
                         match order {
-                            OrderVecEntry::Post {
-                                ref pre,
-                                ref level,
-                                ref node,
-                            } => (pre.to_usize(), Some(idx), level.to_usize(), Some(node)),
+                            OrderVecEntry::Post { pre, level, node } => {
+                                (pre.to_usize(), Some(idx), level.to_usize(), Some(node))
+                            }
                             _ => (None, None, None, None),
                         }
                     } else {
                         match order {
-                            OrderVecEntry::Pre {
-                                ref post,
-                                ref level,
-                                ref node,
-                            } => (Some(idx), post.to_usize(), level.to_usize(), Some(node)),
+                            OrderVecEntry::Pre { post, level, node } => {
+                                (Some(idx), post.to_usize(), level.to_usize(), Some(node))
+                            }
                             _ => (None, None, None, None),
                         }
                     };
@@ -416,11 +409,10 @@ where
                         // check the level
                         if let (Some(source_level), Some(target_level)) =
                             (order_source.level.to_usize(), order_target.level.to_usize())
+                            && source_level <= target_level
                         {
-                            if source_level <= target_level {
-                                was_found = true;
-                                min_level = std::cmp::min(target_level - source_level, min_level);
-                            }
+                            was_found = true;
+                            min_level = std::cmp::min(target_level - source_level, min_level);
                         }
                     }
                 }
@@ -458,11 +450,10 @@ where
                         // check the level
                         if let (Some(source_level), Some(target_level)) =
                             (order_source.level.to_usize(), order_target.level.to_usize())
+                            && source_level <= target_level
                         {
-                            if source_level <= target_level {
-                                let diff_level = target_level - source_level;
-                                return Ok(min_distance <= diff_level && diff_level <= max_distance);
-                            }
+                            let diff_level = target_level - source_level;
+                            return Ok(min_distance <= diff_level && diff_level <= max_distance);
                         }
                     }
                 }

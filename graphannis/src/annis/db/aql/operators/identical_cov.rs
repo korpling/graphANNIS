@@ -5,11 +5,11 @@ use crate::annis::errors::GraphAnnisError;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
 use crate::try_as_boxed_iter;
 use crate::{
+    AnnotationGraph,
     annis::operator::{BinaryOperatorBase, BinaryOperatorSpec},
     errors::Result,
     graph::{GraphStorage, Match},
     model::AnnotationComponentType,
-    AnnotationGraph,
 };
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY},
@@ -178,13 +178,13 @@ impl BinaryOperatorIndex for IdenticalCoverage<'_> {
                         // check if also right-aligned
                         match self.tok_helper.right_token_for(c) {
                             Ok(c_right) => {
-                                if let Some(c_right) = c_right {
-                                    if n_right == c_right {
-                                        result.push(Ok(Match {
-                                            node: c,
-                                            anno_key: DEFAULT_ANNO_KEY.clone(),
-                                        }));
-                                    }
+                                if let Some(c_right) = c_right
+                                    && n_right == c_right
+                                {
+                                    result.push(Ok(Match {
+                                        node: c,
+                                        anno_key: DEFAULT_ANNO_KEY.clone(),
+                                    }));
                                 }
                             }
                             Err(e) => result.push(Err(e)),

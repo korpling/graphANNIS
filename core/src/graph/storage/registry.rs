@@ -4,8 +4,8 @@ use super::disk_adjacency::DiskAdjacencyListStorage;
 use super::disk_path::DiskPathStorage;
 use super::linear::LinearGraphStorage;
 
+use super::{GraphStatistic, GraphStorage, prepost::PrePostOrderStorage};
 use super::{disk_adjacency, disk_path};
-use super::{prepost::PrePostOrderStorage, GraphStatistic, GraphStorage};
 use crate::{
     errors::{GraphAnnisCoreError, Result},
     graph::Graph,
@@ -113,10 +113,11 @@ fn get_adjacencylist_impl<CT: ComponentType>(db: &Graph<CT>, stats: &GraphStatis
         create_info_diskadjacency()
     } else {
         // check if a large percentage of nodes are part of the graph storage
-        if let Ok(Some(largest_node_id)) = db.node_annos.get_largest_item() {
-            if stats.max_fan_out <= 1 && (stats.nodes as f64 / largest_node_id as f64) >= 0.75 {
-                return create_info::<DenseAdjacencyListStorage>();
-            }
+        if let Ok(Some(largest_node_id)) = db.node_annos.get_largest_item()
+            && stats.max_fan_out <= 1
+            && (stats.nodes as f64 / largest_node_id as f64) >= 0.75
+        {
+            return create_info::<DenseAdjacencyListStorage>();
         }
 
         create_info::<AdjacencyListStorage>()

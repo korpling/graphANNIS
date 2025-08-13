@@ -5,13 +5,13 @@ use crate::annis::db::sort_matches::SortCache;
 use crate::annis::db::token_helper;
 use crate::annis::util::quicksort;
 use crate::{
-    annis::db::aql::model::AnnotationComponentType, annis::db::token_helper::TokenHelper,
-    errors::Result, graph::Match, AnnotationGraph,
+    AnnotationGraph, annis::db::aql::model::AnnotationComponentType,
+    annis::db::token_helper::TokenHelper, errors::Result, graph::Match,
 };
 use graphannis_core::errors::GraphAnnisCoreError;
 use graphannis_core::{
     annostorage::MatchGroup,
-    graph::{storage::GraphStorage, ANNIS_NS, NODE_TYPE_KEY},
+    graph::{ANNIS_NS, NODE_TYPE_KEY, storage::GraphStorage},
     types::{AnnoKey, Component, NodeID},
 };
 use itertools::Itertools;
@@ -66,10 +66,10 @@ impl<'a> AnyTokenSearch<'a> {
 
     fn is_root_tok(&self, n: NodeID) -> Result<bool> {
         // Return early if node has ingoing edges and is not a root token
-        if let Some(order_gs) = self.order_gs {
-            if order_gs.has_ingoing_edges(n)? {
-                return Ok(false);
-            }
+        if let Some(order_gs) = self.order_gs
+            && order_gs.has_ingoing_edges(n)?
+        {
+            return Ok(false);
         }
 
         // Token also should also have no outgoing coverage edges

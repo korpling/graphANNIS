@@ -1,15 +1,15 @@
-use super::cerror::ErrorList;
 use super::Matrix;
+use super::cerror::ErrorList;
 use super::{cast_const, cast_mut, cstr, map_cerr};
 use graphannis::corpusstorage::ExportFormat;
 use graphannis::{
+    AnnotationGraph, CorpusStorage,
     corpusstorage::{
         CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, FrequencyTableRow,
         ImportFormat, QueryAttributeDescription, QueryLanguage, ResultOrder, SearchQuery,
     },
     model::{AnnotationComponent, AnnotationComponentType},
     update::GraphUpdate,
-    AnnotationGraph, CorpusStorage,
 };
 use std::ffi::CString;
 use std::path::PathBuf;
@@ -22,7 +22,7 @@ use std::path::PathBuf;
 /// - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
 /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_with_auto_cache_size(
     db_dir: *const libc::c_char,
     use_parallel_joins: bool,
@@ -45,7 +45,7 @@ pub extern "C" fn annis_cs_with_auto_cache_size(
 /// - `max_cache_size` - Fixed maximum size of the cache in bytes.
 /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_with_max_cache_size(
     db_dir: *const libc::c_char,
     max_cache_size: usize,
@@ -73,13 +73,13 @@ pub extern "C" fn annis_cs_with_max_cache_size(
 /// # Safety
 ///
 /// This functions dereferences the pointer given as argument and is therefore unsafe.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
     if ptr.is_null() {
         return;
     }
     // take ownership and destroy the pointer
-    let ptr = Box::from_raw(ptr);
+    let ptr = unsafe { Box::from_raw(ptr) };
     std::mem::drop(ptr);
 }
 
@@ -91,7 +91,7 @@ pub unsafe extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
 /// - `err` - Pointer to a list of errors. If any error occurred, this list will be non-empty.
 ///
 /// Returns the count as number.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_count(
     ptr: *const CorpusStorage,
     corpus_names: *const Vec<CString>,
@@ -124,7 +124,7 @@ pub extern "C" fn annis_cs_count(
 /// - `query` - The query as string.
 /// - `query_language` The query language of the query (e.g. AQL).
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_count_extra(
     ptr: *const CorpusStorage,
     corpus_names: *const Vec<CString>,
@@ -168,7 +168,7 @@ pub extern "C" fn annis_cs_count_extra(
 /// # Safety
 ///
 /// This functions dereferences the `err` pointer and is therefore unsafe.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn annis_cs_find(
     ptr: *const CorpusStorage,
     corpus_names: *const Vec<CString>,
@@ -194,7 +194,7 @@ pub unsafe extern "C" fn annis_cs_find(
         timeout: None,
     };
 
-    let limit = if limit.is_null() { None } else { Some(*limit) };
+    let limit = unsafe { if limit.is_null() { None } else { Some(*limit) } };
 
     map_cerr(cs.find(search_query, offset, limit, order), err)
         .map(|result| {
@@ -221,7 +221,7 @@ pub unsafe extern "C" fn annis_cs_find(
 /// # Safety
 ///
 /// This functions dereferences the `err` pointer and is therefore unsafe.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_subgraph(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
@@ -262,7 +262,7 @@ pub extern "C" fn annis_cs_subgraph(
 /// # Safety
 ///
 /// This functions dereferences the `err` pointer and is therefore unsafe.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_subcorpus_graph(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
@@ -285,7 +285,7 @@ pub extern "C" fn annis_cs_subcorpus_graph(
 ///
 /// - `ptr` - The corpus storage object.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_corpus_graph(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
@@ -306,7 +306,7 @@ pub extern "C" fn annis_cs_corpus_graph(
 /// - `query` - The query which defines included nodes.
 /// - `query_language` - The query language of the query (e.g. AQL).
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_subgraph_for_query(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
@@ -334,7 +334,7 @@ pub extern "C" fn annis_cs_subgraph_for_query(
 /// - `query_language` - The query language of the query (e.g. AQL).
 /// - `component_type_filter` - Only include edges of that belong to a component of the given type.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_subgraph_for_query_with_ctype(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
@@ -365,7 +365,7 @@ pub extern "C" fn annis_cs_subgraph_for_query_with_ctype(
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 ///
 /// Returns a frequency table of strings.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_frequency(
     ptr: *const CorpusStorage,
     corpus_names: *const Vec<CString>,
@@ -424,7 +424,7 @@ pub extern "C" fn annis_cs_frequency(
 ///
 /// - `ptr` - The corpus storage object.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_list(
     ptr: *const CorpusStorage,
     err: *mut *mut ErrorList,
@@ -451,7 +451,7 @@ pub extern "C" fn annis_cs_list(
 /// - `list_values` - If true include the possible values in the result.
 /// - `only_most_frequent_values` - If both this argument and `list_values` are true, only return the most frequent value for each annotation name.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_list_node_annotations(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
@@ -491,7 +491,7 @@ pub extern "C" fn annis_cs_list_node_annotations(
 /// - `component_layer` - The layer of the edge component.
 /// - `only_most_frequent_values` - If both this argument and `list_values` are true, only return the most frequent value for each annotation name.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_list_edge_annotations(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
@@ -539,7 +539,7 @@ pub extern "C" fn annis_cs_list_edge_annotations(
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 ///
 /// Returns `true` if valid and an error with the parser message if invalid.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_validate_query(
     ptr: *const CorpusStorage,
     corpus_names: *const Vec<CString>,
@@ -568,7 +568,7 @@ pub extern "C" fn annis_cs_validate_query(
 /// - `query` - The query to be analyzed.
 /// - `query_language` - The query language of the query (e.g. AQL).
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_node_descriptions(
     ptr: *const CorpusStorage,
     query: *const libc::c_char,
@@ -595,7 +595,7 @@ pub extern "C" fn annis_cs_node_descriptions(
 ///
 /// Returns the name of the imported corpus.
 /// The returned string must be deallocated by the caller using annis_str_free()!
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_import_from_fs(
     ptr: *mut CorpusStorage,
     path: *const libc::c_char,
@@ -639,7 +639,7 @@ pub extern "C" fn annis_cs_import_from_fs(
 /// - `path` - The location on the file system where the corpus data should be written to.
 /// - `format` - The format in which this corpus data will be stored stored.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_export_to_fs(
     ptr: *mut CorpusStorage,
     corpus_names: *const Vec<CString>,
@@ -664,7 +664,7 @@ pub extern "C" fn annis_cs_export_to_fs(
 /// - `ptr` - The corpus storage object.
 /// - `ctype` -Filter by the component type.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_list_components_by_type(
     ptr: *mut CorpusStorage,
     corpus_name: *const libc::c_char,
@@ -684,7 +684,7 @@ pub extern "C" fn annis_cs_list_components_by_type(
 ///
 /// - `ptr` - The corpus storage object.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_delete(
     ptr: *mut CorpusStorage,
     corpus: *const libc::c_char,
@@ -700,7 +700,7 @@ pub extern "C" fn annis_cs_delete(
 ///
 /// - `corpus` The name of the corpus to unload.
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_unload(
     ptr: *mut CorpusStorage,
     corpus: *const libc::c_char,
@@ -718,7 +718,7 @@ pub extern "C" fn annis_cs_unload(
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
 ///
 /// It is ensured that the update process is atomic and that the changes are persisted to disk if the error list is empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_cs_apply_update(
     ptr: *mut CorpusStorage,
     corpus_name: *const libc::c_char,

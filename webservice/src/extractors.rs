@@ -1,6 +1,6 @@
 use crate::{auth::Claims, errors::ServiceError, settings::Settings};
-use actix_web::{web, FromRequest};
-use futures::future::{err, ok, ready, Ready};
+use actix_web::{FromRequest, web};
+use futures::future::{Ready, err, ok, ready};
 #[derive(Debug, Clone, Serialize)]
 pub struct ClaimsFromAuth(pub Claims);
 
@@ -26,21 +26,21 @@ impl FromRequest for ClaimsFromAuth {
         req: &actix_web::HttpRequest,
         _payload: &mut actix_web::dev::Payload,
     ) -> Self::Future {
-        if let Some(settings) = req.app_data::<web::Data<Settings>>() {
-            if let Some(authen_header) = req.headers().get("Authorization") {
-                // Parse header
-                if let Ok(authen_str) = authen_header.to_str() {
-                    if authen_str.starts_with("bearer") || authen_str.starts_with("Bearer") {
-                        // Parse and verify token
-                        let token = authen_str[6..authen_str.len()].trim();
-                        return match verify_token(token, settings) {
-                            // Use the verified claim
-                            Ok(claim) => ok(ClaimsFromAuth(claim)),
-                            // If a token was given but invalid, report an error
-                            Err(e) => err(e),
-                        };
-                    }
-                }
+        if let Some(settings) = req.app_data::<web::Data<Settings>>()
+            && let Some(authen_header) = req.headers().get("Authorization")
+        {
+            // Parse header
+            if let Ok(authen_str) = authen_header.to_str()
+                && (authen_str.starts_with("bearer") || authen_str.starts_with("Bearer"))
+            {
+                // Parse and verify token
+                let token = authen_str[6..authen_str.len()].trim();
+                return match verify_token(token, settings) {
+                    // Use the verified claim
+                    Ok(claim) => ok(ClaimsFromAuth(claim)),
+                    // If a token was given but invalid, report an error
+                    Err(e) => err(e),
+                };
             }
         }
 

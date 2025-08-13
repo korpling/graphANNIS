@@ -1,9 +1,9 @@
 use super::check_is_admin;
 use crate::{
-    actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool,
+    DbPool, actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings,
 };
 use actix_files::NamedFile;
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, web};
 use futures::prelude::*;
 use graphannis::CorpusStorage;
 use std::io::Seek;
@@ -144,29 +144,29 @@ pub async fn import_corpus(
             |status| {
                 info!("Job {} update: {}", &id_as_string, status);
                 // Add status report to background job messages
-                if let Ok(mut jobs) = background_jobs.jobs.lock() {
-                    if let Some(j) = jobs.get_mut(&id) {
-                        j.messages.push(status.to_string());
-                    }
+                if let Ok(mut jobs) = background_jobs.jobs.lock()
+                    && let Some(j) = jobs.get_mut(&id)
+                {
+                    j.messages.push(status.to_string());
                 }
             },
         );
         match import_result {
             Ok(corpora) => {
-                if let Ok(mut jobs) = background_jobs.jobs.lock() {
-                    if let Some(j) = jobs.get_mut(&id) {
-                        j.messages.push(format!("imported corpora {:?}", corpora));
-                        j.status = JobStatus::Finished(None);
-                    }
+                if let Ok(mut jobs) = background_jobs.jobs.lock()
+                    && let Some(j) = jobs.get_mut(&id)
+                {
+                    j.messages.push(format!("imported corpora {:?}", corpora));
+                    j.status = JobStatus::Finished(None);
                 }
             }
             Err(err) => {
-                if let Ok(mut jobs) = background_jobs.jobs.lock() {
-                    if let Some(j) = jobs.get_mut(&id) {
-                        j.messages
-                            .push(format!("importing corpora failed: {:?}", err));
-                        j.status = JobStatus::Failed;
-                    }
+                if let Ok(mut jobs) = background_jobs.jobs.lock()
+                    && let Some(j) = jobs.get_mut(&id)
+                {
+                    j.messages
+                        .push(format!("importing corpora failed: {:?}", err));
+                    j.status = JobStatus::Failed;
                 }
             }
         }
@@ -203,10 +203,10 @@ fn export_corpus_background_taks(
         cs.export_to_zip(corpus_name, use_corpus_subdirectory, &mut zip, |status| {
             info!("Job {} update: {}", &id_as_string, status);
             // Add status report to background job messages
-            if let Ok(mut jobs) = background_jobs.jobs.lock() {
-                if let Some(j) = jobs.get_mut(&id) {
-                    j.messages.push(status.to_string());
-                }
+            if let Ok(mut jobs) = background_jobs.jobs.lock()
+                && let Some(j) = jobs.get_mut(&id)
+            {
+                j.messages.push(status.to_string());
             }
         })?;
     }
@@ -240,20 +240,20 @@ pub async fn export_corpus(
     std::thread::spawn(move || {
         match export_corpus_background_taks(&params.corpora, &cs, id, background_jobs.clone()) {
             Ok(tmp_file) => {
-                if let Ok(mut jobs) = background_jobs.jobs.lock() {
-                    if let Some(j) = jobs.get_mut(&id) {
-                        let created_file_name = params.corpora.join("_") + ".zip";
-                        j.status = JobStatus::Finished(Some((tmp_file, created_file_name)));
-                    }
+                if let Ok(mut jobs) = background_jobs.jobs.lock()
+                    && let Some(j) = jobs.get_mut(&id)
+                {
+                    let created_file_name = params.corpora.join("_") + ".zip";
+                    j.status = JobStatus::Finished(Some((tmp_file, created_file_name)));
                 }
             }
             Err(err) => {
-                if let Ok(mut jobs) = background_jobs.jobs.lock() {
-                    if let Some(j) = jobs.get_mut(&id) {
-                        j.messages
-                            .push(format!("exporting corpora failed: {:?}", err));
-                        j.status = JobStatus::Failed;
-                    }
+                if let Ok(mut jobs) = background_jobs.jobs.lock()
+                    && let Some(j) = jobs.get_mut(&id)
+                {
+                    j.messages
+                        .push(format!("exporting corpora failed: {:?}", err));
+                    j.status = JobStatus::Failed;
                 }
             }
         }
@@ -275,11 +275,11 @@ pub async fn jobs(
     let uuid = uuid::Uuid::parse_str(&uuid)?;
 
     let mut jobs = background_jobs.jobs.lock()?;
-    if let Some(j) = jobs.get(&uuid) {
-        if let JobStatus::Running = j.status {
-            // Job still running, do not remove it from the job list
-            return Ok(HttpResponse::Accepted().json(j));
-        }
+    if let Some(j) = jobs.get(&uuid)
+        && let JobStatus::Running = j.status
+    {
+        // Job still running, do not remove it from the job list
+        return Ok(HttpResponse::Accepted().json(j));
     }
     // Job is finished/errored: remove it from the list and process it
     if let Some(j) = jobs.remove(&uuid) {

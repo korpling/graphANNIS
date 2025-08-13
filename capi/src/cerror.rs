@@ -103,13 +103,13 @@ pub fn new(err: Box<dyn StdError>) -> *mut ErrorList {
 }
 
 /// Returns the number of errors in the list.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_error_size(ptr: *const ErrorList) -> size_t {
     vec_size(ptr)
 }
 
 /// Get the message for the error at position `i` in the list.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_error_get_msg(ptr: *const ErrorList, i: size_t) -> *const c_char {
     let item = vec_get(ptr, i);
     if item.is_null() {
@@ -120,7 +120,7 @@ pub extern "C" fn annis_error_get_msg(ptr: *const ErrorList, i: size_t) -> *cons
 }
 
 /// Get the kind or type for the error at position `i` in the list.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_error_get_kind(ptr: *const ErrorList, i: size_t) -> *const c_char {
     let item = vec_get(ptr, i);
     if item.is_null() {

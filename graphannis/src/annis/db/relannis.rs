@@ -5,6 +5,7 @@ use crate::annis::types::TimelineStrategy;
 use crate::annis::util::create_str_vec_key;
 use crate::update::{GraphUpdate, UpdateEvent};
 use crate::{
+    AnnotationGraph,
     annis::{
         db::aql::model::TOK,
         types::{
@@ -13,7 +14,6 @@ use crate::{
         },
     },
     corpusstorage::QueryLanguage,
-    AnnotationGraph,
 };
 use graphannis_core::serializer::KeyVec;
 use graphannis_core::{
@@ -719,12 +719,12 @@ where
             let key = splitted[0];
             let value = splitted[1];
 
-            if let "context-steps" = key {
-                if let Ok(value) = value.parse::<usize>() {
-                    config.context.sizes = (value..=config.context.max.unwrap_or(value))
-                        .step_by(value)
-                        .collect();
-                }
+            if let "context-steps" = key
+                && let Ok(value) = value.parse::<usize>()
+            {
+                config.context.sizes = (value..=config.context.max.unwrap_or(value))
+                    .step_by(value)
+                    .collect();
             }
         }
     }
@@ -1031,31 +1031,30 @@ where
     for token in token_by_index.iter()? {
         let (current_textprop, current_token) = token?;
         // if the last token/text value is valid and we are still in the same text
-        if let (Some(last_token), Some(last_textprop)) = (last_token, last_textprop) {
-            if last_textprop.corpus_id == current_textprop.corpus_id
-                && last_textprop.text_id == current_textprop.text_id
-                && last_textprop.segmentation == current_textprop.segmentation
-            {
-                // we are still in the same text, add ordering between token
-                let ordering_layer = if current_textprop.segmentation.is_empty() {
-                    ANNIS_NS.to_owned()
-                } else {
-                    DEFAULT_NS.to_owned()
-                };
-                updates.add_event(UpdateEvent::AddEdge {
-                    source_node: id_to_node_name
-                        .get(&last_token)?
-                        .ok_or(RelAnnisError::NodeNotFound(last_token))?
-                        .to_string(),
-                    target_node: id_to_node_name
-                        .get(&current_token)?
-                        .ok_or(RelAnnisError::NodeNotFound(current_token))?
-                        .to_string(),
-                    layer: ordering_layer,
-                    component_type: AnnotationComponentType::Ordering.to_string(),
-                    component_name: current_textprop.segmentation.clone().into(),
-                })?;
-            }
+        if let (Some(last_token), Some(last_textprop)) = (last_token, last_textprop)
+            && last_textprop.corpus_id == current_textprop.corpus_id
+            && last_textprop.text_id == current_textprop.text_id
+            && last_textprop.segmentation == current_textprop.segmentation
+        {
+            // we are still in the same text, add ordering between token
+            let ordering_layer = if current_textprop.segmentation.is_empty() {
+                ANNIS_NS.to_owned()
+            } else {
+                DEFAULT_NS.to_owned()
+            };
+            updates.add_event(UpdateEvent::AddEdge {
+                source_node: id_to_node_name
+                    .get(&last_token)?
+                    .ok_or(RelAnnisError::NodeNotFound(last_token))?
+                    .to_string(),
+                target_node: id_to_node_name
+                    .get(&current_token)?
+                    .ok_or(RelAnnisError::NodeNotFound(current_token))?
+                    .to_string(),
+                layer: ordering_layer,
+                component_type: AnnotationComponentType::Ordering.to_string(),
+                component_name: current_textprop.segmentation.clone().into(),
+            })?;
         } // end if same text
 
         // update the iterator and other variables
@@ -1220,19 +1219,18 @@ where
                 .textpos_table
                 .token_to_index
                 .contains_key(&n)?
-        {
-            if let Err(e) = add_automatic_cov_edge_for_node(
+            && let Err(e) = add_automatic_cov_edge_for_node(
                 updates,
                 n,
                 load_node_and_corpus_result,
                 load_rank_result,
-            ) {
-                // output a warning but do not fail
-                warn!(
-                    "Adding coverage edges (connects spans with tokens) failed: {}",
-                    e
-                )
-            }
+            )
+        {
+            // output a warning but do not fail
+            warn!(
+                "Adding coverage edges (connects spans with tokens) failed: {}",
+                e
+            )
         } // end if not a token
     }
 
@@ -1324,12 +1322,11 @@ where
                 // Get the token borders of the next token to determine where the whitespace after this token is
                 // The whitespace end position is non-inclusive.
                 let mut whitespace_end_pos = None;
-                if let Some(Ok((_, next_token_id))) = token_iterator.peek() {
-                    if let Some(next_token_left_pos) =
+                if let Some(Ok((_, next_token_id))) = token_iterator.peek()
+                    && let Some(next_token_left_pos) =
                         textpos_table.node_to_left_char.get(next_token_id)?
-                    {
-                        whitespace_end_pos = Some(next_token_left_pos.val as usize);
-                    }
+                {
+                    whitespace_end_pos = Some(next_token_left_pos.val as usize);
                 }
 
                 // Get the covered text which either goes until the next token or until the end of the text if there is none
@@ -1469,15 +1466,15 @@ where
             })?;
             id_to_node_name.insert(node_nr, node_path.clone().into())?;
 
-            if let Some(layer) = layer {
-                if !layer.is_empty() {
-                    updates.add_event(UpdateEvent::AddNodeLabel {
-                        node_name: node_path.clone(),
-                        anno_ns: ANNIS_NS.to_owned(),
-                        anno_name: "layer".to_owned(),
-                        anno_value: layer.to_string(),
-                    })?;
-                }
+            if let Some(layer) = layer
+                && !layer.is_empty()
+            {
+                updates.add_event(UpdateEvent::AddNodeLabel {
+                    node_name: node_path.clone(),
+                    anno_ns: ANNIS_NS.to_owned(),
+                    anno_name: "layer".to_owned(),
+                    anno_value: layer.to_string(),
+                })?;
             }
 
             // Add the raw character offsets so it is possible to extract the text later on
@@ -1893,12 +1890,12 @@ where
                     load_rank_result.edges_by_pre.insert(pre, e)?;
                 }
             }
-        } else if let Some(c) = component_by_id.get(&component_ref) {
-            if c.get_type() == AnnotationComponentType::Coverage {
-                load_rank_result
-                    .component_for_parentless_target_node
-                    .insert(target, c.clone())?;
-            }
+        } else if let Some(c) = component_by_id.get(&component_ref)
+            && c.get_type() == AnnotationComponentType::Coverage
+        {
+            load_rank_result
+                .component_for_parentless_target_node
+                .insert(target, c.clone())?;
         }
     }
 
@@ -1945,31 +1942,31 @@ where
         let line = result?;
 
         let pre = get_field_not_null(&line, 0, "pre", &edge_anno_tab_path)?.parse::<u32>()?;
-        if let Some(c) = rank_result.components_by_pre.get(&pre)? {
-            if let Some(e) = rank_result.edges_by_pre.get(&pre)? {
-                let ns = get_field(&line, 1, "namespace", &edge_anno_tab_path)?.unwrap_or_default();
-                let name = get_field_not_null(&line, 2, "name", &edge_anno_tab_path)?;
-                // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
-                let val = get_field(&line, 3, "value", &edge_anno_tab_path)?
-                    .unwrap_or_else(|| INVALID_STRING.clone());
+        if let Some(c) = rank_result.components_by_pre.get(&pre)?
+            && let Some(e) = rank_result.edges_by_pre.get(&pre)?
+        {
+            let ns = get_field(&line, 1, "namespace", &edge_anno_tab_path)?.unwrap_or_default();
+            let name = get_field_not_null(&line, 2, "name", &edge_anno_tab_path)?;
+            // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
+            let val = get_field(&line, 3, "value", &edge_anno_tab_path)?
+                .unwrap_or_else(|| INVALID_STRING.clone());
 
-                updates.add_event(UpdateEvent::AddEdgeLabel {
-                    source_node: id_to_node_name
-                        .get(&e.source)?
-                        .ok_or(RelAnnisError::NodeNotFound(e.source))?
-                        .to_string(),
-                    target_node: id_to_node_name
-                        .get(&e.target)?
-                        .ok_or(RelAnnisError::NodeNotFound(e.target))?
-                        .to_string(),
-                    layer: c.layer.clone().into(),
-                    component_type: c.get_type().to_string(),
-                    component_name: c.name.to_string(),
-                    anno_ns: ns.to_string(),
-                    anno_name: name.to_string(),
-                    anno_value: val.to_string(),
-                })?;
-            }
+            updates.add_event(UpdateEvent::AddEdgeLabel {
+                source_node: id_to_node_name
+                    .get(&e.source)?
+                    .ok_or(RelAnnisError::NodeNotFound(e.source))?
+                    .to_string(),
+                target_node: id_to_node_name
+                    .get(&e.target)?
+                    .ok_or(RelAnnisError::NodeNotFound(e.target))?
+                    .to_string(),
+                layer: c.layer.clone().into(),
+                component_type: c.get_type().to_string(),
+                component_name: c.name.to_string(),
+                anno_ns: ns.to_string(),
+                anno_name: name.to_string(),
+                anno_value: val.to_string(),
+            })?;
         }
     }
 

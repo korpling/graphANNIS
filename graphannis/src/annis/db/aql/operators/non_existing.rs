@@ -11,6 +11,7 @@ use graphannis_core::{
 };
 
 use crate::{
+    AnnotationGraph,
     annis::{
         db::{
             aql::conjunction::Conjunction,
@@ -23,7 +24,6 @@ use crate::{
         },
         util::TimeoutCheck,
     },
-    AnnotationGraph,
 };
 
 #[derive(Debug, Clone)]

@@ -1,8 +1,8 @@
 use crate::{
+    AnnotationGraph,
     annis::db::aql::model::{AnnotationComponentType, TOKEN_KEY},
     errors::Result,
     graph::GraphStorage,
-    AnnotationGraph,
 };
 use graphannis_core::{
     annostorage::NodeAnnotationStorage,

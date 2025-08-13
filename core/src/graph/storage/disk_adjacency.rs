@@ -1,10 +1,10 @@
 use super::*;
 
 use crate::{
-    annostorage::{ondisk::AnnoStorageImpl, NodeAnnotationStorage},
+    annostorage::{NodeAnnotationStorage, ondisk::AnnoStorageImpl},
     dfs::CycleSafeDFS,
     errors::Result,
-    util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
+    util::disk_collections::{DEFAULT_BLOCK_CACHE_CAPACITY, DiskMap, EvictionStrategy},
 };
 use itertools::Itertools;
 use rustc_hash::FxHashSet;

@@ -1,6 +1,6 @@
 use graphannis_core::graph::{
-    update::{GraphUpdate, UpdateEvent},
     ANNIS_NS, DEFAULT_NS,
+    update::{GraphUpdate, UpdateEvent},
 };
 
 use crate::model::AnnotationComponentType;

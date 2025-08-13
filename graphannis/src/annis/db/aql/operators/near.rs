@@ -4,12 +4,12 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::GraphAnnisError;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorIndex, EstimationType};
+use crate::{AnnotationGraph, try_as_boxed_iter};
 use crate::{
     annis::operator::{BinaryOperatorBase, BinaryOperatorSpec},
     errors::Result,
     graph::{GraphStorage, Match},
 };
-use crate::{try_as_boxed_iter, AnnotationGraph};
 use graphannis_core::graph::DEFAULT_NS;
 use graphannis_core::types::NodeID;
 use graphannis_core::{

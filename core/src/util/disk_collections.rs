@@ -73,13 +73,12 @@ where
     ) -> Result<DiskMap<K, V>> {
         let mut disk_table = None;
 
-        if let Some(persisted_file) = persisted_file {
-            if persisted_file.is_file() {
-                // Use existing file as read-only table which contains the whole map
-                let table =
-                    Table::new_from_file(custom_options(block_cache_capacity), persisted_file)?;
-                disk_table = Some(table);
-            }
+        if let Some(persisted_file) = persisted_file
+            && persisted_file.is_file()
+        {
+            // Use existing file as read-only table which contains the whole map
+            let table = Table::new_from_file(custom_options(block_cache_capacity), persisted_file)?;
+            disk_table = Some(table);
         }
 
         Ok(DiskMap {
@@ -129,15 +128,15 @@ where
             }
         }
         // Check C1 (BTree disk index)
-        if let Some(c1) = &self.c1 {
-            if let Some(entry) = c1.get(key)? {
-                if let Some(value) = entry {
-                    return Ok(Some(Cow::Owned(value)));
-                } else {
-                    // Value was explicitly deleted with a tombstone entry.
-                    // Do not query C1 and C2.
-                    return Ok(None);
-                }
+        if let Some(c1) = &self.c1
+            && let Some(entry) = c1.get(key)?
+        {
+            if let Some(value) = entry {
+                return Ok(Some(Cow::Owned(value)));
+            } else {
+                // Value was explicitly deleted with a tombstone entry.
+                // Do not query C1 and C2.
+                return Ok(None);
             }
         }
 
@@ -170,10 +169,10 @@ where
         }
 
         // Check C1 (BTree disk index)
-        if let Some(c1) = &self.c1 {
-            if c1.contains_key(key)? {
-                return Ok(true);
-            }
+        if let Some(c1) = &self.c1
+            && c1.contains_key(key)?
+        {
+            return Ok(true);
         }
 
         // Use a iterator on the single disk to check if there is an entry with this, without getting the value.
@@ -183,10 +182,10 @@ where
             let mut table_it = c2.iter();
             let key = K::create_key(key);
             table_it.seek(&key);
-            if let Some(it_key) = table_it.current_key() {
-                if it_key == key.as_ref() {
-                    return Ok(true);
-                }
+            if let Some(it_key) = table_it.current_key()
+                && it_key == key.as_ref()
+            {
+                return Ok(true);
             }
         }
         Ok(false)
@@ -720,12 +719,12 @@ where
 
     fn range_contains(&self, item: &[u8]) -> bool {
         (match &self.range_start {
-            Bound::Included(ref start) => start.as_slice() <= item,
-            Bound::Excluded(ref start) => start.as_slice() < item,
+            Bound::Included(start) => start.as_slice() <= item,
+            Bound::Excluded(start) => start.as_slice() < item,
             Bound::Unbounded => true,
         }) && (match &self.range_end {
-            Bound::Included(ref end) => item <= end.as_ref(),
-            Bound::Excluded(ref end) => item < end.as_ref(),
+            Bound::Included(end) => item <= end.as_ref(),
+            Bound::Excluded(end) => item < end.as_ref(),
             Bound::Unbounded => true,
         })
     }

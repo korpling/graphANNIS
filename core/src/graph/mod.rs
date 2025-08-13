@@ -5,7 +5,7 @@ pub mod update;
 use crate::{
     annostorage::{AnnotationStorage, NodeAnnotationStorage, ValueSearch},
     errors::Result,
-    graph::storage::{registry, GraphStorage, WriteableGraphStorage},
+    graph::storage::{GraphStorage, WriteableGraphStorage, registry},
 };
 use crate::{
     errors::GraphAnnisCoreError,
@@ -97,7 +97,7 @@ fn component_path<CT: ComponentType>(
     c: &Component<CT>,
 ) -> Option<PathBuf> {
     match location {
-        Some(ref loc) => {
+        Some(loc) => {
             let mut p = PathBuf::from(loc);
             // Check if we need to load the component from the backup folder
             let backup = loc.join("backup");
@@ -520,12 +520,12 @@ impl<CT: ComponentType> Graph<CT> {
                         &mut node_id_cache,
                     )?;
                     // only add edge if both nodes already exist
-                    if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = CT::from_str(component_type) {
-                            let c = Component::new(ctype, layer.into(), component_name.into());
-                            let gs = self.get_or_create_writable(&c)?;
-                            gs.add_edge(Edge { source, target })?;
-                        }
+                    if let (Some(source), Some(target)) = (source, target)
+                        && let Ok(ctype) = CT::from_str(component_type)
+                    {
+                        let c = Component::new(ctype, layer.into(), component_name.into());
+                        let gs = self.get_or_create_writable(&c)?;
+                        gs.add_edge(Edge { source, target })?;
                     }
                 }
                 UpdateEvent::DeleteEdge {
@@ -543,13 +543,13 @@ impl<CT: ComponentType> Graph<CT> {
                         Cow::Borrowed(target_node),
                         &mut node_id_cache,
                     )?;
-                    if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = CT::from_str(component_type) {
-                            let c = Component::new(ctype, layer.into(), component_name.into());
+                    if let (Some(source), Some(target)) = (source, target)
+                        && let Ok(ctype) = CT::from_str(component_type)
+                    {
+                        let c = Component::new(ctype, layer.into(), component_name.into());
 
-                            let gs = self.get_or_create_writable(&c)?;
-                            gs.delete_edge(&Edge { source, target })?;
-                        }
+                        let gs = self.get_or_create_writable(&c)?;
+                        gs.delete_edge(&Edge { source, target })?;
                     }
                 }
                 UpdateEvent::AddEdgeLabel {
@@ -570,22 +570,22 @@ impl<CT: ComponentType> Graph<CT> {
                         Cow::Borrowed(target_node),
                         &mut node_id_cache,
                     )?;
-                    if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = CT::from_str(component_type) {
-                            let c = Component::new(ctype, layer.into(), component_name.into());
-                            let gs = self.get_or_create_writable(&c)?;
-                            // only add label if the edge already exists
-                            let e = Edge { source, target };
-                            if gs.is_connected(source, target, 1, Included(1))? {
-                                let anno = Annotation {
-                                    key: AnnoKey {
-                                        ns: anno_ns.into(),
-                                        name: anno_name.into(),
-                                    },
-                                    val: anno_value.into(),
-                                };
-                                gs.add_edge_annotation(e, anno)?;
-                            }
+                    if let (Some(source), Some(target)) = (source, target)
+                        && let Ok(ctype) = CT::from_str(component_type)
+                    {
+                        let c = Component::new(ctype, layer.into(), component_name.into());
+                        let gs = self.get_or_create_writable(&c)?;
+                        // only add label if the edge already exists
+                        let e = Edge { source, target };
+                        if gs.is_connected(source, target, 1, Included(1))? {
+                            let anno = Annotation {
+                                key: AnnoKey {
+                                    ns: anno_ns.into(),
+                                    name: anno_name.into(),
+                                },
+                                val: anno_value.into(),
+                            };
+                            gs.add_edge_annotation(e, anno)?;
                         }
                     }
                 }
@@ -606,19 +606,19 @@ impl<CT: ComponentType> Graph<CT> {
                         Cow::Borrowed(target_node),
                         &mut node_id_cache,
                     )?;
-                    if let (Some(source), Some(target)) = (source, target) {
-                        if let Ok(ctype) = CT::from_str(component_type) {
-                            let c = Component::new(ctype, layer.into(), component_name.into());
-                            let gs = self.get_or_create_writable(&c)?;
-                            // only add label if the edge already exists
-                            let e = Edge { source, target };
-                            if gs.is_connected(source, target, 1, Included(1))? {
-                                let key = AnnoKey {
-                                    ns: anno_ns.into(),
-                                    name: anno_name.into(),
-                                };
-                                gs.delete_edge_annotation(&e, &key)?;
-                            }
+                    if let (Some(source), Some(target)) = (source, target)
+                        && let Ok(ctype) = CT::from_str(component_type)
+                    {
+                        let c = Component::new(ctype, layer.into(), component_name.into());
+                        let gs = self.get_or_create_writable(&c)?;
+                        // only add label if the edge already exists
+                        let e = Edge { source, target };
+                        if gs.is_connected(source, target, 1, Included(1))? {
+                            let key = AnnoKey {
+                                ns: anno_ns.into(),
+                                name: anno_name.into(),
+                            };
+                            gs.delete_edge_annotation(&e, &key)?;
                         }
                     }
                 }
@@ -889,10 +889,10 @@ impl<CT: ComponentType> Graph<CT> {
     /// Returns `true` if the graph storage for this specific component is loaded and ready to use.
     pub fn is_loaded(&self, c: &Component<CT>) -> bool {
         let entry: Option<&Option<Arc<dyn GraphStorage>>> = self.components.get(c);
-        if let Some(gs_opt) = entry {
-            if gs_opt.is_some() {
-                return true;
-            }
+        if let Some(gs_opt) = entry
+            && gs_opt.is_some()
+        {
+            return true;
         }
         false
     }
@@ -1022,31 +1022,31 @@ impl<CT: ComponentType> Graph<CT> {
     }
 
     pub fn optimize_gs_impl(&mut self, c: &Component<CT>) -> Result<()> {
-        if let Some(gs) = self.get_graphstorage(c) {
-            if let Some(stats) = gs.get_statistics() {
-                let opt_info = registry::get_optimal_impl_heuristic(self, stats);
+        if let Some(gs) = self.get_graphstorage(c)
+            && let Some(stats) = gs.get_statistics()
+        {
+            let opt_info = registry::get_optimal_impl_heuristic(self, stats);
 
-                // convert if necessary
-                if opt_info.id != gs.serialization_id() {
-                    let mut new_gs = registry::create_from_info(&opt_info)?;
-                    let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
-                        info!(
-                            "converting component {} to implementation {}",
-                            c, opt_info.id,
-                        );
-                        new_gs_mut.copy(self.get_node_annos(), gs.as_ref())?;
-                        true
-                    } else {
-                        false
-                    };
-                    if converted {
-                        // insert into components map
-                        info!(
-                            "finished conversion of component {} to implementation {}",
-                            c, opt_info.id,
-                        );
-                        self.components.insert(c.clone(), Some(new_gs.clone()));
-                    }
+            // convert if necessary
+            if opt_info.id != gs.serialization_id() {
+                let mut new_gs = registry::create_from_info(&opt_info)?;
+                let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
+                    info!(
+                        "converting component {} to implementation {}",
+                        c, opt_info.id,
+                    );
+                    new_gs_mut.copy(self.get_node_annos(), gs.as_ref())?;
+                    true
+                } else {
+                    false
+                };
+                if converted {
+                    // insert into components map
+                    info!(
+                        "finished conversion of component {} to implementation {}",
+                        c, opt_info.id,
+                    );
+                    self.components.insert(c.clone(), Some(new_gs.clone()));
                 }
             }
         }
@@ -1119,15 +1119,15 @@ impl<CT: ComponentType> Graph<CT> {
                 .components
                 .keys()
                 .filter(move |c| {
-                    if let Some(ctype) = ctype.clone() {
-                        if ctype != c.get_type() {
-                            return false;
-                        }
+                    if let Some(ctype) = ctype.clone()
+                        && ctype != c.get_type()
+                    {
+                        return false;
                     }
-                    if let Some(name) = name {
-                        if name != c.name {
-                            return false;
-                        }
+                    if let Some(name) = name
+                        && name != c.name
+                    {
+                        return false;
                     }
                     true
                 })

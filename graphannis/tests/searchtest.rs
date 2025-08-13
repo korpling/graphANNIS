@@ -2,8 +2,8 @@ extern crate graphannis;
 #[macro_use]
 extern crate lazy_static;
 
-use graphannis::corpusstorage::{QueryLanguage, SearchQuery};
 use graphannis::CorpusStorage;
+use graphannis::corpusstorage::{QueryLanguage, SearchQuery};
 
 use std::path::PathBuf;
 
@@ -288,7 +288,12 @@ fn exclude_optional_node_in_between() {
         .unwrap();
 
     // Only node #1 and #3 should be part of the output
-    assert_eq!(vec!["ref::entity::GUM/GUM_interview_ants#referent_291 ref::infstat::GUM/GUM_interview_ants#referent_321"], result);
+    assert_eq!(
+        vec![
+            "ref::entity::GUM/GUM_interview_ants#referent_291 ref::infstat::GUM/GUM_interview_ants#referent_321"
+        ],
+        result
+    );
 }
 
 #[ignore]
@@ -312,7 +317,12 @@ fn exclude_optional_node_at_end() {
         .unwrap();
 
     // Only node #1 and #2 should be part of the output
-    assert_eq!(vec!["ref::entity::GUM/GUM_interview_ants#referent_291 ref::infstat::GUM/GUM_interview_ants#referent_321"], result);
+    assert_eq!(
+        vec![
+            "ref::entity::GUM/GUM_interview_ants#referent_291 ref::infstat::GUM/GUM_interview_ants#referent_321"
+        ],
+        result
+    );
 }
 
 #[ignore]

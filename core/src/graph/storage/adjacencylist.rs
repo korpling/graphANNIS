@@ -1,6 +1,6 @@
 use crate::{
     annostorage::{
-        inmemory::AnnoStorageImpl, AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage,
+        AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage, inmemory::AnnoStorageImpl,
     },
     dfs::CycleSafeDFS,
     errors::Result,
@@ -8,10 +8,9 @@ use crate::{
 };
 
 use super::{
-    deserialize_gs_field,
+    EdgeContainer, GraphStatistic, GraphStorage, WriteableGraphStorage, deserialize_gs_field,
     legacy::{self, AdjacencyListStorageV1},
-    load_statistics_from_location, save_statistics_to_toml, serialize_gs_field, EdgeContainer,
-    GraphStatistic, GraphStorage, WriteableGraphStorage,
+    load_statistics_from_location, save_statistics_to_toml, serialize_gs_field,
 };
 use itertools::Itertools;
 use rustc_hash::FxHashSet;
@@ -294,25 +293,25 @@ impl WriteableGraphStorage for AdjacencyListStorage {
     }
 
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) -> Result<()> {
-        if let Some(outgoing) = self.edges.get(&edge.source) {
-            if outgoing.contains(&edge.target) {
-                self.annos.insert(edge, anno)?;
-            }
+        if let Some(outgoing) = self.edges.get(&edge.source)
+            && outgoing.contains(&edge.target)
+        {
+            self.annos.insert(edge, anno)?;
         }
         Ok(())
     }
 
     fn delete_edge(&mut self, edge: &Edge) -> Result<()> {
-        if let Some(outgoing) = self.edges.get_mut(&edge.source) {
-            if let Ok(idx) = outgoing.binary_search(&edge.target) {
-                outgoing.remove(idx);
-            }
+        if let Some(outgoing) = self.edges.get_mut(&edge.source)
+            && let Ok(idx) = outgoing.binary_search(&edge.target)
+        {
+            outgoing.remove(idx);
         }
 
-        if let Some(ingoing) = self.inverse_edges.get_mut(&edge.target) {
-            if let Ok(idx) = ingoing.binary_search(&edge.source) {
-                ingoing.remove(idx);
-            }
+        if let Some(ingoing) = self.inverse_edges.get_mut(&edge.target)
+            && let Ok(idx) = ingoing.binary_search(&edge.source)
+        {
+            ingoing.remove(idx);
         }
         self.annos.remove_item(edge)?;
 

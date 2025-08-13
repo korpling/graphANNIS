@@ -159,10 +159,10 @@ impl<T> ValueSearch<T> {
 
     #[inline]
     pub fn as_ref(&self) -> ValueSearch<&T> {
-        match *self {
+        match self {
             ValueSearch::Any => ValueSearch::Any,
-            ValueSearch::Some(ref v) => ValueSearch::Some(v),
-            ValueSearch::NotSome(ref v) => ValueSearch::NotSome(v),
+            ValueSearch::Some(v) => ValueSearch::Some(v),
+            ValueSearch::NotSome(v) => ValueSearch::NotSome(v),
         }
     }
 }
@@ -300,7 +300,7 @@ where
     /// Return a list of all existing values for a given annotation `key`.
     /// If the `most_frequent_first` parameter is true, the results are sorted by their frequency.
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool)
-        -> Result<Vec<Cow<'_, str>>>;
+    -> Result<Vec<Cow<'_, str>>>;
 
     /// Get all the annotation keys which are part of this annotation storage
     fn annotation_keys(&self) -> Result<Vec<AnnoKey>>;

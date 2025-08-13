@@ -113,8 +113,7 @@ impl<'a> CycleSafeDFS<'a> {
             }
             trace!(
                 "enter_node finished with result {} for node {}",
-                found,
-                node
+                found, node
             );
             Ok(found)
         }

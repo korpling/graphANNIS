@@ -1,6 +1,6 @@
 use num_traits::{Bounded, FromPrimitive, Num, ToPrimitive};
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use smartstring::alias::String;
 use std::error::Error;
 use std::fmt;
@@ -14,7 +14,7 @@ use super::serializer::{FixedSizeKeySerializer, KeySerializer};
 use crate::serializer::KeyVec;
 use crate::{
     errors::{ComponentTypeError, GraphAnnisCoreError},
-    graph::{update::UpdateEvent, Graph},
+    graph::{Graph, update::UpdateEvent},
 };
 use fmt::Debug;
 use std::result::Result as StdResult;
