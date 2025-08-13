@@ -251,12 +251,12 @@ mod test {
     #[test]
     fn random_sort_vec() {
         // compare 100 random arrays against the standard library sort
-        let mut rng = rand::thread_rng();
-        let random_item_gen = rand::distributions::Uniform::from(1..100);
+        let mut rng = rand::rng();
+        let random_item_gen = rand::distr::Uniform::new(1, 100).unwrap();
 
         for _i in 0..100 {
             // the arrays should have a size from 40 to 50
-            let items_size = rng.gen_range(40..51);
+            let items_size = rng.random_range(40..51);
             let mut items = Vec::with_capacity(items_size);
             for _j in 0..items_size {
                 items.push(random_item_gen.sample(&mut rng));
@@ -315,12 +315,12 @@ mod test {
     #[test]
     fn random_sort_btree() {
         // compare 100 random arrays against the standard library sort
-        let mut rng = rand::thread_rng();
-        let random_item_gen = rand::distributions::Uniform::from(1..100);
+        let mut rng = rand::rng();
+        let random_item_gen = rand::distr::Uniform::new(1, 100).unwrap();
 
         for _i in 0..100 {
             // the arrays should have a size from 40 to 50
-            let items_size = rng.gen_range(40..51);
+            let items_size = rng.random_range(40..51);
             let mut items = BtreeIndex::with_capacity(BtreeConfig::default(), items_size).unwrap();
             let mut items_vec = Vec::new();
             for j in 0..items_size {
