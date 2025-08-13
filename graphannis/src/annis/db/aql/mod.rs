@@ -13,6 +13,7 @@ lalrpop_mod!(
     "/annis/db/aql/parser.rs"
 );
 
+use crate::AnnotationGraph;
 use crate::annis::db::aql::conjunction::Conjunction;
 use crate::annis::db::aql::disjunction::Disjunction;
 use crate::annis::db::aql::operators::{
@@ -25,7 +26,6 @@ use crate::annis::errors::*;
 use crate::annis::operator::{BinaryOperatorSpec, UnaryOperatorSpec};
 use crate::annis::types::{LineColumn, LineColumnRange};
 use crate::annis::util::TimeoutCheck;
-use crate::AnnotationGraph;
 use lalrpop_util::ParseError;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
@@ -202,11 +202,12 @@ fn map_conjunction(
                 } else if node_left.optional && node_right.optional {
                     // Not supported yet
                     return Err(GraphAnnisError::AQLSemanticError(AQLError {
-                    desc: format!(
-                        "Negated binary operator needs a non-optional left or right operand, but both operands (#{}, #{}) are optional, as indicated by their \"?\" suffix.", 
-                        var_left, var_right),
-                    location: op_pos,
-                }));
+                        desc: format!(
+                            "Negated binary operator needs a non-optional left or right operand, but both operands (#{}, #{}) are optional, as indicated by their \"?\" suffix.",
+                            var_left, var_right
+                        ),
+                        location: op_pos,
+                    }));
                 } else {
                     let target_left = node_left.optional;
                     let filtered_var = if target_left {
@@ -524,11 +525,12 @@ pub fn parse(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction> {
             .to_string();
             let location = extract_location(&e, query_as_aql);
             if let ParseError::UnrecognizedToken { expected, .. } = e
-                && !expected.is_empty() {
-                    //TODO: map token regular expressions and IDs (like IDENT_NODE) to human readable descriptions
-                    desc.push_str(" Expected one of: ");
-                    desc.push_str(&expected.join(","));
-                }
+                && !expected.is_empty()
+            {
+                //TODO: map token regular expressions and IDs (like IDENT_NODE) to human readable descriptions
+                desc.push_str(" Expected one of: ");
+                desc.push_str(&expected.join(","));
+            }
             Err(GraphAnnisError::AQLSyntaxError(AQLError { desc, location }))
         }
     }

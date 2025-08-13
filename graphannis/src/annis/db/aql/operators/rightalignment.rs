@@ -1,3 +1,4 @@
+use crate::AnnotationGraph;
 use crate::annis::db::exec::CostEstimate;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
@@ -7,7 +8,6 @@ use crate::annis::operator::BinaryOperatorBase;
 use crate::annis::operator::BinaryOperatorIndex;
 use crate::annis::operator::BinaryOperatorSpec;
 use crate::try_as_boxed_iter;
-use crate::AnnotationGraph;
 use crate::{
     annis::operator::EstimationType, errors::Result, graph::Match, model::AnnotationComponent,
 };

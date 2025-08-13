@@ -4,8 +4,8 @@ use crate::annis::operator::BinaryOperatorBase;
 use crate::errors::Result;
 use graphannis_core::annostorage::MatchGroup;
 use rayon::prelude::*;
-use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
+use std::sync::mpsc::{Receiver, Sender, channel};
 
 const MAX_BUFFER_SIZE: usize = 1024;
 
@@ -41,9 +41,10 @@ impl<'a> NestedLoop<'a> {
         let mut left_is_outer = true;
         if let (Some(desc_lhs), Some(desc_rhs)) = (lhs.get_desc(), rhs.get_desc())
             && let (Some(cost_lhs), Some(cost_rhs)) = (&desc_lhs.cost, &desc_rhs.cost)
-                && cost_lhs.output > cost_rhs.output {
-                    left_is_outer = false;
-                }
+            && cost_lhs.output > cost_rhs.output
+        {
+            left_is_outer = false;
+        }
 
         let processed_func = |_, out_lhs: usize, out_rhs: usize| {
             if out_lhs <= out_rhs {

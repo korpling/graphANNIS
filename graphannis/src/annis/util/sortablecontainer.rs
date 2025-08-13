@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::annis::errors::{GraphAnnisError, Result};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 pub trait SortableContainer<T: Clone>: Send {
     /// Swaps two elements in the container.

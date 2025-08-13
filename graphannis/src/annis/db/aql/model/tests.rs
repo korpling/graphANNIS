@@ -1,16 +1,16 @@
 use std::{fs::File, path::PathBuf};
 
 use crate::{
+    AnnotationGraph,
     annis::db::{aql::model::CorpusSize, example_generator},
     model::AnnotationComponent,
-    AnnotationGraph,
 };
 use assert_matches::assert_matches;
 use graphannis_core::graph::{
+    NODE_NAME_KEY,
     serialization::graphml,
     storage::GraphStorage,
     update::{GraphUpdate, UpdateEvent},
-    NODE_NAME_KEY,
 };
 use insta::assert_snapshot;
 use itertools::Itertools;

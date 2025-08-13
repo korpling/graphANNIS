@@ -1,10 +1,11 @@
 use super::{
-    deserialize_gs_field, legacy::DenseAdjacencyListStorageV1, load_statistics_from_location,
-    save_statistics_to_toml, serialize_gs_field, EdgeContainer, GraphStatistic, GraphStorage,
+    EdgeContainer, GraphStatistic, GraphStorage, deserialize_gs_field,
+    legacy::DenseAdjacencyListStorageV1, load_statistics_from_location, save_statistics_to_toml,
+    serialize_gs_field,
 };
 use crate::{
     annostorage::{
-        inmemory::AnnoStorageImpl, AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage,
+        AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage, inmemory::AnnoStorageImpl,
     },
     dfs::CycleSafeDFS,
     errors::Result,
@@ -49,9 +50,10 @@ impl EdgeContainer for DenseAdjacencyListStorage {
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(node) = node.to_usize()
             && node < self.edges.len()
-                && let Some(outgoing) = self.edges[node] {
-                    return Box::new(std::iter::once(Ok(outgoing)));
-                }
+            && let Some(outgoing) = self.edges[node]
+        {
+            return Box::new(std::iter::once(Ok(outgoing)));
+        }
         Box::new(std::iter::empty())
     }
 
@@ -178,23 +180,24 @@ impl GraphStorage for DenseAdjacencyListStorage {
             for source in orig.source_nodes() {
                 let source = source?;
                 if let Some(idx) = source.to_usize()
-                    && let Some(target) = orig.get_outgoing_edges(source).next() {
-                        let target = target?;
-                        // insert edge
-                        self.edges[idx] = Some(target);
+                    && let Some(target) = orig.get_outgoing_edges(source).next()
+                {
+                    let target = target?;
+                    // insert edge
+                    self.edges[idx] = Some(target);
 
-                        // insert inverse edge
-                        let e = Edge { source, target };
-                        let inverse_entry = self.inverse_edges.entry(e.target).or_default();
-                        // no need to insert it: edge already exists
-                        if let Err(insertion_idx) = inverse_entry.binary_search(&e.source) {
-                            inverse_entry.insert(insertion_idx, e.source);
-                        }
-                        // insert annotation
-                        for a in orig.get_anno_storage().get_annotations_for_item(&e)? {
-                            self.annos.insert(e.clone(), a)?;
-                        }
+                    // insert inverse edge
+                    let e = Edge { source, target };
+                    let inverse_entry = self.inverse_edges.entry(e.target).or_default();
+                    // no need to insert it: edge already exists
+                    if let Err(insertion_idx) = inverse_entry.binary_search(&e.source) {
+                        inverse_entry.insert(insertion_idx, e.source);
                     }
+                    // insert annotation
+                    for a in orig.get_anno_storage().get_annotations_for_item(&e)? {
+                        self.annos.insert(e.clone(), a)?;
+                    }
+                }
             }
             self.stats = orig.get_statistics().cloned();
             self.annos.calculate_statistics()?;

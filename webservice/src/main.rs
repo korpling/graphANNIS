@@ -17,14 +17,14 @@ use ::r2d2::Pool;
 use actix_cors::Cors;
 use actix_web::body::MessageBody;
 use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
-use actix_web::{http, middleware::Logger, web, App, HttpRequest, HttpResponse, HttpServer};
+use actix_web::{App, HttpRequest, HttpResponse, HttpServer, http, middleware::Logger, web};
 use administration::BackgroundJobs;
 use anyhow::bail;
 use api::administration;
 use clap::Arg;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
-use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 use graphannis::CorpusStorage;
 use log::{set_boxed_logger, set_max_level};
 use settings::Settings;
@@ -81,7 +81,9 @@ fn init_app_state() -> anyhow::Result<(graphannis::CorpusStorage, settings::Sett
     let (logger, fallback_logger) = create_logger(&settings)?;
     let log_level = logger.level();
     if let Err(e) = set_boxed_logger(logger) {
-        println!("Error, can't initialize the terminal log output: {e}.\nWill degrade to a more simple logger");
+        println!(
+            "Error, can't initialize the terminal log output: {e}.\nWill degrade to a more simple logger"
+        );
         if let Err(e_simple) = set_boxed_logger(fallback_logger) {
             println!("Simple logging failed too: {e_simple}");
         }

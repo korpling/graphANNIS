@@ -76,11 +76,7 @@ impl<'a> Filter<'a> {
             .map(move |tuple| {
                 let tuple = tuple?;
                 let include = op_entry.op.filter_match(&tuple[lhs_idx], &tuple[rhs_idx])?;
-                if include {
-                    Ok(Some(tuple))
-                } else {
-                    Ok(None)
-                }
+                if include { Ok(Some(tuple)) } else { Ok(None) }
             })
             .filter_map_ok(|t| t);
         Ok(Filter {

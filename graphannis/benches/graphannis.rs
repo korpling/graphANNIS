@@ -7,13 +7,13 @@ extern crate rand;
 extern crate rustc_hash;
 
 use criterion::Criterion;
+use fake::Fake;
 use fake::faker::name::raw::*;
 use fake::locales::*;
-use fake::Fake;
+use graphannis::CorpusStorage;
 use graphannis::corpusstorage::ResultOrder;
 use graphannis::corpusstorage::{QueryLanguage, SearchQuery};
 use graphannis::update::{GraphUpdate, UpdateEvent};
-use graphannis::CorpusStorage;
 use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;

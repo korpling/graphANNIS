@@ -1,5 +1,5 @@
 use crate::errors::{GraphAnnisCoreError, Result};
-use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
+use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
 use std::borrow::Cow;
 
 pub mod disk_collections;

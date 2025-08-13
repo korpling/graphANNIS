@@ -56,7 +56,13 @@ impl std::fmt::Display for GraphStatistic {
         write!(
             f,
             "nodes={}, root nodes={}, avg_fan_out={:.2}, max_fan_out={}, fan_out_99%={}, inv_fan_out_99%={}, max_depth={}",
-            self.nodes, self.root_nodes, self.avg_fan_out, self.max_fan_out, self.fan_out_99_percentile, self.inverse_fan_out_99_percentile, self.max_depth
+            self.nodes,
+            self.root_nodes,
+            self.avg_fan_out,
+            self.max_fan_out,
+            self.fan_out_99_percentile,
+            self.inverse_fan_out_99_percentile,
+            self.max_depth
         )?;
         if self.cyclic {
             write!(f, ", cyclic")?;

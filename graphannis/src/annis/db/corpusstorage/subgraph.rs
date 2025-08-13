@@ -17,7 +17,7 @@ use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::errors::GraphAnnisError;
 use crate::annis::util::quicksort;
 use crate::try_as_option;
-use crate::{annis::errors::Result, model::AnnotationComponentType, AnnotationGraph};
+use crate::{AnnotationGraph, annis::errors::Result, model::AnnotationComponentType};
 
 struct TokenIterator<'a> {
     end_token: NodeID,
@@ -499,22 +499,23 @@ where
                     trace!("subgraph query extracted node {:?}", m.node);
 
                     if let Some(token_helper) = &token_helper
-                        && token_helper.is_token(m.node)? {
-                            if let (Some(gs_ordering), Some(previous_node)) =
-                                (&gs_orig_ordering, previous_token)
-                                && let Some(distance) =
-                                    gs_ordering.distance(previous_node, m.node)?
-                                    && distance > 1 {
-                                        let gs_result_ds_ordering_ = result
-                                            .get_or_create_writable(&ds_ordering_component)?;
+                        && token_helper.is_token(m.node)?
+                    {
+                        if let (Some(gs_ordering), Some(previous_node)) =
+                            (&gs_orig_ordering, previous_token)
+                            && let Some(distance) = gs_ordering.distance(previous_node, m.node)?
+                            && distance > 1
+                        {
+                            let gs_result_ds_ordering_ =
+                                result.get_or_create_writable(&ds_ordering_component)?;
 
-                                        gs_result_ds_ordering_.add_edge(Edge {
-                                            source: previous_node,
-                                            target: m.node,
-                                        })?;
-                                    }
-                            previous_token = Some(m.node);
+                            gs_result_ds_ordering_.add_edge(Edge {
+                                source: previous_node,
+                                target: m.node,
+                            })?;
                         }
+                        previous_token = Some(m.node);
+                    }
 
                     create_subgraph_node(m.node, &mut result, orig_graph)?;
                 }
@@ -557,33 +558,34 @@ fn create_subgraph_edge(
             && !c.name.is_empty())
             || ctype == AnnotationComponentType::RightToken
             || ctype == AnnotationComponentType::LeftToken)
-            && let Some(orig_gs) = orig_db.get_graphstorage(c) {
-                for target in orig_gs.get_outgoing_edges(source_id) {
-                    let target = target?;
-                    if !db
-                        .get_node_annos()
-                        .get_all_keys_for_item(&target, None, None)?
-                        .is_empty()
-                    {
-                        let e = Edge {
-                            source: source_id,
-                            target,
-                        };
-                        if let Ok(new_gs) = db.get_or_create_writable(c) {
-                            new_gs.add_edge(e.clone())?;
-                        }
+            && let Some(orig_gs) = orig_db.get_graphstorage(c)
+        {
+            for target in orig_gs.get_outgoing_edges(source_id) {
+                let target = target?;
+                if !db
+                    .get_node_annos()
+                    .get_all_keys_for_item(&target, None, None)?
+                    .is_empty()
+                {
+                    let e = Edge {
+                        source: source_id,
+                        target,
+                    };
+                    if let Ok(new_gs) = db.get_or_create_writable(c) {
+                        new_gs.add_edge(e.clone())?;
+                    }
 
-                        for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
-                            source: source_id,
-                            target,
-                        })? {
-                            if let Ok(new_gs) = db.get_or_create_writable(c) {
-                                new_gs.add_edge_annotation(e.clone(), a)?;
-                            }
+                    for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
+                        source: source_id,
+                        target,
+                    })? {
+                        if let Ok(new_gs) = db.get_or_create_writable(c) {
+                            new_gs.add_edge_annotation(e.clone(), a)?;
                         }
                     }
                 }
             }
+        }
     }
 
     Ok(())

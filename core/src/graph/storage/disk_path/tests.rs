@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    graph::storage::{adjacencylist::AdjacencyListStorage, WriteableGraphStorage},
+    graph::storage::{WriteableGraphStorage, adjacencylist::AdjacencyListStorage},
     types::{AnnoKey, Annotation},
 };
 use pretty_assertions::assert_eq;

@@ -7,7 +7,7 @@ use crate::annis::operator::{
 };
 use crate::errors::Result;
 use crate::graph::{GraphStatistic, GraphStorage, Match};
-use crate::{try_as_boxed_iter, AnnotationGraph};
+use crate::{AnnotationGraph, try_as_boxed_iter};
 use graphannis_core::{
     graph::{ANNIS_NS, DEFAULT_ANNO_KEY, NODE_TYPE_KEY},
     types::{Component, Edge, NodeID},
@@ -130,13 +130,15 @@ fn check_edge_annotation(
                     continue;
                 }
                 if let Some(template_ns) = ns
-                    && template_ns != &a.key.ns {
-                        continue;
-                    }
+                    && template_ns != &a.key.ns
+                {
+                    continue;
+                }
                 if let Some(template_val) = val
-                    && template_val != &*a.val {
-                        continue;
-                    }
+                    && template_val != &*a.val
+                {
+                    continue;
+                }
                 // all checks passed, this edge has the correct annotation
                 return Ok(true);
             }
@@ -151,9 +153,10 @@ fn check_edge_annotation(
                     continue;
                 }
                 if let Some(template_ns) = ns
-                    && template_ns != &a.key.ns {
-                        continue;
-                    }
+                    && template_ns != &a.key.ns
+                {
+                    continue;
+                }
                 if val.as_str() == a.val.as_str() {
                     continue;
                 }
@@ -175,9 +178,10 @@ fn check_edge_annotation(
                         continue;
                     }
                     if let Some(template_ns) = ns
-                        && template_ns != &a.key.ns {
-                            continue;
-                        }
+                        && template_ns != &a.key.ns
+                    {
+                        continue;
+                    }
 
                     if !re.is_match(&a.val) {
                         continue;
@@ -201,9 +205,10 @@ fn check_edge_annotation(
                         continue;
                     }
                     if let Some(template_ns) = ns
-                        && template_ns != &a.key.ns {
-                            continue;
-                        }
+                        && template_ns != &a.key.ns
+                    {
+                        continue;
+                    }
 
                     if re.is_match(&a.val) {
                         continue;

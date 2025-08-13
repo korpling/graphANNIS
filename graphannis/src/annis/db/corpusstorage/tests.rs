@@ -7,7 +7,7 @@ use serial_test::serial;
 use std::path::{Path, PathBuf};
 use std::vec;
 
-use crate::annis::db::corpusstorage::{get_read_or_error, CacheEntry};
+use crate::annis::db::corpusstorage::{CacheEntry, get_read_or_error};
 use crate::annis::db::example_generator::create_token_node;
 use crate::annis::db::{aql::model::AnnotationComponentType, example_generator};
 use crate::annis::errors::GraphAnnisError;
@@ -891,62 +891,72 @@ fn subgraph_with_segmentation_and_gap() {
     let g = cs.subgraph(&corpus_name, m.clone(), 1, 2, None).unwrap();
     // Check that all token and the page are included, including the token
     // that is not covered by a segmentation node.
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
-        .unwrap()
-        .is_some());
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
+            .unwrap()
+            .is_some()
+    );
 
     // Get the context for the norm node using the norm segmentation
     let g = cs
         .subgraph(&corpus_name, m, 1, 1, Some("norm".to_string()))
         .unwrap();
     // Check that all token and the page are included
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
-        .unwrap()
-        .is_some());
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
+            .unwrap()
+            .is_some()
+    );
 
     // Get the context for the token using the norm segmentation
     let g = cs
@@ -959,31 +969,36 @@ fn subgraph_with_segmentation_and_gap() {
         )
         .unwrap();
     // Check that all token and the page are included
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
-        .unwrap()
-        .is_some());
-    assert!(g
-        .get_node_annos()
-        .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
-        .unwrap()
-        .is_some());
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#tok_11")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#tok_12")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#tok_14")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
+            .unwrap()
+            .is_some()
+    );
 }
 
 #[test]
@@ -1321,12 +1336,14 @@ fn import_relative_corpus_with_linked_file() {
     let mut files = files.unwrap();
     let first_file = files.next().unwrap().unwrap();
     assert_eq!("linked_file.txt", first_file.0);
-    assert!(is_same_file(
-        tmp.path()
-            .join("CorpusWithLinkedFile/files/linked_file.txt"),
-        &first_file.1
-    )
-    .unwrap());
+    assert!(
+        is_same_file(
+            tmp.path()
+                .join("CorpusWithLinkedFile/files/linked_file.txt"),
+            &first_file.1
+        )
+        .unwrap()
+    );
     let file_content = std::fs::read_to_string(first_file.1).unwrap();
     assert_eq!("The content of this file is not important.", file_content);
 }

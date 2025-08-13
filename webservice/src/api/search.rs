@@ -1,15 +1,15 @@
 use std::time::Duration;
 
 use super::check_corpora_authorized_read;
-use crate::{errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool};
+use crate::{DbPool, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings};
 use actix_web::{
-    web::{self, Bytes},
     HttpResponse,
+    web::{self, Bytes},
 };
 use futures::stream::iter;
 use graphannis::{
-    corpusstorage::{FrequencyDefEntry, QueryLanguage, ResultOrder, SearchQuery},
     CorpusStorage,
+    corpusstorage::{FrequencyDefEntry, QueryLanguage, ResultOrder, SearchQuery},
 };
 use serde::Deserialize;
 

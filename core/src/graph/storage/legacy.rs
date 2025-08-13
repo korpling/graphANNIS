@@ -14,9 +14,9 @@ use crate::{
 };
 
 use super::{
+    GraphStatistic,
     linear::RelativePosition,
     prepost::{OrderVecEntry, PrePost},
-    GraphStatistic,
 };
 
 /// Some general statistical numbers specific to a graph component

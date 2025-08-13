@@ -4,16 +4,16 @@ use std::{
 };
 
 use actix_web::{
+    App,
     body::MessageBody,
     dev::{ServiceFactory, ServiceRequest, ServiceResponse},
     http::StatusCode,
     test,
     web::{self, Bytes},
-    App,
 };
-use diesel::{r2d2::ConnectionManager, SqliteConnection};
+use diesel::{SqliteConnection, r2d2::ConnectionManager};
 use diesel_migrations::MigrationHarness;
-use graphannis::{corpusstorage::ImportFormat, CorpusStorage};
+use graphannis::{CorpusStorage, corpusstorage::ImportFormat};
 use insta::assert_snapshot;
 use jsonwebtoken::EncodingKey;
 use log::{Level, Log, RecordBuilder};

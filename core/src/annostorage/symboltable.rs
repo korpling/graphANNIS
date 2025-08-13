@@ -84,17 +84,19 @@ where
 
     pub fn get_value(&self, id: usize) -> Option<Arc<T>> {
         if id < self.by_id.len()
-            && let Some(ref val) = self.by_id[id] {
-                return Some(val.clone());
-            }
+            && let Some(ref val) = self.by_id[id]
+        {
+            return Some(val.clone());
+        }
         None
     }
 
     pub fn get_value_ref(&self, id: usize) -> Option<&T> {
         if id < self.by_id.len()
-            && let Some(ref val) = self.by_id[id] {
-                return Some(val.as_ref());
-            }
+            && let Some(ref val) = self.by_id[id]
+        {
+            return Some(val.as_ref());
+        }
         None
     }
 

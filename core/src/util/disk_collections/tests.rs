@@ -1,8 +1,8 @@
 use super::*;
 
+use fake::Fake;
 use fake::faker::name::raw::*;
 use fake::locales::*;
-use fake::Fake;
 use tempfile::NamedTempFile;
 
 #[test]

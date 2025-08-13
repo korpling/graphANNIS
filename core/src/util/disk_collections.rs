@@ -74,12 +74,12 @@ where
         let mut disk_table = None;
 
         if let Some(persisted_file) = persisted_file
-            && persisted_file.is_file() {
-                // Use existing file as read-only table which contains the whole map
-                let table =
-                    Table::new_from_file(custom_options(block_cache_capacity), persisted_file)?;
-                disk_table = Some(table);
-            }
+            && persisted_file.is_file()
+        {
+            // Use existing file as read-only table which contains the whole map
+            let table = Table::new_from_file(custom_options(block_cache_capacity), persisted_file)?;
+            disk_table = Some(table);
+        }
 
         Ok(DiskMap {
             eviction_strategy,
@@ -129,15 +129,16 @@ where
         }
         // Check C1 (BTree disk index)
         if let Some(c1) = &self.c1
-            && let Some(entry) = c1.get(key)? {
-                if let Some(value) = entry {
-                    return Ok(Some(Cow::Owned(value)));
-                } else {
-                    // Value was explicitly deleted with a tombstone entry.
-                    // Do not query C1 and C2.
-                    return Ok(None);
-                }
+            && let Some(entry) = c1.get(key)?
+        {
+            if let Some(value) = entry {
+                return Ok(Some(Cow::Owned(value)));
+            } else {
+                // Value was explicitly deleted with a tombstone entry.
+                // Do not query C1 and C2.
+                return Ok(None);
             }
+        }
 
         // Check the C2 (sstable)
         if let Some(c2) = &self.c2 {
@@ -169,9 +170,10 @@ where
 
         // Check C1 (BTree disk index)
         if let Some(c1) = &self.c1
-            && c1.contains_key(key)? {
-                return Ok(true);
-            }
+            && c1.contains_key(key)?
+        {
+            return Ok(true);
+        }
 
         // Use a iterator on the single disk to check if there is an entry with this, without getting the value.
         // Since we don't serialize tombstone entries when compacting or writing the disk table to an output file,
@@ -181,9 +183,10 @@ where
             let key = K::create_key(key);
             table_it.seek(&key);
             if let Some(it_key) = table_it.current_key()
-                && it_key == key.as_ref() {
-                    return Ok(true);
-                }
+                && it_key == key.as_ref()
+            {
+                return Ok(true);
+            }
         }
         Ok(false)
     }
