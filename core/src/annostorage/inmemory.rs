@@ -9,8 +9,6 @@ use core::ops::Bound::*;
 use itertools::Itertools;
 use rand::seq::IteratorRandom;
 use rustc_hash::FxHashSet;
-use smartstring::alias::String;
-use smartstring::{LazyCompact, SmartString};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::hash::Hash;
@@ -33,10 +31,10 @@ pub struct AnnoStorageImpl<T: Ord + Hash + Default> {
     /// Maps a distinct annotation key to the number of elements having this annotation key.
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
     anno_keys: SymbolTable<AnnoKey>,
-    anno_values: SymbolTable<smartstring::alias::String>,
+    anno_values: SymbolTable<String>,
 
     /// additional statistical information
-    histogram_bounds: BTreeMap<usize, Vec<smartstring::alias::String>>,
+    histogram_bounds: BTreeMap<usize, Vec<String>>,
     largest_item: Option<T>,
     total_number_of_annos: usize,
 }
@@ -299,7 +297,7 @@ where
                 result = self
                     .anno_values
                     .get_value_ref(old_value)
-                    .map(|v| Cow::Owned(v.clone().into()));
+                    .map(|v| Cow::Owned(v.clone()));
 
                 self.check_and_remove_value_symbol(old_value);
                 self.total_number_of_annos -= 1;
@@ -356,7 +354,7 @@ where
         let it = self.anno_key_sizes.range(
             AnnoKey {
                 name: name.into(),
-                ns: smartstring::alias::String::default(),
+                ns: String::default(),
             }..,
         );
         let mut result: Vec<AnnoKey> = Vec::default();
@@ -507,7 +505,7 @@ where
                     ns: String::default(),
                 }..AnnoKey {
                     name: name.into(),
-                    ns: std::char::MAX.to_string().into(),
+                    ns: std::char::MAX.to_string(),
                 },
             ),
         };
@@ -1013,8 +1011,7 @@ impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
     fn get_node_id_from_name(&self, node_name: &str) -> Result<Option<NodeID>> {
         if let (Some(anno_name_symbol), Some(value_symbol)) = (
             self.anno_keys.get_symbol(&NODE_NAME_KEY),
-            self.anno_values
-                .get_symbol(&SmartString::<LazyCompact>::from(node_name)),
+            self.anno_values.get_symbol(&String::from(node_name)),
         ) && let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol)
             && let Some(items) = items_with_anno.get(&value_symbol)
         {
@@ -1027,8 +1024,7 @@ impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
     fn has_node_name(&self, node_name: &str) -> Result<bool> {
         if let (Some(anno_name_symbol), Some(value_symbol)) = (
             self.anno_keys.get_symbol(&NODE_NAME_KEY),
-            self.anno_values
-                .get_symbol(&SmartString::<LazyCompact>::from(node_name)),
+            self.anno_values.get_symbol(&String::from(node_name)),
         ) && let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol)
             && let Some(items) = items_with_anno.get(&value_symbol)
         {

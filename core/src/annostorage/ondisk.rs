@@ -19,8 +19,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use transient_btree_index::BtreeConfig;
 
-use smartstring::alias::String as SmartString;
-
 use super::{EdgeAnnotationStorage, NodeAnnotationStorage};
 
 pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v1";
@@ -368,7 +366,7 @@ where
         let already_existed =
             item_smaller_than_largest && self.by_container.contains_key(&by_container_key)?;
         self.by_container
-            .insert(by_container_key, anno.val.clone().into())?;
+            .insert(by_container_key, anno.val.clone())?;
 
         // To save some space, insert an boolean value as a marker value
         // (all information is part of the key already)
@@ -403,7 +401,7 @@ where
             let parsed_key = self.parse_by_container_key(key)?;
             let anno = Annotation {
                 key: parsed_key.1.as_ref().clone(),
-                val: val.into(),
+                val,
             };
             result.push(anno);
         }
@@ -431,7 +429,7 @@ where
                 // remove annotation from by_anno_qname
                 let anno = Annotation {
                     key: key.as_ref().clone(),
-                    val: val.into(),
+                    val,
                 };
 
                 self.by_anno_qname.remove(&create_by_anno_qname_key(
@@ -474,7 +472,7 @@ where
                 // remove annotation from by_anno_qname
                 let anno = Annotation {
                     key: key.clone(),
-                    val: val.into(),
+                    val,
                 };
 
                 self.by_anno_qname.remove(&create_by_anno_qname_key(
@@ -498,7 +496,7 @@ where
                     }
                 }
 
-                return Ok(Some(Cow::Owned(anno.val.into())));
+                return Ok(Some(Cow::Owned(anno.val)));
             }
         }
         Ok(None)
@@ -519,7 +517,7 @@ where
         let it = self.anno_key_sizes.range(
             AnnoKey {
                 name: name.into(),
-                ns: SmartString::default(),
+                ns: String::default(),
             }..,
         );
         let mut result: Vec<AnnoKey> = Vec::default();
@@ -661,10 +659,10 @@ where
             None => self.anno_key_sizes.range(
                 AnnoKey {
                     name: name.into(),
-                    ns: SmartString::default(),
+                    ns: String::default(),
                 }..AnnoKey {
                     name: name.into(),
-                    ns: std::char::MAX.to_string().into(),
+                    ns: std::char::MAX.to_string(),
                 },
             ),
         };

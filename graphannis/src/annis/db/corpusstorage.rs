@@ -37,7 +37,6 @@ use linked_hash_map::LinkedHashMap;
 use memory_stats::memory_stats;
 use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str, utf8_percent_encode};
 use rand::prelude::*;
-use smartstring::alias::String as SmartString;
 use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
@@ -966,7 +965,7 @@ impl CorpusStorage {
                     CorpusConfiguration::default()
                 };
 
-                (orig_corpus_name.into(), g, config)
+                (orig_corpus_name, g, config)
             }
         };
 
@@ -980,7 +979,7 @@ impl CorpusStorage {
 
         self.update_corpus_size_info(&mut config, &graph);
 
-        let corpus_name = corpus_name.unwrap_or_else(|| orig_name.into());
+        let corpus_name = corpus_name.unwrap_or(orig_name);
         let db_path = self.corpus_directory_on_disk(&corpus_name);
 
         let mut cache_lock = self.corpus_cache.write()?;
@@ -1999,7 +1998,7 @@ impl CorpusStorage {
         let timeout = TimeoutCheck::new(query.timeout);
 
         // Sort corpus names
-        let mut corpus_names: Vec<SmartString> = query
+        let mut corpus_names: Vec<String> = query
             .corpus_names
             .iter()
             .map(|c| c.as_ref().into())
@@ -2295,8 +2294,8 @@ impl CorpusStorage {
                         annokeys.push((
                             node_ref,
                             vec![AnnoKey {
-                                ns: ns.clone().into(),
-                                name: def.name.clone().into(),
+                                ns: ns.clone(),
+                                name: def.name.clone(),
                             }],
                         ));
                     } else {
@@ -2464,7 +2463,7 @@ impl CorpusStorage {
                     } else {
                         result.push(Annotation {
                             key: key.clone(),
-                            val: SmartString::default(),
+                            val: String::default(),
                         });
                     }
                 }
@@ -2518,7 +2517,7 @@ impl CorpusStorage {
                     } else {
                         result.push(Annotation {
                             key: key.clone(),
-                            val: SmartString::new(),
+                            val: String::new(),
                         });
                     }
                 }

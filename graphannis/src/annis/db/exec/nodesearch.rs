@@ -122,13 +122,12 @@ impl NodeSearchSpec {
             | NodeSearchSpec::NotExactTokenValue { .. }
             | NodeSearchSpec::RegexTokenValue { .. }
             | NodeSearchSpec::NotRegexTokenValue { .. }
-            | NodeSearchSpec::AnyToken => (
-                Some(TOKEN_KEY.ns.clone().into()),
-                Some(TOKEN_KEY.name.clone().into()),
-            ),
+            | NodeSearchSpec::AnyToken => {
+                (Some(TOKEN_KEY.ns.clone()), Some(TOKEN_KEY.name.clone()))
+            }
             NodeSearchSpec::AnyNode => (
-                Some(NODE_TYPE_KEY.ns.clone().into()),
-                Some(NODE_TYPE_KEY.name.clone().into()),
+                Some(NODE_TYPE_KEY.ns.clone()),
+                Some(NODE_TYPE_KEY.name.clone()),
             ),
         }
     }
@@ -550,8 +549,8 @@ impl<'a> NodeSearch<'a> {
                     )),
                     node_search_desc: Arc::new(NodeSearchDesc {
                         qname: (
-                            Some(NODE_TYPE_KEY.ns.clone().into()),
-                            Some(NODE_TYPE_KEY.name.clone().into()),
+                            Some(NODE_TYPE_KEY.ns.clone()),
+                            Some(NODE_TYPE_KEY.name.clone()),
                         ),
                         cond: vec![filter_func],
                         const_output: Some(NODE_TYPE_KEY.clone()),
@@ -923,10 +922,7 @@ impl<'a> NodeSearch<'a> {
                 est_output,
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
-                qname: (
-                    Some(TOKEN_KEY.ns.clone().into()),
-                    Some(TOKEN_KEY.name.clone().into()),
-                ),
+                qname: (Some(TOKEN_KEY.ns.clone()), Some(TOKEN_KEY.name.clone())),
                 cond: filters,
                 const_output: Some(NODE_TYPE_KEY.clone()),
             }),
@@ -981,10 +977,7 @@ impl<'a> NodeSearch<'a> {
                 est_output,
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
-                qname: (
-                    Some(TOKEN_KEY.ns.clone().into()),
-                    Some(TOKEN_KEY.name.clone().into()),
-                ),
+                qname: (Some(TOKEN_KEY.ns.clone()), Some(TOKEN_KEY.name.clone())),
                 cond: filters,
                 const_output: Some(NODE_TYPE_KEY.clone()),
             }),

@@ -1,17 +1,16 @@
 accepted = [
-  "Apache-2.0",
-  "MIT",
-  "BSD-3-Clause",
-  "BSD-2-Clause",
-  "BSL-1.0",
-  "MPL-2.0",
-  "CC0-1.0",
-  "ISC",
-  "Zlib",
-  "OpenSSL",
-  "Unicode-DFS-2016",
+    "Apache-2.0",
+    "MIT",
+    "BSD-3-Clause",
+    "BSD-2-Clause",
+    "BSL-1.0",
+    "MPL-2.0",
+    "CC0-1.0",
+    "ISC",
+    "Zlib",
+    "OpenSSL",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
 ]
 
-workarounds = [
-  "ring",
-]
+workarounds = ["ring"]
