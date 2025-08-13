@@ -523,13 +523,12 @@ pub fn parse(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction> {
             }
             .to_string();
             let location = extract_location(&e, query_as_aql);
-            if let ParseError::UnrecognizedToken { expected, .. } = e {
-                if !expected.is_empty() {
+            if let ParseError::UnrecognizedToken { expected, .. } = e
+                && !expected.is_empty() {
                     //TODO: map token regular expressions and IDs (like IDENT_NODE) to human readable descriptions
                     desc.push_str(" Expected one of: ");
                     desc.push_str(&expected.join(","));
                 }
-            }
             Err(GraphAnnisError::AQLSyntaxError(AQLError { desc, location }))
         }
     }

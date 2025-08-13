@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod tests;
 
-use super::disjunction::Disjunction;
 use super::Config;
+use super::disjunction::Disjunction;
+use crate::AnnotationGraph;
 use crate::annis::db::aql::model::AnnotationComponentType;
 use crate::annis::db::exec::filter::Filter;
 use crate::annis::db::exec::indexjoin::IndexJoin;
@@ -16,17 +17,14 @@ use crate::annis::operator::{
     UnaryOperatorSpec,
 };
 use crate::annis::util::TimeoutCheck;
-use crate::AnnotationGraph;
 use crate::{
     annis::types::{LineColumnRange, QueryAttributeDescription},
     errors::Result,
 };
 use graphannis_core::annostorage::EdgeAnnotationStorage;
 use graphannis_core::{annostorage::MatchGroup, graph::storage::GraphStatistic, types::Component};
-use rand::distributions::Distribution;
-use rand::distributions::Uniform;
-use rand::rngs::SmallRng;
-use rand::SeedableRng;
+use rand::distr::Uniform;
+use rand::prelude::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
@@ -133,12 +131,11 @@ fn should_switch_operand_order(
     op_spec: &BinaryOperatorSpecEntry,
     node2cost: &BTreeMap<usize, CostEstimate>,
 ) -> bool {
-    if let Some((cost_lhs, cost_rhs)) = get_cost_estimates(op_spec, node2cost) {
-        if cost_rhs.output < cost_lhs.output {
+    if let Some((cost_lhs, cost_rhs)) = get_cost_estimates(op_spec, node2cost)
+        && cost_rhs.output < cost_lhs.output {
             // switch operands
             return true;
         }
-    }
 
     false
 }
@@ -186,8 +183,8 @@ fn create_join<'b>(
     idx_left: usize,
     idx_right: usize,
 ) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>> {
-    if exec_right.as_nodesearch().is_some() {
-        if let BinaryOperator::Index(op) = op_entry.op {
+    if exec_right.as_nodesearch().is_some()
+        && let BinaryOperator::Index(op) = op_entry.op {
             // we can use directly use an index join
             return create_index_join(
                 db,
@@ -199,7 +196,6 @@ fn create_join<'b>(
                 idx_left,
             );
         }
-    }
 
     if exec_left.as_nodesearch().is_some() {
         // avoid a nested loop join by switching the operand and using and index join when possible
@@ -411,11 +407,10 @@ impl Conjunction {
         location: Option<LineColumnRange>,
     ) -> Result<NodeSearchSpecEntry> {
         let idx = self.resolve_variable_pos(variable, location.clone())?;
-        if let Some(pos) = idx.checked_sub(self.var_idx_offset) {
-            if pos < self.nodes.len() {
+        if let Some(pos) = idx.checked_sub(self.var_idx_offset)
+            && pos < self.nodes.len() {
                 return Ok(self.nodes[pos].clone());
             }
-        }
 
         Err(GraphAnnisError::AQLSemanticError(AQLError {
             desc: format!("Operand \"#{}\" not found", variable),
@@ -460,7 +455,7 @@ impl Conjunction {
 
         // use a constant seed to make the result deterministic
         let mut rng = SmallRng::from_seed(*b"Graphs are great and need a seed");
-        let dist = Uniform::from(0..self.binary_operators.len());
+        let dist = Uniform::new(0, self.binary_operators.len())?;
 
         let mut best_operator_order: Vec<_> = (0..self.binary_operators.len()).collect();
 
@@ -707,14 +702,13 @@ impl Conjunction {
         let mut spec_idx_right = op_spec_entry.args.right;
 
         let inverse_op = op.get_inverse_operator(g)?;
-        if let Some(inverse_op) = inverse_op {
-            if should_switch_operand_order(op_spec_entry, &helper.node2cost) {
+        if let Some(inverse_op) = inverse_op
+            && should_switch_operand_order(op_spec_entry, &helper.node2cost) {
                 spec_idx_left = op_spec_entry.args.right;
                 spec_idx_right = op_spec_entry.args.left;
 
                 op = inverse_op;
             }
-        }
 
         // substract the offset from the specificated numbers to get the internal node number for this conjunction
         spec_idx_left -= self.var_idx_offset;
@@ -908,8 +902,8 @@ impl Conjunction {
         for (node_nr, cid) in &node2component {
             if first_component_id.is_none() {
                 first_component_id = Some(*cid);
-            } else if let Some(first) = first_component_id {
-                if first != *cid {
+            } else if let Some(first) = first_component_id
+                && first != *cid {
                     // add location and description which node is not connected
                     let n_var = &self.nodes[*node_nr].var;
                     let location = self.location_in_query.get(n_var);
@@ -922,7 +916,6 @@ impl Conjunction {
                         location: location.cloned(),
                     }));
                 }
-            }
         }
 
         Ok(())

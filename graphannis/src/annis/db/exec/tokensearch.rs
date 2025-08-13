@@ -66,11 +66,10 @@ impl<'a> AnyTokenSearch<'a> {
 
     fn is_root_tok(&self, n: NodeID) -> Result<bool> {
         // Return early if node has ingoing edges and is not a root token
-        if let Some(order_gs) = self.order_gs {
-            if order_gs.has_ingoing_edges(n)? {
+        if let Some(order_gs) = self.order_gs
+            && order_gs.has_ingoing_edges(n)? {
                 return Ok(false);
             }
-        }
 
         // Token also should also have no outgoing coverage edges
         if let Some(ref token_helper) = self.token_helper {

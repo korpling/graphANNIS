@@ -129,16 +129,14 @@ fn check_edge_annotation(
                 if name != &a.key.name {
                     continue;
                 }
-                if let Some(template_ns) = ns {
-                    if template_ns != &a.key.ns {
+                if let Some(template_ns) = ns
+                    && template_ns != &a.key.ns {
                         continue;
                     }
-                }
-                if let Some(template_val) = val {
-                    if template_val != &*a.val {
+                if let Some(template_val) = val
+                    && template_val != &*a.val {
                         continue;
                     }
-                }
                 // all checks passed, this edge has the correct annotation
                 return Ok(true);
             }
@@ -152,11 +150,10 @@ fn check_edge_annotation(
                 if name != &a.key.name {
                     continue;
                 }
-                if let Some(template_ns) = ns {
-                    if template_ns != &a.key.ns {
+                if let Some(template_ns) = ns
+                    && template_ns != &a.key.ns {
                         continue;
                     }
-                }
                 if val.as_str() == a.val.as_str() {
                     continue;
                 }
@@ -177,11 +174,10 @@ fn check_edge_annotation(
                     if name != &a.key.name {
                         continue;
                     }
-                    if let Some(template_ns) = ns {
-                        if template_ns != &a.key.ns {
+                    if let Some(template_ns) = ns
+                        && template_ns != &a.key.ns {
                             continue;
                         }
-                    }
 
                     if !re.is_match(&a.val) {
                         continue;
@@ -204,11 +200,10 @@ fn check_edge_annotation(
                     if name != &a.key.name {
                         continue;
                     }
-                    if let Some(template_ns) = ns {
-                        if template_ns != &a.key.ns {
+                    if let Some(template_ns) = ns
+                        && template_ns != &a.key.ns {
                             continue;
                         }
-                    }
 
                     if re.is_match(&a.val) {
                         continue;

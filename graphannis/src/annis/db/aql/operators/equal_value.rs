@@ -137,11 +137,10 @@ impl BinaryOperatorBase for EqualValue<'_> {
     }
 
     fn estimation_type(&self) -> Result<EstimationType> {
-        if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_left) {
-            if let Some(most_frequent_value_left) =
+        if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_left)
+            && let Some(most_frequent_value_left) =
                 self.node_annos.guess_most_frequent_value(ns, name)?
-            {
-                if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
+                && let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
                     let guessed_count_right = self.node_annos.guess_max_count(
                         ns,
                         name,
@@ -157,8 +156,6 @@ impl BinaryOperatorBase for EqualValue<'_> {
                         return Ok(EstimationType::Selectivity(sel));
                     }
                 }
-            }
-        }
         // fallback to default
         Ok(EstimationType::Selectivity(0.5))
     }

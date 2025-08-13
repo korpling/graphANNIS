@@ -294,26 +294,23 @@ impl WriteableGraphStorage for AdjacencyListStorage {
     }
 
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) -> Result<()> {
-        if let Some(outgoing) = self.edges.get(&edge.source) {
-            if outgoing.contains(&edge.target) {
+        if let Some(outgoing) = self.edges.get(&edge.source)
+            && outgoing.contains(&edge.target) {
                 self.annos.insert(edge, anno)?;
             }
-        }
         Ok(())
     }
 
     fn delete_edge(&mut self, edge: &Edge) -> Result<()> {
-        if let Some(outgoing) = self.edges.get_mut(&edge.source) {
-            if let Ok(idx) = outgoing.binary_search(&edge.target) {
+        if let Some(outgoing) = self.edges.get_mut(&edge.source)
+            && let Ok(idx) = outgoing.binary_search(&edge.target) {
                 outgoing.remove(idx);
             }
-        }
 
-        if let Some(ingoing) = self.inverse_edges.get_mut(&edge.target) {
-            if let Ok(idx) = ingoing.binary_search(&edge.source) {
+        if let Some(ingoing) = self.inverse_edges.get_mut(&edge.target)
+            && let Ok(idx) = ingoing.binary_search(&edge.source) {
                 ingoing.remove(idx);
             }
-        }
         self.annos.remove_item(edge)?;
 
         Ok(())

@@ -1,13 +1,13 @@
 [workspace]
 members = [
-  "core",
-  "graphannis",
-  "cli",
-  "capi",
-  "webservice",
-  "examples/tutorial",
+    "core",
+    "graphannis",
+    "cli",
+    "capi",
+    "webservice",
+    "examples/tutorial",
 ]
-resolver = "2"
+resolver = "3"
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]
@@ -21,10 +21,10 @@ installers = []
 pr-run-mode = "plan"
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = [
-  "aarch64-apple-darwin",
-  "x86_64-apple-darwin",
-  "x86_64-unknown-linux-gnu",
-  "x86_64-pc-windows-msvc",
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+    "x86_64-pc-windows-msvc",
 ]
 [workspace.metadata.dist.github-custom-runners]
 global = "ubuntu-22.04"

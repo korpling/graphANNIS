@@ -716,13 +716,12 @@ where
             let key = splitted[0];
             let value = splitted[1];
 
-            if let "context-steps" = key {
-                if let Ok(value) = value.parse::<usize>() {
+            if let "context-steps" = key
+                && let Ok(value) = value.parse::<usize>() {
                     config.context.sizes = (value..=config.context.max.unwrap_or(value))
                         .step_by(value)
                         .collect();
                 }
-            }
         }
     }
 
@@ -1028,8 +1027,8 @@ where
     for token in token_by_index.iter()? {
         let (current_textprop, current_token) = token?;
         // if the last token/text value is valid and we are still in the same text
-        if let (Some(last_token), Some(last_textprop)) = (last_token, last_textprop) {
-            if last_textprop.corpus_id == current_textprop.corpus_id
+        if let (Some(last_token), Some(last_textprop)) = (last_token, last_textprop)
+            && last_textprop.corpus_id == current_textprop.corpus_id
                 && last_textprop.text_id == current_textprop.text_id
                 && last_textprop.segmentation == current_textprop.segmentation
             {
@@ -1052,8 +1051,7 @@ where
                     component_type: AnnotationComponentType::Ordering.to_string(),
                     component_name: current_textprop.segmentation.clone().into(),
                 })?;
-            }
-        } // end if same text
+            } // end if same text
 
         // update the iterator and other variables
         last_textprop = Some(current_textprop.clone());
@@ -1217,8 +1215,7 @@ where
                 .textpos_table
                 .token_to_index
                 .contains_key(&n)?
-        {
-            if let Err(e) = add_automatic_cov_edge_for_node(
+            && let Err(e) = add_automatic_cov_edge_for_node(
                 updates,
                 n,
                 load_node_and_corpus_result,
@@ -1229,8 +1226,7 @@ where
                     "Adding coverage edges (connects spans with tokens) failed: {}",
                     e
                 )
-            }
-        } // end if not a token
+            } // end if not a token
     }
 
     Ok(())
@@ -1321,13 +1317,12 @@ where
                 // Get the token borders of the next token to determine where the whitespace after this token is
                 // The whitespace end position is non-inclusive.
                 let mut whitespace_end_pos = None;
-                if let Some(Ok((_, next_token_id))) = token_iterator.peek() {
-                    if let Some(next_token_left_pos) =
+                if let Some(Ok((_, next_token_id))) = token_iterator.peek()
+                    && let Some(next_token_left_pos) =
                         textpos_table.node_to_left_char.get(next_token_id)?
                     {
                         whitespace_end_pos = Some(next_token_left_pos.val as usize);
                     }
-                }
 
                 // Get the covered text which either goes until the next token or until the end of the text if there is none
                 let mut covered_text_after = if let Some(end_pos) = whitespace_end_pos {
@@ -1466,8 +1461,8 @@ where
             })?;
             id_to_node_name.insert(node_nr, node_path.clone().into())?;
 
-            if let Some(layer) = layer {
-                if !layer.is_empty() {
+            if let Some(layer) = layer
+                && !layer.is_empty() {
                     updates.add_event(UpdateEvent::AddNodeLabel {
                         node_name: node_path.clone(),
                         anno_ns: ANNIS_NS.to_owned(),
@@ -1475,7 +1470,6 @@ where
                         anno_value: layer.to_string(),
                     })?;
                 }
-            }
 
             // Add the raw character offsets so it is possible to extract the text later on
             let left_char_val =
@@ -1890,13 +1884,12 @@ where
                     load_rank_result.edges_by_pre.insert(pre, e)?;
                 }
             }
-        } else if let Some(c) = component_by_id.get(&component_ref) {
-            if c.get_type() == AnnotationComponentType::Coverage {
+        } else if let Some(c) = component_by_id.get(&component_ref)
+            && c.get_type() == AnnotationComponentType::Coverage {
                 load_rank_result
                     .component_for_parentless_target_node
                     .insert(target, c.clone())?;
             }
-        }
     }
 
     info!(
@@ -1942,8 +1935,8 @@ where
         let line = result?;
 
         let pre = get_field_not_null(&line, 0, "pre", &edge_anno_tab_path)?.parse::<u32>()?;
-        if let Some(c) = rank_result.components_by_pre.get(&pre)? {
-            if let Some(e) = rank_result.edges_by_pre.get(&pre)? {
+        if let Some(c) = rank_result.components_by_pre.get(&pre)?
+            && let Some(e) = rank_result.edges_by_pre.get(&pre)? {
                 let ns = get_field(&line, 1, "namespace", &edge_anno_tab_path)?.unwrap_or_default();
                 let name = get_field_not_null(&line, 2, "name", &edge_anno_tab_path)?;
                 // If 'NULL', use an "invalid" string so it can't be found by its value, but only by its annotation name
@@ -1967,7 +1960,6 @@ where
                     anno_value: val.to_string(),
                 })?;
             }
-        }
     }
 
     Ok(())

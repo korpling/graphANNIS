@@ -81,6 +81,8 @@ pub enum GraphAnnisError {
     IndexOutOfBounds(usize),
     #[error("The annotation graph that shall be queried is not fully loaded.")]
     QueriedGraphNotFullyLoaded,
+    #[error(transparent)]
+    InvalidUniformDistribution(#[from] rand::distr::uniform::Error),
 }
 
 impl<T> From<PoisonError<T>> for GraphAnnisError {

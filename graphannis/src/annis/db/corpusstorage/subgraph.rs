@@ -498,15 +498,13 @@ where
                     match_result.insert(m.clone());
                     trace!("subgraph query extracted node {:?}", m.node);
 
-                    if let Some(token_helper) = &token_helper {
-                        if token_helper.is_token(m.node)? {
+                    if let Some(token_helper) = &token_helper
+                        && token_helper.is_token(m.node)? {
                             if let (Some(gs_ordering), Some(previous_node)) =
                                 (&gs_orig_ordering, previous_token)
-                            {
-                                if let Some(distance) =
+                                && let Some(distance) =
                                     gs_ordering.distance(previous_node, m.node)?
-                                {
-                                    if distance > 1 {
+                                    && distance > 1 {
                                         let gs_result_ds_ordering_ = result
                                             .get_or_create_writable(&ds_ordering_component)?;
 
@@ -515,11 +513,8 @@ where
                                             target: m.node,
                                         })?;
                                     }
-                                }
-                            }
                             previous_token = Some(m.node);
                         }
-                    }
 
                     create_subgraph_node(m.node, &mut result, orig_graph)?;
                 }
@@ -562,8 +557,7 @@ fn create_subgraph_edge(
             && !c.name.is_empty())
             || ctype == AnnotationComponentType::RightToken
             || ctype == AnnotationComponentType::LeftToken)
-        {
-            if let Some(orig_gs) = orig_db.get_graphstorage(c) {
+            && let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {
                     let target = target?;
                     if !db
@@ -590,7 +584,6 @@ fn create_subgraph_edge(
                     }
                 }
             }
-        }
     }
 
     Ok(())

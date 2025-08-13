@@ -26,11 +26,11 @@ impl FromRequest for ClaimsFromAuth {
         req: &actix_web::HttpRequest,
         _payload: &mut actix_web::dev::Payload,
     ) -> Self::Future {
-        if let Some(settings) = req.app_data::<web::Data<Settings>>() {
-            if let Some(authen_header) = req.headers().get("Authorization") {
+        if let Some(settings) = req.app_data::<web::Data<Settings>>()
+            && let Some(authen_header) = req.headers().get("Authorization") {
                 // Parse header
-                if let Ok(authen_str) = authen_header.to_str() {
-                    if authen_str.starts_with("bearer") || authen_str.starts_with("Bearer") {
+                if let Ok(authen_str) = authen_header.to_str()
+                    && (authen_str.starts_with("bearer") || authen_str.starts_with("Bearer")) {
                         // Parse and verify token
                         let token = authen_str[6..authen_str.len()].trim();
                         return match verify_token(token, settings) {
@@ -40,9 +40,7 @@ impl FromRequest for ClaimsFromAuth {
                             Err(e) => err(e),
                         };
                     }
-                }
             }
-        }
 
         // Return an anonymous default claim
         ready(Ok(ClaimsFromAuth(Claims {

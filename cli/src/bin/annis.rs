@@ -3,20 +3,20 @@ extern crate anyhow;
 
 use clap::{App, Arg};
 use compound_duration::format_dhms;
+use graphannis::CorpusStorage;
 use graphannis::corpusstorage::FrequencyDefEntry;
 use graphannis::corpusstorage::LoadStatus;
 use graphannis::corpusstorage::QueryLanguage;
 use graphannis::corpusstorage::ResultOrder;
 use graphannis::corpusstorage::{CorpusInfo, SearchQuery};
 use graphannis::corpusstorage::{ExportFormat, ImportFormat};
-use graphannis::CorpusStorage;
 use log::info;
 use prettytable::Cell;
 use prettytable::Row;
 use prettytable::Table;
+use rustyline::Editor;
 use rustyline::completion::{Completer, FilenameCompleter};
 use rustyline::error::ReadlineError;
-use rustyline::Editor;
 use rustyline_derive::{Helper, Highlighter, Hinter, Validator};
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use std::path::{Path, PathBuf};
@@ -162,7 +162,7 @@ impl AnnisRunner {
             println!("No previous history.");
         }
 
-        if let Some(ref storage) = self.storage {
+        if let Some(storage) = &self.storage {
             rl.set_helper(Some(ConsoleHelper::new(storage.list().unwrap_or_default())));
         }
 
@@ -406,7 +406,10 @@ impl AnnisRunner {
                 if corpora.contains(s) {
                     self.current_corpus.push(s.to_string());
                 } else {
-                    println!("Corpus {} does not exist. Uses the \"list\" command to get all available corpora", s);
+                    println!(
+                        "Corpus {} does not exist. Uses the \"list\" command to get all available corpora",
+                        s
+                    );
                 }
             }
         }
@@ -593,7 +596,9 @@ impl AnnisRunner {
                 defs.filter_map(|d| -> Option<FrequencyDefEntry> { d.parse().ok() })
                     .collect()
             } else {
-                println!("You have to give the frequency definition as first argument and the AQL as second argument");
+                println!(
+                    "You have to give the frequency definition as first argument and the AQL as second argument"
+                );
                 return Ok(());
             };
 
@@ -753,7 +758,10 @@ fn main() {
         simplelog::TerminalMode::Mixed,
         simplelog::ColorChoice::Auto,
     ) {
-        println!("Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger", e);
+        println!(
+            "Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger",
+            e
+        );
         if let Err(e_simple) = SimpleLogger::init(log_filter, log_config) {
             println!("Simple logging failed too: {}", e_simple);
         }

@@ -1,7 +1,7 @@
 [package]
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 description = "This is the C-API to the ANNIS linguistic search and visualization system."
-edition = "2018"
+edition = "2024"
 license = "Apache-2.0"
 name = "graphannis-capi"
 readme = "crate-info.md"

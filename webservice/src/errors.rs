@@ -1,8 +1,8 @@
 use std::sync::PoisonError;
 
 use actix_web::{
-    error::{BlockingError, ResponseError},
     HttpResponse,
+    error::{BlockingError, ResponseError},
 };
 use graphannis::errors::{AQLError, GraphAnnisError};
 use graphannis_core::errors::GraphAnnisCoreError;
@@ -50,9 +50,7 @@ enum BadRequestError {
 impl ResponseError for ServiceError {
     fn error_response(&self) -> HttpResponse {
         match self {
-            ServiceError::InvalidJWTToken(ref message) => {
-                HttpResponse::Unauthorized().json(message)
-            }
+            ServiceError::InvalidJWTToken(message) => HttpResponse::Unauthorized().json(message),
             ServiceError::NonAuthorizedCorpus(corpora) => HttpResponse::Forbidden().json(format!(
                 "Not authorized to access corpus/corpora {}",
                 corpora.join(", ")
