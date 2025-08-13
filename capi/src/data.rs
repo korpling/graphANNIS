@@ -48,11 +48,10 @@ pub type IterPtr<T> = Box<dyn Iterator<Item = Result<T>>>;
 
 fn iter_next<T>(ptr: *mut Box<dyn Iterator<Item = Result<T>>>, err: *mut *mut ErrorList) -> *mut T {
     let it: &mut Box<dyn Iterator<Item = Result<T>>> = cast_mut(ptr);
-    if let Some(v) = it.next() {
-        if let Some(v) = map_cerr(v, err) {
+    if let Some(v) = it.next()
+        && let Some(v) = map_cerr(v, err) {
             return Box::into_raw(Box::new(v));
         }
-    }
     std::ptr::null_mut()
 }
 

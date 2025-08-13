@@ -74,7 +74,7 @@ pub extern "C" fn annis_cs_with_max_cache_size(
 ///
 /// This functions dereferences the pointer given as argument and is therefore unsafe.
 #[unsafe(no_mangle)]
-pub extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
+pub unsafe extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
     if ptr.is_null() {
         return;
     }

@@ -805,11 +805,10 @@ impl CorpusStorage {
                         if let Some(relannis_root) = output_path.parent() {
                             relannis_files.push(relannis_root.to_owned())
                         }
-                    } else if let Some(ext) = output_path.extension() {
-                        if ext.to_string_lossy().to_ascii_lowercase() == "graphml" {
+                    } else if let Some(ext) = output_path.extension()
+                        && ext.to_string_lossy().to_ascii_lowercase() == "graphml" {
                             graphannis_files.push(output_path.clone());
                         }
-                    }
                 }
 
                 debug!("copying ZIP file content {}", file_path.to_string_lossy(),);
@@ -1000,11 +999,10 @@ impl CorpusStorage {
                 .map(|db_entry| db_entry.write())
                 .transpose()?;
 
-            if db_path.is_dir() {
-                if let Err(e) = std::fs::remove_dir_all(&db_path) {
+            if db_path.is_dir()
+                && let Err(e) = std::fs::remove_dir_all(&db_path) {
                     error!("Error when removing existing files {}", e);
                 }
-            }
         } else if cache.contains_key(&corpus_name) || db_path.is_dir() {
             return Err(GraphAnnisError::CorpusExists(corpus_name.to_string()));
         }
@@ -1083,8 +1081,8 @@ impl CorpusStorage {
             // Get the linked file for this node
             if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key)? {
                 let original_path = old_base_path.join(PathBuf::from(original_path.as_ref()));
-                if original_path.is_file() {
-                    if let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY)? {
+                if original_path.is_file()
+                    && let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY)? {
                         // Create a new file name based on the node name and copy the file
                         let new_path = new_base_path.join(node_name.as_ref());
                         debug!(
@@ -1107,7 +1105,6 @@ impl CorpusStorage {
                             },
                         )?;
                     }
-                }
             }
         }
         Ok(())
@@ -1718,11 +1715,9 @@ impl CorpusStorage {
                 if let Some(v) = db
                     .get_node_annos()
                     .get_value_for_item(&m.node, &m.anno_key)?
-                {
-                    if v == "3.3" {
+                    && v == "3.3" {
                         relannis_version_33 = true;
                     }
-                }
             }
         }
         let mut expected_size: Option<usize> = None;
@@ -2051,12 +2046,11 @@ impl CorpusStorage {
                         result.extend(single_result.into_iter());
                     }
 
-                    if let Some(limit) = limit {
-                        if result.len() == limit {
+                    if let Some(limit) = limit
+                        && result.len() == limit {
                             // Searching in the first corpora already yielded enough results
                             break;
                         }
-                    }
                     if skipped < offset {
                         find_arguments.offset -= skipped;
                     } else {
@@ -2491,8 +2485,8 @@ impl CorpusStorage {
             self.get_loaded_entry_with_components(corpus_name, vec![component.clone()])
         {
             let lock = db_entry.read()?;
-            if let Ok(db) = get_read_or_error(&lock) {
-                if let Some(gs) = db.get_graphstorage(component) {
+            if let Ok(db) = get_read_or_error(&lock)
+                && let Some(gs) = db.get_graphstorage(component) {
                     let edge_annos = gs.get_anno_storage();
                     for key in edge_annos.annotation_keys()? {
                         if list_values {
@@ -2523,7 +2517,6 @@ impl CorpusStorage {
                         }
                     }
                 }
-            }
         }
 
         Ok(result)
@@ -2584,11 +2577,10 @@ impl Drop for CorpusStorage {
             // administration account (see
             // https://github.com/korpling/graphANNIS/issues/230).
             let lock_file_path = self.db_dir.join(DB_LOCK_FILE_NAME);
-            if lock_file_path.exists() && lock_file_path.is_file() {
-                if let Err(e) = std::fs::remove_file(lock_file_path) {
+            if lock_file_path.exists() && lock_file_path.is_file()
+                && let Err(e) = std::fs::remove_file(lock_file_path) {
                     warn!("Could not remove CorpusStorage lock file: {:?}", e);
                 }
-            }
         }
     }
 }

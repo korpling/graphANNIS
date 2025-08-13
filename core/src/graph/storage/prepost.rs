@@ -409,12 +409,10 @@ where
                         // check the level
                         if let (Some(source_level), Some(target_level)) =
                             (order_source.level.to_usize(), order_target.level.to_usize())
-                        {
-                            if source_level <= target_level {
+                            && source_level <= target_level {
                                 was_found = true;
                                 min_level = std::cmp::min(target_level - source_level, min_level);
                             }
-                        }
                     }
                 }
             }
@@ -451,12 +449,10 @@ where
                         // check the level
                         if let (Some(source_level), Some(target_level)) =
                             (order_source.level.to_usize(), order_target.level.to_usize())
-                        {
-                            if source_level <= target_level {
+                            && source_level <= target_level {
                                 let diff_level = target_level - source_level;
                                 return Ok(min_distance <= diff_level && diff_level <= max_distance);
                             }
-                        }
                     }
                 }
             }

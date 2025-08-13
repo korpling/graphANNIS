@@ -66,11 +66,10 @@ impl<'a> ExecutionPlan<'a> {
                 }
 
                 plans.push(p);
-            } else if let Err(e) = p {
-                if let GraphAnnisError::AQLSemanticError(_) = &e {
+            } else if let Err(e) = p
+                && let GraphAnnisError::AQLSemanticError(_) = &e {
                     return Err(e);
                 }
-            }
         }
 
         if plans.is_empty() {

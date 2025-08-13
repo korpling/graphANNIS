@@ -47,13 +47,11 @@ impl EdgeContainer for DenseAdjacencyListStorage {
         &'a self,
         node: NodeID,
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
-        if let Some(node) = node.to_usize() {
-            if node < self.edges.len() {
-                if let Some(outgoing) = self.edges[node] {
+        if let Some(node) = node.to_usize()
+            && node < self.edges.len()
+                && let Some(outgoing) = self.edges[node] {
                     return Box::new(std::iter::once(Ok(outgoing)));
                 }
-            }
-        }
         Box::new(std::iter::empty())
     }
 
@@ -179,8 +177,8 @@ impl GraphStorage for DenseAdjacencyListStorage {
 
             for source in orig.source_nodes() {
                 let source = source?;
-                if let Some(idx) = source.to_usize() {
-                    if let Some(target) = orig.get_outgoing_edges(source).next() {
+                if let Some(idx) = source.to_usize()
+                    && let Some(target) = orig.get_outgoing_edges(source).next() {
                         let target = target?;
                         // insert edge
                         self.edges[idx] = Some(target);
@@ -197,7 +195,6 @@ impl GraphStorage for DenseAdjacencyListStorage {
                             self.annos.insert(e.clone(), a)?;
                         }
                     }
-                }
             }
             self.stats = orig.get_statistics().cloned();
             self.annos.calculate_statistics()?;

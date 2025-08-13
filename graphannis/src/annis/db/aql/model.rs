@@ -341,12 +341,11 @@ impl AQLUpdateGraphIndex {
         }
 
         // if the node already has a left/right token, just return this value
-        if let Some(alignment_gs) = graph.get_graphstorage_as_ref(&alignment_component) {
-            if let Some(existing) = alignment_gs.get_outgoing_edges(n).next() {
+        if let Some(alignment_gs) = graph.get_graphstorage_as_ref(&alignment_component)
+            && let Some(existing) = alignment_gs.get_outgoing_edges(n).next() {
                 let existing = existing?;
                 return Ok(Some(existing));
             }
-        }
 
         // order the candidate token by their position in the order chain
         let mut candidates: Vec<u64> = covered_token.iter().copied().collect();
@@ -473,8 +472,8 @@ impl ComponentType for AnnotationComponentType {
                 component_type,
                 ..
             } => {
-                if !index.graph_without_nodes {
-                    if let Ok(ctype) = AnnotationComponentType::from_str(component_type) {
+                if !index.graph_without_nodes
+                    && let Ok(ctype) = AnnotationComponentType::from_str(component_type) {
                         if ctype == AnnotationComponentType::Coverage
                             || ctype == AnnotationComponentType::Dominance
                             || ctype == AnnotationComponentType::Ordering
@@ -492,7 +491,6 @@ impl ComponentType for AnnotationComponentType {
                             index.calculate_invalidated_nodes_by_coverage(graph, target)?;
                         }
                     }
-                }
             }
             _ => {}
         }
@@ -513,8 +511,7 @@ impl ComponentType for AnnotationComponentType {
             target_node,
             ..
         } = update
-        {
-            if let Ok(ctype) = AnnotationComponentType::from_str(&component_type) {
+            && let Ok(ctype) = AnnotationComponentType::from_str(&component_type) {
                 if (ctype == AnnotationComponentType::Dominance
                     || ctype == AnnotationComponentType::Coverage)
                     && component_name.is_empty()
@@ -548,7 +545,6 @@ impl ComponentType for AnnotationComponentType {
                     }
                 }
             }
-        }
         Ok(())
     }
 
@@ -655,15 +651,14 @@ impl ComponentType for AnnotationComponentType {
         for ordering_component in
             graph.get_all_components(Some(AnnotationComponentType::Ordering), None)
         {
-            if !ordering_component.name.is_empty() {
-                if let Some(gs_stats) = graph
+            if !ordering_component.name.is_empty()
+                && let Some(gs_stats) = graph
                     .get_graphstorage_as_ref(&ordering_component)
                     .and_then(|gs| gs.get_statistics())
                 {
                     token_count_by_ordering_component
                         .insert(ordering_component, gs_stats.nodes as u64);
                 }
-            }
         }
 
         graph.global_statistics = Some(AQLGlobalStatistics {

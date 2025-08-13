@@ -93,11 +93,10 @@ where
             // find the next node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root) {
                 let next_pos = pos.pos.clone() + PosT::one();
-                if let Some(next_pos) = next_pos.to_usize() {
-                    if next_pos < chain.len() {
+                if let Some(next_pos) = next_pos.to_usize()
+                    && next_pos < chain.len() {
                         return Box::from(std::iter::once(Ok(chain[next_pos])));
                     }
-                }
             }
         }
         Box::from(std::iter::empty())
@@ -109,13 +108,11 @@ where
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(pos) = self.node_to_pos.get(&node) {
             // find the previous node in the chain
-            if let Some(chain) = self.node_chains.get(&pos.root) {
-                if let Some(pos) = pos.pos.to_usize() {
-                    if let Some(previous_pos) = pos.checked_sub(1) {
+            if let Some(chain) = self.node_chains.get(&pos.root)
+                && let Some(pos) = pos.pos.to_usize()
+                    && let Some(previous_pos) = pos.checked_sub(1) {
                         return Box::from(std::iter::once(Ok(chain[previous_pos])));
                     }
-                }
-            }
         }
         Box::from(std::iter::empty())
     }
@@ -206,11 +203,11 @@ where
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
-        if let Some(start_pos) = self.node_to_pos.get(&source) {
-            if let Some(chain) = self.node_chains.get(&start_pos.root) {
-                if let Some(offset) = start_pos.pos.to_usize() {
-                    if let Some(min_distance) = offset.checked_add(min_distance) {
-                        if min_distance < chain.len() {
+        if let Some(start_pos) = self.node_to_pos.get(&source)
+            && let Some(chain) = self.node_chains.get(&start_pos.root)
+                && let Some(offset) = start_pos.pos.to_usize()
+                    && let Some(min_distance) = offset.checked_add(min_distance)
+                        && min_distance < chain.len() {
                             let max_distance = match max_distance {
                                 std::ops::Bound::Unbounded => {
                                     return Box::new(chain[min_distance..].iter().map(|n| Ok(*n)));
@@ -228,10 +225,6 @@ where
                                 );
                             }
                         }
-                    }
-                }
-            }
-        }
         Box::new(std::iter::empty())
     }
 
@@ -241,9 +234,9 @@ where
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
-        if let Some(start_pos) = self.node_to_pos.get(&source) {
-            if let Some(chain) = self.node_chains.get(&start_pos.root) {
-                if let Some(offset) = start_pos.pos.to_usize() {
+        if let Some(start_pos) = self.node_to_pos.get(&source)
+            && let Some(chain) = self.node_chains.get(&start_pos.root)
+                && let Some(offset) = start_pos.pos.to_usize() {
                     let max_distance = match max_distance {
                         std::ops::Bound::Unbounded => 0,
                         std::ops::Bound::Included(max_distance) => {
@@ -268,8 +261,6 @@ where
                         }
                     }
                 }
-            }
-        }
         Box::new(std::iter::empty())
     }
 
@@ -280,14 +271,12 @@ where
 
         if let (Some(source_pos), Some(target_pos)) =
             (self.node_to_pos.get(&source), self.node_to_pos.get(&target))
-        {
-            if source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
+            && source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
                 let diff = target_pos.pos.clone() - source_pos.pos.clone();
                 if let Some(diff) = diff.to_usize() {
                     return Ok(Some(diff));
                 }
             }
-        }
         Ok(None)
     }
 
@@ -300,8 +289,7 @@ where
     ) -> Result<bool> {
         if let (Some(source_pos), Some(target_pos)) =
             (self.node_to_pos.get(&source), self.node_to_pos.get(&target))
-        {
-            if source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
+            && source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
                 let diff = target_pos.pos.clone() - source_pos.pos.clone();
                 if let Some(diff) = diff.to_usize() {
                     match max_distance {
@@ -317,7 +305,6 @@ where
                     }
                 }
             }
-        }
 
         Ok(false)
     }

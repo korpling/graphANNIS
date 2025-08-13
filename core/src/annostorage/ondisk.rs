@@ -706,11 +706,10 @@ where
                         Err(e) => Err(e),
                     })
                     .filter_map_ok(move |(item, anno_key, item_value)| {
-                        if let Some(item_value) = item_value {
-                            if item_value != value {
+                        if let Some(item_value) = item_value
+                            && item_value != value {
                                 return Some((item, anno_key).into());
                             }
-                        }
                         None
                     });
                 Box::new(it)
@@ -940,8 +939,8 @@ where
                             .get(&anno_key)
                             .copied()
                             .unwrap_or_default();
-                        if let Some(histo) = self.histogram_bounds.get(&anno_key) {
-                            if !histo.is_empty() {
+                        if let Some(histo) = self.histogram_bounds.get(&anno_key)
+                            && !histo.is_empty() {
                                 let sampled_values = histo.iter().choose_multiple(&mut rng, 20);
 
                                 let matches = sampled_values
@@ -962,7 +961,6 @@ where
                                     guessed_count += ((anno_size as f64) * match_ratio) as usize;
                                 }
                             }
-                        }
                     }
                 }
             }

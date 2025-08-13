@@ -266,8 +266,8 @@ where
         let mut result = None;
 
         let orig_key = key;
-        if let Some(key) = self.anno_keys.get_symbol(key) {
-            if let Some(mut all_annos) = self.by_container.remove(item) {
+        if let Some(key) = self.anno_keys.get_symbol(key)
+            && let Some(mut all_annos) = self.by_container.remove(item) {
                 // find the specific annotation key from the sorted vector of all annotations of this item
                 let anno_idx = all_annos.binary_search_by_key(&key, |a| a.key);
 
@@ -308,7 +308,6 @@ where
                     self.by_container.insert(item.clone(), all_annos);
                 }
             }
-        }
 
         Ok(result)
     }
@@ -397,26 +396,23 @@ where
             (self.anno_keys.get_symbol(key), self.by_container.get(item))
         {
             let idx = all_annos.binary_search_by_key(&key_symbol, |a| a.key);
-            if let Ok(idx) = idx {
-                if let Some(val) = self.anno_values.get_value_ref(all_annos[idx].val) {
+            if let Ok(idx) = idx
+                && let Some(val) = self.anno_values.get_value_ref(all_annos[idx].val) {
                     return Ok(Some(Cow::Borrowed(val)));
                 }
-            }
         }
         Ok(None)
     }
 
     fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<bool> {
-        if let Some(key_symbol) = self.anno_keys.get_symbol(key) {
-            if let Some(all_annos) = self.by_container.get(item) {
-                if all_annos
+        if let Some(key_symbol) = self.anno_keys.get_symbol(key)
+            && let Some(all_annos) = self.by_container.get(item)
+                && all_annos
                     .binary_search_by_key(&key_symbol, |a| a.key)
                     .is_ok()
                 {
                     return Ok(true);
                 }
-            }
-        }
         Ok(false)
     }
 
@@ -441,14 +437,13 @@ where
                 if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
                     for item in it {
                         let item = item?;
-                        if let Some(all_annos) = self.by_container.get(&item) {
-                            if all_annos
+                        if let Some(all_annos) = self.by_container.get(&item)
+                            && all_annos
                                 .binary_search_by_key(&key_symbol, |a| a.key)
                                 .is_ok()
                             {
                                 matches.push((item, key.clone()).into());
                             }
-                        }
                     }
                 }
                 Ok(matches)
@@ -467,14 +462,13 @@ where
                 for item in it {
                     let item = item?;
                     for (key_symbol, key) in matching_key_symbols.iter() {
-                        if let Some(all_annos) = self.by_container.get(&item) {
-                            if all_annos
+                        if let Some(all_annos) = self.by_container.get(&item)
+                            && all_annos
                                 .binary_search_by_key(&key_symbol, |a| &a.key)
                                 .is_ok()
                             {
                                 matches.push((item.clone(), key.clone()).into());
                             }
-                        }
                     }
                 }
                 Ok(matches)
@@ -590,11 +584,10 @@ where
                         Ok((item, anno_key, value))
                     })
                     .filter_map_ok(move |(item, anno_key, item_value)| {
-                        if let Some(item_value) = item_value {
-                            if item_value != value {
+                        if let Some(item_value) = item_value
+                            && item_value != value {
                                 return Some((item, anno_key).into());
                             }
-                        }
                         None
                     });
                 Box::new(it)
@@ -656,16 +649,14 @@ where
                     ns: ns.into(),
                     name: name.into(),
                 };
-                if let Some(key_symbol) = self.anno_keys.get_symbol(&key) {
-                    if let Some(all_annos) = self.by_container.get(item) {
-                        if all_annos
+                if let Some(key_symbol) = self.anno_keys.get_symbol(&key)
+                    && let Some(all_annos) = self.by_container.get(item)
+                        && all_annos
                             .binary_search_by_key(&key_symbol, |a| a.key)
                             .is_ok()
                         {
                             return Ok(vec![Arc::from(key)]);
                         }
-                    }
-                }
 
                 Ok(vec![])
             } else {
@@ -722,8 +713,8 @@ where
             if let Some(anno_size) = self.anno_key_sizes.get(&anno_key) {
                 universe_size += *anno_size;
 
-                if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
-                    if let Some(histo) = self.histogram_bounds.get(&anno_key) {
+                if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key)
+                    && let Some(histo) = self.histogram_bounds.get(&anno_key) {
                         // find the range in which the value is contained
                         // we need to make sure the histogram is not empty -> should have at least two bounds
                         if histo.len() >= 2 {
@@ -741,7 +732,6 @@ where
                             }
                         }
                     }
-                }
             }
         }
 
@@ -800,8 +790,8 @@ where
                             .copied()
                             .unwrap_or_default();
 
-                        if let Some(histo) = self.histogram_bounds.get(&anno_key_symbol) {
-                            if !histo.is_empty() {
+                        if let Some(histo) = self.histogram_bounds.get(&anno_key_symbol)
+                            && !histo.is_empty() {
                                 let sampled_values = histo.iter().choose_multiple(&mut rng, 20);
                                 let matches = sampled_values
                                     .iter()
@@ -821,7 +811,6 @@ where
                                     guessed_count += ((anno_size as f64) * match_ratio) as usize;
                                 }
                             }
-                        }
                     }
                 }
             }
@@ -850,14 +839,13 @@ where
 
         // guess for each fully qualified annotation key
         for anno_key in qualified_keys {
-            if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
-                if let Some(histo) = self.histogram_bounds.get(&anno_key) {
+            if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key)
+                && let Some(histo) = self.histogram_bounds.get(&anno_key) {
                     for v in histo.iter() {
                         let count: &mut usize = sampled_values.entry(v).or_insert(0);
                         *count += 1;
                     }
                 }
-            }
         }
         // find the value which is most frequent
         if !sampled_values.is_empty() {
@@ -880,8 +868,8 @@ where
         key: &AnnoKey,
         most_frequent_first: bool,
     ) -> Result<Vec<Cow<'_, str>>> {
-        if let Some(key) = self.anno_keys.get_symbol(key) {
-            if let Some(values_for_key) = self.by_anno.get(&key) {
+        if let Some(key) = self.anno_keys.get_symbol(key)
+            && let Some(values_for_key) = self.by_anno.get(&key) {
                 if most_frequent_first {
                     let result = values_for_key
                         .iter()
@@ -903,7 +891,6 @@ where
                     return Ok(result);
                 }
             }
-        }
         Ok(vec![])
     }
 
@@ -1022,13 +1009,11 @@ impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
             self.anno_keys.get_symbol(&NODE_NAME_KEY),
             self.anno_values
                 .get_symbol(&SmartString::<LazyCompact>::from(node_name)),
-        ) {
-            if let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol) {
-                if let Some(items) = items_with_anno.get(&value_symbol) {
+        )
+            && let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol)
+                && let Some(items) = items_with_anno.get(&value_symbol) {
                     return Ok(items.iter().copied().next());
                 }
-            }
-        }
 
         Ok(None)
     }
@@ -1038,13 +1023,11 @@ impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
             self.anno_keys.get_symbol(&NODE_NAME_KEY),
             self.anno_values
                 .get_symbol(&SmartString::<LazyCompact>::from(node_name)),
-        ) {
-            if let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol) {
-                if let Some(items) = items_with_anno.get(&value_symbol) {
+        )
+            && let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol)
+                && let Some(items) = items_with_anno.get(&value_symbol) {
                     return Ok(!items.is_empty());
                 }
-            }
-        }
 
         Ok(false)
     }

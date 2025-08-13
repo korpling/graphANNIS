@@ -131,12 +131,11 @@ fn should_switch_operand_order(
     op_spec: &BinaryOperatorSpecEntry,
     node2cost: &BTreeMap<usize, CostEstimate>,
 ) -> bool {
-    if let Some((cost_lhs, cost_rhs)) = get_cost_estimates(op_spec, node2cost) {
-        if cost_rhs.output < cost_lhs.output {
+    if let Some((cost_lhs, cost_rhs)) = get_cost_estimates(op_spec, node2cost)
+        && cost_rhs.output < cost_lhs.output {
             // switch operands
             return true;
         }
-    }
 
     false
 }
@@ -184,8 +183,8 @@ fn create_join<'b>(
     idx_left: usize,
     idx_right: usize,
 ) -> Result<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'b>> {
-    if exec_right.as_nodesearch().is_some() {
-        if let BinaryOperator::Index(op) = op_entry.op {
+    if exec_right.as_nodesearch().is_some()
+        && let BinaryOperator::Index(op) = op_entry.op {
             // we can use directly use an index join
             return create_index_join(
                 db,
@@ -197,7 +196,6 @@ fn create_join<'b>(
                 idx_left,
             );
         }
-    }
 
     if exec_left.as_nodesearch().is_some() {
         // avoid a nested loop join by switching the operand and using and index join when possible
@@ -409,11 +407,10 @@ impl Conjunction {
         location: Option<LineColumnRange>,
     ) -> Result<NodeSearchSpecEntry> {
         let idx = self.resolve_variable_pos(variable, location.clone())?;
-        if let Some(pos) = idx.checked_sub(self.var_idx_offset) {
-            if pos < self.nodes.len() {
+        if let Some(pos) = idx.checked_sub(self.var_idx_offset)
+            && pos < self.nodes.len() {
                 return Ok(self.nodes[pos].clone());
             }
-        }
 
         Err(GraphAnnisError::AQLSemanticError(AQLError {
             desc: format!("Operand \"#{}\" not found", variable),
@@ -705,14 +702,13 @@ impl Conjunction {
         let mut spec_idx_right = op_spec_entry.args.right;
 
         let inverse_op = op.get_inverse_operator(g)?;
-        if let Some(inverse_op) = inverse_op {
-            if should_switch_operand_order(op_spec_entry, &helper.node2cost) {
+        if let Some(inverse_op) = inverse_op
+            && should_switch_operand_order(op_spec_entry, &helper.node2cost) {
                 spec_idx_left = op_spec_entry.args.right;
                 spec_idx_right = op_spec_entry.args.left;
 
                 op = inverse_op;
             }
-        }
 
         // substract the offset from the specificated numbers to get the internal node number for this conjunction
         spec_idx_left -= self.var_idx_offset;
@@ -906,8 +902,8 @@ impl Conjunction {
         for (node_nr, cid) in &node2component {
             if first_component_id.is_none() {
                 first_component_id = Some(*cid);
-            } else if let Some(first) = first_component_id {
-                if first != *cid {
+            } else if let Some(first) = first_component_id
+                && first != *cid {
                     // add location and description which node is not connected
                     let n_var = &self.nodes[*node_nr].var;
                     let location = self.location_in_query.get(n_var);
@@ -920,7 +916,6 @@ impl Conjunction {
                         location: location.cloned(),
                     }));
                 }
-            }
         }
 
         Ok(())
