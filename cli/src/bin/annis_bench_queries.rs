@@ -5,16 +5,16 @@ extern crate graphannis;
 
 use clap::*;
 use criterion::BenchmarkGroup;
-use criterion::{measurement::Measurement, Criterion};
+use criterion::{Criterion, measurement::Measurement};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use std::sync::Arc;
 
+use graphannis::CorpusStorage;
 use graphannis::corpusstorage::{QueryLanguage, SearchQuery};
 use graphannis::util::{self, SearchDef};
-use graphannis::CorpusStorage;
 
 pub fn create_query_input<M>(
     data_dir: &Path,

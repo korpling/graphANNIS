@@ -1,6 +1,6 @@
 use crate::errors::Result;
-use crate::graph::storage::adjacencylist::AdjacencyListStorage;
 use crate::graph::storage::WriteableGraphStorage;
+use crate::graph::storage::adjacencylist::AdjacencyListStorage;
 use crate::types::{AnnoKey, Annotation, Edge};
 
 /// Creates an example graph storage with the folllowing structure:

@@ -4,8 +4,8 @@ use crate::annis::db::{aql::model::AnnotationComponentType, token_helper::TokenH
 use crate::annis::errors::GraphAnnisError;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
 use crate::annis::operator::{BinaryOperatorBase, BinaryOperatorIndex};
+use crate::{AnnotationGraph, try_as_boxed_iter};
 use crate::{annis::operator::EstimationType, errors::Result, graph::Match};
-use crate::{try_as_boxed_iter, AnnotationGraph};
 use graphannis_core::{graph::DEFAULT_ANNO_KEY, types::Component};
 use itertools::Itertools;
 use std::collections::HashSet;

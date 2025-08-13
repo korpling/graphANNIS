@@ -7,8 +7,8 @@ use graphannis_core::{annostorage::MatchGroup, types::NodeID};
 use rayon::prelude::*;
 use std::error::Error;
 use std::iter::Peekable;
-use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
+use std::sync::mpsc::{Receiver, Sender, channel};
 
 const MAX_BUFFER_SIZE: usize = 512;
 

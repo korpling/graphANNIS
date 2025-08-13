@@ -521,11 +521,12 @@ impl<CT: ComponentType> Graph<CT> {
                     )?;
                     // only add edge if both nodes already exist
                     if let (Some(source), Some(target)) = (source, target)
-                        && let Ok(ctype) = CT::from_str(component_type) {
-                            let c = Component::new(ctype, layer.into(), component_name.into());
-                            let gs = self.get_or_create_writable(&c)?;
-                            gs.add_edge(Edge { source, target })?;
-                        }
+                        && let Ok(ctype) = CT::from_str(component_type)
+                    {
+                        let c = Component::new(ctype, layer.into(), component_name.into());
+                        let gs = self.get_or_create_writable(&c)?;
+                        gs.add_edge(Edge { source, target })?;
+                    }
                 }
                 UpdateEvent::DeleteEdge {
                     source_node,
@@ -543,12 +544,13 @@ impl<CT: ComponentType> Graph<CT> {
                         &mut node_id_cache,
                     )?;
                     if let (Some(source), Some(target)) = (source, target)
-                        && let Ok(ctype) = CT::from_str(component_type) {
-                            let c = Component::new(ctype, layer.into(), component_name.into());
+                        && let Ok(ctype) = CT::from_str(component_type)
+                    {
+                        let c = Component::new(ctype, layer.into(), component_name.into());
 
-                            let gs = self.get_or_create_writable(&c)?;
-                            gs.delete_edge(&Edge { source, target })?;
-                        }
+                        let gs = self.get_or_create_writable(&c)?;
+                        gs.delete_edge(&Edge { source, target })?;
+                    }
                 }
                 UpdateEvent::AddEdgeLabel {
                     source_node,
@@ -569,22 +571,23 @@ impl<CT: ComponentType> Graph<CT> {
                         &mut node_id_cache,
                     )?;
                     if let (Some(source), Some(target)) = (source, target)
-                        && let Ok(ctype) = CT::from_str(component_type) {
-                            let c = Component::new(ctype, layer.into(), component_name.into());
-                            let gs = self.get_or_create_writable(&c)?;
-                            // only add label if the edge already exists
-                            let e = Edge { source, target };
-                            if gs.is_connected(source, target, 1, Included(1))? {
-                                let anno = Annotation {
-                                    key: AnnoKey {
-                                        ns: anno_ns.into(),
-                                        name: anno_name.into(),
-                                    },
-                                    val: anno_value.into(),
-                                };
-                                gs.add_edge_annotation(e, anno)?;
-                            }
+                        && let Ok(ctype) = CT::from_str(component_type)
+                    {
+                        let c = Component::new(ctype, layer.into(), component_name.into());
+                        let gs = self.get_or_create_writable(&c)?;
+                        // only add label if the edge already exists
+                        let e = Edge { source, target };
+                        if gs.is_connected(source, target, 1, Included(1))? {
+                            let anno = Annotation {
+                                key: AnnoKey {
+                                    ns: anno_ns.into(),
+                                    name: anno_name.into(),
+                                },
+                                val: anno_value.into(),
+                            };
+                            gs.add_edge_annotation(e, anno)?;
                         }
+                    }
                 }
                 UpdateEvent::DeleteEdgeLabel {
                     source_node,
@@ -604,19 +607,20 @@ impl<CT: ComponentType> Graph<CT> {
                         &mut node_id_cache,
                     )?;
                     if let (Some(source), Some(target)) = (source, target)
-                        && let Ok(ctype) = CT::from_str(component_type) {
-                            let c = Component::new(ctype, layer.into(), component_name.into());
-                            let gs = self.get_or_create_writable(&c)?;
-                            // only add label if the edge already exists
-                            let e = Edge { source, target };
-                            if gs.is_connected(source, target, 1, Included(1))? {
-                                let key = AnnoKey {
-                                    ns: anno_ns.into(),
-                                    name: anno_name.into(),
-                                };
-                                gs.delete_edge_annotation(&e, &key)?;
-                            }
+                        && let Ok(ctype) = CT::from_str(component_type)
+                    {
+                        let c = Component::new(ctype, layer.into(), component_name.into());
+                        let gs = self.get_or_create_writable(&c)?;
+                        // only add label if the edge already exists
+                        let e = Edge { source, target };
+                        if gs.is_connected(source, target, 1, Included(1))? {
+                            let key = AnnoKey {
+                                ns: anno_ns.into(),
+                                name: anno_name.into(),
+                            };
+                            gs.delete_edge_annotation(&e, &key)?;
                         }
+                    }
                 }
             } // end match update entry type
             ComponentType::after_update_event(change, self, &mut update_graph_index)?;
@@ -886,9 +890,10 @@ impl<CT: ComponentType> Graph<CT> {
     pub fn is_loaded(&self, c: &Component<CT>) -> bool {
         let entry: Option<&Option<Arc<dyn GraphStorage>>> = self.components.get(c);
         if let Some(gs_opt) = entry
-            && gs_opt.is_some() {
-                return true;
-            }
+            && gs_opt.is_some()
+        {
+            return true;
+        }
         false
     }
 
@@ -1018,32 +1023,33 @@ impl<CT: ComponentType> Graph<CT> {
 
     pub fn optimize_gs_impl(&mut self, c: &Component<CT>) -> Result<()> {
         if let Some(gs) = self.get_graphstorage(c)
-            && let Some(stats) = gs.get_statistics() {
-                let opt_info = registry::get_optimal_impl_heuristic(self, stats);
+            && let Some(stats) = gs.get_statistics()
+        {
+            let opt_info = registry::get_optimal_impl_heuristic(self, stats);
 
-                // convert if necessary
-                if opt_info.id != gs.serialization_id() {
-                    let mut new_gs = registry::create_from_info(&opt_info)?;
-                    let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
-                        info!(
-                            "converting component {} to implementation {}",
-                            c, opt_info.id,
-                        );
-                        new_gs_mut.copy(self.get_node_annos(), gs.as_ref())?;
-                        true
-                    } else {
-                        false
-                    };
-                    if converted {
-                        // insert into components map
-                        info!(
-                            "finished conversion of component {} to implementation {}",
-                            c, opt_info.id,
-                        );
-                        self.components.insert(c.clone(), Some(new_gs.clone()));
-                    }
+            // convert if necessary
+            if opt_info.id != gs.serialization_id() {
+                let mut new_gs = registry::create_from_info(&opt_info)?;
+                let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
+                    info!(
+                        "converting component {} to implementation {}",
+                        c, opt_info.id,
+                    );
+                    new_gs_mut.copy(self.get_node_annos(), gs.as_ref())?;
+                    true
+                } else {
+                    false
+                };
+                if converted {
+                    // insert into components map
+                    info!(
+                        "finished conversion of component {} to implementation {}",
+                        c, opt_info.id,
+                    );
+                    self.components.insert(c.clone(), Some(new_gs.clone()));
                 }
             }
+        }
 
         Ok(())
     }
@@ -1114,13 +1120,15 @@ impl<CT: ComponentType> Graph<CT> {
                 .keys()
                 .filter(move |c| {
                     if let Some(ctype) = ctype.clone()
-                        && ctype != c.get_type() {
-                            return false;
-                        }
+                        && ctype != c.get_type()
+                    {
+                        return false;
+                    }
                     if let Some(name) = name
-                        && name != c.name {
-                            return false;
-                        }
+                        && name != c.name
+                    {
+                        return false;
+                    }
                     true
                 })
                 .cloned();

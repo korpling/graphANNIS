@@ -267,47 +267,48 @@ where
 
         let orig_key = key;
         if let Some(key) = self.anno_keys.get_symbol(key)
-            && let Some(mut all_annos) = self.by_container.remove(item) {
-                // find the specific annotation key from the sorted vector of all annotations of this item
-                let anno_idx = all_annos.binary_search_by_key(&key, |a| a.key);
+            && let Some(mut all_annos) = self.by_container.remove(item)
+        {
+            // find the specific annotation key from the sorted vector of all annotations of this item
+            let anno_idx = all_annos.binary_search_by_key(&key, |a| a.key);
 
-                if let Ok(anno_idx) = anno_idx {
-                    // since value was found, also remove the item from the other containers
-                    self.remove_element_from_by_anno(&all_annos[anno_idx], item);
+            if let Ok(anno_idx) = anno_idx {
+                // since value was found, also remove the item from the other containers
+                self.remove_element_from_by_anno(&all_annos[anno_idx], item);
 
-                    let old_value = all_annos[anno_idx].val;
+                let old_value = all_annos[anno_idx].val;
 
-                    // remove the specific annotation key from the entry
-                    all_annos.remove(anno_idx);
+                // remove the specific annotation key from the entry
+                all_annos.remove(anno_idx);
 
-                    // decrease the annotation count for this key
-                    let new_key_count: usize =
-                        if let Some(num_of_keys) = self.anno_key_sizes.get_mut(orig_key) {
-                            *num_of_keys -= 1;
-                            *num_of_keys
-                        } else {
-                            0
-                        };
-                    // if annotation count dropped to zero remove the key
-                    if new_key_count == 0 {
-                        self.by_anno.remove(&key);
-                        self.anno_key_sizes.remove(orig_key);
-                        self.anno_keys.remove(key);
-                    }
-
-                    result = self
-                        .anno_values
-                        .get_value_ref(old_value)
-                        .map(|v| Cow::Owned(v.clone().into()));
-
-                    self.check_and_remove_value_symbol(old_value);
-                    self.total_number_of_annos -= 1;
+                // decrease the annotation count for this key
+                let new_key_count: usize =
+                    if let Some(num_of_keys) = self.anno_key_sizes.get_mut(orig_key) {
+                        *num_of_keys -= 1;
+                        *num_of_keys
+                    } else {
+                        0
+                    };
+                // if annotation count dropped to zero remove the key
+                if new_key_count == 0 {
+                    self.by_anno.remove(&key);
+                    self.anno_key_sizes.remove(orig_key);
+                    self.anno_keys.remove(key);
                 }
-                // if there are more annotations for this item, re-insert them
-                if !all_annos.is_empty() {
-                    self.by_container.insert(item.clone(), all_annos);
-                }
+
+                result = self
+                    .anno_values
+                    .get_value_ref(old_value)
+                    .map(|v| Cow::Owned(v.clone().into()));
+
+                self.check_and_remove_value_symbol(old_value);
+                self.total_number_of_annos -= 1;
             }
+            // if there are more annotations for this item, re-insert them
+            if !all_annos.is_empty() {
+                self.by_container.insert(item.clone(), all_annos);
+            }
+        }
 
         Ok(result)
     }
@@ -397,9 +398,10 @@ where
         {
             let idx = all_annos.binary_search_by_key(&key_symbol, |a| a.key);
             if let Ok(idx) = idx
-                && let Some(val) = self.anno_values.get_value_ref(all_annos[idx].val) {
-                    return Ok(Some(Cow::Borrowed(val)));
-                }
+                && let Some(val) = self.anno_values.get_value_ref(all_annos[idx].val)
+            {
+                return Ok(Some(Cow::Borrowed(val)));
+            }
         }
         Ok(None)
     }
@@ -407,12 +409,12 @@ where
     fn has_value_for_item(&self, item: &T, key: &AnnoKey) -> Result<bool> {
         if let Some(key_symbol) = self.anno_keys.get_symbol(key)
             && let Some(all_annos) = self.by_container.get(item)
-                && all_annos
-                    .binary_search_by_key(&key_symbol, |a| a.key)
-                    .is_ok()
-                {
-                    return Ok(true);
-                }
+            && all_annos
+                .binary_search_by_key(&key_symbol, |a| a.key)
+                .is_ok()
+        {
+            return Ok(true);
+        }
         Ok(false)
     }
 
@@ -441,9 +443,9 @@ where
                             && all_annos
                                 .binary_search_by_key(&key_symbol, |a| a.key)
                                 .is_ok()
-                            {
-                                matches.push((item, key.clone()).into());
-                            }
+                        {
+                            matches.push((item, key.clone()).into());
+                        }
                     }
                 }
                 Ok(matches)
@@ -466,9 +468,9 @@ where
                             && all_annos
                                 .binary_search_by_key(&key_symbol, |a| &a.key)
                                 .is_ok()
-                            {
-                                matches.push((item.clone(), key.clone()).into());
-                            }
+                        {
+                            matches.push((item.clone(), key.clone()).into());
+                        }
                     }
                 }
                 Ok(matches)
@@ -585,9 +587,10 @@ where
                     })
                     .filter_map_ok(move |(item, anno_key, item_value)| {
                         if let Some(item_value) = item_value
-                            && item_value != value {
-                                return Some((item, anno_key).into());
-                            }
+                            && item_value != value
+                        {
+                            return Some((item, anno_key).into());
+                        }
                         None
                     });
                 Box::new(it)
@@ -651,12 +654,12 @@ where
                 };
                 if let Some(key_symbol) = self.anno_keys.get_symbol(&key)
                     && let Some(all_annos) = self.by_container.get(item)
-                        && all_annos
-                            .binary_search_by_key(&key_symbol, |a| a.key)
-                            .is_ok()
-                        {
-                            return Ok(vec![Arc::from(key)]);
-                        }
+                    && all_annos
+                        .binary_search_by_key(&key_symbol, |a| a.key)
+                        .is_ok()
+                {
+                    return Ok(vec![Arc::from(key)]);
+                }
 
                 Ok(vec![])
             } else {
@@ -714,24 +717,25 @@ where
                 universe_size += *anno_size;
 
                 if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key)
-                    && let Some(histo) = self.histogram_bounds.get(&anno_key) {
-                        // find the range in which the value is contained
-                        // we need to make sure the histogram is not empty -> should have at least two bounds
-                        if histo.len() >= 2 {
-                            sum_histogram_buckets += histo.len() - 1;
+                    && let Some(histo) = self.histogram_bounds.get(&anno_key)
+                {
+                    // find the range in which the value is contained
+                    // we need to make sure the histogram is not empty -> should have at least two bounds
+                    if histo.len() >= 2 {
+                        sum_histogram_buckets += histo.len() - 1;
 
-                            for i in 0..histo.len() - 1 {
-                                let bucket_begin = &histo[i];
-                                let bucket_end = &histo[i + 1];
-                                // check if the range overlaps with the search range
-                                if bucket_begin.as_str() <= upper_val
-                                    && lower_val <= bucket_end.as_str()
-                                {
-                                    count_matches += 1;
-                                }
+                        for i in 0..histo.len() - 1 {
+                            let bucket_begin = &histo[i];
+                            let bucket_end = &histo[i + 1];
+                            // check if the range overlaps with the search range
+                            if bucket_begin.as_str() <= upper_val
+                                && lower_val <= bucket_end.as_str()
+                            {
+                                count_matches += 1;
                             }
                         }
                     }
+                }
             }
         }
 
@@ -791,26 +795,26 @@ where
                             .unwrap_or_default();
 
                         if let Some(histo) = self.histogram_bounds.get(&anno_key_symbol)
-                            && !histo.is_empty() {
-                                let sampled_values = histo.iter().choose_multiple(&mut rng, 20);
-                                let matches = sampled_values
-                                    .iter()
-                                    .filter(|v| pattern.is_match(v))
-                                    .count();
-                                if sampled_values.len() == matches {
-                                    // Assume all values match
-                                    guessed_count += anno_size;
-                                } else if matches == 0 {
-                                    // No match found, but use the bucket size as pessimistic guess
-                                    guessed_count +=
-                                        (anno_size as f64 / sampled_values.len() as f64) as usize;
-                                } else {
-                                    // Use the percent of matched values to guess the overall number
-                                    let match_ratio =
-                                        (matches as f64) / (sampled_values.len() as f64);
-                                    guessed_count += ((anno_size as f64) * match_ratio) as usize;
-                                }
+                            && !histo.is_empty()
+                        {
+                            let sampled_values = histo.iter().choose_multiple(&mut rng, 20);
+                            let matches = sampled_values
+                                .iter()
+                                .filter(|v| pattern.is_match(v))
+                                .count();
+                            if sampled_values.len() == matches {
+                                // Assume all values match
+                                guessed_count += anno_size;
+                            } else if matches == 0 {
+                                // No match found, but use the bucket size as pessimistic guess
+                                guessed_count +=
+                                    (anno_size as f64 / sampled_values.len() as f64) as usize;
+                            } else {
+                                // Use the percent of matched values to guess the overall number
+                                let match_ratio = (matches as f64) / (sampled_values.len() as f64);
+                                guessed_count += ((anno_size as f64) * match_ratio) as usize;
                             }
+                        }
                     }
                 }
             }
@@ -840,12 +844,13 @@ where
         // guess for each fully qualified annotation key
         for anno_key in qualified_keys {
             if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key)
-                && let Some(histo) = self.histogram_bounds.get(&anno_key) {
-                    for v in histo.iter() {
-                        let count: &mut usize = sampled_values.entry(v).or_insert(0);
-                        *count += 1;
-                    }
+                && let Some(histo) = self.histogram_bounds.get(&anno_key)
+            {
+                for v in histo.iter() {
+                    let count: &mut usize = sampled_values.entry(v).or_insert(0);
+                    *count += 1;
                 }
+            }
         }
         // find the value which is most frequent
         if !sampled_values.is_empty() {
@@ -869,28 +874,29 @@ where
         most_frequent_first: bool,
     ) -> Result<Vec<Cow<'_, str>>> {
         if let Some(key) = self.anno_keys.get_symbol(key)
-            && let Some(values_for_key) = self.by_anno.get(&key) {
-                if most_frequent_first {
-                    let result = values_for_key
-                        .iter()
-                        .filter_map(|(val, items)| {
-                            let val = self.anno_values.get_value_ref(*val)?;
-                            Some((items.len(), val))
-                        })
-                        .sorted()
-                        .rev()
-                        .map(|(_, val)| Cow::Borrowed(&val[..]))
-                        .collect();
-                    return Ok(result);
-                } else {
-                    let result = values_for_key
-                        .iter()
-                        .filter_map(|(val, _items)| self.anno_values.get_value_ref(*val))
-                        .map(|val| Cow::Borrowed(&val[..]))
-                        .collect();
-                    return Ok(result);
-                }
+            && let Some(values_for_key) = self.by_anno.get(&key)
+        {
+            if most_frequent_first {
+                let result = values_for_key
+                    .iter()
+                    .filter_map(|(val, items)| {
+                        let val = self.anno_values.get_value_ref(*val)?;
+                        Some((items.len(), val))
+                    })
+                    .sorted()
+                    .rev()
+                    .map(|(_, val)| Cow::Borrowed(&val[..]))
+                    .collect();
+                return Ok(result);
+            } else {
+                let result = values_for_key
+                    .iter()
+                    .filter_map(|(val, _items)| self.anno_values.get_value_ref(*val))
+                    .map(|val| Cow::Borrowed(&val[..]))
+                    .collect();
+                return Ok(result);
             }
+        }
         Ok(vec![])
     }
 
@@ -1009,11 +1015,11 @@ impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
             self.anno_keys.get_symbol(&NODE_NAME_KEY),
             self.anno_values
                 .get_symbol(&SmartString::<LazyCompact>::from(node_name)),
-        )
-            && let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol)
-                && let Some(items) = items_with_anno.get(&value_symbol) {
-                    return Ok(items.iter().copied().next());
-                }
+        ) && let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol)
+            && let Some(items) = items_with_anno.get(&value_symbol)
+        {
+            return Ok(items.iter().copied().next());
+        }
 
         Ok(None)
     }
@@ -1023,11 +1029,11 @@ impl NodeAnnotationStorage for AnnoStorageImpl<NodeID> {
             self.anno_keys.get_symbol(&NODE_NAME_KEY),
             self.anno_values
                 .get_symbol(&SmartString::<LazyCompact>::from(node_name)),
-        )
-            && let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol)
-                && let Some(items) = items_with_anno.get(&value_symbol) {
-                    return Ok(!items.is_empty());
-                }
+        ) && let Some(items_with_anno) = self.by_anno.get(&anno_name_symbol)
+            && let Some(items) = items_with_anno.get(&value_symbol)
+        {
+            return Ok(!items.is_empty());
+        }
 
         Ok(false)
     }

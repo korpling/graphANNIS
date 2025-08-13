@@ -1,5 +1,5 @@
-use graphannis::update::{GraphUpdate, UpdateEvent};
 use graphannis::CorpusStorage;
+use graphannis::update::{GraphUpdate, UpdateEvent};
 use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

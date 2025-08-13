@@ -7,9 +7,9 @@ use graphannis_core::{
     annostorage::ValueSearch,
     dfs::CycleSafeDFS,
     errors::ComponentTypeError,
-    graph::{storage::union::UnionEdgeContainer, ANNIS_NS, NODE_TYPE_KEY},
+    graph::{ANNIS_NS, NODE_TYPE_KEY, storage::union::UnionEdgeContainer},
     types::ComponentType,
-    util::disk_collections::{DiskMap, EvictionStrategy, DEFAULT_BLOCK_CACHE_CAPACITY},
+    util::disk_collections::{DEFAULT_BLOCK_CACHE_CAPACITY, DiskMap, EvictionStrategy},
 };
 use std::{
     collections::{BTreeMap, HashMap},
@@ -22,13 +22,13 @@ use std::{str::FromStr, sync::Arc};
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, EnumString};
 
-use crate::{update::UpdateEvent, AnnotationGraph};
+use crate::{AnnotationGraph, update::UpdateEvent};
 use rustc_hash::FxHashSet;
 
 use crate::{
+    Graph,
     graph::{AnnoKey, Component},
     model::AnnotationComponent,
-    Graph,
 };
 
 pub const TOK: &str = "tok";
@@ -342,10 +342,11 @@ impl AQLUpdateGraphIndex {
 
         // if the node already has a left/right token, just return this value
         if let Some(alignment_gs) = graph.get_graphstorage_as_ref(&alignment_component)
-            && let Some(existing) = alignment_gs.get_outgoing_edges(n).next() {
-                let existing = existing?;
-                return Ok(Some(existing));
-            }
+            && let Some(existing) = alignment_gs.get_outgoing_edges(n).next()
+        {
+            let existing = existing?;
+            return Ok(Some(existing));
+        }
 
         // order the candidate token by their position in the order chain
         let mut candidates: Vec<u64> = covered_token.iter().copied().collect();
@@ -473,24 +474,25 @@ impl ComponentType for AnnotationComponentType {
                 ..
             } => {
                 if !index.graph_without_nodes
-                    && let Ok(ctype) = AnnotationComponentType::from_str(component_type) {
-                        if ctype == AnnotationComponentType::Coverage
-                            || ctype == AnnotationComponentType::Dominance
-                            || ctype == AnnotationComponentType::Ordering
-                            || ctype == AnnotationComponentType::LeftToken
-                            || ctype == AnnotationComponentType::RightToken
-                        {
-                            let source = index
-                                .get_cached_node_id_from_name(Cow::Borrowed(source_node), graph)?;
-                            index.calculate_invalidated_nodes_by_coverage(graph, source)?;
-                        }
-
-                        if ctype == AnnotationComponentType::Ordering {
-                            let target = index
-                                .get_cached_node_id_from_name(Cow::Borrowed(target_node), graph)?;
-                            index.calculate_invalidated_nodes_by_coverage(graph, target)?;
-                        }
+                    && let Ok(ctype) = AnnotationComponentType::from_str(component_type)
+                {
+                    if ctype == AnnotationComponentType::Coverage
+                        || ctype == AnnotationComponentType::Dominance
+                        || ctype == AnnotationComponentType::Ordering
+                        || ctype == AnnotationComponentType::LeftToken
+                        || ctype == AnnotationComponentType::RightToken
+                    {
+                        let source = index
+                            .get_cached_node_id_from_name(Cow::Borrowed(source_node), graph)?;
+                        index.calculate_invalidated_nodes_by_coverage(graph, source)?;
                     }
+
+                    if ctype == AnnotationComponentType::Ordering {
+                        let target = index
+                            .get_cached_node_id_from_name(Cow::Borrowed(target_node), graph)?;
+                        index.calculate_invalidated_nodes_by_coverage(graph, target)?;
+                    }
+                }
             }
             _ => {}
         }
@@ -511,40 +513,38 @@ impl ComponentType for AnnotationComponentType {
             target_node,
             ..
         } = update
-            && let Ok(ctype) = AnnotationComponentType::from_str(&component_type) {
-                if (ctype == AnnotationComponentType::Dominance
-                    || ctype == AnnotationComponentType::Coverage)
-                    && component_name.is_empty()
+            && let Ok(ctype) = AnnotationComponentType::from_str(&component_type)
+        {
+            if (ctype == AnnotationComponentType::Dominance
+                || ctype == AnnotationComponentType::Coverage)
+                && component_name.is_empty()
+            {
+                // might be a new text coverage component
+                let c =
+                    AnnotationComponent::new(ctype.clone(), layer.into(), component_name.into());
+                index.text_coverage_components.insert(c);
+            }
+
+            if !index.graph_without_nodes {
+                if ctype == AnnotationComponentType::Coverage
+                    || ctype == AnnotationComponentType::Dominance
+                    || ctype == AnnotationComponentType::Ordering
+                    || ctype == AnnotationComponentType::LeftToken
+                    || ctype == AnnotationComponentType::RightToken
                 {
-                    // might be a new text coverage component
-                    let c = AnnotationComponent::new(
-                        ctype.clone(),
-                        layer.into(),
-                        component_name.into(),
-                    );
-                    index.text_coverage_components.insert(c);
+                    let source =
+                        index.get_cached_node_id_from_name(Cow::Owned(source_node), graph)?;
+
+                    index.calculate_invalidated_nodes_by_coverage(graph, source)?;
                 }
 
-                if !index.graph_without_nodes {
-                    if ctype == AnnotationComponentType::Coverage
-                        || ctype == AnnotationComponentType::Dominance
-                        || ctype == AnnotationComponentType::Ordering
-                        || ctype == AnnotationComponentType::LeftToken
-                        || ctype == AnnotationComponentType::RightToken
-                    {
-                        let source =
-                            index.get_cached_node_id_from_name(Cow::Owned(source_node), graph)?;
-
-                        index.calculate_invalidated_nodes_by_coverage(graph, source)?;
-                    }
-
-                    if ctype == AnnotationComponentType::Ordering {
-                        let target =
-                            index.get_cached_node_id_from_name(Cow::Owned(target_node), graph)?;
-                        index.calculate_invalidated_nodes_by_coverage(graph, target)?;
-                    }
+                if ctype == AnnotationComponentType::Ordering {
+                    let target =
+                        index.get_cached_node_id_from_name(Cow::Owned(target_node), graph)?;
+                    index.calculate_invalidated_nodes_by_coverage(graph, target)?;
                 }
             }
+        }
         Ok(())
     }
 
@@ -655,10 +655,9 @@ impl ComponentType for AnnotationComponentType {
                 && let Some(gs_stats) = graph
                     .get_graphstorage_as_ref(&ordering_component)
                     .and_then(|gs| gs.get_statistics())
-                {
-                    token_count_by_ordering_component
-                        .insert(ordering_component, gs_stats.nodes as u64);
-                }
+            {
+                token_count_by_ordering_component.insert(ordering_component, gs_stats.nodes as u64);
+            }
         }
 
         graph.global_statistics = Some(AQLGlobalStatistics {

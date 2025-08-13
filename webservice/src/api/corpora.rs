@@ -1,13 +1,13 @@
 use super::{check_corpora_authorized_read, check_is_admin};
 use crate::{
-    actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings, DbPool,
+    DbPool, actions, errors::ServiceError, extractors::ClaimsFromAuth, settings::Settings,
 };
 use actix_files::NamedFile;
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use graphannis::{
-    corpusstorage::QueryLanguage, graph, model::AnnotationComponentType, CorpusStorage,
+    CorpusStorage, corpusstorage::QueryLanguage, graph, model::AnnotationComponentType,
 };
-use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
+use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
 use std::{borrow::Cow, path::PathBuf};
 
 pub const PATH_SEGMENT_ENCODE_SET: &AsciiSet = &CONTROLS

@@ -1,5 +1,5 @@
 use super::conjunction::Conjunction;
-use crate::{annis::db::aql::model::AnnotationComponentType, AnnotationGraph};
+use crate::{AnnotationGraph, annis::db::aql::model::AnnotationComponentType};
 use graphannis_core::types::Component;
 use std::collections::HashSet;
 

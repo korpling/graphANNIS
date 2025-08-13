@@ -1,12 +1,12 @@
 use std::{fmt::Display, sync::Arc};
 
 use crate::{
+    AnnotationGraph,
     annis::{
         db::exec::CostEstimate,
         operator::{BinaryOperator, BinaryOperatorBase, BinaryOperatorSpec, EstimationType},
     },
     errors::Result,
-    AnnotationGraph,
 };
 use graphannis_core::annostorage::Match;
 

@@ -1,10 +1,11 @@
 use super::{
-    deserialize_gs_field, legacy::LinearGraphStorageV1, load_statistics_from_location,
-    save_statistics_to_toml, serialize_gs_field, EdgeContainer, GraphStatistic, GraphStorage,
+    EdgeContainer, GraphStatistic, GraphStorage, deserialize_gs_field,
+    legacy::LinearGraphStorageV1, load_statistics_from_location, save_statistics_to_toml,
+    serialize_gs_field,
 };
 use crate::{
     annostorage::{
-        inmemory::AnnoStorageImpl, AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage,
+        AnnotationStorage, EdgeAnnotationStorage, NodeAnnotationStorage, inmemory::AnnoStorageImpl,
     },
     dfs::CycleSafeDFS,
     errors::Result,
@@ -94,9 +95,10 @@ where
             if let Some(chain) = self.node_chains.get(&pos.root) {
                 let next_pos = pos.pos.clone() + PosT::one();
                 if let Some(next_pos) = next_pos.to_usize()
-                    && next_pos < chain.len() {
-                        return Box::from(std::iter::once(Ok(chain[next_pos])));
-                    }
+                    && next_pos < chain.len()
+                {
+                    return Box::from(std::iter::once(Ok(chain[next_pos])));
+                }
             }
         }
         Box::from(std::iter::empty())
@@ -110,9 +112,10 @@ where
             // find the previous node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root)
                 && let Some(pos) = pos.pos.to_usize()
-                    && let Some(previous_pos) = pos.checked_sub(1) {
-                        return Box::from(std::iter::once(Ok(chain[previous_pos])));
-                    }
+                && let Some(previous_pos) = pos.checked_sub(1)
+            {
+                return Box::from(std::iter::once(Ok(chain[previous_pos])));
+            }
         }
         Box::from(std::iter::empty())
     }
@@ -205,26 +208,23 @@ where
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(start_pos) = self.node_to_pos.get(&source)
             && let Some(chain) = self.node_chains.get(&start_pos.root)
-                && let Some(offset) = start_pos.pos.to_usize()
-                    && let Some(min_distance) = offset.checked_add(min_distance)
-                        && min_distance < chain.len() {
-                            let max_distance = match max_distance {
-                                std::ops::Bound::Unbounded => {
-                                    return Box::new(chain[min_distance..].iter().map(|n| Ok(*n)));
-                                }
-                                std::ops::Bound::Included(max_distance) => {
-                                    offset + max_distance + 1
-                                }
-                                std::ops::Bound::Excluded(max_distance) => offset + max_distance,
-                            };
-                            // clip to chain length
-                            let max_distance = std::cmp::min(chain.len(), max_distance);
-                            if min_distance < max_distance {
-                                return Box::new(
-                                    chain[min_distance..max_distance].iter().map(|n| Ok(*n)),
-                                );
-                            }
-                        }
+            && let Some(offset) = start_pos.pos.to_usize()
+            && let Some(min_distance) = offset.checked_add(min_distance)
+            && min_distance < chain.len()
+        {
+            let max_distance = match max_distance {
+                std::ops::Bound::Unbounded => {
+                    return Box::new(chain[min_distance..].iter().map(|n| Ok(*n)));
+                }
+                std::ops::Bound::Included(max_distance) => offset + max_distance + 1,
+                std::ops::Bound::Excluded(max_distance) => offset + max_distance,
+            };
+            // clip to chain length
+            let max_distance = std::cmp::min(chain.len(), max_distance);
+            if min_distance < max_distance {
+                return Box::new(chain[min_distance..max_distance].iter().map(|n| Ok(*n)));
+            }
+        }
         Box::new(std::iter::empty())
     }
 
@@ -236,31 +236,24 @@ where
     ) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         if let Some(start_pos) = self.node_to_pos.get(&source)
             && let Some(chain) = self.node_chains.get(&start_pos.root)
-                && let Some(offset) = start_pos.pos.to_usize() {
-                    let max_distance = match max_distance {
-                        std::ops::Bound::Unbounded => 0,
-                        std::ops::Bound::Included(max_distance) => {
-                            offset.saturating_sub(max_distance)
-                        }
-                        std::ops::Bound::Excluded(max_distance) => {
-                            offset.saturating_sub(max_distance + 1)
-                        }
-                    };
+            && let Some(offset) = start_pos.pos.to_usize()
+        {
+            let max_distance = match max_distance {
+                std::ops::Bound::Unbounded => 0,
+                std::ops::Bound::Included(max_distance) => offset.saturating_sub(max_distance),
+                std::ops::Bound::Excluded(max_distance) => offset.saturating_sub(max_distance + 1),
+            };
 
-                    if let Some(min_distance) = offset.checked_sub(min_distance) {
-                        if min_distance < chain.len() && max_distance <= min_distance {
-                            // return all entries in the chain between min_distance..max_distance (inclusive)
-                            return Box::new(
-                                chain[max_distance..=min_distance].iter().map(|n| Ok(*n)),
-                            );
-                        } else if max_distance < chain.len() {
-                            // return all entries in the chain between min_distance..max_distance
-                            return Box::new(
-                                chain[max_distance..chain.len()].iter().map(|n| Ok(*n)),
-                            );
-                        }
-                    }
+            if let Some(min_distance) = offset.checked_sub(min_distance) {
+                if min_distance < chain.len() && max_distance <= min_distance {
+                    // return all entries in the chain between min_distance..max_distance (inclusive)
+                    return Box::new(chain[max_distance..=min_distance].iter().map(|n| Ok(*n)));
+                } else if max_distance < chain.len() {
+                    // return all entries in the chain between min_distance..max_distance
+                    return Box::new(chain[max_distance..chain.len()].iter().map(|n| Ok(*n)));
                 }
+            }
+        }
         Box::new(std::iter::empty())
     }
 
@@ -271,12 +264,14 @@ where
 
         if let (Some(source_pos), Some(target_pos)) =
             (self.node_to_pos.get(&source), self.node_to_pos.get(&target))
-            && source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
-                let diff = target_pos.pos.clone() - source_pos.pos.clone();
-                if let Some(diff) = diff.to_usize() {
-                    return Ok(Some(diff));
-                }
+            && source_pos.root == target_pos.root
+            && source_pos.pos <= target_pos.pos
+        {
+            let diff = target_pos.pos.clone() - source_pos.pos.clone();
+            if let Some(diff) = diff.to_usize() {
+                return Ok(Some(diff));
             }
+        }
         Ok(None)
     }
 
@@ -289,22 +284,24 @@ where
     ) -> Result<bool> {
         if let (Some(source_pos), Some(target_pos)) =
             (self.node_to_pos.get(&source), self.node_to_pos.get(&target))
-            && source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
-                let diff = target_pos.pos.clone() - source_pos.pos.clone();
-                if let Some(diff) = diff.to_usize() {
-                    match max_distance {
-                        std::ops::Bound::Unbounded => {
-                            return Ok(diff >= min_distance);
-                        }
-                        std::ops::Bound::Included(max_distance) => {
-                            return Ok(diff >= min_distance && diff <= max_distance);
-                        }
-                        std::ops::Bound::Excluded(max_distance) => {
-                            return Ok(diff >= min_distance && diff < max_distance);
-                        }
+            && source_pos.root == target_pos.root
+            && source_pos.pos <= target_pos.pos
+        {
+            let diff = target_pos.pos.clone() - source_pos.pos.clone();
+            if let Some(diff) = diff.to_usize() {
+                match max_distance {
+                    std::ops::Bound::Unbounded => {
+                        return Ok(diff >= min_distance);
+                    }
+                    std::ops::Bound::Included(max_distance) => {
+                        return Ok(diff >= min_distance && diff <= max_distance);
+                    }
+                    std::ops::Bound::Excluded(max_distance) => {
+                        return Ok(diff >= min_distance && diff < max_distance);
                     }
                 }
             }
+        }
 
         Ok(false)
     }

@@ -707,9 +707,10 @@ where
                     })
                     .filter_map_ok(move |(item, anno_key, item_value)| {
                         if let Some(item_value) = item_value
-                            && item_value != value {
-                                return Some((item, anno_key).into());
-                            }
+                            && item_value != value
+                        {
+                            return Some((item, anno_key).into());
+                        }
                         None
                     });
                 Box::new(it)
@@ -940,27 +941,27 @@ where
                             .copied()
                             .unwrap_or_default();
                         if let Some(histo) = self.histogram_bounds.get(&anno_key)
-                            && !histo.is_empty() {
-                                let sampled_values = histo.iter().choose_multiple(&mut rng, 20);
+                            && !histo.is_empty()
+                        {
+                            let sampled_values = histo.iter().choose_multiple(&mut rng, 20);
 
-                                let matches = sampled_values
-                                    .iter()
-                                    .filter(|v| pattern.is_match(v))
-                                    .count();
-                                if sampled_values.len() == matches {
-                                    // Assume all values match
-                                    guessed_count += anno_size;
-                                } else if matches == 0 {
-                                    // No match found, but use the bucket size as pessimistic guess
-                                    guessed_count +=
-                                        (anno_size as f64 / sampled_values.len() as f64) as usize;
-                                } else {
-                                    // Use the percent of matched values to guess the overall number
-                                    let match_ratio =
-                                        (matches as f64) / (sampled_values.len() as f64);
-                                    guessed_count += ((anno_size as f64) * match_ratio) as usize;
-                                }
+                            let matches = sampled_values
+                                .iter()
+                                .filter(|v| pattern.is_match(v))
+                                .count();
+                            if sampled_values.len() == matches {
+                                // Assume all values match
+                                guessed_count += anno_size;
+                            } else if matches == 0 {
+                                // No match found, but use the bucket size as pessimistic guess
+                                guessed_count +=
+                                    (anno_size as f64 / sampled_values.len() as f64) as usize;
+                            } else {
+                                // Use the percent of matched values to guess the overall number
+                                let match_ratio = (matches as f64) / (sampled_values.len() as f64);
+                                guessed_count += ((anno_size as f64) * match_ratio) as usize;
                             }
+                        }
                     }
                 }
             }

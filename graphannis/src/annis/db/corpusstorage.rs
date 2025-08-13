@@ -806,9 +806,10 @@ impl CorpusStorage {
                             relannis_files.push(relannis_root.to_owned())
                         }
                     } else if let Some(ext) = output_path.extension()
-                        && ext.to_string_lossy().to_ascii_lowercase() == "graphml" {
-                            graphannis_files.push(output_path.clone());
-                        }
+                        && ext.to_string_lossy().to_ascii_lowercase() == "graphml"
+                    {
+                        graphannis_files.push(output_path.clone());
+                    }
                 }
 
                 debug!("copying ZIP file content {}", file_path.to_string_lossy(),);
@@ -1000,9 +1001,10 @@ impl CorpusStorage {
                 .transpose()?;
 
             if db_path.is_dir()
-                && let Err(e) = std::fs::remove_dir_all(&db_path) {
-                    error!("Error when removing existing files {}", e);
-                }
+                && let Err(e) = std::fs::remove_dir_all(&db_path)
+            {
+                error!("Error when removing existing files {}", e);
+            }
         } else if cache.contains_key(&corpus_name) || db_path.is_dir() {
             return Err(GraphAnnisError::CorpusExists(corpus_name.to_string()));
         }
@@ -1082,29 +1084,30 @@ impl CorpusStorage {
             if let Some(original_path) = node_annos.get_value_for_item(&node, &linked_file_key)? {
                 let original_path = old_base_path.join(PathBuf::from(original_path.as_ref()));
                 if original_path.is_file()
-                    && let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY)? {
-                        // Create a new file name based on the node name and copy the file
-                        let new_path = new_base_path.join(node_name.as_ref());
-                        debug!(
-                            "Copying file from {} to {}",
-                            original_path.as_path().to_string_lossy(),
-                            new_path.to_string_lossy()
-                        );
-                        if let Some(parent) = new_path.parent() {
-                            std::fs::create_dir_all(parent)?;
-                        }
-                        std::fs::copy(&original_path, &new_path)?;
-                        // Update the annotation to link to the new file with a relative path.
-                        // Use the corpus directory as base path for this relative path.
-                        let relative_path = new_path.strip_prefix(new_base_path)?;
-                        node_annos.insert(
-                            node,
-                            Annotation {
-                                key: linked_file_key.clone(),
-                                val: relative_path.to_string_lossy().into(),
-                            },
-                        )?;
+                    && let Some(node_name) = node_annos.get_value_for_item(&node, &NODE_NAME_KEY)?
+                {
+                    // Create a new file name based on the node name and copy the file
+                    let new_path = new_base_path.join(node_name.as_ref());
+                    debug!(
+                        "Copying file from {} to {}",
+                        original_path.as_path().to_string_lossy(),
+                        new_path.to_string_lossy()
+                    );
+                    if let Some(parent) = new_path.parent() {
+                        std::fs::create_dir_all(parent)?;
                     }
+                    std::fs::copy(&original_path, &new_path)?;
+                    // Update the annotation to link to the new file with a relative path.
+                    // Use the corpus directory as base path for this relative path.
+                    let relative_path = new_path.strip_prefix(new_base_path)?;
+                    node_annos.insert(
+                        node,
+                        Annotation {
+                            key: linked_file_key.clone(),
+                            val: relative_path.to_string_lossy().into(),
+                        },
+                    )?;
+                }
             }
         }
         Ok(())
@@ -1715,9 +1718,10 @@ impl CorpusStorage {
                 if let Some(v) = db
                     .get_node_annos()
                     .get_value_for_item(&m.node, &m.anno_key)?
-                    && v == "3.3" {
-                        relannis_version_33 = true;
-                    }
+                    && v == "3.3"
+                {
+                    relannis_version_33 = true;
+                }
             }
         }
         let mut expected_size: Option<usize> = None;
@@ -2047,10 +2051,11 @@ impl CorpusStorage {
                     }
 
                     if let Some(limit) = limit
-                        && result.len() == limit {
-                            // Searching in the first corpora already yielded enough results
-                            break;
-                        }
+                        && result.len() == limit
+                    {
+                        // Searching in the first corpora already yielded enough results
+                        break;
+                    }
                     if skipped < offset {
                         find_arguments.offset -= skipped;
                     } else {
@@ -2486,37 +2491,38 @@ impl CorpusStorage {
         {
             let lock = db_entry.read()?;
             if let Ok(db) = get_read_or_error(&lock)
-                && let Some(gs) = db.get_graphstorage(component) {
-                    let edge_annos = gs.get_anno_storage();
-                    for key in edge_annos.annotation_keys()? {
-                        if list_values {
-                            if only_most_frequent_values {
-                                // get the first value
-                                if let Some(val) =
-                                    edge_annos.get_all_values(&key, true)?.into_iter().next()
-                                {
-                                    result.push(Annotation {
-                                        key: key.clone(),
-                                        val: val.into(),
-                                    });
-                                }
-                            } else {
-                                // get all values
-                                for val in edge_annos.get_all_values(&key, false)? {
-                                    result.push(Annotation {
-                                        key: key.clone(),
-                                        val: val.into(),
-                                    });
-                                }
+                && let Some(gs) = db.get_graphstorage(component)
+            {
+                let edge_annos = gs.get_anno_storage();
+                for key in edge_annos.annotation_keys()? {
+                    if list_values {
+                        if only_most_frequent_values {
+                            // get the first value
+                            if let Some(val) =
+                                edge_annos.get_all_values(&key, true)?.into_iter().next()
+                            {
+                                result.push(Annotation {
+                                    key: key.clone(),
+                                    val: val.into(),
+                                });
                             }
                         } else {
-                            result.push(Annotation {
-                                key: key.clone(),
-                                val: SmartString::new(),
-                            });
+                            // get all values
+                            for val in edge_annos.get_all_values(&key, false)? {
+                                result.push(Annotation {
+                                    key: key.clone(),
+                                    val: val.into(),
+                                });
+                            }
                         }
+                    } else {
+                        result.push(Annotation {
+                            key: key.clone(),
+                            val: SmartString::new(),
+                        });
                     }
                 }
+            }
         }
 
         Ok(result)
@@ -2577,10 +2583,12 @@ impl Drop for CorpusStorage {
             // administration account (see
             // https://github.com/korpling/graphANNIS/issues/230).
             let lock_file_path = self.db_dir.join(DB_LOCK_FILE_NAME);
-            if lock_file_path.exists() && lock_file_path.is_file()
-                && let Err(e) = std::fs::remove_file(lock_file_path) {
-                    warn!("Could not remove CorpusStorage lock file: {:?}", e);
-                }
+            if lock_file_path.exists()
+                && lock_file_path.is_file()
+                && let Err(e) = std::fs::remove_file(lock_file_path)
+            {
+                warn!("Could not remove CorpusStorage lock file: {:?}", e);
+            }
         }
     }
 }
