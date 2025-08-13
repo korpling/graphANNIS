@@ -7,7 +7,7 @@ members = [
     "webservice",
     "examples/tutorial",
 ]
-resolver = "2"
+resolver = "3"
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]
