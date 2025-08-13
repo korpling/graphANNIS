@@ -1,3 +1,4 @@
+use facet::Facet;
 use num_traits::{Bounded, FromPrimitive, Num, ToPrimitive};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -22,7 +23,9 @@ use std::result::Result as StdResult;
 pub type NodeID = u64;
 
 /// The fully qualified name of an annotation.
-#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash)]
+#[derive(
+    Facet, Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash,
+)]
 pub struct AnnoKey {
     /// Name of the annotation.
     pub name: String,
