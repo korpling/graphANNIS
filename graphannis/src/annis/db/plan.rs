@@ -1,9 +1,9 @@
-use crate::annis::db::aql::disjunction::Disjunction;
+use crate::AnnotationGraph;
 use crate::annis::db::aql::Config;
+use crate::annis::db::aql::disjunction::Disjunction;
 use crate::annis::db::exec::{EmptyResultSet, ExecutionNode, ExecutionNodeDesc};
 use crate::annis::errors::*;
 use crate::annis::util::TimeoutCheck;
-use crate::AnnotationGraph;
 use graphannis_core::annostorage::match_group_with_symbol_ids;
 use graphannis_core::annostorage::symboltable::SymbolTable;
 use graphannis_core::{
@@ -96,7 +96,7 @@ impl<'a> ExecutionPlan<'a> {
     /// they are still included in the vector but you can not use the node ID at
     /// this position.
     fn reorder_match(&self, tmp: MatchGroup) -> MatchGroup {
-        if let Some(ref inverse_node_pos) = self.inverse_node_pos[self.current_plan] {
+        if let Some(inverse_node_pos) = &self.inverse_node_pos[self.current_plan] {
             // re-order the matched nodes by the original node position of the query
             let mut result = MatchGroup::new();
             // We cannot assume that every node has a mapping, so use the maximum index
@@ -120,7 +120,7 @@ impl<'a> ExecutionPlan<'a> {
     pub fn estimated_output_size(&self) -> usize {
         let mut estimation = 0;
         for desc in self.descriptions.iter().flatten() {
-            if let Some(ref cost) = desc.cost {
+            if let Some(cost) = &desc.cost {
                 estimation += cost.output;
             }
         }
@@ -153,7 +153,7 @@ impl std::fmt::Display for ExecutionPlan<'_> {
             if i > 0 {
                 writeln!(f, "---[OR]---")?;
             }
-            if let Some(ref d) = d {
+            if let Some(d) = d {
                 write!(f, "{}", d.debug_string(""))?;
             } else {
                 write!(f, "<no description>")?;

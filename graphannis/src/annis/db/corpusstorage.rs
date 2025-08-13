@@ -15,28 +15,28 @@ use crate::annis::types::{
     QueryAttributeDescription,
 };
 use crate::annis::types::{CorpusSizeInfo, CountExtra};
-use crate::annis::util::quicksort;
 use crate::annis::util::TimeoutCheck;
-use crate::{graph::Match, AnnotationGraph};
+use crate::annis::util::quicksort;
+use crate::{AnnotationGraph, graph::Match};
 use fmt::Display;
 use fs2::FileExt;
 use graphannis_core::annostorage::symboltable::SymbolTable;
 use graphannis_core::annostorage::{
-    match_group_resolve_symbol_ids, match_group_with_symbol_ids, NodeAnnotationStorage,
+    NodeAnnotationStorage, match_group_resolve_symbol_ids, match_group_with_symbol_ids,
 };
 use graphannis_core::errors::Result as CoreResult;
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
     graph::{
-        storage::GraphStatistic, update::GraphUpdate, ANNIS_NS, NODE_NAME, NODE_NAME_KEY, NODE_TYPE,
+        ANNIS_NS, NODE_NAME, NODE_NAME_KEY, NODE_TYPE, storage::GraphStatistic, update::GraphUpdate,
     },
     types::{AnnoKey, Annotation, Component, NodeID},
 };
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use memory_stats::memory_stats;
-use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, CONTROLS};
-use rand::Rng;
+use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str, utf8_percent_encode};
+use rand::prelude::*;
 use smartstring::alias::String as SmartString;
 use std::collections::HashSet;
 use std::fmt;
@@ -53,7 +53,6 @@ use transient_btree_index::{BtreeConfig, BtreeIndex};
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use rand::seq::SliceRandom;
 use std::{
     ffi::CString,
     io::{BufReader, Write},
@@ -550,7 +549,7 @@ impl CorpusStorage {
             .unwrap_or_default();
 
         let corpus_info: CorpusInfo = match &*lock {
-            CacheEntry::Loaded(ref db) => {
+            CacheEntry::Loaded(db) => {
                 // check if all components are loaded
                 let mut load_status = LoadStatus::FullyLoaded;
 
@@ -1747,16 +1746,16 @@ impl CorpusStorage {
 
             if find_arguments.order == ResultOrder::Randomized {
                 // Use a unique random index for each match to force a random order
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
 
                 for mgroup in plan {
                     let mgroup = mgroup?;
-                    let mut idx: usize = rng.gen();
-                    while tmp_results.contains_key(&idx)? {
-                        idx = rng.gen();
+                    let mut idx: u64 = rng.random();
+                    while tmp_results.contains_key(&(idx as usize))? {
+                        idx = rng.random();
                     }
                     let m = match_group_with_symbol_ids(&mgroup, &mut anno_key_symbols)?;
-                    tmp_results.insert(idx, m)?;
+                    tmp_results.insert(idx as usize, m)?;
                 }
             } else {
                 // Insert results in the order as they are given by the iterator
@@ -2022,7 +2021,7 @@ impl CorpusStorage {
                 if order == ResultOrder::Randomized {
                     // This is still oddly ordered, because results from one corpus will always be grouped together.
                     // But it still better than just output the same corpus first.
-                    let mut rng = rand::thread_rng();
+                    let mut rng = rand::rng();
                     corpus_names.shuffle(&mut rng);
                 } else if order == ResultOrder::Inverted {
                     corpus_names.sort();
@@ -2595,7 +2594,7 @@ impl Drop for CorpusStorage {
 }
 
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a AnnotationGraph> {
-    if let CacheEntry::Loaded(ref db) = &**lock {
+    if let CacheEntry::Loaded(db) = &**lock {
         Ok(db)
     } else {
         Err(GraphAnnisError::LoadingGraphFailed {
@@ -2607,7 +2606,7 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a An
 fn get_write_or_error<'a>(
     lock: &'a mut RwLockWriteGuard<CacheEntry>,
 ) -> Result<&'a mut AnnotationGraph> {
-    if let CacheEntry::Loaded(ref mut db) = &mut **lock {
+    if let CacheEntry::Loaded(db) = &mut **lock {
         Ok(db)
     } else {
         Err(CorpusStorageError::CorpusCacheEntryNotLoaded.into())
@@ -2622,8 +2621,8 @@ fn get_max_cache_size(cache_strategy: &CacheStrategy, used_cache_size: usize) ->
             if let Ok(mem) = sys_info::mem_info() {
                 // the free memory
                 let free_system_mem: usize = mem.avail as usize * 1024; // mem.free is in KiB
-                                                                        // A part of the system memory is already used by the cache.
-                                                                        // We want x percent of the overall available memory (thus not used by us), so add the cache size
+                // A part of the system memory is already used by the cache.
+                // We want x percent of the overall available memory (thus not used by us), so add the cache size
                 let available_memory: usize = free_system_mem + used_cache_size;
                 ((available_memory as f64) * (max_percent / 100.0)) as usize
             } else {

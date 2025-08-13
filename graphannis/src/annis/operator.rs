@@ -1,5 +1,5 @@
 use super::db::{aql::model::AnnotationComponentType, exec::CostEstimate};
-use crate::{errors::Result, graph::Match, AnnotationGraph};
+use crate::{AnnotationGraph, errors::Result, graph::Match};
 use graphannis_core::{annostorage::EdgeAnnotationStorage, types::Component};
 use std::{collections::HashSet, fmt::Display};
 
@@ -31,29 +31,21 @@ pub enum EdgeAnnoSearchSpec {
 impl std::fmt::Display for EdgeAnnoSearchSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            EdgeAnnoSearchSpec::ExactValue {
-                ref ns,
-                ref name,
-                ref val,
-            } => {
-                let qname = if let Some(ref ns) = ns {
+            EdgeAnnoSearchSpec::ExactValue { ns, name, val } => {
+                let qname = if let Some(ns) = ns {
                     format!("{}:{}", ns, name)
                 } else {
                     name.clone()
                 };
 
-                if let Some(ref val) = val {
+                if let Some(val) = val {
                     write!(f, "{}=\"{}\"", qname, val)
                 } else {
                     write!(f, "{}", qname)
                 }
             }
-            EdgeAnnoSearchSpec::NotExactValue {
-                ref ns,
-                ref name,
-                ref val,
-            } => {
-                let qname = if let Some(ref ns) = ns {
+            EdgeAnnoSearchSpec::NotExactValue { ns, name, val } => {
+                let qname = if let Some(ns) = ns {
                     format!("{}:{}", ns, name)
                 } else {
                     name.clone()
@@ -61,12 +53,8 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
 
                 write!(f, "{}!=\"{}\"", qname, val)
             }
-            EdgeAnnoSearchSpec::RegexValue {
-                ref ns,
-                ref name,
-                ref val,
-            } => {
-                let qname = if let Some(ref ns) = ns {
+            EdgeAnnoSearchSpec::RegexValue { ns, name, val } => {
+                let qname = if let Some(ns) = ns {
                     format!("{}:{}", ns, name)
                 } else {
                     name.clone()
@@ -74,12 +62,8 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
 
                 write!(f, "{}=/{}/", qname, val)
             }
-            EdgeAnnoSearchSpec::NotRegexValue {
-                ref ns,
-                ref name,
-                ref val,
-            } => {
-                let qname = if let Some(ref ns) = ns {
+            EdgeAnnoSearchSpec::NotRegexValue { ns, name, val } => {
+                let qname = if let Some(ns) = ns {
                     format!("{}:{}", ns, name)
                 } else {
                     name.clone()
@@ -94,11 +78,7 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
 impl EdgeAnnoSearchSpec {
     pub fn guess_max_count(&self, anno_storage: &dyn EdgeAnnotationStorage) -> Result<usize> {
         match self {
-            EdgeAnnoSearchSpec::ExactValue {
-                ref ns,
-                ref name,
-                ref val,
-            } => {
+            EdgeAnnoSearchSpec::ExactValue { ns, name, val } => {
                 let result = if let Some(val) = val {
                     anno_storage.guess_max_count(ns.as_ref().map(String::as_str), name, val, val)?
                 } else {
@@ -107,11 +87,7 @@ impl EdgeAnnoSearchSpec {
                 };
                 Ok(result)
             }
-            EdgeAnnoSearchSpec::NotExactValue {
-                ref ns,
-                ref name,
-                ref val,
-            } => {
+            EdgeAnnoSearchSpec::NotExactValue { ns, name, val } => {
                 let total = anno_storage
                     .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)?;
                 let result = total
@@ -123,20 +99,10 @@ impl EdgeAnnoSearchSpec {
                     )?;
                 Ok(result)
             }
-            EdgeAnnoSearchSpec::RegexValue {
-                ref ns,
-                ref name,
-                ref val,
-            } => Ok(anno_storage.guess_max_count_regex(
-                ns.as_ref().map(String::as_str),
-                name,
-                val,
-            )?),
-            EdgeAnnoSearchSpec::NotRegexValue {
-                ref ns,
-                ref name,
-                ref val,
-            } => {
+            EdgeAnnoSearchSpec::RegexValue { ns, name, val } => Ok(
+                anno_storage.guess_max_count_regex(ns.as_ref().map(String::as_str), name, val)?
+            ),
+            EdgeAnnoSearchSpec::NotRegexValue { ns, name, val } => {
                 let total = anno_storage
                     .number_of_annotations_by_name(ns.as_ref().map(String::as_str), name)?;
                 let result = total

@@ -1,5 +1,5 @@
-use crate::annostorage::symboltable::SymbolTable;
 use crate::annostorage::AnnotationStorage;
+use crate::annostorage::symboltable::SymbolTable;
 use crate::annostorage::{Match, ValueSearch};
 use crate::errors::Result;
 use crate::graph::NODE_NAME_KEY;
@@ -10,9 +10,8 @@ use crate::{try_as_boxed_iter, util};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rand::seq::IteratorRandom;
-use rand::thread_rng;
-use regex_syntax::hir::literal::Seq;
 use regex_syntax::Parser;
+use regex_syntax::hir::literal::Seq;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -927,7 +926,7 @@ where
                 // For regular expressions without a prefix the worst case would be `.*[X].*` where `[X]` are the most common characters.
                 // Sample values from the histogram to get a better estimation of how many percent of the actual values could match.
                 if let Ok(pattern) = regex::Regex::new(&full_match_pattern) {
-                    let mut rng = thread_rng();
+                    let mut rng = rand::rng();
                     let qualified_keys = match ns {
                         Some(ns) => vec![AnnoKey {
                             name: name.into(),
@@ -1069,7 +1068,7 @@ where
         // collect statistics for each annotation key separately
         for anno_key in self.anno_key_sizes.keys() {
             // sample a maximal number of annotation values
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
 
             let all_values_for_key = self.get_by_anno_qname_range(anno_key);
 

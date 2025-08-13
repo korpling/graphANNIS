@@ -720,12 +720,12 @@ where
 
     fn range_contains(&self, item: &[u8]) -> bool {
         (match &self.range_start {
-            Bound::Included(ref start) => start.as_slice() <= item,
-            Bound::Excluded(ref start) => start.as_slice() < item,
+            Bound::Included(start) => start.as_slice() <= item,
+            Bound::Excluded(start) => start.as_slice() < item,
             Bound::Unbounded => true,
         }) && (match &self.range_end {
-            Bound::Included(ref end) => item <= end.as_ref(),
-            Bound::Excluded(ref end) => item < end.as_ref(),
+            Bound::Included(end) => item <= end.as_ref(),
+            Bound::Excluded(end) => item < end.as_ref(),
             Bound::Unbounded => true,
         })
     }

@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod tests;
 
-use super::disjunction::Disjunction;
 use super::Config;
+use super::disjunction::Disjunction;
+use crate::AnnotationGraph;
 use crate::annis::db::aql::model::AnnotationComponentType;
 use crate::annis::db::exec::filter::Filter;
 use crate::annis::db::exec::indexjoin::IndexJoin;
@@ -16,17 +17,14 @@ use crate::annis::operator::{
     UnaryOperatorSpec,
 };
 use crate::annis::util::TimeoutCheck;
-use crate::AnnotationGraph;
 use crate::{
     annis::types::{LineColumnRange, QueryAttributeDescription},
     errors::Result,
 };
 use graphannis_core::annostorage::EdgeAnnotationStorage;
 use graphannis_core::{annostorage::MatchGroup, graph::storage::GraphStatistic, types::Component};
-use rand::distributions::Distribution;
-use rand::distributions::Uniform;
-use rand::rngs::SmallRng;
-use rand::SeedableRng;
+use rand::distr::Uniform;
+use rand::prelude::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
@@ -460,7 +458,7 @@ impl Conjunction {
 
         // use a constant seed to make the result deterministic
         let mut rng = SmallRng::from_seed(*b"Graphs are great and need a seed");
-        let dist = Uniform::from(0..self.binary_operators.len());
+        let dist = Uniform::new(0, self.binary_operators.len())?;
 
         let mut best_operator_order: Vec<_> = (0..self.binary_operators.len()).collect();
 

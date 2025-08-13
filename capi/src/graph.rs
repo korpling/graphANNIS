@@ -1,16 +1,16 @@
 use super::{cast_const, cstr};
 use crate::{cerror::ErrorList, data::IterPtr, map_cerr};
 use graphannis::{
+    AnnotationGraph,
     errors::GraphAnnisError,
     graph::{Annotation, Edge, Match, NodeID},
     model::{AnnotationComponent, AnnotationComponentType},
-    AnnotationGraph,
 };
 use itertools::Itertools;
 use std::ffi::CString;
 
 /// Get the type of the given component.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_component_type(c: *const AnnotationComponent) -> AnnotationComponentType {
     let c: &AnnotationComponent = cast_const(c);
     c.get_type()
@@ -19,7 +19,7 @@ pub extern "C" fn annis_component_type(c: *const AnnotationComponent) -> Annotat
 /// Get the layer of the given component.
 ///
 /// The returned string must be deallocated by the caller using annis_str_free()!
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_component_layer(c: *const AnnotationComponent) -> *mut libc::c_char {
     let c: &AnnotationComponent = cast_const(c);
     let as_string: &str = &c.layer;
@@ -29,7 +29,7 @@ pub extern "C" fn annis_component_layer(c: *const AnnotationComponent) -> *mut l
 /// Get the name of the given component.
 ///
 /// The returned string must be deallocated by the caller using annis_str_free()!
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_component_name(c: *const AnnotationComponent) -> *mut libc::c_char {
     let c: &AnnotationComponent = cast_const(c);
     let as_string: &str = &c.name;
@@ -37,7 +37,7 @@ pub extern "C" fn annis_component_name(c: *const AnnotationComponent) -> *mut li
 }
 
 /// Return an iterator over all nodes of the graph `g` and the given `node_type` (e.g. "node" or "corpus").
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_graph_nodes_by_type(
     g: *const AnnotationGraph,
     node_type: *const libc::c_char,
@@ -55,7 +55,7 @@ pub extern "C" fn annis_graph_nodes_by_type(
 /// Return a vector of all annotations for the given `node` in the graph `g`.
 ///
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_graph_annotations_for_node(
     g: *const AnnotationGraph,
     node: NodeID,
@@ -72,7 +72,7 @@ pub extern "C" fn annis_graph_annotations_for_node(
 }
 
 /// Return a vector of all components for the graph `g`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_graph_all_components(
     g: *const AnnotationGraph,
 ) -> *mut Vec<AnnotationComponent> {
@@ -82,7 +82,7 @@ pub extern "C" fn annis_graph_all_components(
 }
 
 /// Return a vector of all components for the graph `g` and the given component type.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_graph_all_components_by_type(
     g: *const AnnotationGraph,
     ctype: AnnotationComponentType,
@@ -95,7 +95,7 @@ pub extern "C" fn annis_graph_all_components_by_type(
 /// Return a vector of all outgoing edges for the graph `g`, the `source` node and the given `component`.
 ///
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_graph_outgoing_edges(
     g: *const AnnotationGraph,
     source: NodeID,
@@ -121,7 +121,7 @@ pub extern "C" fn annis_graph_outgoing_edges(
 /// Return a vector of annnotations for the given `edge` in the `component` of graph `g.
 ///
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_graph_annotations_for_edge(
     g: *const AnnotationGraph,
     edge: Edge,

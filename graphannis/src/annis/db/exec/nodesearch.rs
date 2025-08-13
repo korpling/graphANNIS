@@ -1,5 +1,6 @@
 use super::MatchValueFilterFunc;
 use super::{ExecutionNode, ExecutionNodeDesc, NodeSearchDesc};
+use crate::AnnotationGraph;
 use crate::annis::db::aql::model::AnnotationComponentType;
 use crate::annis::db::exec::tokensearch;
 use crate::annis::db::exec::tokensearch::AnyTokenSearch;
@@ -7,7 +8,6 @@ use crate::annis::errors::*;
 use crate::annis::operator::EdgeAnnoSearchSpec;
 use crate::annis::types::LineColumnRange;
 use crate::annis::util::TimeoutCheck;
-use crate::AnnotationGraph;
 use crate::{
     annis::{db::aql::model::TOKEN_KEY, util},
     graph::Match,
@@ -17,7 +17,7 @@ use graphannis_core::errors::GraphAnnisCoreError;
 use graphannis_core::graph::{ANNIS_NS, NODE_NAME};
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
-    graph::{storage::GraphStorage, NODE_TYPE_KEY},
+    graph::{NODE_TYPE_KEY, storage::GraphStorage},
     types::{Component, NodeID},
 };
 use itertools::Itertools;
@@ -299,12 +299,7 @@ impl NodeSearchSpec {
 impl fmt::Display for NodeSearchSpec {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            NodeSearchSpec::ExactValue {
-                ref ns,
-                ref name,
-                ref val,
-                ..
-            } => {
+            NodeSearchSpec::ExactValue { ns, name, val, .. } => {
                 if let (Some(ns), Some(val)) = (ns, val) {
                     write!(f, "{}:{}=\"{}\"", ns, name, val)
                 } else if let Some(ns) = ns {
@@ -315,64 +310,43 @@ impl fmt::Display for NodeSearchSpec {
                     write!(f, "{}", name)
                 }
             }
-            NodeSearchSpec::NotExactValue {
-                ref ns,
-                ref name,
-                ref val,
-                ..
-            } => {
-                if let Some(ref ns) = ns {
+            NodeSearchSpec::NotExactValue { ns, name, val, .. } => {
+                if let Some(ns) = ns {
                     write!(f, "{}:{}!=\"{}\"", ns, name, &val)
                 } else {
                     write!(f, "{}!=\"{}\"", name, &val)
                 }
             }
-            NodeSearchSpec::RegexValue {
-                ref ns,
-                ref name,
-                ref val,
-                ..
-            } => {
+            NodeSearchSpec::RegexValue { ns, name, val, .. } => {
                 if let Some(ns) = ns {
                     write!(f, "{}:{}=/{}/", ns, name, &val)
                 } else {
                     write!(f, "{}=/{}/", name, &val)
                 }
             }
-            NodeSearchSpec::NotRegexValue {
-                ref ns,
-                ref name,
-                ref val,
-                ..
-            } => {
-                if let Some(ref ns) = ns {
+            NodeSearchSpec::NotRegexValue { ns, name, val, .. } => {
+                if let Some(ns) = ns {
                     write!(f, "{}:{}!=/{}/", ns, name, &val)
                 } else {
                     write!(f, "{}!=/{}/", name, &val)
                 }
             }
-            NodeSearchSpec::ExactTokenValue {
-                ref val,
-                ref leafs_only,
-            } => {
+            NodeSearchSpec::ExactTokenValue { val, leafs_only } => {
                 if *leafs_only {
                     write!(f, "tok=\"{}\"", val)
                 } else {
                     write!(f, "\"{}\"", val)
                 }
             }
-            NodeSearchSpec::NotExactTokenValue { ref val } => write!(f, "tok!=\"{}\"", val),
-            NodeSearchSpec::RegexTokenValue {
-                ref val,
-                ref leafs_only,
-            } => {
+            NodeSearchSpec::NotExactTokenValue { val } => write!(f, "tok!=\"{}\"", val),
+            NodeSearchSpec::RegexTokenValue { val, leafs_only } => {
                 if *leafs_only {
                     write!(f, "tok=/{}/", val)
                 } else {
                     write!(f, "/{}/", val)
                 }
             }
-            NodeSearchSpec::NotRegexTokenValue { ref val } => write!(f, "tok!=/{}/", val),
+            NodeSearchSpec::NotRegexTokenValue { val } => write!(f, "tok!=/{}/", val),
             NodeSearchSpec::AnyToken => write!(f, "tok"),
             NodeSearchSpec::AnyNode => write!(f, "node"),
         }
@@ -651,7 +625,7 @@ impl<'a> NodeSearch<'a> {
                 *cached
             } else {
                 match val {
-                    ValueSearch::Some(ref val) => {
+                    ValueSearch::Some(val) => {
                         if qname.0.as_deref() == Some(ANNIS_NS) && qname.1 == NODE_NAME {
                             // Our data model assumes that annis::node_name annotations are unique
                             1
@@ -659,12 +633,12 @@ impl<'a> NodeSearch<'a> {
                             db.get_node_annos().guess_max_count(
                                 qname.0.as_deref(),
                                 &qname.1,
-                                val,
-                                val,
+                                &val,
+                                &val,
                             )?
                         }
                     }
-                    ValueSearch::NotSome(ref val) => {
+                    ValueSearch::NotSome(val) => {
                         let total = db
                             .get_node_annos()
                             .number_of_annotations_by_name(qname.0.as_deref(), &qname.1)?;
@@ -672,8 +646,8 @@ impl<'a> NodeSearch<'a> {
                             - db.get_node_annos().guess_max_count(
                                 qname.0.as_deref(),
                                 &qname.1,
-                                val,
-                                val,
+                                &val,
+                                &val,
                             )?
                     }
                     ValueSearch::Any => db

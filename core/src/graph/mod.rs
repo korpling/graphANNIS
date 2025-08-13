@@ -5,7 +5,7 @@ pub mod update;
 use crate::{
     annostorage::{AnnotationStorage, NodeAnnotationStorage, ValueSearch},
     errors::Result,
-    graph::storage::{registry, GraphStorage, WriteableGraphStorage},
+    graph::storage::{GraphStorage, WriteableGraphStorage, registry},
 };
 use crate::{
     errors::GraphAnnisCoreError,
@@ -97,7 +97,7 @@ fn component_path<CT: ComponentType>(
     c: &Component<CT>,
 ) -> Option<PathBuf> {
     match location {
-        Some(ref loc) => {
+        Some(loc) => {
             let mut p = PathBuf::from(loc);
             // Check if we need to load the component from the backup folder
             let backup = loc.join("backup");

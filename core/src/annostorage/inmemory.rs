@@ -8,7 +8,6 @@ use crate::{annostorage::symboltable::SymbolTable, errors::GraphAnnisCoreError};
 use core::ops::Bound::*;
 use itertools::Itertools;
 use rand::seq::IteratorRandom;
-use rand::thread_rng;
 use rustc_hash::FxHashSet;
 use smartstring::alias::String;
 use smartstring::{LazyCompact, SmartString};
@@ -225,7 +224,7 @@ where
             }
         };
 
-        if let Some(ref existing_anno) = existing_anno {
+        if let Some(existing_anno) = &existing_anno {
             // remove the relation from the original annotation to this item
             self.remove_element_from_by_anno(existing_anno, &item);
         }
@@ -783,7 +782,7 @@ where
                 // For regular expressions without a prefix the worst case would be `.*[X].*` where `[X]` are the most common characters.
                 // Sample values from the histogram to get a better estimation of how many percent of the actual values could match.
                 if let Ok(pattern) = regex::Regex::new(&full_match_pattern) {
-                    let mut rng = thread_rng();
+                    let mut rng = rand::rng();
                     let qualified_keys: Vec<_> = match ns {
                         Some(ns) => vec![AnnoKey {
                             name: name.into(),
@@ -926,7 +925,7 @@ where
         for anno_key in self.anno_key_sizes.keys() {
             if let Some(anno_key) = self.anno_keys.get_symbol(anno_key) {
                 // sample a maximal number of annotation values
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
                 if let Some(values_for_key) = self.by_anno.get(&anno_key) {
                     let sampled_anno_values: Vec<usize> = values_for_key
                         .iter()

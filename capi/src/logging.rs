@@ -36,7 +36,7 @@ impl From<LogLevel> for simplelog::LevelFilter {
 /// # Safety
 ///
 /// This functions dereferences the `err` pointer and is therefore unsafe.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn annis_init_logging(
     logfile: *const libc::c_char,
     level: LogLevel,
@@ -45,20 +45,24 @@ pub unsafe extern "C" fn annis_init_logging(
     if !logfile.is_null() {
         let logfile: &str = &cstr(logfile);
 
-        match File::create(logfile) {
-            Ok(f) => {
-                if let Err(e) = WriteLogger::init(LevelFilter::from(level), Config::default(), f) {
-                    // File was created, but logger was not.
+        unsafe {
+            match File::create(logfile) {
+                Ok(f) => {
+                    if let Err(e) =
+                        WriteLogger::init(LevelFilter::from(level), Config::default(), f)
+                    {
+                        // File was created, but logger was not.
+                        if !err.is_null() {
+                            *err = Box::into_raw(Box::new(vec![Error::from(e)]));
+                        }
+                    }
+                }
+                Err(e) => {
                     if !err.is_null() {
                         *err = Box::into_raw(Box::new(vec![Error::from(e)]));
                     }
                 }
-            }
-            Err(e) => {
-                if !err.is_null() {
-                    *err = Box::into_raw(Box::new(vec![Error::from(e)]));
-                }
-            }
-        };
+            };
+        }
     }
 }

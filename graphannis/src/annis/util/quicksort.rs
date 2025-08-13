@@ -109,11 +109,11 @@ where
     if (item_range.end - item_range.start) == 1 {
         Ok(item_range.start)
     } else {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         // Use the median of 3 random positions as pivot
-        let i1 = rng.gen_range(item_range.clone());
-        let i2 = rng.gen_range(item_range.clone());
-        let i3 = rng.gen_range(item_range.clone());
+        let i1 = rng.random_range(item_range.clone());
+        let i2 = rng.random_range(item_range.clone());
+        let i3 = rng.random_range(item_range.clone());
 
         let v1 = (i1, items.try_get(i1)?.into_owned());
         let v2 = (i2, items.try_get(i2)?.into_owned());
@@ -177,9 +177,8 @@ where
 mod test {
 
     use rand;
-    use rand::distributions::Distribution;
-    use rand::Rng;
-    use serde::{de::DeserializeOwned, Serialize};
+    use rand::prelude::*;
+    use serde::{Serialize, de::DeserializeOwned};
     use transient_btree_index::{BtreeConfig, BtreeIndex};
 
     fn index_from_vec<V>(items: Vec<V>) -> BtreeIndex<usize, V>
@@ -216,7 +215,9 @@ mod test {
         let num_items = items.len();
         super::sort_first_n_items(&mut items, num_items, |x, y| Ok(x.cmp(y))).unwrap();
         assert_eq!(
-            vec![1, 1, 3, 4, 4, 5, 5, 5, 10, 10, 10, 20, 23, 32, 42, 42, 56, 99, 100, 101, 202],
+            vec![
+                1, 1, 3, 4, 4, 5, 5, 5, 10, 10, 10, 20, 23, 32, 42, 42, 56, 99, 100, 101, 202
+            ],
             items
         );
 
@@ -276,7 +277,9 @@ mod test {
         let num_items = items.len();
         super::sort_first_n_items(&mut items, num_items, |x, y| Ok(x.cmp(y))).unwrap();
         assert_eq!(
-            vec![1, 1, 3, 4, 4, 5, 5, 5, 10, 10, 10, 20, 23, 32, 42, 42, 56, 99, 100, 101, 202],
+            vec![
+                1, 1, 3, 4, 4, 5, 5, 5, 10, 10, 10, 20, 23, 32, 42, 42, 56, 99, 100, 101, 202
+            ],
             index_to_vec(items)
         );
 

@@ -17,7 +17,7 @@ use std::ffi::CString;
 /// # Safety
 ///
 /// This functions dereferences the `ptr` pointer and is therefore unsafe.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[allow(clippy::from_raw_with_void_ptr)]
 pub unsafe extern "C" fn annis_free(ptr: *mut c_void) {
     if ptr.is_null() {
@@ -25,7 +25,7 @@ pub unsafe extern "C" fn annis_free(ptr: *mut c_void) {
     }
     // take ownership and destroy the pointer
     // TODO: this is problematic (https://rust-lang.github.io/rust-clippy/master/index.html#/from_raw_with_void_ptr). Introduce type aware _free functions.
-    let ptr = Box::from_raw(ptr);
+    let ptr = unsafe { Box::from_raw(ptr) };
     std::mem::drop(ptr);
 }
 
@@ -34,13 +34,14 @@ pub unsafe extern "C" fn annis_free(ptr: *mut c_void) {
 /// # Safety
 ///
 /// This functions dereferences the `s` pointer and is therefore unsafe.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn annis_str_free(s: *mut c_char) {
     if s.is_null() {
         return;
     }
     // take ownership and destruct
-    drop(CString::from_raw(s));
+    let s = unsafe { CString::from_raw(s) };
+    drop(s);
 }
 
 pub type IterPtr<T> = Box<dyn Iterator<Item = Result<T>>>;
@@ -59,7 +60,7 @@ fn iter_next<T>(ptr: *mut Box<dyn Iterator<Item = Result<T>>>, err: *mut *mut Er
 /// or `NULL` if iterator is empty.
 ///
 /// - `err` - Pointer to a list of errors. If any error occured, this list will be non-empty.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_iter_nodeid_next(
     ptr: *mut IterPtr<NodeID>,
     err: *mut *mut ErrorList,
@@ -81,13 +82,13 @@ pub fn vec_get<T>(ptr: *const Vec<T>, i: size_t) -> *const T {
 }
 
 /// Returns the number of elements of the string vector.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_str_size(ptr: *const Vec<CString>) -> size_t {
     vec_size(ptr)
 }
 
 /// Get a read-only reference to the string at position `i` of the vector.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_str_get(ptr: *const Vec<CString>, i: size_t) -> *const c_char {
     // custom implementation for string vectors, don't return a referance to CString but a char pointer
     let strvec: &Vec<CString> = cast_const(ptr);
@@ -99,14 +100,14 @@ pub extern "C" fn annis_vec_str_get(ptr: *const Vec<CString>, i: size_t) -> *con
 }
 
 /// Create a new string vector.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_str_new() -> *mut Vec<CString> {
     let result: Vec<CString> = Vec::new();
     Box::into_raw(Box::new(result))
 }
 
 /// Add an element to the string vector.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_str_push(ptr: *mut Vec<CString>, v: *const c_char) {
     let strvec: &mut Vec<CString> = cast_mut(ptr);
     let v: &str = &cstr(v);
@@ -116,7 +117,7 @@ pub extern "C" fn annis_vec_str_push(ptr: *mut Vec<CString>, v: *const c_char) {
 }
 
 /// Get the namespace of the given annotation object.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_annotation_ns(ptr: *const Annotation) -> *mut c_char {
     let anno: &Annotation = cast_const(ptr);
     CString::new(anno.key.ns.as_str())
@@ -125,7 +126,7 @@ pub extern "C" fn annis_annotation_ns(ptr: *const Annotation) -> *mut c_char {
 }
 
 /// Get the name of the given annotation object.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_annotation_name(ptr: *const Annotation) -> *mut c_char {
     let anno: &Annotation = cast_const(ptr);
     CString::new(anno.key.name.as_str())
@@ -134,7 +135,7 @@ pub extern "C" fn annis_annotation_name(ptr: *const Annotation) -> *mut c_char {
 }
 
 /// Get the value of the given annotation object.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_annotation_val(ptr: *const Annotation) -> *mut c_char {
     let anno: &Annotation = cast_const(ptr);
     CString::new(anno.val.as_str())
@@ -143,13 +144,13 @@ pub extern "C" fn annis_annotation_val(ptr: *const Annotation) -> *mut c_char {
 }
 
 /// Returns the number of elements of the annotation vector.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_annotation_size(ptr: *const Vec<Annotation>) -> size_t {
     vec_size(ptr)
 }
 
 /// Get a read-only reference to the annotation at position `i` of the vector.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_annotation_get(
     ptr: *const Vec<Annotation>,
     i: size_t,
@@ -158,25 +159,25 @@ pub extern "C" fn annis_vec_annotation_get(
 }
 
 /// Returns the number of elements of the edge vector.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_edge_size(ptr: *const Vec<Edge>) -> size_t {
     vec_size(ptr)
 }
 
 /// Get a read-only reference to the edge at position `i` of the vector.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_edge_get(ptr: *const Vec<Edge>, i: size_t) -> *const Edge {
     vec_get(ptr, i)
 }
 
 /// Returns the number of elements of the component vector.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_component_size(ptr: *const Vec<AnnotationComponent>) -> size_t {
     vec_size(ptr)
 }
 
 /// Get a read-only reference to the component at position `i` of the vector.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_component_get(
     ptr: *const Vec<AnnotationComponent>,
     i: size_t,
@@ -185,13 +186,13 @@ pub extern "C" fn annis_vec_component_get(
 }
 
 /// Returns the number of elements of the query attribute description vector.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_qattdesc_size(ptr: *const Vec<QueryAttributeDescription>) -> size_t {
     vec_size(ptr)
 }
 
 /// Get a read-only reference to the query attribute description at position `i` of the vector.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_qattdesc_get_component_nr(
     ptr: *const Vec<QueryAttributeDescription>,
     i: size_t,
@@ -204,7 +205,7 @@ pub extern "C" fn annis_vec_qattdesc_get_component_nr(
 /// Create a string representing the AQL fragment part of the query attribute description.
 ///
 /// The resulting char* must be freeed with annis_str_free!
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_qattdesc_get_aql_fragment(
     ptr: *const Vec<QueryAttributeDescription>,
     i: size_t,
@@ -218,7 +219,7 @@ pub extern "C" fn annis_vec_qattdesc_get_aql_fragment(
 /// Create a string representing the variable part of the query attribute description.
 ///
 /// The resulting char* must be freeed with annis_str_free!
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_qattdesc_get_variable(
     ptr: *const Vec<QueryAttributeDescription>,
     i: size_t,
@@ -232,14 +233,14 @@ pub extern "C" fn annis_vec_qattdesc_get_variable(
 /// Create a string representing the annotation name part of the query attribute description.
 ///
 /// The resulting char* must be freeed with annis_str_free!
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_vec_qattdesc_get_anno_name(
     ptr: *const Vec<QueryAttributeDescription>,
     i: size_t,
 ) -> *mut c_char {
     let desc_ptr: *const QueryAttributeDescription = vec_get(ptr, i);
     let desc: &QueryAttributeDescription = cast_const(desc_ptr);
-    if let Some(ref anno_name) = desc.anno_name {
+    if let Some(anno_name) = &desc.anno_name {
         let cstr: CString = CString::new(anno_name.as_str()).unwrap_or_default();
         cstr.into_raw()
     } else {
@@ -248,13 +249,13 @@ pub extern "C" fn annis_vec_qattdesc_get_anno_name(
 }
 
 /// Returns the number of rows of the string matrix.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_matrix_str_nrows(ptr: *const Matrix<CString>) -> size_t {
     vec_size(ptr)
 }
 
 /// Returns the number of columns of the string matrix.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_matrix_str_ncols(ptr: *const Matrix<CString>) -> size_t {
     let v: &Vec<Vec<CString>> = cast_const(ptr);
     if !v.is_empty() {
@@ -264,7 +265,7 @@ pub extern "C" fn annis_matrix_str_ncols(ptr: *const Matrix<CString>) -> size_t 
 }
 
 /// Get a read-only reference to the string at the at position (`row`, `col`) of the matrix.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_matrix_str_get(
     ptr: *const Matrix<CString>,
     row: size_t,
@@ -279,13 +280,13 @@ pub extern "C" fn annis_matrix_str_get(
 }
 
 /// Returns the number of rows of the frequency table.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_freqtable_str_nrows(ptr: *const FrequencyTable<CString>) -> size_t {
     vec_size(ptr)
 }
 
 /// Returns the number of columns of the frequency table.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_freqtable_str_ncols(ptr: *const FrequencyTable<CString>) -> size_t {
     let v: &FrequencyTable<CString> = cast_const(ptr);
     if !v.is_empty() {
@@ -295,7 +296,7 @@ pub extern "C" fn annis_freqtable_str_ncols(ptr: *const FrequencyTable<CString>)
 }
 
 /// Get a read-only reference to the string at the at position (`row`, `col`) of the frequency table.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_freqtable_str_get(
     ptr: *const FrequencyTable<CString>,
     row: size_t,
@@ -310,7 +311,7 @@ pub extern "C" fn annis_freqtable_str_get(
 }
 
 /// Get the count of the `row` of the frequency table.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn annis_freqtable_str_count(
     ptr: *const FrequencyTable<CString>,
     row: size_t,
