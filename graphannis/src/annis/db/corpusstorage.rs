@@ -37,7 +37,6 @@ use linked_hash_map::LinkedHashMap;
 use memory_stats::memory_stats;
 use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, CONTROLS};
 use rand::Rng;
-use smartstring::alias::String as SmartString;
 use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
@@ -2001,7 +2000,7 @@ impl CorpusStorage {
         let timeout = TimeoutCheck::new(query.timeout);
 
         // Sort corpus names
-        let mut corpus_names: Vec<SmartString> = query
+        let mut corpus_names: Vec<String> = query
             .corpus_names
             .iter()
             .map(|c| c.as_ref().into())
@@ -2466,7 +2465,7 @@ impl CorpusStorage {
                     } else {
                         result.push(Annotation {
                             key: key.clone(),
-                            val: SmartString::default(),
+                            val: String::default(),
                         });
                     }
                 }
@@ -2519,7 +2518,7 @@ impl CorpusStorage {
                         } else {
                             result.push(Annotation {
                                 key: key.clone(),
-                                val: SmartString::new(),
+                                val: String::new(),
                             });
                         }
                     }

@@ -24,8 +24,6 @@ use graphannis_core::{
 };
 use itertools::Itertools;
 use percent_encoding::utf8_percent_encode;
-use smartstring::alias::String;
-use smartstring::{LazyCompact, SmartString};
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -35,8 +33,7 @@ use std::ops::Bound;
 use std::path::{Path, PathBuf};
 
 lazy_static! {
-    static ref INVALID_STRING: SmartString<LazyCompact> =
-        SmartString::<LazyCompact>::from(std::char::MAX.to_string());
+    static ref INVALID_STRING: String = std::char::MAX.to_string();
     static ref DEFAULT_VISUALIZER_RULES: Vec<(i64, bool, VisualizerRule)> = vec![
         (
             -1,
@@ -793,7 +790,7 @@ fn get_field(
     i: usize,
     column_name: &str,
     file: &Path,
-) -> crate::errors::Result<Option<SmartString<LazyCompact>>> {
+) -> crate::errors::Result<Option<String>> {
     let r = record.get(i).ok_or_else(|| RelAnnisError::MissingColumn {
         pos: i,
         name: column_name.to_string(),
@@ -808,9 +805,9 @@ fn get_field(
     }
 }
 
-fn escape_field(val: &str) -> SmartString<LazyCompact> {
+fn escape_field(val: &str) -> String {
     let mut chars = val.chars().peekable();
-    let mut unescaped = SmartString::<LazyCompact>::new();
+    let mut unescaped = String::new();
 
     loop {
         match chars.next() {
@@ -858,7 +855,7 @@ fn get_field_not_null(
     i: usize,
     column_name: &str,
     file: &Path,
-) -> crate::errors::Result<SmartString<LazyCompact>> {
+) -> crate::errors::Result<String> {
     let result =
         get_field(record, i, column_name, file)?.ok_or_else(|| RelAnnisError::UnexpectedNull {
             pos: i,

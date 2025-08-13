@@ -50,7 +50,7 @@ impl BinaryOperatorSpec for NearSpec {
             ordering_layer.into(),
             self.segmentation
                 .as_ref()
-                .map_or_else(smartstring::alias::String::default, |s| s.into()),
+                .map_or_else(String::default, |s| s.into()),
         );
 
         let mut v = HashSet::default();

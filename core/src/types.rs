@@ -1,7 +1,6 @@
 use num_traits::{Bounded, FromPrimitive, Num, ToPrimitive};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use smartstring::alias::String;
 use std::error::Error;
 use std::fmt;
 use std::ops::AddAssign;

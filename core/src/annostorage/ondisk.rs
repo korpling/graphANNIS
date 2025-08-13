@@ -20,8 +20,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use transient_btree_index::BtreeConfig;
 
-use smartstring::alias::String as SmartString;
-
 use super::{EdgeAnnotationStorage, NodeAnnotationStorage};
 
 pub const SUBFOLDER_NAME: &str = "nodes_diskmap_v1";
@@ -520,7 +518,7 @@ where
         let it = self.anno_key_sizes.range(
             AnnoKey {
                 name: name.into(),
-                ns: SmartString::default(),
+                ns: String::default(),
             }..,
         );
         let mut result: Vec<AnnoKey> = Vec::default();
@@ -662,7 +660,7 @@ where
             None => self.anno_key_sizes.range(
                 AnnoKey {
                     name: name.into(),
-                    ns: SmartString::default(),
+                    ns: String::default(),
                 }..AnnoKey {
                     name: name.into(),
                     ns: std::char::MAX.to_string().into(),

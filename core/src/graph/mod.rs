@@ -13,7 +13,6 @@ use crate::{
 };
 use clru::CLruCache;
 use rayon::prelude::*;
-use smartstring::alias::String as SmartString;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
 use std::string::ToString;
@@ -132,13 +131,13 @@ pub fn find_components_from_disk<CT: ComponentType, P: AsRef<Path>>(
                     // try to load the component with the empty name
                     let layer_file_name = layer.file_name();
                     let layer_name_from_file = layer_file_name.to_string_lossy();
-                    let layer_name: SmartString = if layer_name_from_file == DEFAULT_EMPTY_LAYER {
-                        SmartString::default()
+                    let layer_name = if layer_name_from_file == DEFAULT_EMPTY_LAYER {
+                        String::default()
                     } else {
                         layer_name_from_file.into()
                     };
                     let empty_name_component =
-                        Component::new(c.clone(), layer_name.clone(), SmartString::default());
+                        Component::new(c.clone(), layer_name.clone(), String::default());
                     {
                         let cfg_file = PathBuf::from(location.as_ref())
                             .join(component_to_relative_path(&empty_name_component))
@@ -1088,7 +1087,7 @@ impl<CT: ComponentType> Graph<CT> {
         if let (Some(ctype), Some(name)) = (&ctype, name) {
             // lookup component from sorted map
             let mut result: Vec<_> = Vec::new();
-            let ckey = Component::new(ctype.clone(), SmartString::default(), name.into());
+            let ckey = Component::new(ctype.clone(), String::default(), name.into());
 
             for (c, _) in self.components.range(ckey..) {
                 if c.name != name || &c.get_type() != ctype {
@@ -1100,11 +1099,7 @@ impl<CT: ComponentType> Graph<CT> {
         } else if let Some(ctype) = &ctype {
             // lookup component from sorted map
             let mut result: Vec<_> = Vec::new();
-            let ckey = Component::new(
-                ctype.clone(),
-                SmartString::default(),
-                SmartString::default(),
-            );
+            let ckey = Component::new(ctype.clone(), String::default(), String::default());
 
             for (c, _) in self.components.range(ckey..) {
                 if &c.get_type() != ctype {
