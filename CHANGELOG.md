@@ -7,11 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- :boom: Removed usage of the `smartstring` crate. This changes the interface of the
-  `AnnoKey` and `Component`/`AnnotationComponent` structs and is a **breaking
-  change**, but the new interface is actually easier to call because the
-  conversion to smart strings is not necessary any longer. The change also
-  increases performance for several queries in the test set by up to 30%.
+- :boom: Removed usage of the `smartstring` crate. This changes the interface of
+  the `AnnoKey`, `Annotation`, and `Component`/`AnnotationComponent` structs and
+  is a **breaking change**, but the new interface is actually easier to call
+  because the conversion to smart strings is not necessary any longer. The
+  change also increases performance for several queries in the test set by up to
+  30%.
 
 ## [3.8.3] - 2025-08-12
 
