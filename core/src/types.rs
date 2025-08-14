@@ -1,4 +1,5 @@
 use facet::Facet;
+use facet_reflect::Partial;
 use num_traits::{Bounded, FromPrimitive, Num, ToPrimitive};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -7,8 +8,6 @@ use std::fmt;
 use std::ops::AddAssign;
 
 use std::{convert::TryInto, str::FromStr};
-use strum::IntoEnumIterator;
-use strum_macros::{EnumIter, EnumString};
 
 use super::serializer::{FixedSizeKeySerializer, KeySerializer};
 use crate::serializer::KeyVec;
@@ -34,7 +33,9 @@ pub struct AnnoKey {
 }
 
 /// An annotation with a qualified name and a value.
-#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash)]
+#[derive(
+    Facet, Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash,
+)]
 pub struct Annotation {
     /// Qualified name or unique "key" for the annotation
     pub key: AnnoKey,
@@ -43,7 +44,9 @@ pub struct Annotation {
 }
 
 /// Directed edge between a source and target node which are identified by their ID.
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash, Default)]
+#[derive(
+    Facet, Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash, Default,
+)]
 #[repr(C)]
 pub struct Edge {
     pub source: NodeID,
@@ -138,7 +141,8 @@ pub trait ComponentType:
 }
 
 /// A simplified implementation of a `ComponentType` that only has one type of edges.
-#[derive(Clone, Eq, PartialEq, PartialOrd, Ord, EnumString, EnumIter, Debug)]
+#[derive(Facet, Clone, Eq, PartialEq, PartialOrd, Ord, Debug)]
+#[repr(u16)]
 pub enum DefaultComponentType {
     Edge,
 }
@@ -163,7 +167,7 @@ impl fmt::Display for DefaultComponentType {
 
 pub struct DefaultGraphIndex;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Facet, Serialize, Deserialize)]
 pub struct DefaultGlobalStatistics;
 
 impl ComponentType for DefaultComponentType {
@@ -176,15 +180,27 @@ impl ComponentType for DefaultComponentType {
         Ok(DefaultGraphIndex {})
     }
     fn all_component_types() -> Vec<Self> {
-        DefaultComponentType::iter().collect()
+        vec![DefaultComponentType::Edge]
     }
     fn calculate_global_statistics(_graph: &mut Graph<Self>) -> StdResult<(), ComponentTypeError> {
         Ok(())
     }
 }
 
+impl FromStr for DefaultComponentType {
+    type Err = GraphAnnisCoreError;
+
+    fn from_str(s: &str) -> StdResult<Self, Self::Err> {
+        let result = Partial::alloc_shape(DefaultComponentType::SHAPE)?
+            .select_variant_named(s)?
+            .build()?
+            .materialize()?;
+        Ok(result)
+    }
+}
+
 /// Identifies an edge component of the graph.
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
+#[derive(Facet, Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
 pub struct Component<CT: ComponentType> {
     /// Type of the component
     ctype: u16,

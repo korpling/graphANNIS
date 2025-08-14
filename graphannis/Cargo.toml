@@ -24,6 +24,7 @@ regex = "1"
 [dependencies]
 boolean_expression = "0.4"
 csv = "1"
+facet = "0.28.0"
 fs2 = "0.4"
 graphannis-core = { path = "../core/", version = "^3" }
 itertools = "0.10"

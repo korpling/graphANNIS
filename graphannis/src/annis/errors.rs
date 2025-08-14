@@ -1,6 +1,7 @@
 use std::{fmt::Display, sync::PoisonError};
 
 use crate::annis::types::LineColumnRange;
+
 use graphannis_core::{
     errors::{ComponentTypeError, GraphAnnisCoreError},
     types::NodeID,

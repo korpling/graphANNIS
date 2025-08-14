@@ -3,11 +3,12 @@ use std::{
     sync::PoisonError,
 };
 
+use facet_reflect::ReflectError;
 use thiserror::Error;
 
 use crate::types::AnnoKey;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, strum_macros::IntoStaticStr)]
 #[non_exhaustive]
 pub enum GraphAnnisCoreError {
     #[error("invalid component type {0}")]
@@ -73,6 +74,8 @@ pub enum GraphAnnisCoreError {
     TomlDeserializer(#[from] toml::de::Error),
     #[error(transparent)]
     TomlSerializer(#[from] toml::ser::Error),
+    #[error(transparent)]
+    Reflection(#[from] ReflectError),
     #[error(transparent)]
     Other(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
