@@ -1,5 +1,4 @@
 use facet::Facet;
-use facet_reflect::Partial;
 use num_traits::{Bounded, FromPrimitive, Num, ToPrimitive};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -191,11 +190,11 @@ impl FromStr for DefaultComponentType {
     type Err = GraphAnnisCoreError;
 
     fn from_str(s: &str) -> StdResult<Self, Self::Err> {
-        let result = Partial::alloc_shape(DefaultComponentType::SHAPE)?
-            .select_variant_named(s)?
-            .build()?
-            .materialize()?;
-        Ok(result)
+        if s == "Edge" {
+            Ok(Self::Edge)
+        } else {
+            Err(GraphAnnisCoreError::InvalidComponentType(s.to_string()))
+        }
     }
 }
 

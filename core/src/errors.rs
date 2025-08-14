@@ -3,7 +3,6 @@ use std::{
     sync::PoisonError,
 };
 
-use facet_reflect::ReflectError;
 use thiserror::Error;
 
 use crate::types::AnnoKey;
@@ -74,8 +73,6 @@ pub enum GraphAnnisCoreError {
     TomlDeserializer(#[from] toml::de::Error),
     #[error(transparent)]
     TomlSerializer(#[from] toml::ser::Error),
-    #[error(transparent)]
-    Reflection(#[from] ReflectError),
     #[error(transparent)]
     Other(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
