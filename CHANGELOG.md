@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   change also increases performance for several queries in the test set by up to
   30%.
 
+### Added
+
+- Added the support for [Facet](https://facet.rs/) to some of the core types
+  (like `Annotation`, `Component`, etc.) to make it possible to use Facet in the
+  [Annatto](https://github.com/korpling/annatto/)
+
 ## [3.8.3] - 2025-08-12
 
 ### Fixed
