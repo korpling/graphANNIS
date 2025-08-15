@@ -275,3 +275,20 @@ impl NumValue for u64 {}
 impl NumValue for u32 {}
 impl NumValue for u16 {}
 impl NumValue for u8 {}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use crate::{errors::GraphAnnisCoreError, types::DefaultComponentType};
+
+    #[test]
+    fn parse_invalid_component_type() {
+        let result = DefaultComponentType::from_str("doesnotexist");
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            GraphAnnisCoreError::InvalidComponentType(_)
+        ));
+    }
+}
