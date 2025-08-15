@@ -3,6 +3,7 @@ use crate::{
     errors::GraphAnnisError,
     graph::{Edge, EdgeContainer, GraphStorage, NodeID},
 };
+use facet::Facet;
 use graphannis_core::{
     annostorage::ValueSearch,
     dfs::CycleSafeDFS,
@@ -44,7 +45,18 @@ lazy_static! {
 
 /// Specifies the type of component of the annotation graph. The types of this enum carray certain semantics about the edges of the graph components their are used in.
 #[derive(
-    Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, EnumIter, EnumString,
+    Facet,
+    Serialize,
+    Deserialize,
+    Eq,
+    PartialEq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    EnumIter,
+    EnumString,
 )]
 #[repr(C)]
 pub enum AnnotationComponentType {
