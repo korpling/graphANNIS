@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use crate::types::AnnoKey;
 
-#[derive(Error, Debug, strum_macros::IntoStaticStr)]
+#[derive(Error, Debug)]
 #[non_exhaustive]
 pub enum GraphAnnisCoreError {
     #[error("invalid component type {0}")]
