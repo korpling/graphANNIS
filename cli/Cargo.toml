@@ -7,14 +7,14 @@ license = "Apache-2.0"
 name = "graphannis-cli"
 readme = "crate-info.md"
 repository = "https://github.com/korpling/graphANNIS"
-version = "3.8.3"
+version = "4.0.0"
 
 [dependencies]
 anyhow = "1"
 clap = { version = "2", default-features = false }
 compound_duration = "1"
 criterion = "0.3"
-graphannis = { path = "../graphannis/", version = "^3" }
+graphannis = { path = "../graphannis/", version = "^4" }
 log = "0.4"
 prettytable-rs = "0.10.0"
 rustyline = "9"

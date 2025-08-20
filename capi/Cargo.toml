@@ -6,13 +6,13 @@ license = "Apache-2.0"
 name = "graphannis-capi"
 readme = "crate-info.md"
 repository = "https://github.com/korpling/graphANNIS"
-version = "3.8.3"
+version = "4.0.0"
 
 [lib]
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
-graphannis = { path = "../graphannis/", version = "^3" }
+graphannis = { path = "../graphannis/", version = "^4" }
 itertools = "0.10"
 libc = "0.2"
 log = "0.4"

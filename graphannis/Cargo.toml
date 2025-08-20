@@ -7,7 +7,7 @@ license = "Apache-2.0"
 name = "graphannis"
 readme = "../README.md"
 repository = "https://github.com/korpling/graphANNIS"
-version = "3.8.3"
+version = "4.0.0"
 
 [lib]
 crate-type = ["lib"]
@@ -26,7 +26,7 @@ boolean_expression = "0.4"
 csv = "1"
 facet = "0.28.0"
 fs2 = "0.4"
-graphannis-core = { path = "../core/", version = "^3" }
+graphannis-core = { path = "../core/", version = "^4" }
 itertools = "0.10"
 lalrpop-util = { version = "0.20", features = ["lexer"] }
 lazy_static = "1.4"

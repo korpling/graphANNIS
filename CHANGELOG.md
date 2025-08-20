@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0] - 2025-08-20
+
 ### Changed
 
 - :boom: Removed usage of the `smartstring` crate. This changes the interface of
