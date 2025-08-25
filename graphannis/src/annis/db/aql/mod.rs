@@ -6,6 +6,7 @@ pub mod operators;
 
 use boolean_expression::Expr;
 use graphannis_core::annostorage::MatchGroup;
+use itertools::Itertools;
 lalrpop_mod!(
     #[allow(clippy::all)]
     #[allow(clippy::panic)]
@@ -77,7 +78,28 @@ pub fn execute_query_on_graph<'a>(
     let timeout = TimeoutCheck::new(timeout);
 
     let config = Config { use_parallel_joins };
-    let it = ExecutionPlan::from_disjunction(query, graph, &config, timeout)?;
+    let it = ExecutionPlan::from_disjunction(query, graph, &config, timeout)?
+        .map_ok(|mg| {
+            // Rewrite match group to only include nodes that are included in the query
+            // check if query node actually should be included
+            let mut new_match_group = MatchGroup::with_capacity(mg.len());
+            for (node_nr, m) in mg.into_iter().enumerate() {
+                let include_in_output = query
+                    .get_variable_by_node_nr(node_nr)
+                    .is_some_and(|var| query.is_included_in_output(&var));
+                if include_in_output {
+                    new_match_group.push(m);
+                }
+            }
+            new_match_group
+        })
+        .unique_by(move |mg| {
+            // Map an error to an empty match group
+            match mg {
+                Ok(mg) => mg.clone(),
+                Err(_) => MatchGroup::new(),
+            }
+        });
 
     Ok(Box::from(it))
 }
@@ -662,5 +684,26 @@ mod tests {
         let query = parse("tok @* annis:doc=\"doc4\"", false).unwrap();
         let it = execute_query_on_graph(&graph, &query, true, None).unwrap();
         assert_eq!(11, it.count());
+    }
+
+    #[test]
+    fn query_on_annotation_graph_with_negation() {
+        let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let input_file = File::open(&cargo_dir.join("tests/SaltSampleCorpus.graphml")).unwrap();
+        let (graph, _config_str): (AnnotationGraph, _) =
+            graphannis_core::graph::serialization::graphml::import(input_file, false, |_status| {})
+                .unwrap();
+
+        let query = parse("tok? !. tok", false).unwrap();
+        let it = execute_query_on_graph(&graph, &query, true, None).unwrap();
+
+        let matches: Result<Vec<_>> = it.collect();
+        let matches = matches.unwrap();
+        assert_eq!(4, matches.len());
+        // The match should not have 2 two nodes, but only one nde
+        assert_eq!(1, matches[0].len());
+        assert_eq!(1, matches[1].len());
+        assert_eq!(1, matches[2].len());
+        assert_eq!(1, matches[3].len());
     }
 }
