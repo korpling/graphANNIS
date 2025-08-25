@@ -685,4 +685,25 @@ mod tests {
         let it = execute_query_on_graph(&graph, &query, true, None).unwrap();
         assert_eq!(11, it.count());
     }
+
+    #[test]
+    fn query_on_annotation_graph_with_negation() {
+        let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let input_file = File::open(&cargo_dir.join("tests/SaltSampleCorpus.graphml")).unwrap();
+        let (graph, _config_str): (AnnotationGraph, _) =
+            graphannis_core::graph::serialization::graphml::import(input_file, false, |_status| {})
+                .unwrap();
+
+        let query = parse("tok? !. tok", false).unwrap();
+        let it = execute_query_on_graph(&graph, &query, true, None).unwrap();
+
+        let matches: Result<Vec<_>> = it.collect();
+        let matches = matches.unwrap();
+        assert_eq!(4, matches.len());
+        // The match should not have 2 two nodes, but only one nde
+        assert_eq!(1, matches[0].len());
+        assert_eq!(1, matches[1].len());
+        assert_eq!(1, matches[2].len());
+        assert_eq!(1, matches[3].len());
+    }
 }
