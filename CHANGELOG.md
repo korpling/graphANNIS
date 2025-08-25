@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `execute_query_on_graph` now skips nodes that are not part of the output
+  (optional negated nodes) and makes sure the resulting iterator only produces
+  unique results.
+
 ## [4.0.0] - 2025-08-20
 
 ### Changed
