@@ -45,34 +45,7 @@ impl BaseEdgeOp {
             gs.push(gs_for_component);
         }
 
-        let all_part_of_components = spec
-            .components
-            .iter()
-            .all(|c| c.get_type() == AnnotationComponentType::PartOf);
-
-        let max_nodes_estimate = if all_part_of_components && gs.len() == 1 {
-            // PartOf components have a very skewed distribution of root nodes
-            // vs. the actual possible targets, thus do not use all nodes as
-            // population but only the non-roots.
-            if let Some(stats) = gs[0].get_statistics() {
-                stats.nodes - stats.root_nodes
-            } else {
-                // Fallback to guessing by using the node type
-                db.get_node_annos().guess_max_count(
-                    Some(&NODE_TYPE_KEY.ns),
-                    &NODE_TYPE_KEY.name,
-                    "corpus",
-                    "datasource",
-                )?
-            }
-        } else {
-            db.get_node_annos().guess_max_count(
-                Some(&NODE_TYPE_KEY.ns),
-                &NODE_TYPE_KEY.name,
-                "node",
-                "node",
-            )?
-        };
+        let max_nodes_estimate = calculate_max_node_estimate(db, &spec, &gs, false)?;
         Ok(BaseEdgeOp {
             gs,
             spec,
@@ -80,6 +53,42 @@ impl BaseEdgeOp {
             inverse: false,
         })
     }
+}
+
+fn calculate_max_node_estimate(
+    db: &AnnotationGraph,
+    spec: &BaseEdgeOpSpec,
+    gs: &Vec<Arc<dyn GraphStorage>>,
+    inverse: bool,
+) -> Result<usize> {
+    let all_part_of_components = spec
+        .components
+        .iter()
+        .all(|c| c.get_type() == AnnotationComponentType::PartOf);
+    let max_nodes_estimate = if all_part_of_components && gs.len() == 1 {
+        // PartOf components have a very skewed distribution of root nodes
+        // vs. the actual possible targets, thus do not use all nodes as
+        // population but only the non-roots.
+        if !inverse && let Some(stats) = gs[0].get_statistics() {
+            stats.nodes - stats.root_nodes
+        } else {
+            // Fallback to guessing by using the node type
+            db.get_node_annos().guess_max_count(
+                Some(&NODE_TYPE_KEY.ns),
+                &NODE_TYPE_KEY.name,
+                "corpus",
+                "datasource",
+            )?
+        }
+    } else {
+        db.get_node_annos().guess_max_count(
+            Some(&NODE_TYPE_KEY.ns),
+            &NODE_TYPE_KEY.name,
+            "node",
+            "node",
+        )?
+    };
+    Ok(max_nodes_estimate)
 }
 
 impl BinaryOperatorSpec for BaseEdgeOpSpec {
@@ -286,8 +295,10 @@ impl BinaryOperatorBase for BaseEdgeOp {
 
     fn get_inverse_operator<'a>(
         &self,
-        _graph: &'a AnnotationGraph,
+        graph: &'a AnnotationGraph,
     ) -> Result<Option<BinaryOperator<'a>>> {
+        let inverse = !self.inverse;
+
         // Check if all graph storages have the same inverse cost. If not, we
         // don't provide an inverse operator, because the plans would not
         // account for the different costs
@@ -302,11 +313,12 @@ impl BinaryOperatorBase for BaseEdgeOp {
                 }
             }
         }
+        let max_nodes_estimate = calculate_max_node_estimate(graph, &self.spec, &self.gs, inverse)?;
         let edge_op = BaseEdgeOp {
             gs: self.gs.clone(),
             spec: self.spec.clone(),
-            max_nodes_estimate: self.max_nodes_estimate,
-            inverse: !self.inverse,
+            max_nodes_estimate,
+            inverse,
         };
         Ok(Some(BinaryOperator::Index(Box::new(edge_op))))
     }
@@ -357,6 +369,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                     let reachable = reachable_max - reachable_min;
 
                     gs_selectivity = reachable / max_nodes;
+                    dbg!(gs_selectivity, reachable, max_nodes);
                 } else {
                     // We can't use the formula for complete k-ary trees because
                     // we can't divide by zero and don't want negative numbers.
@@ -368,6 +381,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
                         (stats.avg_fan_out * f64::from(min_path_length)).ceil();
 
                     gs_selectivity = (reachable_max - reachable_min) / max_nodes;
+                    dbg!(gs_selectivity, reachable_min, reachable_max, max_nodes);
                 }
             }
 
@@ -376,6 +390,7 @@ impl BinaryOperatorBase for BaseEdgeOp {
             }
         } // end for
 
+        dbg!(worst_sel);
         Ok(EstimationType::Selectivity(worst_sel))
     }
 
@@ -751,3 +766,6 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         self
     }
 }
+
+#[cfg(test)]
+mod tests;

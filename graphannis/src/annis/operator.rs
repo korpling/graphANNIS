@@ -118,7 +118,7 @@ impl EdgeAnnoSearchSpec {
 }
 
 /// Represents the different strategies to estimate the output of size of applying an operator.
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum EstimationType {
     /// Estimate using the given selectivity.
     /// This means the cross product of the input sizes is multiplied with this factor to get the output size.
