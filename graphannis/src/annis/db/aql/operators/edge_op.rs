@@ -329,7 +329,11 @@ impl BinaryOperatorBase for BaseEdgeOp {
             return Ok(EstimationType::Selectivity(0.0));
         }
 
-        let max_nodes: f64 = self.max_nodes_estimate as f64;
+        let mut max_nodes: f64 = self.max_nodes_estimate as f64;
+        // Avoid division by 0
+        if max_nodes == 0.0 {
+            max_nodes = 1.0;
+        }
 
         let mut worst_sel: f64 = 0.0;
 
@@ -369,7 +373,6 @@ impl BinaryOperatorBase for BaseEdgeOp {
                     let reachable = reachable_max - reachable_min;
 
                     gs_selectivity = reachable / max_nodes;
-                    dbg!(gs_selectivity, reachable, max_nodes);
                 } else {
                     // We can't use the formula for complete k-ary trees because
                     // we can't divide by zero and don't want negative numbers.
@@ -381,7 +384,6 @@ impl BinaryOperatorBase for BaseEdgeOp {
                         (stats.avg_fan_out * f64::from(min_path_length)).ceil();
 
                     gs_selectivity = (reachable_max - reachable_min) / max_nodes;
-                    dbg!(gs_selectivity, reachable_min, reachable_max, max_nodes);
                 }
             }
 
@@ -390,7 +392,6 @@ impl BinaryOperatorBase for BaseEdgeOp {
             }
         } // end for
 
-        dbg!(worst_sel);
         Ok(EstimationType::Selectivity(worst_sel))
     }
 
