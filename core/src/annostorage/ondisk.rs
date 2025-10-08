@@ -48,7 +48,8 @@ where
 
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
 
-    /// additional statistical information
+    /// Sampled histograms for each annotation key .
+    /// Each histogram bound defines a range of values where we estimate that they have the same number of occurences.
     histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
     largest_item: Option<T>,
 

@@ -24,7 +24,7 @@ struct BaseEdgeOpSpec {
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
     pub is_reflexive: bool,
     pub op_str: Option<String>,
-    pub check_cost_for_inverse_operator: bool,
+    pub inverse_operator_needs_cost_check: bool,
 }
 
 struct BaseEdgeOp {
@@ -45,34 +45,7 @@ impl BaseEdgeOp {
             gs.push(gs_for_component);
         }
 
-        let all_part_of_components = spec
-            .components
-            .iter()
-            .all(|c| c.get_type() == AnnotationComponentType::PartOf);
-
-        let max_nodes_estimate = if all_part_of_components && gs.len() == 1 {
-            // PartOf components have a very skewed distribution of root nodes
-            // vs. the actual possible targets, thus do not use all nodes as
-            // population but only the non-roots.
-            if let Some(stats) = gs[0].get_statistics() {
-                stats.nodes - stats.root_nodes
-            } else {
-                // Fallback to guessing by using the node type
-                db.get_node_annos().guess_max_count(
-                    Some(&NODE_TYPE_KEY.ns),
-                    &NODE_TYPE_KEY.name,
-                    "corpus",
-                    "datasource",
-                )?
-            }
-        } else {
-            db.get_node_annos().guess_max_count(
-                Some(&NODE_TYPE_KEY.ns),
-                &NODE_TYPE_KEY.name,
-                "node",
-                "node",
-            )?
-        };
+        let max_nodes_estimate = calculate_max_node_estimate(db, &spec, &gs, false)?;
         Ok(BaseEdgeOp {
             gs,
             spec,
@@ -80,6 +53,48 @@ impl BaseEdgeOp {
             inverse: false,
         })
     }
+}
+
+fn calculate_max_node_estimate(
+    db: &AnnotationGraph,
+    spec: &BaseEdgeOpSpec,
+    gs: &[Arc<dyn GraphStorage>],
+    inverse: bool,
+) -> Result<usize> {
+    let all_components_are_partof = spec
+        .components
+        .iter()
+        .all(|c| c.get_type() == AnnotationComponentType::PartOf);
+    let max_nodes_estimate = if all_components_are_partof && gs.len() == 1 {
+        // PartOf components have a very skewed distribution of root nodes vs.
+        // the actual possible targets, thus do not use all nodes as population
+        // but only the non-roots. We can only use this formula for the actual
+        // @* operator, but not the inverted one.
+        if !inverse && let Some(stats) = gs[0].get_statistics() {
+            stats.nodes - stats.root_nodes
+        } else {
+            // Fallback to guessing how many nodes have the node type "corpus"
+            // or "datasource" and thus could be reachable as RHS in a worst case
+            // scenario. Since a node can't be part of itself, subtract 1 for
+            // the node on the LHS.
+            db.get_node_annos()
+                .guess_max_count(
+                    Some(&NODE_TYPE_KEY.ns),
+                    &NODE_TYPE_KEY.name,
+                    "corpus",
+                    "datasource",
+                )?
+                .saturating_sub(1)
+        }
+    } else {
+        db.get_node_annos().guess_max_count(
+            Some(&NODE_TYPE_KEY.ns),
+            &NODE_TYPE_KEY.name,
+            "node",
+            "node",
+        )?
+    };
+    Ok(max_nodes_estimate)
 }
 
 impl BinaryOperatorSpec for BaseEdgeOpSpec {
@@ -286,13 +301,15 @@ impl BinaryOperatorBase for BaseEdgeOp {
 
     fn get_inverse_operator<'a>(
         &self,
-        _graph: &'a AnnotationGraph,
+        graph: &'a AnnotationGraph,
     ) -> Result<Option<BinaryOperator<'a>>> {
+        let inverse = !self.inverse;
+
         // Check if all graph storages have the same inverse cost. If not, we
         // don't provide an inverse operator, because the plans would not
         // account for the different costs
         for g in &self.gs {
-            if self.spec.check_cost_for_inverse_operator && !g.inverse_has_same_cost() {
+            if self.spec.inverse_operator_needs_cost_check && !g.inverse_has_same_cost() {
                 return Ok(None);
             }
             if let Some(stat) = g.get_statistics() {
@@ -302,11 +319,12 @@ impl BinaryOperatorBase for BaseEdgeOp {
                 }
             }
         }
+        let max_nodes_estimate = calculate_max_node_estimate(graph, &self.spec, &self.gs, inverse)?;
         let edge_op = BaseEdgeOp {
             gs: self.gs.clone(),
             spec: self.spec.clone(),
-            max_nodes_estimate: self.max_nodes_estimate,
-            inverse: !self.inverse,
+            max_nodes_estimate,
+            inverse,
         };
         Ok(Some(BinaryOperator::Index(Box::new(edge_op))))
     }
@@ -317,7 +335,11 @@ impl BinaryOperatorBase for BaseEdgeOp {
             return Ok(EstimationType::Selectivity(0.0));
         }
 
-        let max_nodes: f64 = self.max_nodes_estimate as f64;
+        let mut max_nodes: f64 = self.max_nodes_estimate as f64;
+        // Avoid division by 0
+        if max_nodes == 0.0 {
+            max_nodes = 1.0;
+        }
 
         let mut worst_sel: f64 = 0.0;
 
@@ -624,7 +646,7 @@ impl BinaryOperatorSpec for DominanceSpec {
             dist: self.dist.clone(),
             edge_anno: self.edge_anno.clone(),
             is_reflexive: true,
-            check_cost_for_inverse_operator: true,
+            inverse_operator_needs_cost_check: true,
         };
         base.create_operator(db, cost_estimate)
     }
@@ -676,7 +698,7 @@ impl BinaryOperatorSpec for PointingSpec {
             edge_anno: self.edge_anno.clone(),
             is_reflexive: true,
             op_str: Some(op_str),
-            check_cost_for_inverse_operator: true,
+            inverse_operator_needs_cost_check: true,
         };
         base.create_operator(db, cost_estimate)
     }
@@ -721,7 +743,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
             ANNIS_NS.into(),
             "".into(),
         )];
-        let check_cost_for_inverse_operator = if let Some((_, rhs)) = cost_estimate {
+        let inverse_operator_needs_cost_check = if let Some((_, rhs)) = cost_estimate {
             // Only ignore different cost and risk a nested loop join if the RHS
             // has an estimated output size of 1 and thus a nested loop is not
             // as costly.
@@ -735,7 +757,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
             dist: self.dist.clone(),
             edge_anno: None,
             is_reflexive: false,
-            check_cost_for_inverse_operator,
+            inverse_operator_needs_cost_check,
         };
 
         base.create_operator(db, cost_estimate)
@@ -751,3 +773,6 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
         self
     }
 }
+
+#[cfg(test)]
+mod tests;

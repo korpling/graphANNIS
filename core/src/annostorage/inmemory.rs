@@ -33,7 +33,8 @@ pub struct AnnoStorageImpl<T: Ord + Hash + Default> {
     anno_keys: SymbolTable<AnnoKey>,
     anno_values: SymbolTable<String>,
 
-    /// additional statistical information
+    /// Sampled histograms for each annotation key .
+    /// Each histogram bound defines a range of values where we estimate that they have the same number of occurences.
     histogram_bounds: BTreeMap<usize, Vec<String>>,
     largest_item: Option<T>,
     total_number_of_annos: usize,

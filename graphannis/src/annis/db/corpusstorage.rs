@@ -69,6 +69,9 @@ mod subgraph;
 #[cfg(test)]
 mod tests;
 
+/// After how many produces tuples the timeout check should be manually triggered (in case the underlying joint did not already check the timeout)
+const TIMEOUT_CHECK_TUPLE_COUNT: u64 = 1_000;
+
 enum CacheEntry {
     Loaded(AnnotationGraph),
     NotLoaded,
@@ -1602,7 +1605,7 @@ impl CorpusStorage {
 
             for _ in plan {
                 total_count += 1;
-                if total_count % 1_000 == 0 {
+                if total_count.is_multiple_of(TIMEOUT_CHECK_TUPLE_COUNT) {
                     timeout.check()?;
                 }
             }
@@ -1666,7 +1669,7 @@ impl CorpusStorage {
                 }
                 match_count += 1;
 
-                if match_count % 1_000 == 0 {
+                if match_count.is_multiple_of(TIMEOUT_CHECK_TUPLE_COUNT) {
                     timeout.check()?;
                 }
             }
@@ -2307,9 +2310,11 @@ impl CorpusStorage {
 
             let plan =
                 ExecutionPlan::from_disjunction(&prep.query, db, &self.query_config, timeout)?;
+            let mut total_count: u64 = 0;
 
             for mgroup in plan {
                 let mgroup = mgroup?;
+
                 // for each match, extract the defined annotation (by its key) from the result node
                 let mut tuple: Vec<String> = Vec::with_capacity(annokeys.len());
                 for (node_ref, anno_keys) in &annokeys {
@@ -2328,7 +2333,8 @@ impl CorpusStorage {
                 let tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
                 *tuple_count += 1;
 
-                if *tuple_count % 1_000 == 0 {
+                total_count += 1;
+                if total_count.is_multiple_of(TIMEOUT_CHECK_TUPLE_COUNT) {
                     timeout.check()?;
                 }
             }

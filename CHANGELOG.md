@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `execute_query_on_graph` now skips nodes that are not part of the output
   (optional negated nodes) and makes sure the resulting iterator only produces
   unique results.
+- Queries with `@` could have extremly slow execution plans when the query
+  planner introduces an inverted `@` operator and miscalculated the cost
+  compared to the non-inverted version.
+- Frequency queries now execute the (additional) timeout check after a certain
+  number of matches are processed, not if a specific tuple value has reached a
+  treshold.
 
 ## [4.0.0] - 2025-08-20
 
