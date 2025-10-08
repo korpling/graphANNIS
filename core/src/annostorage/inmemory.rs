@@ -32,12 +32,9 @@ pub struct AnnoStorageImpl<T: Ord + Hash + Default> {
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
     anno_keys: SymbolTable<AnnoKey>,
     anno_values: SymbolTable<String>,
+
     /// Sampled histograms for each annotation key .
     /// Each histogram bound defines a range of values where we estimate that they have the same number of occurences.
-    ///
-    /// If h_i the the histogram bound value at index i, the first range is defined is as [h_0, h_1), the second range from [h_1, h_2) and so on.
-    /// Thus each element marks the inclusive start of a range and an exclusive end.
-    /// **The last range \[h_n-1, h_n\] has an inclusive upper bound instead of an exclusive one!**
     histogram_bounds: BTreeMap<usize, Vec<String>>,
     largest_item: Option<T>,
     total_number_of_annos: usize,
