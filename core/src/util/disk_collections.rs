@@ -21,15 +21,6 @@ const BLOCK_MAX_SIZE: usize = 4 * KB;
 /// Uses a cache for each disk table with 8 MB capacity.
 pub const DEFAULT_BLOCK_CACHE_CAPACITY: usize = 8 * MB;
 
-#[derive(Serialize, Deserialize)]
-struct Entry<K, V>
-where
-    K: Ord,
-{
-    key: K,
-    value: V,
-}
-
 pub enum EvictionStrategy {
     MaximumItems(usize),
 }
