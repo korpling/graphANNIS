@@ -58,7 +58,7 @@ impl BaseEdgeOp {
 fn calculate_max_node_estimate(
     db: &AnnotationGraph,
     spec: &BaseEdgeOpSpec,
-    gs: &Vec<Arc<dyn GraphStorage>>,
+    gs: &[Arc<dyn GraphStorage>],
     inverse: bool,
 ) -> Result<usize> {
     let all_components_are_partof = spec
