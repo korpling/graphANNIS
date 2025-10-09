@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.1] - 2025-10-09
+
 ### Fixed
 
 - `execute_query_on_graph` now skips nodes that are not part of the output
