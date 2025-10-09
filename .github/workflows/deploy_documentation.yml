@@ -1,10 +1,18 @@
 on:
   release:
+    types: [published]
+  workflow_run:
+    workflows:
+      - Release
     types:
-      - released
+      - completed
+  pull_request:
+    types: [labeled]
+
 name: Deploy documentation for latest release
 jobs:
   deploy_documentation:
+    if: ${{ github.event.action == 'completed' || github.event.label.name == 'test-release-process' || (github.event_name == 'release' && github.event.action == 'published') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
