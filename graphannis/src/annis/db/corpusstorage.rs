@@ -2726,7 +2726,7 @@ fn extract_subgraph_by_query(
 ) -> Result<AnnotationGraph> {
     let t_before = std::time::SystemTime::now();
     // acquire read-only lock and create query that finds the context nodes
-    let lock = db_entry.read().unwrap();
+    let lock = db_entry.read()?;
     let orig_db = get_read_or_error(&lock)?;
 
     let plan = ExecutionPlan::from_disjunction(query, orig_db, query_config, timeout)?;

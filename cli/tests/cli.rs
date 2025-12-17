@@ -1,8 +1,8 @@
-use assert_cmd::prelude::*;
+use assert_cmd::cargo;
 use insta::Settings;
-use insta_cmd::assert_cmd_snapshot;
+use insta::assert_snapshot;
 use serial_test::serial;
-use std::{path::Path, process::Command};
+use std::path::Path;
 
 fn standard_filter() -> Settings {
     let mut settings = insta::Settings::clone_current();
@@ -19,10 +19,29 @@ fn standard_filter() -> Settings {
     settings
 }
 
+fn mimic_insta_snapshot(
+    output: std::process::Output,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let success = output.status.success();
+    let exit_code = output.status.code().unwrap();
+    let stdout = str::from_utf8(&output.stdout)?;
+    let stderr = str::from_utf8(&output.stderr)?;
+    Ok(format!(
+        r#"
+success: {success}
+exit_code: {exit_code}
+----- stdout -----
+{stdout}
+----- stderr -----
+{stderr}
+    "#
+    ))
+}
+
 #[test]
 #[serial]
 fn show_corpus_info() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = Command::cargo_bin("annis")?;
+    let mut cmd = cargo::cargo_bin_cmd!("annis");
 
     cmd.arg("../graphannis/tests/data/")
         .arg("-c")
@@ -32,8 +51,10 @@ fn show_corpus_info() -> Result<(), Box<dyn std::error::Error>> {
         .arg("-c")
         .arg("info");
 
+    let output = cmd.output().unwrap();
+    let actual = mimic_insta_snapshot(output)?;
     let settings = standard_filter();
-    settings.bind(|| assert_cmd_snapshot!(cmd));
+    settings.bind(|| assert_snapshot!(actual));
 
     Ok(())
 }
@@ -41,12 +62,14 @@ fn show_corpus_info() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 #[serial]
 fn list_corpora_not_loaded() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = Command::cargo_bin("annis")?;
+    let mut cmd = cargo::cargo_bin_cmd!("annis");
 
     cmd.arg("../graphannis/tests/data/").arg("-c").arg("list");
 
+    let output = cmd.output().unwrap();
+    let actual = mimic_insta_snapshot(output)?;
     let settings = standard_filter();
-    settings.bind(|| assert_cmd_snapshot!(cmd));
+    settings.bind(|| assert_snapshot!(actual));
 
     Ok(())
 }
@@ -54,7 +77,7 @@ fn list_corpora_not_loaded() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 #[serial]
 fn list_corpora_fully_loaded() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = Command::cargo_bin("annis")?;
+    let mut cmd = cargo::cargo_bin_cmd!("annis");
 
     cmd.arg("../graphannis/tests/data/")
         .arg("-c")
@@ -64,8 +87,10 @@ fn list_corpora_fully_loaded() -> Result<(), Box<dyn std::error::Error>> {
         .arg("-c")
         .arg("list");
 
+    let output = cmd.output().unwrap();
+    let actual = mimic_insta_snapshot(output)?;
     let settings = standard_filter();
-    settings.bind(|| assert_cmd_snapshot!(cmd));
+    settings.bind(|| assert_snapshot!(actual));
 
     Ok(())
 }
@@ -73,7 +98,7 @@ fn list_corpora_fully_loaded() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 #[serial]
 fn list_corpora_partially_loaded() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = Command::cargo_bin("annis")?;
+    let mut cmd = cargo::cargo_bin_cmd!("annis");
 
     cmd.arg("../graphannis/tests/data/")
         .arg("-c")
@@ -83,8 +108,10 @@ fn list_corpora_partially_loaded() -> Result<(), Box<dyn std::error::Error>> {
         .arg("-c")
         .arg("list");
 
+    let output = cmd.output().unwrap();
+    let actual = mimic_insta_snapshot(output)?;
     let settings = standard_filter();
-    settings.bind(|| assert_cmd_snapshot!(cmd));
+    settings.bind(|| assert_snapshot!(actual));
 
     Ok(())
 }
@@ -92,7 +119,7 @@ fn list_corpora_partially_loaded() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 #[serial]
 fn export_to_zip_file() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = Command::cargo_bin("annis")?;
+    let mut cmd = cargo::cargo_bin_cmd!("annis");
 
     cmd.arg("../graphannis/tests/data/")
         .arg("-c")
@@ -100,8 +127,10 @@ fn export_to_zip_file() -> Result<(), Box<dyn std::error::Error>> {
         .arg("-c")
         .arg("export sample-disk-based-3.3.zip");
 
+    let output = cmd.output().unwrap();
+    let actual = mimic_insta_snapshot(output)?;
     let settings = standard_filter();
-    settings.bind(|| assert_cmd_snapshot!(cmd));
+    settings.bind(|| assert_snapshot!(actual));
 
     // Check that the file has been created
     let p = Path::new("sample-disk-based-3.3.zip");

@@ -8,7 +8,7 @@ use boolean_expression::Expr;
 use graphannis_core::annostorage::MatchGroup;
 use itertools::Itertools;
 lalrpop_mod!(
-    #[allow(clippy::all)]
+    #[allow(clippy::all, clippy::pedantic, clippy::restriction, clippy::nursery)]
     #[allow(clippy::panic)]
     parser,
     "/annis/db/aql/parser.rs"

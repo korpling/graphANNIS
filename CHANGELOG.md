@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added [Facet](https://facet.rs/) support to `UpdateEvent`
+
 ## [4.0.1] - 2025-10-09
 
 ### Fixed
