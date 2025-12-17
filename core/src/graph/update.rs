@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use crate::errors::{GraphAnnisCoreError, Result};
 use crate::serializer::KeySerializer;
 use bincode::Options;
+use facet::Facet;
 use serde::de::Error as DeserializeError;
 use serde::de::{MapAccess, Visitor};
 use serde::ser::{Error as SerializeError, SerializeMap};
@@ -15,7 +16,8 @@ use sstable::{SSIterator, Table, TableBuilder, TableIterator};
 use tempfile::NamedTempFile;
 
 /// Describes a single update on the graph.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Facet, PartialEq)]
+#[repr(u8)]
 pub enum UpdateEvent {
     /// Add a node with a name and type.
     AddNode {
