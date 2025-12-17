@@ -1,5 +1,4 @@
 use assert_cmd::cargo;
-use assert_cmd::prelude::*;
 use insta::Settings;
 use insta::assert_snapshot;
 use serial_test::serial;
