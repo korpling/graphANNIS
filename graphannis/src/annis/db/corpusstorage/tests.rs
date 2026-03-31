@@ -1020,6 +1020,41 @@ fn subgraph_with_segmentation_and_gap() {
 }
 
 #[test]
+fn subgraph_with_node_spanning_multiple_segmentation_nodes() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+    let mut g = GraphUpdate::new();
+    example_generator::create_multiple_segmentations(&mut g, "root/doc1");
+
+    cs.apply_update("root", &mut g).unwrap();
+
+    let graph = cs
+        .subgraph(
+            "root",
+            vec!["root/doc1#b3".to_string()],
+            0,
+            0,
+            Some("a".to_string()),
+        )
+        .unwrap();
+    assert!(
+        graph
+            .get_node_annos()
+            .get_node_id_from_name("root/doc1#a2")
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        graph
+            .get_node_annos()
+            .get_node_id_from_name("root/doc1#a3")
+            .unwrap()
+            .is_some()
+    );
+}
+
+#[test]
 fn find_with_multiple_corpora() {
     let tmp = tempfile::tempdir().unwrap();
     let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
