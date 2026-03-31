@@ -286,7 +286,7 @@ fn create_simple_graph(cs: &mut CorpusStorage) {
 }
 
 #[test]
-fn subgraphs_simple() {
+fn subgraph_simple() {
     let tmp = tempfile::tempdir().unwrap();
     let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
@@ -440,7 +440,7 @@ fn subgraphs_simple() {
 }
 
 #[test]
-fn subgraphs_non_overlapping_regions() {
+fn subgraph_non_overlapping_regions() {
     let tmp = tempfile::tempdir().unwrap();
     let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
@@ -573,7 +573,7 @@ fn subgraphs_non_overlapping_regions() {
 }
 
 #[test]
-fn subgraphs_non_overlapping_regions_one_context_zero() {
+fn subgraph_non_overlapping_regions_one_context_zero() {
     let tmp = tempfile::tempdir().unwrap();
     let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
@@ -674,7 +674,7 @@ fn subgraphs_non_overlapping_regions_one_context_zero() {
 }
 
 #[test]
-fn subgraphs_non_overlapping_regions_no_context_tokens_specified_out_of_order() {
+fn subgraph_non_overlapping_regions_no_context_tokens_specified_out_of_order() {
     let tmp = tempfile::tempdir().unwrap();
     let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
@@ -996,6 +996,24 @@ fn subgraph_with_segmentation_and_gap() {
     assert!(
         g.get_node_annos()
             .get_node_id_from_name("SegmentationWithGaps/doc01#page2")
+            .unwrap()
+            .is_some()
+    );
+
+    // Get the context for the token in the gap using the norm segmentation
+    let g = cs
+        .subgraph(
+            &corpus_name,
+            vec!["SegmentationWithGaps/doc01#tok_13".to_string()],
+            0,
+            0,
+            Some("norm".to_string()),
+        )
+        .unwrap();
+    // Check that the token is included even though it is not covered by a segmentation node
+    assert!(
+        g.get_node_annos()
+            .get_node_id_from_name("SegmentationWithGaps/doc01#tok_13")
             .unwrap()
             .is_some()
     );
