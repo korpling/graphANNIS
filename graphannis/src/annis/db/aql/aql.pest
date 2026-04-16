@@ -1,1 +1,8 @@
-aql = { SOI ~ EOI }
+//! Parses the ANNIS query language
+
+aql = { SOI ~ id* ~ EOI }
+
+id_char_start = _{ASCII_ALPHA | "_"}
+id_char = _{ASCII_ALPHA  | ASCII_DIGIT | "_" | "-" | "%"}
+// [a-zA-Z_%][a-zA-Z0-9_\-%]*
+id = {id_char_start ~ id_char*}
