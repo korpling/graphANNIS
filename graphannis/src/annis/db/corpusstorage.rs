@@ -800,7 +800,7 @@ impl CorpusStorage {
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
             if let Some(file_path) = file.enclosed_name() {
-                let output_path = tmp_dir.path().join(file_path);
+                let output_path = tmp_dir.path().join(&file_path);
 
                 if let Some(file_name) = output_path.file_name() {
                     if file_name == "corpus.annis" || file_name == "corpus.tab" {
@@ -1246,7 +1246,7 @@ impl CorpusStorage {
         W: Write + Seek,
         F: Fn(&str),
     {
-        let options = zip::write::FileOptions::default()
+        let options = zip::write::SimpleFileOptions::default()
             .compression_method(zip::CompressionMethod::Deflated)
             .large_file(true);
 
