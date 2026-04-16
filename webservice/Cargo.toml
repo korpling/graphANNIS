@@ -37,7 +37,7 @@ thiserror = "1"
 time = "0.3.44"
 uuid = { version = "0.8", features = ["v4"] }
 walkdir = "2"
-zip = "0.6.4"
+zip = "8.5.1"
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.5"
