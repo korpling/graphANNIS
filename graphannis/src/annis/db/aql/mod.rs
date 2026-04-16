@@ -28,6 +28,8 @@ use crate::annis::operator::{BinaryOperatorSpec, UnaryOperatorSpec};
 use crate::annis::types::{LineColumn, LineColumnRange};
 use crate::annis::util::TimeoutCheck;
 use lalrpop_util::ParseError;
+use pest::Parser;
+use pest_derive::Parser;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -36,6 +38,11 @@ use std::time::Duration;
 thread_local! {
     static AQL_PARSER: parser::DisjunctionParser = parser::DisjunctionParser::new();
 }
+
+/// This implements the Pest parser for the AQL grammar
+#[derive(Parser)]
+#[grammar = "annis/db/aql/aql.pest"]
+pub struct AqlParser;
 
 #[derive(Clone, Default, Debug)]
 pub struct Config {
