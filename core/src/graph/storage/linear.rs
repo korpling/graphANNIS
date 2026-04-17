@@ -134,8 +134,8 @@ where
         // because the last element is only a target node, not a source node
         let it = self
             .node_chains
-            .iter()
-            .flat_map(|(_root, chain)| chain.iter().rev().skip(1))
+            .values()
+            .flat_map(|chain| chain.iter().rev().skip(1))
             .cloned()
             .map(Ok);
 

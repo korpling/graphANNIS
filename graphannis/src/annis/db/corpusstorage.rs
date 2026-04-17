@@ -2042,14 +2042,14 @@ impl CorpusStorage {
                     if let Some(remaining_limit) = remaining_limit {
                         if single_result_length <= remaining_limit {
                             // All results for this corpus fit inside the limit
-                            result.extend(single_result.into_iter());
+                            result.extend(single_result);
                         } else {
                             // Only add as many items as allowed by the limit
                             result.extend(single_result[0..remaining_limit].iter().cloned());
                         }
                     } else {
                         // Add all results since there is no limit
-                        result.extend(single_result.into_iter());
+                        result.extend(single_result);
                     }
 
                     if let Some(limit) = limit

@@ -162,8 +162,8 @@ where
     fn source_nodes<'a>(&'a self) -> Box<dyn Iterator<Item = Result<NodeID>> + 'a> {
         let it = self
             .node_to_order
-            .iter()
-            .filter_map(move |(n, _order)| {
+            .keys()
+            .filter_map(move |n| {
                 // check if this is actual a source node (and not only a target node)
                 if self.get_outgoing_edges(*n).next().is_some() {
                     Some(*n)

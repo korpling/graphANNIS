@@ -180,8 +180,8 @@ where
                 // flatten the hash set of all items of the value map
                 .flat_map(|(key, values)| {
                     values
-                        .iter()
-                        .flat_map(|(_, items)| items.iter().cloned())
+                        .values()
+                        .flat_map(|items| items.iter().cloned())
                         .zip(std::iter::repeat(key))
                 })
                 .map(Ok);
@@ -572,8 +572,8 @@ where
                 // flatten the hash set of all items of the value map
                 .flat_map(|(key, values)| {
                     values
-                        .iter()
-                        .flat_map(|(_, items)| items.iter().cloned())
+                        .values()
+                        .flat_map(|items| items.iter().cloned())
                         .zip(std::iter::repeat(key))
                 });
 
@@ -889,8 +889,8 @@ where
                 return Ok(result);
             } else {
                 let result = values_for_key
-                    .iter()
-                    .filter_map(|(val, _items)| self.anno_values.get_value_ref(*val))
+                    .keys()
+                    .filter_map(|val| self.anno_values.get_value_ref(*val))
                     .map(|val| Cow::Borrowed(&val[..]))
                     .collect();
                 return Ok(result);

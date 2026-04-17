@@ -667,40 +667,28 @@ where
                         config.view.page_size = value;
                     }
                 }
-                "default-context-segmentation" => {
-                    if !value.is_empty() {
-                        config.context.segmentation = Some(value.to_string());
-                    }
+                "default-context-segmentation" if !value.is_empty() => {
+                    config.context.segmentation = Some(value.to_string());
                 }
-                "default-base-text-segmentation" => {
-                    if !value.is_empty() {
-                        config.view.base_text_segmentation = Some(value.to_string());
-                    }
+                "default-base-text-segmentation" if !value.is_empty() => {
+                    config.view.base_text_segmentation = Some(value.to_string());
                 }
-                "hidden_annos" => {
-                    if !value.is_empty() {
-                        // Entry is a comma-separated list
-                        config.view.hidden_annos =
-                            value.split(',').map(|a| a.trim().to_owned()).collect();
-                    }
+                "hidden_annos" if !value.is_empty() => {
+                    // Entry is a comma-separated list
+                    config.view.hidden_annos =
+                        value.split(',').map(|a| a.trim().to_owned()).collect();
                 }
-                "virtual_tokenization_from_namespace" => {
-                    if value.to_lowercase() == "true" {
-                        config.view.timeline_strategy = TimelineStrategy::ImplicitFromNamespace
-                    }
+                "virtual_tokenization_from_namespace" if value.to_lowercase() == "true" => {
+                    config.view.timeline_strategy = TimelineStrategy::ImplicitFromNamespace
                 }
-                "virtual_tokenization_mapping" => {
-                    if !value.is_empty() {
-                        let mappings: BTreeMap<_, _> = value
-                            .split(',')
-                            .filter_map(|e| e.split_once('='))
-                            .map(|(anno, segmentation)| {
-                                (anno.to_string(), segmentation.to_string())
-                            })
-                            .collect();
-                        config.view.timeline_strategy =
-                            TimelineStrategy::ImplicitFromMapping { mappings };
-                    }
+                "virtual_tokenization_mapping" if !value.is_empty() => {
+                    let mappings: BTreeMap<_, _> = value
+                        .split(',')
+                        .filter_map(|e| e.split_once('='))
+                        .map(|(anno, segmentation)| (anno.to_string(), segmentation.to_string()))
+                        .collect();
+                    config.view.timeline_strategy =
+                        TimelineStrategy::ImplicitFromMapping { mappings };
                 }
                 _ => {}
             };

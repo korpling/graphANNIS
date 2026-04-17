@@ -596,15 +596,16 @@ fn make_unary_operator_spec(op: ast::UnaryOpSpec) -> Arc<dyn UnaryOperatorSpec> 
     }
 }
 
+/// Calculates at which character offsets each line starts. The result is a map
+/// of the character offset in the text the the line number which starts at this
+/// offset.
 fn get_line_offsets(input: &str) -> BTreeMap<usize, usize> {
     let mut offsets = BTreeMap::default();
 
     let mut o = 0;
-    let mut l = 1;
-    for line in input.split('\n') {
+    for (l, line) in input.split('\n').enumerate() {
         offsets.insert(o, l);
         o += line.len() + 1;
-        l += 1;
     }
 
     offsets
