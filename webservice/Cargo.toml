@@ -33,7 +33,7 @@ serde = { version = "1.0", features = ["rc"] }
 serde_derive = "1.0"
 simplelog = "0.12"
 tempfile = "3"
-thiserror = "1"
+thiserror = "2.0.18"
 uuid = { version = "0.8", features = ["v4"] }
 walkdir = "2"
 zip = "8.5.1"
