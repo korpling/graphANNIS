@@ -1,12 +1,8 @@
 ---
 source: cli/tests/cli.rs
-info:
-  program: annis
-  args:
-    - "../graphannis/tests/data/"
-    - "-c"
-    - list
+expression: actual
 ---
+
 success: true
 exit_code: 0
 ----- stdout -----
