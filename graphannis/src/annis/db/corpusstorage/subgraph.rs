@@ -183,12 +183,12 @@ fn get_left_right_token_with_offset_with_segmentation(
         }
     })?;
 
-    let left_seg = *covering_segmentation_nodes
-        .first()
-        .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
-    let right_seg = *covering_segmentation_nodes
-        .last()
-        .ok_or(GraphAnnisError::NoCoveredTokenForSubgraph)?;
+    let (left_seg, right_seg) = match covering_segmentation_nodes[..] {
+        // If none of the covered tokens are covered by a segmentation node, return without context
+        [] => return Ok((left_most_covered_token, right_most_covered_token)),
+        [only] => (only, only),
+        [left, .., right] => (left, right),
+    };
 
     // The context might be larger than the actual document, try to get the
     // largest possible context
