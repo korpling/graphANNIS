@@ -9,7 +9,7 @@ repository = "https://github.com/korpling/graphANNIS"
 version = "4.1.1"
 
 [dependencies]
-actix-cors = "0.6"
+actix-cors = "0.7.1"
 actix-files = "0.6"
 actix-web = "4"
 anyhow = "1"
@@ -24,7 +24,7 @@ diesel_migrations = { version = " 2", default-features = false }
 futures = "0.3"
 graphannis = { path = "../graphannis/", version = "^4" }
 graphannis-core = { path = "../core/", version = "^4" }
-jsonwebtoken = "7.2"
+jsonwebtoken = {version = "10.3.0", features = ["aws_lc_rs"]}
 libsqlite3-sys = { version = "0.36.0", features = ["bundled"] }
 log = "0.4"
 percent-encoding = "2.1"
