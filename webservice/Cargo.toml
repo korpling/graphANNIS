@@ -9,14 +9,14 @@ repository = "https://github.com/korpling/graphANNIS"
 version = "4.1.1"
 
 [dependencies]
-actix-cors = "0.6"
+actix-cors = "0.7.1"
 actix-files = "0.6"
 actix-web = "4"
 anyhow = "1"
 bcrypt = "0.10"
 clap = { version = "2", default-features = false }
 config = { version = "0.13", default-features = false, features = ["toml"] }
-diesel = { version = "2.0.4", default-features = false, features = [
+diesel = { version = "2.3.7", default-features = false, features = [
     "sqlite",
     "r2d2",
 ] }
@@ -24,8 +24,8 @@ diesel_migrations = { version = " 2", default-features = false }
 futures = "0.3"
 graphannis = { path = "../graphannis/", version = "^4" }
 graphannis-core = { path = "../core/", version = "^4" }
-jsonwebtoken = "7.2"
-libsqlite3-sys = { version = "0.26.0", features = ["bundled"] }
+jsonwebtoken = {version = "10.3.0", features = ["aws_lc_rs"]}
+libsqlite3-sys = { version = "0.36.0", features = ["bundled"] }
 log = "0.4"
 percent-encoding = "2.1"
 r2d2 = "0.8"
@@ -33,18 +33,17 @@ serde = { version = "1.0", features = ["rc"] }
 serde_derive = "1.0"
 simplelog = "0.12"
 tempfile = "3"
-thiserror = "1"
-time = "0.3.44"
+thiserror = "2.0.18"
 uuid = { version = "0.8", features = ["v4"] }
 walkdir = "2"
-zip = "0.6.4"
+zip = "8.5.1"
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
-tikv-jemallocator = "0.5"
+tikv-jemallocator = "0.6.1"
 
 [dev-dependencies]
 pretty_assertions = "1.3"
 insta = { version = "1.34.0", features = ["filters"] }
 
-[package.metadata.cargo-machete]
+[package.metadata.cargo-shear]
 ignored = ["libsqlite3-sys"]

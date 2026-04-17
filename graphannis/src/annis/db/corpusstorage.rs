@@ -800,7 +800,7 @@ impl CorpusStorage {
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
             if let Some(file_path) = file.enclosed_name() {
-                let output_path = tmp_dir.path().join(file_path);
+                let output_path = tmp_dir.path().join(&file_path);
 
                 if let Some(file_name) = output_path.file_name() {
                     if file_name == "corpus.annis" || file_name == "corpus.tab" {
@@ -1246,7 +1246,7 @@ impl CorpusStorage {
         W: Write + Seek,
         F: Fn(&str),
     {
-        let options = zip::write::FileOptions::default()
+        let options = zip::write::SimpleFileOptions::default()
             .compression_method(zip::CompressionMethod::Deflated)
             .large_file(true);
 
@@ -2042,14 +2042,14 @@ impl CorpusStorage {
                     if let Some(remaining_limit) = remaining_limit {
                         if single_result_length <= remaining_limit {
                             // All results for this corpus fit inside the limit
-                            result.extend(single_result.into_iter());
+                            result.extend(single_result);
                         } else {
                             // Only add as many items as allowed by the limit
                             result.extend(single_result[0..remaining_limit].iter().cloned());
                         }
                     } else {
                         // Add all results since there is no limit
-                        result.extend(single_result.into_iter());
+                        result.extend(single_result);
                     }
 
                     if let Some(limit) = limit

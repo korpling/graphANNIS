@@ -510,7 +510,7 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
     progress_callback: &F,
 ) -> Result<Option<String>> {
     let mut reader = Reader::from_reader(input);
-    reader.expand_empty_elements(true);
+    reader.config_mut().expand_empty_elements = true;
 
     let mut keys = BTreeMap::new();
 
@@ -535,48 +535,42 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
                 level += 1;
 
                 match e.name().0 {
-                    b"graph" => {
-                        if level == 2 {
-                            in_graph = true;
-                        }
+                    b"graph" if level == 2 => {
+                        in_graph = true;
                     }
-                    b"key" => {
-                        if level == 2 {
-                            add_annotation_key(&mut keys, e.attributes())?;
-                        }
+                    b"key" if level == 2 => {
+                        add_annotation_key(&mut keys, e.attributes())?;
                     }
-                    b"node" => {
-                        if in_graph && level == 3 {
-                            data.clear();
-                            // Get the ID of this node
-                            for att in e.attributes() {
-                                let att = att?;
-                                if att.key.0 == b"id" {
-                                    current_node_id =
-                                        Some(String::from_utf8_lossy(&att.value).to_string());
-                                }
+                    b"node" if in_graph && level == 3 => {
+                        data.clear();
+                        // Get the ID of this node
+                        for att in e.attributes() {
+                            let att = att?;
+                            if att.key.0 == b"id" {
+                                current_node_id =
+                                    Some(String::from_utf8_lossy(&att.value).to_string());
                             }
                         }
                     }
-                    b"edge" => {
-                        if in_graph && level == 3 {
-                            data.clear();
-                            // Get the source and target node IDs
-                            for att in e.attributes() {
-                                let att = att?;
-                                if att.key.0 == b"source" {
-                                    current_source_id =
-                                        Some(String::from_utf8_lossy(&att.value).to_string());
-                                } else if att.key.0 == b"target" {
-                                    current_target_id =
-                                        Some(String::from_utf8_lossy(&att.value).to_string());
-                                } else if att.key.0 == b"label" {
-                                    current_component =
-                                        Some(String::from_utf8_lossy(&att.value).to_string());
-                                }
+
+                    b"edge" if in_graph && level == 3 => {
+                        data.clear();
+                        // Get the source and target node IDs
+                        for att in e.attributes() {
+                            let att = att?;
+                            if att.key.0 == b"source" {
+                                current_source_id =
+                                    Some(String::from_utf8_lossy(&att.value).to_string());
+                            } else if att.key.0 == b"target" {
+                                current_target_id =
+                                    Some(String::from_utf8_lossy(&att.value).to_string());
+                            } else if att.key.0 == b"label" {
+                                current_component =
+                                    Some(String::from_utf8_lossy(&att.value).to_string());
                             }
                         }
                     }
+
                     b"data" => {
                         for att in e.attributes() {
                             let att = att?;
@@ -589,11 +583,10 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
                     _ => {}
                 }
             }
-            Event::Text(t) => {
-                if in_graph && level == 4 && current_data_key.is_some() {
-                    current_data_value = Some(t.unescape()?.to_string());
-                }
+            Event::Text(t) if in_graph && level == 4 && current_data_key.is_some() => {
+                current_data_value = Some(t.decode()?.to_string());
             }
+
             Event::CData(t) => {
                 if let Some(current_data_key) = &current_data_key
                     && in_graph

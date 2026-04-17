@@ -115,7 +115,7 @@ fn main() {
     if let Some(baseline) = matches.value_of("save-baseline") {
         crit = crit.save_baseline(baseline.to_string());
     } else if let Some(baseline) = matches.value_of("baseline") {
-        crit = crit.retain_baseline(baseline.to_string());
+        crit = crit.retain_baseline(baseline.to_string(), false);
     }
 
     if matches.is_present("measurement-time") {

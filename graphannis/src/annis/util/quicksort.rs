@@ -1,7 +1,8 @@
 use std::ops::Range;
 
+use rand::RngExt;
+
 use crate::errors::Result;
-use rand::Rng;
 
 use super::sortablecontainer::SortableContainer;
 

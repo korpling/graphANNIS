@@ -1,14 +1,8 @@
 ---
 source: cli/tests/cli.rs
-info:
-  program: annis
-  args:
-    - "../graphannis/tests/data/"
-    - "-c"
-    - corpus sample-disk-based-3.3
-    - "-c"
-    - export sample-disk-based-3.3.zip
+expression: actual
 ---
+
 success: true
 exit_code: 0
 ----- stdout -----

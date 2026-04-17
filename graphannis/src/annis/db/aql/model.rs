@@ -470,13 +470,11 @@ impl ComponentType for AnnotationComponentType {
         index: &mut Self::UpdateGraphIndex,
     ) -> std::result::Result<(), ComponentTypeError> {
         match update {
-            UpdateEvent::DeleteNode { node_name } => {
-                if !index.graph_without_nodes {
-                    let existing_node_id =
-                        index.get_cached_node_id_from_name(Cow::Borrowed(node_name), graph)?;
-                    if !index.invalid_nodes.contains_key(&existing_node_id)? {
-                        index.calculate_invalidated_nodes_by_coverage(graph, existing_node_id)?;
-                    }
+            UpdateEvent::DeleteNode { node_name } if !index.graph_without_nodes => {
+                let existing_node_id =
+                    index.get_cached_node_id_from_name(Cow::Borrowed(node_name), graph)?;
+                if !index.invalid_nodes.contains_key(&existing_node_id)? {
+                    index.calculate_invalidated_nodes_by_coverage(graph, existing_node_id)?;
                 }
             }
             UpdateEvent::DeleteEdge {

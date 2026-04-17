@@ -942,7 +942,7 @@ where
                         if let Some(histo) = self.histogram_bounds.get(&anno_key)
                             && !histo.is_empty()
                         {
-                            let sampled_values = histo.iter().choose_multiple(&mut rng, 20);
+                            let sampled_values = histo.iter().sample(&mut rng, 20);
 
                             let matches = sampled_values
                                 .iter()
@@ -1071,7 +1071,7 @@ where
             let all_values_for_key = self.get_by_anno_qname_range(anno_key);
 
             let sampled_anno_values: Result<Vec<String>> = all_values_for_key
-                .choose_multiple(&mut rng, max_sampled_annotations)
+                .sample(&mut rng, max_sampled_annotations)
                 .into_iter()
                 .map(|data| {
                     let (data, _) = data?;

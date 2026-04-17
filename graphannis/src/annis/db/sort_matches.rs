@@ -24,12 +24,14 @@ pub(crate) struct SortCache {
     gs_order: Option<Arc<dyn GraphStorage>>,
 }
 
+const CACHE_SIZE: core::num::NonZeroUsize = nonzero_lit::usize!(1000);
+
 impl SortCache {
     pub fn new(gs_order: Option<Arc<dyn GraphStorage>>) -> Self {
         Self {
-            node_name: LruCache::new(1000),
-            left_token: LruCache::new(1000),
-            is_connected: LruCache::new(1000),
+            node_name: LruCache::new(CACHE_SIZE),
+            left_token: LruCache::new(CACHE_SIZE),
+            is_connected: LruCache::new(CACHE_SIZE),
             gs_order,
         }
     }
