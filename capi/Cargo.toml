@@ -10,6 +10,7 @@ version = "4.1.1"
 
 [lib]
 crate-type = ["staticlib", "cdylib"]
+test = false
 
 [dependencies]
 graphannis = { path = "../graphannis/", version = "^4" }

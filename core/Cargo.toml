@@ -38,9 +38,6 @@ thiserror = "1"
 toml = "0.8"
 transient-btree-index = "0.5"
 
-[target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", features = ["heapapi"] }
-
 [dev-dependencies]
 env_logger = "0.9"
 fake = "2.2"
