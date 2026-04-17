@@ -39,7 +39,7 @@ walkdir = "2"
 zip = "8.5.1"
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
-tikv-jemallocator = "0.5"
+tikv-jemallocator = "0.6.1"
 
 [dev-dependencies]
 pretty_assertions = "1.3"

@@ -14,7 +14,7 @@ test = false
 
 [dependencies]
 graphannis = { path = "../graphannis/", version = "^4" }
-itertools = "0.10"
+itertools = "0.14"
 libc = "0.2"
 log = "0.4"
 simplelog = { version = "0.12" }
