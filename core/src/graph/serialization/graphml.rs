@@ -510,7 +510,7 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
     progress_callback: &F,
 ) -> Result<Option<String>> {
     let mut reader = Reader::from_reader(input);
-    reader.expand_empty_elements(true);
+    reader.config_mut().expand_empty_elements = true;
 
     let mut keys = BTreeMap::new();
 
@@ -584,7 +584,7 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
                 }
             }
             Event::Text(t) if in_graph && level == 4 && current_data_key.is_some() => {
-                current_data_value = Some(t.unescape()?.to_string());
+                current_data_value = Some(t.decode()?.to_string());
             }
 
             Event::CData(t) => {
