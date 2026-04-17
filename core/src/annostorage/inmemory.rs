@@ -796,7 +796,7 @@ where
                         if let Some(histo) = self.histogram_bounds.get(&anno_key_symbol)
                             && !histo.is_empty()
                         {
-                            let sampled_values = histo.iter().choose_multiple(&mut rng, 20);
+                            let sampled_values = histo.iter().sample(&mut rng, 20);
                             let matches = sampled_values
                                 .iter()
                                 .filter(|v| pattern.is_match(v))
