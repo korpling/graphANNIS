@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Update cargo-dist to version 0.31.0 to fix macos release artifact generation.
+
 ## [4.1.2] - 2026-04-17
 
 ### Fixed
