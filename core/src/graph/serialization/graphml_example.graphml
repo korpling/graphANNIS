@@ -10,7 +10,7 @@ key = "<value>"
 [some.another]
 value = "test"]]></data>
         <node id="first_node">
-            <data key="k1">something</data>
+            <data key="k1">something &lt;strong&gt;important&lt;/strong&gt;</data>
             <data key="k2">node</data>
         </node>
         <node id="second_node">

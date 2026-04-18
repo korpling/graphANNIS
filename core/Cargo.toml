@@ -22,7 +22,7 @@ memmap2 = "0.9"
 normpath = "1.1.1"
 num-traits = "0.2"
 percent-encoding = "2.1"
-quick-xml = "0.39"
+quick-xml = "0.28"
 rand = "0.10"
 rayon = { version = "1.3", default-features = false }
 regex = "1"

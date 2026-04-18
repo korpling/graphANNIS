@@ -510,7 +510,7 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
     progress_callback: &F,
 ) -> Result<Option<String>> {
     let mut reader = Reader::from_reader(input);
-    reader.config_mut().expand_empty_elements = true;
+    reader.expand_empty_elements(true);
 
     let mut keys = BTreeMap::new();
 
@@ -584,7 +584,7 @@ fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
                 }
             }
             Event::Text(t) if in_graph && level == 4 && current_data_key.is_some() => {
-                current_data_value = Some(t.decode()?.to_string());
+                current_data_value = Some(t.unescape()?.to_string());
             }
 
             Event::CData(t) => {
@@ -745,7 +745,7 @@ value = "test""#;
             node_name: "first_node".to_string(),
             anno_ns: DEFAULT_NS.to_string(),
             anno_name: "an_annotation".to_string(),
-            anno_value: "something".to_string(),
+            anno_value: "something <strong>important</strong>".to_string(),
         })
         .unwrap();
 
@@ -839,7 +839,7 @@ value = "test""#;
             .unwrap();
         assert_eq!(3, first_node_annos.len());
         assert_eq!(
-            Some(Cow::Borrowed("something")),
+            Some(Cow::Borrowed("something <strong>important</strong>")),
             g.get_node_annos()
                 .get_value_for_item(
                     &first_node_id,

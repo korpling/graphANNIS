@@ -46,8 +46,6 @@ pub enum GraphAnnisCoreError {
     #[error(transparent)]
     Xml(#[from] quick_xml::Error),
     #[error(transparent)]
-    XmlEncoding(#[from] quick_xml::encoding::EncodingError),
-    #[error(transparent)]
     XmlAttr(#[from] quick_xml::events::attributes::AttrError),
     #[error("Cache error: {0}")]
     LfuCache(String),
