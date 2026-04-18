@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.4] - 2026-04-18
+
 ### Fixed
 
 - Revert changes in GraphML import that caused annotation values with XML tags inside to fail.
