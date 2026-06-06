@@ -112,35 +112,6 @@ fn update_components_for_nodes(
     }
 }
 
-fn get_cost_estimates<'a>(
-    op_spec: &BinaryOperatorSpecEntry,
-    node2cost: &'a BTreeMap<usize, CostEstimate>,
-) -> Option<(&'a CostEstimate, &'a CostEstimate)> {
-    if let (Some(cost_lhs), Some(cost_rhs)) = (
-        node2cost.get(&op_spec.args.left),
-        node2cost.get(&op_spec.args.right),
-    ) {
-        Some((cost_lhs, cost_rhs))
-    } else {
-        None
-    }
-}
-
-/// Returns true if it is estimated to switch the operands in a join.
-fn should_switch_operand_order(
-    op_spec: &BinaryOperatorSpecEntry,
-    node2cost: &BTreeMap<usize, CostEstimate>,
-) -> bool {
-    if let Some((cost_lhs, cost_rhs)) = get_cost_estimates(op_spec, node2cost)
-        && cost_rhs.output < cost_lhs.output
-    {
-        // switch operands
-        return true;
-    }
-
-    false
-}
-
 fn create_index_join<'b>(
     db: &'b AnnotationGraph,
     config: &Config,
@@ -187,7 +158,7 @@ fn create_join<'b>(
     if exec_right.as_nodesearch().is_some()
         && let BinaryOperator::Index(op) = op_entry.op
     {
-        // we can use directly use an index join
+        // we can directly use an index join
         return create_index_join(
             db,
             config,
@@ -200,7 +171,7 @@ fn create_join<'b>(
     }
 
     if exec_left.as_nodesearch().is_some() {
-        // avoid a nested loop join by switching the operand and using and index join when possible
+        // avoid a nested loop join by switching the operand and using an index join when possible
         if let Some(BinaryOperator::Index(inverse_op)) = op_entry.op.get_inverse_operator(db)? {
             let inverse_args = BinaryOperatorArguments {
                 left: op_entry.args.right,
@@ -395,7 +366,7 @@ impl Conjunction {
     }
 
     /// Return the variable name for a node number. The node number is the
-    /// position of an node description in the query. In case of a query with
+    /// position of a node description in the query. In case of a query with
     /// multiple alternatives, this refers to the node number of the whole query and
     /// not only the conjunction.
     pub fn get_variable_by_node_nr(&self, node_nr: usize) -> Option<String> {
@@ -493,7 +464,7 @@ impl Conjunction {
             family_operators.push(best_operator_order.clone());
 
             for i in 0..num_new_generations {
-                // use the the previous generation as basis
+                // use the previous generation as basis
                 let mut tmp_operators = family_operators[i].clone();
                 // randomly select two joins
                 let mut a = 0;
@@ -561,7 +532,7 @@ impl Conjunction {
             if let Some(node_search_cost) = desc.cost.as_ref() {
                 for e in op_spec_entries {
                     let op_spec = &e.op;
-                    if e.args.left == desc.component_nr {
+                    if e.args.left - self.var_idx_offset == desc.component_nr {
                         // get the necessary components and count the number of nodes in these components
                         let components = op_spec.necessary_components(db);
                         if !components.is_empty() {
@@ -686,6 +657,37 @@ impl Conjunction {
         Ok(())
     }
 
+    fn get_cost_estimates<'a>(
+        &self,
+        op_spec: &BinaryOperatorSpecEntry,
+        node2cost: &'a BTreeMap<usize, CostEstimate>,
+    ) -> Option<(&'a CostEstimate, &'a CostEstimate)> {
+        if let (Some(cost_lhs), Some(cost_rhs)) = (
+            node2cost.get(&(op_spec.args.left - self.var_idx_offset)),
+            node2cost.get(&(op_spec.args.right - self.var_idx_offset)),
+        ) {
+            Some((cost_lhs, cost_rhs))
+        } else {
+            None
+        }
+    }
+
+    /// Returns true if it is estimated to switch the operands in a join.
+    fn should_switch_operand_order(
+        &self,
+        op_spec: &BinaryOperatorSpecEntry,
+        node2cost: &BTreeMap<usize, CostEstimate>,
+    ) -> bool {
+        if let Some((cost_lhs, cost_rhs)) = self.get_cost_estimates(op_spec, node2cost)
+            && cost_rhs.output < cost_lhs.output
+        {
+            // switch operands
+            return true;
+        }
+
+        false
+    }
+
     fn add_binary_operator_to_exec_plan<'a>(
         &'a self,
         op_spec_entry: &BinaryOperatorSpecEntry,
@@ -699,14 +701,14 @@ impl Conjunction {
     ) -> Result<()> {
         let mut op: BinaryOperator<'a> = op_spec_entry
             .op
-            .create_operator(g, get_cost_estimates(op_spec_entry, &helper.node2cost))?;
+            .create_operator(g, self.get_cost_estimates(op_spec_entry, &helper.node2cost))?;
 
         let mut spec_idx_left = op_spec_entry.args.left;
         let mut spec_idx_right = op_spec_entry.args.right;
 
         let inverse_op = op.get_inverse_operator(g)?;
         if let Some(inverse_op) = inverse_op
-            && should_switch_operand_order(op_spec_entry, &helper.node2cost)
+            && self.should_switch_operand_order(op_spec_entry, &helper.node2cost)
         {
             spec_idx_left = op_spec_entry.args.right;
             spec_idx_right = op_spec_entry.args.left;
@@ -714,7 +716,7 @@ impl Conjunction {
             op = inverse_op;
         }
 
-        // substract the offset from the specificated numbers to get the internal node number for this conjunction
+        // subtract the offset from the specified numbers to get the internal node number for this conjunction
         spec_idx_left -= self.var_idx_offset;
         spec_idx_right -= self.var_idx_offset;
 
@@ -850,7 +852,7 @@ impl Conjunction {
             )?;
         }
 
-        // apply the the node error check
+        // apply the node error check
         if !output.node_search_errors.is_empty() {
             return Err(output.node_search_errors.remove(0));
         }
@@ -910,7 +912,7 @@ impl Conjunction {
                 && first != *cid
             {
                 // add location and description which node is not connected
-                let n_var = &self.nodes[*node_nr].var;
+                let n_var = &self.nodes[*node_nr - self.var_idx_offset].var;
                 let location = self.location_in_query.get(n_var);
 
                 return Err(GraphAnnisError::AQLSemanticError(AQLError {
