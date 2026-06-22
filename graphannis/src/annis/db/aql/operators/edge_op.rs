@@ -350,16 +350,16 @@ impl BinaryOperatorBase for BaseEdgeOp {
 
             if let Some(stats) = g.get_statistics() {
                 let stats: &GraphStatistic = stats;
-                if stats.cyclic {
-                    // can get all other nodes
-                    return Ok(EstimationType::Selectivity(1.0));
-                }
                 // get number of nodes reachable from min to max distance
                 let max_dist = match self.spec.dist.max_dist() {
                     std::ops::Bound::Unbounded => usize::MAX,
                     std::ops::Bound::Included(max_dist) => max_dist,
                     std::ops::Bound::Excluded(max_dist) => max_dist - 1,
                 };
+                if stats.cyclic && max_dist > 1 {
+                    // can get all other nodes
+                    return Ok(EstimationType::Selectivity(1.0));
+                }
                 let max_path_length = std::cmp::min(max_dist, stats.max_depth) as i32;
                 let min_path_length = std::cmp::max(0, self.spec.dist.min_dist() - 1) as i32;
 

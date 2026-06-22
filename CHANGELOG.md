@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Estimation of generic edge operators for cyclic graphs should not assume all
+  nodes can be reached when the operator itself is limited to have the length 1.
+
 ## [4.1.4] - 2026-04-18
 
 ### Fixed
