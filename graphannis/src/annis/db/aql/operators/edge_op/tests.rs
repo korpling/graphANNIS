@@ -92,7 +92,7 @@ fn inverted_partof_has_same_estimate() {
     assert_eq!(orig_estimate, inverted_estimate);
 }
 
-/// Test the execution plan of a graph component was cycles
+/// Test the execution plan of a graph component with cycles
 #[test]
 fn cycle_component_estimation() {
     let mut update = GraphUpdate::new();
