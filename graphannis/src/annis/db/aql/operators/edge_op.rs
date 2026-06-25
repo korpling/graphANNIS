@@ -1,6 +1,7 @@
 use crate::annis::db::aql::{model::AnnotationComponentType, operators::RangeSpec};
 use crate::annis::db::exec::CostEstimate;
 use crate::annis::errors::GraphAnnisError;
+use crate::annis::operator::EstimationType::Selectivity;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorBase, BinaryOperatorIndex, BinaryOperatorSpec,
     EdgeAnnoSearchSpec, EstimationType,
@@ -239,6 +240,27 @@ fn check_edge_annotation(
     }
 }
 
+/// Guess how many many nodes are reachable for a given path length.
+fn reachable_by_path_length(stats: &GraphStatistic, path_length: i32) -> f64 {
+    if stats.avg_fan_out > 1.0 {
+        // Assume two complete k-ary trees (with the average fan-out
+        // as k) as defined in "Thomas Cormen: Introduction to
+        // algorithms (2009), page 1179) with the maximum and
+        // minimum height. Calculate the number of nodes for both
+        // complete trees and subtract them to get an estimation of
+        // the number of nodes that fullfull the path length
+        // criteria.
+        let k = stats.avg_fan_out;
+        ((k.powi(path_length) - 1.0) / (k - 1.0)).ceil()
+    } else {
+        // We can't use the formula for complete k-ary trees because
+        // we can't divide by zero and don't want negative numbers.
+        // Use the simplified estimation with multiplication
+        // instead.
+        (stats.avg_fan_out * f64::from(path_length)).ceil()
+    }
+}
+
 impl BaseEdgeOp {}
 
 impl std::fmt::Display for BaseEdgeOp {
@@ -350,45 +372,26 @@ impl BinaryOperatorBase for BaseEdgeOp {
 
             if let Some(stats) = g.get_statistics() {
                 let stats: &GraphStatistic = stats;
-                if stats.cyclic {
-                    // can get all other nodes
-                    return Ok(EstimationType::Selectivity(1.0));
-                }
                 // get number of nodes reachable from min to max distance
                 let max_dist = match self.spec.dist.max_dist() {
                     std::ops::Bound::Unbounded => usize::MAX,
                     std::ops::Bound::Included(max_dist) => max_dist,
                     std::ops::Bound::Excluded(max_dist) => max_dist - 1,
                 };
-                let max_path_length = std::cmp::min(max_dist, stats.max_depth) as i32;
-                let min_path_length = std::cmp::max(0, self.spec.dist.min_dist() - 1) as i32;
-
-                if stats.avg_fan_out > 1.0 {
-                    // Assume two complete k-ary trees (with the average fan-out
-                    // as k) as defined in "Thomas Cormen: Introduction to
-                    // algorithms (2009), page 1179) with the maximum and
-                    // minimum height. Calculate the number of nodes for both
-                    // complete trees and subtract them to get an estimation of
-                    // the number of nodes that fullfull the path length
-                    // criteria.
-                    let k = stats.avg_fan_out;
-
-                    let reachable_max: f64 = ((k.powi(max_path_length) - 1.0) / (k - 1.0)).ceil();
-                    let reachable_min: f64 = ((k.powi(min_path_length) - 1.0) / (k - 1.0)).ceil();
-
-                    let reachable = reachable_max - reachable_min;
-
-                    gs_selectivity = reachable / max_nodes;
+                if stats.cyclic && max_dist == usize::MAX {
+                    // can reach all other nodes without any restriction
+                    return Ok(Selectivity(1.0));
                 } else {
-                    // We can't use the formula for complete k-ary trees because
-                    // we can't divide by zero and don't want negative numbers.
-                    // Use the simplified estimation with multiplication
-                    // instead.
-                    let reachable_max: f64 =
-                        (stats.avg_fan_out * f64::from(max_path_length)).ceil();
-                    let reachable_min: f64 =
-                        (stats.avg_fan_out * f64::from(min_path_length)).ceil();
+                    // stats.max_depth is only valid if the graph is not cyclic
+                    let max_path_length = if stats.cyclic {
+                        max_dist as i32
+                    } else {
+                        std::cmp::min(max_dist, stats.max_depth) as i32
+                    };
+                    let min_path_length = std::cmp::max(0, self.spec.dist.min_dist() - 1) as i32;
 
+                    let reachable_max = reachable_by_path_length(stats, max_path_length);
+                    let reachable_min = reachable_by_path_length(stats, min_path_length);
                     gs_selectivity = (reachable_max - reachable_min) / max_nodes;
                 }
             }
