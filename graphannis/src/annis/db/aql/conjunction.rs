@@ -30,7 +30,11 @@ use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct BinaryOperatorArguments {
+    /// *Global* position int the query of the LHS.
+    /// This references not the position in the conjunction, but over all alternatives.
     pub left: usize,
+    /// *Global* position int the query of the RHS.
+    /// This references not the position in the conjunction, but over all alternatives.
     pub right: usize,
     pub global_reflexivity: bool,
 }
@@ -64,19 +68,37 @@ pub struct NodeSearchSpecEntry {
     pub optional: bool,
 }
 
+/// Represents a conjunction of node search descriptions that have a name (the
+/// variable) and a position in the conjunction itself (the internal node
+/// number). Conjunctions can be part of a [`Disjunction`], which have their own
+/// different node numbers but can share the variable names.
 #[derive(Debug)]
 pub struct Conjunction {
+    /// The node search information for all the variables in the query. Indexed
+    /// by the position of the variable in the conjunction (first node at index
+    /// 0, second at 1 etc.).
     nodes: Vec<NodeSearchSpecEntry>,
     binary_operators: Vec<BinaryOperatorSpecEntry>,
     unary_operators: Vec<UnaryOperatorSpecEntry>,
+    /// Maps the variable names to the position of the variable in the conjunction.
     variables: HashMap<String, usize>,
+    /// Stores the location of a variable in the query string.
     location_in_query: HashMap<String, LineColumnRange>,
+    /// Variable names in this set should be part of the output for `find`-queries.
     include_in_output: HashSet<String>,
+    /// Queries are a disjunction of different alternative conjunctions. If
+    /// there is more than one alternative, each the variable ids (#1, #2, #3,
+    /// ...) of each conjunction have an offset. Since the number of variables
+    /// in each conjunction does not need to be the same, we can't derive the
+    /// offset from the number of alternatives, but have to remember the
+    /// variable ID offset for each conjunction.
     var_idx_offset: usize,
 }
 
 struct ExecutionPlanHelper {
     node2component: BTreeMap<usize, usize>,
+    /// Cost estimates for different nodes of the query. The node is determined
+    /// by the position of the variable in the conjunction.
     node2cost: BTreeMap<usize, CostEstimate>,
 }
 
@@ -204,6 +226,8 @@ fn create_join<'b>(
 }
 
 impl Conjunction {
+    /// Create new conjunction without a configured offset for its variable IDs.
+    /// e.g. if there is no parent disjunction or only one alternative.
     pub fn new() -> Conjunction {
         Conjunction {
             nodes: vec![],
@@ -216,6 +240,7 @@ impl Conjunction {
         }
     }
 
+    /// Create new conjunction with a configured offset for its variable IDs.
     pub fn with_offset(var_idx_offset: usize) -> Conjunction {
         Conjunction {
             nodes: vec![],
@@ -344,6 +369,8 @@ impl Conjunction {
         self.nodes.len()
     }
 
+    /// Retrieve the global position (overall disjunctions) for a given variable
+    /// name.
     pub fn resolve_variable_pos(
         &self,
         variable: &str,
@@ -368,7 +395,7 @@ impl Conjunction {
     /// Return the variable name for a node number. The node number is the
     /// position of a node description in the query. In case of a query with
     /// multiple alternatives, this refers to the node number of the whole query and
-    /// not only the conjunction.
+    /// not only the one inside the conjunction.
     pub fn get_variable_by_node_nr(&self, node_nr: usize) -> Option<String> {
         let pos = node_nr.checked_sub(self.var_idx_offset)?;
         self.nodes.get(pos).map(|spec| spec.var.clone())
@@ -866,6 +893,8 @@ impl Conjunction {
     }
 
     fn check_components_connected(&self) -> Result<()> {
+        // Maps the global node number (over all alternatives of the
+        // disjunction) to the component number.
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
         node2component.extend(
             self.nodes
@@ -873,7 +902,7 @@ impl Conjunction {
                 .enumerate()
                 // Exclude all optional nodes from the component calculation
                 .filter(|(_i, n)| !n.optional)
-                // Use the global node number when there are several conjunctions
+                // Use the global node number in case there are several conjunctions.
                 .map(|(i, _n)| self.var_idx_offset + i)
                 // Set the node position as initial unique component number
                 .map(|i| (i, i)),
