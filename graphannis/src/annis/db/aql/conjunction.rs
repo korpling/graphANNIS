@@ -31,10 +31,12 @@ use std::sync::Arc;
 #[derive(Debug)]
 pub struct BinaryOperatorArguments {
     /// *Global* position int the query of the LHS.
-    /// This references not the position in the conjunction, but over all alternatives.
+    /// This references not the position in the conjunction, but the position
+    /// over all alternatives.
     pub left: usize,
     /// *Global* position int the query of the RHS.
-    /// This references not the position in the conjunction, but over all alternatives.
+    /// This references not the position in the conjunction, but the position
+    /// over all alternatives.
     pub right: usize,
     pub global_reflexivity: bool,
 }
