@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.5] - 2026-06-25
+
 ### Fixed
 
 - Fixed handling of node numbers in queries with multiple alternatives.
