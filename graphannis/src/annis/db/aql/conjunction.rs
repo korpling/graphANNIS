@@ -30,7 +30,13 @@ use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct BinaryOperatorArguments {
+    /// *Global* position int the query of the LHS.
+    /// This references not the position in the conjunction, but the position
+    /// over all alternatives.
     pub left: usize,
+    /// *Global* position int the query of the RHS.
+    /// This references not the position in the conjunction, but the position
+    /// over all alternatives.
     pub right: usize,
     pub global_reflexivity: bool,
 }
@@ -64,19 +70,37 @@ pub struct NodeSearchSpecEntry {
     pub optional: bool,
 }
 
+/// Represents a conjunction of node search descriptions that have a name (the
+/// variable) and a position in the conjunction itself (the internal node
+/// number). Conjunctions can be part of a [`Disjunction`], which have their own
+/// different node numbers but can share the variable names.
 #[derive(Debug)]
 pub struct Conjunction {
+    /// The node search information for all the variables in the query. Indexed
+    /// by the position of the variable in the conjunction (first node at index
+    /// 0, second at 1 etc.).
     nodes: Vec<NodeSearchSpecEntry>,
     binary_operators: Vec<BinaryOperatorSpecEntry>,
     unary_operators: Vec<UnaryOperatorSpecEntry>,
+    /// Maps the variable names to the position of the variable in the conjunction.
     variables: HashMap<String, usize>,
+    /// Stores the location of a variable in the query string.
     location_in_query: HashMap<String, LineColumnRange>,
+    /// Variable names in this set should be part of the output for `find`-queries.
     include_in_output: HashSet<String>,
+    /// Queries are a disjunction of different alternative conjunctions. If
+    /// there is more than one alternative, each the variable ids (#1, #2, #3,
+    /// ...) of each conjunction have an offset. Since the number of variables
+    /// in each conjunction does not need to be the same, we can't derive the
+    /// offset from the number of alternatives, but have to remember the
+    /// variable ID offset for each conjunction.
     var_idx_offset: usize,
 }
 
 struct ExecutionPlanHelper {
     node2component: BTreeMap<usize, usize>,
+    /// Cost estimates for different nodes of the query. The node is determined
+    /// by the position of the variable in the conjunction.
     node2cost: BTreeMap<usize, CostEstimate>,
 }
 
@@ -110,35 +134,6 @@ fn update_components_for_nodes(
     for nid in &node_ids_to_update {
         node2component.insert(*nid, to);
     }
-}
-
-fn get_cost_estimates<'a>(
-    op_spec: &BinaryOperatorSpecEntry,
-    node2cost: &'a BTreeMap<usize, CostEstimate>,
-) -> Option<(&'a CostEstimate, &'a CostEstimate)> {
-    if let (Some(cost_lhs), Some(cost_rhs)) = (
-        node2cost.get(&op_spec.args.left),
-        node2cost.get(&op_spec.args.right),
-    ) {
-        Some((cost_lhs, cost_rhs))
-    } else {
-        None
-    }
-}
-
-/// Returns true if it is estimated to switch the operands in a join.
-fn should_switch_operand_order(
-    op_spec: &BinaryOperatorSpecEntry,
-    node2cost: &BTreeMap<usize, CostEstimate>,
-) -> bool {
-    if let Some((cost_lhs, cost_rhs)) = get_cost_estimates(op_spec, node2cost)
-        && cost_rhs.output < cost_lhs.output
-    {
-        // switch operands
-        return true;
-    }
-
-    false
 }
 
 fn create_index_join<'b>(
@@ -187,7 +182,7 @@ fn create_join<'b>(
     if exec_right.as_nodesearch().is_some()
         && let BinaryOperator::Index(op) = op_entry.op
     {
-        // we can use directly use an index join
+        // we can directly use an index join
         return create_index_join(
             db,
             config,
@@ -200,7 +195,7 @@ fn create_join<'b>(
     }
 
     if exec_left.as_nodesearch().is_some() {
-        // avoid a nested loop join by switching the operand and using and index join when possible
+        // avoid a nested loop join by switching the operand and using an index join when possible
         if let Some(BinaryOperator::Index(inverse_op)) = op_entry.op.get_inverse_operator(db)? {
             let inverse_args = BinaryOperatorArguments {
                 left: op_entry.args.right,
@@ -233,6 +228,8 @@ fn create_join<'b>(
 }
 
 impl Conjunction {
+    /// Create new conjunction without a configured offset for its variable IDs.
+    /// e.g. if there is no parent disjunction or only one alternative.
     pub fn new() -> Conjunction {
         Conjunction {
             nodes: vec![],
@@ -245,6 +242,7 @@ impl Conjunction {
         }
     }
 
+    /// Create new conjunction with a configured offset for its variable IDs.
     pub fn with_offset(var_idx_offset: usize) -> Conjunction {
         Conjunction {
             nodes: vec![],
@@ -373,6 +371,8 @@ impl Conjunction {
         self.nodes.len()
     }
 
+    /// Retrieve the global position (overall disjunctions) for a given variable
+    /// name.
     pub fn resolve_variable_pos(
         &self,
         variable: &str,
@@ -395,9 +395,9 @@ impl Conjunction {
     }
 
     /// Return the variable name for a node number. The node number is the
-    /// position of an node description in the query. In case of a query with
+    /// position of a node description in the query. In case of a query with
     /// multiple alternatives, this refers to the node number of the whole query and
-    /// not only the conjunction.
+    /// not only the one inside the conjunction.
     pub fn get_variable_by_node_nr(&self, node_nr: usize) -> Option<String> {
         let pos = node_nr.checked_sub(self.var_idx_offset)?;
         self.nodes.get(pos).map(|spec| spec.var.clone())
@@ -493,7 +493,7 @@ impl Conjunction {
             family_operators.push(best_operator_order.clone());
 
             for i in 0..num_new_generations {
-                // use the the previous generation as basis
+                // use the previous generation as basis
                 let mut tmp_operators = family_operators[i].clone();
                 // randomly select two joins
                 let mut a = 0;
@@ -561,7 +561,7 @@ impl Conjunction {
             if let Some(node_search_cost) = desc.cost.as_ref() {
                 for e in op_spec_entries {
                     let op_spec = &e.op;
-                    if e.args.left == desc.component_nr {
+                    if e.args.left - self.var_idx_offset == desc.component_nr {
                         // get the necessary components and count the number of nodes in these components
                         let components = op_spec.necessary_components(db);
                         if !components.is_empty() {
@@ -686,6 +686,37 @@ impl Conjunction {
         Ok(())
     }
 
+    fn get_cost_estimates<'a>(
+        &self,
+        op_spec: &BinaryOperatorSpecEntry,
+        node2cost: &'a BTreeMap<usize, CostEstimate>,
+    ) -> Option<(&'a CostEstimate, &'a CostEstimate)> {
+        if let (Some(cost_lhs), Some(cost_rhs)) = (
+            node2cost.get(&(op_spec.args.left - self.var_idx_offset)),
+            node2cost.get(&(op_spec.args.right - self.var_idx_offset)),
+        ) {
+            Some((cost_lhs, cost_rhs))
+        } else {
+            None
+        }
+    }
+
+    /// Returns true if it is estimated to switch the operands in a join.
+    fn should_switch_operand_order(
+        &self,
+        op_spec: &BinaryOperatorSpecEntry,
+        node2cost: &BTreeMap<usize, CostEstimate>,
+    ) -> bool {
+        if let Some((cost_lhs, cost_rhs)) = self.get_cost_estimates(op_spec, node2cost)
+            && cost_rhs.output < cost_lhs.output
+        {
+            // switch operands
+            return true;
+        }
+
+        false
+    }
+
     fn add_binary_operator_to_exec_plan<'a>(
         &'a self,
         op_spec_entry: &BinaryOperatorSpecEntry,
@@ -699,14 +730,14 @@ impl Conjunction {
     ) -> Result<()> {
         let mut op: BinaryOperator<'a> = op_spec_entry
             .op
-            .create_operator(g, get_cost_estimates(op_spec_entry, &helper.node2cost))?;
+            .create_operator(g, self.get_cost_estimates(op_spec_entry, &helper.node2cost))?;
 
         let mut spec_idx_left = op_spec_entry.args.left;
         let mut spec_idx_right = op_spec_entry.args.right;
 
         let inverse_op = op.get_inverse_operator(g)?;
         if let Some(inverse_op) = inverse_op
-            && should_switch_operand_order(op_spec_entry, &helper.node2cost)
+            && self.should_switch_operand_order(op_spec_entry, &helper.node2cost)
         {
             spec_idx_left = op_spec_entry.args.right;
             spec_idx_right = op_spec_entry.args.left;
@@ -714,7 +745,7 @@ impl Conjunction {
             op = inverse_op;
         }
 
-        // substract the offset from the specificated numbers to get the internal node number for this conjunction
+        // subtract the offset from the specified numbers to get the internal node number for this conjunction
         spec_idx_left -= self.var_idx_offset;
         spec_idx_right -= self.var_idx_offset;
 
@@ -850,7 +881,7 @@ impl Conjunction {
             )?;
         }
 
-        // apply the the node error check
+        // apply the node error check
         if !output.node_search_errors.is_empty() {
             return Err(output.node_search_errors.remove(0));
         }
@@ -864,6 +895,8 @@ impl Conjunction {
     }
 
     fn check_components_connected(&self) -> Result<()> {
+        // Maps the global node number (over all alternatives of the
+        // disjunction) to the component number.
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
         node2component.extend(
             self.nodes
@@ -871,7 +904,7 @@ impl Conjunction {
                 .enumerate()
                 // Exclude all optional nodes from the component calculation
                 .filter(|(_i, n)| !n.optional)
-                // Use the global node number when there are several conjunctions
+                // Use the global node number in case there are several conjunctions.
                 .map(|(i, _n)| self.var_idx_offset + i)
                 // Set the node position as initial unique component number
                 .map(|i| (i, i)),
@@ -910,7 +943,7 @@ impl Conjunction {
                 && first != *cid
             {
                 // add location and description which node is not connected
-                let n_var = &self.nodes[*node_nr].var;
+                let n_var = &self.nodes[*node_nr - self.var_idx_offset].var;
                 let location = self.location_in_query.get(n_var);
 
                 return Err(GraphAnnisError::AQLSemanticError(AQLError {

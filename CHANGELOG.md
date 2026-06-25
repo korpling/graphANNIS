@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed handling of node numbers in queries with multiple alternatives.
 - Estimation of generic edge operators for cyclic graph components should not
   assume all nodes can be reached when the operator itself is limited in length.
 

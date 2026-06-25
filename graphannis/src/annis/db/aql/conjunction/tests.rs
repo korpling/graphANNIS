@@ -157,6 +157,25 @@ fn semantic_error_unbound() {
 }
 
 #[test]
+fn semantic_error_unbound_in_non_first_alternative() {
+    let config = Config::default();
+    let g = AnnotationGraph::with_default_graphstorages(false).unwrap();
+    // Same as above, but the unbound variable is in a non-first alternative,
+    // whose nodes have a non-zero global offset. This asserts that the global
+    // node numbers are correctly translated to local indices.
+    let q = aql::parse("tok . tok | tok & tok", false).unwrap();
+    let plan = ExecutionPlan::from_disjunction(&q, &g, &config, TimeoutCheck::new(None));
+    match plan {
+        Err(AQLSemanticError(err)) => assert_eq!(
+            "Variable \"#4\" not bound (use linguistic operators)",
+            err.desc
+        ),
+        Err(err) => panic!("Query must return a semantic error, but returned {}", err),
+        Ok(_) => panic!("Query must return an error"),
+    }
+}
+
+#[test]
 fn semantic_error_optional_non_negated() {
     match aql::parse("tok? & tok? & #1 . #2", false) {
         Err(AQLSemanticError(err)) => assert_eq!(
