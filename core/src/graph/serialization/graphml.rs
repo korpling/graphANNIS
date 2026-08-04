@@ -503,7 +503,19 @@ fn add_edge<CT: ComponentType>(
     Ok(())
 }
 
-fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
+/// Read in a single GraphML file from `input` and fill the updates given as
+/// parameters.
+///
+/// In order to create a [`Graph`] from it, you first have to apply the
+/// `node_updates` and then the `edge_updates`. Status updates can be retrieved
+/// by the `progress_updates` closure, that will be called with a message as
+/// argument and can be used e.g. for logging or displaying the status message
+/// to the user.
+///
+/// # Returns
+///
+/// If the GraphML-file contains a corpus configuration, this is returned as a string.
+pub fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
     input: &mut R,
     node_updates: &mut GraphUpdate,
     edge_updates: &mut GraphUpdate,
