@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added the `CorpusStorage::find_extra` method, which returns for each match the
+  alternative of the query that produced it in addition to the match ID.
+
 ## [4.1.5] - 2026-06-25
 
 ### Fixed
