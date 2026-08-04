@@ -18,6 +18,7 @@ use crate::annis::types::{CorpusSizeInfo, CountExtra};
 use crate::annis::util::TimeoutCheck;
 use crate::annis::util::quicksort;
 use crate::{AnnotationGraph, graph::Match};
+use facet::Facet;
 use fmt::Display;
 use fs2::FileExt;
 use graphannis_core::annostorage::symboltable::SymbolTable;
@@ -38,7 +39,6 @@ use memory_stats::memory_stats;
 use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str, utf8_percent_encode};
 use rand::prelude::*;
 use std::collections::HashSet;
-use std::fmt;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
@@ -48,6 +48,7 @@ use std::str::FromStr;
 use std::sync::{Arc, Condvar, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::thread;
 use std::{borrow::Cow, time::Duration};
+use std::{default, fmt};
 use transient_btree_index::{BtreeConfig, BtreeIndex};
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -242,21 +243,72 @@ pub enum ImportFormat {
     /// Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/4.0/developer-guide/annisimportformat.html)
     RelANNIS,
     /// [GraphML](http://graphml.graphdrawing.org/) based export-format, suitable to be imported from other graph databases.
-    /// This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/docs/labs/apoc/current/import/graphml/).
+    /// This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/labs/apoc/4.3/import/graphml/).
     GraphML,
 }
 
 /// An enum of all supported output formats of graphANNIS.
 #[repr(C)]
 #[derive(Clone, Copy)]
+#[deprecated(note = "Use [`ExportFormatOptions`] instead", since = "4.2.0")]
 pub enum ExportFormat {
     /// [GraphML](http://graphml.graphdrawing.org/) based export-format, suitable to be imported into other graph databases.
-    /// This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/docs/labs/apoc/current/import/graphml/).
+    /// This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/labs/apoc/4.3/import/graphml/).
     GraphML,
     /// Like `GraphML`, but compressed as ZIP file. Linked files are also copied into the ZIP file.
     GraphMLZip,
     /// Like `GraphML`, but using a directory with multiple GraphML files, each for one corpus.
     GraphMLDirectory,
+}
+
+#[allow(deprecated)]
+impl Into<ExportFormatOptions> for ExportFormat {
+    fn into(self) -> ExportFormatOptions {
+        match self {
+            ExportFormat::GraphML => ExportFormatOptions::GraphML {
+                zip: false,
+                partition_by: ExportPartition::None,
+            },
+            ExportFormat::GraphMLZip => ExportFormatOptions::GraphML {
+                zip: true,
+                partition_by: ExportPartition::None,
+            },
+            ExportFormat::GraphMLDirectory => ExportFormatOptions::GraphML {
+                zip: false,
+                partition_by: ExportPartition::RootCorpus,
+            },
+        }
+    }
+}
+
+/// GraphML exports can be partitioned. This enum defines which type of partition is applied.
+#[non_exhaustive]
+#[derive(Facet, Serialize, Deserialize, Default)]
+#[repr(u16)]
+pub enum ExportPartition {
+    /// No partition. This implies there is only one root corpus, which is
+    /// exported to a single GraphML-file.
+    None,
+    /// Each root corpus is a single GraphML file.
+    #[default]
+    RootCorpus,
+    /// Partition by a custom label. E.g. by using "annis::doc", each document will be exported to a single file.
+    Label(AnnoKey),
+}
+
+#[derive(Facet, Serialize, Deserialize)]
+#[non_exhaustive]
+#[repr(u16)]
+pub enum ExportFormatOptions {
+    /// [GraphML](http://graphml.graphdrawing.org/) based export-format, suitable to be imported into other graph databases.
+    /// This format follows the extensions/conventions of the Neo4j [GraphML module](https://neo4j.com/labs/apoc/4.3/import/graphml/).
+    ///
+    /// It can be configured for different variants, e.g. how to partition the corpus or whether to ZIP the output or not.
+    GraphML {
+        /// If true, the output files are grouped together in an compressed ZIP-file.
+        zip: bool,
+        partition_by: ExportPartition,
+    },
 }
 
 /// Different strategies how it is decided when corpora need to be removed from the cache.
@@ -1305,53 +1357,64 @@ impl CorpusStorage {
     /// - `corpora` - The corpora to include in the exported file(s).
     /// - `path` - The location on the file system where the corpus data should be written to.
     /// - `format` - The format in which this corpus data will be stored stored.
-    pub fn export_to_fs<S: AsRef<str>>(
+    pub fn export_to_fs<S: AsRef<str>, F: Into<ExportFormatOptions>>(
         &self,
         corpora: &[S],
         path: &Path,
-        format: ExportFormat,
+        format: F,
     ) -> Result<()> {
-        match format {
-            ExportFormat::GraphML => {
-                if corpora.len() == 1 {
-                    self.export_corpus_graphml(corpora[0].as_ref(), path)?;
+        let format_options: ExportFormatOptions = format.into();
+
+        match format_options {
+            ExportFormatOptions::GraphML { zip, .. } => {
+                // If we get a graphml file as path, assume we shall export to a single file, otherwise a directory
+                if let Some(ext) = path.extension()
+                    && ext == "graphml"
+                    && zip == false
+                {
+                    if corpora.len() == 1 {
+                        self.export_corpus_graphml(corpora[0].as_ref(), path)?;
+                    } else {
+                        return Err(CorpusStorageError::MultipleCorporaForSingleCorpusFormat(
+                            corpora.len(),
+                        )
+                        .into());
+                    }
+                } else if zip {
+                    let output_file = File::create(path)?;
+                    let mut zip = zip::ZipWriter::new(output_file);
+
+                    let use_corpus_subdirectory = corpora.len() > 1;
+                    for corpus_name in corpora {
+                        // Add the GraphML file to the ZIP file
+                        let corpus_name: &str = corpus_name.as_ref();
+                        self.export_to_zip(
+                            corpus_name,
+                            use_corpus_subdirectory,
+                            &mut zip,
+                            |status| {
+                                info!("{}", status);
+                            },
+                        )?;
+                    }
+
+                    zip.finish()?;
                 } else {
-                    return Err(CorpusStorageError::MultipleCorporaForSingleCorpusFormat(
-                        corpora.len(),
-                    )
-                    .into());
+                    let use_corpus_subdirectory = corpora.len() > 1;
+                    for corpus_name in corpora {
+                        let mut path = PathBuf::from(path);
+                        if use_corpus_subdirectory {
+                            // Use a sub-directory with the corpus name to avoid conflicts with the
+                            // linked files
+                            path.push(corpus_name.as_ref());
+                        };
+                        std::fs::create_dir_all(&path)?;
+                        path.push(format!("{}.graphml", corpus_name.as_ref()));
+                        self.export_corpus_graphml(corpus_name.as_ref(), &path)?;
+                    }
                 }
             }
-            ExportFormat::GraphMLDirectory => {
-                let use_corpus_subdirectory = corpora.len() > 1;
-                for corpus_name in corpora {
-                    let mut path = PathBuf::from(path);
-                    if use_corpus_subdirectory {
-                        // Use a sub-directory with the corpus name to avoid conflicts with the
-                        // linked files
-                        path.push(corpus_name.as_ref());
-                    };
-                    std::fs::create_dir_all(&path)?;
-                    path.push(format!("{}.graphml", corpus_name.as_ref()));
-                    self.export_corpus_graphml(corpus_name.as_ref(), &path)?;
-                }
-            }
-            ExportFormat::GraphMLZip => {
-                let output_file = File::create(path)?;
-                let mut zip = zip::ZipWriter::new(output_file);
-
-                let use_corpus_subdirectory = corpora.len() > 1;
-                for corpus_name in corpora {
-                    // Add the GraphML file to the ZIP file
-                    let corpus_name: &str = corpus_name.as_ref();
-                    self.export_to_zip(corpus_name, use_corpus_subdirectory, &mut zip, |status| {
-                        info!("{}", status);
-                    })?;
-                }
-
-                zip.finish()?;
-            }
-        }
+        };
 
         Ok(())
     }
