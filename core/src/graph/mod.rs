@@ -1130,6 +1130,11 @@ impl<CT: ComponentType> Graph<CT> {
             filtered_components.collect()
         }
     }
+
+    /// Returns `true` if  disk-based annotation and graph storages are prefered instead of memory-only ones.
+    pub fn is_disk_based(&self) -> bool {
+        self.disk_based
+    }
 }
 
 #[cfg(test)]
