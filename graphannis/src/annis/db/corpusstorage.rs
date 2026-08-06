@@ -951,17 +951,45 @@ impl CorpusStorage {
                     "UnknownCorpus".to_string()
                 };
                 let input_file = File::open(path)?;
-                let (g, config_str) = graphannis_core::graph::serialization::graphml::import(
-                    input_file,
-                    disk_based,
-                    |status| {
-                        progress_callback(status);
-                        // loading the file from GraphmL consumes memory, update the corpus cache regularly to allow it to adapt
-                        if let Err(e) = self.check_cache_size_and_remove(vec![]) {
-                            error!("Could not check cache size: {}", e);
-                        };
-                    },
+
+                // Always buffer the read operations
+                let mut input = BufReader::new(input_file);
+                let mut g = AnnotationGraph::with_default_graphstorages(disk_based)?;
+                let mut updates = GraphUpdate::default();
+                let mut edge_updates = GraphUpdate::default();
+
+                // read in all nodes and edges, collecting annotation keys on the fly
+                progress_callback("reading GraphML");
+                let config_str = graphannis_core::graph::serialization::graphml::read_graphml::<
+                    AnnotationComponentType,
+                    _,
+                    _,
+                >(
+                    &mut input,
+                    &mut updates,
+                    &mut edge_updates,
+                    &progress_callback,
                 )?;
+
+                // Append all edges updates after the node updates:
+                // edges would not be added if the nodes they are referring do not exist
+                progress_callback("merging generated events");
+                for event in edge_updates.iter()? {
+                    let (_, event) = event?;
+                    updates.add_event(event)?;
+                }
+
+                progress_callback("applying imported changes");
+                g.apply_update(&mut updates, &progress_callback)?;
+
+                progress_callback("calculating graph statistics");
+                g.calculate_all_statistics()?;
+
+                for c in g.get_all_components(None, None) {
+                    progress_callback(&format!("optimizing implementation for component {}", c));
+                    g.optimize_gs_impl(&c)?;
+                }
+
                 let config = if let Some(config_str) = config_str {
                     toml::from_str(&config_str)?
                 } else {

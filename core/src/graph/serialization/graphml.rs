@@ -22,7 +22,7 @@ use std::{
     str::FromStr,
 };
 
-/// Import a GraphML-file as an annotation [`Graph`].
+/// Import a single GraphML-file as an annotation [`Graph`].
 ///
 /// # Returns
 ///
