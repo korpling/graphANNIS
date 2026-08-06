@@ -17,8 +17,9 @@ use quick_xml::{
 };
 use std::{
     cmp::Ordering,
-    collections::{BTreeMap, BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap, VecDeque},
     io::{BufReader, BufWriter, Read, Write},
+    path::{Path, PathBuf},
     str::FromStr,
 };
 
@@ -245,6 +246,57 @@ pub fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
         buf.clear();
     }
     Ok(config)
+}
+
+/// A corpus can consist of several GraphML-files if the corpus is partitioned
+/// and there is a subdirectory with the same name as the basename of the
+/// GraphML file given as argument.
+///
+/// This function finds the files that belong the same corpus for and returns
+/// the paths in the order they should be read. If there is no matching
+/// subdirectory next to the given GraphML-file, the file itself is returned.
+pub fn files_for_corpus<P: AsRef<Path>>(file: P) -> Result<Vec<PathBuf>> {
+    let mut result = Vec::new();
+    if file.as_ref().is_file()
+        && let Some(ext) = file.as_ref().extension()
+        && ext == "graphml"
+    {
+        // Add the root GraphML file first
+        result.push(file.as_ref().to_path_buf());
+
+        // If there is a directory with the same base name as the GraphML file,
+        // search this directory with a BFS for more GraphML-files
+        if let Some(parent_dir) = file.as_ref().parent()
+            && let Some(basename) = file.as_ref().file_stem()
+            && let corpus_dir = parent_dir.join(basename)
+            && corpus_dir.is_dir()
+        {
+            let mut queue = VecDeque::new();
+            queue.push_back(corpus_dir);
+
+            while let Some(current_file) = queue.pop_front() {
+                if current_file.is_dir() {
+                    // Get all files and directories that belong to this parent
+                    // directory and add them to the queue in a predicatble order.
+                    let mut same_level_entries = BTreeMap::new();
+                    for dir_entry in std::fs::read_dir(&current_file)? {
+                        let dir_entry = dir_entry?;
+                        same_level_entries.insert(dir_entry.file_name(), dir_entry.path());
+                    }
+
+                    for p in same_level_entries.into_values() {
+                        queue.push_back(p);
+                    }
+                } else if current_file.is_file()
+                    && let Some(extension) = current_file.extension()
+                    && extension == "graphml"
+                {
+                    result.push(current_file);
+                }
+            }
+        }
+    }
+    Ok(result)
 }
 
 /// Export the GraphML file without any guarantuee on the order of the XML elements.
@@ -891,5 +943,36 @@ value = "test""#;
         );
 
         assert_eq!(Some(TEST_CONFIG), config_str.as_deref());
+    }
+
+    #[test]
+    fn test_partitioned_file_import_order() {
+        let example_corpus = Path::new("tests/partioned-graphml/single_sentence.graphml");
+        assert!(example_corpus.is_file());
+
+        let result = files_for_corpus(example_corpus).unwrap();
+        assert_eq!(3, result.len());
+        assert_eq!(
+            "tests/partioned-graphml/single_sentence.graphml",
+            result[0].to_string_lossy()
+        );
+        assert_eq!(
+            "tests/partioned-graphml/single_sentence/zossen.graphml",
+            result[1].to_string_lossy()
+        );
+        assert_eq!(
+            "tests/partioned-graphml/single_sentence/subcorpus1/anotherdocument.graphml",
+            result[2].to_string_lossy()
+        );
+    }
+
+    #[test]
+    fn test_non_partitioned_file_import_order() {
+        let example_corpus = Path::new("tests/single_sentence.graphml");
+        assert!(example_corpus.is_file());
+
+        let result = files_for_corpus(example_corpus).unwrap();
+        assert_eq!(1, result.len());
+        assert_eq!("tests/single_sentence.graphml", result[0].to_string_lossy());
     }
 }

@@ -25,6 +25,7 @@ use graphannis_core::annostorage::{
     NodeAnnotationStorage, match_group_resolve_symbol_ids, match_group_with_symbol_ids,
 };
 use graphannis_core::errors::Result as CoreResult;
+use graphannis_core::graph::serialization::graphml;
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
     graph::{
@@ -950,26 +951,37 @@ impl CorpusStorage {
                 } else {
                     "UnknownCorpus".to_string()
                 };
-                let input_file = File::open(path)?;
 
-                // Always buffer the read operations
-                let mut input = BufReader::new(input_file);
                 let mut g = AnnotationGraph::with_default_graphstorages(disk_based)?;
                 let mut updates = GraphUpdate::default();
                 let mut edge_updates = GraphUpdate::default();
 
-                // read in all nodes and edges, collecting annotation keys on the fly
-                progress_callback("reading GraphML");
-                let config_str = graphannis_core::graph::serialization::graphml::read_graphml::<
-                    AnnotationComponentType,
-                    _,
-                    _,
-                >(
-                    &mut input,
-                    &mut updates,
-                    &mut edge_updates,
-                    &progress_callback,
-                )?;
+                let mut first_config_str = None;
+
+                for (i, input_path) in graphml::files_for_corpus(path)?.iter().enumerate() {
+                    // Always buffer the read operations
+                    let input_file = File::open(input_path)?;
+                    let mut input = BufReader::new(input_file);
+
+                    // read in all nodes and edges, collecting annotation keys on the fly
+                    progress_callback(&format!(
+                        "reading GraphML file {}",
+                        input_path.to_string_lossy()
+                    ));
+                    let config_str = graphannis_core::graph::serialization::graphml::read_graphml::<
+                        AnnotationComponentType,
+                        _,
+                        _,
+                    >(
+                        &mut input,
+                        &mut updates,
+                        &mut edge_updates,
+                        &progress_callback,
+                    )?;
+                    if i == 0 {
+                        first_config_str = config_str;
+                    }
+                }
 
                 // Append all edges updates after the node updates:
                 // edges would not be added if the nodes they are referring do not exist
@@ -990,7 +1002,7 @@ impl CorpusStorage {
                     g.optimize_gs_impl(&c)?;
                 }
 
-                let config = if let Some(config_str) = config_str {
+                let config = if let Some(config_str) = first_config_str {
                     toml::from_str(&config_str)?
                 } else {
                     CorpusConfiguration::default()
