@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml>
+    <key id="k0" for="node" attr.name="annis::doc" attr.type="string"/>
+    <key id="k1" for="node" attr.name="annis::layer" attr.type="string"/>
+    <key id="k2" for="node" attr.name="annis::node_type" attr.type="string"/>
+    <key id="k3" for="node" attr.name="default_ns::pos" attr.type="string"/>
+    <key id="k4" for="node" attr.name="annis::tok" attr.type="string"/>
+    <key id="k5" for="node" attr.name="annis::tok-whitespace-before" attr.type="string"/>
+    <key id="k6" for="node" attr.name="default_ns::visible_description" attr.type="string"/>
+    <graph edgedefault="directed" parse.order="nodesfirst" parse.nodeids="free" parse.edgeids="canonical">
+        <node id="single_sentence/zossen">
+            <data key="k0">zossen</data>
+            <data key="k2">corpus</data>
+            <data key="k6">This is a document with actual content.</data>
+        </node>
+        <node id="single_sentence/zossen#text">
+            <data key="k2">datasource</data>
+        </node>
+        <node id="single_sentence/zossen#t1">
+            <data key="k1">default_layer</data>
+            <data key="k2">node</data>
+            <data key="k3">ART</data>
+            <data key="k4">Die</data>
+        </node>
+        <node id="single_sentence/zossen#t2">
+            <data key="k1">default_layer</data>
+            <data key="k2">node</data>
+            <data key="k3">NN</data>
+            <data key="k4">Jugendlichen</data>
+            <data key="k5"> </data>
+        </node>
+        <node id="single_sentence/zossen#t3">
+            <data key="k1">default_layer</data>
+            <data key="k2">node</data>
+            <data key="k3">APPR</data>
+            <data key="k4">in</data>
+            <data key="k5"> </data>
+        </node>
+        <node id="single_sentence/zossen#t4">
+            <data key="k1">default_layer</data>
+            <data key="k2">node</data>
+            <data key="k3">NE</data>
+            <data key="k4">Zossen</data>
+            <data key="k5"> </data>
+        </node>
+        <node id="single_sentence/zossen#t5">
+            <data key="k1">default_layer</data>
+            <data key="k2">node</data>
+            <data key="k3">VMFIN</data>
+            <data key="k4">wollen</data>
+            <data key="k5"> </data>
+        </node>
+        <node id="single_sentence/zossen#t6">
+            <data key="k1">default_layer</data>
+            <data key="k2">node</data>
+            <data key="k3">ART</data>
+            <data key="k4">ein</data>
+            <data key="k5"> </data>
+        </node>
+        <node id="single_sentence/zossen#t7">
+            <data key="k1">default_layer</data>
+            <data key="k2">node</data>
+            <data key="k3">NN</data>
+            <data key="k4">Musikcafé</data>
+            <data key="k5"> </data>
+        </node>
+        <node id="single_sentence/zossen#t8">
+            <data key="k1">default_layer</data>
+            <data key="k2">node</data>
+            <data key="k3">$.</data>
+            <data key="k4">.</data>
+            <data key="k5"> </data>
+        </node>
+        <edge id="e0" source="single_sentence/zossen#t1" target="single_sentence/zossen#t2" label="Ordering/annis/">
+        </edge>
+        <edge id="e1" source="single_sentence/zossen#t2" target="single_sentence/zossen#t3" label="Ordering/annis/">
+        </edge>
+        <edge id="e2" source="single_sentence/zossen#t3" target="single_sentence/zossen#t4" label="Ordering/annis/">
+        </edge>
+        <edge id="e3" source="single_sentence/zossen#t4" target="single_sentence/zossen#t5" label="Ordering/annis/">
+        </edge>
+        <edge id="e4" source="single_sentence/zossen#t5" target="single_sentence/zossen#t6" label="Ordering/annis/">
+        </edge>
+        <edge id="e5" source="single_sentence/zossen#t6" target="single_sentence/zossen#t7" label="Ordering/annis/">
+        </edge>
+        <edge id="e6" source="single_sentence/zossen#t7" target="single_sentence/zossen#t8" label="Ordering/annis/">
+        </edge>
+        <edge id="e7" source="single_sentence/zossen#text" target="single_sentence/zossen" label="PartOf/annis/">
+        </edge>
+        <edge id="e8" source="single_sentence/zossen#t1" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e9" source="single_sentence/zossen#t2" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e10" source="single_sentence/zossen#t3" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e11" source="single_sentence/zossen#t4" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e12" source="single_sentence/zossen#t5" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e13" source="single_sentence/zossen#t6" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e14" source="single_sentence/zossen#t7" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e15" source="single_sentence/zossen#t8" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+    </graph>
+</graphml>

@@ -284,28 +284,22 @@ impl Iterator for NestedLoop<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         // lazily initialize
         if self.match_receiver.is_none() {
-            self.match_receiver = if let Some(rhs) = self.next_match_receiver() {
+            self.match_receiver = {
+                let rhs = self.next_match_receiver()?;
                 Some(rhs)
-            } else {
-                return None;
             };
         }
 
         loop {
-            {
-                let match_receiver = self.match_receiver.as_mut()?;
-                if let Ok(result) = match_receiver.recv() {
-                    return Some(result);
-                }
+            let match_receiver = self.match_receiver.as_mut()?;
+            if let Ok(result) = match_receiver.recv() {
+                return Some(result);
             }
 
-            // get new candidates
-            if let Some(rhs) = self.next_match_receiver() {
-                self.match_receiver = Some(rhs);
-            } else {
-                // no more results to fetch
-                return None;
-            }
+            // get new candidates or return if there are no more results to
+            // fetch
+            let rhs = self.next_match_receiver()?;
+            self.match_receiver = Some(rhs);
         }
     }
 }

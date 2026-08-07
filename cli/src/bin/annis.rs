@@ -338,7 +338,7 @@ impl AnnisRunner {
         if let Ok(t) = load_time {
             info!(
                 "exported corpora {:?} in {}",
-                &self.current_corpus,
+                self.current_corpus,
                 format_dhms(t.as_secs())
             );
         }
@@ -451,7 +451,7 @@ impl AnnisRunner {
                     ));
                 }
             };
-            println!("New result order is \"{:?}\"", &self.result_order);
+            println!("New result order is \"{:?}\"", self.result_order);
         }
         Ok(())
     }

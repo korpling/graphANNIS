@@ -17,10 +17,420 @@ use quick_xml::{
 };
 use std::{
     cmp::Ordering,
-    collections::{BTreeMap, BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap, VecDeque},
     io::{BufReader, BufWriter, Read, Write},
+    path::{Path, PathBuf},
     str::FromStr,
 };
+
+/// Import a single GraphML-file as an annotation [`Graph`].
+///
+/// # Returns
+///
+/// A tuple of the graph itself and an optional corpus configuration as string.
+pub fn import<CT: ComponentType, R: Read, F>(
+    input: R,
+    disk_based: bool,
+    progress_callback: F,
+) -> Result<(Graph<CT>, Option<String>)>
+where
+    F: Fn(&str),
+{
+    // Always buffer the read operations
+    let mut input = BufReader::new(input);
+    let mut g = Graph::with_default_graphstorages(disk_based)?;
+    let mut updates = GraphUpdate::default();
+    let mut edge_updates = GraphUpdate::default();
+
+    // read in all nodes and edges, collecting annotation keys on the fly
+    progress_callback("reading GraphML");
+    let config = read_graphml::<CT, BufReader<R>, F>(
+        &mut input,
+        &mut updates,
+        &mut edge_updates,
+        &progress_callback,
+    )?;
+
+    // Append all edges updates after the node updates:
+    // edges would not be added if the nodes they are referring do not exist
+    progress_callback("merging generated events");
+    for event in edge_updates.iter()? {
+        let (_, event) = event?;
+        updates.add_event(event)?;
+    }
+
+    progress_callback("applying imported changes");
+    g.apply_update(&mut updates, &progress_callback)?;
+
+    progress_callback("calculating graph statistics");
+    g.calculate_all_statistics()?;
+
+    for c in g.get_all_components(None, None) {
+        progress_callback(&format!("optimizing implementation for component {}", c));
+        g.optimize_gs_impl(&c)?;
+    }
+
+    Ok((g, config))
+}
+
+/// Read in a single GraphML file from `input` and fill the updates given as
+/// parameters.
+///
+/// In order to create a [`Graph`] from it, you first have to apply the
+/// `node_updates` and then the `edge_updates`. Status updates can be retrieved
+/// by the `progress_updates` closure, that will be called with a message as
+/// argument and can be used e.g. for logging or displaying the status message
+/// to the user.
+///
+/// # Returns
+///
+/// If the GraphML-file contains a corpus configuration, this is returned as a string.
+pub fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
+    input: &mut R,
+    node_updates: &mut GraphUpdate,
+    edge_updates: &mut GraphUpdate,
+    progress_callback: &F,
+) -> Result<Option<String>> {
+    let mut reader = Reader::from_reader(input);
+    reader.expand_empty_elements(true);
+
+    let mut keys = BTreeMap::new();
+
+    let mut level = 0;
+    let mut in_graph = false;
+    let mut current_node_id: Option<String> = None;
+    let mut current_data_key: Option<String> = None;
+    let mut current_source_id: Option<String> = None;
+    let mut current_target_id: Option<String> = None;
+    let mut current_component: Option<String> = None;
+    let mut current_data_value: Option<String> = None;
+    let mut data: HashMap<AnnoKey, String> = HashMap::new();
+
+    let mut config = None;
+
+    let mut processed_updates = 0;
+
+    let mut buf = Vec::new();
+    loop {
+        match reader.read_event_into(&mut buf)? {
+            Event::Start(ref e) => {
+                level += 1;
+
+                match e.name().0 {
+                    b"graph" if level == 2 => {
+                        in_graph = true;
+                    }
+                    b"key" if level == 2 => {
+                        add_annotation_key(&mut keys, e.attributes())?;
+                    }
+                    b"node" if in_graph && level == 3 => {
+                        data.clear();
+                        // Get the ID of this node
+                        for att in e.attributes() {
+                            let att = att?;
+                            if att.key.0 == b"id" {
+                                current_node_id =
+                                    Some(String::from_utf8_lossy(&att.value).to_string());
+                            }
+                        }
+                    }
+
+                    b"edge" if in_graph && level == 3 => {
+                        data.clear();
+                        // Get the source and target node IDs
+                        for att in e.attributes() {
+                            let att = att?;
+                            if att.key.0 == b"source" {
+                                current_source_id =
+                                    Some(String::from_utf8_lossy(&att.value).to_string());
+                            } else if att.key.0 == b"target" {
+                                current_target_id =
+                                    Some(String::from_utf8_lossy(&att.value).to_string());
+                            } else if att.key.0 == b"label" {
+                                current_component =
+                                    Some(String::from_utf8_lossy(&att.value).to_string());
+                            }
+                        }
+                    }
+
+                    b"data" => {
+                        for att in e.attributes() {
+                            let att = att?;
+                            if att.key.0 == b"key" {
+                                current_data_key =
+                                    Some(String::from_utf8_lossy(&att.value).to_string());
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            Event::Text(t) if in_graph && level == 4 && current_data_key.is_some() => {
+                current_data_value = Some(t.unescape()?.to_string());
+            }
+
+            Event::CData(t) => {
+                if let Some(current_data_key) = &current_data_key
+                    && in_graph
+                    && level == 3
+                    && current_data_key == "k0"
+                {
+                    // This is the configuration content
+                    config = Some(String::from_utf8_lossy(&t).to_string());
+                }
+            }
+            Event::End(ref e) => {
+                match e.name().0 {
+                    b"graph" => {
+                        in_graph = false;
+                    }
+                    b"node" => {
+                        add_node(node_updates, &current_node_id, &mut data)?;
+                        current_node_id = None;
+                        processed_updates += 1;
+                        if processed_updates % 1_000_000 == 0 {
+                            progress_callback(&format!(
+                                "Processed {} GraphML nodes and edges",
+                                processed_updates
+                            ));
+                        }
+                    }
+                    b"edge" => {
+                        add_edge::<CT>(
+                            edge_updates,
+                            &current_source_id,
+                            &current_target_id,
+                            &current_component,
+                            &mut data,
+                        )?;
+                        current_source_id = None;
+                        current_target_id = None;
+                        current_component = None;
+                        processed_updates += 1;
+                        if processed_updates % 1_000_000 == 0 {
+                            progress_callback(&format!(
+                                "Processed {} GraphML nodes and edges",
+                                processed_updates
+                            ));
+                        }
+                    }
+                    b"data" => {
+                        if let Some(current_data_key) = current_data_key
+                            && let Some(anno_key) = keys.get(&current_data_key)
+                        {
+                            // Copy all data attributes into our own map
+                            if let Some(v) = current_data_value.take() {
+                                data.insert(anno_key.clone(), v);
+                            } else {
+                                // If there is an end tag without any text
+                                // data event, the value exists but is
+                                // empty.
+                                data.insert(anno_key.clone(), String::default());
+                            }
+                        }
+
+                        current_data_value = None;
+                        current_data_key = None;
+                    }
+                    _ => {}
+                }
+
+                level -= 1;
+            }
+            Event::Eof => {
+                break;
+            }
+            _ => {}
+        }
+        // Clear the buffer after each event
+        buf.clear();
+    }
+    Ok(config)
+}
+
+/// A corpus can consist of several GraphML-files if the corpus is partitioned
+/// and there is a subdirectory with the same name as the basename of the
+/// GraphML file given as argument.
+///
+/// This function finds the files that belong the same corpus for and returns
+/// the paths in the order they should be read. If there is no matching
+/// subdirectory next to the given GraphML-file, the file itself is returned.
+pub fn files_for_corpus<P: AsRef<Path>>(file: P) -> Result<Vec<PathBuf>> {
+    let mut result = Vec::new();
+    if file.as_ref().is_file()
+        && let Some(ext) = file.as_ref().extension()
+        && ext == "graphml"
+    {
+        // Add the root GraphML file first
+        result.push(file.as_ref().to_path_buf());
+
+        // If there is a directory with the same base name as the GraphML file,
+        // search this directory with a BFS for more GraphML-files
+        if let Some(parent_dir) = file.as_ref().parent()
+            && let Some(basename) = file.as_ref().file_stem()
+            && let corpus_dir = parent_dir.join(basename)
+            && corpus_dir.is_dir()
+        {
+            let mut queue = VecDeque::new();
+            queue.push_back(corpus_dir);
+
+            while let Some(current_file) = queue.pop_front() {
+                if current_file.is_dir() {
+                    // Get all files and directories that belong to this parent
+                    // directory and add them to the queue in a predicatble order.
+                    let mut same_level_entries = BTreeMap::new();
+                    for dir_entry in std::fs::read_dir(&current_file)? {
+                        let dir_entry = dir_entry?;
+                        same_level_entries.insert(dir_entry.file_name(), dir_entry.path());
+                    }
+
+                    for p in same_level_entries.into_values() {
+                        queue.push_back(p);
+                    }
+                } else if current_file.is_file()
+                    && let Some(extension) = current_file.extension()
+                    && extension == "graphml"
+                {
+                    result.push(current_file);
+                }
+            }
+        }
+    }
+    Ok(result)
+}
+
+/// Export the GraphML file without any guarantuee on the order of the XML elements.
+///
+/// This is faster than  than [`export_stable_order`].
+pub fn export<CT: ComponentType, W: std::io::Write, F>(
+    graph: &Graph<CT>,
+    graph_configuration: Option<&str>,
+    output: W,
+    progress_callback: F,
+) -> Result<()>
+where
+    F: Fn(&str),
+{
+    // Always buffer the output
+    let output = BufWriter::new(output);
+    let mut writer = Writer::new_with_indent(output, b' ', 4);
+
+    // Add XML declaration
+    let xml_decl = BytesDecl::new("1.0", Some("UTF-8"), None);
+    writer.write_event(Event::Decl(xml_decl))?;
+
+    // Always write the root element
+    writer.write_event(Event::Start(BytesStart::new("graphml")))?;
+
+    // Define all valid annotation ns/name pairs
+    progress_callback("exporting all available annotation keys");
+    let key_id_mapping =
+        write_annotation_keys(graph, graph_configuration.is_some(), false, &mut writer)?;
+
+    // We are writing a single graph
+    let mut graph_start = BytesStart::new("graph");
+    graph_start.push_attribute(("edgedefault", "directed"));
+    // Add parse helper information to allow more efficient parsing
+    graph_start.push_attribute(("parse.order", "nodesfirst"));
+    graph_start.push_attribute(("parse.nodeids", "free"));
+    graph_start.push_attribute(("parse.edgeids", "canonical"));
+
+    writer.write_event(Event::Start(graph_start))?;
+
+    // If graph configuration is given, add it as data element to the graph
+    if let Some(config) = graph_configuration {
+        let mut data_start = BytesStart::new("data");
+        // This is always the first key ID
+        data_start.push_attribute(("key", "k0"));
+        writer.write_event(Event::Start(data_start))?;
+        // Add the annotation value as internal text node
+        writer.write_event(Event::CData(BytesCData::new(config)))?;
+        writer.write_event(Event::End(BytesEnd::new("data")))?;
+    }
+
+    // Write out all nodes
+    progress_callback("exporting nodes");
+    write_nodes(graph, &mut writer, false, &key_id_mapping)?;
+
+    // Write out all edges
+    progress_callback("exporting edges");
+    write_edges(graph, &mut writer, false, &key_id_mapping)?;
+
+    writer.write_event(Event::End(BytesEnd::new("graph")))?;
+    writer.write_event(Event::End(BytesEnd::new("graphml")))?;
+
+    // Make sure to flush the buffered writer
+    writer.into_inner().flush()?;
+
+    Ok(())
+}
+
+/// Export the GraphML file and ensure a stable order of the XML elements.
+///
+/// This is slower than [`export`] but can e.g. be used in tests where the
+/// output should always be the same.
+pub fn export_stable_order<CT: ComponentType, W: std::io::Write, F>(
+    graph: &Graph<CT>,
+    graph_configuration: Option<&str>,
+    output: W,
+    progress_callback: F,
+) -> Result<()>
+where
+    F: Fn(&str),
+{
+    // Always buffer the output
+    let output = BufWriter::new(output);
+    let mut writer = Writer::new_with_indent(output, b' ', 4);
+
+    // Add XML declaration
+    let xml_decl = BytesDecl::new("1.0", Some("UTF-8"), None);
+    writer.write_event(Event::Decl(xml_decl))?;
+
+    // Always write the root element
+    writer.write_event(Event::Start(BytesStart::new("graphml")))?;
+
+    // Define all valid annotation ns/name pairs
+    progress_callback("exporting all available annotation keys");
+    let key_id_mapping =
+        write_annotation_keys(graph, graph_configuration.is_some(), true, &mut writer)?;
+
+    // We are writing a single graph
+    let mut graph_start = BytesStart::new("graph");
+    graph_start.push_attribute(("edgedefault", "directed"));
+    // Add parse helper information to allow more efficient parsing
+    graph_start.push_attribute(("parse.order", "nodesfirst"));
+    graph_start.push_attribute(("parse.nodeids", "free"));
+    graph_start.push_attribute(("parse.edgeids", "canonical"));
+
+    writer.write_event(Event::Start(graph_start))?;
+
+    // If graph configuration is given, add it as data element to the graph
+    if let Some(config) = graph_configuration {
+        let mut data_start = BytesStart::new("data");
+        // This is always the first key ID
+        data_start.push_attribute(("key", "k0"));
+        writer.write_event(Event::Start(data_start))?;
+        // Add the annotation value as internal text node
+        writer.write_event(Event::CData(BytesCData::new(config)))?;
+        writer.write_event(Event::End(BytesEnd::new("data")))?;
+    }
+
+    // Write out all nodes
+    progress_callback("exporting nodes");
+    write_nodes(graph, &mut writer, true, &key_id_mapping)?;
+
+    // Write out all edges
+    progress_callback("exporting edges");
+    write_edges(graph, &mut writer, true, &key_id_mapping)?;
+
+    writer.write_event(Event::End(BytesEnd::new("graph")))?;
+    writer.write_event(Event::End(BytesEnd::new("graphml")))?;
+
+    // Make sure to flush the buffered writer
+    writer.into_inner().flush()?;
+
+    Ok(())
+}
 
 fn write_annotation_keys<CT: ComponentType, W: std::io::Write>(
     graph: &Graph<CT>,
@@ -277,136 +687,6 @@ fn write_edges<CT: ComponentType, W: std::io::Write>(
     Ok(())
 }
 
-pub fn export<CT: ComponentType, W: std::io::Write, F>(
-    graph: &Graph<CT>,
-    graph_configuration: Option<&str>,
-    output: W,
-    progress_callback: F,
-) -> Result<()>
-where
-    F: Fn(&str),
-{
-    // Always buffer the output
-    let output = BufWriter::new(output);
-    let mut writer = Writer::new_with_indent(output, b' ', 4);
-
-    // Add XML declaration
-    let xml_decl = BytesDecl::new("1.0", Some("UTF-8"), None);
-    writer.write_event(Event::Decl(xml_decl))?;
-
-    // Always write the root element
-    writer.write_event(Event::Start(BytesStart::new("graphml")))?;
-
-    // Define all valid annotation ns/name pairs
-    progress_callback("exporting all available annotation keys");
-    let key_id_mapping =
-        write_annotation_keys(graph, graph_configuration.is_some(), false, &mut writer)?;
-
-    // We are writing a single graph
-    let mut graph_start = BytesStart::new("graph");
-    graph_start.push_attribute(("edgedefault", "directed"));
-    // Add parse helper information to allow more efficient parsing
-    graph_start.push_attribute(("parse.order", "nodesfirst"));
-    graph_start.push_attribute(("parse.nodeids", "free"));
-    graph_start.push_attribute(("parse.edgeids", "canonical"));
-
-    writer.write_event(Event::Start(graph_start))?;
-
-    // If graph configuration is given, add it as data element to the graph
-    if let Some(config) = graph_configuration {
-        let mut data_start = BytesStart::new("data");
-        // This is always the first key ID
-        data_start.push_attribute(("key", "k0"));
-        writer.write_event(Event::Start(data_start))?;
-        // Add the annotation value as internal text node
-        writer.write_event(Event::CData(BytesCData::new(config)))?;
-        writer.write_event(Event::End(BytesEnd::new("data")))?;
-    }
-
-    // Write out all nodes
-    progress_callback("exporting nodes");
-    write_nodes(graph, &mut writer, false, &key_id_mapping)?;
-
-    // Write out all edges
-    progress_callback("exporting edges");
-    write_edges(graph, &mut writer, false, &key_id_mapping)?;
-
-    writer.write_event(Event::End(BytesEnd::new("graph")))?;
-    writer.write_event(Event::End(BytesEnd::new("graphml")))?;
-
-    // Make sure to flush the buffered writer
-    writer.into_inner().flush()?;
-
-    Ok(())
-}
-
-/// Export the GraphML file and ensure a stable order of the XML elements.
-///
-/// This is slower than [`export`] but can e.g. be used in tests where the
-/// output should always be the same.
-pub fn export_stable_order<CT: ComponentType, W: std::io::Write, F>(
-    graph: &Graph<CT>,
-    graph_configuration: Option<&str>,
-    output: W,
-    progress_callback: F,
-) -> Result<()>
-where
-    F: Fn(&str),
-{
-    // Always buffer the output
-    let output = BufWriter::new(output);
-    let mut writer = Writer::new_with_indent(output, b' ', 4);
-
-    // Add XML declaration
-    let xml_decl = BytesDecl::new("1.0", Some("UTF-8"), None);
-    writer.write_event(Event::Decl(xml_decl))?;
-
-    // Always write the root element
-    writer.write_event(Event::Start(BytesStart::new("graphml")))?;
-
-    // Define all valid annotation ns/name pairs
-    progress_callback("exporting all available annotation keys");
-    let key_id_mapping =
-        write_annotation_keys(graph, graph_configuration.is_some(), true, &mut writer)?;
-
-    // We are writing a single graph
-    let mut graph_start = BytesStart::new("graph");
-    graph_start.push_attribute(("edgedefault", "directed"));
-    // Add parse helper information to allow more efficient parsing
-    graph_start.push_attribute(("parse.order", "nodesfirst"));
-    graph_start.push_attribute(("parse.nodeids", "free"));
-    graph_start.push_attribute(("parse.edgeids", "canonical"));
-
-    writer.write_event(Event::Start(graph_start))?;
-
-    // If graph configuration is given, add it as data element to the graph
-    if let Some(config) = graph_configuration {
-        let mut data_start = BytesStart::new("data");
-        // This is always the first key ID
-        data_start.push_attribute(("key", "k0"));
-        writer.write_event(Event::Start(data_start))?;
-        // Add the annotation value as internal text node
-        writer.write_event(Event::CData(BytesCData::new(config)))?;
-        writer.write_event(Event::End(BytesEnd::new("data")))?;
-    }
-
-    // Write out all nodes
-    progress_callback("exporting nodes");
-    write_nodes(graph, &mut writer, true, &key_id_mapping)?;
-
-    // Write out all edges
-    progress_callback("exporting edges");
-    write_edges(graph, &mut writer, true, &key_id_mapping)?;
-
-    writer.write_event(Event::End(BytesEnd::new("graph")))?;
-    writer.write_event(Event::End(BytesEnd::new("graphml")))?;
-
-    // Make sure to flush the buffered writer
-    writer.into_inner().flush()?;
-
-    Ok(())
-}
-
 fn add_annotation_key(keys: &mut BTreeMap<String, AnnoKey>, attributes: Attributes) -> Result<()> {
     // resolve the ID to the fully qualified annotation name
     let mut id: Option<String> = None;
@@ -501,214 +781,6 @@ fn add_edge<CT: ComponentType>(
         }
     }
     Ok(())
-}
-
-fn read_graphml<CT: ComponentType, R: std::io::BufRead, F: Fn(&str)>(
-    input: &mut R,
-    node_updates: &mut GraphUpdate,
-    edge_updates: &mut GraphUpdate,
-    progress_callback: &F,
-) -> Result<Option<String>> {
-    let mut reader = Reader::from_reader(input);
-    reader.expand_empty_elements(true);
-
-    let mut keys = BTreeMap::new();
-
-    let mut level = 0;
-    let mut in_graph = false;
-    let mut current_node_id: Option<String> = None;
-    let mut current_data_key: Option<String> = None;
-    let mut current_source_id: Option<String> = None;
-    let mut current_target_id: Option<String> = None;
-    let mut current_component: Option<String> = None;
-    let mut current_data_value: Option<String> = None;
-    let mut data: HashMap<AnnoKey, String> = HashMap::new();
-
-    let mut config = None;
-
-    let mut processed_updates = 0;
-
-    let mut buf = Vec::new();
-    loop {
-        match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) => {
-                level += 1;
-
-                match e.name().0 {
-                    b"graph" if level == 2 => {
-                        in_graph = true;
-                    }
-                    b"key" if level == 2 => {
-                        add_annotation_key(&mut keys, e.attributes())?;
-                    }
-                    b"node" if in_graph && level == 3 => {
-                        data.clear();
-                        // Get the ID of this node
-                        for att in e.attributes() {
-                            let att = att?;
-                            if att.key.0 == b"id" {
-                                current_node_id =
-                                    Some(String::from_utf8_lossy(&att.value).to_string());
-                            }
-                        }
-                    }
-
-                    b"edge" if in_graph && level == 3 => {
-                        data.clear();
-                        // Get the source and target node IDs
-                        for att in e.attributes() {
-                            let att = att?;
-                            if att.key.0 == b"source" {
-                                current_source_id =
-                                    Some(String::from_utf8_lossy(&att.value).to_string());
-                            } else if att.key.0 == b"target" {
-                                current_target_id =
-                                    Some(String::from_utf8_lossy(&att.value).to_string());
-                            } else if att.key.0 == b"label" {
-                                current_component =
-                                    Some(String::from_utf8_lossy(&att.value).to_string());
-                            }
-                        }
-                    }
-
-                    b"data" => {
-                        for att in e.attributes() {
-                            let att = att?;
-                            if att.key.0 == b"key" {
-                                current_data_key =
-                                    Some(String::from_utf8_lossy(&att.value).to_string());
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            Event::Text(t) if in_graph && level == 4 && current_data_key.is_some() => {
-                current_data_value = Some(t.unescape()?.to_string());
-            }
-
-            Event::CData(t) => {
-                if let Some(current_data_key) = &current_data_key
-                    && in_graph
-                    && level == 3
-                    && current_data_key == "k0"
-                {
-                    // This is the configuration content
-                    config = Some(String::from_utf8_lossy(&t).to_string());
-                }
-            }
-            Event::End(ref e) => {
-                match e.name().0 {
-                    b"graph" => {
-                        in_graph = false;
-                    }
-                    b"node" => {
-                        add_node(node_updates, &current_node_id, &mut data)?;
-                        current_node_id = None;
-                        processed_updates += 1;
-                        if processed_updates % 1_000_000 == 0 {
-                            progress_callback(&format!(
-                                "Processed {} GraphML nodes and edges",
-                                processed_updates
-                            ));
-                        }
-                    }
-                    b"edge" => {
-                        add_edge::<CT>(
-                            edge_updates,
-                            &current_source_id,
-                            &current_target_id,
-                            &current_component,
-                            &mut data,
-                        )?;
-                        current_source_id = None;
-                        current_target_id = None;
-                        current_component = None;
-                        processed_updates += 1;
-                        if processed_updates % 1_000_000 == 0 {
-                            progress_callback(&format!(
-                                "Processed {} GraphML nodes and edges",
-                                processed_updates
-                            ));
-                        }
-                    }
-                    b"data" => {
-                        if let Some(current_data_key) = current_data_key
-                            && let Some(anno_key) = keys.get(&current_data_key)
-                        {
-                            // Copy all data attributes into our own map
-                            if let Some(v) = current_data_value.take() {
-                                data.insert(anno_key.clone(), v);
-                            } else {
-                                // If there is an end tag without any text
-                                // data event, the value exists but is
-                                // empty.
-                                data.insert(anno_key.clone(), String::default());
-                            }
-                        }
-
-                        current_data_value = None;
-                        current_data_key = None;
-                    }
-                    _ => {}
-                }
-
-                level -= 1;
-            }
-            Event::Eof => {
-                break;
-            }
-            _ => {}
-        }
-        // Clear the buffer after each event
-        buf.clear();
-    }
-    Ok(config)
-}
-
-pub fn import<CT: ComponentType, R: Read, F>(
-    input: R,
-    disk_based: bool,
-    progress_callback: F,
-) -> Result<(Graph<CT>, Option<String>)>
-where
-    F: Fn(&str),
-{
-    // Always buffer the read operations
-    let mut input = BufReader::new(input);
-    let mut g = Graph::with_default_graphstorages(disk_based)?;
-    let mut updates = GraphUpdate::default();
-    let mut edge_updates = GraphUpdate::default();
-
-    // read in all nodes and edges, collecting annotation keys on the fly
-    progress_callback("reading GraphML");
-    let config = read_graphml::<CT, BufReader<R>, F>(
-        &mut input,
-        &mut updates,
-        &mut edge_updates,
-        &progress_callback,
-    )?;
-
-    // Append all edges updates after the node updates:
-    // edges would not be added if the nodes they are referring do not exist
-    progress_callback("merging generated events");
-    for event in edge_updates.iter()? {
-        let (_, event) = event?;
-        updates.add_event(event)?;
-    }
-
-    progress_callback("applying imported changes");
-    g.apply_update(&mut updates, &progress_callback)?;
-
-    progress_callback("calculating graph statistics");
-    g.calculate_all_statistics()?;
-
-    for c in g.get_all_components(None, None) {
-        progress_callback(&format!("optimizing implementation for component {}", c));
-        g.optimize_gs_impl(&c)?;
-    }
-
-    Ok((g, config))
 }
 
 #[cfg(test)]
@@ -871,5 +943,51 @@ value = "test""#;
         );
 
         assert_eq!(Some(TEST_CONFIG), config_str.as_deref());
+    }
+
+    #[test]
+    fn test_partitioned_file_import_order() {
+        let example_corpus = Path::new("tests/partioned-graphml/single_sentence.graphml");
+        assert!(example_corpus.is_file());
+
+        let result = files_for_corpus(example_corpus).unwrap();
+        assert_eq!(3, result.len());
+
+        assert_eq!(
+            vec!["tests", "partioned-graphml", "single_sentence.graphml"],
+            result[0].components().map(|c| c.as_os_str()).collect_vec()
+        );
+        assert_eq!(
+            vec![
+                "tests",
+                "partioned-graphml",
+                "single_sentence",
+                "zossen.graphml"
+            ],
+            result[1].components().map(|c| c.as_os_str()).collect_vec()
+        );
+        assert_eq!(
+            vec![
+                "tests",
+                "partioned-graphml",
+                "single_sentence",
+                "subcorpus1",
+                "anotherdocument.graphml"
+            ],
+            result[2].components().map(|c| c.as_os_str()).collect_vec()
+        );
+    }
+
+    #[test]
+    fn test_non_partitioned_file_import_order() {
+        let example_corpus = Path::new("tests/single_sentence.graphml");
+        assert!(example_corpus.is_file());
+
+        let result = files_for_corpus(example_corpus).unwrap();
+        assert_eq!(1, result.len());
+        assert_eq!(
+            vec!["tests", "single_sentence.graphml"],
+            result[0].components().map(|c| c.as_os_str()).collect_vec()
+        );
     }
 }

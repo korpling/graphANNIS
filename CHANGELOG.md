@@ -5,6 +5,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Handle partitioned GraphML files in CorpusStorage.
+- Make the `graph::serizalization::read_graphml` function of the
+  `graphannis-core` crate public. This is useful in case you want to do collect
+  updates from a GraphML-file without generating a `Graph` directly.
+- Add `is_disk_based` method to `Graph`.
+
 ## [4.1.5] - 2026-06-25
 
 ### Fixed

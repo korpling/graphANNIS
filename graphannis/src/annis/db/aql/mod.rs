@@ -264,7 +264,7 @@ fn map_conjunction(
         // Add additional nodes to the query to emulate the old behavior of distributing
         // joins for pointing and dominance operators on different query nodes.
         // Iterate over the query nodes in their order as given by the query.
-        for (_, orig_var) in pos_to_node_id.iter() {
+        for orig_var in pos_to_node_id.values() {
             let num_joins = num_pointing_or_dominance_joins.get(orig_var).unwrap_or(&0);
             // add an additional node for each extra join and join this artificial node with identity relation
             for _ in 1..*num_joins {
