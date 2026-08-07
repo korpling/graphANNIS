@@ -74,7 +74,7 @@ impl<'a> IndexJoin<'a> {
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin (parallel)",
-                &format!("#{} {} #{}", op_args.left, &op, op_args.right),
+                &format!("#{} {} #{}", op_args.left, op, op_args.right),
                 &processed_func,
             )?,
             lhs: lhs_peek,
@@ -243,28 +243,22 @@ impl Iterator for IndexJoin<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         // lazily initialize
         if self.match_receiver.is_none() {
-            self.match_receiver = if let Some(rhs) = self.next_match_receiver() {
+            self.match_receiver = {
+                let rhs = self.next_match_receiver()?;
                 Some(rhs)
-            } else {
-                return None;
             };
         }
 
         loop {
-            {
-                let match_receiver = self.match_receiver.as_mut()?;
-                if let Ok(result) = match_receiver.recv() {
-                    return Some(result);
-                }
+            let match_receiver = self.match_receiver.as_mut()?;
+            if let Ok(result) = match_receiver.recv() {
+                return Some(result);
             }
 
-            // inner was completed once, get new candidates
-            if let Some(rhs) = self.next_match_receiver() {
-                self.match_receiver = Some(rhs);
-            } else {
-                // no more results to fetch
-                return None;
-            }
+            // inner was completed once, get new candidates or return if no more
+            // results to fetch
+            let rhs = self.next_match_receiver()?;
+            self.match_receiver = Some(rhs);
         }
     }
 }

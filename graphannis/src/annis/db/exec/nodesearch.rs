@@ -311,23 +311,23 @@ impl fmt::Display for NodeSearchSpec {
             }
             NodeSearchSpec::NotExactValue { ns, name, val, .. } => {
                 if let Some(ns) = ns {
-                    write!(f, "{}:{}!=\"{}\"", ns, name, &val)
+                    write!(f, "{}:{}!=\"{}\"", ns, name, val)
                 } else {
-                    write!(f, "{}!=\"{}\"", name, &val)
+                    write!(f, "{}!=\"{}\"", name, val)
                 }
             }
             NodeSearchSpec::RegexValue { ns, name, val, .. } => {
                 if let Some(ns) = ns {
-                    write!(f, "{}:{}=/{}/", ns, name, &val)
+                    write!(f, "{}:{}=/{}/", ns, name, val)
                 } else {
-                    write!(f, "{}=/{}/", name, &val)
+                    write!(f, "{}=/{}/", name, val)
                 }
             }
             NodeSearchSpec::NotRegexValue { ns, name, val, .. } => {
                 if let Some(ns) = ns {
-                    write!(f, "{}:{}!=/{}/", ns, name, &val)
+                    write!(f, "{}:{}!=/{}/", ns, name, val)
                 } else {
-                    write!(f, "{}!=/{}/", name, &val)
+                    write!(f, "{}!=/{}/", name, val)
                 }
             }
             NodeSearchSpec::ExactTokenValue { val, leafs_only } => {

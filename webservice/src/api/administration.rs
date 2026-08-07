@@ -142,7 +142,7 @@ pub async fn import_corpus(
             settings.database.disk_based,
             params.override_existing,
             |status| {
-                info!("Job {} update: {}", &id_as_string, status);
+                info!("Job {} update: {}", id_as_string, status);
                 // Add status report to background job messages
                 if let Ok(mut jobs) = background_jobs.jobs.lock()
                     && let Some(j) = jobs.get_mut(&id)
@@ -201,7 +201,7 @@ fn export_corpus_background_taks(
         // Add the GraphML file to the ZIP file
         let corpus_name: &str = corpus_name.as_ref();
         cs.export_to_zip(corpus_name, use_corpus_subdirectory, &mut zip, |status| {
-            info!("Job {} update: {}", &id_as_string, status);
+            info!("Job {} update: {}", id_as_string, status);
             // Add status report to background job messages
             if let Ok(mut jobs) = background_jobs.jobs.lock()
                 && let Some(j) = jobs.get_mut(&id)

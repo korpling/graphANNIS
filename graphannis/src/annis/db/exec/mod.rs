@@ -161,15 +161,12 @@ impl ExecutionNodeDesc {
 
             result.push_str(&format!(
                 "#{} ({}) [{}] {}\n",
-                &node_nr.to_string(),
-                &self.query_fragment,
-                &cost_str,
-                &self.impl_description,
+                node_nr, self.query_fragment, cost_str, self.impl_description,
             ));
         } else {
             result.push_str(&format!(
                 "+|{} ({}) [{}]\n",
-                &self.impl_description, &self.query_fragment, &cost_str
+                self.impl_description, self.query_fragment, cost_str
             ));
 
             let new_indention = format!("{}    ", indention);

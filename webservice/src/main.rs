@@ -117,7 +117,7 @@ fn init_app_state() -> anyhow::Result<(graphannis::CorpusStorage, settings::Sett
         PathBuf::from(&settings.database.sqlite)
             .canonicalize()?
             .to_string_lossy(),
-        &settings.database.cache
+        settings.database.cache
     );
     if let Some(timeout) = &settings.database.query_timeout {
         info!("Queries timeout set to {} seconds", timeout);
@@ -275,7 +275,7 @@ async fn main() -> Result<()> {
     let (cs, settings, db_pool) = init_app_state()
         .map_err(|e| Error::other(format!("Could not initialize graphANNIS service: {:?}", e)))?;
 
-    let bind_address = format!("{}:{}", &settings.bind.host, &settings.bind.port);
+    let bind_address = format!("{}:{}", settings.bind.host, settings.bind.port);
     let cs = web::Data::new(cs);
     let settings = web::Data::new(settings);
     let db_pool = web::Data::new(db_pool);

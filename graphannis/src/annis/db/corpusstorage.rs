@@ -25,6 +25,7 @@ use graphannis_core::annostorage::{
     NodeAnnotationStorage, match_group_resolve_symbol_ids, match_group_with_symbol_ids,
 };
 use graphannis_core::errors::Result as CoreResult;
+use graphannis_core::graph::serialization::graphml;
 use graphannis_core::{
     annostorage::{MatchGroup, ValueSearch},
     graph::{
@@ -533,7 +534,7 @@ impl CorpusStorage {
         info!(
             "saving corpus configuration file for corpus {} to {}",
             corpus_name,
-            &corpus_config_path.to_string_lossy()
+            corpus_config_path.to_string_lossy()
         );
         std::fs::write(corpus_config_path, toml::to_string(&config)?)?;
         Ok(())
@@ -952,19 +953,58 @@ impl CorpusStorage {
                 } else {
                     "UnknownCorpus".to_string()
                 };
-                let input_file = File::open(path)?;
-                let (g, config_str) = graphannis_core::graph::serialization::graphml::import(
-                    input_file,
-                    disk_based,
-                    |status| {
-                        progress_callback(status);
-                        // loading the file from GraphmL consumes memory, update the corpus cache regularly to allow it to adapt
-                        if let Err(e) = self.check_cache_size_and_remove(vec![]) {
-                            error!("Could not check cache size: {}", e);
-                        };
-                    },
-                )?;
-                let config = if let Some(config_str) = config_str {
+
+                let mut g = AnnotationGraph::with_default_graphstorages(disk_based)?;
+                let mut updates = GraphUpdate::default();
+                let mut edge_updates = GraphUpdate::default();
+
+                let mut first_config_str = None;
+
+                for (i, input_path) in graphml::files_for_corpus(path)?.iter().enumerate() {
+                    // Always buffer the read operations
+                    let input_file = File::open(input_path)?;
+                    let mut input = BufReader::new(input_file);
+
+                    // read in all nodes and edges, collecting annotation keys on the fly
+                    progress_callback(&format!(
+                        "reading GraphML file {}",
+                        input_path.to_string_lossy()
+                    ));
+                    let config_str = graphannis_core::graph::serialization::graphml::read_graphml::<
+                        AnnotationComponentType,
+                        _,
+                        _,
+                    >(
+                        &mut input,
+                        &mut updates,
+                        &mut edge_updates,
+                        &progress_callback,
+                    )?;
+                    if i == 0 {
+                        first_config_str = config_str;
+                    }
+                }
+
+                // Append all edges updates after the node updates:
+                // edges would not be added if the nodes they are referring do not exist
+                progress_callback("merging generated events");
+                for event in edge_updates.iter()? {
+                    let (_, event) = event?;
+                    updates.add_event(event)?;
+                }
+
+                progress_callback("applying imported changes");
+                g.apply_update(&mut updates, &progress_callback)?;
+
+                progress_callback("calculating graph statistics");
+                g.calculate_all_statistics()?;
+
+                for c in g.get_all_components(None, None) {
+                    progress_callback(&format!("optimizing implementation for component {}", c));
+                    g.optimize_gs_impl(&c)?;
+                }
+
+                let config = if let Some(config_str) = first_config_str {
                     toml::from_str(&config_str)?
                 } else {
                     CorpusConfiguration::default()
@@ -1047,7 +1087,7 @@ impl CorpusStorage {
         info!(
             "Saving corpus configuration file for corpus {} to {}",
             corpus_name,
-            &corpus_config_path.to_string_lossy()
+            corpus_config_path.to_string_lossy()
         );
         std::fs::write(corpus_config_path, toml::to_string(&config)?)?;
 
