@@ -40,7 +40,7 @@ impl BaseEdgeOp {
         let mut gs: Vec<Arc<dyn GraphStorage>> = Vec::new();
         for c in &spec.components {
             let gs_for_component = db.get_graphstorage(c).ok_or_else(|| {
-                GraphAnnisError::ImpossibleSearch(format!("Component {} does not exist", &c))
+                GraphAnnisError::ImpossibleSearch(format!("Component {} does not exist", c))
             })?;
 
             gs.push(gs_for_component);
@@ -641,7 +641,7 @@ impl BinaryOperatorSpec for DominanceSpec {
         let op_str = if self.name.is_empty() {
             String::from(">")
         } else {
-            format!(">{} ", &self.name)
+            format!(">{} ", self.name)
         };
         let base = BaseEdgeOpSpec {
             op_str: Some(op_str),

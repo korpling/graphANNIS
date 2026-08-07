@@ -532,7 +532,7 @@ impl CorpusStorage {
         info!(
             "saving corpus configuration file for corpus {} to {}",
             corpus_name,
-            &corpus_config_path.to_string_lossy()
+            corpus_config_path.to_string_lossy()
         );
         std::fs::write(corpus_config_path, toml::to_string(&config)?)?;
         Ok(())
@@ -1085,7 +1085,7 @@ impl CorpusStorage {
         info!(
             "Saving corpus configuration file for corpus {} to {}",
             corpus_name,
-            &corpus_config_path.to_string_lossy()
+            corpus_config_path.to_string_lossy()
         );
         std::fs::write(corpus_config_path, toml::to_string(&config)?)?;
 

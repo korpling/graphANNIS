@@ -74,7 +74,7 @@ impl<'a> IndexJoin<'a> {
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin (parallel)",
-                &format!("#{} {} #{}", op_args.left, &op, op_args.right),
+                &format!("#{} {} #{}", op_args.left, op, op_args.right),
                 &processed_func,
             )?,
             lhs: lhs_peek,

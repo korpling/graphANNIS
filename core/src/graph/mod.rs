@@ -414,7 +414,7 @@ impl<CT: ComponentType> Graph<CT> {
         progress_callback(&format!("applying {} atomic updates", total_nr_updates));
         for (nr_updates, update_event) in u.iter()?.enumerate() {
             let (id, change) = update_event?;
-            trace!("applying event {:?}", &change);
+            trace!("applying event {:?}", change);
             ComponentType::before_update_event(&change, self, &mut update_graph_index)?;
             match &change {
                 UpdateEvent::AddNode {
@@ -710,7 +710,7 @@ impl<CT: ComponentType> Graph<CT> {
                 debug!("writing WAL update log to {:?}", temporary_disk_file.path());
                 bincode::serialize_into(temporary_disk_file.as_file(), &u)?;
                 temporary_disk_file.flush()?;
-                debug!("moving finished WAL update log to {:?}", &log_path);
+                debug!("moving finished WAL update log to {:?}", log_path);
                 // Since the temporary file should be on the same file system, persisting/moving it should be an atomic operation
                 temporary_disk_file.persist(&log_path)?;
 
@@ -718,7 +718,7 @@ impl<CT: ComponentType> Graph<CT> {
             } else {
                 trace!(
                     "error occured while applying updates: {:?}",
-                    &apply_update_result
+                    apply_update_result
                 );
                 // load corpus from disk again
                 self.open(&location)?;
@@ -819,7 +819,7 @@ impl<CT: ComponentType> Graph<CT> {
         debug!("Calculating node statistics");
         self.node_annos.calculate_statistics()?;
         for c in self.get_all_components(None, None) {
-            debug!("Calculating statistics for component {}", &c);
+            debug!("Calculating statistics for component {}", c);
             self.calculate_component_statistics(&c)?;
         }
 
@@ -922,7 +922,7 @@ impl<CT: ComponentType> Graph<CT> {
                 debug!(
                     "loading component {} from {}",
                     c,
-                    &component_path.to_string_lossy()
+                    component_path.to_string_lossy()
                 );
                 let component = load_component_from_disk(&component_path)?;
                 gs_opt.get_or_insert_with(|| component);
@@ -960,7 +960,7 @@ impl<CT: ComponentType> Graph<CT> {
                     debug!(
                         "loading component in parallel {} from {}",
                         c,
-                        &cpath.to_string_lossy()
+                        cpath.to_string_lossy()
                     );
                     (c, load_component_from_disk(&cpath))
                 }
@@ -1010,7 +1010,7 @@ impl<CT: ComponentType> Graph<CT> {
 
         for c in self.get_all_components(None, None) {
             // Perform the optimization if necessary
-            info!("optimizing implementation for component {}", &c);
+            info!("optimizing implementation for component {}", c);
             self.optimize_gs_impl(&c)?;
         }
         if let Some(location) = &self.location {

@@ -1603,7 +1603,7 @@ where
 
     info!(
         "creating index for content of {}",
-        &node_tab_path.to_string_lossy()
+        node_tab_path.to_string_lossy()
     );
     id_to_node_name.compact()?;
     nodes_by_text.compact()?;
@@ -1886,7 +1886,7 @@ where
 
     info!(
         "creating index for content of {}",
-        &rank_tab_path.to_string_lossy()
+        rank_tab_path.to_string_lossy()
     );
     load_rank_result.components_by_pre.compact()?;
     load_rank_result.edges_by_pre.compact()?;
@@ -2151,7 +2151,7 @@ fn add_subcorpora(
         if let Some(corpus_ref) = text_key.corpus_ref {
             let text_name = utf8_percent_encode(&text.name, NODE_NAME_ENCODE_SET).to_string();
             let subcorpus_full_name = get_corpus_path(corpus_ref, corpus_table)?;
-            let text_full_name = format!("{}#{}", &subcorpus_full_name, &text_name);
+            let text_full_name = format!("{}#{}", subcorpus_full_name, text_name);
 
             updates.add_event(UpdateEvent::AddNode {
                 node_name: text_full_name.clone(),

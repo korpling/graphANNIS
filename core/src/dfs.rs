@@ -71,14 +71,14 @@ impl<'a> CycleSafeDFS<'a> {
         if self.last_distance >= dist {
             // remove all entries below the parent node from the path
             for i in dist..self.path.len() {
-                trace!("truncating {} from path", &self.path[i]);
+                trace!("truncating {} from path", self.path[i]);
                 self.nodes_in_path.remove(&self.path[i]);
             }
             self.path.truncate(dist);
         }
         // test for cycle
         if self.nodes_in_path.contains(&node) {
-            trace!("cycle detected for node {} with distance {}", &node, dist);
+            trace!("cycle detected for node {} with distance {}", node, dist);
             self.last_distance = dist;
             self.cycle_detected = true;
             trace!("removing from stack because of cycle");
