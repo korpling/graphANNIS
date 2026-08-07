@@ -952,17 +952,29 @@ value = "test""#;
 
         let result = files_for_corpus(example_corpus).unwrap();
         assert_eq!(3, result.len());
+
         assert_eq!(
-            "tests/partioned-graphml/single_sentence.graphml",
-            result[0].to_string_lossy()
+            vec!["tests", "partioned-graphml", "single_sentence.graphml"],
+            result[0].components().map(|c| c.as_os_str()).collect_vec()
         );
         assert_eq!(
-            "tests/partioned-graphml/single_sentence/zossen.graphml",
-            result[1].to_string_lossy()
+            vec![
+                "tests",
+                "partioned-graphml",
+                "single_sentence",
+                "zossen.graphml"
+            ],
+            result[1].components().map(|c| c.as_os_str()).collect_vec()
         );
         assert_eq!(
-            "tests/partioned-graphml/single_sentence/subcorpus1/anotherdocument.graphml",
-            result[2].to_string_lossy()
+            vec![
+                "tests",
+                "partioned-graphml",
+                "single_sentence",
+                "subcorpus1",
+                "anotherdocument.graphml"
+            ],
+            result[2].components().map(|c| c.as_os_str()).collect_vec()
         );
     }
 
@@ -973,6 +985,9 @@ value = "test""#;
 
         let result = files_for_corpus(example_corpus).unwrap();
         assert_eq!(1, result.len());
-        assert_eq!("tests/single_sentence.graphml", result[0].to_string_lossy());
+        assert_eq!(
+            vec!["tests", "single_sentence.graphml"],
+            result[0].components().map(|c| c.as_os_str()).collect_vec()
+        );
     }
 }
