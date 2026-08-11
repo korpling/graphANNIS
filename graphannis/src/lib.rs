@@ -34,7 +34,7 @@ pub mod corpusstorage {
         LoadStatus, QueryLanguage, ResultOrder,
     };
     pub use crate::annis::types::{
-        CountExtra, FrequencyTable, FrequencyTableRow, QueryAttributeDescription,
+        CountExtra, FrequencyTable, FrequencyTableRow, MatchExtra, QueryAttributeDescription,
     };
 }
 

@@ -14,7 +14,7 @@ use crate::annis::types::{
     CorpusConfiguration, CorpusSizeUnit, FrequencyTable, FrequencyTableRow,
     QueryAttributeDescription,
 };
-use crate::annis::types::{CorpusSizeInfo, CountExtra};
+use crate::annis::types::{CorpusSizeInfo, CountExtra, MatchExtra};
 use crate::annis::util::TimeoutCheck;
 use crate::annis::util::quicksort;
 use crate::{AnnotationGraph, graph::Match};
@@ -407,7 +407,9 @@ fn new_vector_with_memory_aligned_capacity<T>(expected_len: usize) -> Vec<T> {
     Vec::with_capacity(aligned_memory_size / std::mem::size_of::<T>())
 }
 
-type FindIterator<'a> = Box<dyn Iterator<Item = Result<MatchGroup>> + 'a>;
+/// Iterator over the matches of a `find` query
+/// and the index of the query alternative that produced each match.
+type FindIterator<'a> = Box<dyn Iterator<Item = Result<(usize, MatchGroup)>> + 'a>;
 
 impl CorpusStorage {
     /// Create a new instance with a maximum size for the internal corpus cache.
@@ -1775,36 +1777,36 @@ impl CorpusStorage {
             // If the output is already sorted correctly, directly return the iterator.
             // Quirks mode may change the order of the results, thus don't use the shortcut
             // if quirks mode is active.
-            Box::from(plan)
+            Box::from(plan.matches_with_alternative())
         } else {
             let estimated_result_size = plan.estimated_output_size();
             let btree_config = BtreeConfig::default()
                 .fixed_key_size(size_of::<usize>())
                 .max_value_size(512);
             let mut anno_key_symbols: SymbolTable<AnnoKey> = SymbolTable::new();
-            let mut tmp_results: BtreeIndex<usize, Vec<(NodeID, usize)>> =
+            let mut tmp_results: BtreeIndex<usize, (usize, Vec<(NodeID, usize)>)> =
                 BtreeIndex::with_capacity(btree_config, estimated_result_size)?;
 
             if find_arguments.order == ResultOrder::Randomized {
                 // Use a unique random index for each match to force a random order
                 let mut rng = rand::rng();
 
-                for mgroup in plan {
-                    let mgroup = mgroup?;
+                for m in plan.matches_with_alternative() {
+                    let (alternative, mgroup) = m?;
                     let mut idx: u64 = rng.random();
                     while tmp_results.contains_key(&(idx as usize))? {
                         idx = rng.random();
                     }
                     let m = match_group_with_symbol_ids(&mgroup, &mut anno_key_symbols)?;
-                    tmp_results.insert(idx as usize, m)?;
+                    tmp_results.insert(idx as usize, (alternative, m))?;
                 }
             } else {
                 // Insert results in the order as they are given by the iterator
-                for (idx, mgroup) in plan.enumerate() {
-                    let mgroup = mgroup?;
+                for (idx, m) in plan.matches_with_alternative().enumerate() {
+                    let (alternative, mgroup) = m?;
                     // add all matches to temporary container
                     let m = match_group_with_symbol_ids(&mgroup, &mut anno_key_symbols)?;
-                    tmp_results.insert(idx, m)?;
+                    tmp_results.insert(idx, (alternative, m))?;
                 }
 
                 let token_helper = TokenHelper::new(db).ok();
@@ -1822,12 +1824,12 @@ impl CorpusStorage {
 
                 let gs_order = db.get_graphstorage(&component_order);
                 let mut cache = SortCache::new(gs_order);
-                let order_func = |m1: &Vec<(NodeID, usize)>,
-                                  m2: &Vec<(NodeID, usize)>|
+                let order_func = |m1: &(usize, Vec<(NodeID, usize)>),
+                                  m2: &(usize, Vec<(NodeID, usize)>)|
                  -> Result<std::cmp::Ordering> {
                     // Get matches from symbol ID
-                    let m1 = match_group_resolve_symbol_ids(m1, &anno_key_symbols)?;
-                    let m2 = match_group_resolve_symbol_ids(m2, &anno_key_symbols)?;
+                    let m1 = match_group_resolve_symbol_ids(&m1.1, &anno_key_symbols)?;
+                    let m2 = match_group_resolve_symbol_ids(&m2.1, &anno_key_symbols)?;
 
                     // Compare the matches
                     if find_arguments.order == ResultOrder::Inverted {
@@ -1866,17 +1868,13 @@ impl CorpusStorage {
                 quicksort::sort_first_n_items(&mut tmp_results, sort_size, order_func)?;
             }
             expected_size = Some(tmp_results.len());
-            let iterator = tmp_results.into_iter()?.map(move |unresolved_match_group| {
-                match unresolved_match_group {
-                    Ok((_idx, unresolved_match_group)) => {
-                        let result = match_group_resolve_symbol_ids(
-                            &unresolved_match_group,
-                            &anno_key_symbols,
-                        )?;
-                        Ok(result)
-                    }
-                    Err(e) => Err(e.into()),
+            let iterator = tmp_results.into_iter()?.map(move |entry| match entry {
+                Ok((_idx, (alternative, unresolved_match_group))) => {
+                    let result =
+                        match_group_resolve_symbol_ids(&unresolved_match_group, &anno_key_symbols)?;
+                    Ok((alternative, result))
                 }
+                Err(e) => Err(e.into()),
             });
             Box::from(iterator)
         };
@@ -1884,13 +1882,14 @@ impl CorpusStorage {
         Ok((base_it, expected_size))
     }
 
-    fn find_in_single_corpus<S: AsRef<str>>(
+    fn find_in_single_corpus<S: AsRef<str>, T>(
         &self,
         query: &SearchQuery<S>,
         corpus_name: &str,
         find_arguments: FindArguments,
         timeout: TimeoutCheck,
-    ) -> Result<(Vec<String>, usize)> {
+        map_match: impl Fn(MatchExtra) -> T,
+    ) -> Result<(Vec<T>, usize)> {
         let prep = self.prepare_query(corpus_name, query.query, query.query_language, |db| {
             let mut additional_components = vec![Component::new(
                 AnnotationComponentType::Ordering,
@@ -1924,7 +1923,7 @@ impl CorpusStorage {
             timeout,
         )?;
 
-        let mut results: Vec<String> = if let Some(expected_size) = expected_size {
+        let mut results: Vec<T> = if let Some(expected_size) = expected_size {
             new_vector_with_memory_aligned_capacity(expected_size)
         } else if let Some(limit) = find_arguments.limit {
             new_vector_with_memory_aligned_capacity(limit)
@@ -1941,15 +1940,14 @@ impl CorpusStorage {
                 timeout.check()?;
             }
         }
-        let base_it: Box<dyn Iterator<Item = Result<MatchGroup>>> =
-            if let Some(limit) = find_arguments.limit {
-                Box::new(base_it.take(limit))
-            } else {
-                Box::new(base_it)
-            };
+        let base_it: FindIterator = if let Some(limit) = find_arguments.limit {
+            Box::new(base_it.take(limit))
+        } else {
+            Box::new(base_it)
+        };
 
         for (match_nr, m) in base_it.enumerate() {
-            let m = m?;
+            let (alternative, m) = m?;
             let mut match_desc = String::new();
 
             let mut any_nodes_added = false;
@@ -2011,7 +2009,10 @@ impl CorpusStorage {
                     }
                 }
             }
-            results.push(match_desc);
+            results.push(map_match(MatchExtra {
+                match_id: match_desc,
+                alternative,
+            }));
             if match_nr % 1_000 == 0 {
                 timeout.check()?;
             }
@@ -2031,6 +2032,8 @@ impl CorpusStorage {
     ///
     /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
     /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
+    ///
+    /// In order to obtain additional information for each match, see the [find_extra(...)](#method.find_extra) method.
     pub fn find<S: AsRef<str>>(
         &self,
         query: SearchQuery<S>,
@@ -2038,6 +2041,40 @@ impl CorpusStorage {
         limit: Option<usize>,
         order: ResultOrder,
     ) -> Result<Vec<String>> {
+        self.find_mapped(query, offset, limit, order, |m| m.match_id)
+    }
+
+    /// Find all results for a `query` and return the match ID and additional information for each result.
+    ///
+    /// The query is paginated and an offset and limit can be specified.
+    ///
+    /// - `query` - The search query definition.
+    /// - `offset` - Skip the `n` first results, where `n` is the offset.
+    /// - `limit` - Return at most `n` matches, where `n` is the limit.  Use `None` to allow unlimited result sizes.
+    /// - `order` - Specify the order of the matches.
+    ///
+    /// Returns a vector of [`MatchExtra`], which contains the same match ID as returned by [find(...)](#method.find)
+    /// together with additional information about the match.
+    ///
+    /// If you are just interested in the match IDs, use the [find(...)](#method.find) method instead.
+    pub fn find_extra<S: AsRef<str>>(
+        &self,
+        query: SearchQuery<S>,
+        offset: usize,
+        limit: Option<usize>,
+        order: ResultOrder,
+    ) -> Result<Vec<MatchExtra>> {
+        self.find_mapped(query, offset, limit, order, |m| m)
+    }
+
+    fn find_mapped<S: AsRef<str>, T: Clone>(
+        &self,
+        query: SearchQuery<S>,
+        offset: usize,
+        limit: Option<usize>,
+        order: ResultOrder,
+        map_match: impl Fn(MatchExtra) -> T,
+    ) -> Result<Vec<T>> {
         let timeout = TimeoutCheck::new(query.timeout);
 
         // Sort corpus names
@@ -2056,7 +2093,13 @@ impl CorpusStorage {
         match corpus_names.len() {
             0 => Ok(Vec::new()),
             1 => self
-                .find_in_single_corpus(&query, corpus_names[0].as_str(), find_arguments, timeout)
+                .find_in_single_corpus(
+                    &query,
+                    corpus_names[0].as_str(),
+                    find_arguments,
+                    timeout,
+                    map_match,
+                )
                 .map(|r| r.0),
             _ => {
                 if order == ResultOrder::Randomized {
@@ -2073,8 +2116,13 @@ impl CorpusStorage {
 
                 let mut result = Vec::new();
                 for cn in corpus_names {
-                    let (single_result, skipped) =
-                        self.find_in_single_corpus(&query, cn.as_ref(), find_arguments, timeout)?;
+                    let (single_result, skipped) = self.find_in_single_corpus(
+                        &query,
+                        cn.as_ref(),
+                        find_arguments,
+                        timeout,
+                        &map_match,
+                    )?;
 
                     // Adjust limit and offset according to the found matches for the next corpus.
                     let single_result_length = single_result.len();

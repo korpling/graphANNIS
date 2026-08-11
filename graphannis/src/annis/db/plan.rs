@@ -16,6 +16,8 @@ use transient_btree_index::{BtreeConfig, BtreeIndex};
 
 pub struct ExecutionPlan<'a> {
     plans: Vec<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>>,
+    /// The index of each plan's alternative in the original disjunction.
+    alternative: Vec<usize>,
     current_plan: usize,
     descriptions: Vec<Option<ExecutionNodeDesc>>,
     inverse_node_pos: Vec<Option<Vec<usize>>>,
@@ -32,9 +34,10 @@ impl<'a> ExecutionPlan<'a> {
         timeout: TimeoutCheck,
     ) -> Result<ExecutionPlan<'a>> {
         let mut plans: Vec<Box<dyn ExecutionNode<Item = Result<MatchGroup>> + 'a>> = Vec::new();
+        let mut alternative = Vec::new();
         let mut descriptions = Vec::new();
         let mut inverse_node_pos = Vec::new();
-        for alt in &query.alternatives {
+        for (i, alt) in query.alternatives.iter().enumerate() {
             let p = alt.make_exec_node(db, config, timeout);
             if let Ok(p) = p {
                 descriptions.push(p.get_desc().cloned());
@@ -66,6 +69,7 @@ impl<'a> ExecutionPlan<'a> {
                 }
 
                 plans.push(p);
+                alternative.push(i);
             } else if let Err(e) = p
                 && let GraphAnnisError::AQLSemanticError(_) = &e
             {
@@ -77,11 +81,13 @@ impl<'a> ExecutionPlan<'a> {
             // add a dummy execution step that yields no results
             let no_results_exec = EmptyResultSet {};
             plans.push(Box::new(no_results_exec));
+            alternative.push(0);
             descriptions.push(None);
         }
         let btree_config = BtreeConfig::default().fixed_value_size(std::mem::size_of::<bool>());
         Ok(ExecutionPlan {
             current_plan: 0,
+            alternative,
             descriptions,
             inverse_node_pos,
             proxy_mode: plans.len() == 1,
@@ -145,6 +151,56 @@ impl<'a> ExecutionPlan<'a> {
         }
         Ok(false)
     }
+
+    /// Get the next match and the index of the alternative in the original
+    /// disjunction that produced it. A match that is produced by more than one
+    /// alternative is only returned once and attributed to the first
+    /// alternative that produces it.
+    fn next_with_alternative(&mut self) -> Option<Result<(usize, MatchGroup)>> {
+        if self.proxy_mode {
+            // just act as an proxy, but make sure the order is the same as requested in the query
+            self.plans[0]
+                .next()
+                .map(|n| n.map(|n| (self.alternative[0], self.reorder_match(n))))
+        } else {
+            while self.current_plan < self.plans.len() {
+                if let Some(n) = self.plans[self.current_plan].next() {
+                    match n {
+                        Ok(n) => {
+                            let n = self.reorder_match(n);
+
+                            // check if we already outputted this result
+                            match self.insert_into_unique_result_set(&n) {
+                                Ok(new_result) => {
+                                    if new_result {
+                                        // new result found, break out of while-loop and return the result
+                                        let alternative = self.alternative[self.current_plan];
+                                        return Some(Ok((alternative, n)));
+                                    }
+                                }
+                                Err(e) => return Some(Err(e)),
+                            }
+                        }
+                        Err(e) => {
+                            return Some(Err(e));
+                        }
+                    }
+                } else {
+                    // proceed to next plan
+                    self.current_plan += 1;
+                }
+            }
+            None
+        }
+    }
+
+    /// Returns an iterator that additionally outputs the index of the
+    /// alternative in the original disjunction that produced each match.
+    pub fn matches_with_alternative(
+        mut self,
+    ) -> impl Iterator<Item = Result<(usize, MatchGroup)>> + 'a {
+        std::iter::from_fn(move || self.next_with_alternative())
+    }
 }
 
 impl std::fmt::Display for ExecutionPlan<'_> {
@@ -167,39 +223,6 @@ impl Iterator for ExecutionPlan<'_> {
     type Item = Result<MatchGroup>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.proxy_mode {
-            // just act as an proxy, but make sure the order is the same as requested in the query
-            self.plans[0]
-                .next()
-                .map(|n| n.map(|n| self.reorder_match(n)))
-        } else {
-            while self.current_plan < self.plans.len() {
-                if let Some(n) = self.plans[self.current_plan].next() {
-                    match n {
-                        Ok(n) => {
-                            let n = self.reorder_match(n);
-
-                            // check if we already outputted this result
-                            match self.insert_into_unique_result_set(&n) {
-                                Ok(new_result) => {
-                                    if new_result {
-                                        // new result found, break out of while-loop and return the result
-                                        return Some(Ok(n));
-                                    }
-                                }
-                                Err(e) => return Some(Err(e)),
-                            }
-                        }
-                        Err(e) => {
-                            return Some(Err(e));
-                        }
-                    }
-                } else {
-                    // proceed to next plan
-                    self.current_plan += 1;
-                }
-            }
-            None
-        }
+        self.next_with_alternative().map(|n| n.map(|(_, m)| m))
     }
 }

@@ -1118,6 +1118,175 @@ fn find_with_multiple_corpora() {
     assert_debug_snapshot!("find_with_multiple_corpora_inverted_5", results);
 }
 
+#[test]
+fn find_extra_with_alternatives() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    cs.import_from_fs(
+        &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
+        ImportFormat::GraphML,
+        Some("SaltSampleCorpus".into()),
+        false,
+        true,
+        |_| {},
+    )
+    .unwrap();
+
+    let query = |query: &'static str| SearchQuery {
+        corpus_names: &["SaltSampleCorpus"],
+        query,
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+
+    // Execute a query with two alternatives that have 8 and 5 matches.
+    // When sorted, the matches of both alternatives are interleaved and each
+    // match must be attributed to the alternative that produced it.
+    let q = query("pos=\"VBZ\" | pos=\"NN\"");
+    let results = cs
+        .find_extra(q.clone(), 0, None, ResultOrder::Normal)
+        .unwrap();
+    assert_eq!(13, results.len());
+    assert_debug_snapshot!("find_extra_with_alternatives", results);
+
+    // The match IDs must be the same as the ones returned by find
+    let match_ids: Vec<_> = results.iter().map(|m| m.match_id.clone()).collect();
+    let find_results = cs.find(q, 0, None, ResultOrder::Normal).unwrap();
+    assert_eq!(find_results, match_ids);
+
+    // A randomized order takes another code path, but must return the same
+    // matches with the same alternatives
+    let mut randomized_results = cs
+        .find_extra(
+            query("pos=\"VBZ\" | pos=\"NN\""),
+            0,
+            None,
+            ResultOrder::Randomized,
+        )
+        .unwrap();
+    randomized_results.sort_by(|m1, m2| m1.match_id.cmp(&m2.match_id));
+    let mut sorted_results = results.clone();
+    sorted_results.sort_by(|m1, m2| m1.match_id.cmp(&m2.match_id));
+    assert_eq!(sorted_results, randomized_results);
+
+    // A query with a single alternative is executed without sorting the
+    // results, so it takes a different code path
+    let results = cs
+        .find_extra(query("pos=\"VBZ\""), 0, None, ResultOrder::NotSorted)
+        .unwrap();
+    assert_eq!(8, results.len());
+    assert!(results.iter().all(|m| m.alternative == 0));
+
+    // The first alternative is skipped because no execution node can be built
+    // for its invalid regular expression. The matches of the second alternative
+    // must still be attributed to it.
+    let results = cs
+        .find_extra(
+            query("pos=/[/ . node | pos=\"VBZ\""),
+            0,
+            None,
+            ResultOrder::Normal,
+        )
+        .unwrap();
+    assert_eq!(8, results.len());
+    assert!(results.iter().all(|m| m.alternative == 1));
+
+    // If no execution node can be built for any alternative, the query yields
+    // no results at all
+    let results = cs
+        .find_extra(
+            query("pos=/[/ . node | pos=/(/ . node"),
+            0,
+            None,
+            ResultOrder::Normal,
+        )
+        .unwrap();
+    assert!(results.is_empty());
+
+    // The second alternative matches a superset of the first one
+    let matches_first = cs
+        .find(query("pos=\"VBZ\""), 0, None, ResultOrder::Normal)
+        .unwrap();
+    let matches_second = cs
+        .find(query("pos=/V.*/"), 0, None, ResultOrder::Normal)
+        .unwrap();
+    assert!(matches_first.len() < matches_second.len());
+
+    let results = cs
+        .find_extra(
+            query("pos=\"VBZ\" | pos=/V.*/"),
+            0,
+            None,
+            ResultOrder::Normal,
+        )
+        .unwrap();
+
+    // Matches produced by both alternatives must be returned only once ...
+    assert_eq!(matches_second.len(), results.len());
+
+    // ... and be attributed to the first alternative that produces them
+    for m in &results {
+        let expected_alternative = usize::from(!matches_first.contains(&m.match_id));
+        assert_eq!(expected_alternative, m.alternative, "for {}", m.match_id);
+    }
+    assert!(results.iter().any(|m| m.alternative == 1));
+}
+
+#[test]
+fn find_extra_with_multiple_corpora() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    // Import the sample corpus with different names
+    let mut corpus_names = Vec::new();
+    for i in 0..3 {
+        let corpus_name = format!("{i}");
+        cs.import_from_fs(
+            &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
+            ImportFormat::GraphML,
+            Some(corpus_name.clone()),
+            false,
+            true,
+            |_| {},
+        )
+        .unwrap();
+        corpus_names.push(corpus_name);
+    }
+
+    // Execute a query with two alternatives that have 8 and 5 matches inside
+    // each corpus
+    let q = SearchQuery {
+        corpus_names: &corpus_names,
+        query: "pos=\"VBZ\" | pos=\"NN\"".into(),
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+
+    for order in [ResultOrder::Normal, ResultOrder::Inverted] {
+        let all_results = cs.find_extra(q.clone(), 0, None, order).unwrap();
+        assert_eq!(39, all_results.len());
+        assert!(all_results.iter().any(|m| m.alternative == 0));
+        assert!(all_results.iter().any(|m| m.alternative == 1));
+
+        // The match IDs must be the same as the ones returned by find
+        let match_ids: Vec<_> = all_results.iter().map(|m| m.match_id.clone()).collect();
+        assert_eq!(cs.find(q.clone(), 0, None, order).unwrap(), match_ids);
+
+        // Paginated queries must return the same matches with the same
+        // alternatives, also when the pagination crosses a corpus boundary
+        for (offset, limit) in [(0, 5), (5, 10), (11, 4), (30, 20)] {
+            let results = cs
+                .find_extra(q.clone(), offset, Some(limit), order)
+                .unwrap();
+            let expected = &all_results[offset..(offset + limit).min(all_results.len())];
+            assert_eq!(expected, results, "for offset {offset} and limit {limit}");
+        }
+    }
+}
+
 fn compare_edge_annos(
     annos1: &dyn EdgeAnnotationStorage,
     annos2: &dyn EdgeAnnotationStorage,

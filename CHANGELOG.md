@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the `CorpusStorage::find_extra` method, which returns for each match the
+  alternative of the query that produced it in addition to the match ID.
 - Handle partitioned GraphML files in CorpusStorage.
 - Make the `graph::serizalization::read_graphml` function of the
   `graphannis-core` crate public. This is useful in case you want to do collect

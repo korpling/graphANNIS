@@ -11,6 +11,27 @@ pub struct CountExtra {
     pub document_count: u64,
 }
 
+/// A single result returned from [`CorpusStorage::find_extra`](crate::CorpusStorage::find_extra).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct MatchExtra {
+    /// The match ID, consisting of the matched node annotation identifiers separated by spaces.
+    ///
+    /// This uses the same format as the strings returned from [`CorpusStorage::find`](crate::CorpusStorage::find).
+    pub match_id: String,
+    /// The index of the alternative of the query that produced this match.
+    ///
+    /// A match that is produced by more than one alternative is only returned once and attributed to the first alternative that produces it.
+    ///
+    /// This uses the same numbering as [`QueryAttributeDescription::alternative`].
+    /// Therefore, the descriptions returned from [`CorpusStorage::node_descriptions`](crate::CorpusStorage::node_descriptions)
+    /// can be filtered by this value and by [`QueryAttributeDescription::optional`] being `false`
+    /// to get the descriptions of the query nodes belonging to this alternative that are part of the output.
+    /// These are in the same order as the node annotation identifiers in `match_id`, so both can be paired up
+    /// to get the description of the query node that each matched node belongs to.
+    pub alternative: usize,
+}
+
 /// Definition of the result of a `frequency` query.
 pub type FrequencyTable<T> = Vec<FrequencyTableRow<T>>;
 
