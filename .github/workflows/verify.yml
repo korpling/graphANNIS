@@ -61,6 +61,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMENT_OUTPUT: TRUE
       - uses: mshick/add-pr-comment@v3
+        # Check if the event is not triggered by a fork before attempting to add a comment
+        # see https://github.com/peter-evans/create-pull-request/blob/main/docs/concepts-guidelines.md#restrictions-on-repository-forks
+        if: github.event.pull_request.head.repo.full_name == github.repository
         with:
           message: |
             Commit ${{ github.event.pull_request.head.sha }}

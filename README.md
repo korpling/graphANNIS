@@ -40,7 +40,7 @@ To run all checks that have to pass for a merge requests locally, first make sur
 
 ```bash
 cargo install cargo-llvm-cov
-pipx install diff_cover
+pipx install diff-cover
 ```
 
 Then, run the following command to run all checks including code coverage:
