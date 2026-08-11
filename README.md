@@ -49,6 +49,7 @@ Then, run the following command to run all checks including code coverage:
 ./verify.sh
 ```
 
+This script is also executed for pull requests.
 
 ### Performing a release
 
