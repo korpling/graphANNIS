@@ -49,6 +49,11 @@ Then, run the following command to run all checks including code coverage:
 ./verify.sh
 ```
 
+If you need code coverage for the whole project, you can execute cargo-llvm-cov directly:
+
+```bash
+cargo llvm-cov --no-cfg-coverage --all-features --ignore-filename-regex 'tests?\.rs' --html
+```
 
 ### Performing a release
 
