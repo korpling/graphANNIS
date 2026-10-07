@@ -144,3 +144,6 @@ impl Iterator for CycleSafeDFS<'_> {
         result
     }
 }
+
+#[cfg(test)]
+mod tests;
