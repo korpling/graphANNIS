@@ -13,7 +13,7 @@ use graphannis_core::{
     util::disk_collections::{DEFAULT_BLOCK_CACHE_CAPACITY, DiskMap, EvictionStrategy},
 };
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap},
     fmt,
 };
 use transient_btree_index::BtreeConfig;
@@ -595,6 +595,37 @@ impl ComponentType for AnnotationComponentType {
         graph.optimize_gs_impl(&order_component)?;
         if let Some(gs_order) = graph.get_graphstorage(&order_component) {
             index.reindex_inherited_coverage(graph, gs_order)?;
+        }
+
+        // make sure all edges in named dominance components are also in the default dominance component `Dominance/annis`
+        {
+            let default_dominance_component = AnnotationComponent::new(
+                AnnotationComponentType::Dominance,
+                ANNIS_NS.into(),
+                "".into(),
+            );
+            let mut edge_collector = BTreeSet::default();
+            let all_dominance_components =
+                graph.get_all_components(Some(AnnotationComponentType::Dominance), None);
+            for component in all_dominance_components {
+                if component == default_dominance_component {
+                    continue;
+                }
+                if let Some(other_dominance_gs) = graph.get_graphstorage_as_ref(&component) {
+                    for source_node in other_dominance_gs.source_nodes() {
+                        let source = source_node?;
+                        for target in other_dominance_gs.get_outgoing_edges(source) {
+                            let target = target?;
+                            edge_collector.insert(Edge { source, target });
+                        }
+                    }
+                }
+            }
+            let default_dominance_gs =
+                graph.get_or_create_writable(&default_dominance_component)?;
+            edge_collector
+                .into_iter()
+                .try_for_each(|e| default_dominance_gs.add_edge(e))?;
         }
 
         Ok(())
