@@ -106,101 +106,125 @@ expression: "String::from_utf8_lossy(&output)"
             <data key="k3">node</data>
             <data key="k5"></data>
         </node>
-        <edge id="e0" source="single_sentence/zossen#n1" target="single_sentence/zossen#n2" label="Dominance/syntax/">
+        <edge id="e0" source="single_sentence/zossen#n1" target="single_sentence/zossen#n2" label="Dominance/annis/">
         </edge>
-        <edge id="e1" source="single_sentence/zossen#n1" target="single_sentence/zossen#t8" label="Dominance/syntax/">
+        <edge id="e1" source="single_sentence/zossen#n1" target="single_sentence/zossen#t8" label="Dominance/annis/">
         </edge>
-        <edge id="e2" source="single_sentence/zossen#n2" target="single_sentence/zossen#n3" label="Dominance/syntax/">
+        <edge id="e2" source="single_sentence/zossen#n2" target="single_sentence/zossen#n3" label="Dominance/annis/">
         </edge>
-        <edge id="e3" source="single_sentence/zossen#n2" target="single_sentence/zossen#t5" label="Dominance/syntax/">
+        <edge id="e3" source="single_sentence/zossen#n2" target="single_sentence/zossen#t5" label="Dominance/annis/">
         </edge>
-        <edge id="e4" source="single_sentence/zossen#n2" target="single_sentence/zossen#n5" label="Dominance/syntax/">
+        <edge id="e4" source="single_sentence/zossen#n2" target="single_sentence/zossen#n5" label="Dominance/annis/">
         </edge>
-        <edge id="e5" source="single_sentence/zossen#n3" target="single_sentence/zossen#t1" label="Dominance/syntax/">
+        <edge id="e5" source="single_sentence/zossen#n3" target="single_sentence/zossen#t1" label="Dominance/annis/">
         </edge>
-        <edge id="e6" source="single_sentence/zossen#n3" target="single_sentence/zossen#t2" label="Dominance/syntax/">
+        <edge id="e6" source="single_sentence/zossen#n3" target="single_sentence/zossen#t2" label="Dominance/annis/">
         </edge>
-        <edge id="e7" source="single_sentence/zossen#n3" target="single_sentence/zossen#n4" label="Dominance/syntax/">
+        <edge id="e7" source="single_sentence/zossen#n3" target="single_sentence/zossen#n4" label="Dominance/annis/">
         </edge>
-        <edge id="e8" source="single_sentence/zossen#n4" target="single_sentence/zossen#t3" label="Dominance/syntax/">
+        <edge id="e8" source="single_sentence/zossen#n4" target="single_sentence/zossen#t3" label="Dominance/annis/">
         </edge>
-        <edge id="e9" source="single_sentence/zossen#n4" target="single_sentence/zossen#t4" label="Dominance/syntax/">
+        <edge id="e9" source="single_sentence/zossen#n4" target="single_sentence/zossen#t4" label="Dominance/annis/">
         </edge>
-        <edge id="e10" source="single_sentence/zossen#n5" target="single_sentence/zossen#t6" label="Dominance/syntax/">
+        <edge id="e10" source="single_sentence/zossen#n5" target="single_sentence/zossen#t6" label="Dominance/annis/">
         </edge>
-        <edge id="e11" source="single_sentence/zossen#n5" target="single_sentence/zossen#t7" label="Dominance/syntax/">
+        <edge id="e11" source="single_sentence/zossen#n5" target="single_sentence/zossen#t7" label="Dominance/annis/">
         </edge>
-        <edge id="e12" source="single_sentence/zossen#n1" target="single_sentence/zossen#n2" label="Dominance/syntax/edge">
+        <edge id="e12" source="single_sentence/zossen#n1" target="single_sentence/zossen#n2" label="Dominance/syntax/">
         </edge>
-        <edge id="e13" source="single_sentence/zossen#n1" target="single_sentence/zossen#t8" label="Dominance/syntax/edge">
+        <edge id="e13" source="single_sentence/zossen#n1" target="single_sentence/zossen#t8" label="Dominance/syntax/">
         </edge>
-        <edge id="e14" source="single_sentence/zossen#n2" target="single_sentence/zossen#n3" label="Dominance/syntax/edge">
+        <edge id="e14" source="single_sentence/zossen#n2" target="single_sentence/zossen#n3" label="Dominance/syntax/">
         </edge>
-        <edge id="e15" source="single_sentence/zossen#n2" target="single_sentence/zossen#t5" label="Dominance/syntax/edge">
+        <edge id="e15" source="single_sentence/zossen#n2" target="single_sentence/zossen#t5" label="Dominance/syntax/">
         </edge>
-        <edge id="e16" source="single_sentence/zossen#n2" target="single_sentence/zossen#n5" label="Dominance/syntax/edge">
+        <edge id="e16" source="single_sentence/zossen#n2" target="single_sentence/zossen#n5" label="Dominance/syntax/">
         </edge>
-        <edge id="e17" source="single_sentence/zossen#n3" target="single_sentence/zossen#t1" label="Dominance/syntax/edge">
+        <edge id="e17" source="single_sentence/zossen#n3" target="single_sentence/zossen#t1" label="Dominance/syntax/">
         </edge>
-        <edge id="e18" source="single_sentence/zossen#n3" target="single_sentence/zossen#t2" label="Dominance/syntax/edge">
+        <edge id="e18" source="single_sentence/zossen#n3" target="single_sentence/zossen#t2" label="Dominance/syntax/">
         </edge>
-        <edge id="e19" source="single_sentence/zossen#n3" target="single_sentence/zossen#n4" label="Dominance/syntax/edge">
+        <edge id="e19" source="single_sentence/zossen#n3" target="single_sentence/zossen#n4" label="Dominance/syntax/">
         </edge>
-        <edge id="e20" source="single_sentence/zossen#n4" target="single_sentence/zossen#t3" label="Dominance/syntax/edge">
+        <edge id="e20" source="single_sentence/zossen#n4" target="single_sentence/zossen#t3" label="Dominance/syntax/">
         </edge>
-        <edge id="e21" source="single_sentence/zossen#n4" target="single_sentence/zossen#t4" label="Dominance/syntax/edge">
+        <edge id="e21" source="single_sentence/zossen#n4" target="single_sentence/zossen#t4" label="Dominance/syntax/">
         </edge>
-        <edge id="e22" source="single_sentence/zossen#n5" target="single_sentence/zossen#t6" label="Dominance/syntax/edge">
+        <edge id="e22" source="single_sentence/zossen#n5" target="single_sentence/zossen#t6" label="Dominance/syntax/">
         </edge>
-        <edge id="e23" source="single_sentence/zossen#n5" target="single_sentence/zossen#t7" label="Dominance/syntax/edge">
+        <edge id="e23" source="single_sentence/zossen#n5" target="single_sentence/zossen#t7" label="Dominance/syntax/">
         </edge>
-        <edge id="e24" source="single_sentence/zossen#t1" target="single_sentence/zossen#t2" label="Ordering/annis/">
+        <edge id="e24" source="single_sentence/zossen#n1" target="single_sentence/zossen#n2" label="Dominance/syntax/edge">
         </edge>
-        <edge id="e25" source="single_sentence/zossen#t2" target="single_sentence/zossen#t3" label="Ordering/annis/">
+        <edge id="e25" source="single_sentence/zossen#n1" target="single_sentence/zossen#t8" label="Dominance/syntax/edge">
         </edge>
-        <edge id="e26" source="single_sentence/zossen#t3" target="single_sentence/zossen#t4" label="Ordering/annis/">
+        <edge id="e26" source="single_sentence/zossen#n2" target="single_sentence/zossen#n3" label="Dominance/syntax/edge">
         </edge>
-        <edge id="e27" source="single_sentence/zossen#t4" target="single_sentence/zossen#newToken" label="Ordering/annis/">
+        <edge id="e27" source="single_sentence/zossen#n2" target="single_sentence/zossen#t5" label="Dominance/syntax/edge">
         </edge>
-        <edge id="e28" source="single_sentence/zossen#t5" target="single_sentence/zossen#t6" label="Ordering/annis/">
+        <edge id="e28" source="single_sentence/zossen#n2" target="single_sentence/zossen#n5" label="Dominance/syntax/edge">
         </edge>
-        <edge id="e29" source="single_sentence/zossen#t6" target="single_sentence/zossen#t7" label="Ordering/annis/">
+        <edge id="e29" source="single_sentence/zossen#n3" target="single_sentence/zossen#t1" label="Dominance/syntax/edge">
         </edge>
-        <edge id="e30" source="single_sentence/zossen#t7" target="single_sentence/zossen#t8" label="Ordering/annis/">
+        <edge id="e30" source="single_sentence/zossen#n3" target="single_sentence/zossen#t2" label="Dominance/syntax/edge">
         </edge>
-        <edge id="e31" source="single_sentence/zossen#newToken" target="single_sentence/zossen#t5" label="Ordering/annis/">
+        <edge id="e31" source="single_sentence/zossen#n3" target="single_sentence/zossen#n4" label="Dominance/syntax/edge">
         </edge>
-        <edge id="e32" source="single_sentence/zossen" target="single_sentence" label="PartOf/annis/">
+        <edge id="e32" source="single_sentence/zossen#n4" target="single_sentence/zossen#t3" label="Dominance/syntax/edge">
         </edge>
-        <edge id="e33" source="single_sentence/zossen#text" target="single_sentence/zossen" label="PartOf/annis/">
+        <edge id="e33" source="single_sentence/zossen#n4" target="single_sentence/zossen#t4" label="Dominance/syntax/edge">
         </edge>
-        <edge id="e34" source="single_sentence/zossen#n1" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e34" source="single_sentence/zossen#n5" target="single_sentence/zossen#t6" label="Dominance/syntax/edge">
         </edge>
-        <edge id="e35" source="single_sentence/zossen#n2" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e35" source="single_sentence/zossen#n5" target="single_sentence/zossen#t7" label="Dominance/syntax/edge">
         </edge>
-        <edge id="e36" source="single_sentence/zossen#n3" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e36" source="single_sentence/zossen#t1" target="single_sentence/zossen#t2" label="Ordering/annis/">
         </edge>
-        <edge id="e37" source="single_sentence/zossen#t1" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e37" source="single_sentence/zossen#t2" target="single_sentence/zossen#t3" label="Ordering/annis/">
         </edge>
-        <edge id="e38" source="single_sentence/zossen#t2" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e38" source="single_sentence/zossen#t3" target="single_sentence/zossen#t4" label="Ordering/annis/">
         </edge>
-        <edge id="e39" source="single_sentence/zossen#n4" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e39" source="single_sentence/zossen#t4" target="single_sentence/zossen#newToken" label="Ordering/annis/">
         </edge>
-        <edge id="e40" source="single_sentence/zossen#t3" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e40" source="single_sentence/zossen#t5" target="single_sentence/zossen#t6" label="Ordering/annis/">
         </edge>
-        <edge id="e41" source="single_sentence/zossen#t4" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e41" source="single_sentence/zossen#t6" target="single_sentence/zossen#t7" label="Ordering/annis/">
         </edge>
-        <edge id="e42" source="single_sentence/zossen#t5" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e42" source="single_sentence/zossen#t7" target="single_sentence/zossen#t8" label="Ordering/annis/">
         </edge>
-        <edge id="e43" source="single_sentence/zossen#n5" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e43" source="single_sentence/zossen#newToken" target="single_sentence/zossen#t5" label="Ordering/annis/">
         </edge>
-        <edge id="e44" source="single_sentence/zossen#t6" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e44" source="single_sentence/zossen" target="single_sentence" label="PartOf/annis/">
         </edge>
-        <edge id="e45" source="single_sentence/zossen#t7" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e45" source="single_sentence/zossen#text" target="single_sentence/zossen" label="PartOf/annis/">
         </edge>
-        <edge id="e46" source="single_sentence/zossen#t8" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e46" source="single_sentence/zossen#n1" target="single_sentence/zossen#text" label="PartOf/annis/">
         </edge>
-        <edge id="e47" source="single_sentence/zossen#newToken" target="single_sentence/zossen#text" label="PartOf/annis/">
+        <edge id="e47" source="single_sentence/zossen#n2" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e48" source="single_sentence/zossen#n3" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e49" source="single_sentence/zossen#t1" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e50" source="single_sentence/zossen#t2" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e51" source="single_sentence/zossen#n4" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e52" source="single_sentence/zossen#t3" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e53" source="single_sentence/zossen#t4" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e54" source="single_sentence/zossen#t5" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e55" source="single_sentence/zossen#n5" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e56" source="single_sentence/zossen#t6" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e57" source="single_sentence/zossen#t7" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e58" source="single_sentence/zossen#t8" target="single_sentence/zossen#text" label="PartOf/annis/">
+        </edge>
+        <edge id="e59" source="single_sentence/zossen#newToken" target="single_sentence/zossen#text" label="PartOf/annis/">
         </edge>
     </graph>
 </graphml>
