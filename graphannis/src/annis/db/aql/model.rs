@@ -12,7 +12,6 @@ use graphannis_core::{
     types::ComponentType,
     util::disk_collections::{DEFAULT_BLOCK_CACHE_CAPACITY, DiskMap, EvictionStrategy},
 };
-use itertools::Itertools;
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
     fmt,
@@ -599,7 +598,7 @@ impl ComponentType for AnnotationComponentType {
         }
 
         // make sure all edges in named dominance components are also in the default dominance component `Dominance/annis`
-        {            
+        {
             let default_dominance_component = AnnotationComponent::new(
                 AnnotationComponentType::Dominance,
                 ANNIS_NS.into(),
