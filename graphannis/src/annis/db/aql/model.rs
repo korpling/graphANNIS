@@ -604,28 +604,24 @@ impl ComponentType for AnnotationComponentType {
                 ANNIS_NS.into(),
                 "".into(),
             );
-            let mut edge_collector = BTreeSet::default();
-            let all_dominance_components =
-                graph.get_all_components(Some(AnnotationComponentType::Dominance), None);
-            for component in all_dominance_components {
-                if component == default_dominance_component {
-                    continue;
-                }
-                if let Some(other_dominance_gs) = graph.get_graphstorage_as_ref(&component) {
-                    for source_node in other_dominance_gs.source_nodes() {
-                        let source = source_node?;
-                        for target in other_dominance_gs.get_outgoing_edges(source) {
-                            let target = target?;
-                            edge_collector.insert(Edge { source, target });
-                        }
+
+            let other_dominance_components: Vec<_> = graph
+                .get_all_components(Some(AnnotationComponentType::Dominance), None)
+                .into_iter()
+                .filter(|c| c != &default_dominance_component)
+                .filter_map(|c| graph.get_graphstorage(&c))
+                .collect();
+            let default_dominance_gs =
+                graph.get_or_create_writable(&default_dominance_component)?;
+            for other_dominance_gs in other_dominance_components {
+                for source_node in other_dominance_gs.source_nodes() {
+                    let source = source_node?;
+                    for target in other_dominance_gs.get_outgoing_edges(source) {
+                        let target = target?;
+                        default_dominance_gs.add_edge(Edge { source, target })?;
                     }
                 }
             }
-            let default_dominance_gs =
-                graph.get_or_create_writable(&default_dominance_component)?;
-            edge_collector
-                .into_iter()
-                .try_for_each(|e| default_dominance_gs.add_edge(e))?;
         }
 
         Ok(())
