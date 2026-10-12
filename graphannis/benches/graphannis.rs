@@ -13,8 +13,10 @@ use fake::locales::*;
 use graphannis::CorpusStorage;
 use graphannis::corpusstorage::ResultOrder;
 use graphannis::corpusstorage::{QueryLanguage, SearchQuery};
+use graphannis::model::AnnotationComponentType;
 use graphannis::update::{GraphUpdate, UpdateEvent};
 use std::collections::HashSet;
+use std::io::BufReader;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -429,6 +431,39 @@ fn apply_update_ondisk(bench: &mut Criterion) {
     });
 }
 
+/// Benchmark a more complex graph with dominance and pointing relations.
+fn apply_update_complex_graph(bench: &mut Criterion) {
+    if CORPUS_STORAGE.is_none() {
+        return;
+    }
+
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+
+    bench.bench_function("apply_update_complex_graph", move |b| {
+        cs.create_empty_corpus("apply_update_test_corpus", false)
+            .unwrap();
+
+        let mut input =
+            BufReader::new(&include_bytes!("../../core/tests/single_sentence.graphml")[..]);
+        let mut node_updates = GraphUpdate::new();
+        let mut edge_updates = GraphUpdate::new();
+        let _config_str = graphannis_core::graph::serialization::graphml::read_graphml::<
+            AnnotationComponentType,
+            _,
+            _,
+        >(&mut input, &mut node_updates, &mut edge_updates, &|_| {})
+        .unwrap();
+
+        b.iter(|| {
+            cs.apply_update("apply_update_test_corpus", &mut node_updates)
+                .unwrap();
+            cs.apply_update("apply_update_test_corpus", &mut edge_updates)
+                .unwrap();
+        });
+        cs.delete("apply_update_test_corpus").unwrap();
+    });
+}
+
 criterion_group!(name=default; config= Criterion::default().sample_size(50); targets =
     deserialize_gum,
     find_first_ten_token_gum,
@@ -441,5 +476,6 @@ criterion_group!(name=default; config= Criterion::default().sample_size(50); tar
 criterion_group!(name=apply_update; config= Criterion::default().sample_size(20); targets =
     apply_update_inmemory,
     apply_update_ondisk,
+    apply_update_complex_graph,
 );
 criterion_main!(default, apply_update);
