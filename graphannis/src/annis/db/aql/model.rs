@@ -393,6 +393,60 @@ impl AQLUpdateGraphIndex {
             Ok(None)
         }
     }
+
+    /// Make sure all edges in named dominance components are in an unnamed dominance component.
+    fn add_empty_dominance_edges(
+        &mut self,
+        graph: &mut AnnotationGraph,
+    ) -> std::result::Result<(), ComponentTypeError> {
+        let default_dominance_component = AnnotationComponent::new(
+            AnnotationComponentType::Dominance,
+            ANNIS_NS.into(),
+            "".into(),
+        );
+
+        let existing_dominance_components: Vec<_> =
+            graph.get_all_components(Some(AnnotationComponentType::Dominance), None);
+
+        let (unnamed_dominance_components, named_dominance_componts): (Vec<_>, Vec<_>) =
+            existing_dominance_components
+                .into_iter()
+                .filter(|c| c != &default_dominance_component)
+                .partition(|c| c.name.is_empty());
+
+        let named_dominance_gs: Vec<_> = named_dominance_componts
+            .into_iter()
+            .filter_map(|c| graph.get_graphstorage(&c))
+            .collect();
+
+        let unnamed_dominance_gs: Vec<_> = unnamed_dominance_components
+            .into_iter()
+            .filter_map(|c| graph.get_graphstorage(&c))
+            .collect();
+
+        let default_dominance_gs = graph.get_or_create_writable(&default_dominance_component)?;
+        for other_dominance_gs in named_dominance_gs {
+            for source_node in other_dominance_gs.source_nodes() {
+                let source = source_node?;
+                // The ">" operator will search all components that have an empty name.
+                // We don't need to add an edge if its already part of such a component.
+                let existing_unnamed_outgoing: Result<Vec<NodeID>> = unnamed_dominance_gs
+                    .iter()
+                    .flat_map(|gs| gs.get_outgoing_edges(source))
+                    .collect();
+                let existing_unnamed_outgoing =
+                    HashSet::<u64>::from_iter(existing_unnamed_outgoing?);
+                for target in other_dominance_gs.get_outgoing_edges(source) {
+                    let target = target?;
+                    if !existing_unnamed_outgoing.contains(&target) {
+                        default_dominance_gs.add_edge(Edge { source, target })?;
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl ComponentType for AnnotationComponentType {
@@ -578,6 +632,8 @@ impl ComponentType for AnnotationComponentType {
         }
         index.invalid_nodes.compact()?;
 
+        index.add_empty_dominance_edges(graph)?;
+
         // Re-index the inherited coverage component.
         // To make this operation fast, we need to optimize the order component first
         let order_component = AnnotationComponent::new(
@@ -596,58 +652,6 @@ impl ComponentType for AnnotationComponentType {
         if let Some(gs_order) = graph.get_graphstorage(&order_component) {
             index.reindex_inherited_coverage(graph, gs_order)?;
         }
-
-        // make sure all edges in named dominance components are also in the default dominance component `Dominance/annis`
-        {
-            let default_dominance_component = AnnotationComponent::new(
-                AnnotationComponentType::Dominance,
-                ANNIS_NS.into(),
-                "".into(),
-            );
-
-            let existing_dominance_components: Vec<_> =
-                graph.get_all_components(Some(AnnotationComponentType::Dominance), None);
-
-            let (unnamed_dominance_components, named_dominance_componts): (Vec<_>, Vec<_>) =
-                existing_dominance_components
-                    .into_iter()
-                    .filter(|c| c != &default_dominance_component)
-                    .partition(|c| c.name.is_empty());
-
-            let named_dominance_gs: Vec<_> = named_dominance_componts
-                .into_iter()
-                .filter_map(|c| graph.get_graphstorage(&c))
-                .collect();
-
-            let unnamed_dominance_gs: Vec<_> = unnamed_dominance_components
-                .into_iter()
-                .filter_map(|c| graph.get_graphstorage(&c))
-                .collect();
-
-            let default_dominance_gs =
-                graph.get_or_create_writable(&default_dominance_component)?;
-            for other_dominance_gs in named_dominance_gs {
-                for source_node in other_dominance_gs.source_nodes() {
-                    let source = source_node?;
-                    // The ">" operator will search all components that have an empty name.
-                    // We don't need to add an edge if its already part of such a component.
-                    let existing_unnamed_outgoing: Result<Vec<NodeID>> = unnamed_dominance_gs
-                        .iter()
-                        .flat_map(|gs| gs.get_outgoing_edges(source))
-                        .collect();
-                    let existing_unnamed_outgoing =
-                        HashSet::<u64>::from_iter(existing_unnamed_outgoing?);
-                    for target in other_dominance_gs.get_outgoing_edges(source) {
-                        let target = target?;
-                        if !existing_unnamed_outgoing.contains(&target) {
-                            default_dominance_gs.add_edge(Edge { source, target })?;
-                        }
-                    }
-                }
-            }
-        }
-
-        // TODO: delete default graph storage when empty
 
         Ok(())
     }

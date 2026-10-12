@@ -349,7 +349,7 @@ fn add_token_to_single_sentence() {
 #[test]
 fn add_dominance_edges_with_empty_name() {
     let content =
-        &include_bytes!("../../../../../tests/single_sentence only_named_edges.graphml")[..];
+        &include_bytes!("../../../../../tests/single_sentence_only_named_edges.graphml")[..];
     let (graph, _config) =
         graphml::import::<AnnotationComponentType, _, _>(content, false, |_| {}).unwrap();
 
