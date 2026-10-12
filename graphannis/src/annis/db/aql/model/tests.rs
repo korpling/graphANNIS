@@ -28,11 +28,11 @@ fn global_stats_token_count() {
     assert_eq!(true, graph.global_statistics.is_some());
     let global_stats = graph.global_statistics.unwrap();
     assert_eq!(true, global_stats.all_token_in_order_component);
-    assert_matches!(global_stats.corpus_size, 
+    assert_matches!(global_stats.corpus_size,
         CorpusSize::Token { base_token_count, segmentation_count }
         if base_token_count == 16
             && segmentation_count.len() == 2
-            && *segmentation_count.get("diplomatic").unwrap() == 11 
+            && *segmentation_count.get("diplomatic").unwrap() == 11
             && *segmentation_count.get("norm").unwrap() == 13);
 }
 
@@ -343,5 +343,26 @@ fn add_token_to_single_sentence() {
         |_| {},
     )
     .unwrap();
+    assert_snapshot!(String::from_utf8_lossy(&output));
+}
+
+#[test]
+fn add_dominance_edges_with_empty_name() {
+    let content =
+        &include_bytes!("../../../../../tests/single_sentence only_named_edges.graphml")[..];
+    let (graph, _config) =
+        graphml::import::<AnnotationComponentType, _, _>(content, false, |_| {}).unwrap();
+
+    let mut output = Vec::<u8>::default();
+    graphannis_core::graph::serialization::graphml::export_stable_order(
+        &graph,
+        None,
+        &mut output,
+        |_| {},
+    )
+    .unwrap();
+
+    // The output has changed, because new edges have been added.
+    assert_ne!(content, output);
     assert_snapshot!(String::from_utf8_lossy(&output));
 }
