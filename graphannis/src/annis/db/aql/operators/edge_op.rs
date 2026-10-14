@@ -43,7 +43,12 @@ impl BaseEdgeOp {
                 GraphAnnisError::ImpossibleSearch(format!("Component {} does not exist", c))
             })?;
 
-            gs.push(gs_for_component);
+            if gs_for_component
+                .get_statistics()
+                .is_none_or(|stats| stats.nodes > 0)
+            {
+                gs.push(gs_for_component);
+            }
         }
 
         let max_nodes_estimate = calculate_max_node_estimate(db, &spec, &gs, false)?;
