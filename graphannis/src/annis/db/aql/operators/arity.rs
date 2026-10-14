@@ -36,12 +36,16 @@ impl UnaryOperatorSpec for AritySpec {
         let mut graphstorages = Vec::default();
 
         for component in db.get_all_components(Some(AnnotationComponentType::Dominance), None) {
-            if let Some(gs) = db.get_graphstorage(&component) {
+            if let Some(gs) = db.get_graphstorage(&component)
+                && gs.get_statistics().is_none_or(|stats| stats.nodes > 0)
+            {
                 graphstorages.push(gs);
             }
         }
         for component in db.get_all_components(Some(AnnotationComponentType::Pointing), None) {
-            if let Some(gs) = db.get_graphstorage(&component) {
+            if let Some(gs) = db.get_graphstorage(&component)
+                && gs.get_statistics().is_none_or(|stats| stats.nodes > 0)
+            {
                 graphstorages.push(gs);
             }
         }
