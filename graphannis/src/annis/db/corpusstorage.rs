@@ -1954,12 +1954,7 @@ impl CorpusStorage {
 
             for (node_nr, singlematch) in m.iter().enumerate() {
                 // check if query node actually should be included
-                let include_in_output = prep
-                    .query
-                    .get_variable_by_node_nr(node_nr)
-                    .is_some_and(|var| prep.query.is_included_in_output(&var));
-
-                if include_in_output {
+                if prep.query.is_included_in_output(alternative, node_nr) {
                     if any_nodes_added {
                         match_desc.push(' ');
                     }

@@ -387,20 +387,19 @@ impl Conjunction {
         }))
     }
 
-    /// Return true if the given query node variable is supposed to be included
-    /// in a match output. This is not the case if it is an optional node or a
-    /// legacy `meta::` query reference.
-    pub fn is_included_in_output(&self, variable: &str) -> bool {
-        self.include_in_output.contains(variable)
+    /// Return true if the query node with the given node number inside this
+    /// conjunction is supposed to be included in a match output. This is not
+    /// the case if it is an optional node or a legacy `meta::` query reference.
+    pub fn is_included_in_output(&self, node_nr: usize) -> bool {
+        self.nodes
+            .get(node_nr)
+            .is_some_and(|node| self.include_in_output.contains(&node.var))
     }
 
-    /// Return the variable name for a node number. The node number is the
-    /// position of a node description in the query. In case of a query with
-    /// multiple alternatives, this refers to the node number of the whole query and
-    /// not only the one inside the conjunction.
+    /// Return the variable name for the query node with the given node number
+    /// inside this conjunction.
     pub fn get_variable_by_node_nr(&self, node_nr: usize) -> Option<String> {
-        let pos = node_nr.checked_sub(self.var_idx_offset)?;
-        self.nodes.get(pos).map(|spec| spec.var.clone())
+        self.nodes.get(node_nr).map(|spec| spec.var.clone())
     }
 
     pub fn resolve_variable(
