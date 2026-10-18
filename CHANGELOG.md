@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed the match nodes returned by `CorpusStorage::find`,
+  `CorpusStorage::find_extra` and `aql::execute_query_on_graph` for queries
+  that have an optional node in an alternative other than the first one.
+
 ## [4.3.0] - 2026-10-15
 
 ### Added

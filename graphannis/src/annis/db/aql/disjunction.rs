@@ -36,23 +36,12 @@ impl Disjunction {
         None
     }
 
-    /// Return the variable name for a node number. The node number is the
-    /// position of an AQL query node in the disjunction.
-    pub(crate) fn get_variable_by_node_nr(&self, node_nr: usize) -> Option<String> {
-        for alt in &self.alternatives {
-            if let Some(var) = alt.get_variable_by_node_nr(node_nr) {
-                return Some(var);
-            }
-        }
-        None
-    }
-
-    pub(crate) fn is_included_in_output(&self, variable: &str) -> bool {
-        for alt in &self.alternatives {
-            if alt.is_included_in_output(variable) {
-                return true;
-            }
-        }
-        false
+    /// Return true if the query node with the given node number inside the given
+    /// alternative is supposed to be included in a match output. The node number
+    /// is the one inside the alternative and not the one in the whole query.
+    pub(crate) fn is_included_in_output(&self, alternative: usize, node_nr: usize) -> bool {
+        self.alternatives
+            .get(alternative)
+            .is_some_and(|alt| alt.is_included_in_output(node_nr))
     }
 }
