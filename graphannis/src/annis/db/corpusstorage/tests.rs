@@ -11,6 +11,7 @@ use crate::annis::db::corpusstorage::{CacheEntry, get_read_or_error};
 use crate::annis::db::example_generator::create_token_node;
 use crate::annis::db::{aql::model::AnnotationComponentType, example_generator};
 use crate::annis::errors::GraphAnnisError;
+use crate::annis::util::node_names_from_match;
 use crate::corpusstorage::{ImportFormat, QueryLanguage, ResultOrder};
 use crate::errors::Result;
 use crate::update::{GraphUpdate, UpdateEvent};
@@ -1856,6 +1857,42 @@ fn optional_node_first_in_query() {
         "default_ns::Inf-Struct::rootCorpus/subCorpus2/doc4#IS_span1",
         result[3]
     );
+}
+
+#[test]
+fn optional_node_first_in_later_alternative() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let cs = CorpusStorage::with_auto_cache_size(tmp.path(), true).unwrap();
+    cs.import_from_fs(
+        &cargo_dir.join("tests/SaltSampleCorpus.graphml"),
+        ImportFormat::GraphML,
+        Some("SaltSampleCorpus".into()),
+        false,
+        true,
+        |_| {},
+    )
+    .unwrap();
+
+    let query = SearchQuery {
+        corpus_names: &["SaltSampleCorpus"],
+        query: "tok | tok? !. lemma",
+        query_language: QueryLanguage::AQL,
+        timeout: None,
+    };
+    let results = cs.find(query, 0, None, ResultOrder::Normal).unwrap();
+
+    // 44 matches from the first alternative and 4 from the second one
+    assert_eq!(48, results.len());
+    // The optional node must not be included in any of the matches, only the
+    // lemma after it
+    assert!(results.iter().all(|m| node_names_from_match(m).len() == 1));
+    let lemma_matches = results
+        .iter()
+        .filter(|m| m.starts_with("salt::lemma::"))
+        .count();
+    assert_eq!(4, lemma_matches);
 }
 
 #[test]

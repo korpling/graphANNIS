@@ -79,15 +79,13 @@ pub fn execute_query_on_graph<'a>(
 
     let config = Config { use_parallel_joins };
     let it = ExecutionPlan::from_disjunction(query, graph, &config, timeout)?
-        .map_ok(|mg| {
+        .matches_with_alternative()
+        .map_ok(|(alternative, mg)| {
             // Rewrite match group to only include nodes that are included in the query
             // check if query node actually should be included
             let mut new_match_group = MatchGroup::with_capacity(mg.len());
             for (node_nr, m) in mg.into_iter().enumerate() {
-                let include_in_output = query
-                    .get_variable_by_node_nr(node_nr)
-                    .is_some_and(|var| query.is_included_in_output(&var));
-                if include_in_output {
+                if query.is_included_in_output(alternative, node_nr) {
                     new_match_group.push(m);
                 }
             }
@@ -522,7 +520,7 @@ pub fn parse(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction> {
 
                 if quirks_mode {
                     // apply the meta constraints to first node of all conjunctions
-                    let first_node_var = mapped.get_variable_by_node_nr(var_idx_offset);
+                    let first_node_var = mapped.get_variable_by_node_nr(0);
                     add_legacy_metadata_constraints(
                         &mut mapped,
                         legacy_meta_search.clone(),
@@ -677,7 +675,7 @@ mod tests {
     #[test]
     fn query_on_annotation_graph() {
         let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let input_file = File::open(&cargo_dir.join("tests/SaltSampleCorpus.graphml")).unwrap();
+        let input_file = File::open(cargo_dir.join("tests/SaltSampleCorpus.graphml")).unwrap();
         let (graph, _config_str): (AnnotationGraph, _) =
             graphannis_core::graph::serialization::graphml::import(input_file, false, |_status| {})
                 .unwrap();
@@ -690,7 +688,7 @@ mod tests {
     #[test]
     fn query_on_annotation_graph_with_negation() {
         let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let input_file = File::open(&cargo_dir.join("tests/SaltSampleCorpus.graphml")).unwrap();
+        let input_file = File::open(cargo_dir.join("tests/SaltSampleCorpus.graphml")).unwrap();
         let (graph, _config_str): (AnnotationGraph, _) =
             graphannis_core::graph::serialization::graphml::import(input_file, false, |_status| {})
                 .unwrap();
@@ -706,5 +704,30 @@ mod tests {
         assert_eq!(1, matches[1].len());
         assert_eq!(1, matches[2].len());
         assert_eq!(1, matches[3].len());
+    }
+
+    #[test]
+    fn query_on_annotation_graph_with_optional_node_in_later_alternative() {
+        let cargo_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let input_file = File::open(cargo_dir.join("tests/SaltSampleCorpus.graphml")).unwrap();
+        let (graph, _config_str): (AnnotationGraph, _) =
+            graphannis_core::graph::serialization::graphml::import(input_file, false, |_status| {})
+                .unwrap();
+
+        let query = parse("tok | tok? !. lemma", false).unwrap();
+        let it = execute_query_on_graph(&graph, &query, true, None).unwrap();
+
+        let matches: Result<Vec<_>> = it.collect();
+        let matches = matches.unwrap();
+        // 44 matches from the first alternative and 4 from the second one
+        assert_eq!(48, matches.len());
+        // The optional node must not be included in any of the matches, only
+        // the lemma after it
+        assert!(matches.iter().all(|m| m.len() == 1));
+        let lemma_matches = matches
+            .iter()
+            .filter(|m| m[0].anno_key.name == "lemma")
+            .count();
+        assert_eq!(4, lemma_matches);
     }
 }
